@@ -290,10 +290,10 @@ From user's PowerShell testing:
 ### Sub-tasks:
 
 #### 8.1: Lexer - Add CONST Token
-- [ ] Add CONST to TokenType enum in src/lexer/token.py
-- [ ] Add 'const' to keywords.py keyword table
-- [ ] Write tests for CONST token recognition
-- [ ] Verify lexer tokenizes const correctly
+- [x] Add CONST to TokenType enum in src/lexer/token.py
+- [x] Add 'const' to keywords.py keyword table
+- [x] Write tests for CONST token recognition
+- [x] Verify lexer tokenizes const correctly
 
 #### 8.2: Parser - Parse const Declarations
 - [ ] Update parse_statement() to recognize const
