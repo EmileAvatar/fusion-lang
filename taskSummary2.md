@@ -247,10 +247,10 @@ From user's PowerShell testing:
 - [x] Do NOT ignore: examples/*.fusion, tests/*.py, src/*.py
 
 #### 7.2: Initialize Local Repository
-- [ ] Run `git init` in project root
-- [ ] Run `git add .` (respecting .gitignore)
-- [ ] Create initial commit: "Initial commit - Fusion compiler MVP complete"
-- [ ] Verify git status is clean
+- [x] Run `git init` in project root
+- [x] Run `git add .` (respecting .gitignore)
+- [x] Create initial commit: "Initial commit - Fusion compiler MVP complete"
+- [x] Verify git status is clean
 
 #### 7.3: Create GitHub Repository
 - [ ] User creates GitHub repo (name: "fusion-lang" or similar)
