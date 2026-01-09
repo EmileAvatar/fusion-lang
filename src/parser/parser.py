@@ -694,11 +694,15 @@ class Parser:
         return self.parse_simple_statement()
 
     def parse_simple_statement(self) -> ASTNode:
-        """Parse simple statements: var decl, assignment, or expression.
+        """Parse simple statements: var decl, const decl, assignment, or expression.
 
         Returns:
             Statement AST node (VarDeclStmt, AssignmentStmt, or ExpressionStmt)
         """
+        # Check if it's a const declaration
+        if self.check(TokenType.CONST):
+            return self.parse_const_declaration()
+
         # Check if it's a variable declaration (starts with type)
         if self.is_type_start():
             return self.parse_var_declaration()
@@ -747,6 +751,42 @@ class Parser:
             var_type=var_type,
             name=name,
             initializer=initializer
+        )
+
+    def parse_const_declaration(self) -> ASTNode:
+        """Parse const declaration: const int x = 5
+
+        Const declarations must have an initializer.
+
+        Returns:
+            VarDeclStmt AST node with is_const=True
+
+        Raises:
+            ParserError: If const declaration lacks initializer
+        """
+        const_token = self.consume(TokenType.CONST, "Expected 'const'")
+        location = const_token.location
+
+        var_type = self.parse_type()
+
+        name_token = self.consume(TokenType.IDENTIFIER, "Expected variable name")
+        name = name_token.value
+
+        # Const requires initializer
+        if not self.check(TokenType.ASSIGN):
+            raise ParserError(name_token, "const declaration must have an initializer")
+
+        self.consume(TokenType.ASSIGN, "Expected '=' after const variable name")
+        initializer = self.parse_expression()
+
+        self.consume_statement_terminator()
+
+        return VarDeclStmt(
+            location=location,
+            var_type=var_type,
+            name=name,
+            initializer=initializer,
+            is_const=True
         )
 
     def parse_return_statement(self) -> ASTNode:

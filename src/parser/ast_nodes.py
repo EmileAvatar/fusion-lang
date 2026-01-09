@@ -165,16 +165,18 @@ class ExpressionStmt(ASTNode):
 
 @dataclass
 class VarDeclStmt(ASTNode):
-    """Variable declaration: int x = 5, string name = "Alice"
+    """Variable declaration: int x = 5, const int y = 10
 
     Attributes:
         var_type: Type node for the variable
         name: Variable name
-        initializer: Initial value expression (optional)
+        initializer: Initial value expression (optional for var, required for const)
+        is_const: True if declared with const keyword, False otherwise
     """
     var_type: 'TypeNode'
     name: str
     initializer: Optional[ASTNode]
+    is_const: bool = False
 
 
 @dataclass

@@ -29,11 +29,11 @@
 | **Task 5: Cleanup & Organization** | Complete | 100% | 5 | 5 |
 | **Task 6: Verification & Bug Fixes** | Complete | 100% | 7 | 7 |
 | **Task 7: Git Integration** | Complete | 100% | 4 | 4 |
-| **Task 8: Language Features (const)** | Not Started | 0% | 0 | 8 |
+| **Task 8: Language Features (const)** | In Progress | 25% | 2 | 8 |
 | **Task 9: Language Features (arrays)** | Not Started | 0% | 0 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Overall** | Task 7 Complete | 32% | 18 | 57 |
+| **Overall** | Task 8.2 Complete | 35% | 20 | 57 |
 
 ---
 
@@ -283,7 +283,7 @@ From user's PowerShell testing:
 ## TASK 8: Language Features - const Keyword
 
 **Goal:** Add const variable support
-**Status:** Not Started (Blocked by Tasks 5-7)
+**Status:** In Progress (Tasks 8.1-8.2 Complete)
 **Priority:** MEDIUM
 **Estimated Effort:** 4-6 hours
 
@@ -296,11 +296,11 @@ From user's PowerShell testing:
 - [x] Verify lexer tokenizes const correctly
 
 #### 8.2: Parser - Parse const Declarations
-- [ ] Update parse_statement() to recognize const
-- [ ] Modify VarDeclStmt AST node to include is_const flag
-- [ ] Handle const initialization requirement (const must have initializer)
-- [ ] Write parser tests for const declarations
-- [ ] Test error: `const int x;` (no initializer) should fail
+- [x] Update parse_statement() to recognize const
+- [x] Modify VarDeclStmt AST node to include is_const flag
+- [x] Handle const initialization requirement (const must have initializer)
+- [x] Write parser tests for const declarations
+- [x] Test error: `const int x;` (no initializer) should fail
 
 #### 8.3: Semantic Analyzer - Validate const
 - [ ] Add const validation in NameResolver
