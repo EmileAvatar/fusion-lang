@@ -35,6 +35,21 @@ Claude: [Implement Task 7.X.2]
 
 ---
 
+## 📋 IMPORTANT NOTES
+
+### Repository Status
+- **Repository is now PRIVATE** - Email address removed from public view
+- **Naming Conflict Discovered**: There is an existing programming language called "Fusion"
+  - https://github.com/fusionlanguage/fut
+  - https://fusion-lang.org/
+- **Renaming Plan**:
+  - Will continue using "Fusion" name during development
+  - Will rename ONLY after language is fully working and stable
+  - Rename will happen after we can compile Fusion code to executables without issues
+  - No rush - focus is on getting the language working correctly first
+
+---
+
 ### Rule 2: NO EMOJIS IN CODE FILES
 
 **CRITICAL: Emojis cause encoding errors!**
