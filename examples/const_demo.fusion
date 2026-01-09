@@ -1,0 +1,42 @@
+// Fusion Const Demo
+// Demonstrates const variable declarations
+
+void function main()
+    print("=== Fusion Const Demo ===")
+    print("")
+
+    // Integer constants
+    const int MAX_ITERATIONS = 1000
+    print("MAX_ITERATIONS = {MAX_ITERATIONS}")
+    print("")
+
+    // Use const in loop condition
+    print("Counting to 10 using const MAX:")
+    const int MAX = 10
+    int i = 1
+    while i <= MAX
+        print("  {i}")
+        i = i + 1
+    End while
+    print("")
+
+    // Const in expressions
+    const int BASE = 100
+    const int MULTIPLIER = 2
+    int result = BASE * MULTIPLIER
+    print("BASE ({BASE}) * MULTIPLIER ({MULTIPLIER}) = {result}")
+    print("")
+
+    // Multiple const declarations
+    const int WIDTH = 80
+    const int HEIGHT = 24
+    int total_pixels = WIDTH * HEIGHT
+    print("Screen size: {WIDTH}x{HEIGHT} = {total_pixels} pixels")
+    print("")
+
+    // Demonstrate const cannot be reassigned
+    // Uncommenting the line below would cause a compile error:
+    // MAX = 20
+
+    print("All const tests passed!")
+End function

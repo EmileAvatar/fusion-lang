@@ -29,11 +29,11 @@
 | **Task 5: Cleanup & Organization** | Complete | 100% | 5 | 5 |
 | **Task 6: Verification & Bug Fixes** | Complete | 100% | 7 | 7 |
 | **Task 7: Git Integration** | Complete | 100% | 4 | 4 |
-| **Task 8: Language Features (const)** | In Progress | 50% | 4 | 8 |
+| **Task 8: Language Features (const)** | In Progress | 63% | 5 | 8 |
 | **Task 9: Language Features (arrays)** | Not Started | 0% | 0 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Overall** | Task 8.4 Complete | 39% | 22 | 57 |
+| **Overall** | Task 8.5 Complete | 40% | 23 | 57 |
 
 ---
 
@@ -316,10 +316,10 @@ From user's PowerShell testing:
 - [x] Verify GCC catches const violations
 
 #### 8.5: Integration Testing
-- [ ] Unskip 2 const tests in test_semantic_integration.py
-- [ ] Run all tests, ensure they pass
-- [ ] Create example program using const
-- [ ] Add const example to examples/
+- [x] Unskip 2 const tests in test_semantic_integration.py
+- [x] Run all tests, ensure they pass
+- [x] Create example program using const
+- [x] Add const example to examples/
 
 #### 8.6: Documentation
 - [ ] Update fusion-language-spec.md with const keyword

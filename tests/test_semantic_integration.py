@@ -187,7 +187,6 @@ End function
     assert len(analyzer.get_errors()) == 0
 
 
-@pytest.mark.skip(reason="const keyword not implemented in MVP")
 def test_const_variable():
     """Test constant variable declaration."""
     source = """
@@ -428,7 +427,6 @@ End function
     assert len(undefined_errors) >= 1
 
 
-@pytest.mark.skip(reason="const keyword not implemented in MVP")
 def test_assign_to_constant():
     """Test error for assigning to constant variable."""
     source = """
