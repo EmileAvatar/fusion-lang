@@ -1,0 +1,6 @@
+void function main()
+    int x = 10
+    int y = 20
+    int result = x + y
+    print("The sum of {x} and {y} is {result}")
+End function

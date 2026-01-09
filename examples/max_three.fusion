@@ -1,0 +1,16 @@
+int function max(int a, int b, int c)
+    int result = a
+    if b > result
+        result = b
+    if c > result
+        result = c
+    return result
+End function
+
+void function main()
+    int x = 10
+    int y = 25
+    int z = 15
+    int maximum = max(x, y, z)
+    print("Maximum of {x}, {y}, {z} is {maximum}")
+End function

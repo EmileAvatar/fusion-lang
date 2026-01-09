@@ -1,0 +1,16 @@
+int function add(int a, int b) : a + b
+
+int function subtract(int a, int b) : a - b
+
+int function multiply(int a, int b) : a * b
+
+void function main()
+    int x = 10
+    int y = 5
+    int sum = add(x, y)
+    int diff = subtract(x, y)
+    int prod = multiply(x, y)
+    print("Sum: {sum}")
+    print("Diff: {diff}")
+    print("Prod: {prod}")
+End function

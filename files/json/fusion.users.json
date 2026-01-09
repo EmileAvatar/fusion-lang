@@ -1,0 +1,238 @@
+{
+  "users": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-01-15T10:00:00Z",
+    "defaultRole": "developer"
+  },
+  
+  "roles": {
+    "owner": {
+      "name": "Project Owner",
+      "description": "Full access to all project resources",
+      "permissions": {
+        "read": ["*"],
+        "write": ["*"],
+        "delete": ["*"],
+        "build": true,
+        "deploy": true,
+        "manageUsers": true,
+        "manageSettings": true,
+        "manageRoles": true,
+        "accessUnsafe": true,
+        "modifyConfig": true
+      },
+      "restrictions": {}
+    },
+    
+    "admin": {
+      "name": "Administrator",
+      "description": "Administrative access with some restrictions",
+      "permissions": {
+        "read": ["*"],
+        "write": ["*"],
+        "delete": ["*"],
+        "build": true,
+        "deploy": true,
+        "manageUsers": true,
+        "manageSettings": true,
+        "manageRoles": false,
+        "accessUnsafe": true,
+        "modifyConfig": false
+      },
+      "restrictions": {
+        "cannotModify": [
+          "fusion.project.json",
+          "fusion.users.json"
+        ]
+      }
+    },
+    
+    "developer": {
+      "name": "Developer",
+      "description": "Standard developer with code access",
+      "permissions": {
+        "read": [
+          "./src/**",
+          "./tests/**",
+          "./docs/**",
+          "./modules/**"
+        ],
+        "write": [
+          "./src/**",
+          "./tests/**",
+          "./docs/**"
+        ],
+        "delete": [
+          "./src/**/*.temp",
+          "./tests/**",
+          "./build/**"
+        ],
+        "build": true,
+        "deploy": false,
+        "manageUsers": false,
+        "manageSettings": false,
+        "manageRoles": false,
+        "accessUnsafe": false,
+        "modifyConfig": false
+      },
+      "restrictions": {
+        "cannotModify": [
+          "fusion.project.json",
+          "fusion.users.json",
+          "./src/core/Critical*.fusion"
+        ],
+        "requiresReview": [
+          "./src/core/**"
+        ]
+      }
+    },
+    
+    "reviewer": {
+      "name": "Code Reviewer",
+      "description": "Can review and approve code changes",
+      "permissions": {
+        "read": ["*"],
+        "write": [],
+        "delete": [],
+        "build": true,
+        "deploy": false,
+        "manageUsers": false,
+        "manageSettings": false,
+        "manageRoles": false,
+        "accessUnsafe": false,
+        "modifyConfig": false
+      },
+      "restrictions": {},
+      "canReview": true,
+      "canApprove": true,
+      "canRequestChanges": true
+    },
+    
+    "viewer": {
+      "name": "Read-Only Viewer",
+      "description": "Can only view code and documentation",
+      "permissions": {
+        "read": [
+          "./src/**",
+          "./docs/**",
+          "./README.md"
+        ],
+        "write": [],
+        "delete": [],
+        "build": false,
+        "deploy": false,
+        "manageUsers": false,
+        "manageSettings": false,
+        "manageRoles": false,
+        "accessUnsafe": false,
+        "modifyConfig": false
+      },
+      "restrictions": {}
+    },
+    
+    "contributor": {
+      "name": "External Contributor",
+      "description": "Limited access for external contributors",
+      "permissions": {
+        "read": [
+          "./src/public/**",
+          "./docs/**"
+        ],
+        "write": [
+          "./src/public/**"
+        ],
+        "delete": [],
+        "build": true,
+        "deploy": false,
+        "manageUsers": false,
+        "manageSettings": false,
+        "manageRoles": false,
+        "accessUnsafe": false,
+        "modifyConfig": false
+      },
+      "restrictions": {
+        "requiresReview": [
+          "./src/public/**"
+        ]
+      }
+    },
+    
+    "tester": {
+      "name": "Quality Assurance Tester",
+      "description": "Can run tests and view results",
+      "permissions": {
+        "read": [
+          "./src/**",
+          "./tests/**",
+          "./docs/**"
+        ],
+        "write": [
+          "./tests/**"
+        ],
+        "delete": [
+          "./tests/**/*.temp"
+        ],
+        "build": true,
+        "deploy": false,
+        "manageUsers": false,
+        "manageSettings": false,
+        "manageRoles": false,
+        "accessUnsafe": false,
+        "modifyConfig": false
+      },
+      "restrictions": {}
+    }
+  },
+  
+  "userList": [
+    {
+      "id": "user-001",
+      "username": "project.owner",
+      "email": "owner@example.com",
+      "displayName": "Project Owner",
+      "role": "owner",
+      "active": true,
+      "joinedDate": "2025-01-01T00:00:00Z",
+      "lastActive": "2025-01-15T10:00:00Z",
+      "customPermissions": {},
+      "notes": "Project creator and maintainer"
+    }
+  ],
+  
+  "teams": [
+    {
+      "id": "team-001",
+      "name": "Core Team",
+      "description": "Core development team with full source access",
+      "members": ["user-001"],
+      "permissions": {
+        "read": ["./src/**"],
+        "write": ["./src/**"]
+      }
+    },
+    {
+      "id": "team-002",
+      "name": "QA Team",
+      "description": "Quality assurance and testing team",
+      "members": [],
+      "permissions": {
+        "read": ["./src/**", "./tests/**"],
+        "write": ["./tests/**"]
+      }
+    }
+  ],
+  
+  "auditLog": {
+    "enabled": true,
+    "logPath": "./logs/audit.log",
+    "retentionDays": 90,
+    "trackActions": [
+      "userAdded",
+      "userRemoved",
+      "roleChanged",
+      "permissionModified",
+      "configChanged",
+      "deploymentMade"
+    ]
+  }
+}

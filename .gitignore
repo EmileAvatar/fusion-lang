@@ -1,0 +1,52 @@
+# Fusion Compiler - Git Ignore File
+
+# Python cache and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Compiled executables
+*.exe
+*.o
+*.out
+*.obj
+
+# Generated C code (from Fusion compilation)
+*.c
+examples/*.c
+tests/*.c
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.vs/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code specific
+.claude/
+
+# Log files
+*.log
+
+# DO NOT IGNORE:
+# - Source files: *.fusion, *.py
+# - Documentation: *.md
+# - Configuration: *.ini, *.json, *.yaml

@@ -1,0 +1,307 @@
+{
+  "user": {
+    "id": "user-001",
+    "username": "developer",
+    "displayName": "Developer Name",
+    "email": "developer@example.com",
+    "lastUpdated": "2025-01-15T10:00:00Z"
+  },
+  
+  "editor": {
+    "theme": "dark",
+    "fontSize": 14,
+    "fontFamily": "Fira Code",
+    "fontLigatures": true,
+    "tabSize": 4,
+    "insertSpaces": true,
+    "wordWrap": "on",
+    "lineNumbers": true,
+    "relativeLIneNumbers": false,
+    "minimap": true,
+    "minimapScale": 1,
+    "cursorStyle": "line",
+    "cursorBlinking": "smooth",
+    "cursorWidth": 2,
+    "renderWhitespace": "selection",
+    "rulers": [80, 120],
+    "bracketPairColorization": true,
+    "autoClosingBrackets": "always",
+    "autoClosingQuotes": "always",
+    "autoSurround": "languageDefined",
+    "autoSave": "afterDelay",
+    "autoSaveDelay": 1000,
+    "smoothScrolling": true,
+    "mouseWheelZoom": true
+  },
+  
+  "syntax": {
+    "preferredCommentStyle": "doubleSlash",
+    "preferredEnumStyle": "indentation",
+    "preferredBlockStyle": "indentation",
+    "useBraces": false,
+    "preferredComparisonOperator": "notEqual",
+    "useSpreadOperator": true,
+    "preferVariadicFunctions": true
+  },
+  
+  "formatting": {
+    "formatOnSave": true,
+    "formatOnPaste": true,
+    "formatOnType": false,
+    "insertSpaces": true,
+    "tabSize": 4,
+    "detectIndentation": true,
+    "trimTrailingWhitespace": true,
+    "insertFinalNewline": true,
+    "maxLineLength": 120,
+    "alignParameters": true,
+    "alignArrayElements": false
+  },
+  
+  "codeStyle": {
+    "namingConvention": {
+      "classes": "PascalCase",
+      "functions": "camelCase",
+      "variables": "camelCase",
+      "constants": "UPPER_SNAKE_CASE",
+      "privateFields": "_camelCase",
+      "interfaces": "IPascalCase",
+      "enums": "PascalCase",
+      "modules": "PascalCase"
+    },
+    "braceStyle": {
+      "functions": "nextLine",
+      "classes": "nextLine",
+      "controlFlow": "sameLine",
+      "arrays": "sameLine"
+    },
+    "spaceStyle": {
+      "beforeFunctionParentheses": false,
+      "insideParentheses": false,
+      "beforeBrackets": false,
+      "insideBrackets": false,
+      "aroundOperators": true
+    }
+  },
+  
+  "intellisense": {
+    "enabled": true,
+    "autoComplete": true,
+    "suggestionDelay": 300,
+    "showSnippets": true,
+    "showParameters": true,
+    "showDocumentation": true,
+    "showExamples": true,
+    "tabCompletion": "on",
+    "acceptSuggestionOnEnter": "on",
+    "acceptSuggestionOnCommitCharacter": true,
+    "quickSuggestionsDelay": 10,
+    "parameterHints": true
+  },
+  
+  "diagnostics": {
+    "enableLinting": true,
+    "lintOnSave": true,
+    "lintOnType": false,
+    "showErrors": true,
+    "showWarnings": true,
+    "showHints": true,
+    "showInfo": true,
+    "inlineErrors": true,
+    "problemSeverity": {
+      "nullReference": "error",
+      "unusedVariable": "warning",
+      "implicitType": "hint",
+      "longFunction": "info",
+      "weakPointer": "warning",
+      "unsafeCode": "warning",
+      "missingDocumentation": "hint"
+    }
+  },
+  
+  "debug": {
+    "showDebugConsole": true,
+    "verboseOutput": false,
+    "breakOnException": true,
+    "breakOnError": true,
+    "enableHotReload": true,
+    "showThreads": true,
+    "showCallStack": true,
+    "showVariables": true,
+    "showMemoryUsage": true,
+    "inlineValues": true,
+    "stepFiltering": true
+  },
+  
+  "build": {
+    "autoSaveBeforeBuild": true,
+    "clearConsoleBeforeBuild": true,
+    "showBuildProgress": true,
+    "soundOnSuccess": false,
+    "soundOnError": true,
+    "defaultBuildType": "debug",
+    "parallelBuild": true,
+    "autoRun": false,
+    "showBuildTime": true
+  },
+  
+  "testing": {
+    "autoRunTests": false,
+    "runTestsOnSave": false,
+    "showTestCoverage": true,
+    "coverageGutterIndicators": true,
+    "verboseOutput": false,
+    "parallelTests": true
+  },
+  
+  "git": {
+    "enableGit": true,
+    "autoFetch": true,
+    "autoStage": false,
+    "confirmSync": true,
+    "showInlineBlame": true,
+    "blameLineHighlight": true,
+    "defaultBranch": "main",
+    "autoCommit": false,
+    "commitMessageTemplate": ""
+  },
+  
+  "ui": {
+    "showWelcomeScreen": true,
+    "showStartupTips": true,
+    "compactFolders": true,
+    "showFileIcons": true,
+    "breadcrumbsEnabled": true,
+    "sidebarPosition": "left",
+    "activityBarPosition": "left",
+    "zenMode": false,
+    "statusBarVisible": true,
+    "menuBarVisible": true
+  },
+  
+  "terminal": {
+    "shell": "bash",
+    "fontSize": 12,
+    "fontFamily": "Consolas",
+    "cursorStyle": "block",
+    "cursorBlinking": true,
+    "scrollbackLines": 1000,
+    "integrated": true,
+    "splitTerminal": false
+  },
+  
+  "keyboard": {
+    "shortcuts": {
+      "build": "Ctrl+Shift+B",
+      "run": "F5",
+      "debug": "Ctrl+F5",
+      "stopDebug": "Shift+F5",
+      "format": "Shift+Alt+F",
+      "save": "Ctrl+S",
+      "saveAll": "Ctrl+K S",
+      "find": "Ctrl+F",
+      "replace": "Ctrl+H",
+      "goto": "Ctrl+G",
+      "comment": "Ctrl+/",
+      "quickOpen": "Ctrl+P",
+      "commandPalette": "Ctrl+Shift+P",
+      "toggleSidebar": "Ctrl+B",
+      "toggleTerminal": "Ctrl+`"
+    },
+    "customShortcuts": {}
+  },
+  
+  "performance": {
+    "enableFileWatcher": true,
+    "maxFileWatcherDepth": 5,
+    "excludeFromWatch": [
+      "**/node_modules/**",
+      "**/build/**",
+      "**/.git/**",
+      "**/temp/**"
+    ],
+    "largeFileThreshold": 10485760,
+    "maxMemoryMB": 2048,
+    "enableCaching": true
+  },
+  
+  "privacy": {
+    "enableTelemetry": false,
+    "enableCrashReporting": true,
+    "shareUsageData": false,
+    "anonymizeData": true
+  },
+  
+  "advanced": {
+    "experimentalFeatures": false,
+    "betaUpdates": false,
+    "logLevel": "info",
+    "maxLogFiles": 10,
+    "logDirectory": "./logs",
+    "enableProfiling": false,
+    "developerMode": false
+  },
+  
+  "snippets": {
+    "enabled": true,
+    "customSnippets": {
+      "func": {
+        "prefix": "func",
+        "body": [
+          "${1:returnType} function ${2:name}(${3:params})",
+          "    ${4:// body}",
+          "    return ${5:value}"
+        ],
+        "description": "Create a function"
+      },
+      "class": {
+        "prefix": "class",
+        "body": [
+          "class ${1:ClassName}",
+          "    ${2:// properties}",
+          "    ",
+          "    constructor(${3:params})",
+          "        ${4:// initialization}",
+          "    ",
+          "    ${5:// methods}"
+        ],
+        "description": "Create a class"
+      }
+    }
+  },
+  
+  "recentProjects": [
+    {
+      "path": "/projects/spaceship-game",
+      "name": "Spaceship Game",
+      "lastOpened": "2025-01-15T10:00:00Z",
+      "pinned": false
+    },
+    {
+      "path": "/projects/automation-tool",
+      "name": "Automation Tool",
+      "lastOpened": "2025-01-14T15:00:00Z",
+      "pinned": true
+    }
+  ],
+  
+  "recentFiles": [
+    "./src/Spaceship.fusion",
+    "./src/GameManager.fusion",
+    "./tests/SpaceshipTest.fusion"
+  ],
+  
+  "bookmarks": [
+    {
+      "file": "./src/Spaceship.fusion",
+      "line": 42,
+      "label": "Main update loop"
+    }
+  ],
+  
+  "favorites": [
+    "./src/core/",
+    "./tests/",
+    "fusion.project.json"
+  ]
+}

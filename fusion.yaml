@@ -1,0 +1,172 @@
+fusion:
+  purpose:
+    description: >
+      A configurable, multi-syntax, multi-backend programming language
+      for systems programming, games, automation, and tooling.
+    goals:
+      - eliminate syntax lock-in
+      - allow per-project safety and performance control
+      - support multiple execution models from one language
+
+  core_design:
+    syntax_model:
+      supported_styles:
+        - indentation_based    # Python-like
+        - brace_based          # C / Java-like
+        - keyword_based        # VB.NET-like
+      canonical_rule:
+        - all syntax styles normalize into a single AST
+        - syntax choice never changes semantics
+
+    configuration_first:
+      approach: infrastructure_as_code
+      configurable_dimensions:
+        - safety_level         # standard | strict | unsafe
+        - memory_model         # automatic | smart | manual
+        - execution_backend    # native | bytecode | interpreter | hybrid
+        - concurrency_model    # threads | goroutines | channels
+        - optimization_level  # none → aggressive
+        - typing_mode          # static | gradual
+
+  language_specifics:
+    typing:
+      system: strong_static_with_inference
+      rules:
+        - explicit types by default
+        - inference via var (configurable)
+        - value types are non-nullable
+        - reference types are nullable
+
+    data_types:
+      primitives:
+        - int, uint, long, ulong
+        - float, double, decimal
+        - bool
+        - char
+        - string
+      composites:
+        struct: value type, stack-friendly, no object references
+        class: reference type with full behavior
+        enum: named constants with multiple syntax styles
+        interface:
+          constraints:
+            - methods_only
+            - constant_fields_only
+            - no state
+            - no constructors
+
+    functions:
+      signature_style: return_type_first
+      features:
+        - default_parameters
+        - named_arguments
+        - variadic_arguments
+        - first_class_functions
+        - lambdas_single_or_multiline
+        - closures
+
+    error_handling:
+      model: explicit_multiple_returns
+      style: go_like
+      behavior:
+        - functions may return value, error
+        - errors bubble if not explicitly captured
+
+    control_flow:
+      constructs:
+        - if / elif / else
+        - match / case
+        - while
+        - for_range
+        - foreach
+      safety:
+        - automatic loop protection
+        - configurable iteration limits
+
+    blocks:
+      supported_styles:
+        - indentation
+        - braces
+        - end_keywords
+      rule:
+        - all block styles are semantically equivalent
+
+    strings:
+      model:
+        - immutable
+        - copy_on_write
+        - pooled_storage
+      features:
+        - inline_interpolation
+        - positional_interpolation
+
+  concurrency:
+    primitives:
+      - threads
+      - goroutines
+      - channels
+      - async_await
+    guarantees:
+      - message_passing_preferred
+      - shared_memory_with_auto_locking
+      - race_detection_hooks
+
+  standard_library:
+    module_count: 21
+
+    core_modules:
+      Core:        "Fundamental types, strings, console I/O, utilities"
+      Math:        "Vectors, matrices, quaternions, and math utilities"
+      Collections: "Lists, dictionaries, sets, queues, stacks, LINQ-style ops"
+      Threading:   "Threads, goroutines, channels, async/await primitives"
+      IO:          "File systems, streams, compression, async I/O"
+
+    additional_modules:
+      Net:         "TCP/UDP, HTTP, WebSocket, DNS, networking utilities"
+      Data:        "JSON, XML, CSV, YAML, INI, Markdown parsing"
+      System:      "Processes, OS info, environment access, DLL loading"
+      Lang:        "Interop and compilation for other languages"
+      Languages:   "Localization, internationalization, Unicode handling"
+      GUI:         "Cross-platform HTML5-style user interfaces"
+      Graphics:    "2D/3D rendering, sprites, shaders, engine utilities"
+      Audio:       "Sound playback, synthesis, effects, MIDI"
+      Crypto:      "Encryption, hashing, SSL/TLS, certificates"
+      Database:    "SQL/NoSQL access, ORM, query builders"
+      Web:         "HTTP servers, REST APIs, WebSocket backends"
+      AI:          "Neural networks, ML algorithms, inference utilities"
+
+    dev_modules:
+      Reflection:  "Runtime type inspection and metadata access"
+      Test:        "Unit testing, assertions, coverage, benchmarking"
+      Diagnostics: "Logging, profiling, debugging, performance metrics"
+      DocWiki:     "Automatic documentation generation from source"
+
+  tooling:
+    compiler:
+      pipeline:
+        - lexer
+        - parser
+        - semantic_analysis
+        - code_generation
+      current_backend:
+        - C_codegen_via_GCC
+      planned_backends:
+        - bytecode_vm
+        - interpreter
+        - webassembly
+
+    ide_support:
+      planned:
+        - language_server_protocol
+        - syntax_highlighting
+        - formatter
+        - refactoring
+        - auto_documentation
+
+  philosophy:
+    principles:
+      - performance_when_needed
+      - safety_by_default
+      - readability_over_cleverness
+      - explicit_over_magic
+      - scalable_from_scripts_to_engines

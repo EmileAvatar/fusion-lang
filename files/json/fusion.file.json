@@ -1,0 +1,117 @@
+{
+  "file": {
+    "path": "./src/Example.fusion",
+    "encoding": "utf-8",
+    "generated": false,
+    "readOnly": false,
+    "lastModified": "2025-01-15T10:00:00Z",
+    "fileVersion": "1.0.0"
+  },
+  
+  "overrides": {
+    "compiler": {
+      "strictMode": false,
+      "optimizationLevel": 3,
+      "warningsAsErrors": false
+    },
+    "language": {
+      "allowWeakPointers": true,
+      "allowGoto": false,
+      "enforceNullChecks": false
+    },
+    "loop": {
+      "autoProtection": true,
+      "defaultMaxIterations": 10000000
+    },
+    "memory": {
+      "defaultMode": "smart-pointers"
+    }
+  },
+  
+  "annotations": {
+    "@Performance": true,
+    "@Critical": true,
+    "@NoOptimize": false,
+    "@Unsafe": false,
+    "@Deprecated": false,
+    "@Experimental": false
+  },
+  
+  "metadata": {
+    "author": "John Doe",
+    "createdDate": "2025-01-10T08:00:00Z",
+    "modifiedBy": "Jane Smith",
+    "reviewedBy": "Bob Wilson",
+    "reviewDate": "2025-01-14T16:00:00Z",
+    "tags": [
+      "core",
+      "game",
+      "physics"
+    ],
+    "category": "gameplay",
+    "priority": "high",
+    "status": "stable",
+    "version": "1.2.0"
+  },
+  
+  "dependencies": {
+    "imports": [
+      "Fusion.Math.Vector3",
+      "Fusion.Physics.RigidBody",
+      "Fusion.Collections.List"
+    ],
+    "requiredBy": [
+      "WarshipController.fusion",
+      "GameManager.fusion"
+    ],
+    "optionalDependencies": [
+      "Fusion.Audio.SoundManager"
+    ]
+  },
+  
+  "documentation": {
+    "generateDocs": true,
+    "includeInAPI": true,
+    "visibility": "public",
+    "examples": true,
+    "includeSourceCode": false
+  },
+  
+  "testing": {
+    "requireTests": true,
+    "testFile": "./tests/ExampleTest.fusion",
+    "minCoverage": 80,
+    "criticalPath": true
+  },
+  
+  "codeReview": {
+    "requiresReview": true,
+    "reviewers": [
+      "user-002",
+      "user-003"
+    ],
+    "approvalRequired": 2,
+    "lastReviewed": "2025-01-14T16:00:00Z"
+  },
+  
+  "performance": {
+    "benchmark": true,
+    "targetExecutionTime": 10,
+    "memoryLimit": "100MB",
+    "cpuLimit": 50
+  },
+  
+  "security": {
+    "sensitiveData": false,
+    "encryption": false,
+    "accessControl": "internal",
+    "auditLog": false
+  },
+  
+  "custom": {
+    "gameModule": "combat",
+    "complexity": "high",
+    "maintainer": "core-team",
+    "notes": "Performance-critical file for game physics"
+  }
+}

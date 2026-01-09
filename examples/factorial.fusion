@@ -1,0 +1,11 @@
+int function factorial(int n)
+    if n <= 1
+        return 1
+    return n * factorial(n - 1)
+End function
+
+int function main()
+    int result = factorial(5)
+    print("Factorial of 5 is {result}")
+    return 0
+End function
