@@ -4,6 +4,18 @@ Description: Simple tracking of completed and planned features.
 
 ---
 
+## ⚠️ IMPORTANT: Naming Conflict
+
+**Discovered:** There is an existing programming language called "Fusion" (https://fusion-lang.org/)
+
+**Renaming Plan:**
+- Continue using "Fusion" name during development
+- **MUST rename before 1.0 release**
+- Rename will happen when language is fully working and stable
+- No urgency - focus is on getting compiler working correctly first
+
+---
+
 ## Completed Features
 
 * ✅ Core language syntax and semantics

@@ -16,6 +16,19 @@
 
 ---
 
+## ⚠️ NAMING CONFLICT
+
+**Discovered:** There is an existing programming language called "Fusion" (https://fusion-lang.org/)
+
+**Renaming Plan:**
+- Continue using "Fusion" name during development
+- **MUST rename before 1.0 release**
+- Rename will happen when language is fully working and stable
+- No urgency during development - focus is on getting compiler working correctly first
+- Renaming task will be added to roadmap closer to 1.0 release
+
+---
+
 ## Current Objective
 
 **ORGANIZE** the project structure and **VERIFY** the MVP compiler works correctly in real-world scenarios.
