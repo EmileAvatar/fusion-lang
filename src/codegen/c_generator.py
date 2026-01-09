@@ -517,12 +517,13 @@ class CCodeGenerator:
         """
         c_type = self.map_type(node.var_type)
         name = node.name
+        const_keyword = 'const ' if node.is_const else ''
 
         if node.initializer:
             init_code = self.visit(node.initializer)
-            self.emit_line(f'{c_type} {name} = {init_code}')
+            self.emit_line(f'{const_keyword}{c_type} {name} = {init_code}')
         else:
-            self.emit_line(f'{c_type} {name}')
+            self.emit_line(f'{const_keyword}{c_type} {name}')
 
         return ''
 
