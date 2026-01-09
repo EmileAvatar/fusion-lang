@@ -29,11 +29,11 @@
 | **Task 5: Cleanup & Organization** | Complete | 100% | 5 | 5 |
 | **Task 6: Verification & Bug Fixes** | Complete | 100% | 7 | 7 |
 | **Task 7: Git Integration** | Complete | 100% | 4 | 4 |
-| **Task 8: Language Features (const)** | In Progress | 25% | 2 | 8 |
+| **Task 8: Language Features (const)** | In Progress | 38% | 3 | 8 |
 | **Task 9: Language Features (arrays)** | Not Started | 0% | 0 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Overall** | Task 8.2 Complete | 35% | 20 | 57 |
+| **Overall** | Task 8.3 Complete | 37% | 21 | 57 |
 
 ---
 
@@ -303,11 +303,11 @@ From user's PowerShell testing:
 - [x] Test error: `const int x;` (no initializer) should fail
 
 #### 8.3: Semantic Analyzer - Validate const
-- [ ] Add const validation in NameResolver
-- [ ] Ensure const variables are initialized
-- [ ] Add const assignment checking in TypeChecker
-- [ ] Error on reassignment: `const int x = 5; x = 10;` should fail
-- [ ] Write semantic tests for const violations
+- [x] Add const validation in NameResolver
+- [x] Ensure const variables are initialized
+- [x] Add const assignment checking in TypeChecker
+- [x] Error on reassignment: `const int x = 5; x = 10;` should fail
+- [x] Write semantic tests for const violations
 
 #### 8.4: Code Generator - Generate const C Code
 - [ ] Update visit_VarDeclStmt to emit `const` keyword

@@ -241,14 +241,21 @@ class NameResolver:
         Args:
             stmt: Variable declaration statement node
         """
+        # Check if const has initializer
+        if stmt.is_const and not stmt.initializer:
+            self.errors.append(SemanticError(
+                f"const declaration '{stmt.name}' must have an initializer",
+                stmt.location
+            ))
+
         # First resolve initializer (if any)
         if stmt.initializer:
             self.resolve_expression(stmt.initializer)
 
         # Then define the variable
         try:
-            # Check if this is a const declaration (future feature, for now all are variables)
-            is_const = False  # TODO: Add is_const attribute to VarDeclStmt
+            # Check if this is a const declaration
+            is_const = stmt.is_const
 
             symbol = Symbol(
                 name=stmt.name,
