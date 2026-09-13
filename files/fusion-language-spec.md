@@ -3206,6 +3206,55 @@ fusion build engine.fusion --lib --output engine.dll
 
 ---
 
+### Project Configuration
+
+**Design status (Task 12.12, decided 2026-09-13):** unlike most of this "Build and
+Compilation" section (which describes an aspirational `fusion run`/`fusion build` CLI that
+doesn't exist yet - the actual compiler today is invoked as `python main.py <source.fusion>`),
+this subsection is **partially implemented now**. Fusion's core concept is per-project
+configurability (see "Language Philosophy"), but the compiler previously hardcoded its
+indentation settings directly in the lexer with no way to override them - a real gap between
+the concept and the implementation. This section is the config-format ADR that closes it.
+
+**Format decision:** an optional `fusion.toml` file, using TOML - chosen over YAML (would
+need a new dependency; the project has none today) and a custom Fusion-native format (would
+mean writing and maintaining a whole new parser for no real benefit). Python 3.11's stdlib
+`tomllib` parses it with zero added dependency.
+
+**Lookup decision:** the compiler looks for `fusion.toml` next to the source file being
+compiled first, then in the current working directory. A missing file is not an error - every
+setting just uses its default, identical to the compiler's previous hardcoded behavior. A
+*present but malformed* file (bad TOML syntax, or a recognized key with an invalid value) IS
+a hard error with a clear message - never a silent fallback to defaults, so a typo doesn't
+silently compile with different settings than intended. (Deliberately not a parent-directory
+walk like git's `.git` or npm's `package.json` - Fusion has no multi-file project/workspace
+concept yet, so that would solve a problem that doesn't exist yet. Revisit once it does.)
+
+**v1 scope decision:** only `[indentation]` is wired to real behavior today - it reaches
+`src/lexer/lexer.py`'s `IndentationTracker` exactly as this section's own hardcoded values
+used to. `[safety]` and `[backend]` are parsed and validated (so a project can already state
+its intent and catch typos) but **not yet enforced anywhere** - the same "recognized, not yet
+implemented" status as the `Unique`/`Shared`/`Weak` keywords (see "Memory Management").
+
+```toml
+# fusion.toml - optional, place next to your .fusion source file (or in the cwd)
+
+[indentation]
+tab_width = 4        # spaces per tab (default: 4)
+allow_mixed = true   # allow mixed tabs/spaces with a warning instead of an error (default: true)
+
+[safety]
+mode = "normal"      # "normal" | "strict" - reserved, not yet enforced by any compiler pass
+
+[backend]
+target = "c"         # "c" only for now - "llvm" is reserved for the Task 11 backend, not implemented yet
+```
+
+Every key is optional and defaults to the value shown above. See `src/config/project_config.py`
+for the authoritative schema, validation rules, and error messages.
+
+---
+
 ### Build Commands
 
 Description: Command-line build options.

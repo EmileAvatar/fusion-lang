@@ -19,6 +19,7 @@ from src.lexer import Lexer
 from src.parser.parser import Parser, ParserError
 from src.semantic import SemanticAnalyzer
 from src.codegen import CCodeGenerator
+from src.config import load_project_config, ProjectConfigError
 
 
 def compile_file(source_path: str) -> int:
@@ -41,9 +42,23 @@ def compile_file(source_path: str) -> int:
         print(f"Error reading file: {e}", file=sys.stderr)
         return 1
 
+    # Project configuration (Task 12.12) - optional fusion.toml next to the source file
+    # or in the current directory; falls back to the compiler's previous hardcoded
+    # defaults if absent, so existing single-file projects are unaffected.
+    try:
+        project_config = load_project_config(source_path)
+    except ProjectConfigError as e:
+        print(f"Project configuration error: {e}", file=sys.stderr)
+        return 1
+
     # Lexical analysis
     print(f"[1/3] Lexical analysis...", file=sys.stderr)
-    lexer = Lexer(source, source_path)
+    lexer = Lexer(
+        source,
+        source_path,
+        tab_width=project_config.indentation.tab_width,
+        allow_mixed=project_config.indentation.allow_mixed,
+    )
     try:
         tokens = lexer.tokenize()
     except Exception as e:

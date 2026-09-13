@@ -1,0 +1,3 @@
+void function main()
+  	print("mixed tabs and spaces on this line")
+End function

@@ -39,12 +39,19 @@ class Lexer:
         diagnostics: Collects errors and warnings
     """
 
-    def __init__(self, source: str, filename: str = "<stdin>"):
+    def __init__(self, source: str, filename: str = "<stdin>",
+                 tab_width: int = 4, allow_mixed: bool = True):
         """Initialize the lexer.
 
         Args:
             source: Source code to tokenize
             filename: Name of source file (default: "<stdin>")
+            tab_width: Spaces per tab for indentation tracking (default: 4). Normally left
+                at the default and overridden via a project's fusion.toml [indentation]
+                section instead of being passed directly - see src/config/project_config.py
+                (Task 12.12).
+            allow_mixed: Allow mixed tabs/spaces with a warning instead of an error
+                (default: True). Same project-config note as tab_width.
         """
         self.source = source
         self.filename = filename
@@ -53,7 +60,7 @@ class Lexer:
         self.column = 1
 
         # Component trackers
-        self.indent_tracker = IndentationTracker(tab_width=4, allow_mixed=True)
+        self.indent_tracker = IndentationTracker(tab_width=tab_width, allow_mixed=allow_mixed)
         self.block_tracker = BlockStyleTracker()
         self.diagnostics = DiagnosticReporter()
 

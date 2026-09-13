@@ -131,6 +131,7 @@ d:\Dropbox\Fusion\
 │   ├── parser/
 │   ├── semantic/
 │   ├── codegen/
+│   ├── config/               [Project config - fusion.toml loading, Task 12.12]
 │   └── utils/
 ├── tests/                    [All test files]
 │   ├── test_*.py             [Unit tests]
@@ -156,7 +157,7 @@ d:\Dropbox\Fusion\
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 also complete (see below)
 
 **Test Results:**
-- 1,090 tests passing (99.3%)
+- 1,119 tests passing (99.3%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
@@ -164,14 +165,17 @@ d:\Dropbox\Fusion\
 **Example Verification:**
 - 8/8 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
   calculator, sum_array, max_three, const_demo, arrays_demo)
+- Plus `examples/project_config_demo/` - a manual (not automated-harness) demo of
+  `fusion.toml` actually changing compiler behavior (Task 12.12)
 - FizzBuzz bug fixed long ago (Task 6.2) - was a lexer bug in interpolation part-splitting
 
 **Completed since MVP:** Task 5 (cleanup), Task 6 (verification/FizzBuzz fix), Task 7 (git/
 GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12's Core Typed AST (12.1-12.4,
-12.9 - codegen now reads resolved types instead of guessing format specifiers)
+12.9), 12.5 (codegen split), 12.6 (block scoping), 12.7 (memory model semantics), 12.8 (docs
+sync), 12.12 (project config system)
 
-**In progress:** Task 12's remaining items (12.5-12.8, 12.10-12.12 - codegen module split,
-scoping/memory-model/project-config decisions, IR layer and stdlib-lowering design)
+**In progress:** Task 12's remaining items (12.10, 12.11 - IR layer and stdlib-lowering
+design)
 
 **Blocked/future:** Task 10 (self-hosting), Task 11 (LLVM backend), Task 13 (HIDL module),
 Task 14 (nullable arrays/safe navigation) - see taskSummary2.md for what each is blocked on
@@ -298,6 +302,21 @@ scores[0] = 99          // element assignment
 int n = len(scores)     // size (compile-time constant)
 ```
 
+### Project Configuration (`fusion.toml`)
+```toml
+# Optional - place next to your .fusion source file (or in the cwd). Every key defaults
+# to the value shown; a missing file is not an error.
+[indentation]
+tab_width = 4        # spaces per tab
+allow_mixed = true   # mixed tabs/spaces: warning (true) vs compile error (false)
+
+[safety]
+mode = "normal"      # "normal" | "strict" - reserved, not yet enforced (Task 12.12)
+
+[backend]
+target = "c"         # "c" only for now - "llvm" reserved for Task 11
+```
+
 ---
 
 ## 🔑 Reserved Keywords (67 total)
@@ -383,11 +402,18 @@ int n = len(scores)     // size (compile-time constant)
   C `const` (Task 8, complete)
 - Fixed-size arrays: `int[] x = [1,2,3]` or `int[5] x`, element read/write (`x[i]`,
   `x[i] = v`), `len(x)` resolved to a compile-time constant (Task 9 v1, complete)
+- Project configuration via an optional `fusion.toml` (source file's directory, then cwd) -
+  `[indentation]` (`tab_width`/`allow_mixed`) actually reaches the lexer; `[safety]`/
+  `[backend]` are parsed/validated but not yet enforced (Task 12.12, complete - see
+  `src/config/project_config.py` and `examples/project_config_demo/`)
 
 **Known Limitations (by design):**
 - Single-quote comments disabled (conflicts with char literals)
 - const follows the same block scoping as other variables (no global/class-level
   constants yet - classes not implemented)
+- `fusion.toml`'s `[safety]`/`[backend]` sections are recognized and validated but not
+  enforced by any compiler pass yet (same status as the `Unique`/`Shared`/`Weak` keywords
+  below - reserved, not implemented); only `[indentation]` changes real behavior today
 - Arrays are local-variable-only (not function params/return types), single-dimension,
   fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
   `?.`, or `?[` yet - see taskSummary2.md Task 9's deferred nullability task)
@@ -445,19 +471,20 @@ int n = len(scores)     // size (compile-time constant)
 
 ## 🚀 Next Steps
 
-**Current Focus:** Task 12's remaining items (see taskSummary2.md) - codegen module split
-(12.5), then a sequence of design decisions (scoping ADR, memory model, project config, IR
-layer, stdlib lowering) that need the user's input, not just implementation.
+**Current Focus:** Task 12's two remaining design-consideration items (see taskSummary2.md) -
+IR layer (12.10), then stdlib/runtime lowering (12.11).
 
 **Completed:**
 - Tasks 1-9: MVP + cleanup + verification + git + const + arrays (v1) - see
   task/taskSummary.md and task/taskSummaryArchive.md for full detail
-- Task 12.1-12.4, 12.9: Core Typed AST - codegen reads `inferred_type` instead of guessing
+- Task 12.1-12.9, 12.12: Core Typed AST, codegen module split, block scoping, memory model
+  semantics, docs sync, project configuration system - see taskSummary2.md for detail on
+  each
 
 **Planned (see taskSummary2.md for full detail and current blockers):**
-- Task 12.5-12.8, 12.10-12.12: remaining architecture-hardening items
+- Task 12.10-12.11: Fusion IR layer and stdlib/runtime lowering design
 - Task 13: HIDL module (blocked on Task 12)
-- Task 14: Nullable arrays & safe navigation (blocked on Task 12.7)
+- Task 14: Nullable arrays & safe navigation (unblocked as of Task 12.7 - not yet scoped)
 - Task 10: Self-hosting, Task 11: LLVM backend (both planning-complete, intentionally not
   started yet - the architecture review recommended stabilizing the language/IR first)
 

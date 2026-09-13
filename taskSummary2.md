@@ -48,10 +48,10 @@ CLAUDE.md Rule 3 for when/how sections move there
 | **Task 9: Language Features (arrays v1)** | Complete | 100% | 8 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Task 12: Architecture Hardening** | In Progress | 75% | 9 | 12 |
+| **Task 12: Architecture Hardening** | In Progress | 83% | 10 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Overall** | Task 12.7 Complete | 51% | 43 | 84 |
+| **Overall** | Task 12.12 Complete | 52% | 44 | 84 |
 
 ---
 
@@ -806,15 +806,57 @@ generic work multiplies the number of places that guess wrong.
 - [ ] Prevents every future stdlib function from becoming another codegen special case
 - [ ] Scope as part of the C Codegen Module Split (12.5) if adopted
 
-#### 12.12: Project-Level Language Configuration System
-- [ ] Fusion's own core concept is per-project configurability (memory model, safety level,
-      backend, block style - see CLAUDE.md "Core Concept"), but the lexer currently hardcodes
-      indentation behavior (`IndentationTracker(tab_width=4, allow_mixed=True)`) instead of
-      reading it from project configuration
-- [ ] Design a project configuration format (e.g. a `fusion.project`/`.toml`/`.yaml` file)
-      covering syntax/block style, indentation, safety mode, and backend target
-- [ ] This is a gap between the language's marketed core concept and actual implementation -
-      flag for scoping once Task 12's other items are approved
+#### 12.12: Project-Level Language Configuration System - COMPLETE (implemented, not just designed)
+- [x] **Decision: TOML, via an optional `fusion.toml` file.** Chosen over YAML (would add a
+      new dependency - `requirements.txt` currently has none) and a custom Fusion-native
+      format (would mean writing and maintaining a whole new parser for no real benefit).
+      Python 3.11's stdlib `tomllib` parses it with zero added dependency - **this raises
+      the project's minimum Python version from 3.10 to 3.11** (updated everywhere README.md
+      stated it).
+- [x] **Decision: lookup is source file's own directory, then the current working
+      directory** - not a parent-directory walk like git's `.git`/npm's `package.json`,
+      since Fusion has no multi-file project/workspace concept yet (that would solve a
+      problem that doesn't exist yet - revisit once it does). A missing file is not an
+      error (every setting defaults, identical to the old hardcoded behavior); a *present
+      but malformed* file IS a hard error (bad TOML syntax or an invalid value) - never a
+      silent fallback to defaults.
+- [x] **Decision: implement the concrete gap now (`[indentation]`), document the rest as
+      reserved.** New `src/config/project_config.py`: `ProjectConfig`/`IndentationConfig`
+      dataclasses, `find_config_file()`, `load_project_config()`, `ProjectConfigError`.
+      `[indentation]` (`tab_width`/`allow_mixed`) is fully validated and actually reaches
+      the lexer. `[safety]` (`mode`: "normal"/"strict") and `[backend]` (`target`: "c" only
+      - "llvm" explicitly rejected with a message pointing at Task 11) are parsed and
+      validated (so a project can state intent and typos are caught) but not enforced by
+      any pass yet - same "recognized, not implemented" status as `Unique`/`Shared`/`Weak`.
+- [x] `src/lexer/lexer.py`'s `Lexer.__init__` gained optional `tab_width`/`allow_mixed`
+      parameters (defaulting to the exact previous hardcoded values, so every existing
+      direct `Lexer(...)` call site and test is unaffected); `main.py` now loads the
+      project config before constructing the lexer and passes both through, with
+      `ProjectConfigError` caught and printed as a clean one-line error (exit code 1), not
+      a raw Python traceback.
+- [x] Verified end-to-end, not just unit-tested: compiled a real file with a line mixing
+      spaces and a tab in its indentation - with no `fusion.toml` (or `allow_mixed = true`)
+      it compiles with a warning; with `allow_mixed = false` in `fusion.toml` next to it,
+      the exact same file now fails to compile with a clear lexer error. Also verified a
+      deliberately malformed `fusion.toml` fails cleanly (`Project configuration error:
+      Invalid TOML in ...`, exit code 1, no traceback).
+- [x] 24 new tests in `tests/test_project_config.py`: discovery/lookup order (including
+      source-directory-wins-over-cwd), defaults-when-absent, every valid key, every invalid
+      value (malformed TOML, wrong type per key, unknown enum value, `[indentation]` not a
+      table), and the actual lexer-wiring path end to end
+- [x] `examples/project_config_demo/` - a permanent, manual demonstration (`mixed_indent.fusion`
+      + `fusion.toml` + README explaining how to reproduce both outcomes). Deliberately a
+      subdirectory, not dropped into `examples/` directly: `tests/verify_examples.py` globs
+      `examples/*.fusion` non-recursively, so this demo's `fusion.toml` cannot silently
+      change the other 8 examples' behavior - confirmed via a real `verify_examples.py` run
+      still showing 8/8 after adding it.
+- [x] Full suite: 1119 passed, 8 skipped (up from 1095 - 24 new tests, nothing weakened).
+      `verify_examples.py`: still 8/8.
+- [x] Documented in `files/fusion-language-spec.md` (new "Project Configuration" subsection
+      under "Build and Compilation", including the full schema and every decision's
+      rationale), `CLAUDE.md` (file tree, Quick Syntax Reference, Current Features/Known
+      Limitations, test counts, Next Steps), and `README.md` (Features, Requirements/Python
+      version, project structure tree, Development Status, Test Results)
 
 **Success Criteria:**
 - [x] Code generator never guesses a type; it reads `inferred_type` from the semantic pass
@@ -826,11 +868,13 @@ generic work multiplies the number of places that guess wrong.
 **Deliverables:**
 - Typed AST
 - Refactored, modular C codegen
-- Scoping ADR
-- Memory model spec draft
+- Scoping ADR (implemented)
+- Memory model spec (decided and documented; not yet implemented in the compiler)
+- Project configuration system (`fusion.toml`, implemented for indentation; safety/backend
+  reserved)
 - Fully synced documentation
-- IR-layer, stdlib-lowering, and project-config decisions recorded (12.10-12.12 - design
-  considerations, may not require code changes in this task depending on user decisions)
+- IR-layer and stdlib-lowering decisions still to come (12.10-12.11 - design considerations,
+  may not require code changes depending on the user's decisions)
 
 **Open question for user:** the review also suggests LLVM/IR work should come before
 self-hosting (reversing Task 10/11's current order), which contradicts the explicit
@@ -1460,6 +1504,38 @@ user re-opens this task for scoping approval.
     null-checks should share one analysis design, not be built twice.
 - **Next Action:** proceed to 12.12 (project-level language configuration system), the
   next item in the confirmed order (12.12 -> 12.10 -> 12.11 remain).
+- **Executed 12.12 (Project-Level Language Configuration System) - COMPLETE, implemented,
+  not just designed.** Presented three tradeoff questions (config format, lookup location,
+  how much to actually implement now); user chose the recommended option on all three:
+  - Format: TOML via an optional `fusion.toml`, parsed with Python 3.11's stdlib `tomllib`
+    (zero new dependency) - **raises the project's minimum Python version to 3.11**,
+    updated everywhere README.md stated 3.10+.
+  - Lookup: source file's own directory, then cwd - no parent-directory walk, since Fusion
+    has no multi-file project concept yet.
+  - Scope: actually wired `[indentation]` (`tab_width`/`allow_mixed`) into the lexer - the
+    real gap this task existed to close (`src/lexer/lexer.py` used to hardcode both) - and
+    documented `[safety]`/`[backend]` as parsed-and-validated-but-not-yet-enforced,
+    matching how `Unique`/`Shared`/`Weak` are already handled.
+  - New `src/config/project_config.py` (`ProjectConfig`, `load_project_config()`,
+    `find_config_file()`, `ProjectConfigError`); `Lexer.__init__` gained optional
+    `tab_width`/`allow_mixed` params (old hardcoded values as defaults, so every existing
+    call site/test is unaffected); `main.py` loads config before constructing the lexer,
+    catches `ProjectConfigError` as a clean one-line error instead of a traceback.
+  - Verified for real, not just unit-tested: a file with one line mixing spaces and a tab
+    compiles with only a warning by default, but fails to compile with a clear error once
+    a `fusion.toml` with `allow_mixed = false` sits next to it - the config genuinely
+    changes compiler behavior end to end. Also verified a malformed `fusion.toml` fails
+    cleanly rather than crashing.
+  - 24 new tests (`tests/test_project_config.py`); `examples/project_config_demo/` added
+    as a permanent manual demo (kept out of `examples/`'s top level specifically so its
+    `fusion.toml` can't silently affect the other 8 examples - confirmed `verify_examples.py`
+    still reports 8/8 after adding it).
+  - Full suite: 1119 passed, 8 skipped (up from 1095). `verify_examples.py`: 8/8.
+  - Documentation synced: `files/fusion-language-spec.md` (new "Project Configuration"
+    subsection with full schema + rationale), `CLAUDE.md`, `README.md` (including the
+    Python 3.10 -> 3.11 requirement bump in all three places it was stated).
+- **Next Action:** proceed to 12.10 (Fusion IR layer - design consideration), the next
+  item in the confirmed order (12.10 -> 12.11 remain to close out Task 12).
 
 ---
 
