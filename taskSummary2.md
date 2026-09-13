@@ -182,7 +182,7 @@ work separately - see **Task 14** below.
       updated; corrected test-count drift left over from Task 12 (Code Generation Tests was
       still showing 126, three short of the actual 129 after Task 12's own new tests - fixed
       to the current 137 while updating this line anyway)
-- [x] Git commit and push (see Session 27 notes below for the hash)
+- [x] Git commit and push - `47e5116` "feat: Task 9 - fixed-size array support (v1)"
 
 **Success Criteria:**
 - [x] Array syntax defined and documented
