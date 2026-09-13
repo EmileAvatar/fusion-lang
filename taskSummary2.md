@@ -46,9 +46,9 @@
 | **Task 9: Language Features (arrays)** | Not Started | 0% | 0 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Task 12: Architecture Hardening** | Not Started | 0% | 0 | 9 |
+| **Task 12: Architecture Hardening** | Not Started | 0% | 0 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
-| **Overall** | Task 8 Complete | 35% | 26 | 75 |
+| **Overall** | Task 8 Complete | 33% | 26 | 78 |
 
 ---
 
@@ -758,11 +758,40 @@ generic work multiplies the number of places that guess wrong.
 - [ ] Reconcile README.md / CLAUDE.md / taskSummary2.md / language spec with actual implemented
       features (e.g. const already implemented - see Task 8.6)
 - [ ] Confirm test counts and skipped-test reasons are current everywhere they're stated
+- [ ] Consider the review's suggested doc hierarchy (Language Spec -> ADRs -> Roadmap -> Tasks
+      -> Implementation -> Tests) so taskSummary2.md stays a tracker, not a second spec
 
 #### 12.9: Verification & Regression
 - [ ] Full `python -m pytest tests/` run, all green
 - [ ] `python tests/verify_examples.py`, all examples still match expected output
 - [ ] Git commit and push
+
+#### 12.10: Fusion IR Layer (design consideration)
+- [ ] Evaluate introducing a dedicated Fusion IR between the Typed AST and any backend, instead
+      of each backend (C, LLVM, VM, WASM) consuming the AST directly - `Fusion -> AST -> Typed
+      AST -> Fusion IR -> {C, LLVM, VM, WASM}`
+- [ ] If adopted, this changes Task 11's currently-planned pipeline (`Fusion -> LLVM IR`
+      directly) to go through the Fusion IR first, and reopens the Task 10/11 ordering question
+      already flagged above as an open discussion item
+- [ ] Get user decision on whether/when to adopt an IR layer before committing to Task 11's
+      current design
+
+#### 12.11: print() / Stdlib Runtime Lowering (design consideration)
+- [ ] Evaluate replacing per-builtin special-casing in codegen (currently
+      `if func_name == 'print': ...`) with a runtime-API lowering layer: Fusion stdlib call ->
+      runtime API -> backend-specific implementation (e.g. `fusion_print_int`/`fusion_print_float`)
+- [ ] Prevents every future stdlib function from becoming another codegen special case
+- [ ] Scope as part of the C Codegen Module Split (12.5) if adopted
+
+#### 12.12: Project-Level Language Configuration System
+- [ ] Fusion's own core concept is per-project configurability (memory model, safety level,
+      backend, block style - see CLAUDE.md "Core Concept"), but the lexer currently hardcodes
+      indentation behavior (`IndentationTracker(tab_width=4, allow_mixed=True)`) instead of
+      reading it from project configuration
+- [ ] Design a project configuration format (e.g. a `fusion.project`/`.toml`/`.yaml` file)
+      covering syntax/block style, indentation, safety mode, and backend target
+- [ ] This is a gap between the language's marketed core concept and actual implementation -
+      flag for scoping once Task 12's other items are approved
 
 **Success Criteria:**
 - Code generator never guesses a type; it reads `inferred_type` from the semantic pass
@@ -777,6 +806,8 @@ generic work multiplies the number of places that guess wrong.
 - Scoping ADR
 - Memory model spec draft
 - Fully synced documentation
+- IR-layer, stdlib-lowering, and project-config decisions recorded (12.10-12.12 - design
+  considerations, may not require code changes in this task depending on user decisions)
 
 **Open question for user:** the review also suggests LLVM/IR work should come before
 self-hosting (reversing Task 10/11's current order), which contradicts the explicit
@@ -785,12 +816,20 @@ not acted on.
 
 ---
 
-## TASK 13: HIDL (Hardware Interface Definition Language)
+## TASK 13: HIDL Module (Hardware Interface Definition Language integration)
 
-**Goal:** Let a hardware supplier describe a device once (registers, bits, commands, ranges,
-timing, constraints) in a machine-readable spec, and have Fusion generate a safe, typed
-hardware API from it - eventually letting Fusion code talk directly to registers/assembly
-without hand-translating a hardware manual per project.
+**Important scope correction (2026-09-13):** HIDL itself is **not a Fusion feature**. It is a
+standalone, language-agnostic hardware-description framework - independent of Fusion, useful to
+any language's toolchain (C, C++, Rust, C#, Java, etc. per the source doc's own Section 19). This
+task is specifically about Fusion eventually growing a **HIDL module**: a consumer that reads a
+separately-specified `.hidl` file and generates typed Fusion bindings from it. Building HIDL
+itself (its grammar, parser, validation) is a separate, standalone effort that does not require
+Fusion to exist first - only the Fusion-side *consumer* belongs on this compiler's roadmap.
+
+**Goal:** Add a Fusion module that consumes a HIDL hardware spec (registers, bits, commands,
+ranges, timing, constraints) and generates a safe, typed Fusion hardware API from it - eventually
+letting Fusion code talk directly to registers/assembly without hand-translating a hardware
+manual per project.
 **Status:** Blocked / Future (vision doc only - confirmed by user 2026-09-13, not yet scoped
 to a v1 implementation)
 **Priority:** LOW (future/eventual - explicitly no urgency; do not schedule before Task 12)
@@ -799,8 +838,10 @@ state-requirement checks (source doc sections 13, 21) need the same `inferred_ty
 Task 12 proposes, or this repeats the "codegen guesses" problem at the hardware layer.
 **Estimated Effort:** TBD - needs its own sub-plan once approved for scoping
 **Source:** `files/Fusion_Hardware_Interface_Definition_Language_HIDL.md` (moved from repo root
-2026-09-13; original vision doc, 43 sections, XML examples are illustrative only per its own
-section 6). Reviewed by Claude same session - see Session 22 notes below for full review.
+2026-09-13, committed to the repo as an important reference doc; original vision doc, 43
+sections, XML examples are illustrative only per its own section 6; carries a 2026-09-13 scope
+note at the top clarifying HIDL's independence from Fusion). Reviewed by Claude same session -
+see Session 22 notes below for full review.
 
 ### Why this task exists
 
@@ -808,18 +849,20 @@ Custom hardware normally forces every programmer to manually turn a hardware man
 register addresses, bitmasks, enums, structs, and driver code per language - repetitive,
 error-prone, and impossible to keep in sync across C/C#/Rust/etc SDKs for the same chip. HIDL's
 idea is to make the hardware description itself the authoritative artifact: one spec, consumed
-by tooling, generating typed properties/functions/interfaces (and eventually drivers, docs, and
-a simulator) instead of raw register pokes. The source doc also proposes a clean three-way split
-that fits Fusion's existing design direction: **HIDL** = hardware truth, **Interface** = promised
-contract, **Trait** = reusable behavior on top.
+by tooling (any language's tooling, not just Fusion's), generating typed properties/functions/
+interfaces (and eventually drivers, docs, and a simulator) instead of raw register pokes. Fusion
+is one prospective consumer among several. The source doc also proposes a clean three-way split
+that fits Fusion's existing design direction for its own module: **HIDL** = hardware truth,
+**Interface** = promised contract, **Trait** = reusable behavior on top.
 
 ### Sub-tasks (NOT YET APPROVED - proposed breakdown only, for future scoping)
 
 #### 13.1: Grammar & Format Decision
 - [ ] Evaluate reusing an existing standard (ARM CMSIS-SVD, IP-XACT, Zephyr devicetree) vs.
-      designing a new Fusion-specific format
-- [ ] If new format: write a formal HIDL grammar (e.g. `files/hidl.ebnf`), matching how
-      `fusion.ebnf` documents the core language grammar
+      a new, standalone, language-agnostic HIDL format (not a Fusion-specific format - HIDL is
+      independent of Fusion, see scope correction above)
+- [ ] If new format: write a formal HIDL grammar (e.g. `files/hidl.ebnf`) as its own spec,
+      independent of `fusion.ebnf`, using it only as a formatting reference
 - [ ] Decide serialization (source doc's XML in section 6 is explicitly illustrative, not final)
 - [ ] Get user approval on grammar/format before any parser work begins
 
@@ -842,11 +885,12 @@ contract, **Trait** = reusable behavior on top.
 - [ ] Get user decision; record alongside Task 12.7's memory model spec (same ADR, not a
       separate one)
 
-#### 13.4: HIDL Parser (Compiler Frontend)
+#### 13.4: HIDL Parser (standalone, not Fusion compiler internals)
 - [ ] Design an internal hardware model matching source doc section 40 (DEVICE -> metadata,
       memory regions, registers -> fields/access rules, types, enums, commands, properties,
       states, constraints, timing, ...)
-- [ ] Implement a parser for the chosen format (13.1)
+- [ ] Implement a parser for the chosen format (13.1) - this is HIDL's own parser, usable
+      independent of the Fusion compiler; Fusion's compiler only needs to invoke it
 - [ ] Implement spec validation (source doc section 26: overlapping addresses, invalid bit
       ranges, field exceeds register size, read-only marked writable, duplicate command values,
       missing hardware version, etc.)
@@ -1108,6 +1152,39 @@ user re-opens this task for scoping approval.
   Hardening, blocks Task 9 and Task 13), and the unrelated pending Notes/ changes sitting
   uncommitted in the working tree.
 
+### Session 24 (2026-09-13 - Git Cleanup, Task 12 Review Gap Check, HIDL Reframing)
+- **Notes/ cleanup:** confirmed with the user that the "deleted" Notes/*.pdf and .md files (plus
+  root's "Readme todo.md") were never actually lost - they'd been reorganized into Notes/01/ and
+  Notes/02/ subfolders in an earlier session. Added `Notes/` to `.gitignore` (personal working
+  scratch space for point-in-time AI reviews, not project documentation) and committed the
+  resulting removals as `351026d`. Working tree confirmed clean afterward except the HIDL file.
+- **Cross-checked `Notes/02/notes.md` (the ChatGPT architecture review) against Task 12** per
+  the user's standing instruction to log any review findings not yet task-tracked. Found three
+  recommendations from the review with no corresponding task item:
+  1. A dedicated Fusion IR layer between Typed AST and backends (review section 8) - ties into
+     the already-flagged Task 10/11 ordering question but is a distinct design point on its own
+  2. Lowering `print()`/stdlib calls through a runtime API instead of special-casing each
+     builtin in codegen (review section 10)
+  3. A project-level language configuration system (indentation, safety mode, backend target) -
+     notable because this is Fusion's own marketed core concept (see CLAUDE.md "Core Concept")
+     but currently hardcoded in the lexer instead of configurable, and wasn't tracked anywhere
+  - Added these as Task 12.10, 12.11, 12.12 (proposed-only, same as the rest of Task 12); also
+    added the review's doc-hierarchy suggestion (Language Spec -> ADRs -> Roadmap -> Tasks) as
+    a bullet under 12.8. Task 12's sub-task count grew from 9 to 12; overall total 75 -> 78.
+- **HIDL scope correction:** user clarified HIDL is a standalone, language-agnostic hardware
+  framework, not a Fusion-specific concept - Fusion's actual work is a future "HIDL module"
+  that consumes an independently-specified `.hidl` file. The source doc's title and Section 1
+  originally described HIDL as being "for the future Fusion programming language", which
+  overstated the coupling. Added a scope-note callout at the top of
+  `files/Fusion_Hardware_Interface_Definition_Language_HIDL.md` and reworded Task 13 (retitled
+  "HIDL Module", goal/why-this-exists/13.1/13.4 reworded) to reflect that HIDL's grammar and
+  parser are their own standalone effort, and only the Fusion-side consumer belongs on this
+  compiler's roadmap.
+- **Committed the HIDL doc** (previously sitting untracked since it was moved in Session 22) -
+  the user asked for this explicitly, calling it important future work.
+- **Next Action:** Task 12 approval remains the key blocker (now 12 sub-tasks, unblocks Task 9
+  and Task 13). No other pending working-tree changes remain.
+
 ---
 
 ## CRITICAL RULES (Reminder)
@@ -1135,7 +1212,7 @@ user re-opens this task for scoping approval.
 
 ---
 
-**Next Action:** Review/approve Task 12 (Architecture Hardening) sub-tasks before implementation
-(this also unblocks Task 9 and Task 13). Task 8 is now fully complete. Unrelated pending changes
-in the working tree (Notes/ deletions and new Notes/01/, Notes/02/ folders) are still uncommitted
-and need the user's attention/review whenever convenient.
+**Next Action:** Review/approve Task 12 (now 12 sub-tasks, including 12.10-12.12 added from the
+`Notes/02/notes.md` review) before implementation - this also unblocks Task 9 and Task 13.
+Task 8 is fully complete. Working tree is otherwise clean: Notes/ is gitignored (personal
+scratch space) and the HIDL doc is committed.
