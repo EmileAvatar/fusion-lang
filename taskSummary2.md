@@ -42,13 +42,13 @@
 | **Task 5: Cleanup & Organization** | Complete | 100% | 5 | 5 |
 | **Task 6: Verification & Bug Fixes** | Complete | 100% | 7 | 7 |
 | **Task 7: Git Integration** | Complete | 100% | 4 | 4 |
-| **Task 8: Language Features (const)** | In Progress | 88% | 7 | 8 |
+| **Task 8: Language Features (const)** | Complete | 100% | 8 | 8 |
 | **Task 9: Language Features (arrays)** | Not Started | 0% | 0 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
 | **Task 12: Architecture Hardening** | Not Started | 0% | 0 | 9 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
-| **Overall** | Task 8.7 Complete | 33% | 25 | 75 |
+| **Overall** | Task 8 Complete | 35% | 26 | 75 |
 
 ---
 
@@ -298,9 +298,10 @@ From user's PowerShell testing:
 ## TASK 8: Language Features - const Keyword
 
 **Goal:** Add const variable support
-**Status:** In Progress (Tasks 8.1-8.7 Complete, 8.8 Git Commit pending)
+**Status:** Complete ✅
 **Priority:** MEDIUM
 **Estimated Effort:** 4-6 hours
+**Actual Effort:** ~5 hours across sessions
 
 ### Sub-tasks:
 
@@ -354,9 +355,14 @@ From user's PowerShell testing:
 - [x] Update taskSummary2.md with completion (this edit)
 
 #### 8.8: Git Commit
-- [ ] git add all changes
-- [ ] git commit -m "feat: Add const keyword support"
-- [ ] git push origin main
+- [x] git add (scoped to docs/verification files - CLAUDE.md, README.md,
+      fusion-language-spec.md, verification_report.md, taskSummary2.md,
+      verify_examples.py; Notes/ deletions and the untracked HIDL move were left for a
+      separate commit since they're unrelated to const)
+- [x] git commit - `3e67816` "docs: Close out Task 8.6-8.8 - const keyword documentation
+      and verification" (message broadened from the original placeholder to describe what's
+      actually in the diff)
+- [x] git push origin main - pushed, fast-forward, no conflicts
 
 **Success Criteria:**
 - const keyword recognized by lexer
@@ -1074,6 +1080,34 @@ user re-opens this task for scoping approval.
   re-opens Task 13 for v1 scoping. Task 12 approval and Task 8.6-8.8 (const docs/commit) remain
   the actual next actionable items.
 
+### Session 23 (2026-09-13 - Task 8.6-8.8 Closeout)
+- **Task 8.6 (Documentation):** fixed `files/fusion-language-spec.md`'s Constants section,
+  which still showed a stale `name: type = value` syntax that never matched the implemented
+  type-first grammar - rewrote examples to `const int X = 1` style and added notes on current
+  scope (function-local only, explicit type required, no class-level consts). Fixed
+  `CLAUDE.md`'s "const keyword not yet implemented" limitation (moved to Current Features).
+  Checked README.md and `files/fusion.ebnf` - both already had accurate const coverage from
+  Session 21/earlier implementation work, so left unchanged.
+- **Task 8.7 (Verification):** full suite 1057 passed / 8 skipped. Found
+  `tests/verify_examples.py` had no expected-output entry for `const_demo`, so its output was
+  being silently skipped rather than checked (6/7 "matches", not 7/7) - added an expected-output
+  entry; re-ran and got 7/7 compile, run, and match. Regenerated verification_report.md.
+- **Task 8.8 (Git):** deliberately did NOT run a blanket `git add .` - the working tree also had
+  unrelated pending changes (deleted Notes/*.pdf and Notes/*.md files, new untracked Notes/01/
+  and Notes/02/ folders, and the HIDL file moved into files/ from the previous session) that
+  have nothing to do with const. Staged only the six docs/verification files, committed as
+  `3e67816` "docs: Close out Task 8.6-8.8 - const keyword documentation and verification"
+  (broadened from the stale placeholder message "feat: Add const keyword support" written when
+  8.8 was first planned, since the actual diff was documentation, not new code), pushed
+  fast-forward to origin/main with no conflicts.
+- **TASK 8: const KEYWORD - 100% COMPLETE**
+- **Left untouched, still pending in the working tree:** the Notes/ deletions/additions and the
+  HIDL file relocation - these are separate from Task 8 and need their own review/commit
+  whenever the user wants to address them.
+- **Next Action:** Task 8 fully closed. Remaining open items: Task 12 approval (Architecture
+  Hardening, blocks Task 9 and Task 13), and the unrelated pending Notes/ changes sitting
+  uncommitted in the working tree.
+
 ---
 
 ## CRITICAL RULES (Reminder)
@@ -1101,6 +1135,7 @@ user re-opens this task for scoping approval.
 
 ---
 
-**Next Action:** Review/approve Task 12 (Architecture Hardening) sub-tasks before implementation;
-Task 8.6-8.8 (const documentation/verification/commit) still outstanding; Task 13 (HIDL) is
-logged as blocked/future - no action needed until Task 12 completes
+**Next Action:** Review/approve Task 12 (Architecture Hardening) sub-tasks before implementation
+(this also unblocks Task 9 and Task 13). Task 8 is now fully complete. Unrelated pending changes
+in the working tree (Notes/ deletions and new Notes/01/, Notes/02/ folders) are still uncommitted
+and need the user's attention/review whenever convenient.
