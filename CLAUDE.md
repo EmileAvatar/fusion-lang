@@ -81,6 +81,7 @@ Claude: [Implement Task 7.X.2]
 **Active Files:**
 - `taskSummary2.md` (ROOT folder) - Post-MVP tasks (Tasks 5+)
 - `task/taskSummary.md` (ARCHIVED) - MVP tasks (Tasks 1-4)
+- `task/taskSummaryArchive.md` (ARCHIVED) - Completed post-MVP task detail (Tasks 5+)
 - `task/task-X.X.md` - Detailed task breakdowns
 
 **Task Numbering:**
@@ -91,6 +92,18 @@ Claude: [Implement Task 7.X.2]
 - After EVERY sub-task completion
 - At session start
 - At session end
+
+**Archiving Policy (minimize token usage):**
+- `taskSummary2.md` grows every session and gets expensive to read into context - keep it
+  small by moving fully-completed task sections out of it
+- When a whole numbered task (all its sub-tasks) is marked Complete, move that task's full
+  section (sub-tasks, success criteria, deliverables) from `taskSummary2.md` to
+  `task/taskSummaryArchive.md`, verbatim
+- Leave behind a short pointer in `taskSummary2.md` where the section was (task name + status +
+  "see task/taskSummaryArchive.md") - do NOT delete the Overall Progress table row or Working
+  Notes session history; those stay in the active file
+- Do this as part of closing out a task (same session it's completed, or the next time
+  `taskSummary2.md` is touched), not as a separate ceremony the user has to ask for each time
 
 ---
 
@@ -105,6 +118,7 @@ d:\Dropbox\Fusion\
 ├── main.py                   [Compiler entry point]
 ├── task/                     [Task tracking]
 │   ├── taskSummary.md        [ARCHIVED - MVP complete]
+│   ├── taskSummaryArchive.md [ARCHIVED - completed post-MVP task detail]
 │   ├── task-*.md             [Task details]
 │   └── Revisit.md            [Technical debt]
 ├── files/                    [Documentation]
@@ -193,6 +207,7 @@ The compiler adapts to project configuration (memory model, locking strategy, st
 |------|----------|---------|
 | **taskSummary2.md** | Root | Active task tracking (Tasks 5+) |
 | **taskSummary.md** | task/ | Archived MVP tasks (Tasks 1-4) |
+| **taskSummaryArchive.md** | task/ | Archived completed post-MVP task detail (Tasks 5+) |
 | **task-X.X.md** | task/ | Detailed task breakdowns |
 | **Revisit.md** | task/ | Technical debt tracking |
 | **fusion.ebnf** | files/ | Grammar specification |
