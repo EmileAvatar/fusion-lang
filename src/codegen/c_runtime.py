@@ -9,9 +9,12 @@ recursively generate code for sub-expressions, and existing tests call some of t
 (visit_InterpolatedStringExpr, _generate_interpolated_print) directly as instance
 methods on a CCodeGenerator.
 
-Task 12.11 (deferred - see taskSummary2.md) considers going further: replacing this
-per-builtin special-casing with a general runtime-API lowering layer, so future stdlib
-functions don't each need a new special case here.
+Task 12.11 (decided 2026-09-13, see taskSummary2.md) considered replacing this per-builtin
+special-casing with a general runtime-API lowering layer (Fusion stdlib call -> runtime API
+-> backend-specific implementation), so future stdlib functions wouldn't each need a new
+special case here. Decision: defer - only 2 builtins exist (print, len) and `import` has no
+parser support yet, so there is no real stdlib to lower. Revisit once Fusion's first real
+import/fusionlib module is scoped for implementation.
 """
 
 from ..parser.ast_nodes import (

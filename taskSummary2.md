@@ -48,23 +48,28 @@ CLAUDE.md Rule 3 for when/how sections move there
 | **Task 9: Language Features (arrays v1)** | Complete | 100% | 8 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Task 12: Architecture Hardening** | In Progress | 92% | 11 | 12 |
+| **Task 12: Architecture Hardening** | Complete | 100% | 12 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Overall** | Task 12.10 Complete | 54% | 45 | 84 |
+| **Overall** | Task 12 Complete | 55% | 46 | 84 |
 
 ---
 
 ## Completed Tasks (Archived)
 
-Tasks 5-8 are complete. Their full sub-task detail, success criteria, and deliverables have
-been moved to `task/taskSummaryArchive.md` to keep this file small (see CLAUDE.md Rule 3).
-The Overall Progress table above still tracks their status at a glance.
+Tasks 5-8 and 12 are complete. Their full sub-task detail, success criteria, and
+deliverables have been moved to `task/taskSummaryArchive.md` to keep this file small (see
+CLAUDE.md Rule 3). The Overall Progress table above still tracks their status at a glance.
 
 - Task 5: Project Cleanup & Organization - Complete
 - Task 6: Verification & Bug Fixes - Complete
 - Task 7: Git Integration & GitHub Setup - Complete
 - Task 8: Language Features - const Keyword - Complete
+- Task 12: Compiler Architecture Hardening (Typed AST & Codegen Refactor) - Complete (all
+  12 sub-tasks - Typed AST, C codegen split, block-level scoping, memory model semantics,
+  docs sync, project configuration system, and two deliberately-deferred design decisions
+  with rationale recorded - see `task/taskSummaryArchive.md` for full detail, or this
+  file's Working Notes below for the session-by-session narrative)
 
 ---
 
@@ -532,366 +537,16 @@ Verification: v2 and v3 must produce identical output.
 
 ---
 
-## TASK 12: Compiler Architecture Hardening (Typed AST & Codegen Refactor)
+## TASK 12: Compiler Architecture Hardening (Typed AST & Codegen Refactor) - COMPLETE
 
-**Goal:** Close the gap where the C code generator guesses types instead of being told them,
-before arrays/classes/generics get built on top of that gap.
-**Status:** In Progress - Core Typed AST complete (12.1-12.4, 12.9); 12.5-12.8 and 12.10-12.12
-deferred (approved scope, 2026-09-13: user picked "Core Typed AST only" to unblock Task 9
-without taking on the full 12-item list - see Session 26 notes)
-**Priority:** HIGH (was recommended before Task 9 - now satisfied for Task 9's purposes)
-**Estimated Effort:** TBD for remaining deferred items
-**Source:** External review of repo architecture, lexer, parser, semantic analyzer, C backend,
-and commit history. Full text archived at `Notes/02/notes.md`.
-
-### Why this task exists
-
-The review's central finding: semantic analysis validates code but doesn't hand the code
-generator enough information, so `CCodeGenerator` currently guesses C types/format specifiers
-(e.g. `print()` defaulting non-string args to `%s`, interpolation defaulting to `%d`). That
-already caused the FizzBuzz bug fixed in Task 6.2. The review recommends fixing this at the
-architecture level - a Typed AST - rather than patching individual symptoms, before array/class/
-generic work multiplies the number of places that guess wrong.
-
-### Sub-tasks
-
-#### 12.1: Typed AST Design - COMPLETE
-- [x] Add `inferred_type` field to expression AST nodes - not a shared `Expr` base class as
-      originally proposed (Python dataclass field-ordering rules make a defaulted field on a
-      common base incompatible with subclasses adding their own required fields); instead each
-      of the 7 expression classes (`LiteralExpr`, `IdentifierExpr`, `BinaryExpr`, `UnaryExpr`,
-      `CallExpr`, `LambdaExpr`, `InterpolatedStringExpr`) carries its own trailing
-      `inferred_type: Optional[TypeNode] = None` field
-- [x] Decided: lives directly on the AST node (mutated in place), not a side-table - the same
-      AST object already flows parser -> semantic analyzer -> codegen unmodified (verified via
-      main.py), so this needed no pipeline changes to work
-- [x] Design recorded here and in code docstrings (src/parser/ast_nodes.py) rather than a
-      separate ADR file - didn't need one, the design followed directly from Python/pipeline
-      constraints, not an open judgment call
-- [x] User approved the approach (2026-09-13) before implementation began
-
-#### 12.2: Semantic Analyzer - Populate Type Information - COMPLETE
-- [x] `TypeChecker` already computed the correct type for every expression while validating it
-      - it was just discarded. Fix was one hook in `TypeChecker.visit()`'s dispatcher: after
-      computing the result, if the node has an `inferred_type` attribute, write the result onto
-      it. Centralized in one place rather than editing all 7 `visit_XxxExpr` methods individually.
-- [x] Covers every expression type that flows through `visit()`, including inside
-      `InterpolatedStringExpr` segments (literals, identifiers, binary/unary expressions, calls)
-- [x] Updated semantic test asserting `inferred_type` is set correctly
-      (`test_interpolated_string_type` in tests/test_type_checker.py)
-
-#### 12.3: Codegen - Consume Type Information Instead of Guessing - COMPLETE
-- [x] Added `_format_specifier_for_expr()` in c_generator.py: reads `inferred_type`, maps
-      int->%d, float/double->%f, string->%s, char->%c, bool->%d
-- [x] Removed "for MVP, assume string" (`_generate_print_call`'s %s fallback) and "for MVP,
-      use %d for most things" (both interpolation format-string builders) - all three now call
-      the shared helper instead
-- [x] If `inferred_type` is missing/unrecognized, raises `NotImplementedError` with a clear
-      internal-compiler-error message instead of silently guessing - matches the existing
-      `generic_visit` error convention already used elsewhere in both TypeChecker and
-      CCodeGenerator
-- [x] Regression tests added: `test_interpolation_uses_actual_type_not_always_d` (float/string
-      via interpolation), `test_print_bare_non_string_uses_actual_type` (direct print() arg),
-      `test_interpolation_missing_inferred_type_raises` (missing-type error path) - all in
-      tests/test_codegen_expressions.py
-- [x] Verified for real (not just unit tests): compiled an ad-hoc snippet interpolating
-      float+bool+string together - generated
-      `printf("Pi is %f, flag is %d, name is %s\n", pi, flag, name)` and ran correctly.
-      Before this fix it would have generated `%d` for all three - float reinterpreted as int,
-      string pointer printed as a raw integer
-
-#### 12.4: InterpolatedString AST Refactor - COMPLETE
-- [x] Replaced parallel `parts: List[str]` / `expressions: List[ASTNode]` arrays with a single
-      ordered `segments: List[StringTextPart | StringExprPart]` list on `InterpolatedStringExpr`
-- [x] Root cause was one step earlier than the review described: the lexer already emits a
-      safe, ordered, tagged sequence (`[('STRING_PART', ...), ('INTERP_VAR', ...), ...]`); the
-      parser was the one deliberately splitting that into two parallel arrays. Fix keeps the
-      parser's job as "carry the order over," not "reconstruct it later."
-- [x] Updated all consumers to the new shape: `ast_nodes.py` (new `StringTextPart`/
-      `StringExprPart` classes), `parser.py` (rewrote `parse_interpolated_string_from_parts`;
-      also deleted `parse_interpolated_string`, a dead method referencing a JSON shape
-      - `token.interpolation` - that's never populated and was never called from anywhere),
-      `name_resolver.py`, `type_checker.py`, `c_generator.py` (also de-duplicated
-      `visit_InterpolatedStringExpr` and `_generate_interpolated_print`, which were
-      near-identical, into one shared `_build_interpolation_format()` helper)
-- [x] Re-ran lexer/parser/codegen interpolation tests - updated ~30 call sites across
-      tests/test_ast_nodes.py, tests/test_type_checker.py, tests/test_codegen_expressions.py to
-      the new segment shape (tests/test_parser_expressions.py's interpolation tests were
-      already commented out/dead before this change - left as-is, out of scope here)
-
-#### 12.5: C Codegen Module Split - COMPLETE
-- [x] Extracted `c_types.py`: `TypeMapperMixin` with `map_type()`. Kept as a mixin (not a
-      standalone function) because it recurses via `self.map_type(...)` for
-      `FunctionType`/`ArrayType`, and `tests/test_codegen_infrastructure.py` calls
-      `generator.map_type(...)` directly as an instance method
-- [x] Extracted `c_names.py`: a plain `mangle_function_name(name)` function (no generator
-      state needed) - `CCodeGenerator._mangle_function_name` is now a one-line delegate,
-      kept so internal call sites didn't need touching
-- [x] Extracted `c_runtime.py`: `RuntimeLoweringMixin` with `_FORMAT_SPECIFIERS`,
-      `_format_specifier_for_expr`, `_generate_print_call`, `_generate_len_call`,
-      `visit_InterpolatedStringExpr`, `_generate_interpolated_print`,
-      `_build_interpolation_format` - a mixin because every method calls `self.visit(...)`,
-      and `tests/test_codegen_expressions.py` calls `visit_InterpolatedStringExpr`/
-      `_generate_interpolated_print` directly on generator instances
-- [x] `CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin)` - public API (the class name,
-      every method name and signature) is completely unchanged; this is purely an internal
-      reorganization
-- [x] Verified: full suite still 1090 passed, 8 skipped (identical to before the split, no
-      count change since no test was added or removed - purely a refactor);
-      `verify_examples.py` still 8/8. `c_generator.py`: 962 -> 773 lines (189 lines moved to
-      the 3 new files, which add ~110 lines net of new module-level docstrings/cross-refs)
-
-#### 12.6: Scoping Decision - COMPLETE (implemented, not just an ADR)
-- [x] **Decision: switched to block-level (lexical) scoping.** User chose this after
-      weighing the tradeoffs (RAII/ownership clarity for the upcoming Task 12.7 memory
-      model vs. function-scoping's simpler mental model) - see the presented tradeoffs in
-      this session's conversation.
-- [x] **This turned out to fix a real, live bug, not just a style preference.** Verified by
-      compiling `if cond { int x = 10 } print(x)`: semantic analysis said "no errors"
-      (function-scoping), but the generated C failed with `gcc: 'x' undeclared` - C's own
-      `{ }` braces are natively block-scoped, so the compiler was accepting programs it
-      could never actually finish compiling. This was independent confirmation the
-      decision was correct, not just architecturally nicer for later.
-- [x] Implemented (not deferred as a paper-only ADR, since fixing the bug required real
-      code): `BlockStmt`/`ForStmt` gained a `scope` field (Any-typed to avoid a circular
-      import with `symbol.py`); `SymbolTable.enter_existing_scope()` lets a later pass
-      reuse a scope an earlier pass already populated (Scope.parent is a fixed object
-      reference, so lookup_recursive works correctly through reused scopes regardless of
-      which pass is walking); `NameResolver.resolve_block()`/`resolve_for()` create a new
-      child scope per block/loop and store it on the node; `TypeChecker.visit_BlockStmt()`
-      reuses that exact scope (falls back to a fresh one if unset, for isolated unit tests
-      that construct AST fragments without running NameResolver first)
-- [x] **One real nuance, verified against actual GCC before assuming it**: a function's
-      own top-level body must share its parameter scope directly, not nest a new scope
-      below it - redeclaring a parameter name at the top level of a C function body is
-      itself a C error ('redeclared as different kind of symbol'), confirmed by compiling
-      a minimal C repro. `resolve_block()` takes a `new_scope` flag (default True); the
-      two call sites that resolve a function's own top-level body
-      (`NameResolver.resolve_function` and `semantic_analyzer.py`'s inline orchestration)
-      pass `new_scope=False`. For-loop bodies do get their own nested scope below the
-      loop-variable's scope - also verified against GCC (a for-body CAN shadow its own
-      loop variable in real C).
-- [x] **Found and fixed a second, related bug while implementing this**:
-      `control_flow_validator.py`'s `validate_conditions()` redundantly re-visits every
-      if/while condition via the type checker *after* the main type-checking walk has
-      already unwound its scopes - under block scoping this made loop-variable references
-      inside conditions fail ("Undefined variable: 'i'") even though the same condition
-      had already type-checked correctly the first time. Fixed by having
-      `validate_conditions()` re-enter the relevant `.scope` for `ForStmt`/`BlockStmt`
-      nodes (falling back to no scope change when `.scope` is unset, preserving its
-      existing behavior for the standalone `ControlFlowValidator` unit tests that never
-      run `NameResolver` first).
-- [x] Updated 5 existing tests that asserted the old function-scoping behavior (their
-      names/docstrings described exactly what changed):
-      `test_inner_scope_shadows_outer_scope`, `test_variable_not_visible_outside_scope`,
-      `test_shadowing_resolution_inner_wins`, `test_variable_in_if_branch_not_visible_outside`
-      (all in `tests/test_name_resolver.py`), and `test_variable_shadowing` (in
-      `tests/test_semantic_integration.py`)
-- [x] Added 6 new regression tests in `tests/test_end_to_end.py` covering: real shadowing
-      producing correct runtime output (`test_block_scoping_shadowing_actually_works`),
-      the original bug pattern now correctly rejected
-      (`test_block_scoping_rejects_use_after_block`,
-      `test_block_scoping_rejects_use_after_for_loop`,
-      `test_block_scoping_for_loop_variable_out_of_scope_after_loop`), and the
-      parameter-redeclaration nuance
-      (`test_block_scoping_local_cannot_redeclare_parameter`)
-- [x] Verified for real: compiled and ran the shadowing case (`int x=10; if true {int
-      x=20; print(x)} print(x)`) - correct output `Inner: 20` / `Outer: 10`; compiled the
-      original bug case and confirmed it now fails cleanly at the Fusion semantic-analysis
-      stage instead of with a confusing raw GCC error
-- [x] Full suite: 1095 passed, 8 skipped (up from 1090 - 6 new tests, 5 modified, none
-      weakened). `verify_examples.py`: 8/8 (none of the 8 examples relied on the old,
-      buggy cross-block visibility)
-- [x] **Known follow-up, not fixed here**: `LambdaExpr` with a `BlockStmt`-style body (as
-      opposed to a single-expression body) doesn't get its parameter scope reused
-      correctly by `TypeChecker` under this change - `NameResolver.resolve_lambda`
-      resolves the block's statements inline without going through `resolve_block`, so the
-      block's `.scope` is never set. Not fixed because no current test exercises this path
-      and `LambdaExpr` codegen is itself still a stub (`/* <lambda> */`, deferred
-      post-MVP) - flagged here rather than silently left broken, safe to defer since this
-      part of the language isn't functionally complete regardless
-
-#### 12.7: Memory Model Semantics - COMPLETE (design doc, no code change - as scoped)
-- [x] **Decision: `Unique<T>` requires explicit `.move()`.** Plain assignment
-      (`Unique<T> b = a`) is a compile-time error, not a silent move (rejected the C++
-      `unique_ptr` implicit-move alternative) - every ownership transfer must be visible
-      at the call site, including passing a `Unique<T>` into a consuming function
-      parameter. Use-after-move is a compile-time error where provable, else a runtime
-      crash with a clear message - explicitly noted to share one analysis pass with
-      Task 14's null-flow tracking later (moved-from and maybe-null are the same shape
-      of problem), not two separate mechanisms.
-- [x] **Decision: `Shared<T>` refcounting is always atomic**, not configurable per
-      project (rejected the configurable option, despite it fitting Fusion's "agnostic
-      per-project configuration" core concept, to avoid two runtime code paths to build/
-      test/document before there's a concrete need). **Decision: no automatic cycle
-      detection** - documented as a permanent, accepted limitation; `Weak<T>` is the
-      required way to break a cycle (matches Swift ARC/Rust `Rc`/ObjC ARC).
-- [x] **Decision: `Weak<T>.lock()` returns a nullable `Shared<T>?`, never crashes
-      silently.** Caller must null-check. Chosen specifically for consistency with Task
-      14's nullable-array direction, so Fusion has one null-handling story across
-      features. Noted that once Task 14's `?.` exists, this composes as
-      `child.parent.lock()?.doSomething()`.
-- [x] All three decisions and their rationale documented directly in
-      `files/fusion-language-spec.md`'s existing "Memory Management" section (which
-      already had draft Unique/Shared/Weak examples from the original planning phase -
-      this pass turned the ambiguous parts of that draft into decided, rationale-backed
-      semantics rather than replacing it) - new top-of-section status note makes clear
-      this is decided-but-not-yet-implemented (Unique/Shared/Weak are still
-      tokenizer-only keywords, confirmed via a source search: no parser/semantic/codegen
-      handling exists anywhere in `src/`)
-- [x] User decided all three questions via explicit tradeoff presentation (2026-09-13),
-      same pattern as Task 12.6's scoping decision - all three chose the recommended
-      option
-- [x] No code changes made or needed - matches this sub-task's own scope ("design doc,
-      no code change"); unblocks Task 14 (Nullable Arrays) to proceed once scoped, since
-      Task 14 was blocked specifically on this item
-
-#### 12.8: Documentation Sync Pass - COMPLETE
-- [x] Reconciled README.md / CLAUDE.md / language spec with actual implemented features (const
-      and arrays were already largely current from Tasks 8/9's own doc updates - this pass
-      found and fixed what those missed):
-      - **CLAUDE.md**: "Repository is now PRIVATE" was flatly wrong (repo went public
-        2026-08-04) - fixed; the entire "CURRENT STATUS" and "Next Steps" sections were dated
-        2025-12-14 and described the FizzBuzz bug as unresolved and Tasks 5+ as not started -
-        rewrote both to reflect Tasks 5-9 + Task 12 core complete; added missing doc-reference
-        table entries (HIDL doc, task-10/11 plans)
-      - **README.md**: fixed a stale "126 tests" figure left over from Task 12 (never updated
-        after Task 12's own new tests), refreshed the AI-contributor model list (Claude Sonnet
-        5 wasn't listed), added `taskSummaryArchive.md` to the doc index
-      - **files/fusion-summary.md, files/README.md, files/fusion-planning.md**: all three
-        predate compiler implementation entirely and claimed things like `Compiler: Not
-        Started 0%` and `README.md: Not Started` - these are now misleading rather than just
-        outdated, since the compiler is substantially built. Added a clear "historical
-        snapshot, see taskSummary2.md for current status" note to each rather than rewriting
-        every stale table cell (matches how `task/taskSummary.md` is already handled - frozen
-        and labeled ARCHIVED, not continuously updated)
-      - **task/Revisit.md**: "29 failing tests" (from 2025-12-07) is now 0 - all resolved;
-        updated the summary table, added a resolved-marker on the historical detail section
-        (kept, not deleted - has real value explaining how those issues were fixed), and fixed
-        a broken relative link to `taskSummary.md` that pointed at a path that no longer
-        exists after that file moved into `task/`
-- [x] Confirmed test counts are current everywhere they're stated (1,090 passed / 8 skipped) -
-      cross-checked README's per-category test counts (lexer/parser/semantic/codegen/other)
-      against actual `pytest --collect-only` groupings rather than just trusting the prior
-      numbers; skipped-test reason (single-quote comments vs. char literals) is still accurate
-      and unchanged
-- [x] Considered the review's suggested doc hierarchy (Language Spec -> ADRs -> Roadmap ->
-      Tasks -> Implementation -> Tests): decided not to introduce a separate ADR directory
-      right now - Tasks 12.6/12.7/13/14 already function as lightweight ADRs (explicit
-      "proposed, not approved" status, rationale, blocked-by relationships), and archiving
-      completed tasks out of `taskSummary2.md` (this session's earlier archiving work) already
-      addresses the "second spec" bloat concern the suggestion was about
-
-#### 12.9: Verification & Regression - COMPLETE
-- [x] Full `python -m pytest tests/` run: 1060 passed, 8 skipped, all green (up from 1057
-      passed - added 3 new regression tests, no existing test weakened)
-- [x] `python tests/verify_examples.py`: 7/7 compile, run, and match expected output
-- [x] Git commit and push - `d7ff009` "feat: Task 12 Core Typed AST - codegen reads types
-      instead of guessing"
-
-#### 12.10: Fusion IR Layer - COMPLETE (decision recorded, no code change - deferred)
-- [x] **Decision: defer adopting a dedicated Fusion IR layer until Task 11 (LLVM backend)
-      actually starts**, rather than adopting a full IR now or even a thin/contract-only
-      version now. Presented as a three-way tradeoff (defer / full IR now / thin IR now);
-      user chose to defer.
-- [x] **Rationale:** exactly one backend exists today (C). Designing an IR now would have
-      no real second consumer to validate it against, and would mean reworking the C
-      codegen (just cleanly split into modules in Task 12.5) to sit behind a new
-      abstraction for zero immediate capability gain. Explicitly weighed against the
-      opposite risk (if Task 11 just copies the C backend's AST-walking pattern, retrofitting
-      an IR afterward costs more, across two backends instead of one) - accepted that risk
-      rather than pay the cost now on a single-backend compiler.
-- [x] Recorded a pointer at the point this will actually matter: added a "Revisit at
-      kickoff" note to `task/task-11-llvm-backend-plan.md` so this question is re-opened
-      with real LLVM requirements in hand before any LLVM codegen is written, rather than
-      silently forgotten or silently assumed decided either way.
-- [x] Does **not** resolve the separately-flagged Task 10/11 ordering question (whether
-      LLVM/IR work should come before self-hosting) - that remains open, unchanged, tracked
-      in Task 12's "Open question for user" note below
-- [x] No code changes made or needed - matches this sub-task's "design consideration" scope;
-      the C backend is completely unaffected
-
-#### 12.11: print() / Stdlib Runtime Lowering (design consideration)
-- [ ] Evaluate replacing per-builtin special-casing in codegen (currently
-      `if func_name == 'print': ...`) with a runtime-API lowering layer: Fusion stdlib call ->
-      runtime API -> backend-specific implementation (e.g. `fusion_print_int`/`fusion_print_float`)
-- [ ] Prevents every future stdlib function from becoming another codegen special case
-- [ ] Scope as part of the C Codegen Module Split (12.5) if adopted
-
-#### 12.12: Project-Level Language Configuration System - COMPLETE (implemented, not just designed)
-- [x] **Decision: TOML, via an optional `fusion.toml` file.** Chosen over YAML (would add a
-      new dependency - `requirements.txt` currently has none) and a custom Fusion-native
-      format (would mean writing and maintaining a whole new parser for no real benefit).
-      Python 3.11's stdlib `tomllib` parses it with zero added dependency - **this raises
-      the project's minimum Python version from 3.10 to 3.11** (updated everywhere README.md
-      stated it).
-- [x] **Decision: lookup is source file's own directory, then the current working
-      directory** - not a parent-directory walk like git's `.git`/npm's `package.json`,
-      since Fusion has no multi-file project/workspace concept yet (that would solve a
-      problem that doesn't exist yet - revisit once it does). A missing file is not an
-      error (every setting defaults, identical to the old hardcoded behavior); a *present
-      but malformed* file IS a hard error (bad TOML syntax or an invalid value) - never a
-      silent fallback to defaults.
-- [x] **Decision: implement the concrete gap now (`[indentation]`), document the rest as
-      reserved.** New `src/config/project_config.py`: `ProjectConfig`/`IndentationConfig`
-      dataclasses, `find_config_file()`, `load_project_config()`, `ProjectConfigError`.
-      `[indentation]` (`tab_width`/`allow_mixed`) is fully validated and actually reaches
-      the lexer. `[safety]` (`mode`: "normal"/"strict") and `[backend]` (`target`: "c" only
-      - "llvm" explicitly rejected with a message pointing at Task 11) are parsed and
-      validated (so a project can state intent and typos are caught) but not enforced by
-      any pass yet - same "recognized, not implemented" status as `Unique`/`Shared`/`Weak`.
-- [x] `src/lexer/lexer.py`'s `Lexer.__init__` gained optional `tab_width`/`allow_mixed`
-      parameters (defaulting to the exact previous hardcoded values, so every existing
-      direct `Lexer(...)` call site and test is unaffected); `main.py` now loads the
-      project config before constructing the lexer and passes both through, with
-      `ProjectConfigError` caught and printed as a clean one-line error (exit code 1), not
-      a raw Python traceback.
-- [x] Verified end-to-end, not just unit-tested: compiled a real file with a line mixing
-      spaces and a tab in its indentation - with no `fusion.toml` (or `allow_mixed = true`)
-      it compiles with a warning; with `allow_mixed = false` in `fusion.toml` next to it,
-      the exact same file now fails to compile with a clear lexer error. Also verified a
-      deliberately malformed `fusion.toml` fails cleanly (`Project configuration error:
-      Invalid TOML in ...`, exit code 1, no traceback).
-- [x] 24 new tests in `tests/test_project_config.py`: discovery/lookup order (including
-      source-directory-wins-over-cwd), defaults-when-absent, every valid key, every invalid
-      value (malformed TOML, wrong type per key, unknown enum value, `[indentation]` not a
-      table), and the actual lexer-wiring path end to end
-- [x] `examples/project_config_demo/` - a permanent, manual demonstration (`mixed_indent.fusion`
-      + `fusion.toml` + README explaining how to reproduce both outcomes). Deliberately a
-      subdirectory, not dropped into `examples/` directly: `tests/verify_examples.py` globs
-      `examples/*.fusion` non-recursively, so this demo's `fusion.toml` cannot silently
-      change the other 8 examples' behavior - confirmed via a real `verify_examples.py` run
-      still showing 8/8 after adding it.
-- [x] Full suite: 1119 passed, 8 skipped (up from 1095 - 24 new tests, nothing weakened).
-      `verify_examples.py`: still 8/8.
-- [x] Documented in `files/fusion-language-spec.md` (new "Project Configuration" subsection
-      under "Build and Compilation", including the full schema and every decision's
-      rationale), `CLAUDE.md` (file tree, Quick Syntax Reference, Current Features/Known
-      Limitations, test counts, Next Steps), and `README.md` (Features, Requirements/Python
-      version, project structure tree, Development Status, Test Results)
-
-**Success Criteria:**
-- [x] Code generator never guesses a type; it reads `inferred_type` from the semantic pass
-- [x] String interpolation is structurally correct (no parallel-array synchronization bugs)
-- [x] `CCodeGenerator` responsibilities are split into focused modules (12.5, complete)
-- [x] Scoping and memory-model decisions are written down, not implicit (12.6/12.7, complete)
-- [x] All existing tests still pass; no behavior regressions
-
-**Deliverables:**
-- Typed AST
-- Refactored, modular C codegen
-- Scoping ADR (implemented)
-- Memory model spec (decided and documented; not yet implemented in the compiler)
-- Project configuration system (`fusion.toml`, implemented for indentation; safety/backend
-  reserved)
-- Fully synced documentation
-- IR-layer and stdlib-lowering decisions still to come (12.10-12.11 - design considerations,
-  may not require code changes depending on the user's decisions)
-
-**Open question for user:** the review also suggests LLVM/IR work should come before
-self-hosting (reversing Task 10/11's current order), which contradicts the explicit
-Session 19 decision to plan self-hosting first. Not changed here - flagged for discussion,
-not acted on.
+**Status:** Complete (all 12 sub-tasks) - 2026-09-13. Full sub-task detail (Typed AST,
+C codegen module split, block-level scoping, memory model semantics, docs sync, project
+configuration system, and two deliberately-deferred design decisions), success criteria,
+and deliverables have been moved verbatim to `task/taskSummaryArchive.md` (see CLAUDE.md
+Rule 3). See the Overall Progress table above for a glance, and this file's Working Notes
+below for the session-by-session narrative of how each sub-task was decided/implemented.
+Task 12's completion unblocked Task 13 and Task 14 (both still need their own scoping
+approval before implementation, per Rule 1).
 
 ---
 
@@ -910,11 +565,14 @@ ranges, timing, constraints) and generates a safe, typed Fusion hardware API fro
 letting Fusion code talk directly to registers/assembly without hand-translating a hardware
 manual per project.
 **Status:** Blocked / Future (vision doc only - confirmed by user 2026-09-13, not yet scoped
-to a v1 implementation)
-**Priority:** LOW (future/eventual - explicitly no urgency; do not schedule before Task 12)
-**Blocked By:** Task 12 (Typed AST / Architecture Hardening) - compile-time hardware range and
-state-requirement checks (source doc sections 13, 21) need the same `inferred_type` machinery
-Task 12 proposes, or this repeats the "codegen guesses" problem at the hardware layer.
+to a v1 implementation). **Unblocked as of 2026-09-13** - Task 12 (all 12 sub-tasks) is now
+complete; this task still needs its own scoping approval before implementation begins, per
+Rule 1.
+**Priority:** LOW (future/eventual - explicitly no urgency)
+**Blocked By:** ~~Task 12~~ - COMPLETE (2026-09-13). Compile-time hardware range and
+state-requirement checks (source doc sections 13, 21) need the `inferred_type` machinery
+Task 12 delivered (12.1-12.4, 12.9), or this repeats the "codegen guesses" problem at the
+hardware layer.
 **Estimated Effort:** TBD - needs its own sub-plan once approved for scoping
 **Source:** `files/Fusion_Hardware_Interface_Definition_Language_HIDL.md` (moved from repo root
 2026-09-13, committed to the repo as an important reference doc; original vision doc, 43
@@ -1015,9 +673,9 @@ that fits Fusion's existing design direction for its own module: **HIDL** = hard
 - Example hardware definition + generated API
 - Memory-model ADR entry covering hardware handles
 
-**Explicitly NOT scheduled now:** this task is future/eventual work only. No implementation,
-grammar design, or parser work should begin until Task 12 (Typed AST) is complete and the
-user re-opens this task for scoping approval.
+**Explicitly NOT scheduled now:** this task is future/eventual work only. Task 12 is now
+complete, so its blocker is cleared, but no implementation, grammar design, or parser work
+should begin until the user re-opens this task for scoping approval.
 
 ---
 
@@ -1564,6 +1222,36 @@ user re-opens this task for scoping approval.
   - No code changed - matches this sub-task's design-consideration scope exactly.
 - **Next Action:** proceed to 12.11 (print()/stdlib runtime lowering - design
   consideration), the last remaining item to close out Task 12.
+- **Executed 12.11 (print()/Stdlib Runtime Lowering) - COMPLETE, decision recorded, no
+  code change (deferred).** Same three-way tradeoff shape as 12.10 (defer / lightweight
+  registry refactor now / full runtime-API design now); user chose to defer again.
+  - Checked the actual code before reasoning about it, rather than assuming: exactly 2
+    builtins are special-cased in `visit_CallExpr` (`print`, `len`); `range()` isn't a
+    runtime call at all, it's consumed structurally inside `visit_ForStmt`. Confirmed via
+    source search that `import` has zero parser support (lexer keyword only) - there is no
+    stdlib call mechanism to lower yet.
+  - Updated `src/codegen/c_runtime.py`'s module docstring, which had flagged this exact
+    open question since Task 12.5, to record the decision instead of leaving it open.
+  - No code changed - matches this sub-task's design-consideration scope.
+- **TASK 12 IS NOW FULLY COMPLETE (12/12 sub-tasks), 2026-09-13.** Summary of the whole
+  task across both sessions: Typed AST (12.1-12.4, 12.9) closed the "codegen guesses
+  types" architectural gap that caused the FizzBuzz bug; C codegen module split (12.5);
+  block-level scoping (12.6, which fixed a second real bug along the way); memory model
+  semantics for `Unique`/`Shared`/`Weak` (12.7, decided and documented, not yet
+  implemented); documentation sync (12.8); project configuration via `fusion.toml`
+  (12.12, implemented for indentation); and two deliberately deferred design decisions
+  with rationale recorded for their actual trigger points (Fusion IR layer at Task 11
+  kickoff, 12.10; stdlib runtime lowering once `import`/fusionlib work is scoped, 12.11).
+  This also clears Task 13's blocker (still needs its own scoping approval) and, combined
+  with 12.7, both of Task 14's original blockers.
+  - **Archiving (per CLAUDE.md Rule 3):** Task 12's full section (all 12 sub-tasks, Why
+    This Task Exists, Success Criteria, Deliverables, Open Question) has been moved
+    verbatim to `task/taskSummaryArchive.md`. This file keeps only the short pointer below
+    and the Overall Progress table row.
+- **Next Action:** Task 12 is complete. Remaining open items: Task 13 (HIDL module) and
+  Task 14 (nullable arrays) are both unblocked but still need their own scoping approval
+  before any implementation begins (per Rule 1) - or begin Task 10/11 (self-hosting/LLVM),
+  both already "planning complete" - whichever the user wants to take on next.
 
 ---
 
