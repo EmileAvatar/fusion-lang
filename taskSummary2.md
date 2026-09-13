@@ -48,10 +48,10 @@ CLAUDE.md Rule 3 for when/how sections move there
 | **Task 9: Language Features (arrays v1)** | Complete | 100% | 8 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Task 12: Architecture Hardening** | In Progress | 50% | 6 | 12 |
+| **Task 12: Architecture Hardening** | In Progress | 58% | 7 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Overall** | Task 12.8 Complete | 48% | 40 | 84 |
+| **Overall** | Task 12.5 Complete | 49% | 41 | 84 |
 
 ---
 
@@ -618,11 +618,27 @@ generic work multiplies the number of places that guess wrong.
       the new segment shape (tests/test_parser_expressions.py's interpolation tests were
       already commented out/dead before this change - left as-is, out of scope here)
 
-#### 12.5: C Codegen Module Split
-- [ ] Extract `c_types.py` (Fusion type -> C type mapping) from `CCodeGenerator`
-- [ ] Extract `c_names.py` (C keyword name mangling)
-- [ ] Extract `c_runtime.py` / `c_builtins.py` (print and future builtin lowering)
-- [ ] Verify all codegen tests still pass after the split (behavior-preserving refactor)
+#### 12.5: C Codegen Module Split - COMPLETE
+- [x] Extracted `c_types.py`: `TypeMapperMixin` with `map_type()`. Kept as a mixin (not a
+      standalone function) because it recurses via `self.map_type(...)` for
+      `FunctionType`/`ArrayType`, and `tests/test_codegen_infrastructure.py` calls
+      `generator.map_type(...)` directly as an instance method
+- [x] Extracted `c_names.py`: a plain `mangle_function_name(name)` function (no generator
+      state needed) - `CCodeGenerator._mangle_function_name` is now a one-line delegate,
+      kept so internal call sites didn't need touching
+- [x] Extracted `c_runtime.py`: `RuntimeLoweringMixin` with `_FORMAT_SPECIFIERS`,
+      `_format_specifier_for_expr`, `_generate_print_call`, `_generate_len_call`,
+      `visit_InterpolatedStringExpr`, `_generate_interpolated_print`,
+      `_build_interpolation_format` - a mixin because every method calls `self.visit(...)`,
+      and `tests/test_codegen_expressions.py` calls `visit_InterpolatedStringExpr`/
+      `_generate_interpolated_print` directly on generator instances
+- [x] `CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin)` - public API (the class name,
+      every method name and signature) is completely unchanged; this is purely an internal
+      reorganization
+- [x] Verified: full suite still 1090 passed, 8 skipped (identical to before the split, no
+      count change since no test was added or removed - purely a refactor);
+      `verify_examples.py` still 8/8. `c_generator.py`: 962 -> 773 lines (189 lines moved to
+      the 3 new files, which add ~110 lines net of new module-level docstrings/cross-refs)
 
 #### 12.6: Scoping Decision (ADR, no code change)
 - [ ] Write up function-level scoping vs. block-level (lexical) scoping trade-offs
@@ -1275,7 +1291,20 @@ user re-opens this task for scoping approval.
     lexer/parser/semantic/codegen category breakdown against actual `pytest --collect-only`
     groupings (251 = 198 parser-file tests + 53 `test_ast_nodes.py` tests, etc.) to confirm
     exactly where each category's count comes from, not just trust prior numbers
-- **Next Action:** proceed to 12.5 (C codegen module split).
+- **Executed 12.5 (C Codegen Module Split) - COMPLETE.** Split `src/codegen/c_generator.py`
+  (962 lines) into `c_types.py` (`TypeMapperMixin`), `c_names.py` (`mangle_function_name`),
+  and `c_runtime.py` (`RuntimeLoweringMixin`), leaving `c_generator.py` at 773 lines holding
+  AST traversal, statements/declarations, and output management. Used mixin classes (not
+  standalone functions) for the two pieces that need `self` - `map_type()` recurses on
+  itself, and the print/len/interpolation helpers call `self.visit(...)` - and confirmed via
+  grep that existing tests call several of these (`map_type`, `visit_InterpolatedStringExpr`,
+  `_generate_interpolated_print`) directly as instance methods, which mixins preserve exactly
+  and standalone functions would have broken. Public API (class name, every method name and
+  signature) is unchanged - purely an internal reorganization. Verified: full suite still
+  1090 passed/8 skipped (identical, since this added/removed no tests), `verify_examples.py`
+  still 8/8.
+- **Next Action:** proceed to 12.6 (scoping ADR) - the first of the actual design-decision
+  items, needs the user's input rather than just implementation.
 
 ---
 
@@ -1305,7 +1334,7 @@ user re-opens this task for scoping approval.
 
 ---
 
-**Next Action:** Task 12.8 (Documentation Sync Pass) is complete. Proceeding through the
-user-confirmed order for Task 12's remaining items: 12.5 (C codegen module split) is next, then
-the design-decision items 12.6 -> 12.7 -> 12.12 -> 12.10 -> 12.11. Task 13/14 stay blocked on
-Task 12. Completed-task detail for Tasks 5-8 lives in `task/taskSummaryArchive.md`.
+**Next Action:** Task 12.5 (C codegen module split) is complete - both mechanical items (12.8,
+12.5) are now done. Next up is the first real design decision: 12.6 (scoping ADR), then 12.7 ->
+12.12 -> 12.10 -> 12.11. Task 13/14 stay blocked on Task 12. Completed-task detail for Tasks
+5-8 lives in `task/taskSummaryArchive.md`.
