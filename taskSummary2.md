@@ -1396,6 +1396,8 @@ user re-opens this task for scoping approval.
     added 6 new regression tests locking in shadowing, the original bug's rejection, and
     the parameter-redeclaration rule.
   - Full suite: 1095 passed, 8 skipped (up from 1090). `verify_examples.py`: 8/8.
+  - Committed and pushed as `24db585` "feat: Task 12.6 - switch to block-level (lexical)
+    scoping".
   - Flagged one known follow-up, not fixed: `LambdaExpr` with a `BlockStmt` body doesn't
     get its scope reused correctly - safe to defer since that path isn't functionally
     complete anyway (codegen still stubs lambdas as `/* <lambda> */`).
