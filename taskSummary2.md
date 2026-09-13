@@ -48,10 +48,10 @@ CLAUDE.md Rule 3 for when/how sections move there
 | **Task 9: Language Features (arrays v1)** | Complete | 100% | 8 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Task 12: Architecture Hardening** | In Progress | 67% | 8 | 12 |
+| **Task 12: Architecture Hardening** | In Progress | 75% | 9 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Overall** | Task 12.6 Complete | 50% | 42 | 84 |
+| **Overall** | Task 12.7 Complete | 51% | 43 | 84 |
 
 ---
 
@@ -214,12 +214,13 @@ work separately - see **Task 14** below.
 the richer null-safety design the user asked for while scoping Task 9, split out because it's
 a language-wide feature, not an array-specific one.
 **Status:** Not Started (proposed breakdown only, not yet approved for implementation - same
-status convention as Tasks 12/13)
-**Priority:** MEDIUM (no urgency stated; naturally sequenced after Task 12.7)
-**Blocked By:** Task 12.7 (Memory Model Semantics, deferred) - nullability is a memory-model
-decision (is an array a value or a reference? can any type be null, or only some?), and
-building it ahead of that risks exactly the rework the original architecture review warned
-about ("stop and define ownership/nullability before building collections on top of it").
+status convention as Tasks 12/13). **Unblocked as of 2026-09-13** - Task 12.7 is now complete;
+this task still needs its own scoping approval before implementation begins, per Rule 1.
+**Priority:** MEDIUM (no urgency stated)
+**Blocked By:** ~~Task 12.7~~ - COMPLETE (2026-09-13). Task 12.7 decided `Weak<T>.lock()`
+returns a nullable value that must be checked, which is the same null-handling shape this task
+needs for `arr?.length`/`arr?[i]` - the two features should share one null-flow-analysis
+design (noted in Task 12.7's own writeup), not two independent ones.
 **Estimated Effort:** TBD - needs its own sub-plan once approved for scoping
 **Source:** Arose from scoping Task 9 (2026-09-13) - the user asked for `arr.length` with
 null-checking, `arr?.length` returning 0 silently on null, and a hybrid null-safety model:
@@ -710,11 +711,40 @@ generic work multiplies the number of places that guess wrong.
       post-MVP) - flagged here rather than silently left broken, safe to defer since this
       part of the language isn't functionally complete regardless
 
-#### 12.7: Memory Model Semantics (design doc, no code change)
-- [ ] Define `Unique<T>`: copy/move rules, ownership, reassignment, consuming functions
-- [ ] Define `Shared<T>`: refcounting model, thread safety, cycle handling
-- [ ] Define `Weak<T>`: upgrade operation, behavior after owner destruction, nullability
-- [ ] Document in files/fusion-language-spec.md before Task 9/classes build on top of it
+#### 12.7: Memory Model Semantics - COMPLETE (design doc, no code change - as scoped)
+- [x] **Decision: `Unique<T>` requires explicit `.move()`.** Plain assignment
+      (`Unique<T> b = a`) is a compile-time error, not a silent move (rejected the C++
+      `unique_ptr` implicit-move alternative) - every ownership transfer must be visible
+      at the call site, including passing a `Unique<T>` into a consuming function
+      parameter. Use-after-move is a compile-time error where provable, else a runtime
+      crash with a clear message - explicitly noted to share one analysis pass with
+      Task 14's null-flow tracking later (moved-from and maybe-null are the same shape
+      of problem), not two separate mechanisms.
+- [x] **Decision: `Shared<T>` refcounting is always atomic**, not configurable per
+      project (rejected the configurable option, despite it fitting Fusion's "agnostic
+      per-project configuration" core concept, to avoid two runtime code paths to build/
+      test/document before there's a concrete need). **Decision: no automatic cycle
+      detection** - documented as a permanent, accepted limitation; `Weak<T>` is the
+      required way to break a cycle (matches Swift ARC/Rust `Rc`/ObjC ARC).
+- [x] **Decision: `Weak<T>.lock()` returns a nullable `Shared<T>?`, never crashes
+      silently.** Caller must null-check. Chosen specifically for consistency with Task
+      14's nullable-array direction, so Fusion has one null-handling story across
+      features. Noted that once Task 14's `?.` exists, this composes as
+      `child.parent.lock()?.doSomething()`.
+- [x] All three decisions and their rationale documented directly in
+      `files/fusion-language-spec.md`'s existing "Memory Management" section (which
+      already had draft Unique/Shared/Weak examples from the original planning phase -
+      this pass turned the ambiguous parts of that draft into decided, rationale-backed
+      semantics rather than replacing it) - new top-of-section status note makes clear
+      this is decided-but-not-yet-implemented (Unique/Shared/Weak are still
+      tokenizer-only keywords, confirmed via a source search: no parser/semantic/codegen
+      handling exists anywhere in `src/`)
+- [x] User decided all three questions via explicit tradeoff presentation (2026-09-13),
+      same pattern as Task 12.6's scoping decision - all three chose the recommended
+      option
+- [x] No code changes made or needed - matches this sub-task's own scope ("design doc,
+      no code change"); unblocks Task 14 (Nullable Arrays) to proceed once scoped, since
+      Task 14 was blocked specifically on this item
 
 #### 12.8: Documentation Sync Pass - COMPLETE
 - [x] Reconciled README.md / CLAUDE.md / language spec with actual implemented features (const
@@ -789,8 +819,8 @@ generic work multiplies the number of places that guess wrong.
 **Success Criteria:**
 - [x] Code generator never guesses a type; it reads `inferred_type` from the semantic pass
 - [x] String interpolation is structurally correct (no parallel-array synchronization bugs)
-- [ ] `CCodeGenerator` responsibilities are split into focused modules (deferred - 12.5)
-- [ ] Scoping and memory-model decisions are written down, not implicit (deferred - 12.6/12.7)
+- [x] `CCodeGenerator` responsibilities are split into focused modules (12.5, complete)
+- [x] Scoping and memory-model decisions are written down, not implicit (12.6/12.7, complete)
 - [x] All existing tests still pass; no behavior regressions
 
 **Deliverables:**
@@ -1403,6 +1433,33 @@ user re-opens this task for scoping approval.
     complete anyway (codegen still stubs lambdas as `/* <lambda> */`).
 - **Next Action:** proceed to 12.7 (memory model - `Unique`/`Shared`/`Weak` semantics),
   the next design-decision item in the confirmed order.
+- **Executed 12.7 (Memory Model Semantics) - COMPLETE, design doc only, no code change (as
+  scoped).** Presented three tradeoff questions (`Unique<T>` move semantics, `Shared<T>`
+  refcount atomicity + cycle handling, `Weak<T>` upgrade behavior); user chose the
+  recommended option on all three:
+  - `Unique<T>`: plain assignment is a compile error, explicit `.move()` required
+    (rejected C++-style implicit move) - and use-after-move should share one analysis
+    pass with Task 14's null-flow tracking later, not a separate mechanism.
+  - `Shared<T>`: refcount is always atomic, never configurable per project (rejected
+    Fusion's own "agnostic per-project config" pattern here deliberately, to avoid two
+    runtime code paths before there's a concrete need); no automatic cycle detection,
+    documented as a permanent accepted limitation (`Weak<T>` is the required way out).
+  - `Weak<T>`: `.lock()` returns a nullable `Shared<T>?`, caller must check - never a
+    silent crash - chosen so Fusion has one null-handling story shared with Task 14's
+    array work, not a different rule per type.
+  - Wrote all three decisions with rationale directly into
+    `files/fusion-language-spec.md`'s existing Memory Management section (had draft
+    Unique/Shared/Weak examples from the original pre-compiler planning phase already -
+    resolved their ambiguous parts rather than replacing the section), plus a top-of-
+    section status note flagging this as decided-but-not-yet-implemented.
+  - Confirmed via source search that `Unique`/`Shared`/`Weak` remain lexer-keyword-only
+    today (no parser/semantic/codegen handling anywhere in `src/`) - nothing to test or
+    regress, matches this sub-task's "design doc, no code change" scope exactly.
+  - This unblocks Task 14 (Nullable Arrays & Safe Navigation) to be scoped/approved
+    whenever the user wants to pick it up - noted its `Weak<T>` and array-nullability
+    null-checks should share one analysis design, not be built twice.
+- **Next Action:** proceed to 12.12 (project-level language configuration system), the
+  next item in the confirmed order (12.12 -> 12.10 -> 12.11 remain).
 
 ---
 

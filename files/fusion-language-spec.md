@@ -1932,6 +1932,14 @@ byte | Byte | toString(), toHexString()
 
 Description: Three-tier memory management strategy for different use cases.
 
+**Design status (Task 12.7, decided 2026-09-13):** the `Unique<T>`/`Shared<T>`/`Weak<T>`
+semantics below are the authoritative, decided design - this section is the memory-model
+ADR that Task 12.7 exists to produce. **Not yet implemented in the compiler**: `Unique`,
+`Shared`, and `Weak` are currently reserved keywords only (tokenized, nothing else) - there
+is no parser, semantic-analysis, or codegen support yet. Building that is separate future
+work, unblocked by this decision but not scoped or scheduled here (see taskSummary2.md
+Task 14, which depends on this section's Weak/nullability decisions).
+
 ---
 
 ### Tier 1: Automatic Garbage Collection (Default)
@@ -1959,6 +1967,18 @@ Description: Explicit lifetime control without garbage collection pauses.
      * Only one owner at a time
      * Automatically deleted when owner goes out of scope
      * Cannot be copied, only moved
+     * **Move is explicit, never implicit (decided 2026-09-13):** plain assignment of a
+       `Unique<T>` (`Unique<Spaceship> b = a`) is a **compile-time error**, not a silent
+       move. Ownership transfer requires the explicit `.move()` call shown below - this
+       applies equally when passing a `Unique<T>` into a "consuming" function parameter;
+       the caller must write `.move()` at the call site. Chosen over implicit-move-on-
+       assignment (C++'s `unique_ptr` behavior) to make every ownership transfer visible
+       at the call site, matching Rust's explicit-move-by-default model.
+     * **Use-after-move is a compile-time error where provable, a runtime crash with a
+       clear message otherwise** - structurally the same hybrid analysis already decided
+       for Task 14's nullable arrays (definite/maybe/unknown state tracked through
+       straight-line code), so moved-from tracking and null-flow tracking should share one
+       analysis pass when both are eventually implemented, not two parallel ones.
      * Zero overhead
      * Use for: temporary objects, factory returns, single-owner scenarios
 
@@ -1970,8 +1990,10 @@ Unique<Spaceship> ship = Unique.create<Spaceship>("Enterprise", 100.0)
 ship.start()
 ship.move(direction, speed)
 
-// Transfer ownership (move)
-Unique<Spaceship> newOwner = ship.move()  // ship is now null
+// Transfer ownership (move) - must be explicit
+Unique<Spaceship> newOwner = ship.move()  // ship is now null; using ship again is an error
+
+// Unique<Spaceship> other = ship  // COMPILE ERROR: cannot copy a Unique value, use .move()
 
 // Automatic cleanup when newOwner goes out of scope
 ```
@@ -1981,7 +2003,18 @@ Unique<Spaceship> newOwner = ship.move()  // ship is now null
      * Keeps count of references
      * Deleted when count reaches zero
      * Can be copied
-     * Small overhead (reference count storage)
+     * **Refcounting is always atomic (decided 2026-09-13):** increment/decrement of the
+       reference count is thread-safe unconditionally, regardless of any project-level
+       threading configuration (see Task 12.12). Chosen over a configurable
+       atomic-vs-non-atomic mode to keep one correct behavior rather than two runtime
+       code paths to implement, test, and document - the small overhead of an atomic op
+       even in single-threaded code was judged worth that simplicity.
+     * **Cycles are not detected automatically (decided 2026-09-13):** there is no cycle
+       detector or tracing collector. A cycle of `Shared<T>` references leaks memory -
+       matches Swift ARC / Rust `Rc` / Objective-C ARC, not a garbage-collected language's
+       behavior. `Weak<T>` (below) is the documented, required way to break a cycle; this
+       is an accepted, permanent limitation of the design, not a gap awaiting a future fix.
+     * Small overhead (reference count storage + atomic refcount ops)
      * Use for: shared resources (textures, sounds, configs)
 
 ```
@@ -1998,7 +2031,14 @@ Shared<Texture> copy2 = texture  // Ref count: 3
 
 * **Weak Pointer**: Non-owning reference
      * Doesn't increase reference count
-     * Must check if object still exists before use
+     * **Upgrade is nullable, never a silent crash (decided 2026-09-13):** `.lock()`
+       (shown below) always returns a nullable `Shared<T>?` - `null` if the owner was
+       already destroyed. The caller must null-check before use; there is no "just crash
+       if the owner is gone" mode. Chosen for consistency with the same nullable-safe-
+       navigation direction Task 14 defines for arrays, so Fusion has one null-handling
+       story across features rather than a different rule per type. Once Task 14's
+       `?.`/`?[` syntax exists, this should read as `child.parent.lock()?.doSomething()`
+       instead of the explicit if/else shown below.
      * Breaks circular references
      * Use for: observer pattern, parent-child relationships
      * **WARNING**: Discouraged in most code
