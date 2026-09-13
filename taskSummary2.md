@@ -15,6 +15,10 @@ see CLAUDE.md Rule 3 for when/how sections move there
 2. **NO EMOJIS IN CODE** - Only in markdown and chat
 3. **UPDATE AFTER EVERY SUB-TASK** - Keep this file current
 4. **taskSummary2.md STAYS IN ROOT** - Do not move until project complete
+5. **SHIP AN EXAMPLE FOR EVERY NEW FEATURE** - When a new language feature lands (loops,
+   classes, generics, threading, error handling, etc.), add a runnable program to
+   `examples/` demonstrating it, as part of closing out that feature's task - not a
+   separate ceremony done later. See Task 16 for the current backlog of missing examples.
 
 ---
 
@@ -52,7 +56,8 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
 | **Task 15: Deferred Decisions Revisit List** | Not Started | 0% | 0 | 7 |
-| **Overall** | Task 9 Archived | 51% | 46 | 91 |
+| **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
+| **Overall** | Task 16 Logged | 47% | 46 | 98 |
 
 ---
 
@@ -78,8 +83,8 @@ CLAUDE.md Rule 3). The Overall Progress table above still tracks their status at
 
 ## Task Order Note (2026-09-13)
 
-Tasks below are now listed in numerical order (9, 10, 11, 12, 13, 14, 15) rather than the
-historical order they were written in - they had drifted out of order across sessions
+Tasks below are now listed in numerical order (9, 10, 11, 12, 13, 14, 15, 16) rather than
+the historical order they were written in - they had drifted out of order across sessions
 (Task 14 briefly sat between 9 and 10). Task numbers themselves are unchanged; only their
 position in this file moved, to make the file easier to scan.
 
@@ -677,6 +682,91 @@ deliverables (a decision, a bug fix, a new task) at that time.
 
 ---
 
+## TASK 16: Example Program Coverage
+
+**Goal:** Give users a runnable example for every language feature - both features that
+already exist but currently have no dedicated example, and features that don't exist yet
+and should get one as soon as they're built (rather than that becoming an afterthought
+each time). Formalizes Rule 5 above into an actual checklist.
+**Status:** Not Started (16.1 is buildable now against already-implemented features; 16.2
+onward are each blocked on their own feature being built first - see each item)
+**Priority:** MEDIUM (doesn't block the compiler working; does matter for anyone other than
+the maintainer trying to learn Fusion from examples alone)
+**Source:** User request (2026-09-13) - "add more examples in fusion examples for each new
+feature... so that users have more examples to work with"
+
+### Why this task exists
+
+The 8 examples in `examples/` today (`hello_world`, `factorial`, `fizzbuzz`, `calculator`,
+`sum_array`, `max_three`, `const_demo`, `arrays_demo`) were each added alongside the task
+that built their feature, but coverage has gaps even for already-implemented features
+(nothing demonstrates `break`/`continue` outside unit tests, for instance), and there's no
+standing checklist for the larger, not-yet-built features (classes, generics, threading,
+error handling) to pick up once those land. This task is that checklist.
+
+### Sub-tasks
+
+#### 16.1: Control Flow / Loops Example - NOT BLOCKED (feature already implemented)
+- [ ] New `examples/control_flow_demo.fusion` demonstrating `while`, `for` (including
+      `range()`), nested loops, `break`, `continue`, and an `if`/`else if`/`else` chain all
+      in one place - today these only appear incidentally scattered across other examples
+      (`fizzbuzz.fusion`'s `while`, `sum_array.fusion`'s `for`), and `break`/`continue`
+      specifically have zero example coverage anywhere, only unit tests
+- [ ] Compile and run manually to verify real output, then add to
+      `tests/verify_examples.py`'s expected outputs like every other example
+- [ ] Add to README's Example Programs list
+
+#### 16.2: Classes, Structs, Interfaces & Enums (OOP) Example - BLOCKED
+- [ ] Blocked on classes/structs/interfaces/enums actually being implemented - currently
+      just reserved keywords (`class`, `struct`, `interface`, `enum`, `inherits`,
+      `implements`, `property`, `get`, `set`), no parser/semantic/codegen support at all
+- [ ] Note: **no task currently tracks building this feature itself** - flagging that gap
+      here too, since an example can't exist before the language feature does. Scoping the
+      feature is a separate, larger decision than this task covers
+
+#### 16.3: Generics Example - BLOCKED
+- [ ] Blocked on generic type parameters being implemented - currently just a "Planned
+      Features" line item in README, no task tracks building it, no reserved syntax
+      decided beyond the general concept
+
+#### 16.4: Multithreading / Async Example - BLOCKED
+- [ ] Blocked on the Threading model actually being implemented - currently just the `go`
+      keyword reserved plus `async`/`await` keywords reserved; the fusionlib `Threading`
+      module (goroutines, channels, mutex) is vision-only, no task tracks building it
+
+#### 16.5: Error Handling (try/catch) Example - BLOCKED
+- [ ] Blocked on `try`/`catch`/`finally`/`throw`/`Error` actually being implemented -
+      currently reserved keywords only, no parser/semantic/codegen support; no task
+      currently tracks building this feature
+- [ ] This is the "test error to try/catch them" example specifically requested - once the
+      feature exists, demonstrate both a caught error (clean recovery) and an uncaught one
+      (clear runtime error message), matching the project's existing preference for clear
+      error messages over silent failure
+
+#### 16.6: Memory Model (Unique/Shared/Weak) Example - BLOCKED
+- [ ] Blocked on implementing the semantics Task 12.7 already decided (move-only
+      `Unique<T>`, always-atomic `Shared<T>`, nullable-upgrade `Weak<T>`) - ties directly
+      to **Task 15.5**, which tracks that no implementation task exists yet either
+
+#### 16.7: Module System / Import Example - BLOCKED
+- [ ] Blocked on `import` actually being parseable - confirmed via source search it's
+      lexer-keyword-only today (same gap Task 15.2 already flagged for stdlib lowering);
+      an example needs at least two files and a working `import` before it means anything
+
+**Success Criteria:**
+- Every implemented language feature has at least one dedicated, runnable example in
+  `examples/`, verified via `tests/verify_examples.py`
+- Every example added here follows the existing convention: compiled and run manually
+  first to confirm real output, then locked in as an automated regression via
+  `verify_examples.py`
+
+**Deliverables:**
+- `examples/control_flow_demo.fusion` (16.1 - the only currently-actionable item)
+- One example per feature in 16.2-16.7, each added when its underlying feature ships
+- Updated `tests/verify_examples.py` and README Example Programs list per new example
+
+---
+
 ## Working Notes
 
 ### Session 16 (2025-12-14 - Planning Phase)
@@ -1262,6 +1352,22 @@ deliverables (a decision, a bug fix, a new task) at that time.
   archived prose once Task 12 itself is no longer active in this file.
 - **Next Action:** see the bottom-of-file Next Action line, updated to match all of the
   above.
+- **Added CRITICAL RULES Rule 5 and Task 16 (Example Program Coverage), per user request
+  (2026-09-13):** "add more examples in fusion examples for each new feature... so that
+  users have more examples to work with." Rule 5 makes shipping an example part of closing
+  out any feature task going forward, not an afterthought. Task 16 is the concrete
+  checklist: 16.1 (a comprehensive control-flow example covering `while`/`for`/`break`/
+  `continue` - buildable now, since the feature already exists and only `break`/`continue`
+  currently have zero example coverage) plus six more items (16.2-16.7: classes/structs/
+  interfaces/enums, generics, multithreading, error handling/try-catch, the Unique/Shared/
+  Weak memory model, and the module system) - all six explicitly blocked, since none of
+  those features are implemented yet and none currently have a task tracking their
+  implementation either (flagged as its own gap on each relevant sub-item, not just "not
+  done yet"). Logged only, not implemented - per Rule 1, implementation of 16.1 (the one
+  unblocked item) awaits the user's go-ahead.
+- **Next Action:** offer to build 16.1 (`examples/control_flow_demo.fusion`) now, since
+  it's the only Task 16 item not blocked on an unbuilt feature; everything else in Task 16
+  waits on its own feature being scoped and built first.
 
 ---
 
@@ -1273,6 +1379,7 @@ deliverables (a decision, a bug fix, a new task) at that time.
 3. **NEVER use emojis in code files (.py, .c, .h, etc.)**
 4. **ALWAYS follow PLAN → APPROVE → IMPLEMENT → UPDATE workflow**
 5. **Mark tasks as complete IMMEDIATELY after finishing**
+6. **Ship a runnable example in `examples/` for every new feature** - see Task 16
 
 ---
 
@@ -1295,6 +1402,8 @@ deliverables (a decision, a bug fix, a new task) at that time.
 archived. Remaining open items: Task 13 (HIDL module) and Task 14 (nullable arrays) are both
 unblocked but still need their own scoping approval before implementation begins (per Rule 1);
 Task 15 tracks 7 deferred decisions/gaps from Task 12, each with its own revisit trigger (see
-Task 15 above); Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning complete"
-but not started, pending the Task 15.4 ordering decision. Completed-task detail for Tasks 5-9
-and 12 lives in `task/taskSummaryArchive.md`.
+Task 15 above); Task 16 tracks 7 missing example programs, one per language feature - 16.1
+(control flow) is buildable now, 16.2-16.7 are each blocked on their own not-yet-built feature;
+Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning complete" but not started,
+pending the Task 15.4 ordering decision. Completed-task detail for Tasks 5-9 and 12 lives in
+`task/taskSummaryArchive.md`.
