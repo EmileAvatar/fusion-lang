@@ -498,7 +498,8 @@ generic work multiplies the number of places that guess wrong.
 - [x] Full `python -m pytest tests/` run: 1060 passed, 8 skipped, all green (up from 1057
       passed - added 3 new regression tests, no existing test weakened)
 - [x] `python tests/verify_examples.py`: 7/7 compile, run, and match expected output
-- [x] Git commit and push (see commit hash in Session 26 notes below)
+- [x] Git commit and push - `d7ff009` "feat: Task 12 Core Typed AST - codegen reads types
+      instead of guessing"
 
 #### 12.10: Fusion IR Layer (design consideration)
 - [ ] Evaluate introducing a dedicated Fusion IR between the Typed AST and any backend, instead
