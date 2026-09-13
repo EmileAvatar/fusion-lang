@@ -18,7 +18,7 @@ Tests" section (8 single-quote comment tests) still reflects an actual, current,
 |----------|-------|--------|
 | **Skipped Tests** | 8 | Deferred - Design decision needed (still current) |
 | **Failing Tests** | 0 | ✅ All resolved (was 39 as of 2025-12-07) |
-| **Technical Debt** | 0 | None tracked here - see taskSummary2.md Task 12 for architecture-level deferred items |
+| **Technical Debt** | 0 | None tracked here - see taskSummary2.md Task 15 (Deferred Decisions Revisit List) for architecture-level deferred items |
 
 **Total Items:** 8 (all in "Skipped Tests")
 

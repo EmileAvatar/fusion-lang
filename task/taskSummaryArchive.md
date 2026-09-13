@@ -337,6 +337,145 @@ From user's PowerShell testing:
 
 ---
 
+## TASK 9: Language Features - Array Support
+
+**Goal:** Add basic array types and operations
+**Status:** Complete ✅ (v1 scope - fixed-size, local-variable arrays; see Task 14 for the
+deferred nullable-array/safe-navigation follow-on)
+**Priority:** MEDIUM
+**Estimated Effort:** 8-10 hours
+**Actual Effort:** ~1 session (2026-09-13), after Task 12's Core Typed AST unblocked it
+
+**Recommendation satisfied (2026-09-13):** the 2026-08-04 architecture review recommended doing
+Task 12 (Typed AST) before or alongside this task, so array codegen wouldn't inherit the
+"codegen guesses the type" problem `print()`/string interpolation had. Task 12.1-12.4 unblocked
+this cleanly - array indexing and `len()` read `inferred_type` directly, no guessing.
+
+**Scope decision (2026-09-13):** mid-planning, the user asked for `arr.length` with null-aware
+behavior (`arr?.length`) alongside `len(arr)`. That turned out to require a real nullable-
+reference-type design (fixed-size C arrays can't be null), a new `.`/`?.` parser feature
+(doesn't exist at all yet), and a compile-time null-flow-analysis pass - a language-wide
+feature, not a small addition, and exactly the kind of thing Task 12.7's deferred memory-model
+work exists to settle first. User agreed to ship plain non-nullable arrays now and track that
+work separately - see **Task 14** below.
+
+### Sub-tasks (all complete):
+
+#### 9.1: Design Array Syntax - COMPLETE
+- [x] Array declaration: `int[] arr = [1, 2, 3]` (size inferred) or `int[5] arr` (explicit
+      size, zero-initialized) or both together (must agree)
+- [x] Array indexing: `arr[0]`, `arr[i]` (read and write)
+- [x] Array size: `len(arr)` - a builtin function, like `print()`/`range()`; `arr.length` was
+      the other option on the table but requires general member-access parsing that doesn't
+      exist yet (see Task 14) - not worth building just for this one property
+- [x] Documented in `files/fusion-language-spec.md` (new "Arrays" section) and
+      `files/fusion.ebnf` (annotated the existing array grammar with what's actually
+      implemented vs. still aspirational)
+- [x] User approved the syntax and the v1/deferred scope split (2026-09-13)
+
+#### 9.2: Lexer - Array Tokens - COMPLETE (already existed)
+- [x] `LBRACKET`/`RBRACKET` were already in `TokenType` and already tokenized by the lexer
+      (`src/lexer/operators.py`) - nothing to add here
+
+#### 9.3/9.4: Parser - Array Types, Literals, Indexing - COMPLETE
+- [x] `parse_type()` (`src/parser/parser.py`) recognizes `int[]`/`int[5]` after a primitive
+      type; rejects multi-dimensional (`int[][]`) and non-literal sizes (`int[n]`) with a
+      clear `ParserError`
+- [x] New `ArrayType(element_type, size)` TypeNode, `ArrayLiteralExpr(elements)`, and
+      `IndexExpr(array, index)` AST nodes in `src/parser/ast_nodes.py`
+- [x] Array literals `[1, 2, 3]` (trailing comma allowed) parsed in `parse_primary()`
+- [x] Indexing `arr[i]` parsed as a postfix operator in `parse_call()` (renamed in spirit to
+      "postfix" - now handles both `(...)` calls and `[...]` indexing in one chained loop,
+      matching the EBNF's `postfix` production); array-element assignment (`arr[i] = v`)
+      needed no extra parser work - it already falls out of the existing
+      expression-then-check-for-`=` statement path
+- [x] `src/semantic/name_resolver.py` updated to resolve names inside array literals/indexing
+
+#### 9.5: Semantic Analyzer - Array Type Checking - COMPLETE
+- [x] `ArrayType` added to `types_equal`/`types_compatible`/`type_to_string` in
+      `type_checker.py` (element-type compatibility with existing numeric promotion, plus
+      size matching)
+- [x] `visit_ArrayLiteralExpr`: infers element type across all elements (promotes
+      int/float/double like binary expressions already do), errors on inconsistent
+      non-numeric types
+- [x] `visit_IndexExpr`: errors on indexing a non-array, errors if the index isn't `int`
+- [x] `visit_VarDeclStmt` extended (`_check_array_var_decl`): resolves the array's size from
+      an explicit `[N]`, an initializer's element count, or both (must agree); errors if
+      neither is given
+- [x] `visit_AssignmentStmt` split into identifier- and index-target paths
+      (`_check_identifier_assignment`/`_check_index_assignment`): rejects whole-array
+      reassignment (`arr = [...]` after declaration - not supported, see Deliverables),
+      enforces const on array elements, checks element type compatibility
+- [x] `len()` registered as a builtin (`name_resolver.py`) and special-cased in
+      `visit_CallExpr` (accepts exactly one array argument, any element type - the type
+      system has no generics, so this mirrors how `range()` is already special-cased)
+- [x] Arrays rejected as function parameters/return types in `register_function`, with a
+      clear error rather than silently miscompiling (deferred - see Deliverables)
+- [x] Bounds checking: explicitly NOT implemented (documented limitation, matches how C
+      itself behaves - deferred, not a v1 blocker)
+- [x] 22 new semantic tests in `tests/test_array_semantic.py`
+
+#### 9.6: Code Generator - Generate Array C Code - COMPLETE
+- [x] `map_type()` maps `ArrayType` to its element's C type; `visit_VarDeclStmt` special-cases
+      `ArrayType` to emit real C array declarators (size after the name - `int arr[3]`, not
+      `int[3] arr`), zero-initializing (`= {0}`) when there's no literal
+- [x] `visit_ArrayLiteralExpr` emits a C brace-initializer (`{1, 2, 3}`) - only valid in C as
+      an initializer, which is the only place semantic analysis allows an array literal to
+      appear (whole-array reassignment and array arguments are both rejected earlier)
+- [x] `visit_IndexExpr` emits plain C indexing (`arr[i]`), valid as both an rvalue and an
+      assignment lvalue; `visit_AssignmentStmt` generalized from `target.name` to
+      `self.visit(target)` so index-target assignment works through the same code path
+- [x] `len(arr)` compiles directly to the array's resolved size as an integer literal (no
+      runtime call at all) - sizes are always known at compile time in v1
+- [x] Dynamic arrays (`malloc`): explicitly NOT implemented - fixed-size only, documented
+      limitation, not a v1 blocker
+- [x] 8 new codegen tests in `tests/test_array_codegen.py`, including a full GCC
+      compile-and-run round trip
+
+#### 9.7: Integration & Examples - COMPLETE
+- [x] `examples/arrays_demo.fusion` - literal/explicit-size declarations, element
+      read/write, `len()`, and arrays as local variables inside a helper function
+- [x] Compiled and ran manually (verified real runtime output), then added to
+      `tests/verify_examples.py`'s expected outputs
+- [x] `python tests/verify_examples.py`: 8/8 compile, run, and match
+
+#### 9.8: Documentation & Commit - COMPLETE
+- [x] `files/fusion-language-spec.md`: new "Arrays" section (implemented vs. deferred, with
+      cross-references to the existing "Array Safe Navigation"/"Null Safety" sections that
+      already describe the nullable design Task 14 will build toward)
+- [x] `files/fusion.ebnf`: annotated `array_type`, `array_literal`, and `postfix` with what's
+      actually implemented vs. still aspirational
+- [x] `CLAUDE.md`: added to Current Features/Known Limitations, added a Quick Syntax
+      Reference example
+- [x] `README.md`: Features, Example Programs, Development Status, and Test Results sections
+      updated; corrected test-count drift left over from Task 12 (Code Generation Tests was
+      still showing 126, three short of the actual 129 after Task 12's own new tests - fixed
+      to the current 137 while updating this line anyway)
+- [x] Git commit and push - `47e5116` "feat: Task 9 - fixed-size array support (v1)"
+
+**Success Criteria:**
+- [x] Array syntax defined and documented
+- [x] Arrays parse correctly (22 semantic + 8 codegen tests, plus manual error-case
+      verification of all 7 rejection paths: whole-array reassignment, const violation, size
+      mismatch, element type mismatch, non-array indexing, missing size, array parameters)
+- [x] Array type checking works
+- [x] Arrays compile to C code (verified with a real GCC compile + run, not just unit tests)
+- [x] Example program works
+
+**Deliverables:**
+- Array type implementation (`ArrayType`/`ArrayLiteralExpr`/`IndexExpr`, fixed-size,
+  local-variable-only, single-dimension)
+- `len()` builtin, resolved at compile time
+- Array example program (`examples/arrays_demo.fusion`)
+- Documentation (language spec, EBNF, CLAUDE.md, README)
+- Git commit
+- **Explicitly deferred, not delivered here**: arrays as function parameters/return types,
+  multi-dimensional arrays, non-literal array sizes, whole-array reassignment, dynamic/resizable
+  arrays, bounds checking, and everything nullability-related (`.length`, `?.length`, `?[i]`,
+  compile-time null-flow analysis) - see Task 14
+
+---
+
 ## TASK 12: Compiler Architecture Hardening (Typed AST & Codegen Refactor)
 
 **Goal:** Close the gap where the C code generator guesses types instead of being told them,

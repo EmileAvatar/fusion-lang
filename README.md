@@ -403,7 +403,7 @@ python -m pytest tests/ --cov=src --cov-report=html
 - **[fusion.ebnf](files/fusion.ebnf)** - EBNF grammar specification
 - **[taskSummary2.md](taskSummary2.md)** - Current development progress tracking (Task 5+)
 - **[taskSummary.md](task/taskSummary.md)** - Archived MVP progress (Tasks 1-4)
-- **[taskSummaryArchive.md](task/taskSummaryArchive.md)** - Archived completed post-MVP task detail (Tasks 5-8)
+- **[taskSummaryArchive.md](task/taskSummaryArchive.md)** - Archived completed post-MVP task detail (Tasks 5-9, 12)
 
 ## Troubleshooting
 
