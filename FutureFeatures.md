@@ -10,7 +10,7 @@
 
 This document tracks features that are **not part of the MVP (Minimum Viable Product)** but are planned for future versions of Fusion. These features have been discussed and documented here to ensure they're not forgotten during development.
 
-**Current MVP Status:** Building basic compiler (Lexer → Parser → Semantic → CodeGen)
+**Current MVP Status (updated 2026-09-13, Task 12.8):** MVP compiler complete (Lexer → Parser → Semantic → CodeGen, all four phases). Post-MVP work has also shipped: Tasks 5-9 (cleanup, verification, git, `const`, fixed-size arrays) and Task 12's Core Typed AST. See `../CLAUDE.md` and `../taskSummary2.md` for current status - the feature proposals below remain accurate as forward-looking plans, only this status line was stale.
 
 ---
 

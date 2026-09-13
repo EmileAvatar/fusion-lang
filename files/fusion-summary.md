@@ -2,6 +2,15 @@
 
 Description: Overview of completed work and roadmap for the Fusion programming language project.
 
+**Historical snapshot (added 2026-09-13, Task 12.8):** this document captures the state of the
+project's *specification-writing* phase, before compiler implementation began - notably its
+"Implementation Status" and "Document Status Summary" tables below still say `Compiler: Not
+Started 0%` and `README.md: Not Started 0%`. Both are long out of date: the MVP compiler is
+complete (Lexer/Parser/Semantic Analyzer/Codegen), Tasks 5-9 and Task 12's Core Typed AST are
+also complete, and `README.md` is a full, current document. Rather than continuously updating
+every cell here as the compiler evolves, this file is left as a record of the planning phase -
+**see `CLAUDE.md` and `../taskSummary2.md` for current, actively-maintained status.**
+
 ---
 
 ## Completed Documents

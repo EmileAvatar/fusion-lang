@@ -2,6 +2,14 @@
 
 Description: Simple tracking of completed and planned features.
 
+**Historical snapshot (flagged 2026-09-13, Task 12.8):** the checkmarks below are about
+*specification/design* completeness, written before compiler implementation began - they are
+not a claim that the compiler implements classes, memory management, threading, etc. (it
+doesn't; those remain future work). The "In Progress"/"Planned"/"Milestones" sections are
+themselves stale too - the MVP compiler prototype (Milestone 4) is complete, a 1,000+ test
+suite exists, and `README.md` is a full public document, none of which are reflected below.
+See `../taskSummary2.md` for current, actively-maintained status.
+
 ---
 
 ## ⚠️ IMPORTANT: Naming Conflict

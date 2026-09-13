@@ -4,17 +4,23 @@
 
 **Last Updated:** 2025-12-07 (Post-MVP Completion)
 
+**Update (2026-09-13, Task 12.8):** All 39 failing tests described below (GCC-not-installed,
+lambda/range parser issues, and the rest) are long resolved - the current suite is 1,090
+passed, 8 skipped, 0 failing. The detailed sections below are kept as a historical record of
+what those issues were and how they got fixed, not as an open task list. Only the "Skipped
+Tests" section (8 single-quote comment tests) still reflects an actual, current, open item.
+
 ---
 
 ## 📊 Summary
 
 | Category | Count | Status |
 |----------|-------|--------|
-| **Skipped Tests** | 8 | Deferred - Design decision needed |
-| **Failing Tests** | 29 | ✅ 10 fixed! (scoping, interpolation, parser remaining) |
-| **Technical Debt** | 0 | None currently |
+| **Skipped Tests** | 8 | Deferred - Design decision needed (still current) |
+| **Failing Tests** | 0 | ✅ All resolved (was 39 as of 2025-12-07) |
+| **Technical Debt** | 0 | None tracked here - see taskSummary2.md Task 12 for architecture-level deferred items |
 
-**Total Items:** 37 (down from 47!)
+**Total Items:** 8 (all in "Skipped Tests")
 
 **Note:** MVP Compiler is complete and functional! GCC installed, actively fixing remaining bugs.
 
@@ -69,7 +75,7 @@
 
 ---
 
-## ❌ Failing Tests (39 total)
+## ❌ Failing Tests (39 total) - ALL RESOLVED, kept as historical record
 
 ### Category 1: GCC Not Installed (26 tests) - **BLOCKING**
 
@@ -492,7 +498,9 @@ Use this template:
 
 - This file is automatically updated when new issues arise
 - Resolved items are moved to a "Resolved" section (not deleted)
-- See [taskSummary.md](../taskSummary.md) for overall project progress
+- See [taskSummary2.md](../taskSummary2.md) for current overall project progress (this file's
+  own link to `taskSummary.md` was broken - that file moved to `task/taskSummary.md`, i.e.
+  the same folder as this file, and only covers the archived Tasks 1-4)
 - See individual task files for specific implementation details
 
 ---

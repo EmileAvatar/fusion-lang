@@ -4,6 +4,12 @@ Complete specification for the Fusion programming language.
 
 Last Updated: November 2, 2025
 
+**Historical snapshot (flagged 2026-09-13, Task 12.8):** written before compiler implementation
+began - its "Project Status" table below still says `Compiler: Not Started`. That's long out of
+date: the MVP compiler is complete and Tasks 5-9 plus Task 12's Core Typed AST have shipped
+since. See `../CLAUDE.md` and `../taskSummary2.md` (root of the repo) for current status; this
+file is left as-is otherwise, as a record of the specification-writing phase.
+
 ---
 
 ## Core Documentation Files

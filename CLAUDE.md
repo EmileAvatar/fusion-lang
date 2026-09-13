@@ -38,7 +38,9 @@ Claude: [Implement Task 7.X.2]
 ## 📋 IMPORTANT NOTES
 
 ### Repository Status
-- **Repository is now PRIVATE** - Email address removed from public view
+- **Repository is PUBLIC** (made public 2026-08-04, after a git-history scrub removed the
+  personal email address that had been in early commits - verified via GitHub API that the
+  scrub held and a commit-search for the email returns zero results)
 - **Naming Conflict Discovered**: There is an existing programming language called "Fusion"
   - https://github.com/fusionlanguage/fut
   - https://fusion-lang.org/
@@ -149,21 +151,33 @@ d:\Dropbox\Fusion\
 
 ## 📍 CURRENT STATUS
 
-**Date:** 2025-12-14
-**Phase:** Post-MVP Verification & Planning
-**MVP Status:** ✅ COMPLETE - All 1,041 tests passing
+**Date:** 2026-09-13
+**Phase:** Post-MVP Development - Task 12 (Architecture Hardening) in progress
+**MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 also complete (see below)
 
 **Test Results:**
-- 1,041 tests passing (99.0%)
-- 10 tests skipped (8 lexer comments + 2 const keyword)
+- 1,090 tests passing (99.3%)
+- 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
+  char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
 
 **Example Verification:**
-- 6/6 examples compile successfully
-- 6/6 examples run without crashes
-- FizzBuzz output issue identified (missing numbers)
+- 8/8 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
+  calculator, sum_array, max_three, const_demo, arrays_demo)
+- FizzBuzz bug fixed long ago (Task 6.2) - was a lexer bug in interpolation part-splitting
 
-**Next:** File cleanup, verification fixes, Git integration
+**Completed since MVP:** Task 5 (cleanup), Task 6 (verification/FizzBuzz fix), Task 7 (git/
+GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12's Core Typed AST (12.1-12.4,
+12.9 - codegen now reads resolved types instead of guessing format specifiers)
+
+**In progress:** Task 12's remaining items (12.5-12.8, 12.10-12.12 - codegen module split,
+scoping/memory-model/project-config decisions, IR layer and stdlib-lowering design)
+
+**Blocked/future:** Task 10 (self-hosting), Task 11 (LLVM backend), Task 13 (HIDL module),
+Task 14 (nullable arrays/safe navigation) - see taskSummary2.md for what each is blocked on
+
+**Next:** See taskSummary2.md's "Next Action" line (bottom of file) for the current session's
+starting point
 
 ---
 
@@ -211,12 +225,15 @@ The compiler adapts to project configuration (memory model, locking strategy, st
 | **task-X.X.md** | task/ | Detailed task breakdowns |
 | **Revisit.md** | task/ | Technical debt tracking |
 | **fusion.ebnf** | files/ | Grammar specification |
-| **fusion-language-spec.md** | files/ | Complete language spec (4000+ lines) |
-| **fusion-summary.md** | files/ | High-level overview |
+| **fusion-language-spec.md** | files/ | Complete language spec (5000+ lines) |
+| **fusion-summary.md** | files/ | High-level overview (historical planning snapshot - predates compiler work, see its own header note) |
 | **fusion_specs.md** | files/ | API specifications |
 | **fusion-strict.md** | files/ | Strict mode rules |
 | **fusion-threading-concurrency.md** | files/ | Threading model |
 | **fusion-planning.md** | files/ | Development roadmap |
+| **Fusion_Hardware_Interface_Definition_Language_HIDL.md** | files/ | HIDL vision doc (Task 13, blocked/future) |
+| **task-10-self-hosting-plan.md** | task/ | Self-hosting detailed plan |
+| **task-11-llvm-backend-plan.md** | task/ | LLVM backend detailed plan |
 | **FutureFeatures.md** | Root | Post-MVP features (IDE, Settings, etc.) |
 
 ---
@@ -424,16 +441,24 @@ int n = len(scores)     // size (compile-time constant)
 
 ## 🚀 Next Steps
 
-**Current Focus:** File cleanup and verification (see taskSummary2.md)
+**Current Focus:** Task 12's remaining items (see taskSummary2.md) - codegen module split
+(12.5), then a sequence of design decisions (scoping ADR, memory model, project config, IR
+layer, stdlib lowering) that need the user's input, not just implementation.
 
-**Planned:**
-- Task 5: Project organization & cleanup
-- Task 6: Verification phase (investigate FizzBuzz, define expected outputs)
-- Task 7: Git integration & GitHub setup
-- Task 8+: New language features (const, arrays, match statement, etc.)
+**Completed:**
+- Tasks 1-9: MVP + cleanup + verification + git + const + arrays (v1) - see
+  task/taskSummary.md and task/taskSummaryArchive.md for full detail
+- Task 12.1-12.4, 12.9: Core Typed AST - codegen reads `inferred_type` instead of guessing
+
+**Planned (see taskSummary2.md for full detail and current blockers):**
+- Task 12.5-12.8, 12.10-12.12: remaining architecture-hardening items
+- Task 13: HIDL module (blocked on Task 12)
+- Task 14: Nullable arrays & safe navigation (blocked on Task 12.7)
+- Task 10: Self-hosting, Task 11: LLVM backend (both planning-complete, intentionally not
+  started yet - the architecture review recommended stabilizing the language/IR first)
 
 ---
 
-**Last Updated:** 2025-12-14
+**Last Updated:** 2026-09-13
 **Version:** 2.0 (Post-MVP)
 **Next Action:** See taskSummary2.md

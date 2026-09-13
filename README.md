@@ -256,6 +256,9 @@ string name = "Alice"
 
 // Constant (must initialize, cannot be reassigned)
 const float PI = 3.14159
+
+// Fixed-size array (see the Arrays example above for more)
+int[] scores = [10, 20, 30]
 ```
 
 ### Block Styles
@@ -324,7 +327,7 @@ fusion-lang/
 │   ├── semantic/        # Semantic analyzer (validation)
 │   ├── codegen/         # C code generator
 │   └── utils/           # Utilities (errors, source location)
-├── tests/               # Test suite (1,057 passing, 8 skipped)
+├── tests/               # Test suite (1,090 passing, 8 skipped)
 ├── examples/            # Example Fusion programs
 ├── task/                # Task tracking and planning documents
 ├── files/               # Language specifications and documentation
@@ -395,6 +398,7 @@ python -m pytest tests/ --cov=src --cov-report=html
 - **[fusion.ebnf](files/fusion.ebnf)** - EBNF grammar specification
 - **[taskSummary2.md](taskSummary2.md)** - Current development progress tracking (Task 5+)
 - **[taskSummary.md](task/taskSummary.md)** - Archived MVP progress (Tasks 1-4)
+- **[taskSummaryArchive.md](task/taskSummaryArchive.md)** - Archived completed post-MVP task detail (Tasks 5-8)
 
 ## Troubleshooting
 
@@ -494,7 +498,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ### AI Collaborators
 This project was developed with significant contributions from AI assistants. We believe in transparency:
 
-- **Claude AI (Anthropic)** - Claude Opus 4.5 and Claude Sonnet 4.5
+- **Claude AI (Anthropic)** - Claude Opus 4.5, Claude Sonnet 4.5, and Claude Sonnet 5
   - Compiler architecture and implementation
   - Test suite development
   - Documentation and planning
@@ -505,7 +509,7 @@ This project was developed with significant contributions from AI assistants. We
   - Feature planning and specification
   - Documentation reviews
 
-**Note**: All AI-generated code has been thoroughly reviewed, tested (1,057+ passing tests), and validated by human maintainers. The project follows rigorous PLAN FIRST methodology to prevent AI drift and ensure quality.
+**Note**: All AI-generated code has been thoroughly reviewed, tested (1,090+ passing tests), and validated by human maintainers. The project follows rigorous PLAN FIRST methodology to prevent AI drift and ensure quality.
 
 ### Human Contributors
 - **Emile M Steenkamp** - Project creator, lead developer, and maintainer

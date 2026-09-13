@@ -48,10 +48,10 @@ CLAUDE.md Rule 3 for when/how sections move there
 | **Task 9: Language Features (arrays v1)** | Complete | 100% | 8 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Task 12: Architecture Hardening** | In Progress | 42% | 5 | 12 |
+| **Task 12: Architecture Hardening** | In Progress | 50% | 6 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Overall** | Task 9 Complete | 46% | 39 | 84 |
+| **Overall** | Task 12.8 Complete | 48% | 40 | 84 |
 
 ---
 
@@ -635,12 +635,41 @@ generic work multiplies the number of places that guess wrong.
 - [ ] Define `Weak<T>`: upgrade operation, behavior after owner destruction, nullability
 - [ ] Document in files/fusion-language-spec.md before Task 9/classes build on top of it
 
-#### 12.8: Documentation Sync Pass
-- [ ] Reconcile README.md / CLAUDE.md / taskSummary2.md / language spec with actual implemented
-      features (e.g. const already implemented - see Task 8.6)
-- [ ] Confirm test counts and skipped-test reasons are current everywhere they're stated
-- [ ] Consider the review's suggested doc hierarchy (Language Spec -> ADRs -> Roadmap -> Tasks
-      -> Implementation -> Tests) so taskSummary2.md stays a tracker, not a second spec
+#### 12.8: Documentation Sync Pass - COMPLETE
+- [x] Reconciled README.md / CLAUDE.md / language spec with actual implemented features (const
+      and arrays were already largely current from Tasks 8/9's own doc updates - this pass
+      found and fixed what those missed):
+      - **CLAUDE.md**: "Repository is now PRIVATE" was flatly wrong (repo went public
+        2026-08-04) - fixed; the entire "CURRENT STATUS" and "Next Steps" sections were dated
+        2025-12-14 and described the FizzBuzz bug as unresolved and Tasks 5+ as not started -
+        rewrote both to reflect Tasks 5-9 + Task 12 core complete; added missing doc-reference
+        table entries (HIDL doc, task-10/11 plans)
+      - **README.md**: fixed a stale "126 tests" figure left over from Task 12 (never updated
+        after Task 12's own new tests), refreshed the AI-contributor model list (Claude Sonnet
+        5 wasn't listed), added `taskSummaryArchive.md` to the doc index
+      - **files/fusion-summary.md, files/README.md, files/fusion-planning.md**: all three
+        predate compiler implementation entirely and claimed things like `Compiler: Not
+        Started 0%` and `README.md: Not Started` - these are now misleading rather than just
+        outdated, since the compiler is substantially built. Added a clear "historical
+        snapshot, see taskSummary2.md for current status" note to each rather than rewriting
+        every stale table cell (matches how `task/taskSummary.md` is already handled - frozen
+        and labeled ARCHIVED, not continuously updated)
+      - **task/Revisit.md**: "29 failing tests" (from 2025-12-07) is now 0 - all resolved;
+        updated the summary table, added a resolved-marker on the historical detail section
+        (kept, not deleted - has real value explaining how those issues were fixed), and fixed
+        a broken relative link to `taskSummary.md` that pointed at a path that no longer
+        exists after that file moved into `task/`
+- [x] Confirmed test counts are current everywhere they're stated (1,090 passed / 8 skipped) -
+      cross-checked README's per-category test counts (lexer/parser/semantic/codegen/other)
+      against actual `pytest --collect-only` groupings rather than just trusting the prior
+      numbers; skipped-test reason (single-quote comments vs. char literals) is still accurate
+      and unchanged
+- [x] Considered the review's suggested doc hierarchy (Language Spec -> ADRs -> Roadmap ->
+      Tasks -> Implementation -> Tests): decided not to introduce a separate ADR directory
+      right now - Tasks 12.6/12.7/13/14 already function as lightweight ADRs (explicit
+      "proposed, not approved" status, rationale, blocked-by relationships), and archiving
+      completed tasks out of `taskSummary2.md` (this session's earlier archiving work) already
+      addresses the "second spec" bloat concern the suggestion was about
 
 #### 12.9: Verification & Regression - COMPLETE
 - [x] Full `python -m pytest tests/` run: 1060 passed, 8 skipped, all green (up from 1057
@@ -1219,6 +1248,35 @@ user re-opens this task for scoping approval.
   deferred items (12.5-12.8, 12.10-12.12), Task 14 blocked on Task 12.7, Task 13 blocked on
   Task 12.
 
+### Session 28 (2026-09-13 - Task 12 Remaining Items, Starting with 12.8)
+- **User request:** "lets do the next task" - clarified via question that "next" was ambiguous
+  (Task 12's remaining items vs. Task 10/11 by number); user confirmed finishing Task 12
+  first, in the proposed order: 12.8 (docs) -> 12.5 (codegen split) -> 12.6 (scoping) -> 12.7
+  (memory model) -> 12.12 (project config) -> 12.10 (IR layer) -> 12.11 (stdlib lowering)
+- **Executed 12.8 (Documentation Sync Pass) - COMPLETE.** Found real, meaningful staleness
+  beyond what Tasks 8/9 already kept current:
+  - `CLAUDE.md` claimed the repo was PRIVATE (it went public 2026-08-04) - verified via GitHub
+    API (`"private": false`) and fixed; its "CURRENT STATUS"/"Next Steps" sections were still
+    dated 2025-12-14, describing the FizzBuzz bug as unresolved and Tasks 5+ as not started -
+    rewrote both
+  - `README.md`: a "126 tests" figure never got updated after Task 12's own new codegen tests
+    (should have been 129, is now correctly 137 after Task 9's additions too) - fixed while
+    already touching that line for Task 9's numbers
+  - `files/fusion-summary.md`, `files/README.md`, `files/fusion-planning.md`: all three
+    predate the compiler entirely and still claimed `Compiler: Not Started 0%` - actively
+    misleading now, not just outdated. Added historical-snapshot disclaimers to each rather
+    than rewriting every stale cell (matches how `task/taskSummary.md` is already frozen and
+    labeled ARCHIVED)
+  - `task/Revisit.md`: "29 failing tests" (2025-12-07) is now 0 - updated the summary and
+    marked the historical detail section resolved (kept for its resolution-path value, not
+    deleted); also fixed a broken relative link to `taskSummary.md` left over from that file's
+    move into `task/`
+  - Verified test counts precisely rather than guessing: cross-checked README's
+    lexer/parser/semantic/codegen category breakdown against actual `pytest --collect-only`
+    groupings (251 = 198 parser-file tests + 53 `test_ast_nodes.py` tests, etc.) to confirm
+    exactly where each category's count comes from, not just trust prior numbers
+- **Next Action:** proceed to 12.5 (C codegen module split).
+
 ---
 
 ## CRITICAL RULES (Reminder)
@@ -1247,8 +1305,7 @@ user re-opens this task for scoping approval.
 
 ---
 
-**Next Action:** Task 9 (fixed-size arrays, v1) is complete and shipped. Task 14 (nullable
-arrays/safe navigation) is logged and blocked on Task 12.7. Remaining open items: Task 12's
-deferred pieces (12.5-12.8, 12.10-12.12), Task 13 (HIDL module, blocked on Task 12), and Task
-14 (blocked on Task 12.7). Completed-task detail for Tasks 5-8 lives in
-`task/taskSummaryArchive.md`.
+**Next Action:** Task 12.8 (Documentation Sync Pass) is complete. Proceeding through the
+user-confirmed order for Task 12's remaining items: 12.5 (C codegen module split) is next, then
+the design-decision items 12.6 -> 12.7 -> 12.12 -> 12.10 -> 12.11. Task 13/14 stay blocked on
+Task 12. Completed-task detail for Tasks 5-8 lives in `task/taskSummaryArchive.md`.
