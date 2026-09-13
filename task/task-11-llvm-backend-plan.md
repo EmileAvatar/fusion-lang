@@ -6,6 +6,16 @@
 **Blocked By:** Task 10 (Self-Hosting should be complete first)
 **Estimated Effort:** 30-40 hours
 
+**Revisit at kickoff (Task 12.10, decided 2026-09-13):** taskSummary2.md's Task 12.10
+considered introducing a dedicated Fusion IR layer between the Typed AST and any backend
+(`AST -> Typed AST -> Fusion IR -> {C, LLVM, VM, WASM}`) instead of each backend consuming
+the Typed AST directly, as this plan's architecture diagram below currently assumes. The
+user chose to **defer that decision until this task actually starts** - with only the C
+backend existing today, designing an IR layer had no real second consumer to validate it
+against. Re-open that question here before writing any LLVM codegen: decide then whether
+this backend should target a new Fusion IR (and if so, migrate the C backend to it too) or
+continue consuming the Typed AST directly as planned below.
+
 ---
 
 ## Overview

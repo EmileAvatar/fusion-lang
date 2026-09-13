@@ -48,10 +48,10 @@ CLAUDE.md Rule 3 for when/how sections move there
 | **Task 9: Language Features (arrays v1)** | Complete | 100% | 8 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Task 12: Architecture Hardening** | In Progress | 83% | 10 | 12 |
+| **Task 12: Architecture Hardening** | In Progress | 92% | 11 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Overall** | Task 12.12 Complete | 52% | 44 | 84 |
+| **Overall** | Task 12.10 Complete | 54% | 45 | 84 |
 
 ---
 
@@ -789,15 +789,27 @@ generic work multiplies the number of places that guess wrong.
 - [x] Git commit and push - `d7ff009` "feat: Task 12 Core Typed AST - codegen reads types
       instead of guessing"
 
-#### 12.10: Fusion IR Layer (design consideration)
-- [ ] Evaluate introducing a dedicated Fusion IR between the Typed AST and any backend, instead
-      of each backend (C, LLVM, VM, WASM) consuming the AST directly - `Fusion -> AST -> Typed
-      AST -> Fusion IR -> {C, LLVM, VM, WASM}`
-- [ ] If adopted, this changes Task 11's currently-planned pipeline (`Fusion -> LLVM IR`
-      directly) to go through the Fusion IR first, and reopens the Task 10/11 ordering question
-      already flagged above as an open discussion item
-- [ ] Get user decision on whether/when to adopt an IR layer before committing to Task 11's
-      current design
+#### 12.10: Fusion IR Layer - COMPLETE (decision recorded, no code change - deferred)
+- [x] **Decision: defer adopting a dedicated Fusion IR layer until Task 11 (LLVM backend)
+      actually starts**, rather than adopting a full IR now or even a thin/contract-only
+      version now. Presented as a three-way tradeoff (defer / full IR now / thin IR now);
+      user chose to defer.
+- [x] **Rationale:** exactly one backend exists today (C). Designing an IR now would have
+      no real second consumer to validate it against, and would mean reworking the C
+      codegen (just cleanly split into modules in Task 12.5) to sit behind a new
+      abstraction for zero immediate capability gain. Explicitly weighed against the
+      opposite risk (if Task 11 just copies the C backend's AST-walking pattern, retrofitting
+      an IR afterward costs more, across two backends instead of one) - accepted that risk
+      rather than pay the cost now on a single-backend compiler.
+- [x] Recorded a pointer at the point this will actually matter: added a "Revisit at
+      kickoff" note to `task/task-11-llvm-backend-plan.md` so this question is re-opened
+      with real LLVM requirements in hand before any LLVM codegen is written, rather than
+      silently forgotten or silently assumed decided either way.
+- [x] Does **not** resolve the separately-flagged Task 10/11 ordering question (whether
+      LLVM/IR work should come before self-hosting) - that remains open, unchanged, tracked
+      in Task 12's "Open question for user" note below
+- [x] No code changes made or needed - matches this sub-task's "design consideration" scope;
+      the C backend is completely unaffected
 
 #### 12.11: print() / Stdlib Runtime Lowering (design consideration)
 - [ ] Evaluate replacing per-builtin special-casing in codegen (currently
@@ -1536,6 +1548,22 @@ user re-opens this task for scoping approval.
     Python 3.10 -> 3.11 requirement bump in all three places it was stated).
 - **Next Action:** proceed to 12.10 (Fusion IR layer - design consideration), the next
   item in the confirmed order (12.10 -> 12.11 remain to close out Task 12).
+- **Executed 12.10 (Fusion IR Layer) - COMPLETE, decision recorded, no code change
+  (deferred).** Presented a three-way tradeoff (defer until Task 11 starts / adopt a full
+  IR now / adopt a thin contract-only IR now); user chose to defer.
+  - Rationale: only one backend (C) exists today - an IR layer would have no real second
+    consumer to validate against, and would mean reworking the just-cleanly-split (Task
+    12.5) C codegen for no immediate capability gain. Accepted the opposite risk (Task 11
+    might copy the C backend's AST-walking pattern and need a costlier retrofit later)
+    rather than pay the IR-design cost now on a single-backend compiler.
+  - Added a "Revisit at kickoff" note to `task/task-11-llvm-backend-plan.md` so this gets
+    re-opened with real LLVM requirements in hand before any LLVM codegen is written,
+    rather than silently forgotten.
+  - Left the separately-flagged Task 10/11 ordering question (LLVM/IR before self-hosting)
+    untouched - still open, not part of this decision.
+  - No code changed - matches this sub-task's design-consideration scope exactly.
+- **Next Action:** proceed to 12.11 (print()/stdlib runtime lowering - design
+  consideration), the last remaining item to close out Task 12.
 
 ---
 
