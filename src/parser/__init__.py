@@ -16,6 +16,8 @@ from src.parser.ast_nodes import (
     CallExpr,
     LambdaExpr,
     InterpolatedStringExpr,
+    StringTextPart,
+    StringExprPart,
     # Statements
     ExpressionStmt,
     VarDeclStmt,
@@ -49,6 +51,8 @@ __all__ = [
     'CallExpr',
     'LambdaExpr',
     'InterpolatedStringExpr',
+    'StringTextPart',
+    'StringExprPart',
     # Statements
     'ExpressionStmt',
     'VarDeclStmt',

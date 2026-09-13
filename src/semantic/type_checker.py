@@ -10,7 +10,7 @@ from src.parser.ast_nodes import (
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     BreakStmt, ContinueStmt, ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
-    InterpolatedStringExpr,
+    InterpolatedStringExpr, StringExprPart,
     TypeNode, PrimitiveType, FunctionType
 )
 from .symbol_table import SymbolTable
@@ -58,6 +58,11 @@ class TypeChecker:
     def visit(self, node: ASTNode) -> Optional[TypeNode]:
         """Dispatch to appropriate visit method based on node type.
 
+        For expression nodes (anything with an `inferred_type` field), the resolved type
+        is also written back onto the node itself, so later compiler stages - the code
+        generator in particular - can read the type instead of re-deriving or guessing it.
+        See taskSummary2.md Task 12.1/12.2.
+
         Args:
             node: AST node to visit
 
@@ -69,7 +74,10 @@ class TypeChecker:
         """
         method_name = f'visit_{node.__class__.__name__}'
         method = getattr(self, method_name, self.generic_visit)
-        return method(node)
+        result = method(node)
+        if isinstance(result, TypeNode) and hasattr(node, 'inferred_type'):
+            node.inferred_type = result
+        return result
 
     def generic_visit(self, node: ASTNode):
         """Fallback for unhandled node types.
@@ -480,9 +488,12 @@ class TypeChecker:
         Returns:
             String type
         """
-        # Check each interpolated expression
-        for expr in node.expressions:
-            self.visit(expr)  # Just type check, don't validate type
+        # Type check each interpolated expression segment (this also populates each
+        # expression's inferred_type, which the code generator reads to pick the
+        # correct format specifier - see Task 12.3)
+        for segment in node.segments:
+            if isinstance(segment, StringExprPart):
+                self.visit(segment.expression)
 
         return PrimitiveType(location=node.location, name='string')
 

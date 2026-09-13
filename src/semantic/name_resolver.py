@@ -10,7 +10,7 @@ from src.parser.ast_nodes import (
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
-    InterpolatedStringExpr,
+    InterpolatedStringExpr, StringExprPart,
     TypeNode, PrimitiveType, FunctionType
 )
 from .symbol_table import SymbolTable
@@ -385,9 +385,10 @@ class NameResolver:
         elif isinstance(expr, LiteralExpr):
             pass  # Literals don't need resolution
         elif isinstance(expr, InterpolatedStringExpr):
-            # Resolve interpolated expressions
-            for interp_expr in expr.expressions:
-                self.resolve_expression(interp_expr)
+            # Resolve interpolated expressions (skip literal text segments)
+            for segment in expr.segments:
+                if isinstance(segment, StringExprPart):
+                    self.resolve_expression(segment.expression)
         # else: unknown expression type, silently ignore
 
     def resolve_identifier(self, expr: IdentifierExpr) -> None:

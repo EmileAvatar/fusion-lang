@@ -13,7 +13,8 @@ import pytest
 from src.codegen.c_generator import CCodeGenerator
 from src.parser.ast_nodes import (
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr,
-    CallExpr, InterpolatedStringExpr
+    CallExpr, InterpolatedStringExpr, StringTextPart, StringExprPart,
+    PrimitiveType
 )
 from src.lexer.token import SourceLocation
 
@@ -22,6 +23,19 @@ from src.lexer.token import SourceLocation
 def loc():
     """Create dummy source location for tests."""
     return SourceLocation("test.fusion", 1, 1)
+
+
+def typed_ident(name, type_name='int'):
+    """Create an IdentifierExpr with inferred_type already set.
+
+    These are codegen-only tests that construct AST nodes directly, bypassing semantic
+    analysis - so inferred_type (normally populated by TypeChecker, see Task 12.2) has to
+    be set by hand here to stand in for that pass.
+    """
+    return IdentifierExpr(
+        location=loc(), name=name,
+        inferred_type=PrimitiveType(location=loc(), name=type_name)
+    )
 
 
 class TestLiteralExpressions:
@@ -326,11 +340,9 @@ class TestFunctionCalls:
         callee = IdentifierExpr(location=loc(), name='print')
 
         # Create interpolated string: "{x}"
-        x_ident = IdentifierExpr(location=loc(), name='x')
         interp_string = InterpolatedStringExpr(
             location=loc(),
-            parts=['', ''],  # Empty string before and after {x}
-            expressions=[x_ident]
+            segments=[StringExprPart(expression=typed_ident('x'))]
         )
 
         node = CallExpr(location=loc(), callee=callee, arguments=[interp_string])
@@ -343,17 +355,27 @@ class TestFunctionCalls:
         callee = IdentifierExpr(location=loc(), name='print')
 
         # Create interpolated string: "{x} and {y}"
-        x_ident = IdentifierExpr(location=loc(), name='x')
-        y_ident = IdentifierExpr(location=loc(), name='y')
         interp_string = InterpolatedStringExpr(
             location=loc(),
-            parts=['', ' and ', ''],  # Parts: "", " and ", ""
-            expressions=[x_ident, y_ident]
+            segments=[
+                StringExprPart(expression=typed_ident('x')),
+                StringTextPart(text=' and '),
+                StringExprPart(expression=typed_ident('y')),
+            ]
         )
 
         node = CallExpr(location=loc(), callee=callee, arguments=[interp_string])
         result = gen.visit_CallExpr(node)
         assert result == 'printf("%d and %d\\n", x, y)'
+
+    def test_print_bare_non_string_uses_actual_type(self):
+        """print(x) with a non-string, non-interpolated arg must use x's real format
+        specifier, not the old hardcoded %s fallback."""
+        gen = CCodeGenerator()
+        callee = IdentifierExpr(location=loc(), name='print')
+        node = CallExpr(location=loc(), callee=callee, arguments=[typed_ident('x', type_name='float')])
+        result = gen.visit_CallExpr(node)
+        assert result == 'printf("%f\\n", x)'
 
 
 class TestStringInterpolation:
@@ -362,11 +384,12 @@ class TestStringInterpolation:
     def test_simple_interpolation(self):
         """Test simple interpolation: "Value: {x}" """
         gen = CCodeGenerator()
-        x_ident = IdentifierExpr(location=loc(), name='x')
         node = InterpolatedStringExpr(
             location=loc(),
-            parts=['Value: ', ''],
-            expressions=[x_ident]
+            segments=[
+                StringTextPart(text='Value: '),
+                StringExprPart(expression=typed_ident('x')),
+            ]
         )
         result = gen.visit_InterpolatedStringExpr(node)
         assert result == '"Value: %d", x'
@@ -374,25 +397,54 @@ class TestStringInterpolation:
     def test_multiple_interpolations(self):
         """Test multiple interpolations: "{a} + {b} = {c}" """
         gen = CCodeGenerator()
-        a_ident = IdentifierExpr(location=loc(), name='a')
-        b_ident = IdentifierExpr(location=loc(), name='b')
-        c_ident = IdentifierExpr(location=loc(), name='c')
         node = InterpolatedStringExpr(
             location=loc(),
-            parts=['', ' + ', ' = ', ''],
-            expressions=[a_ident, b_ident, c_ident]
+            segments=[
+                StringExprPart(expression=typed_ident('a')),
+                StringTextPart(text=' + '),
+                StringExprPart(expression=typed_ident('b')),
+                StringTextPart(text=' = '),
+                StringExprPart(expression=typed_ident('c')),
+            ]
         )
         result = gen.visit_InterpolatedStringExpr(node)
         assert result == '"%d + %d = %d", a, b, c'
 
+    def test_interpolation_uses_actual_type_not_always_d(self):
+        """Format specifier should follow inferred_type, not default to %d for everything."""
+        gen = CCodeGenerator()
+        node = InterpolatedStringExpr(
+            location=loc(),
+            segments=[
+                StringTextPart(text='Pi: '),
+                StringExprPart(expression=typed_ident('pi', type_name='float')),
+                StringTextPart(text=', name: '),
+                StringExprPart(expression=typed_ident('name', type_name='string')),
+            ]
+        )
+        result = gen.visit_InterpolatedStringExpr(node)
+        assert result == '"Pi: %f, name: %s", pi, name'
+
+    def test_interpolation_missing_inferred_type_raises(self):
+        """Codegen must not silently guess when semantic analysis hasn't run."""
+        gen = CCodeGenerator()
+        untyped = IdentifierExpr(location=loc(), name='x')  # inferred_type left as None
+        node = InterpolatedStringExpr(
+            location=loc(),
+            segments=[StringExprPart(expression=untyped)]
+        )
+        with pytest.raises(NotImplementedError):
+            gen.visit_InterpolatedStringExpr(node)
+
     def test_interpolated_print(self):
         """Test _generate_interpolated_print directly"""
         gen = CCodeGenerator()
-        x_ident = IdentifierExpr(location=loc(), name='x')
         node = InterpolatedStringExpr(
             location=loc(),
-            parts=['Result: ', ''],
-            expressions=[x_ident]
+            segments=[
+                StringTextPart(text='Result: '),
+                StringExprPart(expression=typed_ident('x')),
+            ]
         )
         result = gen._generate_interpolated_print(node)
         assert result == 'printf("Result: %d\\n", x)'

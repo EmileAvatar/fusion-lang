@@ -571,41 +571,13 @@ class Parser:
     # Interpolated String Parsing
     # ========================================================================
 
-    def parse_interpolated_string(self, token: Token) -> ASTNode:
-        """Parse interpolated string from lexer token.
-
-        The lexer has already extracted interpolation data as JSON:
-        {"parts": ["Hello ", ", you are "], "exprs": ["name", "age"]}
-
-        Args:
-            token: STRING_LITERAL token with interpolation data
-
-        Returns:
-            InterpolatedStringExpr AST node
-        """
-        # Parse interpolation JSON from lexer
-        interpolation = json.loads(token.interpolation)
-        parts = interpolation["parts"]
-        expr_strings = interpolation["exprs"]
-
-        # Parse each expression string into AST nodes
-        expressions = []
-        for expr_str in expr_strings:
-            # Tokenize and parse the embedded expression
-            from src.lexer.lexer import Lexer
-            lexer = Lexer(expr_str, token.location.filename)
-            expr_tokens = lexer.tokenize()
-            expr_parser = Parser(expr_tokens)
-            expressions.append(expr_parser.parse_expression())
-
-        return InterpolatedStringExpr(
-            location=token.location,
-            parts=parts,
-            expressions=expressions
-        )
-
     def parse_interpolated_string_from_parts(self, token: Token, parts: list) -> ASTNode:
         """Parse interpolated string from parts list.
+
+        Builds a single ordered list of segments (StringTextPart / StringExprPart) rather
+        than splitting text and expressions into two parallel arrays - see taskSummary2.md
+        Task 12.4. The lexer already hands over an ordered, tagged sequence; this just
+        carries that order onto the AST node instead of discarding it.
 
         Args:
             token: Original string token
@@ -614,39 +586,34 @@ class Parser:
         Returns:
             InterpolatedStringExpr or LiteralExpr
         """
-        # Separate string parts from interpolation expressions
-        string_parts = []
-        expression_sources = []
+        segments: List[Union[StringTextPart, StringExprPart]] = []
+        has_interpolation = False
 
         for part_type, part_value in parts:
             if part_type == "STRING_PART":
-                string_parts.append(part_value)
+                segments.append(StringTextPart(text=part_value))
             elif part_type in ("INTERP_VAR", "INTERP_POS", "INTERPOLATION"):
                 # INTERP_VAR: {varname}, INTERP_POS: {@1}, INTERPOLATION: legacy
-                expression_sources.append(part_value)
+                has_interpolation = True
+                # Tokenize and parse the embedded expression
+                from src.lexer.lexer import Lexer
+                lexer = Lexer(part_value, token.location.filename)
+                expr_tokens = lexer.tokenize()
+                expr_parser = Parser(expr_tokens)
+                segments.append(StringExprPart(expression=expr_parser.parse_expression()))
 
         # No interpolation? Return simple literal
-        if not expression_sources:
+        if not has_interpolation:
+            text = ''.join(seg.text for seg in segments if isinstance(seg, StringTextPart))
             return LiteralExpr(
                 location=token.location,
-                value=''.join(string_parts),
+                value=text,
                 type_hint="string"
             )
 
-        # Parse each interpolation expression
-        expressions = []
-        for expr_src in expression_sources:
-            # Tokenize and parse the embedded expression
-            from src.lexer.lexer import Lexer
-            lexer = Lexer(expr_src, token.location.filename)
-            expr_tokens = lexer.tokenize()
-            expr_parser = Parser(expr_tokens)
-            expressions.append(expr_parser.parse_expression())
-
         return InterpolatedStringExpr(
             location=token.location,
-            parts=string_parts,
-            expressions=expressions
+            segments=segments
         )
 
     # ========================================================================

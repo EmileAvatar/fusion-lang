@@ -48,9 +48,9 @@ CLAUDE.md Rule 3 for when/how sections move there
 | **Task 9: Language Features (arrays)** | Not Started | 0% | 0 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
-| **Task 12: Architecture Hardening** | Not Started | 0% | 0 | 12 |
+| **Task 12: Architecture Hardening** | In Progress | 42% | 5 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
-| **Overall** | Task 8 Complete | 33% | 26 | 78 |
+| **Overall** | Task 12 Core Typed AST Complete | 40% | 31 | 78 |
 
 ---
 
@@ -70,14 +70,17 @@ The Overall Progress table above still tracks their status at a glance.
 ## TASK 9: Language Features - Array Support
 
 **Goal:** Add basic array types and operations
-**Status:** Not Started (Blocked by Tasks 5-8)
+**Status:** Not Started (Tasks 5-8 complete; Task 12's Core Typed AST also complete - unblocked)
 **Priority:** MEDIUM
 **Estimated Effort:** 8-10 hours
 
-**Recommended (2026-08-04 architecture review):** Do Task 12 (Typed AST) before or alongside
-this task. Building array type-checking and codegen on top of a semantic layer that already
-produces `inferred_type` avoids repeating the "codegen guesses the type" problem arrays would
-otherwise inherit from `print()`/string interpolation. Not a hard blocker until the user decides.
+**Recommendation satisfied (2026-09-13):** the 2026-08-04 architecture review recommended doing
+Task 12 (Typed AST) before or alongside this task, so array codegen wouldn't inherit the
+"codegen guesses the type" problem `print()`/string interpolation had. Task 12.1-12.4 (Typed
+AST design, semantic analyzer populating `inferred_type`, codegen consuming it, and the
+InterpolatedString refactor) are now complete and verified - see Task 12 above and Session 26
+notes. Array type-checking and codegen can build on `inferred_type` directly instead of
+repeating the guessing pattern.
 
 ### Sub-tasks:
 
@@ -384,10 +387,11 @@ Verification: v2 and v3 must produce identical output.
 
 **Goal:** Close the gap where the C code generator guesses types instead of being told them,
 before arrays/classes/generics get built on top of that gap.
-**Status:** Not Started (Planning drafted from 2026-08-04 ChatGPT architecture review, see
-`Notes/02/notes.md`)
-**Priority:** HIGH (recommended before Task 9, not yet approved)
-**Estimated Effort:** TBD - needs its own sub-plan once approved
+**Status:** In Progress - Core Typed AST complete (12.1-12.4, 12.9); 12.5-12.8 and 12.10-12.12
+deferred (approved scope, 2026-09-13: user picked "Core Typed AST only" to unblock Task 9
+without taking on the full 12-item list - see Session 26 notes)
+**Priority:** HIGH (was recommended before Task 9 - now satisfied for Task 9's purposes)
+**Estimated Effort:** TBD for remaining deferred items
 **Source:** External review of repo architecture, lexer, parser, semantic analyzer, C backend,
 and commit history. Full text archived at `Notes/02/notes.md`.
 
@@ -400,29 +404,71 @@ already caused the FizzBuzz bug fixed in Task 6.2. The review recommends fixing 
 architecture level - a Typed AST - rather than patching individual symptoms, before array/class/
 generic work multiplies the number of places that guess wrong.
 
-### Sub-tasks (NOT YET APPROVED - proposed breakdown only)
+### Sub-tasks
 
-#### 12.1: Typed AST Design
-- [ ] Add `inferred_type` field to `Expr` AST nodes (or equivalent semantic-annotation approach)
-- [ ] Decide where inference results live: on the AST node itself vs. a parallel side-table
-- [ ] Document the design in files/fusion-language-spec.md or a new ADR
-- [ ] Get user approval on approach before implementing
+#### 12.1: Typed AST Design - COMPLETE
+- [x] Add `inferred_type` field to expression AST nodes - not a shared `Expr` base class as
+      originally proposed (Python dataclass field-ordering rules make a defaulted field on a
+      common base incompatible with subclasses adding their own required fields); instead each
+      of the 7 expression classes (`LiteralExpr`, `IdentifierExpr`, `BinaryExpr`, `UnaryExpr`,
+      `CallExpr`, `LambdaExpr`, `InterpolatedStringExpr`) carries its own trailing
+      `inferred_type: Optional[TypeNode] = None` field
+- [x] Decided: lives directly on the AST node (mutated in place), not a side-table - the same
+      AST object already flows parser -> semantic analyzer -> codegen unmodified (verified via
+      main.py), so this needed no pipeline changes to work
+- [x] Design recorded here and in code docstrings (src/parser/ast_nodes.py) rather than a
+      separate ADR file - didn't need one, the design followed directly from Python/pipeline
+      constraints, not an open judgment call
+- [x] User approved the approach (2026-09-13) before implementation began
 
-#### 12.2: Semantic Analyzer - Populate Type Information
-- [ ] TypeChecker annotates each expression node with its resolved type as it validates
-- [ ] Cover literals, identifiers, binary/unary expressions, calls
-- [ ] Write/update semantic tests asserting `inferred_type` is set correctly
+#### 12.2: Semantic Analyzer - Populate Type Information - COMPLETE
+- [x] `TypeChecker` already computed the correct type for every expression while validating it
+      - it was just discarded. Fix was one hook in `TypeChecker.visit()`'s dispatcher: after
+      computing the result, if the node has an `inferred_type` attribute, write the result onto
+      it. Centralized in one place rather than editing all 7 `visit_XxxExpr` methods individually.
+- [x] Covers every expression type that flows through `visit()`, including inside
+      `InterpolatedStringExpr` segments (literals, identifiers, binary/unary expressions, calls)
+- [x] Updated semantic test asserting `inferred_type` is set correctly
+      (`test_interpolated_string_type` in tests/test_type_checker.py)
 
-#### 12.3: Codegen - Consume Type Information Instead of Guessing
-- [ ] `print()` / string interpolation read `inferred_type` to pick the correct format specifier
-- [ ] Remove "for MVP, assume string" / "for MVP use %d for most things" fallback logic
-- [ ] Regression test: int/float/string/bool all print with the correct specifier
+#### 12.3: Codegen - Consume Type Information Instead of Guessing - COMPLETE
+- [x] Added `_format_specifier_for_expr()` in c_generator.py: reads `inferred_type`, maps
+      int->%d, float/double->%f, string->%s, char->%c, bool->%d
+- [x] Removed "for MVP, assume string" (`_generate_print_call`'s %s fallback) and "for MVP,
+      use %d for most things" (both interpolation format-string builders) - all three now call
+      the shared helper instead
+- [x] If `inferred_type` is missing/unrecognized, raises `NotImplementedError` with a clear
+      internal-compiler-error message instead of silently guessing - matches the existing
+      `generic_visit` error convention already used elsewhere in both TypeChecker and
+      CCodeGenerator
+- [x] Regression tests added: `test_interpolation_uses_actual_type_not_always_d` (float/string
+      via interpolation), `test_print_bare_non_string_uses_actual_type` (direct print() arg),
+      `test_interpolation_missing_inferred_type_raises` (missing-type error path) - all in
+      tests/test_codegen_expressions.py
+- [x] Verified for real (not just unit tests): compiled an ad-hoc snippet interpolating
+      float+bool+string together - generated
+      `printf("Pi is %f, flag is %d, name is %s\n", pi, flag, name)` and ran correctly.
+      Before this fix it would have generated `%d` for all three - float reinterpreted as int,
+      string pointer printed as a raw integer
 
-#### 12.4: InterpolatedString AST Refactor
-- [ ] Replace parallel `parts`/`expressions` arrays with a single ordered list of
-      `StringText` / `StringExpression` parts on the AST node
-- [ ] Update parser, semantic analyzer, and codegen to the new shape
-- [ ] Re-run lexer/parser/codegen interpolation tests
+#### 12.4: InterpolatedString AST Refactor - COMPLETE
+- [x] Replaced parallel `parts: List[str]` / `expressions: List[ASTNode]` arrays with a single
+      ordered `segments: List[StringTextPart | StringExprPart]` list on `InterpolatedStringExpr`
+- [x] Root cause was one step earlier than the review described: the lexer already emits a
+      safe, ordered, tagged sequence (`[('STRING_PART', ...), ('INTERP_VAR', ...), ...]`); the
+      parser was the one deliberately splitting that into two parallel arrays. Fix keeps the
+      parser's job as "carry the order over," not "reconstruct it later."
+- [x] Updated all consumers to the new shape: `ast_nodes.py` (new `StringTextPart`/
+      `StringExprPart` classes), `parser.py` (rewrote `parse_interpolated_string_from_parts`;
+      also deleted `parse_interpolated_string`, a dead method referencing a JSON shape
+      - `token.interpolation` - that's never populated and was never called from anywhere),
+      `name_resolver.py`, `type_checker.py`, `c_generator.py` (also de-duplicated
+      `visit_InterpolatedStringExpr` and `_generate_interpolated_print`, which were
+      near-identical, into one shared `_build_interpolation_format()` helper)
+- [x] Re-ran lexer/parser/codegen interpolation tests - updated ~30 call sites across
+      tests/test_ast_nodes.py, tests/test_type_checker.py, tests/test_codegen_expressions.py to
+      the new segment shape (tests/test_parser_expressions.py's interpolation tests were
+      already commented out/dead before this change - left as-is, out of scope here)
 
 #### 12.5: C Codegen Module Split
 - [ ] Extract `c_types.py` (Fusion type -> C type mapping) from `CCodeGenerator`
@@ -448,10 +494,11 @@ generic work multiplies the number of places that guess wrong.
 - [ ] Consider the review's suggested doc hierarchy (Language Spec -> ADRs -> Roadmap -> Tasks
       -> Implementation -> Tests) so taskSummary2.md stays a tracker, not a second spec
 
-#### 12.9: Verification & Regression
-- [ ] Full `python -m pytest tests/` run, all green
-- [ ] `python tests/verify_examples.py`, all examples still match expected output
-- [ ] Git commit and push
+#### 12.9: Verification & Regression - COMPLETE
+- [x] Full `python -m pytest tests/` run: 1060 passed, 8 skipped, all green (up from 1057
+      passed - added 3 new regression tests, no existing test weakened)
+- [x] `python tests/verify_examples.py`: 7/7 compile, run, and match expected output
+- [x] Git commit and push (see commit hash in Session 26 notes below)
 
 #### 12.10: Fusion IR Layer (design consideration)
 - [ ] Evaluate introducing a dedicated Fusion IR between the Typed AST and any backend, instead
@@ -481,11 +528,11 @@ generic work multiplies the number of places that guess wrong.
       flag for scoping once Task 12's other items are approved
 
 **Success Criteria:**
-- Code generator never guesses a type; it reads `inferred_type` from the semantic pass
-- String interpolation is structurally correct (no parallel-array synchronization bugs)
-- `CCodeGenerator` responsibilities are split into focused modules
-- Scoping and memory-model decisions are written down, not implicit
-- All existing tests still pass; no behavior regressions
+- [x] Code generator never guesses a type; it reads `inferred_type` from the semantic pass
+- [x] String interpolation is structurally correct (no parallel-array synchronization bugs)
+- [ ] `CCodeGenerator` responsibilities are split into focused modules (deferred - 12.5)
+- [ ] Scoping and memory-model decisions are written down, not implicit (deferred - 12.6/12.7)
+- [x] All existing tests still pass; no behavior regressions
 
 **Deliverables:**
 - Typed AST
@@ -891,6 +938,65 @@ user re-opens this task for scoping approval.
   (from the same architecture review as Task 12) to sequence Task 12 before or alongside Task 9,
   and Task 12 is still unapproved - raised to the user rather than silently started or blocked.
 
+### Session 26 (2026-09-13 - Task 12 Core Typed AST Implementation)
+- **User approved a scoped subset of Task 12** ("Core Typed AST only": 12.1-12.4 + 12.9) rather
+  than the full 12-item list, to unblock Task 9 without a multi-week design detour through the
+  five design-only items (12.6/12.7/12.10/12.11/12.12) and the non-blocking cleanup items
+  (12.5 codegen split, 12.8 doc sync).
+- **Investigated the actual code before planning implementation** (not just the review's
+  pseudocode) and found the real shape was better/simpler than expected:
+  - `TypeChecker.visit()` already computes the correct type for every expression while
+    validating it - it was being thrown away, not missing. Fix was a one-line hook in the
+    dispatcher, not a new type-inference system.
+  - The review's suggested `class Expr(ASTNode): inferred_type: TypeNode | None` doesn't work
+    as literal Python - dataclass field-ordering rules block a defaulted field on a common base
+    when subclasses add their own required fields. Used a trailing optional field on each of
+    the 7 expression classes instead.
+  - The interpolation "parallel array" bug source is one step earlier than the review implied:
+    the lexer already emits a safe ordered/tagged sequence; the *parser* was the one splitting
+    it into two parallel arrays on the AST node. Fixed at that exact point.
+  - `print()` is declared as accepting only a `string` parameter in the symbol table, so the
+    review-quoted `%s` fallback in `_generate_print_call` was already dead code for any
+    semantically-valid program - only reachable from codegen-only unit tests that skip semantic
+    analysis. Fixed anyway (defensive correctness + those unit tests exercise it directly).
+- **Implemented 12.1-12.4 + 12.9:**
+  - `src/parser/ast_nodes.py`: added `inferred_type: Optional[TypeNode] = None` to
+    `LiteralExpr`, `IdentifierExpr`, `BinaryExpr`, `UnaryExpr`, `CallExpr`, `LambdaExpr`; added
+    new `StringTextPart`/`StringExprPart` classes; `InterpolatedStringExpr` now holds a single
+    ordered `segments` list instead of parallel `parts`/`expressions` arrays
+  - `src/parser/parser.py`: rewrote `parse_interpolated_string_from_parts` to build `segments`
+    directly from the lexer's already-ordered tuples; deleted `parse_interpolated_string`, a
+    dead method (never called, referenced a `token.interpolation` JSON shape that's never
+    populated)
+  - `src/semantic/name_resolver.py`, `src/semantic/type_checker.py`: updated to iterate
+    `segments` instead of `expressions`; `TypeChecker.visit()` now writes the computed type
+    back onto `node.inferred_type` for every expression
+  - `src/codegen/c_generator.py`: added `_format_specifier_for_expr()` (reads `inferred_type`,
+    maps int->%d, float/double->%f, string->%s, char->%c, bool->%d, raises a clear internal
+    error if the type is missing/unrecognized instead of guessing); rewired
+    `_generate_print_call`, `visit_InterpolatedStringExpr`, and `_generate_interpolated_print`
+    to use it; de-duplicated the latter two into one shared `_build_interpolation_format()`
+    helper (they were near-identical)
+  - Updated ~30 test call sites across `tests/test_ast_nodes.py`, `tests/test_type_checker.py`,
+    `tests/test_codegen_expressions.py` to the new `segments` shape; added 3 new regression
+    tests covering float/string interpolation, direct non-string `print()` args, and the
+    missing-`inferred_type` error path (`tests/test_parser_expressions.py`'s old interpolation
+    tests were already commented out/dead - left untouched, out of scope)
+- **Verified for real, not just unit tests:** compiled an ad-hoc snippet interpolating a float,
+  bool, and string together - got `printf("Pi is %f, flag is %d, name is %s\n", pi, flag,
+  name)` and correct runtime output. Confirms the fix is real: before it, all three would have
+  used `%d`, silently reinterpreting the float's bit pattern as an int and the string's pointer
+  as a raw integer.
+- **Full verification:** `pytest tests/` - 1060 passed, 8 skipped (up from 1057 passed; 3 new
+  tests, nothing weakened). `python tests/verify_examples.py` - 7/7 compile, run, and match.
+- **Deferred, not started:** 12.5 (codegen module split), 12.6 (scoping ADR), 12.7 (memory
+  model spec), 12.8 (doc sync pass), 12.10-12.12 (IR layer, stdlib lowering, project config -
+  all design-only, no code changes made or implied by this session's work)
+- **Task 9 unblocked:** its standing "do Task 12 first" recommendation is now satisfied for
+  arrays' purposes - array type-checking/codegen can read `inferred_type` directly.
+- **Next Action:** proceed to Task 9 (Array Support) planning - the user's original request,
+  now actually unblocked rather than just flagged.
+
 ---
 
 ## CRITICAL RULES (Reminder)
@@ -919,8 +1025,7 @@ user re-opens this task for scoping approval.
 
 ---
 
-**Next Action:** User has asked to move on to Task 9 (Array Support). Before implementing,
-raise the standing recommendation in Task 9's own header: sequence Task 12 (Typed AST) before
-or alongside Task 9, to avoid array codegen inheriting the same "backend guesses the type"
-problem Task 12 exists to fix. Task 12 itself (now 12 sub-tasks) is still unapproved. Task 8 is
-complete; completed-task detail for Tasks 5-8 now lives in `task/taskSummaryArchive.md`.
+**Next Action:** Task 12's Core Typed AST (12.1-12.4, 12.9) is complete and verified - Task 9
+(Array Support) is unblocked and ready to plan/implement. Task 12's remaining items (12.5-12.8,
+12.10-12.12) stay deferred until separately requested. Task 8 is complete; completed-task
+detail for Tasks 5-8 lives in `task/taskSummaryArchive.md`.

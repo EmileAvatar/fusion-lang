@@ -10,7 +10,7 @@ from src.parser.ast_nodes import (
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
-    InterpolatedStringExpr,
+    InterpolatedStringExpr, StringTextPart, StringExprPart,
     PrimitiveType, FunctionType
 )
 from src.lexer.token import SourceLocation
@@ -677,13 +677,22 @@ def test_function_type_inequality(type_checker, location):
 
 def test_interpolated_string_type(type_checker, location):
     """Test interpolated string returns string type."""
-    parts = ["Hello ", ", you are ", " years old"]
     name_expr = LiteralExpr(value="Alice", type_hint='string', location=location)
     age_expr = LiteralExpr(value=25, type_hint='int', location=location)
-    interp = InterpolatedStringExpr(parts=parts, expressions=[name_expr, age_expr], location=location)
+    segments = [
+        StringTextPart(text="Hello "),
+        StringExprPart(expression=name_expr),
+        StringTextPart(text=", you are "),
+        StringExprPart(expression=age_expr),
+        StringTextPart(text=" years old"),
+    ]
+    interp = InterpolatedStringExpr(segments=segments, location=location)
     result_type = type_checker.visit_InterpolatedStringExpr(interp)
     assert isinstance(result_type, PrimitiveType)
     assert result_type.name == 'string'
+    # Each interpolated expression should also have its inferred_type populated now
+    assert name_expr.inferred_type.name == 'string'
+    assert age_expr.inferred_type.name == 'int'
 
 
 def test_expression_statement(type_checker, symbol_table, location):

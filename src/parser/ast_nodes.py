@@ -8,7 +8,7 @@ All nodes inherit from ASTNode and support the visitor pattern for tree traversa
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
 from src.lexer.token import SourceLocation
 
 
@@ -58,9 +58,11 @@ class LiteralExpr(ASTNode):
     Attributes:
         value: The literal value (int, float, str, bool, None)
         type_hint: String indicating the type ("int", "float", "string", "char", "bool", "null")
+        inferred_type: Type resolved by the semantic analyzer (None until type-checked)
     """
     value: Any  # int, float, str, bool, None
     type_hint: str  # "int", "float", "string", "char", "bool", "null"
+    inferred_type: Optional['TypeNode'] = None
 
 
 @dataclass
@@ -69,8 +71,10 @@ class IdentifierExpr(ASTNode):
 
     Attributes:
         name: The identifier name
+        inferred_type: Type resolved by the semantic analyzer (None until type-checked)
     """
     name: str
+    inferred_type: Optional['TypeNode'] = None
 
 
 @dataclass
@@ -83,10 +87,12 @@ class BinaryExpr(ASTNode):
         left: Left operand expression
         operator: Binary operator string ("+", "-", "*", "/", "==", "!=", "<", ">", etc.)
         right: Right operand expression
+        inferred_type: Type resolved by the semantic analyzer (None until type-checked)
     """
     left: ASTNode
     operator: str  # "+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "and", "or", etc.
     right: ASTNode
+    inferred_type: Optional['TypeNode'] = None
 
 
 @dataclass
@@ -98,9 +104,11 @@ class UnaryExpr(ASTNode):
     Attributes:
         operator: Unary operator string ("-", "not", "!")
         operand: The operand expression
+        inferred_type: Type resolved by the semantic analyzer (None until type-checked)
     """
     operator: str  # "-", "not", "!"
     operand: ASTNode
+    inferred_type: Optional['TypeNode'] = None
 
 
 @dataclass
@@ -112,9 +120,11 @@ class CallExpr(ASTNode):
     Attributes:
         callee: The function expression (usually IdentifierExpr)
         arguments: List of argument expressions
+        inferred_type: Type resolved by the semantic analyzer (None until type-checked)
     """
     callee: ASTNode  # Usually IdentifierExpr
     arguments: List[ASTNode]
+    inferred_type: Optional['TypeNode'] = None
 
 
 @dataclass
@@ -127,10 +137,32 @@ class LambdaExpr(ASTNode):
         parameters: List of parameter declarations
         return_type: Return type node
         body: Lambda body (single expression or BlockStmt for multi-line)
+        inferred_type: Type resolved by the semantic analyzer (None until type-checked)
     """
     parameters: List['ParameterDecl']
     return_type: 'TypeNode'
     body: ASTNode  # Single expression or BlockStmt
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
+class StringTextPart:
+    """A literal text segment within an interpolated string.
+
+    Attributes:
+        text: The literal text content
+    """
+    text: str
+
+
+@dataclass
+class StringExprPart:
+    """An interpolated expression segment within an interpolated string.
+
+    Attributes:
+        expression: The expression node to evaluate and interpolate
+    """
+    expression: ASTNode
 
 
 @dataclass
@@ -141,12 +173,16 @@ class InterpolatedStringExpr(ASTNode):
     - Inline: {variable_name}
     - Positional: {@1}, {@2}, ...
 
+    Represented as a single ordered list of text/expression segments (rather than two
+    parallel arrays) so the structure cannot desync between text and interpolated
+    expressions - see taskSummary2.md Task 12.4.
+
     Attributes:
-        parts: List of static string parts between interpolations
-        expressions: List of expression nodes to interpolate
+        segments: Ordered list of StringTextPart and StringExprPart segments
+        inferred_type: Type resolved by the semantic analyzer (always string once resolved)
     """
-    parts: List[str]  # Static string parts
-    expressions: List[ASTNode]  # Expression parts (inline or positional)
+    segments: List[Union[StringTextPart, StringExprPart]]
+    inferred_type: Optional['TypeNode'] = None
 
 
 # ============================================================================

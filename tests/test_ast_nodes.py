@@ -232,34 +232,42 @@ def test_lambda_expr_simple(test_location):
 def test_interpolated_string_expr_inline(test_location):
     """Test interpolated string with inline variables."""
     # "Hello {name}, you are {age} years old"
-    parts = ["Hello ", ", you are ", " years old"]
-    expressions = [
-        IdentifierExpr(test_location, name="name"),
-        IdentifierExpr(test_location, name="age")
+    segments = [
+        StringTextPart(text="Hello "),
+        StringExprPart(expression=IdentifierExpr(test_location, name="name")),
+        StringTextPart(text=", you are "),
+        StringExprPart(expression=IdentifierExpr(test_location, name="age")),
+        StringTextPart(text=" years old"),
     ]
 
-    node = InterpolatedStringExpr(test_location, parts=parts, expressions=expressions)
+    node = InterpolatedStringExpr(test_location, segments=segments)
 
-    assert len(node.parts) == 3
-    assert node.parts[0] == "Hello "
-    assert len(node.expressions) == 2
-    assert node.expressions[0].name == "name"
-    assert node.expressions[1].name == "age"
+    text_segments = [s for s in node.segments if isinstance(s, StringTextPart)]
+    expr_segments = [s for s in node.segments if isinstance(s, StringExprPart)]
+    assert len(text_segments) == 3
+    assert text_segments[0].text == "Hello "
+    assert len(expr_segments) == 2
+    assert expr_segments[0].expression.name == "name"
+    assert expr_segments[1].expression.name == "age"
 
 
 def test_interpolated_string_expr_positional(test_location):
     """Test interpolated string with positional arguments."""
     # "User {@1} is {@2} years old"
-    parts = ["User ", " is ", " years old"]
-    expressions = [
-        IdentifierExpr(test_location, name="name"),
-        IdentifierExpr(test_location, name="age")
+    segments = [
+        StringTextPart(text="User "),
+        StringExprPart(expression=IdentifierExpr(test_location, name="name")),
+        StringTextPart(text=" is "),
+        StringExprPart(expression=IdentifierExpr(test_location, name="age")),
+        StringTextPart(text=" years old"),
     ]
 
-    node = InterpolatedStringExpr(test_location, parts=parts, expressions=expressions)
+    node = InterpolatedStringExpr(test_location, segments=segments)
 
-    assert len(node.parts) == 3
-    assert len(node.expressions) == 2
+    text_segments = [s for s in node.segments if isinstance(s, StringTextPart)]
+    expr_segments = [s for s in node.segments if isinstance(s, StringExprPart)]
+    assert len(text_segments) == 3
+    assert len(expr_segments) == 2
 
 
 # ============================================================================
