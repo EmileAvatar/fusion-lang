@@ -46,6 +46,9 @@ desktop.ini
 # Log files
 *.log
 
+# Personal working notes (scratch space for AI reviews, research, etc. - not project docs)
+Notes/
+
 # DO NOT IGNORE:
 # - Source files: *.fusion, *.py
 # - Documentation: *.md
