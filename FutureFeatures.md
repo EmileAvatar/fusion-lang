@@ -1,7 +1,7 @@
 # 🔮 Fusion Language - Future Features & Enhancements
 
 **Status:** Planning / Not Yet Implemented
-**Last Updated:** 2025-11-03
+**Last Updated:** 2026-09-13
 **Purpose:** Track proposed features and enhancements for post-MVP implementation
 
 ---
@@ -4698,6 +4698,179 @@ void function processArray(string items[])
 processArray(mutable)    // OK
 processArray(immutable)  // ❌ Type error: Cannot pass immutable() as mutable[]
 ```
+
+---
+
+### Fixed-Point Decimal Type (Financial / Money Precision)
+
+**Status:** 📝 Proposed
+**Priority:** Medium-High (needed before Fusion can be credibly used for financial/trading
+software)
+**Purpose:** Add an exact, fixed-point decimal numeric type - similar to COBOL's
+`PACKED-DECIMAL`/`COMP-3` and Java's `BigDecimal` - for money and financial calculations
+where `float`/`double`'s binary floating-point rounding error is unacceptable.
+
+---
+
+#### Why `float`/`double` Aren't Enough
+
+Fusion's current numeric types (`int`, `float`, `double`, `byte`, `short`, `long`) cover
+integers and IEEE-754 binary floating point. Binary floating point cannot represent most
+decimal fractions exactly:
+
+```fusion
+double price = 0.1 + 0.2
+print(price)  // Prints 0.30000000000000004, not 0.3 - a classic float bug
+
+double total = 19.99 * 3
+print(total)  // May print 59.96999999999999 instead of exactly 59.97
+```
+
+This is not a Fusion-specific bug - every IEEE-754 float has it (C, Java, Python,
+JavaScript included). It's why COBOL is still running the world's banks decades later
+(`PACKED-DECIMAL` never had this problem), and why every language with real financial use
+cases eventually grows a dedicated decimal type (Java's `BigDecimal`, C#'s `decimal`,
+Python's `decimal.Decimal`, Rust's `rust_decimal`).
+
+#### Where This Fits in Fusion's Numeric Model
+
+Reference diagram (provided by the user) for how this new type relates to Fusion's
+existing numeric types:
+
+```
+                Numeric representation
+                         │
+          ┌──────────────┴──────────────┐
+          │                             │
+       Exact                          Approximate
+          │                             │
+   ┌──────┴──────┐                  Floating point
+   │             │                  (float, double -
+ Integer       Decimal               already in Fusion)
+   │             │
+   │       ┌─────┴─────┐
+   │       │           │
+ cents   fixed       arbitrary
+(int/    scale       precision
+ long -  (new:       (future extension
+ already `decimal`,  of the same family -
+ in      this        not built from
+ Fusion) proposal)   scratch separately)
+```
+
+Fusion already covers the "Integer" and "Approximate/Floating point" branches. This
+proposal adds the "Decimal" branch, starting with fixed scale (the money/trading use case
+actually requested) and leaving arbitrary precision as a related future extension of the
+same type family rather than a separate type designed from scratch later.
+
+#### Proposed Syntax
+
+Following Fusion's existing size-declaration pattern for arrays (`type[N]`, see "Advanced
+Array Declaration Syntax" above) and the primitive/class type-casing convention (see
+"Clarification: Type Casing" above), fixed-point decimal is proposed as a primitive value
+type parameterized by precision and scale:
+
+```fusion
+// decimal(precision, scale) - total significant digits, digits after the decimal point
+decimal(10, 2) price = 19.99         // up to 10 digits total, exactly 2 after the point
+decimal(19, 4) exchangeRate = 1.2345 // 19 digits total, 4 after the point - common FX precision
+
+// Shorthand: decimal with no (precision, scale) uses a project-configurable default
+// (e.g. via fusion.toml - see Task 12.12's project configuration system)
+decimal total = 0.00
+```
+
+#### Arithmetic Semantics (needs an explicit decision, same pattern as Task 12.7's memory model)
+
+- **Exact by construction:** represented internally as a scaled integer (an unscaled
+  integer value + a scale), like a database `DECIMAL(p,s)` column or COBOL `COMP-3` -
+  never binary floating point - so `0.1 + 0.2` is exactly `0.3`, always.
+- **Rounding mode:** needs a decided default (banker's rounding / round-half-to-even,
+  matching IEEE 754 and most database engines, vs. round-half-away-from-zero, the
+  traditional COBOL/financial convention) - a real design decision to make before
+  implementation, not an implementation detail to guess at. Candidate: default to
+  round-half-even, with the option to override per-project via `fusion.toml` (ties into
+  Task 12.12), since different financial jurisdictions/institutions mandate different
+  rounding rules.
+- **Overflow/precision loss:** an operation whose exact result doesn't fit the declared
+  scale must either round predictably per the decided rounding mode, or be a compile/
+  runtime error - mirrors COBOL's `ON SIZE ERROR` clause.
+- **Division:** decimal division can produce a non-terminating result (e.g. `1m / 3`) -
+  must always round to the target's declared scale, never silently fall back to float.
+- **No implicit float conversion:** converting between `decimal` and `float`/`double`
+  should require an explicit cast (a `float` can't exactly represent most `decimal`
+  values either), matching the general principle that lossy conversions stay visible in
+  the code rather than happening silently.
+
+#### Example Use Case
+
+```fusion
+decimal(10, 2) function calculateTotal(decimal(10, 2) price, int quantity)
+    return price * quantity
+
+void function main()
+    decimal(10, 2) itemPrice = 19.99
+    decimal(10, 2) total = calculateTotal(itemPrice, 3)
+    print("Total: {total}")  // Total: 59.97 - exact, not 59.96999999999999
+```
+
+#### Comparison with Other Languages
+
+| Language | Type | Representation |
+|----------|------|-----------------|
+| COBOL | `PIC 9(n)V9(m) COMP-3` | Packed (binary-coded) decimal, fixed scale |
+| Java | `java.math.BigDecimal` | Arbitrary-precision, unscaled value + scale |
+| C# | `decimal` | 128-bit fixed-point, 28-29 significant digits |
+| Python | `decimal.Decimal` | Arbitrary-precision, configurable context |
+| SQL | `DECIMAL(p, s)` / `NUMERIC(p, s)` | Fixed precision and scale |
+| **Fusion (proposed)** | `decimal(p, s)` | Fixed-point, scaled integer internally |
+
+#### Open Questions
+
+1. **Default precision/scale when omitted** (`decimal total = 0`, no `(p, s)`) - a fixed
+   language default (e.g. `(18, 2)`), or read from `fusion.toml` project configuration
+   (ties into Task 12.12)?
+2. **Rounding mode** - one fixed default for the whole language, or configurable
+   per-project like the above?
+3. **Arbitrary-precision decimal** (the diagram's other `Decimal` leaf, a
+   `BigDecimal`-equivalent) - a separate future type, or should `decimal` support an
+   "unbounded" scale mode instead of a second type?
+4. **Codegen strategy** - C has no native fixed-point/packed-decimal type; likely needs a
+   runtime struct (e.g. `{ int64_t unscaled; int scale; }`) plus a small runtime library
+   for arithmetic - real runtime support to design, not just a keyword (same shape of gap
+   Task 15.5 already flags for `Unique`/`Shared`/`Weak`)
+5. **Naming** - `decimal` (matches C#, most familiar to mainstream developers) vs. `Money`
+   (domain-specific, but too narrow - this type is also useful for scientific/trading
+   precision generally, not only currency) vs. `Fixed`/`FixedPoint` (most literally
+   accurate to the representation)
+
+**Recommendation:** `decimal` as the name (widest recognition), fixed-point scaled-integer
+representation for v1, with arbitrary precision explicitly deferred as a distinct future
+leaf of the same family - matches the reference diagram exactly, and avoids building the
+harder unbounded-precision case before the money/trading case actually requested is proven
+out.
+
+#### Implementation Checklist (once scoped and approved)
+
+- [ ] Get explicit decisions on the Open Questions above before any implementation begins
+      (same "decide first" pattern as Task 12.7/12.10/12.11)
+- [ ] Add `decimal`/`decimal(p, s)` to the lexer keyword table and type grammar (EBNF)
+- [ ] Parser support for the `(precision, scale)` type parameters, reusing the array
+      fixed-size parsing pattern where practical
+- [ ] Semantic analyzer: type checking, promotion rules with `int`/`float`/`double`
+      (explicit cast required per the Arithmetic Semantics decision above), literal
+      parsing (`19.99` as a decimal literal, not always inferred as `float`/`double`)
+- [ ] Codegen: C runtime representation (scaled integer struct) plus arithmetic helper
+      functions (add/subtract/multiply/divide/round/compare/format) - a natural fit for
+      Task 15.2's runtime-API lowering layer once that exists, rather than another
+      special case bolted directly onto `visit_CallExpr`
+- [ ] `len()`-style formatting helper (or a `.toString()`/interpolation format specifier)
+      that prints the exact declared scale (e.g. always 2 decimal places for money),
+      not a floating-point default
+- [ ] Example program in `examples/` demonstrating money-like arithmetic (per Rule 5 /
+      Task 16 - add this to that task's checklist once decimal is scoped for real)
+- [ ] Documentation: `files/fusion-language-spec.md` Data Types section, `files/fusion.ebnf`,
+      `CLAUDE.md` Quick Syntax Reference and Reserved Keywords
 
 ---
 
