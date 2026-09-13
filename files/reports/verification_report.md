@@ -1,13 +1,13 @@
 # Fusion Compiler Verification Report
 
-**Date:** Thu, Jan  8, 2026 10:55:37 PM
-**Total Examples:** 6
+**Date:** Sun Sep 13 16:02:29 SAST 2026
+**Total Examples:** 7
 
 ## Summary
 
-- **Compilation Success:** 6/6
-- **Execution Success:** 6/6
-- **Output Matches:** 6/6
+- **Compilation Success:** 7/7
+- **Execution Success:** 7/7
+- **Output Matches:** 7/7
 
 ## Detailed Results
 
@@ -62,6 +62,82 @@ int main(void) {
     printf("Sum: %d\n", sum);
     printf("Diff: %d\n", diff);
     printf("Prod: %d\n", prod);
+    return 0;
+}
+
+```
+
+### const_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+=== Fusion Const Demo ===
+
+MAX_ITERATIONS = 1000
+
+Counting to 10 using const MAX:
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+  10
+
+BASE (100) * MULTIPLIER (2) = 200
+
+Screen size: 80x24 = 1920 pixels
+
+All const tests passed!
+```
+
+**Expected:**
+```
+MAX_ITERATIONS = 1000
+BASE (100) * MULTIPLIER (2) = 200
+Screen size: 80x24 = 1920 pixels
+All const tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
+// Forward declarations
+int main(void);
+
+int main(void) {
+    printf("=== Fusion Const Demo ===\n");
+    printf("\n");
+    const int MAX_ITERATIONS = 1000;
+    printf("MAX_ITERATIONS = %d\n", MAX_ITERATIONS);
+    printf("\n");
+    printf("Counting to 10 using const MAX:\n");
+    const int MAX = 10;
+    int i = 1;
+    while ((i <= MAX)) {
+        printf("  %d\n", i);
+        i = (i + 1);
+    }
+    printf("\n");
+    const int BASE = 100;
+    const int MULTIPLIER = 2;
+    int result = (BASE * MULTIPLIER);
+    printf("BASE (%d) * MULTIPLIER (%d) = %d\n", BASE, MULTIPLIER, result);
+    printf("\n");
+    const int WIDTH = 80;
+    const int HEIGHT = 24;
+    int total_pixels = (WIDTH * HEIGHT);
+    printf("Screen size: %dx%d = %d pixels\n", WIDTH, HEIGHT, total_pixels);
+    printf("\n");
+    printf("All const tests passed!\n");
     return 0;
 }
 

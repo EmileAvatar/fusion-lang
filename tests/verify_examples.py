@@ -342,6 +342,7 @@ def main():
         'calculator': 'Sum: 15\nDiff: 5\nProd: 50',
         'sum_array': 'Sum of 1 to 10: 55',
         'max_three': 'Maximum of 10, 25, 15 is 25',
+        'const_demo': 'MAX_ITERATIONS = 1000\nBASE (100) * MULTIPLIER (2) = 200\nScreen size: 80x24 = 1920 pixels\nAll const tests passed!',
     }
 
     # Find all .fusion files in examples/

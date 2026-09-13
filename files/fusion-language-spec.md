@@ -155,13 +155,24 @@ Spaceship ship     // null (reference type)
 
 ### Constants
 
-Description: Immutable values declared at compile time.
+Description: Immutable values, must be initialized at declaration; reassignment is a
+compile-time error.
 
 ```
-const MAX_SPEED: float = 300000.0
-const GAME_VERSION = "1.0.0"
-const PI: double = 3.14159265359
+const int MAX_ITERATIONS = 1000
+const float PI = 3.14159265359
+const string GAME_VERSION = "1.0.0"
 ```
+
+**Implemented (MVP, Task 8):** local const declarations inside a function body, with an
+explicit type, as shown above - matching `variable_declaration` in fusion.ebnf. The current
+compiler is function-scoped (not block-scoped), so a const declared in one function is not
+visible to another.
+
+**Not yet implemented:** type-inferred const (`const GAME_VERSION = "1.0.0"` without a type
+name), and module-level/class-level constants (`public const MAX_SPEED: float = 1000.0`,
+shown later in this document under "Classes and Objects") - those depend on class support,
+which has not been built yet.
 
 ---
 

@@ -1,8 +1,48 @@
 # Fusion Programming Language 🏗️
 
-**Fusion** is an agnostic, configurable programming language designed to eliminate syntax lock-in and give developers control over safety, performance, and execution models. Write once in your preferred syntax style, configure for your needs, and deploy anywhere.
+Fusion is not a traditional programming language. It is a configurable compiler platform where syntax is optional, behavior is declarative, and execution is pluggable.
 
-The Fusion compiler (MVP) currently compiles Fusion source code to C, then uses GCC to produce native executables. Future backends include LLVM IR, bytecode VM, and self-hosting (compiler written in Fusion).
+Instead of choosing a language and accepting its trade-offs, Fusion lets you assemble the language your project needs.
+
+The Fusion compiler (MVP) currently compiles Fusion source code to C, then uses GCC to produce native executables. Planned backends include LLVM IR, a bytecode VM, an interpreter, and a self-hosting compiler (written in Fusion).
+
+## Code as Infrastructure
+
+Traditional development forces you to choose a programming language first, then work around its strengths and weaknesses.
+
+Fusion flips this model. Instead of selecting *a language*, the goal is to let you select **capabilities**: safety guarantees, performance constraints, memory management model, concurrency model, execution backend, and diagnostics level. The compiler is meant to configure itself to match what you declare - similar to how Infrastructure-as-Code tools like Terraform or AWS CDK work, but applied to programming languages.
+
+## Why Fusion Exists
+
+Most languages force trade-offs:
+
+- C: fast, unsafe
+- Python: safe, slow
+- Java: portable, heavy
+- Rust: safe, complex
+- Go: simple, restrictive
+
+Fusion's goal is to remove that forced choice - reconfigure Fusion instead of switching languages when requirements change. Fusion doesn't compete with C, Python, Rust, or Go. It competes with the idea that you must choose only one.
+
+## Syntax Without Lock-In
+
+Fusion separates **how code is written** from **how it is compiled and executed**. All three syntax styles below compile to the same AST:
+
+- Indentation-based (Python-like)
+- Brace-based (C / Java-like)
+- Keyword-based (VB-style: `End if`, `End function`)
+
+Syntax is a preference, not a limitation.
+
+## Current Status (MVP)
+
+The capability-driven vision above is the direction, not yet the implementation. What's real today is a working prototype that proves the pipeline:
+
+```
+Fusion Source -> C -> GCC -> Native Executable
+```
+
+Configurable safety modes, memory models, and pluggable execution backends are **planned**, not implemented yet. The section below lists what's actually built and tested right now.
 
 ## Features
 
@@ -12,20 +52,21 @@ The Fusion compiler (MVP) currently compiles Fusion source code to C, then uses 
 - **Inline Lambdas**: Single-expression functions with `:` syntax - `int double(int x) : x * 2`
 - **String Interpolation**: Inline `{var}` and positional `{@1}` format - `print("Value: {x}")`
 - **Complete Type System**: int, float, double, string, bool, char, void with automatic int→float promotion
+- **const Declarations**: Immutable variables, enforced at compile time - `const int MAX = 100`
 - **Control Flow**: if/else, while, for loops with range support, break/continue
 - **Function-Level Scoping**: Variables visible throughout function (like Python/JavaScript)
 - **Recursive Functions**: Full support for direct and indirect recursion
 
 ### Compiler Features (MVP - Complete)
-- **Robust Lexer**: 412 tests passing - Tokenization, indentation tracking, operator recognition
+- **Robust Lexer**: 391 tests (383 passing, 8 skipped) - Tokenization, indentation tracking, operator recognition
 - **Complete Parser**: 251 tests passing - AST generation, expression precedence, statement parsing
-- **Semantic Analyzer**: 230 tests passing - Type checking, name resolution, control flow validation
-- **C Code Generator**: 150 tests passing - Clean C code generation with GCC integration
+- **Semantic Analyzer**: 238 tests passing - Type checking, name resolution, control flow validation, const validation
+- **C Code Generator**: 126 tests passing - Clean C code generation with GCC integration
+- **Additional Coverage**: 59 tests - error-handling utilities, full end-to-end compilation
 - **End-to-End Compilation**: 6/6 example programs compile and run successfully
-- **Test Coverage**: 1,041 tests passing (99.0%), 10 skipped
+- **Test Coverage**: 1,057 tests passing (99.2%), 8 skipped
 
 ### Planned Features (Post-MVP)
-- **const Keyword**: Immutable variable declarations
 - **Arrays & Collections**: List, Dictionary, Set with LINQ-style operations
 - **Classes & Interfaces**: Object-oriented programming support
 - **Generic Types**: Type parameters for functions and classes
@@ -163,6 +204,21 @@ void function main()
 End function
 ```
 
+### const Declarations
+```fusion
+void function main()
+    const int MAX_ITERATIONS = 1000
+    const int WIDTH = 80
+    const int HEIGHT = 24
+    int total_pixels = WIDTH * HEIGHT
+    print("Screen size: {WIDTH}x{HEIGHT} = {total_pixels} pixels")
+
+    // Reassigning a const is a compile-time error:
+    // MAX_ITERATIONS = 20
+End function
+```
+See [examples/const_demo.fusion](examples/const_demo.fusion) for the full example.
+
 ## Language Syntax Quick Reference
 
 ### Function Declaration
@@ -174,6 +230,16 @@ End function
 
 // Inline lambda
 int double(int x) : x * 2
+```
+
+### Variable Declaration
+```fusion
+// Explicit type (required)
+int count = 0
+string name = "Alice"
+
+// Constant (must initialize, cannot be reassigned)
+const float PI = 3.14159
 ```
 
 ### Block Styles
@@ -242,7 +308,7 @@ fusion-lang/
 │   ├── semantic/        # Semantic analyzer (validation)
 │   ├── codegen/         # C code generator
 │   └── utils/           # Utilities (errors, source location)
-├── tests/               # Test suite (1,041 tests)
+├── tests/               # Test suite (1,057 passing, 8 skipped)
 ├── examples/            # Example Fusion programs
 ├── task/                # Task tracking and planning documents
 ├── files/               # Language specifications and documentation
@@ -281,17 +347,20 @@ python -m pytest tests/ --cov=src --cov-report=html
 - ✅ **Task 5: Project Organization** - File structure cleanup
 - ✅ **Task 6: Verification & Bug Fixes** - All examples verified, FizzBuzz bug fixed
 - ✅ **Task 7: Git Integration** - GitHub repository setup, version control
+- ✅ **Task 8: const Keyword** - Lexer, parser, semantic validation, codegen, docs, and verification complete (all 7 examples now checked, including const_demo)
 
 ### Test Results
-- **Total Tests**: 1,041 passing (99.0% pass rate)
-- **Lexer Tests**: 412 passing (tokenization, operators, literals, comments)
+- **Total Tests**: 1,057 passing (99.2% pass rate)
+- **Lexer Tests**: 391 (383 passing, 8 skipped) - tokenization, operators, literals, comments
 - **Parser Tests**: 251 passing (AST nodes, expressions, statements, declarations)
-- **Semantic Tests**: 230 passing (type checking, name resolution, control flow)
-- **Code Generation Tests**: 150 passing (C code generation, GCC integration)
-- **Skipped Tests**: 10 (8 single-quote comments, 2 const keyword - planned features)
-- **Example Programs**: 6/6 verified and working (hello_world, factorial, fizzbuzz, calculator, sum_array, max_three)
+- **Semantic Tests**: 238 passing (type checking, name resolution, control flow, const)
+- **Code Generation Tests**: 126 passing (C code generation, GCC integration, const)
+- **Additional Tests**: 59 passing (error-handling utilities, end-to-end compilation)
+- **Skipped Tests**: 8 (single-quote comment syntax - deferred design decision, conflicts with char literals)
+- **Example Programs**: 7/7 verified and working (hello_world, factorial, fizzbuzz, calculator, sum_array, max_three, const_demo)
 
 ### Future Features (Post-MVP)
+- Arrays and collections
 - Classes and interfaces
 - Generic types
 - Memory management (Unique/Shared/Weak)
@@ -368,7 +437,7 @@ Contributions are welcome! Fusion is an open-source project built collaborativel
 - All tests must pass before submitting PR
 
 ### Areas for Contribution
-- **Language Features**: const keyword, arrays, classes, generics
+- **Language Features**: arrays, classes, generics (see [taskSummary2.md](taskSummary2.md) for the current roadmap)
 - **Standard Library**: Implement fusionlib modules (IO, Collections, Net, etc.)
 - **Optimizations**: Code generation improvements, performance tuning
 - **Documentation**: Tutorials, examples, language guides
@@ -417,7 +486,7 @@ This project was developed with significant contributions from AI assistants. We
   - Feature planning and specification
   - Documentation reviews
 
-**Note**: All AI-generated code has been thoroughly reviewed, tested (1,041+ passing tests), and validated by human maintainers. The project follows rigorous PLAN FIRST methodology to prevent AI drift and ensure quality.
+**Note**: All AI-generated code has been thoroughly reviewed, tested (1,057+ passing tests), and validated by human maintainers. The project follows rigorous PLAN FIRST methodology to prevent AI drift and ensure quality.
 
 ### Human Contributors
 - **Emile M Steenkamp** - Project creator, lead developer, and maintainer

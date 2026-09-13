@@ -331,11 +331,13 @@ const float PI = 3.14159
 - Recursive functions and lambdas
 - void main() → int main() automatic conversion
 - C keyword name mangling (function "double" → "fusion_double")
+- const declarations: must initialize, enforced immutable by semantic analyzer, emitted as
+  C `const` (Task 8, complete)
 
 **Known Limitations (by design):**
 - No block-level scoping (variables are function-scoped)
 - Single-quote comments disabled (conflicts with char literals)
-- const keyword not yet implemented (planned for Task 7)
+- const is function-scoped only (no global/class-level constants yet - classes not implemented)
 
 ---
 
