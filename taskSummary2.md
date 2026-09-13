@@ -45,12 +45,13 @@ CLAUDE.md Rule 3 for when/how sections move there
 | **Task 6: Verification & Bug Fixes** | Complete | 100% | 7 | 7 |
 | **Task 7: Git Integration** | Complete | 100% | 4 | 4 |
 | **Task 8: Language Features (const)** | Complete | 100% | 8 | 8 |
-| **Task 9: Language Features (arrays)** | Not Started | 0% | 0 | 8 |
+| **Task 9: Language Features (arrays v1)** | Complete | 100% | 8 | 8 |
 | **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
 | **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
 | **Task 12: Architecture Hardening** | In Progress | 42% | 5 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
-| **Overall** | Task 12 Core Typed AST Complete | 40% | 31 | 78 |
+| **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
+| **Overall** | Task 9 Complete | 46% | 39 | 84 |
 
 ---
 
@@ -70,83 +71,230 @@ The Overall Progress table above still tracks their status at a glance.
 ## TASK 9: Language Features - Array Support
 
 **Goal:** Add basic array types and operations
-**Status:** Not Started (Tasks 5-8 complete; Task 12's Core Typed AST also complete - unblocked)
+**Status:** Complete ✅ (v1 scope - fixed-size, local-variable arrays; see Task 14 for the
+deferred nullable-array/safe-navigation follow-on)
 **Priority:** MEDIUM
 **Estimated Effort:** 8-10 hours
+**Actual Effort:** ~1 session (2026-09-13), after Task 12's Core Typed AST unblocked it
 
 **Recommendation satisfied (2026-09-13):** the 2026-08-04 architecture review recommended doing
 Task 12 (Typed AST) before or alongside this task, so array codegen wouldn't inherit the
-"codegen guesses the type" problem `print()`/string interpolation had. Task 12.1-12.4 (Typed
-AST design, semantic analyzer populating `inferred_type`, codegen consuming it, and the
-InterpolatedString refactor) are now complete and verified - see Task 12 above and Session 26
-notes. Array type-checking and codegen can build on `inferred_type` directly instead of
-repeating the guessing pattern.
+"codegen guesses the type" problem `print()`/string interpolation had. Task 12.1-12.4 unblocked
+this cleanly - array indexing and `len()` read `inferred_type` directly, no guessing.
 
-### Sub-tasks:
+**Scope decision (2026-09-13):** mid-planning, the user asked for `arr.length` with null-aware
+behavior (`arr?.length`) alongside `len(arr)`. That turned out to require a real nullable-
+reference-type design (fixed-size C arrays can't be null), a new `.`/`?.` parser feature
+(doesn't exist at all yet), and a compile-time null-flow-analysis pass - a language-wide
+feature, not a small addition, and exactly the kind of thing Task 12.7's deferred memory-model
+work exists to settle first. User agreed to ship plain non-nullable arrays now and track that
+work separately - see **Task 14** below.
 
-#### 9.1: Design Array Syntax
-- [ ] Define array declaration syntax: `int[] arr = [1, 2, 3]`
-- [ ] Define array indexing: `arr[0]`, `arr[i]`
-- [ ] Define array size: `arr.length` or `len(arr)`
-- [ ] Document in fusion-language-spec.md
-- [ ] Get user approval on syntax
+### Sub-tasks (all complete):
 
-#### 9.2: Lexer - Add Array Tokens
-- [ ] Add LBRACKET, RBRACKET to TokenType (if not already present)
-- [ ] Verify tokenization of `[]` syntax
-- [ ] Test array literal tokenization
+#### 9.1: Design Array Syntax - COMPLETE
+- [x] Array declaration: `int[] arr = [1, 2, 3]` (size inferred) or `int[5] arr` (explicit
+      size, zero-initialized) or both together (must agree)
+- [x] Array indexing: `arr[0]`, `arr[i]` (read and write)
+- [x] Array size: `len(arr)` - a builtin function, like `print()`/`range()`; `arr.length` was
+      the other option on the table but requires general member-access parsing that doesn't
+      exist yet (see Task 14) - not worth building just for this one property
+- [x] Documented in `files/fusion-language-spec.md` (new "Arrays" section) and
+      `files/fusion.ebnf` (annotated the existing array grammar with what's actually
+      implemented vs. still aspirational)
+- [x] User approved the syntax and the v1/deferred scope split (2026-09-13)
 
-#### 9.3: Parser - Parse Array Types
-- [ ] Update parse_type() to recognize `int[]`, `string[]`, etc.
-- [ ] Create ArrayType AST node
-- [ ] Parse array literals: `[1, 2, 3]`
-- [ ] Parse array indexing: `arr[i]`
-- [ ] Write parser tests
+#### 9.2: Lexer - Array Tokens - COMPLETE (already existed)
+- [x] `LBRACKET`/`RBRACKET` were already in `TokenType` and already tokenized by the lexer
+      (`src/lexer/operators.py`) - nothing to add here
 
-#### 9.4: Parser - Parse Array Operations
-- [ ] Parse array declarations with initialization
-- [ ] Parse array element access
-- [ ] Parse array element assignment
-- [ ] Write comprehensive parser tests
+#### 9.3/9.4: Parser - Array Types, Literals, Indexing - COMPLETE
+- [x] `parse_type()` (`src/parser/parser.py`) recognizes `int[]`/`int[5]` after a primitive
+      type; rejects multi-dimensional (`int[][]`) and non-literal sizes (`int[n]`) with a
+      clear `ParserError`
+- [x] New `ArrayType(element_type, size)` TypeNode, `ArrayLiteralExpr(elements)`, and
+      `IndexExpr(array, index)` AST nodes in `src/parser/ast_nodes.py`
+- [x] Array literals `[1, 2, 3]` (trailing comma allowed) parsed in `parse_primary()`
+- [x] Indexing `arr[i]` parsed as a postfix operator in `parse_call()` (renamed in spirit to
+      "postfix" - now handles both `(...)` calls and `[...]` indexing in one chained loop,
+      matching the EBNF's `postfix` production); array-element assignment (`arr[i] = v`)
+      needed no extra parser work - it already falls out of the existing
+      expression-then-check-for-`=` statement path
+- [x] `src/semantic/name_resolver.py` updated to resolve names inside array literals/indexing
 
-#### 9.5: Semantic Analyzer - Array Type Checking
-- [ ] Add array type to type system
-- [ ] Validate array element types match declaration
-- [ ] Check array index is integer
-- [ ] Implement bounds checking (optional runtime check)
-- [ ] Write semantic tests
+#### 9.5: Semantic Analyzer - Array Type Checking - COMPLETE
+- [x] `ArrayType` added to `types_equal`/`types_compatible`/`type_to_string` in
+      `type_checker.py` (element-type compatibility with existing numeric promotion, plus
+      size matching)
+- [x] `visit_ArrayLiteralExpr`: infers element type across all elements (promotes
+      int/float/double like binary expressions already do), errors on inconsistent
+      non-numeric types
+- [x] `visit_IndexExpr`: errors on indexing a non-array, errors if the index isn't `int`
+- [x] `visit_VarDeclStmt` extended (`_check_array_var_decl`): resolves the array's size from
+      an explicit `[N]`, an initializer's element count, or both (must agree); errors if
+      neither is given
+- [x] `visit_AssignmentStmt` split into identifier- and index-target paths
+      (`_check_identifier_assignment`/`_check_index_assignment`): rejects whole-array
+      reassignment (`arr = [...]` after declaration - not supported, see Deliverables),
+      enforces const on array elements, checks element type compatibility
+- [x] `len()` registered as a builtin (`name_resolver.py`) and special-cased in
+      `visit_CallExpr` (accepts exactly one array argument, any element type - the type
+      system has no generics, so this mirrors how `range()` is already special-cased)
+- [x] Arrays rejected as function parameters/return types in `register_function`, with a
+      clear error rather than silently miscompiling (deferred - see Deliverables)
+- [x] Bounds checking: explicitly NOT implemented (documented limitation, matches how C
+      itself behaves - deferred, not a v1 blocker)
+- [x] 22 new semantic tests in `tests/test_array_semantic.py`
 
-#### 9.6: Code Generator - Generate Array C Code
-- [ ] Map Fusion arrays to C arrays
-- [ ] Generate array declarations: `int arr[3] = {1, 2, 3};`
-- [ ] Generate array indexing: `arr[i]`
-- [ ] Handle dynamic arrays (use malloc if needed)
-- [ ] Write codegen tests
+#### 9.6: Code Generator - Generate Array C Code - COMPLETE
+- [x] `map_type()` maps `ArrayType` to its element's C type; `visit_VarDeclStmt` special-cases
+      `ArrayType` to emit real C array declarators (size after the name - `int arr[3]`, not
+      `int[3] arr`), zero-initializing (`= {0}`) when there's no literal
+- [x] `visit_ArrayLiteralExpr` emits a C brace-initializer (`{1, 2, 3}`) - only valid in C as
+      an initializer, which is the only place semantic analysis allows an array literal to
+      appear (whole-array reassignment and array arguments are both rejected earlier)
+- [x] `visit_IndexExpr` emits plain C indexing (`arr[i]`), valid as both an rvalue and an
+      assignment lvalue; `visit_AssignmentStmt` generalized from `target.name` to
+      `self.visit(target)` so index-target assignment works through the same code path
+- [x] `len(arr)` compiles directly to the array's resolved size as an integer literal (no
+      runtime call at all) - sizes are always known at compile time in v1
+- [x] Dynamic arrays (`malloc`): explicitly NOT implemented - fixed-size only, documented
+      limitation, not a v1 blocker
+- [x] 8 new codegen tests in `tests/test_array_codegen.py`, including a full GCC
+      compile-and-run round trip
 
-#### 9.7: Integration & Examples
-- [ ] Create example program with arrays
-- [ ] Test compilation and execution
-- [ ] Add to examples/ directory
-- [ ] Update verify_examples.py
+#### 9.7: Integration & Examples - COMPLETE
+- [x] `examples/arrays_demo.fusion` - literal/explicit-size declarations, element
+      read/write, `len()`, and arrays as local variables inside a helper function
+- [x] Compiled and ran manually (verified real runtime output), then added to
+      `tests/verify_examples.py`'s expected outputs
+- [x] `python tests/verify_examples.py`: 8/8 compile, run, and match
 
-#### 9.8: Documentation & Commit
-- [ ] Update fusion-language-spec.md
-- [ ] Update CLAUDE.md
-- [ ] Update README.md
-- [ ] Git commit and push
+#### 9.8: Documentation & Commit - COMPLETE
+- [x] `files/fusion-language-spec.md`: new "Arrays" section (implemented vs. deferred, with
+      cross-references to the existing "Array Safe Navigation"/"Null Safety" sections that
+      already describe the nullable design Task 14 will build toward)
+- [x] `files/fusion.ebnf`: annotated `array_type`, `array_literal`, and `postfix` with what's
+      actually implemented vs. still aspirational
+- [x] `CLAUDE.md`: added to Current Features/Known Limitations, added a Quick Syntax
+      Reference example
+- [x] `README.md`: Features, Example Programs, Development Status, and Test Results sections
+      updated; corrected test-count drift left over from Task 12 (Code Generation Tests was
+      still showing 126, three short of the actual 129 after Task 12's own new tests - fixed
+      to the current 137 while updating this line anyway)
+- [x] Git commit and push (see Session 27 notes below for the hash)
 
 **Success Criteria:**
-- Array syntax defined and documented
-- Arrays parse correctly
-- Array type checking works
-- Arrays compile to C code
-- Example program works
+- [x] Array syntax defined and documented
+- [x] Arrays parse correctly (22 semantic + 8 codegen tests, plus manual error-case
+      verification of all 7 rejection paths: whole-array reassignment, const violation, size
+      mismatch, element type mismatch, non-array indexing, missing size, array parameters)
+- [x] Array type checking works
+- [x] Arrays compile to C code (verified with a real GCC compile + run, not just unit tests)
+- [x] Example program works
 
 **Deliverables:**
-- Array type implementation
-- Array example program
-- Documentation
+- Array type implementation (`ArrayType`/`ArrayLiteralExpr`/`IndexExpr`, fixed-size,
+  local-variable-only, single-dimension)
+- `len()` builtin, resolved at compile time
+- Array example program (`examples/arrays_demo.fusion`)
+- Documentation (language spec, EBNF, CLAUDE.md, README)
 - Git commit
+- **Explicitly deferred, not delivered here**: arrays as function parameters/return types,
+  multi-dimensional arrays, non-literal array sizes, whole-array reassignment, dynamic/resizable
+  arrays, bounds checking, and everything nullability-related (`.length`, `?.length`, `?[i]`,
+  compile-time null-flow analysis) - see Task 14
+
+---
+
+## TASK 14: Nullable Arrays & Safe Navigation
+
+**Goal:** Let arrays (and eventually other reference-like types) be nullable, with
+`arr.length`/`arr?.length` and `arr?[i]` behaving safely instead of crashing unpredictably -
+the richer null-safety design the user asked for while scoping Task 9, split out because it's
+a language-wide feature, not an array-specific one.
+**Status:** Not Started (proposed breakdown only, not yet approved for implementation - same
+status convention as Tasks 12/13)
+**Priority:** MEDIUM (no urgency stated; naturally sequenced after Task 12.7)
+**Blocked By:** Task 12.7 (Memory Model Semantics, deferred) - nullability is a memory-model
+decision (is an array a value or a reference? can any type be null, or only some?), and
+building it ahead of that risks exactly the rework the original architecture review warned
+about ("stop and define ownership/nullability before building collections on top of it").
+**Estimated Effort:** TBD - needs its own sub-plan once approved for scoping
+**Source:** Arose from scoping Task 9 (2026-09-13) - the user asked for `arr.length` with
+null-checking, `arr?.length` returning 0 silently on null, and a hybrid null-safety model:
+compile-time error where the compiler can prove an array is null before use, a runtime crash
+with a clear message where it can't prove it, and `?.`/`?[` as the way to opt out of both (get
+0 back instead). The user also noted this might eventually be configurable per-project
+(ties to Task 12.12's project configuration system). Notably, `files/fusion-language-spec.md`
+already describes this exact design for strings and arrays under "Array Safe Navigation" and
+"Null Safety" (e.g. "`string?.length` returns 0 if null") - this task is about actually
+building it, starting with arrays.
+
+### Sub-tasks (NOT YET APPROVED - proposed breakdown only)
+
+#### 14.1: Nullability Model Decision (depends on Task 12.7)
+- [ ] Decide whether arrays become a nullable reference type (pointer + length) or whether
+      nullability is a separate wrapper/modifier applicable to multiple types
+- [ ] Decide how `null` (currently type-checks as `void`, not wired to any real type) becomes
+      assignable to nullable array types
+- [ ] Resolve alongside Task 12.7's `Unique`/`Shared`/`Weak` design - a nullable array's
+      ownership story needs to fit that same model, not a separate one
+- [ ] Get user decision; record as an ADR alongside Task 12.7's memory model spec
+
+#### 14.2: Compile-Time Null-Flow Analysis
+- [ ] Track definite-null / maybe-null / definite-non-null state through straight-line code
+      (at minimum; branch-merging is a further decision)
+- [ ] Compile-time error when `.length`/indexing is used on a provably-null array without a
+      preceding `?.`/`?[`
+- [ ] Write semantic tests for provably-null and provably-safe cases
+
+#### 14.3: `.` / `?.` / `?[` Parser Support
+- [ ] Add member-access (`.` identifier) and safe-navigation (`?.` identifier, `?[`
+      expression `]`) postfix parsing - doesn't exist in the parser at all today
+- [ ] `arr.length` lowers to the same thing `len(arr)` does (both should stay available and
+      behave identically per the user's "give devs both, don't lock into one way" request)
+
+#### 14.4: Runtime Null-Check Codegen
+- [ ] For accesses that can't be proven safe at compile time: emit a null check that crashes
+      with a clear message on null (matches the user's "crash the app with clear error
+      message" requirement)
+- [ ] For `?.`/`?[` accesses: emit a null check that evaluates to 0 instead of crashing (no
+      warning - matches the user's "we don't execute the function and return a 0" description)
+- [ ] Regression tests: provably-null (compile error), runtime-null via non-provable path
+      (crash with message), `?.`/`?[` on null (0, no crash)
+
+#### 14.5: Extend Beyond Arrays (stretch)
+- [ ] `string?.length` is already described in the language spec alongside arrays - evaluate
+      applying the same mechanism to strings once arrays prove it out
+- [ ] Note for future classes/objects: this mechanism should generalize, not be
+      array-specific plumbing
+
+#### 14.6: Documentation & Examples
+- [ ] Update `files/fusion-language-spec.md`'s "Array Safe Navigation"/"Null Safety" sections
+      from aspirational to actually-implemented, with the real semantics decided above
+- [ ] Example program demonstrating `.length` vs `len()` vs `?.length` vs `?[i]`
+- [ ] Update `files/fusion.ebnf`'s postfix production (already has the grammar drafted -
+      confirm it still matches what got built)
+
+**Success Criteria:**
+- Arrays can be null; `null` is assignable to a nullable array type
+- `.length` and `len(arr)` both exist and behave identically
+- A provably-null `.length`/index access is a compile-time error
+- A non-provably-null access that turns out null at runtime crashes with a clear message
+- `?.length`/`?[i]` on null returns 0 without crashing, silently (no warning)
+- No behavior regressions to Task 9's existing non-nullable array support
+
+**Deliverables:**
+- Nullability decision recorded (ADR, alongside Task 12.7)
+- Compile-time null-flow analysis pass
+- `.`/`?.`/`?[` parser support
+- Runtime null-check codegen
+- Updated language spec matching actual behavior
+
+**Explicitly NOT scheduled now:** this task is future work, blocked on Task 12.7. No
+implementation, grammar design, or parser work should begin until Task 12.7 is complete and
+the user re-opens this task for scoping approval - same convention as Tasks 12/13.
 
 ---
 
@@ -998,6 +1146,79 @@ user re-opens this task for scoping approval.
 - **Next Action:** proceed to Task 9 (Array Support) planning - the user's original request,
   now actually unblocked rather than just flagged.
 
+### Session 27 (2026-09-13 - Task 9: Array Support v1)
+- **User request:** "lets do task 9 plz"
+- **Scoped before coding, per Task 9.1's own checklist item ("Get user approval on syntax")**:
+  proposed fixed-size, local-variable-only arrays with `len(arr)`; asked one open question
+  (`len(arr)` vs `arr.length`)
+- **User asked for both `len(arr)` AND `arr.length`, with `arr.length` null-aware** (warn/crash
+  depending on provability, `?.`/`?[` returning 0 silently) - this doesn't fit a fixed-size C
+  array (can't be null) and needs member-access parsing (doesn't exist), a null-flow-analysis
+  pass, and a real nullability/memory-model decision (Task 12.7 territory). Flagged this
+  explicitly rather than improvising a memory-model decision inline. User agreed to ship plain
+  arrays now and track nullability separately - see new **Task 14** below.
+- **Investigated the actual code before implementing** (mirroring the Task 12 approach):
+  confirmed `LBRACKET`/`RBRACKET` tokens already existed and were already tokenized (just
+  unused downstream); confirmed zero array support existed anywhere else (`sum_array.fusion`
+  doesn't use real arrays, just sums a `range()`); found `files/fusion.ebnf` already had a
+  draft array grammar to build from; found `TypeChecker.visit_CallExpr` already had a
+  precedent (`range()`'s special-casing) for a builtin that needs bespoke argument checking
+  rather than a fixed `FunctionType` signature - reused that exact pattern for `len()`.
+- **Implemented (v1):**
+  - AST: `ArrayType(element_type, size)`, `ArrayLiteralExpr(elements)`, `IndexExpr(array,
+    index)` in `src/parser/ast_nodes.py`
+  - Parser: `parse_type()` recognizes `int[]`/`int[5]` (integer-literal sizes only,
+    multi-dimensional rejected with a clear error); array literals in `parse_primary()`;
+    indexing folded into `parse_call()`'s postfix loop (renamed in spirit - now handles both
+    `(...)` and `[...]` chained); array-element assignment needed zero extra parser work
+  - Semantic: `ArrayType` added to `types_equal`/`types_compatible`/`type_to_string`;
+    `visit_ArrayLiteralExpr` (element-type inference with numeric promotion),
+    `visit_IndexExpr` (array/int-index validation); `visit_VarDeclStmt` resolves size from an
+    explicit `[N]`, an initializer, or both (must agree); `visit_AssignmentStmt` split into
+    identifier- and index-target paths, explicitly rejecting whole-array reassignment (a
+    plain C array isn't reassignable that way) and enforcing const on elements; `len()`
+    registered as a builtin and special-cased like `range()`; arrays rejected as function
+    parameters/return types with a clear error (`register_function` in name_resolver.py)
+  - Codegen: `map_type` handles `ArrayType`; `visit_VarDeclStmt` emits real C array
+    declarators (`int arr[3] = {1, 2, 3};`, size after the name, `{0}` zero-init when no
+    literal); `visit_ArrayLiteralExpr` emits C brace-init (only reachable as an initializer,
+    per the semantic rules above); `visit_IndexExpr` emits plain `arr[i]`;
+    `visit_AssignmentStmt` generalized from `target.name` to `self.visit(target)` so index
+    targets work through the same path; **`len(arr)` compiles directly to the array's
+    resolved size as an integer literal - no runtime call at all**, since sizes are always
+    known at compile time in v1
+- **Verified for real, not just unit tests:** compiled an ad-hoc program using array literals,
+  explicit-size arrays, element read/write, a function returning a sum over a local array, and
+  `len()` inside a `range()` bound - confirmed correct generated C and correct runtime output.
+  Manually tested and confirmed all 7 rejection paths fire with clear messages: whole-array
+  reassignment, const-element assignment, size mismatch, element type mismatch, indexing a
+  non-array, missing size with no initializer, and arrays as function parameters.
+- **Found and worked around a pre-existing, unrelated lexer limitation while testing:** string
+  interpolation (`"{...}"`) only accepts a bare identifier inside `{}` - `{arr[0]}` or `{x+1}`
+  fail to lex ("Expected } to close interpolation"). This predates Task 9 entirely (confirmed
+  via the interpolation lexer's `isalnum()`-only identifier scan) and matches an already-dead,
+  already-commented-out test in `tests/test_parser_expressions.py`. Not fixed here - noted as a
+  pre-existing limitation, worked around in the example program with temp variables
+  (`int first = scores[0]; print("{first}")`).
+- **Tests:** added `tests/test_array_semantic.py` (22 tests) and `tests/test_array_codegen.py`
+  (8 tests, including a full GCC compile-and-run round trip). Full suite: 1090 passed, 8
+  skipped (up from 1060). Added `examples/arrays_demo.fusion`; `verify_examples.py`: 8/8.
+- **Documentation:** new "Arrays" section in `files/fusion-language-spec.md` (cross-referenced
+  against the spec's existing "Array Safe Navigation"/"Null Safety" sections, which already
+  described the nullable design Task 14 will build toward); annotated `files/fusion.ebnf`'s
+  array/postfix grammar with implemented-vs-aspirational notes; updated CLAUDE.md and README.md
+  (Features, Example Programs, Development Status, Test Results) - also caught and fixed a
+  small test-count drift left over from Task 12 (README's Code Generation Tests line was still
+  126, three short of the actual 129 after Task 12's own additions, since README wasn't touched
+  in that commit - fixed to the current accurate 137 while updating this line anyway)
+- **Added Task 14** ("Nullable Arrays & Safe Navigation") - proposed-only, blocked on Task
+  12.7, same convention as Tasks 12/13 - capturing the null-safety design the user actually
+  asked for, scoped properly instead of bolted onto Task 9
+- **TASK 9: ARRAY SUPPORT (v1) - 100% COMPLETE**
+- **Next Action:** Task 9 is done and shipped. Remaining open items: Task 12 approval for its
+  deferred items (12.5-12.8, 12.10-12.12), Task 14 blocked on Task 12.7, Task 13 blocked on
+  Task 12.
+
 ---
 
 ## CRITICAL RULES (Reminder)
@@ -1026,7 +1247,8 @@ user re-opens this task for scoping approval.
 
 ---
 
-**Next Action:** Task 12's Core Typed AST (12.1-12.4, 12.9) is complete and verified - Task 9
-(Array Support) is unblocked and ready to plan/implement. Task 12's remaining items (12.5-12.8,
-12.10-12.12) stay deferred until separately requested. Task 8 is complete; completed-task
-detail for Tasks 5-8 lives in `task/taskSummaryArchive.md`.
+**Next Action:** Task 9 (fixed-size arrays, v1) is complete and shipped. Task 14 (nullable
+arrays/safe navigation) is logged and blocked on Task 12.7. Remaining open items: Task 12's
+deferred pieces (12.5-12.8, 12.10-12.12), Task 13 (HIDL module, blocked on Task 12), and Task
+14 (blocked on Task 12.7). Completed-task detail for Tasks 5-8 lives in
+`task/taskSummaryArchive.md`.

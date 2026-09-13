@@ -146,6 +146,34 @@ class LambdaExpr(ASTNode):
 
 
 @dataclass
+class ArrayLiteralExpr(ASTNode):
+    """Array literal expression: [1, 2, 3]
+
+    Attributes:
+        elements: List of element expressions
+        inferred_type: Type resolved by the semantic analyzer (an ArrayType, None until
+            type-checked)
+    """
+    elements: List[ASTNode]
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
+class IndexExpr(ASTNode):
+    """Array index expression: arr[index]
+
+    Attributes:
+        array: The array expression being indexed
+        index: The index expression (must resolve to int)
+        inferred_type: Type resolved by the semantic analyzer (the array's element type,
+            None until type-checked)
+    """
+    array: ASTNode
+    index: ASTNode
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class StringTextPart:
     """A literal text segment within an interpolated string.
 
@@ -389,3 +417,20 @@ class FunctionType(TypeNode):
     """
     parameter_types: List[TypeNode]
     return_type: TypeNode
+
+
+@dataclass
+class ArrayType(TypeNode):
+    """Array type: int[], int[5], float[10]
+
+    Fixed-size only (Task 9 v1) - size is either given explicitly (`int[5]`) or left
+    unresolved (`int[]`, size=None) until the semantic analyzer infers it from an array
+    literal initializer. Not nullable, not a function parameter/return type yet - see
+    taskSummary2.md Task 9 for the deferred nullable-array design.
+
+    Attributes:
+        element_type: Type of each array element
+        size: Number of elements, or None until resolved by the semantic analyzer
+    """
+    element_type: TypeNode
+    size: Optional[int] = None

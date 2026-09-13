@@ -176,6 +176,46 @@ which has not been built yet.
 
 ---
 
+### Arrays
+
+Description: Fixed-size, homogeneous collections of a single element type.
+
+```
+int[] scores = [10, 20, 30]      // size inferred from the literal
+float[3] buffer                   // explicit size, zero-initialized (no literal needed)
+int[3] fixed = [1, 2, 3]          // explicit size + literal (must agree)
+
+scores[0]                         // read
+scores[0] = 99                    // write an element
+int count = len(scores)           // size, as a builtin function call
+```
+
+**Implemented (Task 9 v1):** local array variables, declared with an explicit size
+(`int[N]`), an initializer (`int[] x = [...]`, size inferred), or both (which must agree).
+Reading and writing individual elements (`arr[i]`, `arr[i] = value`). `len(arr)` as a
+builtin - since size is always known at compile time, `len(arr)` compiles directly to that
+size as a literal, not a runtime call. `const int[] arr = [...]` works the same as scalar
+`const` - the array and its elements become immutable.
+
+**Not yet implemented (see taskSummary2.md Task 9 for the full list and reasoning):**
+- Arrays as function parameters or return types (local variables only for now - a C array
+  parameter decays to a pointer and loses its length, which needs its own design)
+- Multi-dimensional arrays (`int[][]`)
+- An array size given as anything other than an integer literal (`int[n]` where `n` is a
+  variable is not supported; only `int[5]`-style literal sizes are)
+- Whole-array reassignment after declaration (`arr = [4, 5, 6]`) - only per-element
+  assignment is supported, since a plain C array isn't reassignable that way
+- Dynamic/resizable arrays (no `malloc`-backed growth yet - fixed-size only)
+- Bounds checking (indexing out of range is undefined behavior, same as in C, for now)
+- Nullable arrays, `arr.length` (property syntax), `arr?.length` / `arr?[i]` (safe
+  navigation) - see "Array Safe Navigation" and "Null Safety" later in this document,
+  which already describe the intended design; building it requires deciding Fusion's
+  nullability/memory model first (Task 12.7), so it's tracked as its own future task rather
+  than bundled into Task 9's array launch. `len(arr)` is the only way to get an array's
+  size for now.
+
+---
+
 ### String Implementation
 
 Description: Immutable strings with copy-on-write semantics.

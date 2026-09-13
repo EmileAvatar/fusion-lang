@@ -53,6 +53,7 @@ Configurable safety modes, memory models, and pluggable execution backends are *
 - **String Interpolation**: Inline `{var}` and positional `{@1}` format - `print("Value: {x}")`
 - **Complete Type System**: int, float, double, string, bool, char, void with automatic int→float promotion
 - **const Declarations**: Immutable variables, enforced at compile time - `const int MAX = 100`
+- **Fixed-Size Arrays**: `int[] x = [1,2,3]` or `int[5] x`, element read/write, `len(x)` resolved at compile time
 - **Control Flow**: if/else, while, for loops with range support, break/continue
 - **Function-Level Scoping**: Variables visible throughout function (like Python/JavaScript)
 - **Recursive Functions**: Full support for direct and indirect recursion
@@ -60,14 +61,15 @@ Configurable safety modes, memory models, and pluggable execution backends are *
 ### Compiler Features (MVP - Complete)
 - **Robust Lexer**: 391 tests (383 passing, 8 skipped) - Tokenization, indentation tracking, operator recognition
 - **Complete Parser**: 251 tests passing - AST generation, expression precedence, statement parsing
-- **Semantic Analyzer**: 238 tests passing - Type checking, name resolution, control flow validation, const validation
-- **C Code Generator**: 126 tests passing - Clean C code generation with GCC integration
+- **Semantic Analyzer**: 260 tests passing - Type checking, name resolution, control flow validation, const and array validation
+- **C Code Generator**: 137 tests passing - Clean C code generation with GCC integration
 - **Additional Coverage**: 59 tests - error-handling utilities, full end-to-end compilation
-- **End-to-End Compilation**: 6/6 example programs compile and run successfully
-- **Test Coverage**: 1,057 tests passing (99.2%), 8 skipped
+- **End-to-End Compilation**: 8/8 example programs compile and run successfully
+- **Test Coverage**: 1,090 tests passing (99.3%), 8 skipped
 
 ### Planned Features (Post-MVP)
-- **Arrays & Collections**: List, Dictionary, Set with LINQ-style operations
+- **Richer Collections**: List, Dictionary, Set with LINQ-style operations (basic fixed-size arrays already implemented, above)
+- **Nullable Arrays & Safe Navigation**: `arr.length`/`arr?.length`, `arr?[i]` - needs Fusion's nullability/memory model decided first
 - **Classes & Interfaces**: Object-oriented programming support
 - **Generic Types**: Type parameters for functions and classes
 - **Memory Models**: Unique, Shared, Weak pointer semantics (configurable)
@@ -219,6 +221,20 @@ End function
 ```
 See [examples/const_demo.fusion](examples/const_demo.fusion) for the full example.
 
+### Arrays
+```fusion
+void function main()
+    int[] scores = [10, 20, 30, 40, 50]
+    scores[0] = 99
+    print("Number of scores: {len(scores)}")
+
+    float[3] buffer   // explicit size, zero-initialized
+    buffer[0] = 1.5
+End function
+```
+Fixed-size, local-variable arrays with element indexing and `len()`. See
+[examples/arrays_demo.fusion](examples/arrays_demo.fusion) for the full example.
+
 ## Language Syntax Quick Reference
 
 ### Function Declaration
@@ -348,19 +364,22 @@ python -m pytest tests/ --cov=src --cov-report=html
 - ✅ **Task 6: Verification & Bug Fixes** - All examples verified, FizzBuzz bug fixed
 - ✅ **Task 7: Git Integration** - GitHub repository setup, version control
 - ✅ **Task 8: const Keyword** - Lexer, parser, semantic validation, codegen, docs, and verification complete (all 7 examples now checked, including const_demo)
+- ✅ **Task 12 (Core Typed AST)** - Semantic analyzer now hands the code generator resolved types (`inferred_type`) instead of the codegen guessing format specifiers; fixes the architectural gap that caused the FizzBuzz bug. Scoped to 12.1-12.4/12.9; codegen module split, scoping/memory-model ADRs, and IR/config design items deferred - see taskSummary2.md Task 12
+- ✅ **Task 9: Array Support (v1)** - Fixed-size local arrays, literal/explicit-size declarations, element read/write, `len()` resolved at compile time. Arrays as function parameters/return types, multi-dimensional arrays, and nullable arrays (`.length`/`?.`) are deferred - see taskSummary2.md Task 9
 
 ### Test Results
-- **Total Tests**: 1,057 passing (99.2% pass rate)
+- **Total Tests**: 1,090 passing (99.3% pass rate)
 - **Lexer Tests**: 391 (383 passing, 8 skipped) - tokenization, operators, literals, comments
 - **Parser Tests**: 251 passing (AST nodes, expressions, statements, declarations)
-- **Semantic Tests**: 238 passing (type checking, name resolution, control flow, const)
-- **Code Generation Tests**: 126 passing (C code generation, GCC integration, const)
+- **Semantic Tests**: 260 passing (type checking, name resolution, control flow, const, arrays)
+- **Code Generation Tests**: 137 passing (C code generation, GCC integration, const, arrays)
 - **Additional Tests**: 59 passing (error-handling utilities, end-to-end compilation)
 - **Skipped Tests**: 8 (single-quote comment syntax - deferred design decision, conflicts with char literals)
-- **Example Programs**: 7/7 verified and working (hello_world, factorial, fizzbuzz, calculator, sum_array, max_three, const_demo)
+- **Example Programs**: 8/8 verified and working (hello_world, factorial, fizzbuzz, calculator, sum_array, max_three, const_demo, arrays_demo)
 
 ### Future Features (Post-MVP)
-- Arrays and collections
+- Richer collections (List, Dictionary, Set, LINQ) - basic fixed-size arrays already implemented
+- Nullable arrays and safe navigation (`.length`, `?.`, `?[`) - needs the memory model decided first
 - Classes and interfaces
 - Generic types
 - Memory management (Unique/Shared/Weak)
@@ -437,7 +456,7 @@ Contributions are welcome! Fusion is an open-source project built collaborativel
 - All tests must pass before submitting PR
 
 ### Areas for Contribution
-- **Language Features**: arrays, classes, generics (see [taskSummary2.md](taskSummary2.md) for the current roadmap)
+- **Language Features**: classes, generics, richer collections, nullable arrays/safe navigation (basic fixed-size arrays already implemented - see [taskSummary2.md](taskSummary2.md) for the current roadmap)
 - **Standard Library**: Implement fusionlib modules (IO, Collections, Net, etc.)
 - **Optimizations**: Code generation improvements, performance tuning
 - **Documentation**: Tutorials, examples, language guides

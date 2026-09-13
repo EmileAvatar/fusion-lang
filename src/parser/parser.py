@@ -309,32 +309,44 @@ class Parser:
         return self.parse_call()
 
     def parse_call(self) -> ASTNode:
-        """Parse function calls: func(arg1, arg2, ...)
+        """Parse postfix operators: function calls func(...) and array indexing arr[...]
 
         Precedence: 1 (postfix operator)
 
         Returns:
-            Expression AST node (CallExpr or primary expression)
+            Expression AST node (CallExpr, IndexExpr, or primary expression)
         """
         expr = self.parse_primary()
 
-        # Handle multiple chained calls: func()()
-        while self.match(TokenType.LPAREN):
-            arguments = []
+        # Handle chained postfix operators: func()(), arr[i][j], arr[i](), etc.
+        while True:
+            if self.match(TokenType.LPAREN):
+                arguments = []
 
-            # Parse argument list
-            if not self.check(TokenType.RPAREN):
-                arguments.append(self.parse_expression())
-                while self.match(TokenType.COMMA):
+                # Parse argument list
+                if not self.check(TokenType.RPAREN):
                     arguments.append(self.parse_expression())
+                    while self.match(TokenType.COMMA):
+                        arguments.append(self.parse_expression())
 
-            self.consume(TokenType.RPAREN, "Expected ')' after function arguments")
+                self.consume(TokenType.RPAREN, "Expected ')' after function arguments")
 
-            expr = CallExpr(
-                location=expr.location,
-                callee=expr,
-                arguments=arguments
-            )
+                expr = CallExpr(
+                    location=expr.location,
+                    callee=expr,
+                    arguments=arguments
+                )
+            elif self.match(TokenType.LBRACKET):
+                index = self.parse_expression()
+                self.consume(TokenType.RBRACKET, "Expected ']' after array index")
+
+                expr = IndexExpr(
+                    location=expr.location,
+                    array=expr,
+                    index=index
+                )
+            else:
+                break
 
         return expr
 
@@ -425,6 +437,25 @@ class Parser:
                 location=token.location,
                 value=None,
                 type_hint="null"
+            )
+
+        # Array literal: [1, 2, 3]
+        if self.match(TokenType.LBRACKET):
+            start_token = self.previous()
+            elements = []
+
+            if not self.check(TokenType.RBRACKET):
+                elements.append(self.parse_expression())
+                while self.match(TokenType.COMMA):
+                    if self.check(TokenType.RBRACKET):
+                        break  # Trailing comma
+                    elements.append(self.parse_expression())
+
+            self.consume(TokenType.RBRACKET, "Expected ']' after array literal")
+
+            return ArrayLiteralExpr(
+                location=start_token.location,
+                elements=elements
             )
 
         # Identifier (allow type keywords and END as identifiers in expression context)
@@ -547,20 +578,49 @@ class Parser:
         )
 
     def parse_type(self) -> TypeNode:
-        """Parse type annotation: int, float, double, string, bool, char, void
+        """Parse type annotation: int, float, double, string, bool, char, void,
+        or an array of one of those: int[], int[5]
+
+        Array size, if given, must be an integer literal for now (e.g. `int[5]`) - an
+        arbitrary size expression (`int[n]`) is not yet supported. Multi-dimensional
+        arrays (`int[][]`) are not yet supported either - see taskSummary2.md Task 9.
 
         Returns:
-            TypeNode (PrimitiveType for MVP)
+            TypeNode (PrimitiveType, or ArrayType wrapping one, for MVP)
         """
-        # For MVP, only support primitive types
+        # For MVP, only support primitive types (optionally as an array)
         if self.match(TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                       TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
                       TokenType.VOID):
             token = self.previous()
-            return PrimitiveType(
+            base_type = PrimitiveType(
                 location=token.location,
                 name=token.value
             )
+
+            if self.match(TokenType.LBRACKET):
+                size = None
+                if not self.check(TokenType.RBRACKET):
+                    size_token = self.consume(
+                        TokenType.INTEGER,
+                        "Array size must be an integer literal, e.g. int[5]"
+                    )
+                    size = int(size_token.value)
+                self.consume(TokenType.RBRACKET, "Expected ']' after array size")
+
+                if self.check(TokenType.LBRACKET):
+                    raise ParserError(
+                        self.peek(),
+                        "Multi-dimensional arrays are not yet supported"
+                    )
+
+                return ArrayType(
+                    location=base_type.location,
+                    element_type=base_type,
+                    size=size
+                )
+
+            return base_type
 
         raise ParserError(
             self.peek(),

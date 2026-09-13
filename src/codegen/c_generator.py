@@ -8,9 +8,10 @@ from typing import List, Set
 import json
 from ..parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
-    PrimitiveType, FunctionType, TypeNode,
+    PrimitiveType, FunctionType, ArrayType, TypeNode,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr,
     CallExpr, InterpolatedStringExpr, StringTextPart, StringExprPart, LambdaExpr,
+    ArrayLiteralExpr, IndexExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
     BlockStmt
@@ -128,6 +129,12 @@ class CCodeGenerator:
             param_types = ', '.join(self.map_type(p) for p in fusion_type.parameter_types)
             return_type = self.map_type(fusion_type.return_type)
             return f'{return_type} (*)({param_types})'
+
+        elif isinstance(fusion_type, ArrayType):
+            # Just the element's C type - the array declaration itself needs the size
+            # appended after the variable name (`int arr[5]`, not `int[5] arr`), which is
+            # built directly in visit_VarDeclStmt rather than through this generic mapping
+            return self.map_type(fusion_type.element_type)
 
         return 'void'
 
@@ -365,6 +372,8 @@ class CCodeGenerator:
             # Special handling for built-in functions
             if func_name == 'print':
                 return self._generate_print_call(node)
+            if func_name == 'len':
+                return self._generate_len_call(node)
 
             # Mangle user-defined function names
             func = self._mangle_function_name(func_name)
@@ -375,6 +384,58 @@ class CCodeGenerator:
         args = ', '.join(self.visit(arg) for arg in node.arguments)
 
         return f'{func}({args})'
+
+    def _generate_len_call(self, node: CallExpr) -> str:
+        """Generate code for len() built-in function.
+
+        Fusion arrays are fixed-size and their size is always resolved at compile time
+        (Task 9 v1), so len(arr) needs no runtime call at all - it compiles directly to
+        the array's known size as an integer literal.
+
+        Args:
+            node: Call expression node for len
+
+        Returns:
+            The array's size as a C integer literal
+        """
+        arg = node.arguments[0]
+        array_type = getattr(arg, 'inferred_type', None)
+        if not isinstance(array_type, ArrayType) or array_type.size is None:
+            raise NotImplementedError(
+                f"Internal compiler error: len() argument at {arg.location} has no resolved "
+                "array type/size - semantic analysis must run before code generation."
+            )
+        return str(array_type.size)
+
+    def visit_ArrayLiteralExpr(self, node: ArrayLiteralExpr) -> str:
+        """Generate C code for an array literal: [1, 2, 3] -> {1, 2, 3}
+
+        Only valid as a variable initializer in C (`int arr[3] = {1, 2, 3};`), which is
+        the only place Task 9 v1's semantic rules allow an array literal to appear -
+        whole-array reassignment and array function arguments are both rejected earlier,
+        in the semantic analyzer.
+
+        Args:
+            node: Array literal expression node
+
+        Returns:
+            C brace-initializer list
+        """
+        elements_code = ', '.join(self.visit(el) for el in node.elements)
+        return '{' + elements_code + '}'
+
+    def visit_IndexExpr(self, node: IndexExpr) -> str:
+        """Generate C code for array indexing: arr[i]
+
+        Args:
+            node: Index expression node
+
+        Returns:
+            C array index expression (valid as both an rvalue and an assignment lvalue)
+        """
+        array_code = self.visit(node.array)
+        index_code = self.visit(node.index)
+        return f'{array_code}[{index_code}]'
 
     # Fusion primitive type name -> printf format specifier.
     # float is promoted to double by C's default argument promotion in varargs, so %f
@@ -545,9 +606,29 @@ class CCodeGenerator:
         Returns:
             Empty string (code emitted directly)
         """
+        const_keyword = 'const ' if node.is_const else ''
+
+        if isinstance(node.var_type, ArrayType):
+            # C array declarator puts the size after the name: `int arr[3]`, not `int[3] arr`
+            elem_c_type = self.map_type(node.var_type.element_type)
+            size = node.var_type.size
+            if size is None:
+                raise NotImplementedError(
+                    f"Internal compiler error: array '{node.name}' at {node.location} has "
+                    "no resolved size - semantic analysis must resolve every array's size "
+                    "before code generation."
+                )
+            if node.initializer:
+                init_code = self.visit(node.initializer)
+                self.emit_line(f'{const_keyword}{elem_c_type} {node.name}[{size}] = {init_code}')
+            else:
+                # Zero-initialize, matching Fusion's existing "uninitialized = 0" convention
+                # for scalars ({0} zero-fills every element in C, not just the first)
+                self.emit_line(f'{const_keyword}{elem_c_type} {node.name}[{size}] = {{0}}')
+            return ''
+
         c_type = self.map_type(node.var_type)
         name = node.name
-        const_keyword = 'const ' if node.is_const else ''
 
         if node.initializer:
             init_code = self.visit(node.initializer)
@@ -566,10 +647,12 @@ class CCodeGenerator:
         Returns:
             Empty string (code emitted directly)
         """
-        target = node.target  # IdentifierExpr
+        # target is an lvalue-producing expression - IdentifierExpr ("x") or IndexExpr
+        # ("arr[i]") - both generate valid C lvalue syntax via their own visitor
+        target_code = self.visit(node.target)
         value_code = self.visit(node.value)
 
-        self.emit_line(f'{target.name} = {value_code}')
+        self.emit_line(f'{target_code} = {value_code}')
         return ''
 
     def visit_ReturnStmt(self, node: ReturnStmt) -> str:

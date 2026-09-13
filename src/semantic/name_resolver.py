@@ -10,8 +10,8 @@ from src.parser.ast_nodes import (
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
-    InterpolatedStringExpr, StringExprPart,
-    TypeNode, PrimitiveType, FunctionType
+    InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr,
+    TypeNode, PrimitiveType, FunctionType, ArrayType
 )
 from .symbol_table import SymbolTable
 from .symbol import Symbol
@@ -94,6 +94,28 @@ class NameResolver:
             # Ignore if already defined (shouldn't happen)
             pass
 
+        # len function: int len(array) - accepts any array type, so the parameter type
+        # registered here is a placeholder; TypeChecker.visit_CallExpr special-cases 'len'
+        # (like 'range' above) before the generic parameter-type check would ever see it
+        len_type = FunctionType(
+            parameter_types=[int_type],
+            return_type=int_type,
+            location=builtin_loc
+        )
+
+        len_symbol = Symbol(
+            name='len',
+            symbol_type='function',
+            data_type=len_type,
+            location=builtin_loc
+        )
+
+        try:
+            self.symbol_table.define(len_symbol)
+        except SemanticError:
+            # Ignore if already defined (shouldn't happen)
+            pass
+
     def resolve_program(self, program: ProgramNode) -> List[SemanticError]:
         """Resolve all names in the program (two-pass).
 
@@ -130,6 +152,22 @@ class NameResolver:
         Args:
             func: Function declaration node
         """
+        # Arrays as parameters/return types are deferred (Task 9 v1 is local-variable-only -
+        # a fixed-size C array parameter decays to a pointer and loses its length, which
+        # needs its own design rather than being bundled in here)
+        if isinstance(func.return_type, ArrayType):
+            self.errors.append(SemanticError(
+                "Arrays are not yet supported as function return types",
+                func.location
+            ))
+        for param in func.parameters:
+            if isinstance(param.param_type, ArrayType):
+                self.errors.append(SemanticError(
+                    f"Arrays are not yet supported as function parameters "
+                    f"(parameter '{param.name}')",
+                    param.location
+                ))
+
         try:
             # Create function type
             param_types = [param.param_type for param in func.parameters]
@@ -389,6 +427,12 @@ class NameResolver:
             for segment in expr.segments:
                 if isinstance(segment, StringExprPart):
                     self.resolve_expression(segment.expression)
+        elif isinstance(expr, ArrayLiteralExpr):
+            for element in expr.elements:
+                self.resolve_expression(element)
+        elif isinstance(expr, IndexExpr):
+            self.resolve_expression(expr.array)
+            self.resolve_expression(expr.index)
         # else: unknown expression type, silently ignore
 
     def resolve_identifier(self, expr: IdentifierExpr) -> None:

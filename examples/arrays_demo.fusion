@@ -1,0 +1,46 @@
+// Fusion Arrays Demo
+// Demonstrates fixed-size array declarations, indexing, and len()
+
+int function sumArray()
+    int[] scores = [10, 20, 30, 40, 50]
+    int total = 0
+    for i in range(0, len(scores))
+        total = total + scores[i]
+    return total
+
+void function main()
+    print("=== Fusion Arrays Demo ===")
+    print("")
+
+    // Array literal with inferred size
+    int[] scores = [10, 20, 30, 40, 50]
+    int first = scores[0]
+    print("First score: {first}")
+
+    // Element assignment
+    scores[0] = 99
+    int updated = scores[0]
+    print("Updated first score: {updated}")
+
+    // len() reports the array's size
+    int count = len(scores)
+    print("Number of scores: {count}")
+    print("")
+
+    // Explicit size, no initializer - zero-initialized
+    float[3] buffer
+    buffer[0] = 1.5
+    buffer[1] = 2.5
+    float b0 = buffer[0]
+    float b1 = buffer[1]
+    float b2 = buffer[2]
+    print("Buffer: {b0}, {b1}, {b2}")
+    print("")
+
+    // Arrays work as local variables inside functions too
+    int total = sumArray()
+    print("Sum of [10, 20, 30, 40, 50] = {total}")
+
+    print("")
+    print("All array tests passed!")
+End function

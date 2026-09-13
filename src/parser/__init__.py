@@ -18,6 +18,8 @@ from src.parser.ast_nodes import (
     InterpolatedStringExpr,
     StringTextPart,
     StringExprPart,
+    ArrayLiteralExpr,
+    IndexExpr,
     # Statements
     ExpressionStmt,
     VarDeclStmt,
@@ -35,6 +37,7 @@ from src.parser.ast_nodes import (
     TypeNode,
     PrimitiveType,
     FunctionType,
+    ArrayType,
 )
 
 __all__ = [
@@ -53,6 +56,8 @@ __all__ = [
     'InterpolatedStringExpr',
     'StringTextPart',
     'StringExprPart',
+    'ArrayLiteralExpr',
+    'IndexExpr',
     # Statements
     'ExpressionStmt',
     'VarDeclStmt',
@@ -70,4 +75,5 @@ __all__ = [
     'TypeNode',
     'PrimitiveType',
     'FunctionType',
+    'ArrayType',
 ]

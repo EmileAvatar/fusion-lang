@@ -1,15 +1,91 @@
 # Fusion Compiler Verification Report
 
-**Date:** Sun Sep 13 16:46:14 SAST 2026
-**Total Examples:** 7
+**Date:** Sun Sep 13 17:32:47 SAST 2026
+**Total Examples:** 8
 
 ## Summary
 
-- **Compilation Success:** 7/7
-- **Execution Success:** 7/7
-- **Output Matches:** 7/7
+- **Compilation Success:** 8/8
+- **Execution Success:** 8/8
+- **Output Matches:** 8/8
 
 ## Detailed Results
+
+### arrays_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+=== Fusion Arrays Demo ===
+
+First score: 10
+Updated first score: 99
+Number of scores: 5
+
+Buffer: 1.500000, 2.500000, 0.000000
+
+Sum of [10, 20, 30, 40, 50] = 150
+
+All array tests passed!
+```
+
+**Expected:**
+```
+First score: 10
+Updated first score: 99
+Number of scores: 5
+Sum of [10, 20, 30, 40, 50] = 150
+All array tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
+// Forward declarations
+int sumArray(void);
+int main(void);
+
+int sumArray(void) {
+    int scores[5] = {10, 20, 30, 40, 50};
+    int total = 0;
+    for (int i = 0; i < 5; i += 1) {
+        total = (total + scores[i]);
+    }
+    return total;
+}
+
+int main(void) {
+    printf("=== Fusion Arrays Demo ===\n");
+    printf("\n");
+    int scores[5] = {10, 20, 30, 40, 50};
+    int first = scores[0];
+    printf("First score: %d\n", first);
+    scores[0] = 99;
+    int updated = scores[0];
+    printf("Updated first score: %d\n", updated);
+    int count = 5;
+    printf("Number of scores: %d\n", count);
+    printf("\n");
+    float buffer[3] = {0};
+    buffer[0] = 1.5f;
+    buffer[1] = 2.5f;
+    float b0 = buffer[0];
+    float b1 = buffer[1];
+    float b2 = buffer[2];
+    printf("Buffer: %f, %f, %f\n", b0, b1, b2);
+    printf("\n");
+    int total = sumArray();
+    printf("Sum of [10, 20, 30, 40, 50] = %d\n", total);
+    printf("\n");
+    printf("All array tests passed!\n");
+    return 0;
+}
+
+```
 
 ### calculator
 

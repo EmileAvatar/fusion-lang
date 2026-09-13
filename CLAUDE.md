@@ -269,6 +269,18 @@ string name = "Alice"
 const float PI = 3.14159
 ```
 
+### Arrays
+```fusion
+// Fixed size, inferred from the literal
+int[] scores = [10, 20, 30]
+
+// Explicit size, zero-initialized
+float[3] buffer
+
+scores[0] = 99          // element assignment
+int n = len(scores)     // size (compile-time constant)
+```
+
 ---
 
 ## 🔑 Reserved Keywords (67 total)
@@ -348,11 +360,16 @@ const float PI = 3.14159
 - C keyword name mangling (function "double" → "fusion_double")
 - const declarations: must initialize, enforced immutable by semantic analyzer, emitted as
   C `const` (Task 8, complete)
+- Fixed-size arrays: `int[] x = [1,2,3]` or `int[5] x`, element read/write (`x[i]`,
+  `x[i] = v`), `len(x)` resolved to a compile-time constant (Task 9 v1, complete)
 
 **Known Limitations (by design):**
 - No block-level scoping (variables are function-scoped)
 - Single-quote comments disabled (conflicts with char literals)
 - const is function-scoped only (no global/class-level constants yet - classes not implemented)
+- Arrays are local-variable-only (not function params/return types), single-dimension,
+  fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
+  `?.`, or `?[` yet - see taskSummary2.md Task 9's deferred nullability task)
 
 ---
 

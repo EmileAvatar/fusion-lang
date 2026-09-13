@@ -10,8 +10,8 @@ from src.parser.ast_nodes import (
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     BreakStmt, ContinueStmt, ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
-    InterpolatedStringExpr, StringExprPart,
-    TypeNode, PrimitiveType, FunctionType
+    InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr,
+    TypeNode, PrimitiveType, FunctionType, ArrayType
 )
 from .symbol_table import SymbolTable
 from .symbol import Symbol
@@ -112,6 +112,16 @@ class TypeChecker:
         if self.is_numeric_promotion(expected, actual):
             return True
 
+        # Arrays: element types compatible (allowing numeric promotion), and sizes match
+        # if both are known (an unresolved size, still None, is treated as "don't know
+        # yet" rather than a mismatch)
+        if isinstance(expected, ArrayType) and isinstance(actual, ArrayType):
+            if not self.types_compatible(expected.element_type, actual.element_type):
+                return False
+            if expected.size is not None and actual.size is not None:
+                return expected.size == actual.size
+            return True
+
         return False
 
     def types_equal(self, type1: TypeNode, type2: TypeNode) -> bool:
@@ -139,6 +149,10 @@ class TypeChecker:
                 if not self.types_equal(p1, p2):
                     return False
             return True
+
+        if isinstance(type1, ArrayType) and isinstance(type2, ArrayType):
+            return self.types_equal(type1.element_type, type2.element_type) and \
+                type1.size == type2.size
 
         return False
 
@@ -225,6 +239,9 @@ class TypeChecker:
             params = ", ".join(self.type_to_string(p) for p in type_node.parameter_types)
             ret = self.type_to_string(type_node.return_type)
             return f"({params}) -> {ret}"
+        if isinstance(type_node, ArrayType):
+            size_str = str(type_node.size) if type_node.size is not None else ''
+            return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
         return "unknown"
 
     # ========================================================================
@@ -428,6 +445,25 @@ class TypeChecker:
                         ))
             return func_type.return_type
 
+        # Special case for len(): accepts exactly one array argument, of any element type.
+        # The registered FunctionType's parameter type is just a placeholder (see
+        # register_builtins in name_resolver.py) since the type system has no generics -
+        # this is where the actual argument type is checked instead.
+        if func_name == 'len':
+            if len(node.arguments) != 1:
+                self.errors.append(SemanticError(
+                    f"Function 'len' expects 1 argument, got {len(node.arguments)}",
+                    node.location
+                ))
+                return func_type.return_type
+            arg_type = self.visit(node.arguments[0])
+            if not isinstance(arg_type, ArrayType):
+                self.errors.append(SemanticError(
+                    f"Function 'len' expects an array, got {self.type_to_string(arg_type)}",
+                    node.arguments[0].location
+                ))
+            return func_type.return_type
+
         expected_count = len(func_type.parameter_types)
         actual_count = len(node.arguments)
         if actual_count != expected_count:
@@ -497,6 +533,71 @@ class TypeChecker:
 
         return PrimitiveType(location=node.location, name='string')
 
+    def visit_ArrayLiteralExpr(self, node: ArrayLiteralExpr) -> TypeNode:
+        """Check array literal and infer its element type.
+
+        Args:
+            node: Array literal expression node
+
+        Returns:
+            ArrayType with the inferred element type and the literal's length. An empty
+            literal's element type is unknown ('void') until matched against a declared
+            array type in visit_VarDeclStmt.
+        """
+        if not node.elements:
+            return ArrayType(
+                location=node.location,
+                element_type=PrimitiveType(location=node.location, name='void'),
+                size=0
+            )
+
+        element_types = [self.visit(el) for el in node.elements]
+        result_type = element_types[0]
+
+        for i, elem_type in enumerate(element_types[1:], start=1):
+            if self.is_numeric_type(result_type) and self.is_numeric_type(elem_type):
+                result_type = self.get_wider_type(result_type, elem_type)
+            elif not self.types_equal(result_type, elem_type):
+                self.errors.append(SemanticError(
+                    f"Array elements must have consistent types: element 0 is "
+                    f"{self.type_to_string(result_type)}, element {i} is "
+                    f"{self.type_to_string(elem_type)}",
+                    node.elements[i].location
+                ))
+
+        return ArrayType(
+            location=node.location,
+            element_type=result_type,
+            size=len(node.elements)
+        )
+
+    def visit_IndexExpr(self, node: IndexExpr) -> TypeNode:
+        """Check array index expression: arr[i]
+
+        Args:
+            node: Index expression node
+
+        Returns:
+            The array's element type (void for error recovery if the target isn't an array)
+        """
+        array_type = self.visit(node.array)
+        index_type = self.visit(node.index)
+
+        if not isinstance(array_type, ArrayType):
+            self.errors.append(SemanticError(
+                f"Cannot index non-array type '{self.type_to_string(array_type)}'",
+                node.array.location
+            ))
+            return PrimitiveType(location=node.location, name='void')
+
+        if not (isinstance(index_type, PrimitiveType) and index_type.name == 'int'):
+            self.errors.append(SemanticError(
+                f"Array index must be int, got {self.type_to_string(index_type)}",
+                node.index.location
+            ))
+
+        return array_type.element_type
+
     # ========================================================================
     # Statement Visitors
     # ========================================================================
@@ -515,6 +616,10 @@ class TypeChecker:
         Args:
             node: Variable declaration statement node
         """
+        if isinstance(node.var_type, ArrayType):
+            self._check_array_var_decl(node)
+            return
+
         if node.initializer:
             init_type = self.visit(node.initializer)
             if not self.types_compatible(node.var_type, init_type):
@@ -523,23 +628,80 @@ class TypeChecker:
                     node.location
                 ))
 
+    def _check_array_var_decl(self, node: VarDeclStmt) -> None:
+        """Check an array variable declaration and resolve its size if not given explicitly.
+
+        Fixed-size arrays only (Task 9 v1): the size must come from an explicit `[N]` in
+        the type, an array literal initializer, or both (in which case they must agree).
+        If the type didn't specify a size, it's set here from the initializer's length -
+        the same "mutate the shared type node in place" pattern used for `inferred_type`.
+
+        Args:
+            node: Variable declaration statement node (node.var_type is an ArrayType)
+        """
+        array_type: ArrayType = node.var_type
+
+        if not node.initializer:
+            if array_type.size is None:
+                self.errors.append(SemanticError(
+                    f"Array '{node.name}' must specify a size (e.g. "
+                    f"{self.type_to_string(array_type.element_type)}[5]) or be initialized "
+                    "with an array literal",
+                    node.location
+                ))
+            return
+
+        init_type = self.visit(node.initializer)
+        if not isinstance(init_type, ArrayType):
+            self.errors.append(SemanticError(
+                f"Cannot initialize array '{node.name}' with non-array value of type "
+                f"{self.type_to_string(init_type)}",
+                node.location
+            ))
+            return
+
+        if array_type.size is None:
+            array_type.size = init_type.size
+        elif init_type.size is not None and array_type.size != init_type.size:
+            self.errors.append(SemanticError(
+                f"Array '{node.name}' declared with size {array_type.size} but initializer "
+                f"has {init_type.size} element(s)",
+                node.location
+            ))
+
+        # Skip the element-type check for an empty literal - there's nothing to compare
+        if init_type.size and not self.types_compatible(array_type.element_type, init_type.element_type):
+            self.errors.append(SemanticError(
+                f"Cannot initialize {self.type_to_string(array_type.element_type)}[] with "
+                f"elements of type {self.type_to_string(init_type.element_type)}",
+                node.location
+            ))
+
     def visit_AssignmentStmt(self, node: AssignmentStmt) -> None:
         """Check assignment type compatibility.
+
+        Assignment target is either a plain variable (IdentifierExpr) or an array element
+        (IndexExpr, e.g. arr[i] = value) - Task 9 v1 does not support reassigning an array
+        as a whole (arr = [...] after declaration), since a C array isn't assignable that
+        way once declared; only per-element assignment is allowed.
 
         Args:
             node: Assignment statement node
         """
-        # Target should be IdentifierExpr
-        if not isinstance(node.target, IdentifierExpr):
+        if isinstance(node.target, IdentifierExpr):
+            self._check_identifier_assignment(node)
+        elif isinstance(node.target, IndexExpr):
+            self._check_index_assignment(node)
+        else:
             self.errors.append(SemanticError(
-                "Assignment target must be an identifier",
+                "Assignment target must be an identifier or array index",
                 node.target.location
             ))
-            return
 
+    def _check_identifier_assignment(self, node: AssignmentStmt) -> None:
+        """Check assignment to a plain variable: x = value"""
         target_name = node.target.name
 
-        # Look up target variable
         symbol = self.symbol_table.lookup(target_name)
         if not symbol:
             self.errors.append(SemanticError(
@@ -548,18 +710,47 @@ class TypeChecker:
             ))
             return
 
-        # Check if constant
+        if isinstance(symbol.data_type, ArrayType):
+            self.errors.append(SemanticError(
+                f"Cannot reassign array '{target_name}' as a whole - assign to individual "
+                f"elements instead (e.g. {target_name}[i] = value)",
+                node.location
+            ))
+            return
+
         if symbol.is_constant:
             self.errors.append(SemanticError(
                 f"Cannot assign to constant: '{target_name}'",
                 node.location
             ))
 
-        # Check type compatibility
         value_type = self.visit(node.value)
         if not self.types_compatible(symbol.data_type, value_type):
             self.errors.append(SemanticError(
                 f"Cannot assign {self.type_to_string(value_type)} to variable of type {self.type_to_string(symbol.data_type)}",
+                node.location
+            ))
+
+    def _check_index_assignment(self, node: AssignmentStmt) -> None:
+        """Check assignment to an array element: arr[i] = value"""
+        target: IndexExpr = node.target
+
+        # visit_IndexExpr validates the array/index types and returns the element type
+        element_type = self.visit(target)
+
+        if isinstance(target.array, IdentifierExpr):
+            array_symbol = self.symbol_table.lookup(target.array.name)
+            if array_symbol and array_symbol.is_constant:
+                self.errors.append(SemanticError(
+                    f"Cannot assign to element of constant array '{target.array.name}'",
+                    node.location
+                ))
+
+        value_type = self.visit(node.value)
+        if not self.types_compatible(element_type, value_type):
+            self.errors.append(SemanticError(
+                f"Cannot assign {self.type_to_string(value_type)} to array element of type "
+                f"{self.type_to_string(element_type)}",
                 node.location
             ))
 

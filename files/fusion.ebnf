@@ -99,6 +99,11 @@ type_list =
 
 array_type =
     type_name "[" [ expression ] "]" ;
+    (* Implemented (Task 9 v1): [ expression ] is restricted to an integer literal, e.g.
+       int[5] - an arbitrary size expression (int[n]) is not yet supported. Nesting
+       array_type inside itself (int[][], multi-dimensional) is not yet supported either -
+       both raise a clear parser error. Arrays are also not yet valid as function
+       parameter or return types (local variables only) - see taskSummary2.md Task 9. *)
 
 pointer_type =
     "Unique" "<" type_name ">"
@@ -232,14 +237,18 @@ unary =
 
 postfix =
     primary {
-        "(" [ argument_list ] ")"          (* Function call *)
-        | "[" expression "]"               (* Array index *)
-        | "?[" expression "]"              (* Safe array index *)
-        | "." identifier                   (* Member access *)
-        | "?." identifier                  (* Safe navigation *)
-        | "++" | "--"                      (* Post increment/decrement *)
-        | "?" "." "null"                   (* Null check *)
+        "(" [ argument_list ] ")"          (* Function call - implemented *)
+        | "[" expression "]"               (* Array index - implemented (Task 9 v1) *)
+        | "?[" expression "]"              (* Safe array index - not yet implemented *)
+        | "." identifier                   (* Member access - not yet implemented *)
+        | "?." identifier                  (* Safe navigation - not yet implemented *)
+        | "++" | "--"                      (* Post increment/decrement - not yet implemented *)
+        | "?" "." "null"                   (* Null check - not yet implemented *)
     } ;
+    (* Arrays are not nullable in Task 9 v1, so "?[", ".", "?.", and null-check don't apply
+       to arrays yet - see the deferred nullability task noted under Task 9 in
+       taskSummary2.md, tracked alongside Task 12.7's memory model work. len(arr) is the
+       only way to get an array's size for now, as a builtin function call, not new syntax. *)
 
 primary =
     literal
@@ -280,7 +289,8 @@ char_literal =
 boolean_literal = "true" | "false" ;
 
 array_literal =
-    "[" [ expression { "," expression } [ "," ] ] "]" ;  (* Trailing comma allowed *)
+    "[" [ expression { "," expression } [ "," ] ] "]" ;
+    (* Implemented (Task 9 v1), trailing comma allowed, exactly as written above *)
 
 escape_sequence =
     "\\" ( "n" | "t" | "r" | "\\" | '"' | "'" | "0" ) ;
