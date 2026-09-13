@@ -55,7 +55,7 @@ Configurable safety modes, memory models, and pluggable execution backends are *
 - **const Declarations**: Immutable variables, enforced at compile time - `const int MAX = 100`
 - **Fixed-Size Arrays**: `int[] x = [1,2,3]` or `int[5] x`, element read/write, `len(x)` resolved at compile time
 - **Control Flow**: if/else, while, for loops with range support, break/continue
-- **Function-Level Scoping**: Variables visible throughout function (like Python/JavaScript)
+- **Block-Level (Lexical) Scoping**: a variable is only visible inside the `if`/`while`/`for`/`{ }` block it's declared in, and nested blocks can shadow outer variables of the same name - matches C/Java/Rust, not Python/JavaScript
 - **Recursive Functions**: Full support for direct and indirect recursion
 
 ### Compiler Features (MVP - Complete)
@@ -367,7 +367,7 @@ python -m pytest tests/ --cov=src --cov-report=html
 - ✅ **Task 6: Verification & Bug Fixes** - All examples verified, FizzBuzz bug fixed
 - ✅ **Task 7: Git Integration** - GitHub repository setup, version control
 - ✅ **Task 8: const Keyword** - Lexer, parser, semantic validation, codegen, docs, and verification complete (all 7 examples now checked, including const_demo)
-- ✅ **Task 12 (Core Typed AST)** - Semantic analyzer now hands the code generator resolved types (`inferred_type`) instead of the codegen guessing format specifiers; fixes the architectural gap that caused the FizzBuzz bug. Scoped to 12.1-12.4/12.9; codegen module split, scoping/memory-model ADRs, and IR/config design items deferred - see taskSummary2.md Task 12
+- 🔄 **Task 12 (Architecture Hardening)** - In progress (8/12 sub-tasks). Complete: Typed AST (semantic analyzer hands the code generator resolved types instead of it guessing format specifiers - fixes the architectural gap that caused the FizzBuzz bug), C codegen module split (`c_types.py`/`c_names.py`/`c_runtime.py`), and block-level (lexical) scoping (fixed a real bug where semantic analysis accepted programs the generated C could never compile). Remaining: memory-model/project-config decisions, IR layer and stdlib-lowering design - see taskSummary2.md Task 12
 - ✅ **Task 9: Array Support (v1)** - Fixed-size local arrays, literal/explicit-size declarations, element read/write, `len()` resolved at compile time. Arrays as function parameters/return types, multi-dimensional arrays, and nullable arrays (`.length`/`?.`) are deferred - see taskSummary2.md Task 9
 
 ### Test Results

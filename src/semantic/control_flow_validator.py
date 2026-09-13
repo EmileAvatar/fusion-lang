@@ -222,6 +222,19 @@ class ControlFlowValidator:
     def validate_conditions(self, stmt: ASTNode, type_checker: TypeChecker) -> None:
         """Ensure all conditions are boolean type.
 
+        Runs after the main type-checking walk has already finished and unwound its
+        scopes (see semantic_analyzer.py: validate_function is called after
+        type_checker.visit(decl.body) completes), so re-visiting a condition here can't
+        rely on the type checker's scope stack already being positioned correctly - it
+        has to re-enter the right scope itself. Block scoping (Task 12.6) means a
+        condition inside a loop or nested block may reference names (like a for loop's
+        own variable) that only exist in that block's scope, not the function's - see
+        stmt.scope, populated by NameResolver and reused the same way
+        TypeChecker.visit_BlockStmt does. Falls back to no scope change when stmt.scope
+        is unset (this method is also used to validate a program that never had
+        NameResolver run over it - see the ControlFlowValidator unit tests), matching
+        this method's prior behavior exactly.
+
         Args:
             stmt: Statement node to validate
             type_checker: Type checker instance
@@ -247,13 +260,29 @@ class ControlFlowValidator:
             self.validate_conditions(stmt.body, type_checker)
 
         elif isinstance(stmt, ForStmt):
-            # For loops don't have explicit conditions in MVP (just iterable)
-            # Condition validation not needed for for-in loops
-            self.validate_conditions(stmt.body, type_checker)
+            # For loops don't have explicit conditions in MVP (just iterable), but the
+            # loop variable's scope (stmt.scope) needs to be active for conditions nested
+            # inside the body to resolve it.
+            if stmt.scope is not None:
+                type_checker.symbol_table.enter_existing_scope(stmt.scope)
+                try:
+                    self.validate_conditions(stmt.body, type_checker)
+                finally:
+                    type_checker.symbol_table.exit_scope()
+            else:
+                self.validate_conditions(stmt.body, type_checker)
 
         elif isinstance(stmt, BlockStmt):
-            for s in stmt.statements:
-                self.validate_conditions(s, type_checker)
+            if stmt.scope is not None:
+                type_checker.symbol_table.enter_existing_scope(stmt.scope)
+                try:
+                    for s in stmt.statements:
+                        self.validate_conditions(s, type_checker)
+                finally:
+                    type_checker.symbol_table.exit_scope()
+            else:
+                for s in stmt.statements:
+                    self.validate_conditions(s, type_checker)
 
     # ========================================================================
     # Helper Methods

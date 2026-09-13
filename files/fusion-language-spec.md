@@ -165,9 +165,10 @@ const string GAME_VERSION = "1.0.0"
 ```
 
 **Implemented (MVP, Task 8):** local const declarations inside a function body, with an
-explicit type, as shown above - matching `variable_declaration` in fusion.ebnf. The current
-compiler is function-scoped (not block-scoped), so a const declared in one function is not
-visible to another.
+explicit type, as shown above - matching `variable_declaration` in fusion.ebnf. Fusion uses
+block-level (lexical) scoping (Task 12.6), so a const declared inside an `if`/`while`/`for`
+block is only visible inside that block, and is never visible outside the function it's
+declared in.
 
 **Not yet implemented:** type-inferred const (`const GAME_VERSION = "1.0.0"` without a type
 name), and module-level/class-level constants (`public const MAX_SPEED: float = 1000.0`,

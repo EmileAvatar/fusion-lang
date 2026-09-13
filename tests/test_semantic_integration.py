@@ -143,7 +143,8 @@ End function
 
 
 def test_variable_shadowing():
-    """Test function-level scoping: duplicate declaration is an error."""
+    """Test block scoping (Task 12.6): an inner declaration can shadow an outer one -
+    each block has its own scope, so this is not a duplicate-declaration error."""
     source = """
 void function main()
     int x = 10
@@ -154,9 +155,7 @@ void function main()
 End function
 """
     analyzer = analyze_source(source)
-    # Function-level scoping: duplicate declaration is an error
-    assert len(analyzer.get_errors()) == 1
-    assert "duplicate" in analyzer.get_errors()[0].message.lower()
+    assert len(analyzer.get_errors()) == 0
 
 
 def test_type_promotion():

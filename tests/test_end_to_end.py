@@ -298,7 +298,9 @@ End function
 
 
 def test_variable_shadowing():
-    """Test function-level scoping: variables visible throughout function."""
+    """Test mutating an outer-scope variable from inside a nested block - this is a plain
+    assignment (x = 20), not a redeclaration, so it's unaffected by block scoping
+    (Task 12.6): it's the same x throughout, still valid either way."""
     fusion_code = '''
 void function main()
     int x = 10
@@ -312,6 +314,88 @@ End function
     assert exit_code == 0
     assert "Inner: 20" in stdout
     assert "Outer: 20" in stdout  # Same x, modified in if block
+
+
+def test_block_scoping_shadowing_actually_works():
+    """Test block scoping (Task 12.6): unlike the test above, this one *redeclares* x
+    inside the if - the inner x should shadow the outer one only within its own block."""
+    fusion_code = '''
+void function main()
+    int x = 10
+    if true
+        int x = 20
+        print("Inner: {x}")
+    print("Outer: {x}")
+End function
+'''
+    exit_code, stdout, stderr = compile_and_run(fusion_code)
+    assert exit_code == 0
+    assert "Inner: 20" in stdout
+    assert "Outer: 10" in stdout  # Different x - outer was never touched
+
+
+def test_block_scoping_rejects_use_after_block():
+    """Test block scoping (Task 12.6): a variable declared inside an if body must not be
+    visible after the if ends. Before this fix, semantic analysis allowed this (Fusion
+    was "function-scoped"), but the generated C failed to compile - GCC's own { } braces
+    are block-scoped natively, so this was a real, previously-undetected compiler bug."""
+    fusion_code = '''
+void function main()
+    int total = 0
+    if total == 0
+        int x = 10
+    print("{x}")
+End function
+'''
+    with pytest.raises(AssertionError, match="Semantic errors"):
+        compile_and_run(fusion_code)
+
+
+def test_block_scoping_rejects_use_after_for_loop():
+    """Test block scoping (Task 12.6): a variable declared inside a for loop's body must
+    not be visible after the loop ends."""
+    fusion_code = '''
+void function main()
+    for i in range(0, 3)
+        int x = i
+    print("{x}")
+End function
+'''
+    with pytest.raises(AssertionError, match="Semantic errors"):
+        compile_and_run(fusion_code)
+
+
+def test_block_scoping_for_loop_variable_out_of_scope_after_loop():
+    """Test block scoping (Task 12.6): a for loop's own iteration variable must not be
+    visible after the loop ends either - it's scoped to the loop, not the function."""
+    fusion_code = '''
+void function main()
+    for i in range(0, 3)
+        print("{i}")
+    print("{i}")
+End function
+'''
+    with pytest.raises(AssertionError, match="Semantic errors"):
+        compile_and_run(fusion_code)
+
+
+def test_block_scoping_local_cannot_redeclare_parameter():
+    """Test block scoping (Task 12.6): a local variable at the top level of a function
+    body cannot redeclare a parameter name - matches real C, where parameters and the
+    function's own top-level block share one scope (verified against GCC directly:
+    redeclaring a parameter there is 'redeclared as different kind of symbol')."""
+    fusion_code = '''
+int function f(int x)
+    int x = 5
+    return x
+
+void function main()
+    int result = f(1)
+    print("{result}")
+End function
+'''
+    with pytest.raises(AssertionError, match="Semantic errors"):
+        compile_and_run(fusion_code)
 
 
 def test_multiple_return_paths():

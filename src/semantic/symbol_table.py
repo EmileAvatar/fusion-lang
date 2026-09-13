@@ -33,6 +33,21 @@ class SymbolTable:
         self.scope_stack.append(new_scope)
         self.current_scope = new_scope
 
+    def enter_existing_scope(self, scope: Scope) -> None:
+        """Re-enter a previously created scope, reusing its already-defined symbols.
+
+        Used when a later pass (e.g. TypeChecker) needs to see the exact same block/loop
+        scope an earlier pass (NameResolver) already populated - see Task 12.6. Since
+        Scope.parent is a direct object reference fixed at creation time, lookup_recursive
+        correctly walks up through enclosing scopes regardless of which pass is active;
+        this only needs to push the right scope object back onto the active stack.
+
+        Args:
+            scope: A Scope object created by a prior enter_scope() call
+        """
+        self.scope_stack.append(scope)
+        self.current_scope = scope
+
     def exit_scope(self) -> None:
         """Exit the current scope and return to parent.
 

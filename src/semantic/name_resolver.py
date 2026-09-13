@@ -211,9 +211,14 @@ class NameResolver:
             for param in func.parameters:
                 self.register_parameter(param)
 
-            # Resolve function body
+            # Resolve function body. If it's a block (the normal case - lambdas can have a
+            # single expression body instead), it shares the parameter scope directly
+            # rather than nesting a new one - see resolve_block's new_scope docstring.
             if func.body:
-                self.resolve_statement(func.body)
+                if isinstance(func.body, BlockStmt):
+                    self.resolve_block(func.body, new_scope=False)
+                else:
+                    self.resolve_statement(func.body)
 
         finally:
             # Always exit scope, even on error
@@ -360,44 +365,78 @@ class NameResolver:
             stmt: For statement node
         """
         # For MVP, ForStmt has: variable (string), iterable (expr), body (stmt)
-        # Define loop variable with int type (for range() iterables)
-        # Note: We define it in the current scope (function scope), not a new scope
-        # This matches Python/JavaScript behavior where loop variables are function-scoped
-        # TODO: For full implementation, infer type from iterable
-        int_type = PrimitiveType(location=stmt.location, name='int')
-        loop_var_symbol = Symbol(
-            name=stmt.variable,
-            symbol_type='variable',
-            data_type=int_type,
-            location=stmt.location
-        )
+        # Block scoping (Task 12.6): the loop variable gets its own scope, one level above
+        # the body's own block scope - matches C's `for (int i = ...; ...) { ... }`, where
+        # `i` is visible inside the loop (including the body block) but not after it.
+        # Stored on stmt.scope so TypeChecker's separate pass can reuse the same, already-
+        # populated scope object instead of re-declaring the loop variable itself.
+        self.symbol_table.enter_scope(f"for:{id(stmt)}")
+        stmt.scope = self.symbol_table.current_scope
+
         try:
-            self.symbol_table.define(loop_var_symbol)
-        except SemanticError as e:
-            self.errors.append(e)
+            # Define loop variable with int type (for range() iterables)
+            # TODO: For full implementation, infer type from iterable
+            int_type = PrimitiveType(location=stmt.location, name='int')
+            loop_var_symbol = Symbol(
+                name=stmt.variable,
+                symbol_type='variable',
+                data_type=int_type,
+                location=stmt.location
+            )
+            try:
+                self.symbol_table.define(loop_var_symbol)
+            except SemanticError as e:
+                self.errors.append(e)
 
-        # Resolve iterable expression
-        self.resolve_expression(stmt.iterable)
+            # Resolve iterable expression
+            self.resolve_expression(stmt.iterable)
 
-        # Resolve loop body
-        self.resolve_statement(stmt.body)
+            # Resolve loop body (a BlockStmt - creates its own nested scope, parented to
+            # this for-scope, so the body can see the loop variable via lookup_recursive)
+            self.resolve_statement(stmt.body)
+        finally:
+            self.symbol_table.exit_scope()
 
-    def resolve_block(self, stmt: BlockStmt) -> None:
+    def resolve_block(self, stmt: BlockStmt, new_scope: bool = True) -> None:
         """Resolve block statement.
+
+        Block scoping (Task 12.6): each block gets its own scope, so a variable declared
+        inside an if/while/for body is only visible inside that block - matching what the
+        generated C code already does (C's own { } braces are block-scoped natively; this
+        was previously a real bug, not just a style choice - Fusion's semantic analyzer
+        allowed cross-block visibility that the C output could never actually honor, so
+        such programs passed semantic analysis but failed to compile with GCC).
+
+        The scope is stored on stmt.scope so TypeChecker's separate pass over the same
+        tree can reuse these exact, already-populated scopes (enter_existing_scope)
+        instead of re-declaring every variable a second time.
 
         Args:
             stmt: Block statement node
+            new_scope: Whether this block introduces its own nested scope (the default,
+                correct for if/while/for bodies and any other nested block). Pass False
+                only for a function's own top-level body, which must share the parameter
+                scope directly rather than nest below it - confirmed against real GCC:
+                redeclaring a parameter at the top level of a function body is itself a C
+                compile error ('redeclared as different kind of symbol'), so nesting
+                another scope there would silently let Fusion accept programs that fail
+                to compile, again - see resolve_function and semantic_analyzer.py.
         """
-        # Note: We don't create a new scope here because:
-        # 1. Function bodies already have a scope (created by resolve_function)
-        # 2. Control flow bodies (if/while/for) shouldn't create new scopes
-        # 3. Variables declared in a function should be visible throughout the function
-        #
-        # If we need explicit block scoping in the future (e.g., for { } blocks),
-        # we can add a flag to BlockStmt to indicate whether it should create a scope.
+        if not new_scope:
+            # Share the current (function+parameter) scope - no new nesting
+            stmt.scope = self.symbol_table.current_scope
+            for statement in stmt.statements:
+                self.resolve_statement(statement)
+            return
 
-        for statement in stmt.statements:
-            self.resolve_statement(statement)
+        self.symbol_table.enter_scope(f"block:{id(stmt)}")
+        stmt.scope = self.symbol_table.current_scope
+
+        try:
+            for statement in stmt.statements:
+                self.resolve_statement(statement)
+        finally:
+            self.symbol_table.exit_scope()
 
     # ========================================================================
     # Expression Resolution

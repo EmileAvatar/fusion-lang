@@ -543,7 +543,8 @@ def test_variable_in_nested_scope(name_resolver, location):
 
 
 def test_inner_scope_shadows_outer_scope(name_resolver, location):
-    """Test function-level scoping: duplicate declaration in inner block is an error."""
+    """Test block scoping (Task 12.6): redeclaring a name in a nested block shadows the
+    outer variable rather than erroring - each block has its own scope."""
     int_type = PrimitiveType(location=location, name='int')
 
     # Outer variable
@@ -554,7 +555,7 @@ def test_inner_scope_shadows_outer_scope(name_resolver, location):
         location=location
     )
 
-    # Inner variable with same name - now an error with function-level scoping
+    # Inner variable with same name - shadows the outer one, no error under block scoping
     inner_var = VarDeclStmt(
         var_type=int_type,
         name='x',
@@ -577,13 +578,15 @@ def test_inner_scope_shadows_outer_scope(name_resolver, location):
     program = ProgramNode(declarations=[func], location=location)
     errors = name_resolver.resolve_program(program)
 
-    # Function-level scoping: redeclaring 'x' in the same function is an error
-    assert len(errors) == 1
-    assert "duplicate" in errors[0].message.lower()
+    # Block scoping: shadowing in a nested block is allowed
+    assert len(errors) == 0
 
 
 def test_variable_not_visible_outside_scope(name_resolver, location):
-    """Test function-level scoping: variable IS visible throughout the function."""
+    """Test block scoping (Task 12.6): a variable declared inside a nested block is NOT
+    visible after that block ends - matches what the generated C code already enforces
+    via its own { } braces (this was a real bug under the old function-scoping model:
+    semantic analysis allowed it, but the resulting C failed to compile)."""
     int_type = PrimitiveType(location=location, name='int')
 
     # Variable defined in inner block
@@ -595,7 +598,7 @@ def test_variable_not_visible_outside_scope(name_resolver, location):
     )
     inner_block = BlockStmt(statements=[inner_var], location=location)
 
-    # Try to use it outside the block - now valid with function-level scoping
+    # Try to use it outside the block - now an error under block scoping
     use_stmt = ReturnStmt(value=IdentifierExpr(name='inner', location=location), location=location)
 
     body = BlockStmt(statements=[inner_block, use_stmt], location=location)
@@ -612,8 +615,9 @@ def test_variable_not_visible_outside_scope(name_resolver, location):
     program = ProgramNode(declarations=[func], location=location)
     errors = name_resolver.resolve_program(program)
 
-    # Function-level scoping: variable is visible throughout the function
-    assert len(errors) == 0
+    # Block scoping: 'inner' went out of scope when its block ended
+    assert len(errors) == 1
+    assert "undefined" in errors[0].message.lower()
 
 
 def test_multiple_variables_in_scope(name_resolver, location):
@@ -855,7 +859,8 @@ def test_resolve_after_multiple_scopes(name_resolver, location):
 
 
 def test_shadowing_resolution_inner_wins(name_resolver, location):
-    """Test function-level scoping: duplicate declaration is an error."""
+    """Test block scoping (Task 12.6): an inner declaration shadowing an outer one
+    resolves to the inner variable within its own block, with no error."""
     int_type = PrimitiveType(location=location, name='int')
 
     # Outer variable
@@ -866,14 +871,14 @@ def test_shadowing_resolution_inner_wins(name_resolver, location):
         location=location
     )
 
-    # Inner variable tries to shadow outer - error with function-level scoping
+    # Inner variable shadows outer - allowed under block scoping
     inner_var = VarDeclStmt(
         var_type=int_type,
         name='x',
         initializer=LiteralExpr(value=2, type_hint='int', location=location),
         location=location
     )
-    # Use x
+    # Use x - resolves to the inner (shadowing) declaration
     use_stmt = ReturnStmt(value=IdentifierExpr(name='x', location=location), location=location)
     inner_block = BlockStmt(statements=[inner_var, use_stmt], location=location)
 
@@ -891,9 +896,8 @@ def test_shadowing_resolution_inner_wins(name_resolver, location):
     program = ProgramNode(declarations=[func], location=location)
     errors = name_resolver.resolve_program(program)
 
-    # Function-level scoping: duplicate declaration is an error
-    assert len(errors) == 1
-    assert "duplicate" in errors[0].message.lower()
+    # Block scoping: shadowing is allowed, no error
+    assert len(errors) == 0
 
 
 def test_global_variable_access_from_function(name_resolver, location):
@@ -928,7 +932,8 @@ def test_global_variable_access_from_function(name_resolver, location):
 
 
 def test_variable_in_if_branch_not_visible_outside(name_resolver, location):
-    """Test function-level scoping: variable IS visible outside if branch."""
+    """Test block scoping (Task 12.6): a variable declared inside an if branch is not
+    visible after the if statement ends."""
     int_type = PrimitiveType(location=location, name='int')
     bool_type = PrimitiveType(location=location, name='bool')
 
@@ -948,7 +953,7 @@ def test_variable_in_if_branch_not_visible_outside(name_resolver, location):
         location=location
     )
 
-    # Try to use it after if - now valid with function-level scoping
+    # Try to use it after if - an error under block scoping
     use_stmt = ReturnStmt(value=IdentifierExpr(name='if_var', location=location), location=location)
 
     body = BlockStmt(statements=[if_stmt, use_stmt], location=location)
@@ -965,8 +970,9 @@ def test_variable_in_if_branch_not_visible_outside(name_resolver, location):
     program = ProgramNode(declarations=[func], location=location)
     errors = name_resolver.resolve_program(program)
 
-    # Function-level scoping: if_var IS visible throughout the function
-    assert len(errors) == 0
+    # Block scoping: if_var went out of scope when the if statement ended
+    assert len(errors) == 1
+    assert "undefined" in errors[0].message.lower()
 
 
 # ============================================================================

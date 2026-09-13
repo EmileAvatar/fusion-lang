@@ -826,8 +826,11 @@ class TypeChecker:
         # Type check iterable expression
         self.visit(node.iterable)
 
-        # Note: Loop variable was already defined by name_resolver in function scope
-        # No need to create a new scope here
+        # Note: the loop variable lives in its own scope (node.scope, populated by
+        # NameResolver - see Task 12.6), one level above the body's own block scope. No
+        # explicit enter/exit needed here: node.body is a BlockStmt, and visit_BlockStmt
+        # reuses node.body.scope, whose .parent chain already includes this for-scope -
+        # that's enough for lookup_recursive to find the loop variable from inside the body.
 
         # Check body
         self.visit(node.body)
@@ -835,11 +838,27 @@ class TypeChecker:
     def visit_BlockStmt(self, node: BlockStmt) -> None:
         """Check all statements in block.
 
+        Block scoping (Task 12.6): reuses the exact Scope object NameResolver already
+        created and populated for this block (node.scope), so lookups here see the same
+        symbols NameResolver saw, without redeclaring anything. Falls back to creating a
+        fresh scope if node.scope is unset, which happens when code constructs/type-checks
+        a BlockStmt directly without running NameResolver first (some unit tests do); the
+        fresh scope still chains to whatever the caller's current scope is via `parent`,
+        so lookups to anything already in scope keep working.
+
         Args:
             node: Block statement node
         """
-        for stmt in node.statements:
-            self.visit(stmt)
+        if node.scope is not None:
+            self.symbol_table.enter_existing_scope(node.scope)
+        else:
+            self.symbol_table.enter_scope(f"block:{id(node)}")
+
+        try:
+            for stmt in node.statements:
+                self.visit(stmt)
+        finally:
+            self.symbol_table.exit_scope()
 
     def visit_BreakStmt(self, node: BreakStmt) -> None:
         """Check break statement.

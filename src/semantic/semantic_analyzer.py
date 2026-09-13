@@ -7,7 +7,7 @@ all semantic analysis passes over the AST.
 import sys
 from typing import List
 
-from ..parser.ast_nodes import ProgramNode
+from ..parser.ast_nodes import ProgramNode, BlockStmt
 from .errors import SemanticError
 from .symbol_table import SymbolTable
 from .name_resolver import NameResolver
@@ -90,9 +90,15 @@ class SemanticAnalyzer:
                     for param in decl.parameters:
                         self.name_resolver.register_parameter(param)
 
-                    # Resolve names in function body
+                    # Resolve names in function body. If it's a block (the normal case -
+                    # lambdas can have a single expression body instead), it shares the
+                    # parameter scope directly rather than nesting a new one underneath -
+                    # see NameResolver.resolve_block's new_scope docstring (Task 12.6).
                     if decl.body:
-                        self.name_resolver.resolve_statement(decl.body)
+                        if isinstance(decl.body, BlockStmt):
+                            self.name_resolver.resolve_block(decl.body, new_scope=False)
+                        else:
+                            self.name_resolver.resolve_statement(decl.body)
 
                     # Type check function (already in scope)
                     old_return_type = self.type_checker.current_function_return_type

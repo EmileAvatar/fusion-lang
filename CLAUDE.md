@@ -368,7 +368,11 @@ int n = len(scores)     // size (compile-time constant)
 **Future:** Self-hosting (rewrite compiler in Fusion)
 
 **Current Features:**
-- Function-level scoping (like Python/JavaScript)
+- Block-level (lexical) scoping: a variable declared inside `if`/`while`/`for` is only
+  visible inside that block, and a nested block can shadow an outer variable of the same
+  name (Task 12.6, complete - replaced the earlier function-scoped model, which had a
+  real bug: semantic analysis accepted programs whose generated C could never actually
+  compile, since C's own `{ }` braces are natively block-scoped)
 - Three block styles (indentation, braces, End keywords)
 - String interpolation ({var} and {@1} syntax)
 - Type checking with automatic int→float promotion
@@ -381,9 +385,9 @@ int n = len(scores)     // size (compile-time constant)
   `x[i] = v`), `len(x)` resolved to a compile-time constant (Task 9 v1, complete)
 
 **Known Limitations (by design):**
-- No block-level scoping (variables are function-scoped)
 - Single-quote comments disabled (conflicts with char literals)
-- const is function-scoped only (no global/class-level constants yet - classes not implemented)
+- const follows the same block scoping as other variables (no global/class-level
+  constants yet - classes not implemented)
 - Arrays are local-variable-only (not function params/return types), single-dimension,
   fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
   `?.`, or `?[` yet - see taskSummary2.md Task 9's deferred nullability task)

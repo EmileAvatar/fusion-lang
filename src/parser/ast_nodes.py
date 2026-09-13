@@ -289,10 +289,16 @@ class ForStmt(ASTNode):
         variable: Loop variable name
         iterable: Iterable expression (range, list, etc.)
         body: Loop body statement (usually BlockStmt)
+        scope: The loop variable's Scope (src.semantic.symbol.Scope), populated by
+            NameResolver and reused by TypeChecker - block scoping (Task 12.6) means the
+            loop variable itself is scoped to the loop, not the whole function. Typed as
+            Any rather than importing Scope, which would create a circular import
+            (symbol.py already imports from this module).
     """
     variable: str
     iterable: ASTNode
     body: ASTNode
+    scope: Any = None
 
 
 @dataclass
@@ -331,8 +337,16 @@ class BlockStmt(ASTNode):
 
     Attributes:
         statements: List of statements in the block
+        scope: This block's Scope (src.semantic.symbol.Scope), populated by NameResolver
+            and reused by TypeChecker so both passes see the same block-scoped symbols
+            (Task 12.6 - block-level/lexical scoping). None until NameResolver runs; code
+            that constructs a BlockStmt directly without running NameResolver first (some
+            unit tests do) gets function/isolated-scope behavior as a fallback - see
+            TypeChecker.visit_BlockStmt. Typed as Any rather than importing Scope, which
+            would create a circular import (symbol.py already imports from this module).
     """
     statements: List[ASTNode]
+    scope: Any = None
 
 
 # ============================================================================
