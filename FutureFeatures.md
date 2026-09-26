@@ -4776,7 +4776,8 @@ type parameterized by precision and scale:
 ```fusion
 // decimal(precision, scale) - total significant digits, digits after the decimal point
 decimal(10, 2) price = 19.99         // up to 10 digits total, exactly 2 after the point
-decimal(19, 4) exchangeRate = 1.2345 // 19 digits total, 4 after the point - common FX precision
+decimal(18, 4) exchangeRate = 1.2345 // 18 digits total, 4 after the point - common FX precision
+                                      // (18, not 19 - see "Capacity" below for why that limit is real)
 
 // Shorthand: decimal with no (precision, scale) uses a project-configurable default
 // (e.g. via fusion.toml - see Task 12.12's project configuration system)
@@ -4804,6 +4805,50 @@ decimal total = 0.00
   should require an explicit cast (a `float` can't exactly represent most `decimal`
   values either), matching the general principle that lossy conversions stay visible in
   the code rather than happening silently.
+
+#### Capacity: What Actually Fits (a real implementation constraint, not just a syntax choice)
+
+**Direct question this came up from: does the default hold a trillion or a quintillion?
+No.** `Currency` / `decimal(11, 2)` (matching COBOL `PIC 9(9)V99`) tops out at
+**999,999,999.99** - just under one billion. `PIC 9(9)V99` was sized for typical
+mid-20th-century business/accounting amounts, not modern trillion-dollar balance sheets or
+quintillion-scale figures - if a project needs more range, it declares more precision (see
+table below), or raises `currency_precision` in `fusion.toml` for `Currency` specifically.
+
+`decimal(p, s)`'s syntax accepts any `(p, s)` a programmer writes - but the runtime backing
+proposed in the Codegen open question below (a plain `int64_t unscaled` value) has a real,
+hard ceiling: a signed 64-bit integer maxes out at **9,223,372,036,854,775,807 (~9.22 x
+10^18)**, which safely backs roughly **18 total digits**, not 19 or more.
+
+| To represent up to... | Integer digits needed | Example declaration | Fits in `int64_t`? |
+|---|---|---|---|
+| ~1 billion (COBOL/`Currency` default) | 9 | `decimal(11, 2)` | Yes, comfortably |
+| ~10 trillion | 13 | `decimal(15, 2)` | Yes, comfortably |
+| ~10 quintillion | 19 | `decimal(21, 2)` | **No** - unscaled value (~10^21) overflows `int64_t` (~9.22 x 10^18) |
+
+This isn't hypothetical: this proposal's own earlier FX-rate example, originally written as
+`decimal(19, 4)`, sat right at (and could exceed) that same `int64_t` ceiling - corrected
+above to `decimal(18, 4)` while writing this section, rather than shipping a money/precision
+type with a hidden overflow bug in its own documented example.
+
+**Two ways to actually fix this (needs its own decision - flagged here, not silently
+picked):**
+1. **Cap declared precision** to what `int64_t` safely backs (`p <= 18`) for v1, and reject
+   anything larger at compile time with a clear error - simplest, but caps Fusion's decimal
+   type below what a trillion/quintillion-scale application would need
+2. **Widen the runtime backing** for larger declared precisions - e.g. GCC's 128-bit
+   `__int128` (safely backs ~38 digits - comfortably past quintillions) or a true
+   arbitrary-precision bignum for unbounded `p` - more implementation work, but this is
+   really the same "arbitrary precision" leaf the reference diagram already calls out as a
+   future extension, just needed sooner than expected because `int64_t` alone can't cover
+   the full range `decimal(p, s)`'s own grammar promises
+
+**Recommendation:** don't let `decimal(p, s)`'s grammar accept a `p` the chosen runtime
+representation can't actually back. Either enforce a hard, loudly-documented compile-time
+ceiling matching whatever integer width backs v1 ("decimal supports up to 18 total digits
+in v1, use arbitrary-precision decimal for more once that exists"), or commit to `__int128`
+as the v1 backing - it's supported by GCC (the compiler Fusion already targets) at no extra
+dependency cost, and comfortably covers trillions and quintillions alike.
 
 #### Example Use Case
 
@@ -4901,10 +4946,13 @@ follow-on ideas once the base type exists, not something to commit to now.
 3. **Arbitrary-precision decimal** (the diagram's other `Decimal` leaf, a
    `BigDecimal`-equivalent) - a separate future type, or should `decimal` support an
    "unbounded" scale mode instead of a second type?
-4. **Codegen strategy** - C has no native fixed-point/packed-decimal type; likely needs a
-   runtime struct (e.g. `{ int64_t unscaled; int scale; }`) plus a small runtime library
-   for arithmetic - real runtime support to design, not just a keyword (same shape of gap
-   Task 15.5 already flags for `Unique`/`Shared`/`Weak`)
+4. **Codegen strategy** - C has no native fixed-point/packed-decimal type; needs a runtime
+   struct (`{ <int type> unscaled; int scale; }`) plus a small runtime library for
+   arithmetic - real runtime support to design, not just a keyword (same shape of gap Task
+   15.5 already flags for `Unique`/`Shared`/`Weak`). The integer width for `unscaled`
+   is itself a decision, not a given - see "Capacity: What Actually Fits" above: plain
+   `int64_t` only safely backs ~18 total digits, so this question and that section's two
+   options (cap precision at 18, or use `__int128`) should be decided together
 5. **Naming** - `decimal` (matches C#, most familiar to mainstream developers) vs. `Money`
    (domain-specific, but too narrow - this type is also useful for scientific/trading
    precision generally, not only currency) vs. `Fixed`/`FixedPoint` (most literally
