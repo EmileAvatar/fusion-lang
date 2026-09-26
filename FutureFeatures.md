@@ -4701,14 +4701,17 @@ processArray(immutable)  // ❌ Type error: Cannot pass immutable() as mutable[]
 
 ---
 
-### Fixed-Point Decimal Type (Financial / Money Precision)
+### Fixed-Point Decimal Type & `Currency` Sugar (Financial / Money Precision)
 
 **Status:** 📝 Proposed
 **Priority:** Medium-High (needed before Fusion can be credibly used for financial/trading
 software)
 **Purpose:** Add an exact, fixed-point decimal numeric type - similar to COBOL's
 `PACKED-DECIMAL`/`COMP-3` and Java's `BigDecimal` - for money and financial calculations
-where `float`/`double`'s binary floating-point rounding error is unacceptable.
+where `float`/`double`'s binary floating-point rounding error is unacceptable. Also adds
+`Currency` as an optional, convenient sugar type on top of it, so programmers can choose
+between spelling out exact precision/scale themselves (`decimal(p, s)`) or reaching for a
+ready-made money type that already does the right thing (`Currency`).
 
 ---
 
@@ -4814,16 +4817,79 @@ void function main()
     print("Total: {total}")  // Total: 59.97 - exact, not 59.96999999999999
 ```
 
+#### `Currency` - Convenience Sugar for `decimal(precision, scale)`
+
+**Purpose:** give programmers a choice, not a mandate. Use `decimal(p, s)` directly when a
+calculation needs deliberate, specific precision (FX rates, scientific/trading math with
+unusual scales), or reach for `Currency` when you just want "money that behaves correctly"
+without picking numbers yourself - the common case for the overwhelming majority of
+business/financial code.
+
+`Currency` is proposed as a reserved keyword that is **pure syntactic sugar**: it desugars
+to one specific `decimal(precision, scale)` during parsing/semantic analysis. It is not a
+separate runtime type, needs no separate codegen path, and adds no arithmetic rules beyond
+what `decimal` already defines above - keeping it cheap to implement once `decimal` exists,
+not a second feature to build from scratch.
+
+```fusion
+Currency price = 19.99            // sugar for: decimal(11, 2) price = 19.99
+Currency total = calculateTotal(price, 3)
+
+// Fully interchangeable with the equivalent decimal(p, s) - genuinely the same type,
+// not merely convertible to it
+decimal(11, 2) samePrice = price  // OK, no cast needed - Currency IS decimal(11, 2)
+```
+
+**Default mapping - matches COBOL exactly:** `Currency` defaults to `decimal(11, 2)`,
+chosen to line up bit-for-bit with COBOL's classic money field:
+
+| COBOL | Meaning | Fusion equivalent |
+|-------|---------|--------------------|
+| `PIC 9(9)V99` | 9 integer digits + 2 decimal digits (`V` = implied decimal point) = 11 total significant digits, scale 2 | `decimal(11, 2)` == `Currency` |
+
+This isn't an arbitrary default - `PIC 9(9)V99` is the de facto standard COBOL money field
+still running banking/insurance/trading systems today (comfortably covers amounts up to
+9,999,999.99). Giving `Currency` this exact shape means porting COBOL financial logic to
+Fusion, or interoperating with COBOL systems via `fusionlib.Lang` (see "Cross-Language
+Compilation Support" above), has a direct, unsurprising equivalent instead of an
+approximation.
+
+**Configurable, not hardcoded:** real-world currencies don't all share one shape - most use
+2 minor-unit digits, but JPY uses 0 and a few (e.g. the Bahraini Dinar) use 3. So
+`Currency`'s underlying `decimal(precision, scale)` is proposed as project-configurable via
+`fusion.toml` (ties into Task 12.12) rather than a fixed language constant:
+
+```toml
+# fusion.toml
+[types]
+currency_precision = 11   # default: 11 (matches COBOL PIC 9(9)V99)
+currency_scale = 2        # default: 2  (matches COBOL PIC 9(9)V99)
+```
+
+A project working primarily in JPY, for example, could set `currency_scale = 0`
+project-wide, and every `Currency` declaration in that codebase follows without touching a
+single call site - the same "configure once, apply everywhere" philosophy `fusion.toml`
+already uses for `[indentation]`/`[safety]`/`[backend]` today.
+
+**Explicitly out of scope for `Currency` itself (v1):** currency-symbol-aware formatting
+(`$19.99` vs `19,99 €`), preventing `Currency usd + Currency eur` from silently compiling
+(multi-currency arithmetic safety), and per-currency-code shapes coexisting in one program
+(`Currency` for JPY and `Currency` for USD needing different scales at the same time) -
+`Currency` here is only sugar for one project-wide decimal shape. Worth flagging as natural
+follow-on ideas once the base type exists, not something to commit to now.
+
 #### Comparison with Other Languages
 
 | Language | Type | Representation |
 |----------|------|-----------------|
 | COBOL | `PIC 9(n)V9(m) COMP-3` | Packed (binary-coded) decimal, fixed scale |
+| COBOL | `PIC 9(9)V99 COMP-3` | The specific money field `Currency` mirrors |
 | Java | `java.math.BigDecimal` | Arbitrary-precision, unscaled value + scale |
 | C# | `decimal` | 128-bit fixed-point, 28-29 significant digits |
 | Python | `decimal.Decimal` | Arbitrary-precision, configurable context |
 | SQL | `DECIMAL(p, s)` / `NUMERIC(p, s)` | Fixed precision and scale |
 | **Fusion (proposed)** | `decimal(p, s)` | Fixed-point, scaled integer internally |
+| **Fusion (proposed)** | `Currency` | Sugar for `decimal(11, 2)` by default, project-configurable |
 
 #### Open Questions
 
@@ -4843,17 +4909,32 @@ void function main()
    (domain-specific, but too narrow - this type is also useful for scientific/trading
    precision generally, not only currency) vs. `Fixed`/`FixedPoint` (most literally
    accurate to the representation)
+6. **`Currency`'s default shape** - keep `decimal(11, 2)` (matches COBOL `PIC 9(9)V99`
+   exactly) as the language default, or pick a different default and let `fusion.toml`
+   be the only way most projects ever see a different value?
+7. **`Currency` type-casing** - capitalized like a class (`String`, per "Clarification:
+   Type Casing" above) even though it behaves like a primitive value type (no heap
+   allocation beyond what `decimal` itself needs)? Capitalization here would signal "this
+   is sugar/opinionated," not "this is a reference type" - a departure from the existing
+   convention worth deciding deliberately, not by accident
+8. **Should `Currency` become type-incompatible with plain `decimal(p, s)` of a different
+   shape** (e.g. can a `Currency` be passed where `decimal(19, 4)` is expected)? Proposed
+   answer above is "no special-casing, `Currency` literally is a specific `decimal(p, s)`
+   and follows the same compatibility rules as any other `decimal(p, s)` pair" - flagged
+   here so that answer gets confirmed, not silently assumed
 
 **Recommendation:** `decimal` as the name (widest recognition), fixed-point scaled-integer
 representation for v1, with arbitrary precision explicitly deferred as a distinct future
 leaf of the same family - matches the reference diagram exactly, and avoids building the
 harder unbounded-precision case before the money/trading case actually requested is proven
-out.
+out. `Currency` ships alongside it from day one (not a later add-on) since it's pure sugar
+over `decimal` and costs almost nothing extra once `decimal` itself is built.
 
 #### Implementation Checklist (once scoped and approved)
 
-- [ ] Get explicit decisions on the Open Questions above before any implementation begins
-      (same "decide first" pattern as Task 12.7/12.10/12.11)
+- [ ] Get explicit decisions on the Open Questions above (including the `Currency`-specific
+      ones) before any implementation begins (same "decide first" pattern as Task
+      12.7/12.10/12.11)
 - [ ] Add `decimal`/`decimal(p, s)` to the lexer keyword table and type grammar (EBNF)
 - [ ] Parser support for the `(precision, scale)` type parameters, reusing the array
       fixed-size parsing pattern where practical
@@ -4867,10 +4948,19 @@ out.
 - [ ] `len()`-style formatting helper (or a `.toString()`/interpolation format specifier)
       that prints the exact declared scale (e.g. always 2 decimal places for money),
       not a floating-point default
-- [ ] Example program in `examples/` demonstrating money-like arithmetic (per Rule 5 /
-      Task 16 - add this to that task's checklist once decimal is scoped for real)
+- [ ] Add `Currency` as a reserved keyword that resolves to `decimal(11, 2)` by default
+      (name resolver/type checker rewrite it to the equivalent `decimal(p, s)` immediately,
+      so every later pass - type checking, codegen - only ever needs to understand
+      `decimal`, never a second parallel type)
+- [ ] Read `[types].currency_precision`/`currency_scale` from `fusion.toml`
+      (`src/config/project_config.py`, extending Task 12.12's schema) to override
+      `Currency`'s default shape per project
+- [ ] Example program in `examples/` demonstrating money-like arithmetic with both
+      `decimal(p, s)` and `Currency` side by side (per Rule 5 / Task 16 - add this to that
+      task's checklist once decimal/Currency are scoped for real)
 - [ ] Documentation: `files/fusion-language-spec.md` Data Types section, `files/fusion.ebnf`,
-      `CLAUDE.md` Quick Syntax Reference and Reserved Keywords
+      `CLAUDE.md` Quick Syntax Reference, Reserved Keywords, and Project Configuration
+      section
 
 ---
 
