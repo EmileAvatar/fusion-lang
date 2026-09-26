@@ -236,6 +236,7 @@ The compiler adapts to project configuration (memory model, locking strategy, st
 | **fusion-threading-concurrency.md** | files/ | Threading model |
 | **fusion-planning.md** | files/ | Development roadmap |
 | **Fusion_Hardware_Interface_Definition_Language_HIDL.md** | files/ | HIDL vision doc (Task 13, blocked/future) |
+| **Fusion_domain.md** | files/ | User-facing domain-first feature hierarchy - what Fusion supports/will support, organized by language domain (types, control flow, OOP, memory, concurrency, stdlib), not by build status |
 | **task-10-self-hosting-plan.md** | task/ | Self-hosting detailed plan |
 | **task-11-llvm-backend-plan.md** | task/ | LLVM backend detailed plan |
 | **FutureFeatures.md** | Root | Post-MVP features (IDE, Settings, etc.) |
