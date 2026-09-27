@@ -57,7 +57,8 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
 | **Task 15: Deferred Decisions Revisit List** | Not Started | 0% | 0 | 7 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
-| **Overall** | Task 16 Logged | 47% | 46 | 98 |
+| **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
+| **Overall** | Task 17 Logged | 45% | 46 | 103 |
 
 ---
 
@@ -767,6 +768,104 @@ error handling) to pick up once those land. This task is that checklist.
 
 ---
 
+## TASK 17: Mutable vs. Fixed Strings, Templated Fixed Strings & String Pooling
+
+**Goal:** Add an explicit mutable/immutable distinction to Fusion's string type
+(`m"..."`/plain = mutable, `f"..."` = fixed/immutable), including fixed strings that hold
+unresolved `{@N}` placeholders and can be invoked later like a function to fill them in, plus
+an opt-in (off by default) string-pooling setting.
+**Status:** Not Started (proposed breakdown only, not yet approved for implementation - same
+status convention as Tasks 13/14)
+**Priority:** MEDIUM (a real, common bug class in other languages - accidental mutation of a
+string another part of the program still holds - but nothing currently built depends on this)
+**Blocked By:** Nothing technical, but the templated-fixed-string mechanism (17.3) is a
+genuinely new capability - not just applying existing `{@N}` syntax to a variable - and
+needs real design before scoping, not just wiring
+**Estimated Effort:** TBD - needs its own sub-plan once approved for scoping
+**Source:** User request (2026-09-27) - full design write-up (syntax, semantics, examples,
+open questions) is in `FutureFeatures.md`'s "Mutable vs. Fixed Strings, Templated Fixed
+Strings & String Pooling" section under "Type System Enhancements" - this task is the
+tracked pointer to it, per Rule 5 / this file's practice of logging every proposal as both a
+`FutureFeatures.md` write-up and a `taskSummary2.md` task
+
+### Sub-tasks (NOT YET APPROVED - proposed breakdown only)
+
+#### 17.1: Mutable String Literal Syntax
+- [ ] Decide whether `m"..."` is worth adding as an explicit prefix at all, given a plain
+      string literal is already mutable by default - likely justified only for symmetry
+      with `f"..."`, not because it changes behavior
+- [ ] If added: lexer/parser support for the `m` prefix (no semantic change from a plain
+      string literal)
+
+#### 17.2: Fixed (Immutable) String Type
+- [ ] Add `f"..."` as a fixed/immutable string literal - the value itself can never change
+      after creation
+- [ ] Decide what "mutating" methods (e.g. `.ToUpper()`) return when called on a fixed
+      string: a new fixed string, or a new plain (mutable) string - needs an explicit
+      decision, not an assumption
+- [ ] Semantic rules: reassigning a fixed-string *variable* is presumably still allowed
+      (the variable isn't `const`) - only the string *value* itself is immutable. Confirm
+      this distinction is the intended one, since it's easy to conflate with `const`
+
+#### 17.3: Templated Fixed Strings (the genuinely new part)
+- [ ] Design how a fixed string containing unresolved `{@1}`/`{@2}` placeholders becomes a
+      reusable, callable template - this is NOT the same as Fusion's existing `{@N}`
+      interpolation, which resolves immediately at the point of use; this proposes
+      *deferred* resolution, invoked later with fresh arguments each call
+- [ ] Decide the type of a placeholder-bearing fixed string: still `string`, or a distinct
+      template/closure-shaped type that supports being called
+- [ ] Decide error handling for non-contiguous placeholders (`{@1}`/`{@3}` with no `{@2}`)
+      and argument-count mismatches - compile-time (placeholder count is statically known)
+      or runtime
+- [ ] Decide whether this needs a new AST node distinct from the existing
+      `InterpolatedStringExpr`, or whether that node can grow a "deferred" mode
+- [ ] Get user decision on all of the above before any implementation begins
+
+#### 17.4: String Pooling Configuration
+- [ ] Add a `[strings]` section to `fusion.toml` (extending Task 12.12's schema):
+      `pooling = false` by default - strings are stored only where declared, no implicit
+      interning of equal values
+- [ ] Document the guidance from the request explicitly: pooling should only be enabled
+      after profiling shows a real benefit (large volumes of duplicate strings), not as a
+      default optimization - matches Fusion's general "configure deliberately, don't guess"
+      philosophy already used elsewhere in `fusion.toml`
+- [ ] If ever implemented: define what pooling actually changes (storage reuse only - must
+      never be observable as a behavior difference to a correct program)
+
+#### 17.5: Secure String Storage (far future - depends on fusionlib.Crypto existing)
+- [ ] Document that plain strings (pooled or not) are the wrong type for passwords/
+      cryptographic secrets - matches well-known guidance in other managed languages (e.g.
+      Java recommending `char[]` over `String` for passwords, since a `String` can't be
+      reliably zeroed and pooling can retain copies indefinitely)
+- [ ] Note for whoever eventually designs `fusionlib.Crypto`: it should include a dedicated
+      secure-storage type - explicitly never pooled, intended for secrets rather than
+      general text - this task only identifies the need, doesn't scope the Crypto module
+      itself
+- [ ] Blocked on `fusionlib.Crypto` existing at all, which is blocked on `import` having
+      parser support in the first place (currently none - same gap Task 15.2/16.7 already
+      flag)
+
+**Success Criteria:**
+- Mutable strings behave exactly as they do today - no regression
+- Fixed strings are provably never mutated in place
+- A templated fixed string can be invoked multiple times with different arguments without
+  changing the stored template
+- String pooling is off by default with zero behavioral effect when disabled
+- Passwords/secrets have a documented, explicitly-recommended alternative to plain strings
+
+**Deliverables:**
+- `m"..."`/`f"..."` lexer and parser support (pending 17.1's "is `m` worth it" decision)
+- Semantic rules for fixed-string immutability and templated-fixed-string calling
+- `[strings]` `fusion.toml` section (`pooling`)
+- A noted cross-reference from `fusionlib.Crypto`'s eventual design to the secure-storage
+  need identified here (17.5) - not a deliverable of this task itself
+
+**Explicitly NOT scheduled now:** this task is future work only. No implementation, grammar
+design, or parser work should begin until the user re-opens this task for scoping approval -
+same convention as Tasks 13/14/16.
+
+---
+
 ## Working Notes
 
 ### Session 16 (2025-12-14 - Planning Phase)
@@ -1368,6 +1467,25 @@ error handling) to pick up once those land. This task is that checklist.
 - **Next Action:** offer to build 16.1 (`examples/control_flow_demo.fusion`) now, since
   it's the only Task 16 item not blocked on an unbuilt feature; everything else in Task 16
   waits on its own feature being scoped and built first.
+- **Added Task 17 (Mutable vs. Fixed Strings, Templated Fixed Strings & String Pooling),
+  per user request (2026-09-27):** `m"..."` (explicit, though a plain literal is already
+  mutable) vs. `f"..."` (fixed/immutable - "mutating" methods return a new value, never
+  change the original) vs. templated fixed strings, the genuinely new part - a fixed string
+  holding unresolved `{@1}`/`{@2}` placeholders becomes a reusable, callable template
+  invoked later with fresh arguments each time (deferred resolution, distinct from Fusion's
+  existing `{@N}` interpolation which resolves immediately at the call site). Also: strings
+  are not pooled by default (each stored only where declared), pooling proposed as an
+  opt-in `fusion.toml` `[strings]` setting to enable only after profiling shows real
+  benefit; and a security note that plain strings are the wrong type for passwords/secrets
+  (can't be reliably zeroed, pooling could retain copies) - flagged for a future
+  `fusionlib.Crypto` secure-storage type, not scoped here.
+  - Logged in both places per the user's explicit request: full design write-up in
+    `FutureFeatures.md` (under "Type System Enhancements"), tracked task with 5 proposed
+    sub-tasks here. Logged only, not implemented - per Rule 1, needs scoping approval
+    before any work begins, same as Tasks 13/14/16.
+- **Next Action:** Task 17 is logged only - no implementation expected until the user
+  re-opens it for scoping. 16.1 remains the nearest actionable item if the user wants to
+  build something now.
 
 ---
 
@@ -1404,6 +1522,7 @@ unblocked but still need their own scoping approval before implementation begins
 Task 15 tracks 7 deferred decisions/gaps from Task 12, each with its own revisit trigger (see
 Task 15 above); Task 16 tracks 7 missing example programs, one per language feature - 16.1
 (control flow) is buildable now, 16.2-16.7 are each blocked on their own not-yet-built feature;
-Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning complete" but not started,
-pending the Task 15.4 ordering decision. Completed-task detail for Tasks 5-9 and 12 lives in
-`task/taskSummaryArchive.md`.
+Task 17 (mutable/fixed strings, templated fixed strings, string pooling) is logged only, not
+yet approved for scoping; Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning
+complete" but not started, pending the Task 15.4 ordering decision. Completed-task detail for
+Tasks 5-9 and 12 lives in `task/taskSummaryArchive.md`.
