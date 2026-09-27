@@ -1,7 +1,7 @@
 # 🔮 Fusion Language - Future Features & Enhancements
 
 **Status:** Planning / Not Yet Implemented
-**Last Updated:** 2026-09-26
+**Last Updated:** 2026-09-27
 **Purpose:** Track proposed features and enhancements for post-MVP implementation
 
 ---
@@ -4382,6 +4382,87 @@ class Hint
 
 ## 🔓 Unsafe Mode Enhancements
 
+### Implementation Strategy Tiers & the Configurable-Strategy Philosophy
+
+**Status:** 📝 Proposed (vision/framing, not a scoped feature)
+**Source:** User-provided notes (`Notes/03/Fusion_C_Rust_and_Implementation_Strategies.md`,
+reviewed 2026-09-27) - written with limited knowledge of Fusion's current implementation,
+so treat this as philosophy/direction, not an accurate description of what exists today.
+
+**The central idea, stated more sharply than Fusion's philosophy is currently written down
+anywhere else:**
+
+> Don't make the *meaning* of Fusion configurable. Make the *implementation strategy*
+> configurable.
+
+A program's semantics stay stable; what changes per project is *how* that meaning gets
+realized - memory strategy, safety level, compilation target, runtime footprint. This is
+the same idea CLAUDE.md's "Core Concept" and this document's various per-project knobs
+(`fusion.toml`'s `[safety]`/`[backend]`, the decimal/Currency precision config, the Feature
+Registry concept explored in conversation) already point at individually - this framing is
+worth adopting as the one sentence that explains *why* all of those exist, rather than each
+looking like an unrelated configuration knob.
+
+**Proposed escalation tiers** - not separate languages, one Fusion, with progressively lower
+guardrails available when a project genuinely needs them:
+
+```text
+Application Fusion  - the default: safe memory, automatic resource management, high-level
+                       collections, concurrency safety, productive defaults. Aimed at
+                       covering roughly 70-90% of ordinary development, with 95% as a
+                       long-term aspiration - the "everyday" tier most projects never leave.
+        |
+Systems Fusion       - explicit allocation, deterministic destruction, manual memory where
+                       required, direct OS interaction. For OS components, high-performance
+                       services, storage/networking systems, game engines.
+        |
+Embedded Fusion      - no GC, no runtime, fixed memory, predictable execution, direct
+                       peripheral access. For devices with no OS, fixed memory budgets, and
+                       hard determinism requirements.
+        |
+Kernel Fusion        - explicit hardware access, controlled unsafe operations, strict
+                       compiler checks, direct memory manipulation, interrupt/device
+                       interaction.
+        |
+Assembly / Hardware  - inline/integrated assembly as the final escape hatch when even
+                       Kernel Fusion's control isn't enough (CPU-specific instructions, boot
+                       code, SIMD, cryptographic primitives) - see "Bit Type & Assembly
+                       Support" below, which already covers this tier concretely.
+```
+
+The stated principle: **"easy by default, but never a dead end"** - a developer starts in
+Application Fusion and only descends a tier when the project actually demands it, without
+switching languages or relearning semantics to do so.
+
+**A distinctive idea worth keeping even if the tier model above changes:** tagging `unsafe`
+blocks with a numbered design-rule reference connecting the code to *why* it's unsafe, not
+just what it does:
+
+```fusion
+###<1042> Hardware buffer must remain valid
+###<1043> DMA operation requires exclusive ownership
+
+unsafe
+{
+    pointer = address(...)
+    memory.write(pointer, value)
+}
+```
+
+The idea is that `###<NNNN>` numbers key into a project's design/engineering-rule
+documentation, so a reviewer (or a future maintainer) can trace an unsafe block back to the
+actual constraint that justified it, not just trust a comment. Needs real design before it's
+buildable (where does the rule registry live, is the numbering compiler-checked or purely
+conventional) but it's a genuinely useful angle on "unsafe should be explicit and
+*explained*, not just contained."
+
+**Why this stays in "Unsafe Mode Enhancements" specifically:** everything below Application
+Fusion in the tier list is, functionally, a larger version of what this section's "Bit Type
+& Assembly Support" already proposes - this framing gives that existing content a home in a
+bigger picture rather than treating hardware/assembly access as an isolated feature.
+
+---
+
 ### Bit Type & Assembly Support
 
 **Status:** 📝 Proposed
@@ -5294,10 +5375,20 @@ class Template
 
 ### Symbol-ID System
 
-**Status:** 📝 Proposed
+**Status:** 📝 Proposed - far future. This depends on infrastructure Fusion doesn't have
+any of yet: multiple source files, a module/class system, and a package manager at minimum
+(`import` itself has no parser support today - confirmed by source search). Realistically
+post-self-hosting territory, not a near-term item. Written down so the idea isn't lost, not
+because it's close to being scoped.
 **Purpose:** Enable stable refactoring and cross-language interoperability
 
 **What:** Internal symbol referencing using hashed IDs instead of text names, with configurable per-project or per-class activation.
+
+**Update (2026-09-27):** a second, more detailed pass at this same idea arrived via user
+notes (`Notes/03/Fusion_Compiler_Symbol_Index_System.md`, written with limited knowledge of
+Fusion's current implementation). It fixes a real logical problem in the design below and
+adds mechanisms worth folding in - see "Rename-Stability Fix" and "Distributed Refactoring"
+after the original design.
 
 #### How It Works
 
@@ -5400,12 +5491,12 @@ print(sym.definedIn)      // "UserService.fusion:23"
 #### Configuration
 
 **Enable/disable per project:**
-```fusion
-// fusion-config.json
-{
-  "symbolIdSystem": true,
-  "symbolTableFile": "./symbols.fusion"
-}
+```toml
+# fusion.toml (corrected 2026-09-27 - Fusion's real project config format is TOML,
+# decided in Task 12.12; the original JSON example predates that decision)
+[symbols]
+enabled = true
+symbol_table_file = "./symbols.fusion"
 ```
 
 **Enable/disable per class:**
@@ -5437,6 +5528,56 @@ Examples:
 If hash collision detected:
 - Append sequence number: @A1B2C3D4_1, @A1B2C3D4_2
 ```
+
+**Rename-Stability Fix (2026-09-27) - this hashing scheme has a self-defeating flaw:**
+hashing the *fully qualified name* means renaming a symbol changes its name, which changes
+the hash input, which changes the ID - exactly the thing this system exists to prevent. A
+rename would silently break every reference it was supposed to protect. The fix, taken from
+the newer note referenced above: generate the ID **once, at creation, independent of the
+name entirely** (a random or creation-time-ordered identifier, e.g. ULID-style
+`01J8ZK4M2Q...`), and store the current name as a separate, mutable field that changes
+freely on rename. The ID itself never derives from anything that can change - not from the
+name, not from the file path, not from anything a refactor would touch. This is a
+correction to the mechanism, not to the goal - the SHA256 approach above should not be
+implemented as designed; the ID-assigned-at-creation approach below should be, if this ever
+gets built.
+
+#### Distributed Refactoring (2026-09-27 addition)
+
+The newer note above adds mechanisms this design didn't originally have, worth keeping
+together with it rather than as a separate proposal:
+
+- **Persistent, regenerable database** - `.fusion/symbols.db` (plus dependency/reference/
+  type indexes) instead of a single flat `symbols.fusion` file, so large projects don't
+  reload and re-derive everything on every compiler invocation. Source remains the single
+  source of truth; the database can always be deleted and rebuilt from it.
+- **Symbol lifecycle rules**, missing from the original design:
+  - **Renamed/moved:** ID unchanged, only name/path/file change.
+  - **Copied:** the copy gets a **new** ID - a copy is a new logical entity, not the same
+    one appearing twice.
+  - **Deleted:** the ID is tombstoned, never reused - so stale references (old branches,
+    cached IDE state) get a clear "this symbol was deleted" diagnostic instead of silently
+    binding to an unrelated later symbol that happened to reuse the same ID.
+- **A committed refactor log** (`fusion/refactors/`, outside the deletable `.fusion/` cache)
+  for team/distributed use: every rename/move/delete/split/merge produces an append-only,
+  git-committed entry (author, timestamp, before/after, a signature hash to verify the
+  entry applies to the symbol the receiver actually has). When a developer pulls new
+  changes, their local tooling replays new refactor entries against their own database, so
+  everyone's IDE stays in sync with the project's current symbol identities without a
+  rename ever silently breaking someone else's branch. Conflict detection (e.g. the same
+  ID renamed two different ways on two branches) is surfaced precisely by the compiler, but
+  resolution stays the job of source control and the reviewer - not the compiler.
+- **A real, acknowledged cost worth deciding explicitly rather than assuming away:**
+  embedding the ID directly in the raw source text (with the name kept only as a "backup"
+  the compiler verifies against the database) makes plain-text `grep`, diffs, and code
+  review noticeably worse without Fusion-aware tooling. A less invasive alternative that
+  gets most of the same benefit: keep the same creation-time IDs and the same refactor log,
+  but store the ID **only in the out-of-band database** (keyed by file + position + a
+  content hash), never touching the source text at all - closer to how Roslyn (C#) and
+  rust-analyzer already do stable incremental analysis and safe renames today. Whichever
+  approach is chosen, it should be a deliberate decision made with real tooling and
+  real-project experience in hand, not assumed by whichever note happened to describe it
+  first.
 
 #### IDE Support
 
@@ -5709,4 +5850,4 @@ All of them are **modular**, **opt-in**, and **domain-specific**, designed to gr
 
 **Status:** Documented, pending implementation
 **Next Review:** After MVP compiler completion
-**Last Updated:** 2026-09-26
+**Last Updated:** 2026-09-27
