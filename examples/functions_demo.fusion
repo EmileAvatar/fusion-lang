@@ -1,5 +1,5 @@
 // Fusion Functions Demo (Task 18.1)
-// Demonstrates parameter default values and array parameters
+// Demonstrates parameter default values, array parameters, and lambdas
 
 // Parameters with defaults must come last, and each default must be a constant
 void function greet(string name = "World", string greeting = "Hello")
@@ -27,6 +27,11 @@ End function
 // int[3] accepts only an array of exactly 3 elements (checked at compile time)
 int function middle(int[3] trio) : trio[1]
 
+int function triple(int x) : x * 3
+
+// A parameter that holds a function: (int) : int means "takes an int, returns an int"
+int function apply((int) : int operation, int value) : operation(value)
+
 void function main()
     print("=== Fusion Functions Demo ===")
 
@@ -50,6 +55,15 @@ void function main()
     doubleAll(small)
     int mid = middle(small)
     print("After doubleAll, middle of small = {mid}")
+
+    // Lambdas and function values
+    (int) : int op = triple
+    int tripled = op(5)
+    op = func(int x) : x + 100
+    int added = op(5)
+    int squared = apply(func(int x) : x * x, 7)
+    int viaName = apply(triple, 7)
+    print("tripled = {tripled}, added = {added}, squared = {squared}, viaName = {viaName}")
 
     print("All function tests passed!")
 End function

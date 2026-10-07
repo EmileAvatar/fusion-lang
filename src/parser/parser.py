@@ -472,6 +472,12 @@ class Parser:
                 name=token.value
             )
 
+        # Keyword lambda (Task 18.1.3): func(int x) : x * 2  or  function(int x) : x * 2
+        if self.check_any(TokenType.FUNC, TokenType.FUNCTION) and                 self.peek(1).type == TokenType.LPAREN:
+            self.advance()  # func / function
+            self.advance()  # (
+            return self.parse_lambda()
+
         # Parenthesized expression or lambda
         if self.match(TokenType.LPAREN):
             # Lookahead to distinguish between (expr) and lambda (type name, ...) : body
@@ -540,14 +546,16 @@ class Parser:
         self.consume(TokenType.RPAREN, "Expected ')' after lambda parameters")
         self.consume(TokenType.COLON, "Expected ':' after lambda parameters")
 
-        # Parse lambda body (single expression for MVP)
+        # Parse lambda body (a single expression - multi-line lambda bodies aren't
+        # supported yet)
         body = self.parse_expression()
 
-        # Return type is inferred for MVP (placeholder void for now)
+        # The return type isn't written in the source - the type checker infers it from
+        # the body expression (None until then, Task 18.1.3)
         return LambdaExpr(
             location=start_loc,
             parameters=parameters,
-            return_type=PrimitiveType(start_loc, name="void"),  # Will be inferred later
+            return_type=None,
             body=body
         )
 
@@ -591,7 +599,11 @@ class Parser:
         Returns:
             TypeNode (PrimitiveType, or ArrayType wrapping one, for MVP)
         """
-        # For MVP, only support primitive types (optionally as an array)
+        # Function type (Task 18.1.3): (int, int) : int  or  (int, int) -> int
+        if self.check(TokenType.LPAREN):
+            return self.parse_function_type()
+
+        # Otherwise a primitive type (optionally as an array)
         if self.match(TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                       TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
                       TokenType.VOID):
@@ -629,6 +641,52 @@ class Parser:
             self.peek(),
             f"Expected type name, got '{self.peek().value}'"
         )
+
+    def parse_function_type(self) -> FunctionType:
+        """Parse a function type: (int, int) : int, or the alternative (int, int) -> int
+        (Task 18.1.3). Used for variables and parameters that hold a function.
+
+        Returns:
+            FunctionType AST node
+        """
+        start = self.consume(TokenType.LPAREN, "Expected '(' to start a function type")
+        parameter_types = []
+        if not self.check(TokenType.RPAREN):
+            parameter_types.append(self.parse_type())
+            while self.match(TokenType.COMMA):
+                parameter_types.append(self.parse_type())
+        self.consume(TokenType.RPAREN, "Expected ')' after function type parameters")
+        if not self.match(TokenType.COLON, TokenType.ARROW):
+            raise ParserError(self.peek(), "Expected ':' or '->' before function type's return type")
+        return_type = self.parse_type()
+        return FunctionType(
+            location=start.location,
+            parameter_types=parameter_types,
+            return_type=return_type
+        )
+
+    def is_function_type_declaration_start(self) -> bool:
+        """Check whether a declaration with a function type starts here - e.g.
+        `(int) : int op = ...` or `(int) : int function pick(...)`.
+
+        Speculatively parses a function type and requires a name (or `function`) after it,
+        then restores the position. This tells a declaration apart from an expression
+        statement that also starts with '(' - `(a + b)` or a lambda `(int x) : x * 2` both
+        fail the function-type parse.
+
+        Returns:
+            True if a function type followed by a name or `function` starts here
+        """
+        if not self.check(TokenType.LPAREN):
+            return False
+        saved_pos = self.current
+        try:
+            self.parse_function_type()
+            return self.check(TokenType.IDENTIFIER) or self.check(TokenType.FUNCTION)
+        except ParserError:
+            return False
+        finally:
+            self.current = saved_pos
 
     # ========================================================================
     # Interpolated String Parsing
@@ -734,7 +792,7 @@ class Parser:
             return self.parse_const_declaration()
 
         # Check if it's a variable declaration (starts with type)
-        if self.is_type_start():
+        if self.is_type_start() or self.is_function_type_declaration_start():
             return self.parse_var_declaration()
 
         # Otherwise, parse as expression (could be assignment)
@@ -1109,7 +1167,7 @@ class Parser:
             ParserError: If declaration is malformed
         """
         # Function declaration: <return_type> function <name>(<params>) { body }
-        if self.is_type_start():
+        if self.is_type_start() or self.is_function_type_declaration_start():
             return_type = self.parse_type()
 
             # Skip newlines after return type

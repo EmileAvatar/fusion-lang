@@ -579,7 +579,7 @@ def test_error_missing_closing_paren():
 def test_error_missing_argument():
     """Test error on missing function argument after comma."""
     with pytest.raises(ParserError) as excinfo:
-        parse_expr("func(1, )")
+        parse_expr("foo(1, )")
     assert "Unexpected token" in str(excinfo.value)
 
 

@@ -618,6 +618,34 @@ Spaceship ship3 = createShip(crew = 200)  // Only crew changed
 
 Description: Variables that hold functions. Lambdas are first-class citizens with full type safety.
 
+**Implemented so far (Task 18.1.3 - lambdas v1, no closures):**
+
+```
+int function tripler(int x) : x * 3
+int function apply((int) : int op, int value) : op(value)    // function-typed parameter
+
+(int) : int op = tripler               // a named function as a value
+op = func(int x) : x * 2               // inline lambda - return type inferred from the body
+int a = op(5)                          // call through the variable
+int b = apply(function(int x) : x - 1, 4)
+int c = apply((int x) : x * x, 9)      // short form, no keyword
+(int, int) -> int add = func(int p, int q) : p + q    // '->' works as well as ':'
+(int) : int function pick() : tripler                 // functions can return functions
+```
+
+* Function types: `(paramTypes) : returnType` or `(paramTypes) -> returnType`
+* **No closures yet** - a lambda may use only its own parameters and top-level functions;
+  using a variable of the surrounding function is a compile error. Captured variables must
+  outlive the function that created the lambda, which needs Fusion's heap-ownership rules
+  (Task 18.3) first. The closure examples below are the intended design, not yet working
+* A function variable must be initialized (no `null` functions yet)
+* Lambda bodies are a single expression; the multi-line forms below aren't supported yet
+* Lambda parameters can't have defaults or be arrays; builtins (`print`, `len`, `range`)
+  can't be used as values; a function with array parameters can't be used as a value
+* Note: examples below such as `int multiply = func(int x, int y) : x * y` declare the
+  variable as `int` - the implemented form uses a function type:
+  `(int, int) : int multiply = func(int x, int y) : x * y`
+
 **Key Concept**: A lambda is a variable that holds a function. Use `func` or `function` keywords interchangeably based on preference.
 
 **Format**: `<returnType> <variableName>(<type> <param> {= default}) : <expression or body>`

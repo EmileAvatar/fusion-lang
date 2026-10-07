@@ -42,6 +42,10 @@ class NameResolver:
         self.errors: List[SemanticError] = []
         self.current_function: Optional[str] = None
 
+        # Scopes of the lambdas currently being resolved, innermost last - used to detect
+        # closures (a lambda using a variable of the function around it, Task 18.1.3)
+        self.lambda_scopes: List = []
+
         # Register built-in functions
         self.register_builtins()
 
@@ -530,6 +534,32 @@ class NameResolver:
                 f"Undefined variable: '{expr.name}'",
                 expr.location
             ))
+        elif self.lambda_scopes and self.is_captured(expr.name):
+            self.errors.append(SemanticError(
+                f"Lambda uses '{expr.name}' from the surrounding function - closures "
+                f"(capturing variables) are not supported yet. Pass '{expr.name}' to the "
+                f"lambda as a parameter instead",
+                expr.location
+            ))
+
+    def is_captured(self, name: str) -> bool:
+        """Return True if `name`, used inside the innermost lambda, is defined outside that
+        lambda but not at global scope - i.e. using it would make the lambda a closure.
+
+        A closure must keep the captured variable alive after the function that created
+        the lambda returns, which needs heap memory and an ownership rule (Task 18.3), so
+        v1 lambdas can only use their own parameters and global names (functions).
+        """
+        lambda_scope = self.lambda_scopes[-1]
+        scope = self.symbol_table.current_scope
+        while scope is not None:
+            if name in scope.symbols:
+                return False  # defined inside the lambda (its parameters or deeper)
+            if scope is lambda_scope:
+                break
+            scope = scope.parent
+        # Defined outside the lambda - fine only if it's a global (e.g. a function)
+        return name not in self.symbol_table.global_scope.symbols
 
     def resolve_call(self, expr: CallExpr) -> None:
         """Resolve function call.
@@ -548,11 +578,21 @@ class NameResolver:
                     f"Undefined function: '{func_name}'",
                     expr.location
                 ))
-            elif symbol.symbol_type != 'function':
+            elif symbol.symbol_type != 'function' and not isinstance(symbol.data_type, FunctionType):
+                # A variable or parameter holding a function can be called (Task 18.1.3)
                 self.errors.append(SemanticError(
                     f"'{func_name}' is not a function",
                     expr.location
                 ))
+            elif self.lambda_scopes and symbol.symbol_type != 'function' and self.is_captured(func_name):
+                self.errors.append(SemanticError(
+                    f"Lambda uses '{func_name}' from the surrounding function - closures "
+                    f"(capturing variables) are not supported yet",
+                    expr.location
+                ))
+        else:
+            # Calling the result of an expression, e.g. (func(int x) : x * 2)(5)
+            self.resolve_expression(expr.callee)
 
         # Resolve arguments
         for arg in expr.arguments:
@@ -564,23 +604,32 @@ class NameResolver:
         Args:
             expr: Lambda expression node
         """
-        # Enter lambda scope
+        # Enter lambda scope - stored on the node so the type checker re-enters the same,
+        # already-populated scope (Task 18.1.3)
         self.symbol_table.enter_scope(f"lambda:{id(expr)}")
+        expr.scope = self.symbol_table.current_scope
+        self.lambda_scopes.append(expr.scope)
 
         try:
-            # Register lambda parameters
+            # Register lambda parameters. A lambda is called through a function value, which
+            # carries only parameter types - so its parameters can't have defaults
             for param in expr.parameters:
+                if param.default_value is not None:
+                    self.errors.append(SemanticError(
+                        f"Lambda parameter '{param.name}' can't have a default value",
+                        param.location
+                    ))
                 self.register_parameter(param)
 
-            # Resolve lambda body
-            # Lambda body can be a single expression or a BlockStmt
+            # Resolve lambda body - a single expression, or a BlockStmt sharing the
+            # parameter scope (via resolve_block, so its .scope is set - fixes Task 15.3)
             if isinstance(expr.body, BlockStmt):
-                for stmt in expr.body.statements:
-                    self.resolve_statement(stmt)
+                self.resolve_block(expr.body, new_scope=False)
             else:
                 # Single expression body
                 self.resolve_expression(expr.body)
         finally:
+            self.lambda_scopes.pop()
             try:
                 self.symbol_table.exit_scope()
             except SemanticError:

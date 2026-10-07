@@ -286,7 +286,34 @@ class TypeChecker:
                 node.location
             ))
             return PrimitiveType(location=node.location, name='void')
+
+        # A named function used as a value, e.g. apply(tripler, 5) (Task 18.1.3)
+        if symbol.symbol_type == 'function':
+            if not isinstance(symbol.declaration, FunctionDecl):
+                self.errors.append(SemanticError(
+                    f"Built-in function '{node.name}' can't be used as a value",
+                    node.location
+                ))
+            elif any(isinstance(p.param_type, ArrayType) for p in symbol.declaration.parameters):
+                self.errors.append(SemanticError(
+                    f"Function '{node.name}' has array parameters, so it can't be used as a "
+                    f"value yet",
+                    node.location
+                ))
         return symbol.data_type
+
+    def _check_function_type_supported(self, type_node: TypeNode, location) -> None:
+        """Reject function types v1 can't lower to C (Task 18.1.3): an array parameter
+        needs a hidden length argument, which a plain function value can't carry yet."""
+        if isinstance(type_node, FunctionType):
+            for param_type in type_node.parameter_types:
+                if isinstance(param_type, ArrayType):
+                    self.errors.append(SemanticError(
+                        "Function types can't have array parameters yet",
+                        location
+                    ))
+                self._check_function_type_supported(param_type, location)
+            self._check_function_type_supported(type_node.return_type, location)
 
     def visit_BinaryExpr(self, node: BinaryExpr) -> TypeNode:
         """Check binary operation type compatibility.
@@ -391,13 +418,9 @@ class TypeChecker:
         Returns:
             Return type of the function
         """
-        # Get function name (callee should be IdentifierExpr)
+        # Calling the result of an expression, e.g. (func(int x) : x * 2)(5) (Task 18.1.3)
         if not isinstance(node.callee, IdentifierExpr):
-            self.errors.append(SemanticError(
-                "Function call callee must be an identifier",
-                node.callee.location
-            ))
-            return PrimitiveType(location=node.location, name='void')
+            return self._check_function_value_call(node, self.visit(node.callee), "function value")
 
         func_name = node.callee.name
 
@@ -411,6 +434,10 @@ class TypeChecker:
             return PrimitiveType(location=node.location, name='void')
 
         if symbol.symbol_type != 'function':
+            # A variable or parameter holding a function (Task 18.1.3)
+            if isinstance(symbol.data_type, FunctionType):
+                node.callee.inferred_type = symbol.data_type
+                return self._check_function_value_call(node, symbol.data_type, f"'{func_name}'")
             self.errors.append(SemanticError(
                 f"'{func_name}' is not a function",
                 node.location
@@ -484,6 +511,8 @@ class TypeChecker:
         # C has no default arguments - record the full argument list for codegen, with each
         # omitted argument replaced by its parameter's (constant) default value
         node.resolved_arguments = list(node.arguments) + defaults[actual_count:]
+        # A direct call to a declared function - codegen reads its parameters from here
+        node.callee_declaration = declaration
 
         # Check each argument type
         for i, (arg, expected_type) in enumerate(zip(node.arguments, func_type.parameter_types)):
@@ -498,6 +527,42 @@ class TypeChecker:
                 ))
 
         return func_type.return_type
+
+    def _check_function_value_call(self, node: CallExpr, callee_type: TypeNode,
+                                   description: str) -> TypeNode:
+        """Check a call through a function value - a variable, parameter, or expression
+        holding a function (Task 18.1.3). A function value carries only its type, so every
+        argument must be given (no defaults).
+
+        Returns:
+            The function's return type (void for error recovery)
+        """
+        if not isinstance(callee_type, FunctionType):
+            self.errors.append(SemanticError(
+                f"Cannot call a value of type {self.type_to_string(callee_type)}",
+                node.location
+            ))
+            return PrimitiveType(location=node.location, name='void')
+
+        expected_count = len(callee_type.parameter_types)
+        if len(node.arguments) != expected_count:
+            self.errors.append(SemanticError(
+                f"Calling {description} expects {expected_count} argument(s), got "
+                f"{len(node.arguments)}",
+                node.location
+            ))
+            return callee_type.return_type
+
+        for i, (arg, expected_type) in enumerate(zip(node.arguments, callee_type.parameter_types)):
+            actual_type = self.visit(arg)
+            if not self.types_compatible(expected_type, actual_type):
+                self.errors.append(SemanticError(
+                    f"Argument {i+1} to {description}: expected "
+                    f"{self.type_to_string(expected_type)}, got {self.type_to_string(actual_type)}",
+                    arg.location
+                ))
+        node.resolved_arguments = list(node.arguments)
+        return callee_type.return_type
 
     def _check_array_argument(self, func_name: str, index: int, arg: ASTNode,
                               expected: ArrayType, actual: TypeNode) -> None:
@@ -551,26 +616,40 @@ class TypeChecker:
         Returns:
             Function type of the lambda
         """
-        # Get parameter types
-        param_types = [param.param_type for param in node.parameters]
+        # Re-enter the lambda's own scope (populated by the name resolver), so its
+        # parameters are visible in the body
+        if node.scope is not None:
+            self.symbol_table.enter_existing_scope(node.scope)
+        old_return_type = self.current_function_return_type
+        try:
+            for param in node.parameters:
+                if isinstance(param.param_type, ArrayType):
+                    self.errors.append(SemanticError(
+                        f"Lambda parameter '{param.name}' can't be an array yet",
+                        param.location
+                    ))
+                self.visit(param)
 
-        # Create function type
-        func_type = FunctionType(
-            parameter_types=param_types,
+            # The return type isn't written in the source: infer it from a single-expression
+            # body (Task 18.1.3). A block body (built directly as an AST, not parsed) keeps
+            # any return type it was given, or is void
+            self.current_function_return_type = node.return_type
+            body_type = self.visit(node.body)
+            if node.return_type is None:
+                if isinstance(node.body, BlockStmt) or body_type is None:
+                    node.return_type = PrimitiveType(location=node.location, name='void')
+                else:
+                    node.return_type = body_type
+        finally:
+            self.current_function_return_type = old_return_type
+            if node.scope is not None:
+                self.symbol_table.exit_scope()
+
+        return FunctionType(
+            parameter_types=[param.param_type for param in node.parameters],
             return_type=node.return_type,
             location=node.location
         )
-
-        # Check body (enter function scope for return type checking)
-        old_return_type = self.current_function_return_type
-        self.current_function_return_type = node.return_type
-
-        # Visit body
-        self.visit(node.body)
-
-        self.current_function_return_type = old_return_type
-
-        return func_type
 
     def visit_InterpolatedStringExpr(self, node: InterpolatedStringExpr) -> TypeNode:
         """Check interpolated string expression.
@@ -676,6 +755,16 @@ class TypeChecker:
         if isinstance(node.var_type, ArrayType):
             self._check_array_var_decl(node)
             return
+
+        if isinstance(node.var_type, FunctionType):
+            self._check_function_type_supported(node.var_type, node.location)
+            # No null functions yet - calling one would crash (nullability is Task 14)
+            if node.initializer is None:
+                self.errors.append(SemanticError(
+                    f"Function variable '{node.name}' must be initialized with a function",
+                    node.location
+                ))
+                return
 
         if node.initializer:
             init_type = self.visit(node.initializer)
@@ -993,6 +1082,8 @@ class TypeChecker:
         Args:
             node: Parameter declaration node
         """
+        self._check_function_type_supported(node.param_type, node.location)
+
         # Check default value type if present
         if node.default_value:
             default_type = self.visit(node.default_value)

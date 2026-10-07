@@ -38,10 +38,11 @@ class TypeMapperMixin:
             return type_map.get(fusion_type.name, 'void')
 
         elif isinstance(fusion_type, FunctionType):
-            # Function pointer type
-            param_types = ', '.join(self.map_type(p) for p in fusion_type.parameter_types)
-            return_type = self.map_type(fusion_type.return_type)
-            return f'{return_type} (*)({param_types})'
+            # A function pointer, named through a typedef (Task 18.1.3). C's raw declarator
+            # syntax wraps around the name - `int (*op)(int)`, and for a function returning
+            # one, `int (*pick(bool b))(int)` - so one typedef per distinct function type
+            # keeps variables, parameters and return types all as plain `<type> <name>`
+            return self.function_typedef_name(fusion_type)
 
         elif isinstance(fusion_type, ArrayType):
             # Just the element's C type - the array declaration itself needs the size
@@ -50,3 +51,27 @@ class TypeMapperMixin:
             return self.map_type(fusion_type.element_type)
 
         return 'void'
+
+    def function_typedef_name(self, fusion_type: FunctionType) -> str:
+        """Return the C typedef name for a function type, registering it on first use.
+
+        Typedefs are collected in self.function_typedefs (C signature -> name) and emitted
+        near the top of the C file by generate(). Identical function types share a name.
+        Uses the `fusion_` prefix, like the other compiler-generated names (see Task 15.8).
+        """
+        if not hasattr(self, 'function_typedefs'):
+            self.function_typedefs = {}
+        param_types = ', '.join(self.map_type(p) for p in fusion_type.parameter_types) or 'void'
+        return_type = self.map_type(fusion_type.return_type)
+        signature = f'{return_type} (*)({param_types})'
+        if signature not in self.function_typedefs:
+            self.function_typedefs[signature] = f'fusion_fn_{len(self.function_typedefs) + 1}'
+        return self.function_typedefs[signature]
+
+    def function_typedef_lines(self) -> list:
+        """The typedef declarations for every function type used, in first-use order."""
+        lines = []
+        for signature, name in getattr(self, 'function_typedefs', {}).items():
+            # 'int (*)(int)' -> 'typedef int (*fusion_fn_1)(int);'
+            lines.append('typedef ' + signature.replace('(*)', f'(*{name})', 1) + ';')
+        return lines

@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Wed Oct  7 23:48:52 SAST 2026
+**Date:** Wed Oct  7 23:56:58 SAST 2026
 **Total Examples:** 9
 
 ## Summary
@@ -350,6 +350,7 @@ Welcome, Fusion!
 offset(10) = 5, offset(10, 2) = 12
 sum: 6, 150, 15
 After doubleAll, middle of small = 4
+tripled = 15, added = 105, squared = 49, viaName = 21
 All function tests passed!
 ```
 
@@ -361,6 +362,7 @@ Welcome, Fusion!
 offset(10) = 5, offset(10, 2) = 12
 sum: 6, 150, 15
 After doubleAll, middle of small = 4
+tripled = 15, added = 105, squared = 49, viaName = 21
 All function tests passed!```
 
 **Generated C Code (first 50 lines):**
@@ -370,13 +372,26 @@ All function tests passed!```
 #include <stdio.h>
 #include <string.h>
 
+// Function types
+typedef int (*fusion_fn_1)(int);
+
 // Forward declarations
 void greet(char* name, char* greeting);
 int offset(int value, int by);
 int sum(int* values, int fusion_len_values);
 void doubleAll(int* values, int fusion_len_values);
 int middle(int trio[3]);
+int triple(int x);
+int apply(fusion_fn_1 operation, int value);
 int main(void);
+
+static int fusion_lambda_1(int x) {
+    return (x + 100);
+}
+
+static int fusion_lambda_2(int x) {
+    return (x * x);
+}
 
 void greet(char* name, char* greeting) {
     printf("%s, %s!\n", greeting, name);
@@ -402,19 +417,6 @@ void doubleAll(int* values, int fusion_len_values) {
 
 int middle(int trio[3]) {
     return trio[1];
-}
-
-int main(void) {
-    printf("=== Fusion Functions Demo ===\n");
-    greet("World", "Hello");
-    greet("Fusion", "Hello");
-    greet("Fusion", "Welcome");
-    int lower = offset(10, (-5));
-    int higher = offset(10, 2);
-    printf("offset(10) = %d, offset(10, 2) = %d\n", lower, higher);
-    int small[3] = {1, 2, 3};
-    int large[5] = {10, 20, 30, 40, 50};
-    int smallSum = sum(small, 3);
 ... (truncated)
 ```
 

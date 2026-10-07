@@ -124,29 +124,36 @@ class CallExpr(ASTNode):
         resolved_arguments: The arguments as written plus any omitted trailing parameters'
             default values, in parameter order - set by the type checker (Task 18.1.1).
             None until type-checked; codegen uses it when set, since C has no defaults
+        callee_declaration: For a direct call to a declared function, its FunctionDecl - set
+            by the type checker; None for builtins and calls through function values
     """
     callee: ASTNode  # Usually IdentifierExpr
     arguments: List[ASTNode]
     inferred_type: Optional['TypeNode'] = None
     resolved_arguments: Optional[List[ASTNode]] = None
+    callee_declaration: Optional[Any] = None
 
 
 @dataclass
 class LambdaExpr(ASTNode):
-    """Lambda expression: (int x, int y) : x + y
+    """Lambda expression: (int x, int y) : x + y, or func(int x) : x * 2
 
     Inline lambda with colon syntax for single-expression functions.
 
     Attributes:
         parameters: List of parameter declarations
-        return_type: Return type node
+        return_type: Return type node - not written in the source, so the parser leaves it
+            None and the type checker infers it from the body (Task 18.1.3)
         body: Lambda body (single expression or BlockStmt for multi-line)
         inferred_type: Type resolved by the semantic analyzer (None until type-checked)
+        scope: The lambda's parameter scope, set by the name resolver so the type checker
+            can re-enter it (same pattern as BlockStmt.scope)
     """
     parameters: List['ParameterDecl']
-    return_type: 'TypeNode'
+    return_type: Optional['TypeNode']
     body: ASTNode  # Single expression or BlockStmt
     inferred_type: Optional['TypeNode'] = None
+    scope: Optional[Any] = None
 
 
 @dataclass

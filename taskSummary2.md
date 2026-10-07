@@ -55,13 +55,13 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 12: Architecture Hardening** | Complete | 100% | 12 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Task 15: Deferred Decisions Revisit List** | In Progress | 11% | 1 | 9 |
+| **Task 15: Deferred Decisions Revisit List** | In Progress | 22% | 2 | 9 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
-| **Task 18: Core Language Foundation** | Not Started (next priority) | 0% | 0 | 5 |
+| **Task 18: Core Language Foundation** | In Progress (18.1 done) | 20% | 1 | 5 |
 | **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
 | **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
-| **Overall** | Task 19.6 Complete | 40% | 48 | 119 |
+| **Overall** | Task 18.1 Complete | 41% | 50 | 121 |
 
 ---
 
@@ -625,8 +625,12 @@ trigger has arrived, rather than re-discovering them by reading old commit messa
       convention, one shared naming scheme) rather than guessing its shape now
 - [ ] Note already recorded in `src/codegen/c_runtime.py`'s module docstring
 
-#### 15.3: LambdaExpr Scope Bug (trigger: lambda codegen stops being a stub)
-- [ ] `NameResolver.resolve_lambda()` resolves a `BlockStmt`-bodied lambda's statements
+#### 15.3: LambdaExpr Scope Bug - RESOLVED (2026-10-07, as part of Task 18.1.3)
+- [x] Fixed: `resolve_lambda()` now calls `resolve_block(new_scope=False)` for a block body, and
+      stores the lambda's own scope on `LambdaExpr.scope` so the type checker re-enters it.
+      A second, related bug was found and fixed with it: the type checker never entered
+      the lambda's scope at all, so a lambda's parameters were undefined inside its body
+- [x] (original note) `NameResolver.resolve_lambda()` resolves a `BlockStmt`-bodied lambda's statements
       inline without going through `resolve_block()`, so the block's `.scope` never gets
       set - under block-level scoping (Task 12.6), `TypeChecker.visit_BlockStmt()` falls
       back to creating a fresh scope in this one case instead of reusing the correct one
@@ -914,7 +918,7 @@ this foundation unblocks roughly 80% of the open task list in one stretch.
 
 Ordered by dependency - each builds on the ones before it.
 
-#### 18.1: Functions With Full Parameter Types
+#### 18.1: Functions With Full Parameter Types - COMPLETE (2026-10-07)
 **Why first:** functions are the unit of all reusable code - a stdlib, a self-hosted
 compiler, or any non-trivial program is built out of them, and today they're restricted.
 - [x] **Default parameter values don't actually work** (verified 2026-10-07) - FIXED in 18.1.1: they're parsed
@@ -924,9 +928,9 @@ compiler, or any non-trivial program is built out of them, and today they're res
       feature. C has no default arguments, so codegen must fill omitted arguments in at each
       call site
 - [x] Arrays as function parameters - DONE in 18.1.2 (return values moved to 18.2)
-- [ ] Real lambda codegen (currently emits the placeholder `/* <lambda> */`) - this also
+- [x] Real lambda codegen - DONE in 18.1.3 (was the placeholder `/* <lambda> */`) - this also
       makes Task 15.3's LambdaExpr scope bug reachable, so fix both together
-- [ ] Example program per Rule 5 / Task 16
+- [x] Example program per Rule 5 / Task 16 - `examples/functions_demo.fusion`
 
 ### 18.1 Detailed Plan (APPROVED 2026-10-07 - all three parts)
 
@@ -985,31 +989,49 @@ adds tests, an example program (Rule 5), and spec/CLAUDE.md updates.
       "Array parameters" section. Full suite 1212 passed, 8 skipped; 9/9 examples
 
 **18.1.3 - Lambdas v1 (no closures)**
+**Status: COMPLETE (2026-10-07)**
 The spec (`fusion-language-spec.md`, "Lambda Expressions") describes function types, inline
 lambdas, passing functions as arguments, and closures. v1 builds everything except closures:
-- [ ] Function type syntax, per spec: `(int, int) : int` (and the `->` alternative) for
+- [x] Function type syntax, per spec: `(int, int) : int` (and the `->` alternative) for
       variables and parameters - e.g. `(int) : int op = tripler`
-- [ ] Inline lambda expressions: `func(int x) : x * 2`, `function(...) : ...`, and the current
+- [x] Inline lambda expressions: `func(int x) : x * 2`, `function(...) : ...`, and the current
       `(int x) : x * 2`. The return type is inferred from the body expression (the parser
       currently records `void` as a placeholder)
-- [ ] A named function can be used as a value (`apply(tripler, 5)`)
-- [ ] Calling through a function-typed variable or parameter (`op(5)`)
-- [ ] Codegen: each inline lambda becomes a private top-level C function
+- [x] A named function can be used as a value (`apply(tripler, 5)`)
+- [x] Calling through a function-typed variable or parameter (`op(5)`)
+- [x] Codegen: each inline lambda becomes a private top-level C function
       (`static int fusion_lambda_1(int x)`), and function types become C function pointers.
       Replaces the `/* <lambda> */` placeholder
-- [ ] Fix Task 15.3 (lambda block-scope bug) at the same time - this makes it reachable
-- [ ] **Closures (a lambda using a variable from the surrounding function) are rejected** with
+- [x] Fix Task 15.3 (lambda block-scope bug) at the same time - this makes it reachable
+- [x] **Closures (a lambda using a variable from the surrounding function) are rejected** with
       a clear "not yet supported" error. Captured variables must outlive the function that
       created them, which needs heap memory and an ownership rule - the same decision 18.3
       has to make for strings. Revisit after 18.3
-- [ ] Function-typed variables must be initialized - no `= null` yet (calling a null function
+- [x] Function-typed variables must be initialized - no `= null` yet (calling a null function
       crashes; nullability is Task 14's design)
-- [ ] Out of scope: named lambdas declared inside a function body (`int adder(int x) : ...`
+- [x] Out of scope: named lambdas declared inside a function body (`int adder(int x) : ...`
       inside another function) - they only matter once closures exist
+- [x] Implementation notes: function types become C typedefs (`typedef int
+      (*fusion_fn_1)(int);`), so variables, parameters and return types are all plain
+      `<type> <name>` in C; functions can return functions (`(int) : int function pick()`);
+      calling the result of an expression works (`(func(int x) : x)(5)`); a nested lambda is
+      lifted ahead of the lambda that uses it
+- [x] Further v1 limits, each with a clear error: lambda parameters can't have defaults or be
+      arrays; function types can't have array parameters, and a function with array
+      parameters can't be used as a value (a function value can't carry the hidden length);
+      builtins (`print`, `len`, `range`) can't be used as values; lambda bodies are single
+      expressions (multi-line lambda bodies, which the spec shows, are not supported yet)
+- [x] A parser test (`test_error_missing_argument`) passed by accident - it used the reserved
+      keyword `func` as a function name, so it failed at `func`, not at the missing argument
+      it meant to test. Now uses `foo`
+- [x] 22 tests in `tests/test_functions.py`; lambdas added to `functions_demo.fusion`; generated
+      C compiles cleanly with `gcc -Wall -Wextra`. Full suite 1234 passed, 8 skipped; 9/9
 
-**Success criteria for 18.1:** `greet()` with a default compiles and runs; a `sum(int[]
+**Success criteria for 18.1 - all met:** `greet()` with a default compiles and runs; a `sum(int[]
 values)` function works on arrays of different sizes; `apply(func(int x) : x * 2, 5)` prints
 10; a capturing lambda fails with a clear message; full suite green; 8/8 + new examples.
+(Met: `apply(func(int x) : x * x, 7)` gives 49 in the example; closures are rejected with
+"Lambda uses 'offset' from the surrounding function - closures ... not supported yet".)
 
 #### 18.2: Structs
 **Why second:** the first user-defined composite type, and the lowest-risk way into
@@ -2086,18 +2108,11 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 
 ---
 
-**Next Action:** Task 12 (all 12 sub-tasks) is complete and archived. Task 9 is also now
-archived. Remaining open items: Task 13 (HIDL module) and Task 14 (nullable arrays) are both
-unblocked but still need their own scoping approval before implementation begins (per Rule 1);
-Task 15 tracks 7 deferred decisions/gaps from Task 12, each with its own revisit trigger (see
-Task 15 above); Task 16 tracks 7 missing example programs, one per language feature - 16.1
-(control flow) is buildable now, 16.2-16.7 are each blocked on their own not-yet-built feature;
-Task 17 (mutable/fixed strings, templated fixed strings, string pooling) is logged only, not
-yet approved for scoping; Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning
-complete" but not started, pending the Task 15.4 ordering decision. **Task 18 (Core Language
-Foundation) remains the foundation most other work needs**. **Task 19.6** (source-level attack
-defenses) is complete; the rest of Task 19 needs Task 18.4 (`import`) first. The printf `%`
-format-string bug (Task 18.3) is fixed. Task 20 (multi-format
-config) is logged and unblocked. Read
-`FutureFeaturesCaution.md` before picking up anything from FutureFeatures.md. Completed-task
-detail for Tasks 5-9 and 12 lives in `task/taskSummaryArchive.md`.
+**Next Action:** Task 18.1 (functions: default params, array params, lambdas v1) is complete.
+Next: write the detailed plan for **Task 18.2 (structs)** and get it approved (Rule 1) - it now
+also owns array return values (moved from 18.1.2). Open logged items from this session: Task
+15.8 (reserve the `fusion_` prefix - before 18.4) and 15.9 (`print("{arr}")` crashes codegen).
+Closures wait for 18.3's memory-ownership decision. Task 19.1-19.5 need 18.4 (`import`); Task
+20 (multi-format config) is unblocked. Read `FutureFeaturesCaution.md` before picking up
+anything from FutureFeatures.md. Completed-task detail for Tasks 5-9 and 12 lives in
+`task/taskSummaryArchive.md`.

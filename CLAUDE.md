@@ -154,11 +154,11 @@ d:\Dropbox\Fusion\
 ## 📍 CURRENT STATUS
 
 **Date:** 2026-10-07
-**Phase:** Post-MVP Development - Tasks 5-9 and 12 complete; no task actively in progress
+**Phase:** Post-MVP Development - Tasks 5-9 and 12 complete; Task 18 (Core Language) in progress
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,212 tests passing (99.3%)
+- 1,234 tests passing (99.3%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
@@ -175,9 +175,9 @@ GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12 (all 12 sub-task
 codegen split, block scoping, memory model semantics, docs sync, project config system, and
 two deliberately-deferred design decisions - IR layer and stdlib lowering)
 
-**In progress:** Nothing. **Task 19.6** (source-level attack defenses) and the printf `%`
-format-string fix are complete. Recommended next: Task 18 (Core Language Foundation) -
-Task 19.1-19.5 depend on its `import` work. Guiding rule:
+**In progress:** Task 18 (Core Language Foundation). **18.1** (default params, array
+params, lambdas) is complete; next is **18.2 (structs)**, which needs a detailed plan approved
+first. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
 a simple working language first, complex features after (see `FutureFeaturesCaution.md`).
 Security principle: **never trust code**.
 
@@ -262,6 +262,13 @@ void function greet(string name = "World") : print("Hello, {name}!")
 
 // Defaults must come last and be constants (literals, or a negated number); omitted
 // trailing arguments are filled in at the call site: greet() -> greet("World") (Task 18.1.1)
+```
+
+### Lambdas (Task 18.1.3 - no closures yet)
+```fusion
+(int) : int op = func(int x) : x * 2     // function type, inline lambda
+int function apply((int) : int f, int v) : f(v)
+int r = apply(tripler, 5)                // named functions are values too
 ```
 
 ### Block Styles
@@ -431,6 +438,9 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
   allow_unicode_identifiers` (mixed look-alike scripts still rejected); `\uXXXX` escapes in
   string and char literals; lexer warnings printed by `main.py`
 - Char literals work correctly end-to-end (`char c = 'a'` - was broken before Task 19.6)
+- Functions (Task 18.1, complete): parameter default values; arrays as parameters (`int[]` any
+  size, `int[5]` exact, by reference); lambdas and function types (`(int) : int`), named
+  functions as values, calls through function variables - no closures yet (Task 18.3 first)
 
 **Known Limitations (by design):**
 - Single-quote comments disabled (conflicts with char literals)
@@ -502,8 +512,7 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Task 19.6 and the printf `%` fix are done. Next: Task 18 (Core Language
-Foundation), starting with a detailed plan for 18.1. Read
+**Current Focus:** Task 18.1 is done. Next: a detailed plan for 18.2 (structs). Read
 `FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
 
 **Completed:**
@@ -529,7 +538,7 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1212 passed, 8 skipped**
+4. `python -m pytest tests/ -q` - expect **1234 passed, 8 skipped**
 5. `python tests/verify_examples.py` - expect **9/9**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and

@@ -14,7 +14,7 @@ from typing import List, Set
 import json
 from ..parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
-    PrimitiveType, ArrayType,
+    PrimitiveType, ArrayType, FunctionType,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr,
     CallExpr, LambdaExpr,
     ArrayLiteralExpr, IndexExpr,
@@ -70,6 +70,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # Clear previous state
         self.output.clear()
         self.generated_functions.clear()
+        self.function_typedefs = {}      # function types -> typedef names (Task 18.1.3)
+        self.lambda_definitions = []     # lifted lambda functions, as C lines (Task 18.1.3)
+        self.lambda_count = 0
 
         # Function declarations by name - call lowering needs each callee's parameter
         # types, to add hidden array-length arguments (Task 18.1.2)
@@ -79,9 +82,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
 
         # Generate includes
         self._generate_includes()
+        typedef_index = len(self.output)
 
         # Generate forward declarations
         self._generate_forward_declarations(program)
+        lambda_index = len(self.output)
 
         # Generate all functions
         # Ensure main() is generated last (C convention)
@@ -102,6 +107,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # Generate main function last
         if main_func:
             self.visit(main_func)
+
+        # Function types and lambdas are only discovered while generating the code above,
+        # but C needs them declared first: lifted lambdas go after the forward declarations
+        # (they may call any function), and typedefs right after the includes. Insert the
+        # later position first so the earlier index stays valid
+        if self.lambda_definitions:
+            self.output[lambda_index:lambda_index] = self.lambda_definitions
+        typedef_lines = self.function_typedef_lines()
+        if typedef_lines:
+            self.output[typedef_index:typedef_index] = (
+                ['// Function types'] + typedef_lines + ['']
+            )
 
         # Return complete C code
         return '\n'.join(self.output)
@@ -276,6 +293,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             Variable/parameter name
         """
+        # A declared function used as a value (Task 18.1.3) - use its C name, which differs
+        # from the Fusion name when it collides with a C keyword
+        if isinstance(node.inferred_type, FunctionType) and node.name in getattr(self, 'function_decls', {}):
+            return self._mangle_function_name(node.name)
         return node.name
 
     def visit_BinaryExpr(self, node: BinaryExpr) -> str:
@@ -359,6 +380,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # Get function name
         if isinstance(node.callee, IdentifierExpr):
             func_name = node.callee.name
+            calls_function_value = isinstance(node.callee.inferred_type, FunctionType)
 
             # Special handling for built-in functions
             if func_name == 'print':
@@ -366,16 +388,21 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             if func_name == 'len':
                 return self._generate_len_call(node)
 
-            # Mangle user-defined function names
-            func = self._mangle_function_name(func_name)
+            # Mangle user-defined function names (a variable holding a function keeps its
+            # own name - C calls through a function pointer the same way)
+            func = func_name if calls_function_value else self._mangle_function_name(func_name)
         else:
-            func = self.visit(node.callee)
+            # Calling the result of an expression, e.g. (func(int x) : x * 2)(5)
+            func = f'({self.visit(node.callee)})'
 
         # Generate arguments - resolved_arguments includes any omitted parameters' default
         # values (Task 18.1.1); it's None only when semantic analysis didn't run
         arguments = node.resolved_arguments if node.resolved_arguments is not None else node.arguments
-        callee_decl = None
-        if isinstance(node.callee, IdentifierExpr):
+        # The declared function being called, for its parameter types. The type checker
+        # records it (callee_declaration); looking it up by name is only a fallback for
+        # code generated without semantic analysis
+        callee_decl = node.callee_declaration
+        if node.resolved_arguments is None and isinstance(node.callee, IdentifierExpr):
             callee_decl = getattr(self, 'function_decls', {}).get(node.callee.name)
         params = callee_decl.parameters if callee_decl else [None] * len(arguments)
 
@@ -818,10 +845,24 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             Function pointer or inline function
         """
-        # For MVP, lambdas are converted to named functions
-        # This would require generating an anonymous function
-        # and returning a function pointer
+        # Lambdas can't capture variables (v1 - enforced by semantic analysis), so each one
+        # is lifted to its own private top-level C function, and the lambda expression
+        # itself becomes that function's name - a function pointer (Task 18.1.3)
+        self.lambda_count = getattr(self, 'lambda_count', 0) + 1
+        name = f'fusion_lambda_{self.lambda_count}'
+        if not hasattr(self, 'lambda_definitions'):
+            self.lambda_definitions = []
 
-        # Simplified: return placeholder
-        # Full implementation deferred post-MVP
-        return '/* <lambda> */'
+        return_type = self.map_type(node.return_type) if node.return_type else 'void'
+        params = self._c_parameter_list(node.parameters)
+        # Generated before this lambda's lines are added, so a lambda nested in this body
+        # is lifted (and defined) ahead of this one
+        body_code = self.visit(node.body)
+        statement = body_code if return_type == 'void' else f'return {body_code}'
+        self.lambda_definitions.extend([
+            f'static {return_type} {name}({params}) {{',
+            f'    {statement};',
+            '}',
+            '',
+        ])
+        return name

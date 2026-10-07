@@ -273,3 +273,190 @@ def test_array_parameters_end_to_end():
     assert exit_code == 0, stderr
     # double_all changed the caller's array: arrays are passed by reference
     assert stdout.strip() == "6 150 15 12 2"
+
+
+# ============================================================
+# 18.1.3 - Lambdas v1 (no closures)
+# ============================================================
+
+def test_function_type_parses_with_colon_and_arrow():
+    for type_text in ('(int, int) : int', '(int, int) -> int'):
+        c_code = generate_c(
+            f'void function main()\n    {type_text} add = func(int a, int b) : a + b\n'
+        )
+        assert 'typedef int (*fusion_fn_1)(int, int);' in c_code
+        assert 'fusion_fn_1 add = fusion_lambda_1;' in c_code
+
+
+def test_lambda_is_lifted_to_static_function_with_inferred_return_type():
+    c_code = generate_c('void function main()\n    (int) : int op = func(int x) : x * 2\n')
+    assert 'static int fusion_lambda_1(int x) {' in c_code
+    assert 'return (x * 2);' in c_code
+    assert '<lambda>' not in c_code  # the old placeholder is gone
+
+
+def test_all_three_lambda_spellings():
+    c_code = generate_c(
+        'void function main()\n'
+        '    (int) : int a = func(int x) : x\n'
+        '    (int) : int b = function(int x) : x\n'
+        '    (int) : int c = (int x) : x\n'
+    )
+    assert 'fusion_lambda_3' in c_code
+
+
+def test_named_function_as_value_and_call_through_variable():
+    c_code = generate_c(
+        'int function tripler(int x) : x * 3\n'
+        'void function main()\n    (int) : int op = tripler\n    int a = op(5)\n'
+    )
+    assert 'fusion_fn_1 op = tripler;' in c_code
+    assert 'int a = op(5);' in c_code
+
+
+def test_function_named_after_c_keyword_used_as_value_is_mangled():
+    c_code = generate_c(
+        'int function double(int x) : x * 2\n'
+        'void function main()\n    (int) : int op = double\n'
+    )
+    assert 'fusion_fn_1 op = fusion_double;' in c_code
+
+
+def test_function_returning_a_function():
+    c_code = generate_c(
+        'int function tripler(int x) : x * 3\n'
+        '(int) : int function pick() : tripler\n'
+        'void function main()\n    (int) : int f = pick()\n'
+    )
+    assert 'fusion_fn_1 pick(void);' in c_code
+
+
+def test_void_lambda():
+    exit_code, stdout, stderr = compile_and_run(
+        'void function each(int n, (int) : void action)\n'
+        '    for i in range(0, n)\n'
+        '        action(i)\n'
+        'void function main()\n'
+        '    each(3, func(int i) : print("item {i}"))\n'
+    )
+    assert exit_code == 0, stderr
+    assert stdout.splitlines() == ["item 0", "item 1", "item 2"]
+
+
+def test_nested_lambda_lifted_before_its_user():
+    c_code = generate_c(
+        'int function apply((int) : int op, int v) : op(v)\n'
+        'void function main()\n'
+        '    (int) : int outer = func(int x) : apply(func(int y) : y + 1, x)\n'
+    )
+    # The outer lambda is numbered first, but the inner one must be defined before it
+    assert c_code.index('fusion_lambda_1(int x)') > c_code.index('fusion_lambda_2(int y)')
+
+
+def test_closure_rejected():
+    message = errors_of(
+        'void function main()\n'
+        '    int offset = 5\n'
+        '    (int) : int add = func(int x) : x + offset\n'
+    )
+    assert "Lambda uses 'offset' from the surrounding function" in message
+    assert "closures" in message
+
+
+def test_closure_over_function_parameter_rejected():
+    message = errors_of(
+        '(int) : int function makeAdder(int offset) : func(int x) : x + offset\n'
+        'void function main()\n    return\n'
+    )
+    assert "Lambda uses 'offset'" in message
+
+
+def test_lambda_may_use_global_functions_and_its_own_parameters():
+    _, _, ok = analyze(
+        'int function tripler(int x) : x * 3\n'
+        'void function main()\n    (int) : int op = func(int x) : tripler(x) + x\n'
+    )
+    assert ok
+
+
+def test_lambda_parameter_shadowing_outer_variable_is_not_a_capture():
+    _, _, ok = analyze(
+        'void function main()\n    int x = 1\n    (int) : int op = func(int x) : x * 2\n'
+    )
+    assert ok
+
+
+def test_function_variable_must_be_initialized():
+    message = errors_of('void function main()\n    (int) : int op\n')
+    assert "Function variable 'op' must be initialized" in message
+
+
+def test_function_variable_null_rejected():
+    message = errors_of('void function main()\n    (int) : int op = null\n')
+    assert "Cannot assign" in message
+
+
+def test_lambda_return_type_mismatch_rejected():
+    message = errors_of('void function main()\n    (int) : bool op = func(int x) : x * 2\n')
+    assert "Cannot assign" in message
+
+
+def test_call_through_variable_checks_argument_count_and_types():
+    message = errors_of(
+        'void function main()\n'
+        '    (int) : int op = func(int x) : x\n'
+        '    int a = op()\n'
+        '    int b = op("no")\n'
+    )
+    assert "Calling 'op' expects 1 argument(s), got 0" in message
+    assert "Argument 1 to 'op': expected int, got string" in message
+
+
+def test_calling_a_non_function_variable_rejected():
+    message = errors_of('void function main()\n    int n = 3\n    int a = n(1)\n')
+    assert "'n' is not a function" in message
+
+
+def test_builtin_as_value_rejected():
+    message = errors_of('void function main()\n    (string) : void p = print\n')
+    assert "Built-in function 'print' can't be used as a value" in message
+
+
+def test_lambda_parameter_default_rejected():
+    message = errors_of('void function main()\n    (int) : int op = func(int x = 1) : x\n')
+    assert "Lambda parameter 'x' can't have a default value" in message
+
+
+def test_function_type_with_array_parameter_rejected():
+    message = errors_of('void function main()\n    (int[]) : int op = func(int x) : x\n')
+    assert "Function types can't have array parameters yet" in message
+
+
+def test_function_with_array_parameters_as_value_rejected():
+    message = errors_of(SUM + 'void function main()\n    (int) : int op = sum\n')
+    assert "has array parameters, so it can't be used as a value" in message
+
+
+def test_lambdas_end_to_end():
+    exit_code, stdout, stderr = compile_and_run(
+        'int function tripler(int x) : x * 3\n'
+        'int function apply((int) : int op, int value) : op(value)\n'
+        '(int) : int function pick(bool triple)\n'
+        '    if triple\n'
+        '        return tripler\n'
+        '    return func(int x) : x + 100\n'
+        'void function main()\n'
+        '    (int) : int op = tripler\n'
+        '    int a = op(5)\n'
+        '    op = func(int x) : x * 2\n'
+        '    int b = op(5)\n'
+        '    int c = apply(tripler, 4)\n'
+        '    int d = apply(function(int x) : x - 1, 4)\n'
+        '    (int) : int chosen = pick(false)\n'
+        '    int e = chosen(1)\n'
+        '    (int, int) -> int add = func(int p, int q) : p + q\n'
+        '    int f = add(2, 3)\n'
+        '    print("{a} {b} {c} {d} {e} {f}")\n'
+    )
+    assert exit_code == 0, stderr
+    assert stdout.strip() == "15 10 12 3 101 5"
