@@ -152,9 +152,9 @@ d:\Dropbox\Fusion\
 
 ## 📍 CURRENT STATUS
 
-**Date:** 2026-09-13
-**Phase:** Post-MVP Development - Task 12 (Architecture Hardening) in progress
-**MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 also complete (see below)
+**Date:** 2026-10-07
+**Phase:** Post-MVP Development - Tasks 5-9 and 12 complete; no task actively in progress
+**MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
 - 1,119 tests passing (99.3%)
@@ -170,15 +170,15 @@ d:\Dropbox\Fusion\
 - FizzBuzz bug fixed long ago (Task 6.2) - was a lexer bug in interpolation part-splitting
 
 **Completed since MVP:** Task 5 (cleanup), Task 6 (verification/FizzBuzz fix), Task 7 (git/
-GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12's Core Typed AST (12.1-12.4,
-12.9), 12.5 (codegen split), 12.6 (block scoping), 12.7 (memory model semantics), 12.8 (docs
-sync), 12.12 (project config system)
+GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12 (all 12 sub-tasks: Typed AST,
+codegen split, block scoping, memory model semantics, docs sync, project config system, and
+two deliberately-deferred design decisions - IR layer and stdlib lowering)
 
-**In progress:** Task 12's remaining items (12.10, 12.11 - IR layer and stdlib-lowering
-design)
+**In progress:** Nothing. Nearest actionable item is Task 16.1 (control-flow example program).
 
-**Blocked/future:** Task 10 (self-hosting), Task 11 (LLVM backend), Task 13 (HIDL module),
-Task 14 (nullable arrays/safe navigation) - see taskSummary2.md for what each is blocked on
+**Open / not yet scoped:** Task 13 (HIDL module), Task 14 (nullable arrays/safe navigation),
+Task 15 (deferred-decisions revisit list), Task 16 (example coverage), Task 17 (mutable/fixed
+strings & pooling), Task 10 (self-hosting), Task 11 (LLVM backend) - see taskSummary2.md
 
 **Next:** See taskSummary2.md's "Next Action" line (bottom of file) for the current session's
 starting point
@@ -417,7 +417,7 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
   below - reserved, not implemented); only `[indentation]` changes real behavior today
 - Arrays are local-variable-only (not function params/return types), single-dimension,
   fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
-  `?.`, or `?[` yet - see taskSummary2.md Task 9's deferred nullability task)
+  `?.`, or `?[` yet - see taskSummary2.md Task 14)
 
 ---
 
@@ -472,25 +472,41 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Task 12's two remaining design-consideration items (see taskSummary2.md) -
-IR layer (12.10), then stdlib/runtime lowering (12.11).
+**Current Focus:** None in progress. Ask the user what to pick up next - Task 16.1 is the
+only item that's buildable without a scoping decision first.
 
 **Completed:**
-- Tasks 1-9: MVP + cleanup + verification + git + const + arrays (v1) - see
-  task/taskSummary.md and task/taskSummaryArchive.md for full detail
-- Task 12.1-12.9, 12.12: Core Typed AST, codegen module split, block scoping, memory model
-  semantics, docs sync, project configuration system - see taskSummary2.md for detail on
-  each
+- Tasks 1-9 and 12 - see task/taskSummary.md and task/taskSummaryArchive.md for full detail
 
 **Planned (see taskSummary2.md for full detail and current blockers):**
-- Task 12.10-12.11: Fusion IR layer and stdlib/runtime lowering design
-- Task 13: HIDL module (blocked on Task 12)
-- Task 14: Nullable arrays & safe navigation (unblocked as of Task 12.7 - not yet scoped)
+- Task 13: HIDL module, Task 14: Nullable arrays & safe navigation - both unblocked, need
+  scoping approval
+- Task 15: Deferred decisions revisit list (IR layer, stdlib lowering, a LambdaExpr scope
+  bug, Task 10/11 ordering, etc.) - each item has its own trigger
+- Task 16: Example program coverage (16.1 buildable now)
+- Task 17: Mutable/fixed strings, templated strings, string pooling - logged, not scoped
 - Task 10: Self-hosting, Task 11: LLVM backend (both planning-complete, intentionally not
-  started yet - the architecture review recommended stabilizing the language/IR first)
+  started - ordering between them is itself an open question, Task 15.4)
 
 ---
 
-**Last Updated:** 2026-09-13
+## 💻 Setting Up a New Machine
+
+The repo is fully self-describing - no out-of-band context is needed beyond this file and
+`taskSummary2.md`. To verify a fresh environment:
+
+1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
+2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
+3. `pip install -r requirements.txt`
+4. `python -m pytest tests/ -q` - expect **1119 passed, 8 skipped**
+5. `python tests/verify_examples.py` - expect **8/8**
+
+If both match, the environment is correct. Note `Notes/` (user's AI review notes) and
+`.claude/settings.local.json` (Claude Code permissions) are gitignored - they exist only via
+Dropbox sync, not via `git clone`.
+
+---
+
+**Last Updated:** 2026-10-07
 **Version:** 2.0 (Post-MVP)
 **Next Action:** See taskSummary2.md
