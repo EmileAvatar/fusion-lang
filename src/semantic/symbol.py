@@ -18,6 +18,8 @@ class Symbol:
         location: Source location where symbol was declared
         is_constant: True for const declarations
         value: Compile-time constant value (if known)
+        declaration: The declaring AST node, if any - for user functions, the FunctionDecl,
+            which call checking needs for parameter defaults (Task 18.1.1)
     """
     name: str
     symbol_type: str  # 'variable', 'function', 'parameter', 'constant'
@@ -25,6 +27,7 @@ class Symbol:
     location: SourceLocation
     is_constant: bool = False
     value: Optional[Any] = None
+    declaration: Optional[Any] = None
 
     def __str__(self) -> str:
         """Return string representation."""

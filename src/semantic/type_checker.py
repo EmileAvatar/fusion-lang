@@ -464,14 +464,26 @@ class TypeChecker:
                 ))
             return func_type.return_type
 
+        # Trailing parameters with defaults may be omitted (Task 18.1.1)
+        declaration = symbol.declaration if isinstance(symbol.declaration, FunctionDecl) else None
+        defaults = [p.default_value for p in declaration.parameters] if declaration else []
         expected_count = len(func_type.parameter_types)
+        required_count = sum(1 for d in defaults if d is None) if declaration else expected_count
         actual_count = len(node.arguments)
-        if actual_count != expected_count:
+        if actual_count < required_count or actual_count > expected_count:
+            if required_count == expected_count:
+                expected_text = f"{expected_count} argument(s)"
+            else:
+                expected_text = f"{required_count} to {expected_count} arguments"
             self.errors.append(SemanticError(
-                f"Function '{func_name}' expects {expected_count} argument(s), got {actual_count}",
+                f"Function '{func_name}' expects {expected_text}, got {actual_count}",
                 node.location
             ))
             return func_type.return_type
+
+        # C has no default arguments - record the full argument list for codegen, with each
+        # omitted argument replaced by its parameter's (constant) default value
+        node.resolved_arguments = list(node.arguments) + defaults[actual_count:]
 
         # Check each argument type
         for i, (arg, expected_type) in enumerate(zip(node.arguments, func_type.parameter_types)):

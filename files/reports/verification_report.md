@@ -1,13 +1,13 @@
 # Fusion Compiler Verification Report
 
-**Date:** Wed Oct  7 23:20:17 SAST 2026
-**Total Examples:** 8
+**Date:** Wed Oct  7 23:44:11 SAST 2026
+**Total Examples:** 9
 
 ## Summary
 
-- **Compilation Success:** 8/8
-- **Execution Success:** 8/8
-- **Output Matches:** 8/8
+- **Compilation Success:** 9/9
+- **Execution Success:** 9/9
+- **Output Matches:** 9/9
 
 ## Detailed Results
 
@@ -332,6 +332,62 @@ int main(void) {
         }
         i = (i + 1);
     }
+    return 0;
+}
+
+```
+
+### functions_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+=== Fusion Functions Demo ===
+Hello, World!
+Hello, Fusion!
+Welcome, Fusion!
+offset(10) = 5, offset(10, 2) = 12
+All function tests passed!
+```
+
+**Expected:**
+```
+Hello, World!
+Hello, Fusion!
+Welcome, Fusion!
+offset(10) = 5, offset(10, 2) = 12
+All function tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
+// Forward declarations
+void greet(char* name, char* greeting);
+int offset(int value, int by);
+int main(void);
+
+void greet(char* name, char* greeting) {
+    printf("%s, %s!\n", greeting, name);
+}
+
+int offset(int value, int by) {
+    return (value + by);
+}
+
+int main(void) {
+    printf("=== Fusion Functions Demo ===\n");
+    greet("World", "Hello");
+    greet("Fusion", "Hello");
+    greet("Fusion", "Welcome");
+    int lower = offset(10, (-5));
+    int higher = offset(10, 2);
+    printf("offset(10) = %d, offset(10, 2) = %d\n", lower, higher);
+    printf("All function tests passed!\n");
     return 0;
 }
 

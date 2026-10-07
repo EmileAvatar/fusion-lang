@@ -168,6 +168,8 @@ class NameResolver:
                     param.location
                 ))
 
+        self.check_parameter_defaults(func)
+
         try:
             # Create function type
             param_types = [param.param_type for param in func.parameters]
@@ -182,7 +184,8 @@ class NameResolver:
                 name=func.name,
                 symbol_type='function',
                 data_type=func_type,
-                location=func.location
+                location=func.location,
+                declaration=func
             )
 
             # Add to global scope
@@ -190,6 +193,55 @@ class NameResolver:
 
         except SemanticError as e:
             self.errors.append(e)
+
+    def check_parameter_defaults(self, func: FunctionDecl) -> None:
+        """Check the rules for parameter default values (Task 18.1.1).
+
+        - Once a parameter has a default, every parameter after it must have one too -
+          otherwise a call that omits arguments can't tell which ones were left out.
+        - A default must be a compile-time constant: a literal, or a negated number literal.
+          C has no default arguments, so codegen copies the default into every call site
+          that omits it; a constant reads the same everywhere, while an expression naming a
+          parameter or variable would refer to something that doesn't exist at the caller.
+
+        Args:
+            func: Function declaration node
+        """
+        seen_default = None
+        for param in func.parameters:
+            if param.default_value is None:
+                if seen_default is not None:
+                    self.errors.append(SemanticError(
+                        f"Parameter '{param.name}' needs a default value, because it comes "
+                        f"after parameter '{seen_default}', which has one - parameters with "
+                        f"defaults must come last",
+                        param.location
+                    ))
+                continue
+
+            seen_default = param.name
+            if isinstance(param.param_type, ArrayType):
+                self.errors.append(SemanticError(
+                    f"Array parameter '{param.name}' can't have a default value",
+                    param.location
+                ))
+            elif not self.is_constant_default(param.default_value):
+                self.errors.append(SemanticError(
+                    f"Default value for parameter '{param.name}' must be a constant (a "
+                    f"literal such as 5, -1, 2.5, \"text\", 'c' or true)",
+                    param.default_value.location
+                ))
+
+    @staticmethod
+    def is_constant_default(expr) -> bool:
+        """Return True if expr is allowed as a parameter default: a literal (other than
+        null), or a negated int/float literal such as -1."""
+        if isinstance(expr, LiteralExpr):
+            return expr.type_hint != 'null'
+        if isinstance(expr, UnaryExpr) and expr.operator == '-':
+            operand = expr.operand
+            return isinstance(operand, LiteralExpr) and operand.type_hint in ('int', 'float', 'double')
+        return False
 
     # ========================================================================
     # Pass 2: Function Body Resolution

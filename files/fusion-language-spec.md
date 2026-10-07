@@ -395,6 +395,15 @@ void function configure(bool debug = false, int logLevel = 1)
     setupLogging(debug, logLevel)
 ```
 
+**Rules for default values** (implemented, Task 18.1.1):
+* Parameters with defaults must come last - `int f(int a = 1, int b)` is an error, because
+  a call such as `f(5)` couldn't tell which argument was left out
+* A default must be a compile-time constant: a literal (`5`, `2.5`, `"text"`, `'c'`, `true`)
+  or a negated number (`-1`). It can't refer to another parameter or a variable
+* Calls may omit any number of trailing parameters that have defaults; the compiler fills in
+  each omitted value at the call site (C itself has no default arguments)
+* Named arguments (`createShip(crew = 200)`, below) are not implemented yet
+
 ---
 
 ### Main Function - Application Entry Point

@@ -1,0 +1,24 @@
+// Fusion Functions Demo (Task 18.1)
+// Demonstrates parameter default values
+
+// Parameters with defaults must come last, and each default must be a constant
+void function greet(string name = "World", string greeting = "Hello")
+    print("{greeting}, {name}!")
+End function
+
+int function offset(int value, int by = -5) : value + by
+
+void function main()
+    print("=== Fusion Functions Demo ===")
+
+    // Default parameter values - omitted arguments use the declared default
+    greet()
+    greet("Fusion")
+    greet("Fusion", "Welcome")
+
+    int lower = offset(10)
+    int higher = offset(10, 2)
+    print("offset(10) = {lower}, offset(10, 2) = {higher}")
+
+    print("All function tests passed!")
+End function

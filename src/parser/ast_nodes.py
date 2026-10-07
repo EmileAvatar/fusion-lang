@@ -121,10 +121,14 @@ class CallExpr(ASTNode):
         callee: The function expression (usually IdentifierExpr)
         arguments: List of argument expressions
         inferred_type: Type resolved by the semantic analyzer (None until type-checked)
+        resolved_arguments: The arguments as written plus any omitted trailing parameters'
+            default values, in parameter order - set by the type checker (Task 18.1.1).
+            None until type-checked; codegen uses it when set, since C has no defaults
     """
     callee: ASTNode  # Usually IdentifierExpr
     arguments: List[ASTNode]
     inferred_type: Optional['TypeNode'] = None
+    resolved_arguments: Optional[List[ASTNode]] = None
 
 
 @dataclass

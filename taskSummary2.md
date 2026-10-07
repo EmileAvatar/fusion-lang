@@ -903,7 +903,7 @@ Ordered by dependency - each builds on the ones before it.
 #### 18.1: Functions With Full Parameter Types
 **Why first:** functions are the unit of all reusable code - a stdlib, a self-hosted
 compiler, or any non-trivial program is built out of them, and today they're restricted.
-- [ ] **Default parameter values don't actually work** (verified 2026-10-07): they're parsed
+- [x] **Default parameter values don't actually work** (verified 2026-10-07) - FIXED in 18.1.1: they're parsed
       and type-checked, but calling `greet()` on `void function greet(string name = "World")`
       fails semantic analysis with "expects 1 argument(s), got 0". CLAUDE.md's Quick Syntax
       Reference advertises this syntax, so it's a correctness gap, not just a missing
@@ -915,6 +915,76 @@ compiler, or any non-trivial program is built out of them, and today they're res
 - [ ] Real lambda codegen (currently emits the placeholder `/* <lambda> */`) - this also
       makes Task 15.3's LambdaExpr scope bug reachable, so fix both together
 - [ ] Example program per Rule 5 / Task 16
+
+### 18.1 Detailed Plan (APPROVED 2026-10-07 - all three parts)
+
+Split into three parts, each shippable and committed on its own, in this order. Each one
+adds tests, an example program (Rule 5), and spec/CLAUDE.md updates.
+
+**18.1.1 - Default parameter values (the verified bug)**
+**Status: COMPLETE (2026-10-07)**
+- [x] Semantic: a parameter with a default must be followed only by parameters that also have
+      defaults (`int f(int a = 1, int b)` is an error - otherwise the call `f(5)` is ambiguous)
+      - `NameResolver.check_parameter_defaults`
+- [x] Semantic: v1 defaults must be **compile-time constants** - a literal (not `null`) or a
+      negated number literal. A default that references another parameter or a variable is
+      an error with a clear message. This keeps C call-site filling trivially correct and
+      avoids Python's "default evaluated once" trap entirely. (Planned to also allow a
+      `const` - dropped, since Fusion has no global constants yet, so a function parameter
+      can never see one.) Array parameters can't have defaults
+- [x] Type checker: accept any argument count from (required) to (total); reports
+      `expects 1 to 2 arguments, got 0`. Stores the completed list on the call node as
+      `CallExpr.resolved_arguments`; the function's declaration is reached through the new
+      `Symbol.declaration` field
+- [x] Codegen: C has no default arguments, so each call site emits the omitted values
+      (`greet()` -> `greet("World", 1)`)
+- [x] Out of scope: named arguments (`f(b: 2)`, which the spec shows) - logged for later
+- [x] 20 tests (`tests/test_functions.py`); new example `examples/functions_demo.fusion`
+      (added to `verify_examples.py`, now 9/9); spec "Rules for default values" added.
+      Full suite 1197 passed, 8 skipped
+
+**18.1.2 - Arrays as function parameters**
+- [ ] `int[] values` parameter - accepts an array of **any** size. C loses an array's length
+      when it's passed, so codegen adds a hidden length parameter: `void f(int* values,
+      int values_len)`, and every call passes it (`f(scores, 3)`). `len(values)` inside the
+      function compiles to `values_len`
+- [ ] `int[5] values` parameter - accepts only a 5-element array (checked at compile time);
+      `len(values)` stays a compile-time constant
+- [ ] An `int[]` parameter can be passed on to another `int[]` parameter (its hidden length
+      goes with it), but not to an `int[5]` parameter (size unknown at compile time - error)
+- [ ] **Passing is by reference** (recommended - same as C, Java, C#): the function works on
+      the caller's array, so element changes are visible to the caller, and nothing is
+      copied. A read-only (`const`) parameter can be added later if wanted
+- [ ] **Arrays as return values stay rejected** - C can't return an array; this becomes easy
+      once structs exist (wrap the array in a struct), so it moves to 18.2
+- [ ] Still no bounds checking (unchanged - its own future item)
+
+**18.1.3 - Lambdas v1 (no closures)**
+The spec (`fusion-language-spec.md`, "Lambda Expressions") describes function types, inline
+lambdas, passing functions as arguments, and closures. v1 builds everything except closures:
+- [ ] Function type syntax, per spec: `(int, int) : int` (and the `->` alternative) for
+      variables and parameters - e.g. `(int) : int op = tripler`
+- [ ] Inline lambda expressions: `func(int x) : x * 2`, `function(...) : ...`, and the current
+      `(int x) : x * 2`. The return type is inferred from the body expression (the parser
+      currently records `void` as a placeholder)
+- [ ] A named function can be used as a value (`apply(tripler, 5)`)
+- [ ] Calling through a function-typed variable or parameter (`op(5)`)
+- [ ] Codegen: each inline lambda becomes a private top-level C function
+      (`static int fusion_lambda_1(int x)`), and function types become C function pointers.
+      Replaces the `/* <lambda> */` placeholder
+- [ ] Fix Task 15.3 (lambda block-scope bug) at the same time - this makes it reachable
+- [ ] **Closures (a lambda using a variable from the surrounding function) are rejected** with
+      a clear "not yet supported" error. Captured variables must outlive the function that
+      created them, which needs heap memory and an ownership rule - the same decision 18.3
+      has to make for strings. Revisit after 18.3
+- [ ] Function-typed variables must be initialized - no `= null` yet (calling a null function
+      crashes; nullability is Task 14's design)
+- [ ] Out of scope: named lambdas declared inside a function body (`int adder(int x) : ...`
+      inside another function) - they only matter once closures exist
+
+**Success criteria for 18.1:** `greet()` with a default compiles and runs; a `sum(int[]
+values)` function works on arrays of different sizes; `apply(func(int x) : x * 2, 5)` prints
+10; a capturing lambda fails with a clear message; full suite green; 8/8 + new examples.
 
 #### 18.2: Structs
 **Why second:** the first user-defined composite type, and the lowest-risk way into

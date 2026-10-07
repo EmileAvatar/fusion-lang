@@ -158,14 +158,14 @@ d:\Dropbox\Fusion\
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,177 tests passing (99.3%)
+- 1,197 tests passing (99.3%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
 
 **Example Verification:**
-- 8/8 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
-  calculator, sum_array, max_three, const_demo, arrays_demo)
+- 9/9 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
+  calculator, sum_array, max_three, const_demo, arrays_demo, functions_demo)
 - Plus `examples/project_config_demo/` - a manual (not automated-harness) demo of
   `fusion.toml` actually changing compiler behavior (Task 12.12)
 - FizzBuzz bug fixed long ago (Task 6.2) - was a lexer bug in interpolation part-splitting
@@ -260,8 +260,8 @@ The compiler adapts to project configuration (memory model, locking strategy, st
 int function add(int a, int b) : a + b
 void function greet(string name = "World") : print("Hello, {name}!")
 
-// NOTE: default values are parsed and type-checked, but not yet usable - calling greet()
-// without the argument fails semantic analysis. Fix tracked as Task 18.1.
+// Defaults must come last and be constants (literals, or a negated number); omitted
+// trailing arguments are filled in at the call site: greet() -> greet("World") (Task 18.1.1)
 ```
 
 ### Block Styles
@@ -435,7 +435,6 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 **Known bugs (logged, not yet fixed):**
 - String `==` compares C pointers, not contents (correct today only by accident). Task 18.3
-- Default parameter values are parsed but unusable at call sites. Task 18.1
 - const follows the same block scoping as other variables (no global/class-level
   constants yet - classes not implemented)
 - `fusion.toml`'s `[safety]`/`[backend]` sections are recognized and validated but not
@@ -525,8 +524,8 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1177 passed, 8 skipped**
-5. `python tests/verify_examples.py` - expect **8/8**
+4. `python -m pytest tests/ -q` - expect **1197 passed, 8 skipped**
+5. `python tests/verify_examples.py` - expect **9/9**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and
 `.claude/settings.local.json` (Claude Code permissions) are gitignored - they exist only via

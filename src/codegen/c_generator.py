@@ -340,8 +340,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         else:
             func = self.visit(node.callee)
 
-        # Generate arguments
-        args = ', '.join(self.visit(arg) for arg in node.arguments)
+        # Generate arguments - resolved_arguments includes any omitted parameters' default
+        # values (Task 18.1.1); it's None only when semantic analysis didn't run
+        arguments = node.resolved_arguments if node.resolved_arguments is not None else node.arguments
+        args = ', '.join(self.visit(arg) for arg in arguments)
 
         return f'{func}({args})'
 
