@@ -108,19 +108,32 @@ The root causes, in order of importance:
 ### The proposed Fusion answer
 
 The user's starting point (2026-10-07): **the project overrides imported code, and imported
-code carries a signature - every module, class, and function records what it uses.** Built
-out, that becomes seven mechanisms, each aimed at one of D's failure causes:
+code carries a signature - every module, class, and function records what it uses.** And the
+governing principle: **do not trust library authors at all.** Even well-meaning code can leak
+memory or be badly optimised, and any library can be compromised. Built out, that becomes
+eight mechanisms, each aimed at one of D's failure causes or at the trust problem:
 
-#### 3.1 Capability signatures, inferred automatically (fixes D cause 2)
+#### 3.1 Capability signatures - explicit, published, and verified (fixes D cause 2)
 
-Every function, class, and module gets a computed **requires** set - for example
-`{heap, exceptions, threads, io, unsafe, float, reflection}`. The compiler computes it
-transitively from the call graph: if `f` calls `g` and `g` allocates, `f` requires `heap`.
+Every function, class, and module gets a **requires** set - for example
+`{heap, gc, unsafe, raw_memory, io, network, threads, devices, exceptions}`. Two properties
+matter, and they work together:
 
-**Inference must be automatic for all code**, not opt-in annotation. D's annotations
-depended on library-author discipline and failed for exactly that reason. The signatures
-live in the module's interface (Task 18.4 should record them from day one) and later in the
-Symbol-ID index (FutureFeatures.md, Compiler Infrastructure).
+- **Explicit and published.** The signatures ship with the library as a manifest, so a
+  future importer can see exactly which parts use which features *before* compiling - and
+  the project's compiler can warn when part of the project doesn't properly handle
+  something a library needs. A library will often mix strategies, and that's expected:
+  a performance-critical routine may use direct memory access while the rest of the
+  library uses automatic memory management. The signature records that per function.
+- **Never trusted, always verified.** The compiler computes every signature itself,
+  transitively from the call graph (if `f` calls `g` and `g` allocates, `f` requires
+  `heap`), and rejects any library whose published manifest doesn't match. An author's
+  claim is a convenience for readers, never a basis for trust. D relied on authors
+  annotating their own code, and that failed. (For closed libraries, where the source
+  can't be re-derived, see section 5.)
+
+The signatures live in the module's interface (Task 18.4 should record them from day one)
+and later in the Symbol-ID index (FutureFeatures.md, Compiler Infrastructure).
 
 ```text
 module TextUtils
@@ -200,6 +213,26 @@ A library may declare a capability budget in its manifest - "this library stays 
 the regression the moment someone accidentally adds a file read or a throw to a library
 that promised not to need them. This prevents the slow creep that eroded D's no-GC story.
 
+#### 3.8 Project restrictions, enforced across everything (Ada-style)
+
+The project can declare restrictions that apply to **all** code in the program - its own code
+and every imported library alike:
+
+```toml
+# fusion.toml
+[restrictions]
+no_unsafe = true
+no_network = true
+no_heap = false
+max_stack = "64KB"
+```
+
+This is modeled directly on Ada's `pragma Restrictions` and `pragma Profile` (e.g. the
+Ravenscar profile for safety-critical real-time systems), where the compiler and binder
+enforce that every unit in a program stays within declared restrictions. Combined with
+3.1's verified signatures, a violation is reported with the exact library function and call
+chain responsible. Tracked as Task 19.2.
+
 ### Honest limits
 
 - Not every library will work in every project. A library that fundamentally needs heap
@@ -224,7 +257,127 @@ that promised not to need them. This prevents the slow creep that eroded D's no-
 
 ---
 
-## 4. Recommendation - Build the Core First (Task 18)
+## 4. Memory Strategy Selection Guide
+
+Fusion expects programs - and libraries - to **mix memory strategies**, choosing the right
+one per function or per data structure. Every choice shows up in that code's capability
+signature (section 3.1), so importers always know which strategy each part uses.
+
+**Rule of thumb - start at the top and only move down when you have a reason:**
+
+| Strategy | Best for | Avoid when | Typical examples |
+|---|---|---|---|
+| **Stack / value types** | Small, fixed-size data that lives inside one block or function. Fastest possible; freed automatically when the block ends (block scoping, Task 12.6) | Data is large (stack overflow risk) or must outlive the function | Loop counters, math temporaries, small structs, fixed arrays |
+| **Static / fixed memory** | Data allocated once at startup that lives for the whole program; sizes known at compile time | Size varies at runtime | Lookup tables, constants, embedded firmware buffers, no-heap devices |
+| **Automatic (GC) - the default** | Application code where productivity matters more than predictable timing: complex object graphs, business logic, UI, prototypes | Hard real-time, kernels, no-heap embedded devices, latency-critical hot paths (collection pauses) | Business apps, tools, most of "Application Fusion" |
+| **`Unique<T>`** (single owner, move-only) | A resource with exactly one clear owner and a known cleanup point (deterministic destruction); zero overhead | The data genuinely needs several owners | File handles, sockets, buffers passed down a pipeline, builders |
+| **`Shared<T>`** (atomic refcount) | Data held by many parts of the program with no single owner, including across threads | Cyclic structures (they leak - break cycles with `Weak<T>`); hot loops where refcount updates cost - pass a reference instead | Caches, configuration, textures and other assets |
+| **`Weak<T>`** (non-owning) | Back-references and observers that must not keep their target alive; breaking `Shared<T>` cycles | You need the target guaranteed alive - use `Shared<T>` | Child-to-parent links, event listeners, caches that shouldn't pin memory |
+| **Arena / region** (future) | Many allocations that all die together - freed in one step, very fast | Long-lived objects with varied lifetimes | A compiler pass's AST, one web request's buffers, one game frame's temporaries - **and a sandboxed library's memory** (section 5.2) |
+| **Memory-mapped resources** (future) | Very large files or datasets read in parts; the OS loads only the pages actually touched | Small data (overhead isn't worth it) | Multi-GB assets, datasets, logs |
+| **Raw / unsafe pointers** | Hardware access and the innermost performance-critical routines, **after profiling proves it's needed** | Everywhere else | Device drivers, memory-mapped I/O, DMA, custom allocators, C interop |
+
+**Rules for raw/unsafe memory:**
+- Always wrapped behind a safe interface - callers never touch the raw pointer
+- Every explicit allocation must have a matching deallocation. In sandboxed code, anything
+  the library fails to free is reclaimed by the host (section 5.2)
+- Marked with a `###<NNNN>` design-rule reference explaining *why* it's needed
+  (FutureFeatures.md, Unsafe Mode Enhancements)
+- Shows up as `unsafe`/`raw_memory` in the capability signature, so project restrictions
+  (section 3.8) can forbid it outright
+
+---
+
+## 5. Library Trust, Isolation & Security
+
+**Principle: do not trust library authors at all.** Not because authors are assumed
+malicious - most aren't - but because even well-meaning code can leak memory or be badly
+optimised, and any library can be compromised without its author knowing. Fusion should
+treat every imported library as code that must earn trust through verification, isolation,
+or both. Tracked as **Task 19**.
+
+### 5.1 Closed, compiled, and licensed libraries
+
+Not every library will be open source. Some will be compiled-only, commercial, or licensed
+with restrictions on how they may be used. Their signatures can't be re-derived from source
+(section 3.1), so they need another basis for trust:
+
+- **Signed manifests** produced by the library's build, plus reproducible builds where
+  possible, so anyone can confirm the binary matches what was claimed
+- An option to ship as **verifiable IR** instead of machine code: the consumer's compiler
+  can still check capabilities and apply the project's strategy without seeing source. The
+  tradeoff is that IR is easier to decompile (the same problem Java bytecode has)
+- **Anything that can't be verified is sandboxed by default** (5.2)
+- **Licence metadata** in the manifest (terms, permitted use), with a compiler check for
+  conflicts with the project's own licence
+
+### 5.2 Sandboxing with resource budgets
+
+A library can run isolated from the main application, receiving only what it declares it
+needs: **X RAM, CPU/GPU time, and specific devices or drivers** - for example, a hardware
+driver or a specialised function the application depends on. Nothing more.
+
+- **Per-library memory regions.** A sandboxed library allocates only from a memory region the
+  host application owns. The library is expected to free what it allocates; whatever it
+  leaks - through a bug or deliberately - the host reclaims when the region is torn down.
+  A bad library cannot leak memory into the main application.
+- **Raw and unsafe allocation must be wrapped**, so the host always knows what was allocated
+  and can account for it.
+- **Profiling.** Because all of a sandboxed library's resource use flows through the host, it
+  can be measured against the declared budget: how much memory, CPU/GPU, and I/O the library
+  actually uses, and where.
+- **Isolation levels, chosen per library by the project:**
+
+| Level | Protects against | Cost |
+|---|---|---|
+| None - compiled inline | Nothing beyond signatures and restrictions; for fully trusted code | Free |
+| Memory region | Leaks and memory bugs | Low |
+| Separate process | Actively malicious code | Highest - every call crosses a process boundary |
+
+**Honest caution:** in-process sandboxing protects well against *bugs*, but Java's applet
+history shows it is very hard to make airtight against *deliberate attacks* - JVM sandbox
+escapes were a common exploit class for years. Code that might be actively malicious belongs
+in a separate process.
+
+**Prior art:** WebAssembly's component model (each module gets its own memory and explicit
+imports), Deno's permission flags, Ada's restrictions.
+
+### 5.3 Supply-chain security
+
+Compromised repositories and packages that inject backdoors into applications are a real,
+recurring problem - the xz-utils backdoor (2024), the event-stream npm compromise (2018), and
+more recent package and repository compromises. Defenses:
+
+- **Lockfile pinning** - every dependency at an exact version **and content hash**, so a
+  tampered package fails to install
+- **Signed packages** (e.g. Sigstore-style) and **reproducible builds**
+- **No arbitrary code execution at install or build time** - npm `postinstall` scripts and
+  build scripts are major attack vectors. Any compile-time code execution must itself be
+  sandboxed
+- **Capability-diff alerts on every update** - "v2.4 now requires `network`; v2.3 didn't."
+  A compromised update usually needs a capability its library never used before, so
+  verified signatures (3.1) make many injected backdoors visible at upgrade time
+- **SBOM output** (software bill of materials) - a complete record of what's inside a build
+
+### 5.4 Source-level attacks, including attacks aimed at AI assistants
+
+- **Trojan Source (CVE-2021-42574):** invisible bidirectional-control Unicode characters make
+  code *display* differently from how it *compiles* - a reviewer reads one thing, the
+  compiler builds another. Fusion's lexer should reject these characters in source,
+  including inside comments and strings unless explicitly escaped
+- **Confusable identifiers:** warn when identifiers mix look-alike characters (e.g. Cyrillic
+  `а` vs Latin `a`)
+- **Content aimed at AI coding assistants:** instructions hidden in a library's comments,
+  strings, or documentation, written to manipulate tools like Claude or ChatGPT that read
+  the code. Tooling can flag suspicious content, but detection is heuristic and never a
+  guarantee. The primary defense is that AI tools treat library content as data, never as
+  instructions
+
+These source checks don't depend on `import`, so they can be built any time (Task 19.6).
+
+---
+
+## 6. Recommendation - Build the Core First (Task 18)
 
 Pause growing the vision documents for a while, and build the core every profile needs:
 
@@ -246,7 +399,7 @@ Task 10.2 already names as self-hosting prerequisites.
 
 ---
 
-## 5. Languages With Overlapping Goals
+## 7. Languages With Overlapping Goals
 
 No single language matches Fusion's whole vision, but most of its individual ideas have
 serious prior art:

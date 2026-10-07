@@ -59,7 +59,8 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
 | **Task 18: Core Language Foundation** | Not Started (next priority) | 0% | 0 | 5 |
-| **Overall** | Task 18 Logged | 43% | 46 | 108 |
+| **Task 19: Library Trust, Isolation & Security** | Not Started | 0% | 0 | 6 |
+| **Overall** | Task 19 Logged | 40% | 46 | 114 |
 
 ---
 
@@ -936,6 +937,25 @@ Nearly every real program needs these, and a self-hosted lexer is built entirely
       whose generated C is wrong). Fix early, before runtime-created strings exist
 - [ ] Concatenation, length, comparison (`==`/`!=`/ordering by content), indexing/substring,
       conversion to/from numbers
+- [ ] **Equality operator family** (user request, 2026-10-07): `=`, `==`, `===` and the
+      negations `!=`, `!==`, `!===` - defined for strings first, then every other type
+      (numbers, arrays, structs, later classes/references). **Needs a user decision on the
+      exact meaning before implementation** - two readings:
+      - *Reading A (as written - negation is `!` + the operator):* `=`<->`!=`,
+        `==`<->`!==`, `===`<->`!===`. Consistent, but it makes `=` a comparison in some
+        context (VB-style, which fits Fusion's `End`-keyword style), colliding with `=` as
+        assignment - the source of C's classic `if (x = 5)` bug
+      - *Reading B (conventional, JavaScript-like):* `=` is assignment only; `==`/`!=` value
+        equality; `===`/`!==` strict equality; `!===` unused
+      - Either way, three distinct meanings are worth having once structs and references
+        exist: **value equality** (strings by content; `1 == 1.0` true via promotion),
+        **strict equality** (same type *and* value, no promotion: `1 === 1.0` false), and
+        **identity** (the very same object in memory - matters for `Shared<T>`/references)
+      - Every operator must be defined per type and never fall through to C's raw `==` -
+        that fall-through is exactly the pointer-comparison bug above
+      - Security note: comparing secrets (passwords, tokens) needs constant-time comparison
+        to avoid timing attacks - a Crypto concern (Task 17.5), but the operator design
+        shouldn't rule it out
 - [ ] Decide string memory ownership - concatenation creates new strings, so who frees
       them? This is the first place the memory model (Task 12.7) becomes practical, and
       it's the foundation Task 17 (mutable/fixed strings, pooling) builds on
@@ -981,6 +1001,117 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - Functions with full parameter support, structs, a real string type, `import`/multi-file
   compilation, and a minimal layered stdlib (IO + collections)
 - One example program per sub-task
+
+---
+
+## TASK 19: Library Trust, Isolation & Security
+
+**Goal:** Make Fusion safe to build on other people's code. Every imported library's use of
+memory, hardware, network, and unsafe operations is explicit and verified; untrusted or
+closed libraries can be sandboxed with a resource budget; the supply chain is protected
+against compromised packages; and source-level attacks (including content hidden to
+manipulate AI coding assistants) are caught.
+**Status:** Not Started (proposed breakdown only, not yet approved for implementation - same
+convention as Tasks 13/14/17)
+**Priority:** HIGH once libraries exist - security retrofitted onto an existing ecosystem
+rarely works (the same lesson as D's GC split). Most of this can't start until Task 18.4
+(`import`) exists; **19.6's lexer checks can be done any time**.
+**Blocked By:** Task 18.4 (`import`/multi-file) for 19.1-19.5; nothing for 19.6
+**Estimated Effort:** TBD - large; each sub-task needs its own plan
+**Source:** User direction (2026-10-07). Principle, in the user's words: **do not trust library
+authors at all** - even well-meaning code can leak memory or be badly optimised, and a library
+can be compromised. Full design reasoning: `FutureFeaturesCaution.md` sections 3-5.
+
+### Sub-tasks (NOT YET APPROVED - proposed breakdown only)
+
+#### 19.1: Explicit, Compiler-Verified Capability Signatures
+- [ ] Every function, class, and module carries a signature of exactly what it uses: memory
+      strategy (stack/GC/`Unique`/`Shared`/arena/raw), heap, unsafe, I/O, network, threads,
+      hardware/devices, exceptions
+- [ ] Signatures are **published** with the library (a manifest), so importers can see what
+      every part uses *before* compiling - and the importing compiler can warn when the
+      project doesn't handle something a library needs
+- [ ] Signatures are **never trusted from the author** - for source libraries the importing
+      compiler re-derives them from the code and rejects a mismatch with the manifest
+- [ ] On library upgrade, show a **capability diff** - "v2.4 now requires `network`, v2.3
+      didn't." A sudden new capability in a minor update is one of the strongest signals of
+      a compromised package
+
+#### 19.2: Project Restrictions (Ada `pragma Restrictions`-style)
+- [ ] A `[restrictions]` section in `fusion.toml` (e.g. `no_unsafe`, `no_network`,
+      `no_heap`, `max_stack`) enforced across **all** code in the program - the project's
+      own code and every imported library - modeled on Ada's `pragma Restrictions` /
+      `pragma Profile`, which has done this industrially for decades
+- [ ] Clear diagnostics naming the exact library function and the call chain that violates
+      a restriction
+
+#### 19.3: Closed, Compiled, and Licensed Libraries
+- [ ] Support libraries whose source isn't available (commercial, compiled-only, restricted
+      licence) - their signatures can't be re-derived from source, so they need another
+      basis for trust:
+      - **Signed manifests** from the library's build, plus reproducible builds where possible
+      - Option to ship as **verifiable IR** instead of machine code, so the consumer's
+        compiler can still check capabilities and apply the project's strategy without
+        seeing the source (with the tradeoff that IR is easier to decompile - the Java
+        bytecode problem)
+      - **Default to sandboxing** (19.4) anything that can't be verified
+- [ ] Licence metadata in the manifest (terms, permitted use) with a compiler check for
+      licence conflicts with the project
+
+#### 19.4: Library Sandboxing and Resource Budgets
+- [ ] A library can run isolated from the main application with only a **declared budget**:
+      X RAM, CPU/GPU time, and specific devices or drivers - nothing else
+- [ ] **Per-library memory regions:** a sandboxed library allocates only from a region the
+      host owns. Explicit allocations must be freed by the library; anything it leaks, the
+      host reclaims when the region is torn down - bad or compromised code can't leak into
+      the main application
+- [ ] Unsafe/raw allocation inside a library must be wrapped behind a safe interface
+- [ ] Isolation levels chosen per library by the project: none (trusted, compiled inline) /
+      memory-region (guards against bugs and leaks) / separate process (strongest - for code
+      that may be actively malicious). In-process sandboxing protects well against *bugs*;
+      Java's applet history shows it is very hard to make airtight against *deliberate
+      attacks*, so untrusted code should get process isolation
+- [ ] **Profiling** of each library's real resource use (memory, CPU/GPU, I/O) against its
+      declared budget
+- [ ] Prior art to study: WebAssembly's component model (each module has its own memory and
+      explicit imports), Deno's permission flags, Ada restrictions
+
+#### 19.5: Supply-Chain Security
+- [ ] Lockfile pinning every dependency to an exact version **and content hash**
+- [ ] Signed packages (e.g. Sigstore-style) and reproducible builds
+- [ ] **No arbitrary code execution at install or build time** - npm `postinstall` scripts and
+      build scripts are major attack vectors; any compile-time code execution must itself be
+      sandboxed
+- [ ] Capability-diff alerts on every dependency update (19.1)
+- [ ] Software bill of materials (SBOM) output
+- [ ] Real precedents this guards against: the xz-utils backdoor (2024), the event-stream npm
+      compromise (2018), and recent repository/package compromises that inject backdoors
+
+#### 19.6: Source-Level Attack Defenses (can be done any time - no dependency on `import`)
+- [ ] Lexer rejects bidirectional-control and invisible Unicode characters in source - the
+      "Trojan Source" attack (CVE-2021-42574), where code *displays* differently from how it
+      *compiles* - in comments and strings too, unless explicitly escaped
+- [ ] Warn on confusable identifiers (homoglyphs - e.g. Cyrillic `а` vs Latin `a`)
+- [ ] Tooling that flags **content aimed at AI coding assistants** hidden in imported code -
+      instructions in comments, strings, or docs written to manipulate tools like Claude or
+      ChatGPT that read the code. Detection is heuristic, not a guarantee; the primary defense
+      is that AI tools treat library content as data, never as instructions
+
+**Success Criteria:**
+- Before compiling, a developer can see exactly what every imported function uses
+- No library can use a capability the project hasn't allowed, and no library's leaked memory
+  outlives its sandbox
+- A dependency update that adds new capabilities is flagged, never applied silently
+- Source containing Trojan Source characters fails to compile
+
+**Deliverables:**
+- Verified capability signatures and manifests; `[restrictions]` in `fusion.toml`
+- Library sandbox with memory regions and resource budgets
+- Lockfile, signing, and capability-diff tooling
+- Lexer-level source attack checks
+
+**Explicitly NOT scheduled now:** future work - Task 18 comes first. 19.6 is the exception
+and could be pulled forward as a small, self-contained hardening task.
 
 ---
 
@@ -1620,6 +1751,18 @@ from functions (18.1), structs (18.2), and strings (18.3).
     written up in a new `FutureFeaturesCaution.md`
 - **Next Action:** Task 18 is the recommended next priority - start by writing the detailed
   plan for 18.1 and getting it approved.
+- **Equality operators + Task 19 + memory guide, 2026-10-07:** user added the equality
+  operator family (`=`, `==`, `===`, `!=`, `!==`, `!===`) to Task 18.3 - logged with two
+  possible readings, **awaiting the user's decision on meaning**. User set a zero-trust
+  principle for libraries ("do not trust library authors at all") and asked for: explicit
+  per-function capability signatures visible before compiling, Ada-style project
+  restrictions, handling of closed/licensed libraries, sandboxing with resource budgets and
+  host-reclaimed memory, supply-chain security against compromised repos, and defenses
+  against code hidden to manipulate AI assistants. Logged as **Task 19** (6 sub-tasks).
+  Added a memory-strategy selection guide and the expanded security design to
+  `FutureFeaturesCaution.md`.
+- **Next Action:** unchanged - Task 18 first. Get the user's answer on the equality operator
+  meaning (18.3) before that sub-task is planned.
 
 ---
 
@@ -1659,6 +1802,7 @@ Task 15 above); Task 16 tracks 7 missing example programs, one per language feat
 Task 17 (mutable/fixed strings, templated fixed strings, string pooling) is logged only, not
 yet approved for scoping; Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning
 complete" but not started, pending the Task 15.4 ordering decision. **Task 18 (Core Language
-Foundation) is the recommended next priority** - start with a detailed plan for 18.1. Read
+Foundation) is the recommended next priority** - start with a detailed plan for 18.1. Task 19
+(library trust, isolation & security) is logged for after Task 18.4. Read
 `FutureFeaturesCaution.md` before picking up anything from FutureFeatures.md. Completed-task
 detail for Tasks 5-9 and 12 lives in `task/taskSummaryArchive.md`.

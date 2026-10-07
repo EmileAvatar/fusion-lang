@@ -244,7 +244,7 @@ The compiler adapts to project configuration (memory model, locking strategy, st
 | **task-10-self-hosting-plan.md** | task/ | Self-hosting detailed plan |
 | **task-11-llvm-backend-plan.md** | task/ | LLVM backend detailed plan |
 | **FutureFeatures.md** | Root | Post-MVP features (IDE, Settings, etc.) - a menu of possibilities, not commitments |
-| **FutureFeaturesCaution.md** | Root | Read before FutureFeatures.md: project review, cautions (scope, feature interactions, ecosystem fragmentation), and why core-language work (Task 18) comes first |
+| **FutureFeaturesCaution.md** | Root | Read before FutureFeatures.md: project review, cautions (scope, feature interactions, ecosystem fragmentation), memory-strategy selection guide, library trust/sandboxing/supply-chain security (zero trust in library authors), and why core-language work (Task 18) comes first |
 
 ---
 

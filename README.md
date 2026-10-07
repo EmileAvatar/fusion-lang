@@ -401,7 +401,7 @@ python -m pytest tests/ --cov=src --cov-report=html
 - **[CLAUDE.md](CLAUDE.md)** - Quick reference for AI assistant
 - **[fusion-language-spec.md](files/fusion-language-spec.md)** - Complete language specification
 - **[fusion.ebnf](files/fusion.ebnf)** - EBNF grammar specification
-- **[FutureFeaturesCaution.md](FutureFeaturesCaution.md)** - Project review and cautions: why a simple working core language comes before the larger planned features, and a proposed answer to ecosystem fragmentation
+- **[FutureFeaturesCaution.md](FutureFeaturesCaution.md)** - Project review and cautions: why a simple working core language comes before the larger planned features, a proposed answer to ecosystem fragmentation, a guide to choosing memory strategies, and the library trust/sandboxing/security design
 - **[Fusion_domain.md](files/Fusion_domain.md)** - Visual, domain-first hierarchy of everything Fusion supports or plans to support (types, control flow, OOP, memory model, concurrency, stdlib) - a feature map, not a build-status tracker
 - **[taskSummary2.md](taskSummary2.md)** - Current development progress tracking (Task 5+)
 - **[taskSummary.md](task/taskSummary.md)** - Archived MVP progress (Tasks 1-4)
