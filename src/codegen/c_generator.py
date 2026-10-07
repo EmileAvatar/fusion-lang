@@ -23,7 +23,7 @@ from ..parser.ast_nodes import (
     BlockStmt
 )
 from .c_types import TypeMapperMixin
-from .c_names import mangle_function_name
+from .c_names import mangle_function_name, array_length_name
 from .c_runtime import RuntimeLoweringMixin, escape_c_text
 
 
@@ -70,6 +70,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # Clear previous state
         self.output.clear()
         self.generated_functions.clear()
+
+        # Function declarations by name - call lowering needs each callee's parameter
+        # types, to add hidden array-length arguments (Task 18.1.2)
+        self.function_decls = {
+            decl.name: decl for decl in program.declarations if isinstance(decl, FunctionDecl)
+        }
 
         # Generate includes
         self._generate_includes()
@@ -176,12 +182,37 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
                 if decl.name == 'main' and return_type == 'void':
                     return_type = 'int'
                 func_name = self._mangle_function_name(decl.name)
-                params = ', '.join(
-                    f'{self.map_type(p.param_type)} {p.name}'
-                    for p in decl.parameters
-                ) if decl.parameters else 'void'
+                params = self._c_parameter_list(decl.parameters)
                 self.emit(f'{return_type} {func_name}({params});')
         self.emit()  # Blank line
+
+    def _c_parameter_list(self, parameters) -> str:
+        """Build a C parameter list - shared by forward declarations and definitions.
+
+        Array parameters (Task 18.1.2): `int[5] values` stays a C array parameter, `int
+        values[5]` (its length is a compile-time constant); `int[] values` accepts any size,
+        so it becomes `int* values` plus a hidden length parameter (see array_length_name).
+
+        Args:
+            parameters: List of ParameterDecl nodes
+
+        Returns:
+            The C parameter list text, or 'void' if there are no parameters
+        """
+        if not parameters:
+            return 'void'
+        c_params = []
+        for p in parameters:
+            if isinstance(p.param_type, ArrayType):
+                elem = self.map_type(p.param_type.element_type)
+                if p.param_type.size is None:
+                    c_params.append(f'{elem}* {p.name}')
+                    c_params.append(f'int {array_length_name(p.name)}')
+                else:
+                    c_params.append(f'{elem} {p.name}[{p.param_type.size}]')
+            else:
+                c_params.append(f'{self.map_type(p.param_type)} {p.name}')
+        return ', '.join(c_params)
 
     def _mangle_function_name(self, name: str) -> str:
         """Mangle function names that conflict with C keywords.
@@ -343,9 +374,47 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # Generate arguments - resolved_arguments includes any omitted parameters' default
         # values (Task 18.1.1); it's None only when semantic analysis didn't run
         arguments = node.resolved_arguments if node.resolved_arguments is not None else node.arguments
-        args = ', '.join(self.visit(arg) for arg in arguments)
+        callee_decl = None
+        if isinstance(node.callee, IdentifierExpr):
+            callee_decl = getattr(self, 'function_decls', {}).get(node.callee.name)
+        params = callee_decl.parameters if callee_decl else [None] * len(arguments)
+
+        c_args = []
+        for param, arg in zip(params, arguments):
+            if param is not None and isinstance(param.param_type, ArrayType):
+                c_args.extend(self._array_argument(arg, param.param_type))
+            else:
+                c_args.append(self.visit(arg))
+        args = ', '.join(c_args)
 
         return f'{func}({args})'
+
+    def _array_argument(self, arg: ASTNode, param_type: ArrayType) -> list:
+        """Lower an argument passed to an array parameter (Task 18.1.2).
+
+        Arrays are passed by reference (C passes a pointer to the first element). An array
+        literal becomes a C99 compound literal, `(int[]){1, 2, 3}`, since a bare `{...}` is
+        only valid as an initializer. For an `int[]` parameter the array's length follows as
+        a second argument: a constant when the size is known, or the caller's own hidden
+        length when it is itself forwarding an `int[]` parameter.
+
+        Returns:
+            One C argument (`int[N]` parameter) or two (`int[]` parameter: array, length)
+        """
+        arg_type = arg.inferred_type
+        if isinstance(arg, ArrayLiteralExpr):
+            elem = self.map_type(arg_type.element_type)
+            arg_code = f'({elem}[]){self.visit(arg)}'
+        else:
+            arg_code = self.visit(arg)
+
+        if param_type.size is not None:
+            return [arg_code]
+        if arg_type.size is not None:
+            return [arg_code, str(arg_type.size)]
+        # Forwarding an `int[]` parameter: semantic analysis only allows a bare parameter
+        # name here, whose hidden length parameter is in scope
+        return [arg_code, array_length_name(arg.name)]
 
     # _generate_len_call: see RuntimeLoweringMixin (c_runtime.py)
 
@@ -645,14 +714,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         if is_void_main:
             return_type = 'int'
 
-        # Generate parameters
-        if node.parameters:
-            params = ', '.join(
-                f'{self.map_type(p.param_type)} {p.name}'
-                for p in node.parameters
-            )
-        else:
-            params = 'void'
+        params = self._c_parameter_list(node.parameters)
 
         # Emit function header
         self.emit(f'{return_type} {func_name}({params}) {{')

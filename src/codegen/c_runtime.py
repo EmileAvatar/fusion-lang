@@ -21,8 +21,9 @@ import unicodedata
 
 from ..parser.ast_nodes import (
     ASTNode, CallExpr, LiteralExpr, InterpolatedStringExpr,
-    StringTextPart, StringExprPart, PrimitiveType, ArrayType
+    StringTextPart, StringExprPart, PrimitiveType, ArrayType, IdentifierExpr
 )
+from .c_names import array_length_name
 
 
 _SIMPLE_C_ESCAPES = {
@@ -167,9 +168,10 @@ class RuntimeLoweringMixin:
     def _generate_len_call(self, node: CallExpr) -> str:
         """Generate code for len() built-in function.
 
-        Fusion arrays are fixed-size and their size is always resolved at compile time
-        (Task 9 v1), so len(arr) needs no runtime call at all - it compiles directly to
-        the array's known size as an integer literal.
+        Fusion arrays are fixed-size, and usually their size is resolved at compile time
+        (Task 9 v1), so len(arr) compiles directly to the size as an integer literal. The
+        exception is an `int[]` parameter (Task 18.1.2), which accepts arrays of any size -
+        its len() compiles to the hidden length parameter passed alongside it.
 
         Args:
             node: Call expression node for len
@@ -179,6 +181,8 @@ class RuntimeLoweringMixin:
         """
         arg = node.arguments[0]
         array_type = getattr(arg, 'inferred_type', None)
+        if isinstance(array_type, ArrayType) and array_type.size is None and isinstance(arg, IdentifierExpr):
+            return array_length_name(arg.name)
         if not isinstance(array_type, ArrayType) or array_type.size is None:
             raise NotImplementedError(
                 f"Internal compiler error: len() argument at {arg.location} has no resolved "

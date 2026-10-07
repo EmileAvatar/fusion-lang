@@ -245,14 +245,15 @@ End function
     assert_no_errors(analyze_code(code)[0])
 
 
-def test_array_as_function_parameter_fails():
-    """Arrays as function parameters are deferred (Task 9 v1 is local-only)."""
+def test_array_as_function_parameter_allowed():
+    """Arrays as function parameters were deferred in Task 9 v1 and added in Task 18.1.2
+    (full coverage in tests/test_functions.py)."""
     code = """
 int function sum(int[] arr)
     return arr[0]
 """
     errors, _ = analyze_code(code)
-    assert_error_contains(errors, "not yet supported as function parameters")
+    assert not any("parameter" in str(e) for e in errors)
 
 
 def test_array_as_return_type_fails():

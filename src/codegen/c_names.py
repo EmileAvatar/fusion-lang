@@ -27,3 +27,21 @@ def mangle_function_name(name: str) -> str:
     if name in _C_KEYWORDS:
         return f'fusion_{name}'
     return name
+
+
+def array_length_name(param_name: str) -> str:
+    """Name of the hidden C parameter carrying an `int[]` parameter's length (Task 18.1.2).
+
+    C passes an array as a bare pointer and loses its length, so a Fusion parameter
+    `int[] values` becomes the two C parameters `int* values, int fusion_len_values`.
+
+    Like mangle_function_name's `fusion_` prefix, this could collide with a user identifier
+    spelled the same way - reserving the `fusion_` prefix is tracked in Task 15.
+
+    Args:
+        param_name: The Fusion array parameter's name
+
+    Returns:
+        The hidden length parameter's C name
+    """
+    return f'fusion_len_{param_name}'

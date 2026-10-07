@@ -344,7 +344,7 @@ def main():
         'max_three': 'Maximum of 10, 25, 15 is 25',
         'const_demo': 'MAX_ITERATIONS = 1000\nBASE (100) * MULTIPLIER (2) = 200\nScreen size: 80x24 = 1920 pixels\nAll const tests passed!',
         'arrays_demo': 'First score: 10\nUpdated first score: 99\nNumber of scores: 5\nSum of [10, 20, 30, 40, 50] = 150\nAll array tests passed!',
-        'functions_demo': 'Hello, World!\nHello, Fusion!\nWelcome, Fusion!\noffset(10) = 5, offset(10, 2) = 12\nAll function tests passed!',
+        'functions_demo': 'Hello, World!\nHello, Fusion!\nWelcome, Fusion!\noffset(10) = 5, offset(10, 2) = 12\nsum: 6, 150, 15\nAfter doubleAll, middle of small = 4\nAll function tests passed!',
     }
 
     # Find all .fusion files in examples/

@@ -55,7 +55,7 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 12: Architecture Hardening** | Complete | 100% | 12 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Task 15: Deferred Decisions Revisit List** | In Progress | 14% | 1 | 7 |
+| **Task 15: Deferred Decisions Revisit List** | In Progress | 11% | 1 | 9 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
 | **Task 18: Core Language Foundation** | Not Started (next priority) | 0% | 0 | 5 |
@@ -678,6 +678,20 @@ trigger has arrived, rather than re-discovering them by reading old commit messa
       warnings even on a successful build (see `main.py`'s "Print warnings even on
       success" step) - `main.py` should do the equivalent for lexer warnings
 
+#### 15.8: Reserve the `fusion_` Identifier Prefix (trigger: before `import`, Task 18.4)
+- [ ] Generated C uses `fusion_` names the user never wrote: `fusion_double` (a function
+      named after a C keyword, Task 12.5) and `fusion_len_values` (the hidden length of an
+      `int[] values` parameter, Task 18.1.2). A user identifier spelled the same way would
+      collide with them in the C output
+- [ ] Fix: reject user identifiers starting with `fusion_` (clear error), or mangle every
+      user identifier. Cheap now; harder once libraries exist. Found during 18.1.2
+
+#### 15.9: Printing an Array Crashes the Compiler (trigger: next touch of print/interpolation)
+- [ ] `print("{arr}")` where `arr` is an array fails in codegen with "Internal compiler error:
+      no printf format specifier for type 'ArrayType'" - semantic analysis should reject it
+      with a normal error (or, later, print the elements). Found during 18.1.2 (verified
+      2026-10-07), not fixed there - unrelated to array parameters
+
 **Success Criteria:** Not applicable in the usual sense - this is a tracking list, not a
 single feature. Each sub-task's own trigger condition (not a shared deadline) determines
 when it gets actioned; "done" for this task as a whole just means every item above has
@@ -909,9 +923,7 @@ compiler, or any non-trivial program is built out of them, and today they're res
       Reference advertises this syntax, so it's a correctness gap, not just a missing
       feature. C has no default arguments, so codegen must fill omitted arguments in at each
       call site
-- [ ] Arrays as function parameters and return values (rejected outright today in
-      `name_resolver.py`, deferred since Task 9) - needs a pointer+length representation
-      in C, since C arrays decay to pointers and lose their size
+- [x] Arrays as function parameters - DONE in 18.1.2 (return values moved to 18.2)
 - [ ] Real lambda codegen (currently emits the placeholder `/* <lambda> */`) - this also
       makes Task 15.3's LambdaExpr scope bug reachable, so fix both together
 - [ ] Example program per Rule 5 / Task 16
@@ -944,20 +956,33 @@ adds tests, an example program (Rule 5), and spec/CLAUDE.md updates.
       Full suite 1197 passed, 8 skipped
 
 **18.1.2 - Arrays as function parameters**
-- [ ] `int[] values` parameter - accepts an array of **any** size. C loses an array's length
+**Status: COMPLETE (2026-10-07)**
+- [x] `int[] values` parameter - accepts an array of **any** size. C loses an array's length
       when it's passed, so codegen adds a hidden length parameter: `void f(int* values,
       int values_len)`, and every call passes it (`f(scores, 3)`). `len(values)` inside the
       function compiles to `values_len`
-- [ ] `int[5] values` parameter - accepts only a 5-element array (checked at compile time);
+- [x] `int[5] values` parameter - accepts only a 5-element array (checked at compile time);
       `len(values)` stays a compile-time constant
-- [ ] An `int[]` parameter can be passed on to another `int[]` parameter (its hidden length
+- [x] An `int[]` parameter can be passed on to another `int[]` parameter (its hidden length
       goes with it), but not to an `int[5]` parameter (size unknown at compile time - error)
-- [ ] **Passing is by reference** (recommended - same as C, Java, C#): the function works on
+- [x] **Passing is by reference** (recommended - same as C, Java, C#): the function works on
       the caller's array, so element changes are visible to the caller, and nothing is
       copied. A read-only (`const`) parameter can be added later if wanted
-- [ ] **Arrays as return values stay rejected** - C can't return an array; this becomes easy
+- [x] **Arrays as return values stay rejected** - C can't return an array; this becomes easy
       once structs exist (wrap the array in a struct), so it moves to 18.2
-- [ ] Still no bounds checking (unchanged - its own future item)
+- [x] Still no bounds checking (unchanged - its own future item)
+- [x] Also (safety rules added during implementation): element types must match exactly (no
+      int -> float promotion - the callee reads the caller's memory directly); a `const`
+      array can't be passed (no read-only parameter form yet); an array literal can be
+      passed directly (C99 compound literal `(int[]){7, 8}`); array params can't have defaults
+- [x] **Found and fixed: `int[] b = a` passed semantic analysis, then failed in GCC**
+      (`int b[3] = a;` is invalid C - same bug class as Task 12.6). Arrays can now only be
+      initialized from an array literal, with a clear error otherwise
+- [x] Logged, not fixed: Task 15.8 (`fusion_` prefix collisions) and 15.9 (`print("{arr}")`
+      crashes codegen)
+- [x] 15 tests in `tests/test_functions.py`; `test_array_as_function_parameter_fails` (which
+      pinned the old deferral) became `..._allowed`; `functions_demo.fusion` extended; spec
+      "Array parameters" section. Full suite 1212 passed, 8 skipped; 9/9 examples
 
 **18.1.3 - Lambdas v1 (no closures)**
 The spec (`fusion-language-spec.md`, "Lambda Expressions") describes function types, inline
@@ -993,6 +1018,8 @@ no inheritance, and no decision yet on how classes/interfaces/traits interact.
 - [ ] Struct declaration, field access (`.` member access - which also delivers the parser
       piece Task 14 needs for `arr.length`), construction, assignment/copy semantics
 - [ ] Structs as function parameters/return values (builds on 18.1)
+- [ ] Arrays as function return values (moved here from 18.1.2 - C can't return an array,
+      but it can return a struct wrapping one)
 - [ ] Nested structs and arrays of structs
 - [ ] Prerequisite for: classes (Task 16.2), Currency's runtime struct, HIDL register maps,
       AST nodes in a self-hosted compiler

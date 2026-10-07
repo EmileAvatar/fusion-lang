@@ -152,21 +152,13 @@ class NameResolver:
         Args:
             func: Function declaration node
         """
-        # Arrays as parameters/return types are deferred (Task 9 v1 is local-variable-only -
-        # a fixed-size C array parameter decays to a pointer and loses its length, which
-        # needs its own design rather than being bundled in here)
+        # Array parameters are supported (Task 18.1.2); array return values are not - C
+        # can't return an array, and wrapping one in a struct needs structs (Task 18.2)
         if isinstance(func.return_type, ArrayType):
             self.errors.append(SemanticError(
                 "Arrays are not yet supported as function return types",
                 func.location
             ))
-        for param in func.parameters:
-            if isinstance(param.param_type, ArrayType):
-                self.errors.append(SemanticError(
-                    f"Arrays are not yet supported as function parameters "
-                    f"(parameter '{param.name}')",
-                    param.location
-                ))
 
         self.check_parameter_defaults(func)
 

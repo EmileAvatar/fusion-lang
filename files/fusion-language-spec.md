@@ -247,9 +247,30 @@ builtin - since size is always known at compile time, `len(arr)` compiles direct
 size as a literal, not a runtime call. `const int[] arr = [...]` works the same as scalar
 `const` - the array and its elements become immutable.
 
+**Array parameters (implemented, Task 18.1.2):**
+
+```
+int function sum(int[] values)     // any size - len(values) is its actual length
+int function middle(int[3] trio)   // exactly 3 elements, checked at compile time
+
+int total = sum(scores)            // pass an array variable
+int other = sum([7, 8])            // or an array literal directly
+```
+
+* Arrays are **passed by reference** - the function works on the caller's array, so element
+  changes are visible to the caller, and nothing is copied
+* `int[]` accepts an array of any size. C loses an array's length when it's passed, so the
+  compiler passes the length alongside it as a hidden parameter, and `len(values)` reads it
+* `int[N]` accepts only an array whose size is known at compile time to be exactly N
+* Element types must match exactly - an `int[]` can't be passed as a `float[]` (no numeric
+  promotion, since the function reads the caller's memory directly)
+* A `const` array can't be passed (the function could change it - a read-only parameter
+  form doesn't exist yet); array parameters can't have default values
+* An array can only be initialized from an array literal - `int[] b = a` is an error
+  (whether that should copy or share `a` is undecided)
+
 **Not yet implemented (see taskSummary2.md Task 9 for the full list and reasoning):**
-- Arrays as function parameters or return types (local variables only for now - a C array
-  parameter decays to a pointer and loses its length, which needs its own design)
+- Arrays as function return types (C can't return an array - planned with structs, Task 18.2)
 - Multi-dimensional arrays (`int[][]`)
 - An array size given as anything other than an integer literal (`int[n]` where `n` is a
   variable is not supported; only `int[5]`-style literal sizes are)

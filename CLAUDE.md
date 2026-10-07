@@ -158,7 +158,7 @@ d:\Dropbox\Fusion\
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,197 tests passing (99.3%)
+- 1,212 tests passing (99.3%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
@@ -310,6 +310,10 @@ float[3] buffer
 
 scores[0] = 99          // element assignment
 int n = len(scores)     // size (compile-time constant)
+
+// Array parameters (by reference): int[] = any size (len() works), int[3] = exactly 3
+int function sum(int[] values)
+int total = sum(scores)
 ```
 
 ### Project Configuration (`fusion.toml`)
@@ -440,7 +444,8 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 - `fusion.toml`'s `[safety]`/`[backend]` sections are recognized and validated but not
   enforced by any compiler pass yet (same status as the `Unique`/`Shared`/`Weak` keywords
   below - reserved, not implemented); only `[indentation]` changes real behavior today
-- Arrays are local-variable-only (not function params/return types), single-dimension,
+- Arrays can be function parameters (by reference) but not return types (Task 18.2); they're
+  single-dimension,
   fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
   `?.`, or `?[` yet - see taskSummary2.md Task 14)
 
@@ -524,7 +529,7 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1197 passed, 8 skipped**
+4. `python -m pytest tests/ -q` - expect **1212 passed, 8 skipped**
 5. `python tests/verify_examples.py` - expect **9/9**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and

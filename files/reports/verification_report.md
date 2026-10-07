@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Wed Oct  7 23:44:11 SAST 2026
+**Date:** Wed Oct  7 23:48:52 SAST 2026
 **Total Examples:** 9
 
 ## Summary
@@ -348,6 +348,8 @@ Hello, World!
 Hello, Fusion!
 Welcome, Fusion!
 offset(10) = 5, offset(10, 2) = 12
+sum: 6, 150, 15
+After doubleAll, middle of small = 4
 All function tests passed!
 ```
 
@@ -357,6 +359,8 @@ Hello, World!
 Hello, Fusion!
 Welcome, Fusion!
 offset(10) = 5, offset(10, 2) = 12
+sum: 6, 150, 15
+After doubleAll, middle of small = 4
 All function tests passed!```
 
 **Generated C Code (first 50 lines):**
@@ -369,6 +373,9 @@ All function tests passed!```
 // Forward declarations
 void greet(char* name, char* greeting);
 int offset(int value, int by);
+int sum(int* values, int fusion_len_values);
+void doubleAll(int* values, int fusion_len_values);
+int middle(int trio[3]);
 int main(void);
 
 void greet(char* name, char* greeting) {
@@ -379,6 +386,24 @@ int offset(int value, int by) {
     return (value + by);
 }
 
+int sum(int* values, int fusion_len_values) {
+    int total = 0;
+    for (int i = 0; i < fusion_len_values; i += 1) {
+        total = (total + values[i]);
+    }
+    return total;
+}
+
+void doubleAll(int* values, int fusion_len_values) {
+    for (int i = 0; i < fusion_len_values; i += 1) {
+        values[i] = (values[i] * 2);
+    }
+}
+
+int middle(int trio[3]) {
+    return trio[1];
+}
+
 int main(void) {
     printf("=== Fusion Functions Demo ===\n");
     greet("World", "Hello");
@@ -387,10 +412,10 @@ int main(void) {
     int lower = offset(10, (-5));
     int higher = offset(10, 2);
     printf("offset(10) = %d, offset(10, 2) = %d\n", lower, higher);
-    printf("All function tests passed!\n");
-    return 0;
-}
-
+    int small[3] = {1, 2, 3};
+    int large[5] = {10, 20, 30, 40, 50};
+    int smallSum = sum(small, 3);
+... (truncated)
 ```
 
 ### hello_world

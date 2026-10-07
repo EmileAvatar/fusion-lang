@@ -53,7 +53,7 @@ Configurable safety modes, memory models, and pluggable execution backends are *
 - **String Interpolation**: Inline `{var}` and positional `{@1}` format - `print("Value: {x}")`
 - **Complete Type System**: int, float, double, string, bool, char, void with automatic int→float promotion
 - **const Declarations**: Immutable variables, enforced at compile time - `const int MAX = 100`
-- **Fixed-Size Arrays**: `int[] x = [1,2,3]` or `int[5] x`, element read/write, `len(x)` resolved at compile time
+- **Fixed-Size Arrays**: `int[] x = [1,2,3]` or `int[5] x`, element read/write, `len(x)` resolved at compile time; arrays as function parameters (`int[]` any size, `int[5]` exact size, passed by reference - Task 18.1.2)
 - **Control Flow**: if/else, while, for loops with range support, break/continue
 - **Block-Level (Lexical) Scoping**: a variable is only visible inside the `if`/`while`/`for`/`{ }` block it's declared in, and nested blocks can shadow outer variables of the same name - matches C/Java/Rust, not Python/JavaScript
 - **Recursive Functions**: Full support for direct and indirect recursion
@@ -68,10 +68,10 @@ Configurable safety modes, memory models, and pluggable execution backends are *
 - **C Code Generator**: 137 tests passing - Clean C code generation with GCC integration
 - **Project Configuration**: 28 tests - `fusion.toml` discovery, parsing, validation, and lexer wiring (Tasks 12.12, 19.6)
 - **Source Security**: 53 tests - Trojan Source character rejection, ASCII-only identifiers, `\uXXXX` escapes, char literal decoding (Task 19.6), `%` escaping in printf format strings
-- **Functions**: 20 tests - parameter default values (Task 18.1)
+- **Functions**: 35 tests - parameter default values, array parameters (Task 18.1)
 - **Additional Coverage**: 64 tests - error-handling utilities, full end-to-end compilation
 - **End-to-End Compilation**: 9/9 example programs compile and run successfully
-- **Test Coverage**: 1,197 tests passing (99.3%), 8 skipped
+- **Test Coverage**: 1,212 tests passing (99.3%), 8 skipped
 
 ### Planned Features (Post-MVP)
 - **Richer Collections**: List, Dictionary, Set with LINQ-style operations (basic fixed-size arrays already implemented, above)
@@ -335,7 +335,7 @@ fusion-lang/
 │   ├── codegen/         # C code generator
 │   ├── config/          # Project configuration - fusion.toml loading (Task 12.12)
 │   └── utils/           # Utilities (errors, source location)
-├── tests/               # Test suite (1,197 passing, 8 skipped)
+├── tests/               # Test suite (1,212 passing, 8 skipped)
 ├── examples/            # Example Fusion programs
 ├── task/                # Task tracking and planning documents
 ├── files/               # Language specifications and documentation
@@ -379,14 +379,14 @@ python -m pytest tests/ --cov=src --cov-report=html
 - ✅ **Task 9: Array Support (v1)** - Fixed-size local arrays, literal/explicit-size declarations, element read/write, `len()` resolved at compile time. Arrays as function parameters/return types, multi-dimensional arrays, and nullable arrays (`.length`/`?.`) are deferred - see taskSummary2.md Task 9
 
 ### Test Results
-- **Total Tests**: 1,197 passing (99.3% pass rate)
+- **Total Tests**: 1,212 passing (99.3% pass rate)
 - **Lexer Tests**: 391 (383 passing, 8 skipped) - tokenization, operators, literals, comments
 - **Parser Tests**: 252 passing (AST nodes, expressions, statements, declarations)
 - **Semantic Tests**: 260 passing (type checking, name resolution, control flow, const, arrays)
 - **Code Generation Tests**: 137 passing (C code generation, GCC integration, const, arrays)
 - **Project Configuration Tests**: 28 passing (`fusion.toml` discovery, parsing, validation, lexer wiring)
 - **Source Security Tests**: 53 passing (Trojan Source, homoglyph identifiers, `\uXXXX` escapes, char literal decoding, printf `%` escaping)
-- **Function Tests**: 20 passing (parameter default values)
+- **Function Tests**: 35 passing (parameter default values, array parameters)
 - **Additional Tests**: 64 passing (error-handling utilities, end-to-end compilation)
 - **Skipped Tests**: 8 (single-quote comment syntax - deferred design decision, conflicts with char literals)
 - **Example Programs**: 9/9 verified and working (hello_world, factorial, fizzbuzz, calculator, sum_array, max_three, const_demo, arrays_demo, functions_demo), plus a manual `fusion.toml` demonstration (`examples/project_config_demo/`)
@@ -522,7 +522,7 @@ This project was developed with significant contributions from AI assistants. We
   - Feature planning and specification
   - Documentation reviews
 
-**Note**: All AI-generated code has been thoroughly reviewed, tested (1,197+ passing tests), and validated by human maintainers. The project follows rigorous PLAN FIRST methodology to prevent AI drift and ensure quality.
+**Note**: All AI-generated code has been thoroughly reviewed, tested (1,212+ passing tests), and validated by human maintainers. The project follows rigorous PLAN FIRST methodology to prevent AI drift and ensure quality.
 
 ### Human Contributors
 - **Emile M Steenkamp** - Project creator, lead developer, and maintainer

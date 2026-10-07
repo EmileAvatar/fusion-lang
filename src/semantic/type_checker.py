@@ -488,7 +488,9 @@ class TypeChecker:
         # Check each argument type
         for i, (arg, expected_type) in enumerate(zip(node.arguments, func_type.parameter_types)):
             actual_type = self.visit(arg)
-            if not self.types_compatible(expected_type, actual_type):
+            if isinstance(expected_type, ArrayType):
+                self._check_array_argument(func_name, i, arg, expected_type, actual_type)
+            elif not self.types_compatible(expected_type, actual_type):
                 self.errors.append(SemanticError(
                     f"Argument {i+1} to '{func_name}': expected {self.type_to_string(expected_type)}, "
                     f"got {self.type_to_string(actual_type)}",
@@ -496,6 +498,49 @@ class TypeChecker:
                 ))
 
         return func_type.return_type
+
+    def _check_array_argument(self, func_name: str, index: int, arg: ASTNode,
+                              expected: ArrayType, actual: TypeNode) -> None:
+        """Check an argument passed to an array parameter (Task 18.1.2).
+
+        Arrays are passed by reference - the function works on the caller's array - so the
+        rules are stricter than for assignment:
+        - element types must match exactly: no int -> float promotion, since C can't read
+          an int array's memory as floats
+        - an `int[5]` parameter needs an argument whose size is known to be 5; an `int[]`
+          parameter accepts any size (its length is passed alongside it)
+        - a const array can't be passed, because the function could change its elements
+          (a read-only parameter form doesn't exist yet)
+        """
+        def error(message: str) -> None:
+            self.errors.append(SemanticError(f"Argument {index+1} to '{func_name}': {message}",
+                                             arg.location))
+
+        if not isinstance(actual, ArrayType):
+            error(f"expected {self.type_to_string(expected)}, got {self.type_to_string(actual)}")
+            return
+        if isinstance(arg, ArrayLiteralExpr) and not arg.elements:
+            error("an empty array literal can't be passed")
+            return
+        if not self.types_equal(expected.element_type, actual.element_type):
+            error(f"expected an array of {self.type_to_string(expected.element_type)}, got an "
+                  f"array of {self.type_to_string(actual.element_type)} (array element types "
+                  f"must match exactly)")
+            return
+        if expected.size is not None:
+            if actual.size is None:
+                error(f"expected an array of exactly {expected.size} elements, but this "
+                      f"array's size is only known at run time")
+                return
+            if actual.size != expected.size:
+                error(f"expected an array of exactly {expected.size} elements, got "
+                      f"{actual.size}")
+                return
+        if isinstance(arg, IdentifierExpr):
+            symbol = self.symbol_table.lookup(arg.name)
+            if symbol and symbol.is_constant:
+                error(f"const array '{arg.name}' can't be passed to a function, because the "
+                      f"function could change its elements")
 
     def visit_LambdaExpr(self, node: LambdaExpr) -> TypeNode:
         """Check lambda expression.
@@ -668,6 +713,19 @@ class TypeChecker:
             self.errors.append(SemanticError(
                 f"Cannot initialize array '{node.name}' with non-array value of type "
                 f"{self.type_to_string(init_type)}",
+                node.location
+            ))
+            return
+
+        # Only an array literal can initialize an array. `int[] b = a` used to pass this
+        # check and then fail in GCC ("invalid initializer"), since C can't initialize one
+        # array from another - and whether it should copy or share is an undecided design
+        # question, more pressing now that array parameters exist (Task 18.1.2)
+        if not isinstance(node.initializer, ArrayLiteralExpr):
+            self.errors.append(SemanticError(
+                f"Array '{node.name}' must be initialized with an array literal (e.g. "
+                f"[1, 2, 3]) - initializing an array from another array isn't supported yet; "
+                f"copy the elements one by one",
                 node.location
             ))
             return
