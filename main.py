@@ -58,12 +58,18 @@ def compile_file(source_path: str) -> int:
         source_path,
         tab_width=project_config.indentation.tab_width,
         allow_mixed=project_config.indentation.allow_mixed,
+        allow_unicode_identifiers=project_config.source.allow_unicode_identifiers,
     )
     try:
         tokens = lexer.tokenize()
     except Exception as e:
         print(f"Lexer exception: {e}", file=sys.stderr)
         return 1
+
+    # Lexer warnings (e.g. mixed tabs/spaces) were previously collected and then silently
+    # dropped - print them, the same way semantic warnings are printed (Task 15.7 / 19.6.4)
+    for warning in lexer.diagnostics.warnings:
+        print(f"Lexer warning: {warning}", file=sys.stderr)
 
     if lexer.diagnostics.errors:
         for error in lexer.diagnostics.errors:

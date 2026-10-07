@@ -35,6 +35,10 @@ DEFAULT_ALLOW_MIXED = True
 DEFAULT_SAFETY_MODE = "normal"
 DEFAULT_BACKEND = "c"
 
+# Identifiers are ASCII-only by default to block homoglyph attacks (Task 19.6) - a project
+# that wants non-English identifiers opts in explicitly.
+DEFAULT_ALLOW_UNICODE_IDENTIFIERS = False
+
 # "strict" is referenced by files/fusion-language-spec.md (e.g. Weak<T> causing a compile
 # error in strict mode) but not enforced by any pass yet - accepted here so a project can
 # already declare its intent, same status as the Unique/Shared/Weak keywords.
@@ -58,11 +62,18 @@ class IndentationConfig:
 
 
 @dataclass
+class SourceConfig:
+    """Source-text rules passed to the lexer (Task 19.6)."""
+    allow_unicode_identifiers: bool = DEFAULT_ALLOW_UNICODE_IDENTIFIERS
+
+
+@dataclass
 class ProjectConfig:
     """Resolved project configuration - either loaded from fusion.toml or all defaults.
 
     Attributes:
         indentation: Wired to the lexer (Task 12.12 v1 scope).
+        source: Wired to the lexer - Unicode identifier opt-in (Task 19.6).
         safety_mode: Reserved for future strict-mode enforcement - not yet read by any pass.
         backend: Reserved for Task 11's LLVM backend - not yet read by any pass (only "c"
             exists today, so there is only one legal value right now).
@@ -70,6 +81,7 @@ class ProjectConfig:
             and every field above is a default.
     """
     indentation: IndentationConfig = field(default_factory=IndentationConfig)
+    source: SourceConfig = field(default_factory=SourceConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     backend: str = DEFAULT_BACKEND
     source_path: Optional[str] = None
@@ -142,6 +154,17 @@ def load_project_config(source_path: str) -> ProjectConfig:
             )
         indentation.allow_mixed = allow_mixed
 
+    source = SourceConfig()
+    source_section = _require_table(data, "source", config_path)
+    if "allow_unicode_identifiers" in source_section:
+        allow_unicode = source_section["allow_unicode_identifiers"]
+        if not isinstance(allow_unicode, bool):
+            raise ProjectConfigError(
+                f"{config_path}: source.allow_unicode_identifiers must be a boolean, "
+                f"got {allow_unicode!r}"
+            )
+        source.allow_unicode_identifiers = allow_unicode
+
     safety_mode = DEFAULT_SAFETY_MODE
     safety_section = _require_table(data, "safety", config_path)
     if "mode" in safety_section:
@@ -166,6 +189,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
 
     return ProjectConfig(
         indentation=indentation,
+        source=source,
         safety_mode=safety_mode,
         backend=backend,
         source_path=config_path,

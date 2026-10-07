@@ -368,10 +368,11 @@ more recent package and repository compromises. Defenses:
 
 ### 5.4 Source-level attacks, including attacks aimed at AI assistants
 
-**Verified 2026-10-07: the first two attacks below both work against Fusion today** - a
-file with two different variables that look identical (`аge` with a Cyrillic `а`, and `age`)
-compiles cleanly, as does a right-to-left override character hidden in a comment and a
-string. Fixing this is Task 19.6, now in planning.
+**Status: the first two attacks below are now blocked (Task 19.6, complete 2026-10-07).**
+Before that, both worked against Fusion: a file with two different variables that looked
+identical (`аge` with a Cyrillic `а`, and `age`) compiled cleanly, as did a right-to-left
+override character hidden in a comment and a string. See "Source Text Rules" in
+`files/fusion-language-spec.md`.
 
 - **Trojan Source (CVE-2021-42574):** invisible bidirectional-control Unicode characters make
   code *display* differently from how it *compiles* - a reviewer reads one thing, the
@@ -390,7 +391,8 @@ string. Fixing this is Task 19.6, now in planning.
   Detection is heuristic and never a guarantee; the model must still treat the text as data,
   not instructions
 
-The first two checks don't depend on `import`, so they can be built now (Task 19.6).
+The first two checks are implemented (Task 19.6); the AI input guard waits for
+`fusionlib.AI` (Task 19.7).
 
 ---
 

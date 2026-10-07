@@ -61,9 +61,17 @@ def test_char_literal():
     """Test character literal parsing."""
     expr = parse_expr("'c'")
     assert isinstance(expr, LiteralExpr)
-    # Lexer includes quotes in char literal value
-    assert expr.value == "'c'"
+    # The lexer token keeps the quotes ("'c'"), but the AST holds the decoded character.
+    # This test used to assert "'c'" - locking in a bug where char literals reached codegen
+    # with their quotes attached and compiled to a C multi-character constant (Task 19.6).
+    assert expr.value == "c"
     assert expr.type_hint == "char"
+
+
+def test_char_literal_escape_decoded():
+    """Escape sequences in char literals are decoded by the parser (Task 19.6)."""
+    assert parse_expr("'\\n'").value == "\n"
+    assert parse_expr("'\\u0041'").value == "A"
 
 
 def test_true_literal():

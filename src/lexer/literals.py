@@ -56,6 +56,24 @@ def parse_escape_sequence(text: str, position: int) -> Tuple[str, int]:
     if escape_char in ESCAPE_SEQUENCES:
         return ESCAPE_SEQUENCES[escape_char], position + 2
 
+    # \uXXXX - exactly four hex digits (Task 19.6). This is the visible, deliberate way to
+    # write a character that is rejected when it appears raw in source (invisible and
+    # bidirectional control characters), or any other Unicode character.
+    if escape_char == 'u':
+        hex_digits = text[position + 2:position + 6]
+        if len(hex_digits) != 4 or not all(c in '0123456789abcdefABCDEF' for c in hex_digits):
+            raise ValueError(
+                f"Invalid \\u escape: expected exactly 4 hex digits after \\u, "
+                f"got '{hex_digits}'"
+            )
+        code_point = int(hex_digits, 16)
+        if 0xD800 <= code_point <= 0xDFFF:
+            raise ValueError(
+                f"Invalid \\u escape: U+{code_point:04X} is a UTF-16 surrogate, "
+                f"not a character"
+            )
+        return chr(code_point), position + 6
+
     # Unknown escape sequence
     raise ValueError(f"Invalid escape sequence: \\{escape_char}")
 
@@ -320,12 +338,21 @@ def parse_char(text: str, position: int) -> Optional[Tuple[str, int]]:
     # Check for escape sequence
     if text[pos] == '\\':
         try:
-            _, pos = parse_escape_sequence(text, pos)
+            char_value, pos = parse_escape_sequence(text, pos)
         except ValueError as e:
             raise ValueError(f"Invalid escape sequence in character literal: {e}")
     else:
         # Regular character
+        char_value = text[pos]
         pos += 1
+
+    # A Fusion char maps to a single-byte C char, so it can only hold ASCII. A non-ASCII
+    # character needs more than one byte - it belongs in a string.
+    if ord(char_value) > 0x7F:
+        raise ValueError(
+            f"Character literal can only hold an ASCII character (U+0000-U+007F); "
+            f"U+{ord(char_value):04X} needs a string instead"
+        )
 
     # Expect closing '
     if pos >= len(text) or text[pos] != "'":
@@ -334,6 +361,30 @@ def parse_char(text: str, position: int) -> Optional[Tuple[str, int]]:
     pos += 1  # Skip closing '
 
     return text[start:pos], pos
+
+
+def decode_char_literal(raw: str) -> str:
+    """Decode a char literal's raw source text into the single character it represents.
+
+    The lexer's CHAR_LIT token keeps the raw text (e.g. "'a'", "'\\\\n'", "'\\\\u0041'") -
+    parse_char() validates it but returns it unchanged. The parser calls this to produce
+    the actual character for the AST, which is what code generation expects.
+
+    Before this existed nothing decoded the literal at all: `char c = 'a'` reached codegen
+    with its quotes still attached and compiled to the C multi-character constant
+    `'\\'a\\''`, printing a quote mark instead of `a` (found and fixed in Task 19.6).
+
+    Args:
+        raw: Raw char literal text including the surrounding single quotes
+
+    Returns:
+        The decoded single character
+    """
+    inner = raw[1:-1]
+    if inner.startswith('\\'):
+        char_value, _ = parse_escape_sequence(inner, 0)
+        return char_value
+    return inner
 
 
 # ============================================================

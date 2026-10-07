@@ -58,16 +58,18 @@ Configurable safety modes, memory models, and pluggable execution backends are *
 - **Block-Level (Lexical) Scoping**: a variable is only visible inside the `if`/`while`/`for`/`{ }` block it's declared in, and nested blocks can shadow outer variables of the same name - matches C/Java/Rust, not Python/JavaScript
 - **Recursive Functions**: Full support for direct and indirect recursion
 - **Project Configuration**: an optional `fusion.toml` next to your source file (or in the cwd) - `[indentation]` (`tab_width`/`allow_mixed`) is actually wired into the lexer; `[safety]`/`[backend]` are parsed and validated but not yet enforced. See [examples/project_config_demo/](examples/project_config_demo/) for a working demonstration
+- **Source-Level Attack Defenses**: invisible/bidirectional control characters are rejected anywhere in a file, including comments and strings (blocks "Trojan Source", CVE-2021-42574); identifiers are ASCII-only by default to block look-alike-character (homoglyph) attacks, with a `[source] allow_unicode_identifiers` opt-in; `\uXXXX` escapes for writing special characters visibly
 
 ### Compiler Features (MVP - Complete)
 - **Robust Lexer**: 391 tests (383 passing, 8 skipped) - Tokenization, indentation tracking, operator recognition
-- **Complete Parser**: 251 tests passing - AST generation, expression precedence, statement parsing
+- **Complete Parser**: 252 tests passing - AST generation, expression precedence, statement parsing
 - **Semantic Analyzer**: 260 tests passing - Type checking, name resolution, control flow validation, const and array validation
 - **C Code Generator**: 137 tests passing - Clean C code generation with GCC integration
-- **Project Configuration**: 24 tests - `fusion.toml` discovery, parsing, validation, and lexer wiring (Task 12.12)
+- **Project Configuration**: 28 tests - `fusion.toml` discovery, parsing, validation, and lexer wiring (Tasks 12.12, 19.6)
+- **Source Security**: 49 tests - Trojan Source character rejection, ASCII-only identifiers, `\uXXXX` escapes, char literal decoding (Task 19.6)
 - **Additional Coverage**: 64 tests - error-handling utilities, full end-to-end compilation
 - **End-to-End Compilation**: 8/8 example programs compile and run successfully
-- **Test Coverage**: 1,119 tests passing (99.3%), 8 skipped
+- **Test Coverage**: 1,173 tests passing (99.3%), 8 skipped
 
 ### Planned Features (Post-MVP)
 - **Richer Collections**: List, Dictionary, Set with LINQ-style operations (basic fixed-size arrays already implemented, above)
@@ -331,7 +333,7 @@ fusion-lang/
 │   ├── codegen/         # C code generator
 │   ├── config/          # Project configuration - fusion.toml loading (Task 12.12)
 │   └── utils/           # Utilities (errors, source location)
-├── tests/               # Test suite (1,119 passing, 8 skipped)
+├── tests/               # Test suite (1,173 passing, 8 skipped)
 ├── examples/            # Example Fusion programs
 ├── task/                # Task tracking and planning documents
 ├── files/               # Language specifications and documentation
@@ -375,12 +377,13 @@ python -m pytest tests/ --cov=src --cov-report=html
 - ✅ **Task 9: Array Support (v1)** - Fixed-size local arrays, literal/explicit-size declarations, element read/write, `len()` resolved at compile time. Arrays as function parameters/return types, multi-dimensional arrays, and nullable arrays (`.length`/`?.`) are deferred - see taskSummary2.md Task 9
 
 ### Test Results
-- **Total Tests**: 1,119 passing (99.3% pass rate)
+- **Total Tests**: 1,173 passing (99.3% pass rate)
 - **Lexer Tests**: 391 (383 passing, 8 skipped) - tokenization, operators, literals, comments
-- **Parser Tests**: 251 passing (AST nodes, expressions, statements, declarations)
+- **Parser Tests**: 252 passing (AST nodes, expressions, statements, declarations)
 - **Semantic Tests**: 260 passing (type checking, name resolution, control flow, const, arrays)
 - **Code Generation Tests**: 137 passing (C code generation, GCC integration, const, arrays)
-- **Project Configuration Tests**: 24 passing (`fusion.toml` discovery, parsing, validation, lexer wiring)
+- **Project Configuration Tests**: 28 passing (`fusion.toml` discovery, parsing, validation, lexer wiring)
+- **Source Security Tests**: 49 passing (Trojan Source, homoglyph identifiers, `\uXXXX` escapes, char literal decoding)
 - **Additional Tests**: 64 passing (error-handling utilities, end-to-end compilation)
 - **Skipped Tests**: 8 (single-quote comment syntax - deferred design decision, conflicts with char literals)
 - **Example Programs**: 8/8 verified and working (hello_world, factorial, fizzbuzz, calculator, sum_array, max_three, const_demo, arrays_demo), plus a manual `fusion.toml` demonstration (`examples/project_config_demo/`)
@@ -516,7 +519,7 @@ This project was developed with significant contributions from AI assistants. We
   - Feature planning and specification
   - Documentation reviews
 
-**Note**: All AI-generated code has been thoroughly reviewed, tested (1,119+ passing tests), and validated by human maintainers. The project follows rigorous PLAN FIRST methodology to prevent AI drift and ensure quality.
+**Note**: All AI-generated code has been thoroughly reviewed, tested (1,173+ passing tests), and validated by human maintainers. The project follows rigorous PLAN FIRST methodology to prevent AI drift and ensure quality.
 
 ### Human Contributors
 - **Emile M Steenkamp** - Project creator, lead developer, and maintainer

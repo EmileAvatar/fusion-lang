@@ -3,6 +3,7 @@
 from .project_config import (
     ProjectConfig,
     IndentationConfig,
+    SourceConfig,
     ProjectConfigError,
     CONFIG_FILENAME,
     find_config_file,
@@ -12,6 +13,7 @@ from .project_config import (
 __all__ = [
     "ProjectConfig",
     "IndentationConfig",
+    "SourceConfig",
     "ProjectConfigError",
     "CONFIG_FILENAME",
     "find_config_file",

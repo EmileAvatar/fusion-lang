@@ -8,6 +8,7 @@ Syntax Tree (AST). Uses precedence climbing for binary operators.
 import json
 from typing import List, Optional
 from src.lexer.token import Token, TokenType, SourceLocation
+from src.lexer.literals import decode_char_literal
 from src.parser.ast_nodes import *
 
 
@@ -409,7 +410,9 @@ class Parser:
             token = self.previous()
             return LiteralExpr(
                 location=token.location,
-                value=token.value,
+                # The token holds the raw text including quotes ("'a'"); the AST holds the
+                # decoded character ("a") - see decode_char_literal for why this matters
+                value=decode_char_literal(token.value),
                 type_hint="char"
             )
 

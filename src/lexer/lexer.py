@@ -4,6 +4,7 @@ This module integrates all lexer components to produce a complete token stream
 from Fusion source code.
 """
 
+import json
 from typing import List, Optional
 from .token import Token, TokenType, SourceLocation
 from .indentation import IndentationTracker
@@ -15,6 +16,10 @@ from .literals import (
     is_digit, is_literal_start
 )
 from .comments import is_comment_start, skip_comment
+from .source_security import (
+    BYTE_ORDER_MARK, find_disallowed_character, disallowed_character_message,
+    check_identifier
+)
 from src.utils.errors import LexerError, LexerWarning, DiagnosticReporter, LexerErrorMessages
 
 
@@ -40,7 +45,8 @@ class Lexer:
     """
 
     def __init__(self, source: str, filename: str = "<stdin>",
-                 tab_width: int = 4, allow_mixed: bool = True):
+                 tab_width: int = 4, allow_mixed: bool = True,
+                 allow_unicode_identifiers: bool = False):
         """Initialize the lexer.
 
         Args:
@@ -52,9 +58,18 @@ class Lexer:
                 (Task 12.12).
             allow_mixed: Allow mixed tabs/spaces with a warning instead of an error
                 (default: True). Same project-config note as tab_width.
+            allow_unicode_identifiers: Allow non-ASCII identifiers (default: False -
+                identifiers are ASCII-only to block homoglyph attacks). Normally set via
+                fusion.toml [source] instead - see src/lexer/source_security.py (Task 19.6).
         """
+        # A UTF-8 byte-order mark (often added by Windows editors) is legitimate only as the
+        # very first character of a file - strip it there. Anywhere else it is rejected as an
+        # invisible character by check_source_characters().
+        if source.startswith(BYTE_ORDER_MARK):
+            source = source[1:]
         self.source = source
         self.filename = filename
+        self.allow_unicode_identifiers = allow_unicode_identifiers
         self.pos = 0
         self.line = 1
         self.column = 1
@@ -157,6 +172,36 @@ class Lexer:
             warning: LexerWarning to add
         """
         self.diagnostics.add_warning(warning)
+
+    def location_at(self, index: int) -> SourceLocation:
+        """Compute the source location (line, column) of an arbitrary index in the source."""
+        line = self.source.count('\n', 0, index) + 1
+        column = index - (self.source.rfind('\n', 0, index) + 1) + 1
+        return SourceLocation(self.filename, line, column)
+
+    def check_source_characters(self) -> None:
+        """Reject invisible/bidirectional control characters anywhere in the source (Task 19.6).
+
+        Runs over the raw text before tokenizing, so comments and string literals are covered
+        too - comments are exactly where Trojan Source attacks hide.
+
+        Raises:
+            LexerError: At the first disallowed character found
+        """
+        found = find_disallowed_character(self.source)
+        if found is not None:
+            index, ch = found
+            raise LexerError(disallowed_character_message(ch), self.location_at(index))
+
+    def check_identifier_name(self, name: str, loc: SourceLocation) -> None:
+        """Apply the homoglyph rules to an identifier (Task 19.6).
+
+        Raises:
+            LexerError: If the identifier is rejected
+        """
+        problem = check_identifier(name, self.allow_unicode_identifiers)
+        if problem is not None:
+            raise LexerError(problem, loc)
 
     # ============================================================
     # Whitespace and Line Handling
@@ -302,7 +347,8 @@ class Lexer:
             token_type = get_keyword_type(value)
             return Token(token_type, value, loc)
 
-        # Otherwise it's an identifier
+        # Otherwise it's an identifier - apply the homoglyph rules (Task 19.6)
+        self.check_identifier_name(value, loc)
         return Token(TokenType.IDENTIFIER, value, loc)
 
     # ============================================================
@@ -360,6 +406,12 @@ class Lexer:
             chars_advanced = new_pos - self.pos
             self.pos = new_pos
             self.column += chars_advanced
+
+            # Variable names inside {interpolation} are identifiers too - same homoglyph
+            # rules as anywhere else (Task 19.6)
+            for kind, part_value in json.loads(json_parts):
+                if kind == 'INTERP_VAR':
+                    self.check_identifier_name(part_value, loc)
 
             return Token(TokenType.STRING_LIT, json_parts, loc)
         except ValueError as e:
@@ -456,6 +508,9 @@ class Lexer:
         """
         tokens = []
 
+        # Source-level attack defenses run before anything else (Task 19.6)
+        self.check_source_characters()
+
         while not self.is_eof():
             ch = self.current_char()
 
@@ -494,8 +549,9 @@ class Lexer:
                 tokens.append(self.tokenize_char())
                 continue
 
-            # Numbers
-            if ch and ch.isdigit():
+            # Numbers - ASCII digits only (str.isdigit() also accepts e.g. Arabic-Indic
+            # digits, which would then fail confusingly inside number parsing)
+            if ch and is_digit(ch):
                 tokens.append(self.tokenize_number())
                 continue
 

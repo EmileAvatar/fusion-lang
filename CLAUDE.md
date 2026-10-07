@@ -158,7 +158,7 @@ d:\Dropbox\Fusion\
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,119 tests passing (99.3%)
+- 1,173 tests passing (99.3%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
@@ -175,12 +175,11 @@ GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12 (all 12 sub-task
 codegen split, block scoping, memory model semantics, docs sync, project config system, and
 two deliberately-deferred design decisions - IR layer and stdlib lowering)
 
-**In progress:** **Task 19.6** (source-level attack defenses - Trojan Source characters and
-homoglyph identifiers, both verified to compile today) - detailed plan written, **awaiting
-user approval** before implementation. Task 18 (Core Language Foundation) remains the
-foundation most other work needs, and Task 19.1-19.5 depend on it. Guiding rule: a simple
-working language first, complex features after (see `FutureFeaturesCaution.md`). Security
-principle: **never trust code**.
+**In progress:** Nothing. **Task 19.6** (source-level attack defenses) is complete. Recommended
+next: fix the printf `%` format-string bug (Task 18.3, small and security-relevant), then
+Task 18 (Core Language Foundation) - Task 19.1-19.5 depend on its `import` work. Guiding rule:
+a simple working language first, complex features after (see `FutureFeaturesCaution.md`).
+Security principle: **never trust code**.
 
 **Open / not yet scoped:** Task 13 (HIDL module), Task 14 (nullable arrays/safe navigation),
 Task 15 (deferred-decisions revisit list), Task 16 (example coverage), Task 17 (mutable/fixed
@@ -323,6 +322,9 @@ int n = len(scores)     // size (compile-time constant)
 tab_width = 4        # spaces per tab
 allow_mixed = true   # mixed tabs/spaces: warning (true) vs compile error (false)
 
+[source]
+allow_unicode_identifiers = false   # ASCII-only identifiers by default (Task 19.6)
+
 [safety]
 mode = "normal"      # "normal" | "strict" - reserved, not yet enforced (Task 12.12)
 
@@ -419,9 +421,23 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
   `[indentation]` (`tab_width`/`allow_mixed`) actually reaches the lexer; `[safety]`/
   `[backend]` are parsed/validated but not yet enforced (Task 12.12, complete - see
   `src/config/project_config.py` and `examples/project_config_demo/`)
+- Source-level attack defenses (Task 19.6, complete - `src/lexer/source_security.py`):
+  invisible/bidirectional control characters rejected anywhere in a file incl. comments and
+  strings (Trojan Source); identifiers ASCII-only by default, opt-in via `[source]
+  allow_unicode_identifiers` (mixed look-alike scripts still rejected); `\uXXXX` escapes in
+  string and char literals; lexer warnings printed by `main.py`
+- Char literals work correctly end-to-end (`char c = 'a'` - was broken before Task 19.6)
 
 **Known Limitations (by design):**
 - Single-quote comments disabled (conflicts with char literals)
+- Identifiers are ASCII-only unless `fusion.toml` opts in; char literals hold one ASCII
+  character (a C `char` is one byte) - both by design (Task 19.6)
+
+**Known bugs (logged, not yet fixed):**
+- `%` inside a printed string is treated as a printf format code - `print("100% done")`
+  prints garbage (format-string bug class, CWE-134). Task 18.3
+- String `==` compares C pointers, not contents (correct today only by accident). Task 18.3
+- Default parameter values are parsed but unusable at call sites. Task 18.1
 - const follows the same block scoping as other variables (no global/class-level
   constants yet - classes not implemented)
 - `fusion.toml`'s `[safety]`/`[backend]` sections are recognized and validated but not
@@ -484,9 +500,9 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Task 19.6 - its detailed plan is in taskSummary2.md, awaiting approval.
-After that, Task 18 (Core Language Foundation). Read `FutureFeaturesCaution.md` before
-picking up anything from `FutureFeatures.md`.
+**Current Focus:** Task 19.6 is done. Next: the printf `%` bug (Task 18.3), then Task 18
+(Core Language Foundation), starting with a detailed plan for 18.1. Read
+`FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
 
 **Completed:**
 - Tasks 1-9 and 12 - see task/taskSummary.md and task/taskSummaryArchive.md for full detail
@@ -511,7 +527,7 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1119 passed, 8 skipped**
+4. `python -m pytest tests/ -q` - expect **1173 passed, 8 skipped**
 5. `python tests/verify_examples.py` - expect **8/8**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and

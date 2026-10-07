@@ -55,13 +55,13 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 12: Architecture Hardening** | Complete | 100% | 12 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Task 15: Deferred Decisions Revisit List** | Not Started | 0% | 0 | 7 |
+| **Task 15: Deferred Decisions Revisit List** | In Progress | 14% | 1 | 7 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
 | **Task 18: Core Language Foundation** | Not Started (next priority) | 0% | 0 | 5 |
-| **Task 19: Library Trust, Isolation & Security** | In Planning (19.6) | 0% | 0 | 7 |
+| **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
 | **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
-| **Overall** | Task 19.6 Planning | 39% | 46 | 119 |
+| **Overall** | Task 19.6 Complete | 40% | 48 | 119 |
 
 ---
 
@@ -665,8 +665,10 @@ trigger has arrived, rather than re-discovering them by reading old commit messa
 - [ ] Wire `backend.target` to actually select a backend once Task 11 (LLVM) exists as a
       second option
 
-#### 15.7: Lexer Warnings Are Never Surfaced (trigger: none set - small, could be fixed opportunistically)
-- [ ] `main.py` checks `lexer.diagnostics.errors` and stops the build on any, but never
+#### 15.7: Lexer Warnings Are Never Surfaced - RESOLVED (2026-10-07, as part of Task 19.6.4)
+- [x] Fixed: `main.py` now prints every lexer warning (`Lexer warning: ...`) before checking
+      errors; covered by `test_main_prints_lexer_warnings` in `tests/test_source_security.py`
+- [x] (original note) `main.py` checks `lexer.diagnostics.errors` and stops the build on any, but never
       prints `lexer.diagnostics.warnings` anywhere - e.g. the mixed-tabs-spaces warning
       (`allow_mixed = true`, the default) is generated and silently collected, then
       dropped without ever reaching the user
@@ -936,6 +938,12 @@ Nearly every real program needs these, and a self-hosted lexer is built entirely
       literals - and will silently return false for equal strings as soon as any string is
       built at runtime. Same bug class as Task 12.6 (semantic analysis accepts something
       whose generated C is wrong). Fix early, before runtime-created strings exist
+- [ ] **Bug - `%` in a printed string is treated as a printf format code** (verified
+      2026-10-07): `print("Progress: 100% done")` prints `Progress: 100 1134633984one`, because
+      string text is placed directly into `printf`'s format string, so `% d` reads garbage
+      from the stack. This is the format-string bug class (CWE-134) - `%n` could even write to
+      memory. Fix: escape `%` as `%%` in literal text before it goes into a format string (in
+      `c_runtime.py`'s print and interpolation paths). Small fix - recommended soon
 - [ ] Concatenation, length, comparison (`==`/`!=`/ordering by content), indexing/substring,
       conversion to/from numbers
 - [ ] **Equality operator family** (user request and decisions, 2026-10-07) - for strings
@@ -1104,19 +1112,31 @@ reasoning: `FutureFeaturesCaution.md` sections 3-5.
 - [ ] Real precedents this guards against: the xz-utils backdoor (2024), the event-stream npm
       compromise (2018), and recent repository/package compromises that inject backdoors
 
-#### 19.6: Source-Level Attack Defenses (can be done any time - no dependency on `import`)
-**Verified 2026-10-07: both attacks below work against Fusion today.** A file containing two
+#### 19.6: Source-Level Attack Defenses - COMPLETE (2026-10-07)
+**Before this task, both attacks below worked against Fusion.** A file containing two
 different variables `аge` (Cyrillic `а`, U+0430) and `age` (Latin) that look identical
-compiles cleanly, and so does a right-to-left override (U+202E) hidden in a comment and in a
-string literal. Identifiers use Python's Unicode-aware `isalpha()`/`isalnum()`, and comments
-and strings accept any character.
-- [ ] Lexer rejects bidirectional-control and invisible Unicode characters in source - the
-      "Trojan Source" attack (CVE-2021-42574), where code *displays* differently from how it
-      *compiles* - in comments and strings too, unless explicitly escaped
-- [ ] Add a `\uXXXX` escape to string/char literals (none exists today), so a legitimate
-      invisible character can still be written - visibly
-- [ ] Defend against confusable identifiers (homoglyphs - e.g. Cyrillic `а` vs Latin `a`)
-- [ ] **Detailed implementation plan: see "19.6 Detailed Plan" below - awaiting approval**
+compiled cleanly, and so did a right-to-left override (U+202E) hidden in a comment and in a
+string literal. Both are now rejected with a precise error.
+- [x] Lexer rejects bidirectional-control and invisible Unicode characters anywhere in source,
+      including comments and strings (Trojan Source, CVE-2021-42574) - new
+      `src/lexer/source_security.py`, a pre-pass in `Lexer.tokenize()`
+- [x] `\uXXXX` escapes added to string and char literals
+- [x] Identifiers ASCII-only by default (user decision); opt-in via `fusion.toml`
+      `[source] allow_unicode_identifiers = true`, where mixed look-alike scripts and
+      compatibility characters are still rejected
+- [x] Lexer warnings now printed by `main.py` (closes Task 15.7)
+- [x] **Found and fixed along the way: char literals were broken end-to-end.** `char c = 'a'`
+      compiled to the C multi-character constant `'\'a\''` and printed `'` instead of `a`,
+      because nothing ever decoded the literal - the lexer keeps the raw text (`'a'`), and the
+      parser passed it straight into the AST. The parser now decodes it
+      (`decode_char_literal`). A parser test (`test_char_literal`) had been asserting the
+      buggy behavior, and was corrected
+- [x] Also: codegen's C-escaping (previously duplicated in four places) is now one helper,
+      `escape_c_text`, which writes control/invisible characters as octal escapes so they
+      never appear raw in generated C; char literals must be ASCII (a C `char` is one byte);
+      Unicode digits no longer start a number
+- [x] 54 new tests (`tests/test_source_security.py`, 4 config tests, 1 parser test). Full
+      suite 1173 passed, 8 skipped; 8/8 examples
 
 #### 19.7: AI Module Input Guard (far future - depends on fusionlib.AI existing)
 - [ ] When Fusion's future `fusionlib.AI` module passes text to an AI model, it first parses
@@ -1141,10 +1161,10 @@ and strings accept any character.
 - Lockfile, signing, and capability-diff tooling
 - Lexer-level source attack checks
 
-**Scheduling:** 19.6 is being started now (user's choice, 2026-10-07) - it's the only part
-with no dependency on `import`. 19.1-19.5 need Task 18.4 first; 19.7 needs `fusionlib.AI`.
+**Scheduling:** 19.6 done (2026-10-07). 19.1-19.5 need Task 18.4 (`import`) first; 19.7 needs
+`fusionlib.AI`.
 
-### 19.6 Detailed Plan (AWAITING USER APPROVAL - do not implement until approved)
+### 19.6 Detailed Plan (APPROVED 2026-10-07 - IMPLEMENTED, kept for reference)
 
 **19.6.1 - Reject invisible and bidirectional control characters**
 - [ ] A pre-pass in the lexer scans the whole source text before tokenizing, so comments
@@ -1920,6 +1940,24 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
     identifiers with mixed-script checks
 - **Next Action:** get the user's approval on the 19.6 Detailed Plan (and the identifier
   decision), then implement 19.6.1-19.6.5.
+- **Task 19.6 COMPLETE, 2026-10-07.** User approved the plan and chose ASCII-only identifiers
+  by default. Implemented: new `src/lexer/source_security.py` (rejects bidi/invisible
+  characters everywhere incl. comments and strings; ASCII-only identifiers with an opt-in that
+  still rejects mixed scripts and compatibility characters); `\uXXXX` escapes; `[source]
+  allow_unicode_identifiers` in `fusion.toml`; lexer warnings printed by `main.py` (closes
+  Task 15.7). Both originally-verified attacks are now rejected with precise errors.
+  - **Found and fixed:** char literals were broken end-to-end (`char c = 'a'` printed `'`) -
+    nothing decoded the literal; the parser now does. A parser test asserting the buggy
+    behavior was corrected
+  - **Found and logged, not fixed (outside the approved plan):** `%` inside a printed string
+    is treated as a printf format code - `print("100% done")` prints stack garbage. Logged in
+    Task 18.3 as a verified format-string bug (CWE-134), recommended to fix soon
+  - Codegen C-escaping consolidated into one helper (`escape_c_text`), which also keeps
+    control/invisible characters out of generated C as octal escapes
+  - 54 new tests; full suite 1173 passed, 8 skipped; 8/8 examples
+- **Next Action:** the rest of Task 19 needs `import` (Task 18.4). Recommended next: fix the
+  printf `%` bug (small, security-relevant), then Task 18 (Core Language Foundation) starting
+  with a detailed plan for 18.1.
 
 ---
 
@@ -1960,8 +1998,8 @@ Task 17 (mutable/fixed strings, templated fixed strings, string pooling) is logg
 yet approved for scoping; Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning
 complete" but not started, pending the Task 15.4 ordering decision. **Task 18 (Core Language
 Foundation) remains the foundation most other work needs**. **Task 19.6** (source-level attack
-defenses) is in planning now at the user's request - its detailed plan awaits approval; the
-rest of Task 19 needs Task 18.4 (`import`) first. Task 20 (multi-format config) is logged and
-unblocked. Read
+defenses) is complete; the rest of Task 19 needs Task 18.4 (`import`) first. A verified printf
+`%` format-string bug is logged in Task 18.3 - recommended to fix next. Task 20 (multi-format
+config) is logged and unblocked. Read
 `FutureFeaturesCaution.md` before picking up anything from FutureFeatures.md. Completed-task
 detail for Tasks 5-9 and 12 lives in `task/taskSummaryArchive.md`.

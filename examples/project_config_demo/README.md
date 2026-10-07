@@ -18,8 +18,9 @@ python main.py examples/project_config_demo/mixed_indent.fusion
 # -> Lexer exception: ...mixed_indent.fusion:2:1: error: Mixed tabs and spaces in indentation
 
 # Move or rename fusion.toml out of the way and run again:
-# -> compiles successfully (warning only, not yet surfaced to stderr - a pre-existing gap,
-#    unrelated to Task 12.12)
+# -> compiles successfully, printing "Lexer warning: ... Mixed tabs and spaces in
+#    indentation" (lexer warnings are shown since Task 19.6 - before that they were
+#    silently dropped)
 ```
 
 See `files/fusion-language-spec.md`'s "Project Configuration" section (under "Build and

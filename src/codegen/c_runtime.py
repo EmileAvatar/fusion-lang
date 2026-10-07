@@ -17,10 +17,53 @@ parser support yet, so there is no real stdlib to lower. Revisit once Fusion's f
 import/fusionlib module is scoped for implementation.
 """
 
+import unicodedata
+
 from ..parser.ast_nodes import (
     ASTNode, CallExpr, LiteralExpr, InterpolatedStringExpr,
     StringTextPart, StringExprPart, PrimitiveType, ArrayType
 )
+
+
+_SIMPLE_C_ESCAPES = {
+    '\\': '\\\\',
+    '\n': '\\n',
+    '\t': '\\t',
+    '\r': '\\r',
+    '\0': '\\000',  # three octal digits, so a following digit can't extend the escape
+}
+
+
+def escape_c_text(value: str, quote: str) -> str:
+    """Escape text for use inside a C string ("...") or char ('...') literal.
+
+    Single shared implementation - this logic was previously duplicated in four places.
+
+    Control and invisible/format characters (Unicode categories Cc and Cf - e.g. a zero-width
+    joiner written as \\u200D in Fusion source) are emitted as octal escapes of their UTF-8
+    bytes, so they are never written raw - and invisible - into the generated C (Task 19.6).
+    Octal escapes are used rather than \\x because C's \\x consumes every following hex digit,
+    while an octal escape stops at three digits. Ordinary printable text, including printable
+    Unicode such as accented letters, is emitted unchanged.
+
+    Args:
+        value: The text to escape
+        quote: The enclosing quote character - '"' for strings, "'" for chars
+
+    Returns:
+        The escaped text, without the surrounding quotes
+    """
+    out = []
+    for ch in value:
+        if ch in _SIMPLE_C_ESCAPES:
+            out.append(_SIMPLE_C_ESCAPES[ch])
+        elif ch == quote:
+            out.append('\\' + quote)
+        elif unicodedata.category(ch) in ('Cc', 'Cf'):
+            out.append(''.join(f'\\{byte:03o}' for byte in ch.encode('utf-8')))
+        else:
+            out.append(ch)
+    return ''.join(out)
 
 
 class RuntimeLoweringMixin:
@@ -92,8 +135,7 @@ class RuntimeLoweringMixin:
 
         # Handle plain string literals
         if isinstance(arg, LiteralExpr) and arg.type_hint == 'string':
-            escaped = str(arg.value).replace('\\', '\\\\').replace('"', '\\"')
-            escaped = escaped.replace('\n', '\\n').replace('\t', '\\t')
+            escaped = escape_c_text(str(arg.value), '"')
             return f'printf("{escaped}\\n")'
 
         # For other types, use the format specifier matching the expression's actual type
@@ -186,7 +228,6 @@ class RuntimeLoweringMixin:
         format_str = ''.join(format_parts)
 
         # Escape the format string
-        escaped = format_str.replace('\\', '\\\\').replace('"', '\\"')
-        escaped = escaped.replace('\n', '\\n').replace('\t', '\\t')
+        escaped = escape_c_text(format_str, '"')
 
         return escaped, args

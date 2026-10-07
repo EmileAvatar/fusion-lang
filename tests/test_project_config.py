@@ -263,3 +263,43 @@ def test_project_config_feeds_lexer_end_to_end(tmp_path):
     )
 
     assert lexer.indent_tracker.tab_width == 2
+
+
+# ============================================================
+# [source] section (Task 19.6)
+# ============================================================
+
+def test_source_allow_unicode_identifiers_defaults_to_false(tmp_path):
+    source_path = tmp_path / "hello.fusion"
+    source_path.write_text("")
+    config = load_project_config(str(source_path))
+    assert config.source.allow_unicode_identifiers is False
+
+
+def test_source_allow_unicode_identifiers_opt_in(tmp_path):
+    source_path = tmp_path / "hello.fusion"
+    source_path.write_text("")
+    (tmp_path / "fusion.toml").write_text("[source]\nallow_unicode_identifiers = true\n")
+    config = load_project_config(str(source_path))
+    assert config.source.allow_unicode_identifiers is True
+
+
+def test_source_allow_unicode_identifiers_must_be_boolean(tmp_path):
+    source_path = tmp_path / "hello.fusion"
+    source_path.write_text("")
+    (tmp_path / "fusion.toml").write_text('[source]\nallow_unicode_identifiers = "yes"\n')
+    with pytest.raises(ProjectConfigError, match="allow_unicode_identifiers must be a boolean"):
+        load_project_config(str(source_path))
+
+
+def test_source_config_feeds_lexer(tmp_path):
+    """A Unicode identifier is rejected by default but accepted once fusion.toml opts in."""
+    source_text = "int caf\u00e9 = 1\n"
+    source_path = tmp_path / "hello.fusion"
+    source_path.write_text("")
+    (tmp_path / "fusion.toml").write_text("[source]\nallow_unicode_identifiers = true\n")
+    config = load_project_config(str(source_path))
+    lexer = Lexer(source_text, str(source_path),
+                  allow_unicode_identifiers=config.source.allow_unicode_identifiers)
+    names = [t.value for t in lexer.tokenize() if t.value == "caf\u00e9"]
+    assert names == ["caf\u00e9"]

@@ -24,7 +24,7 @@ from ..parser.ast_nodes import (
 )
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name
-from .c_runtime import RuntimeLoweringMixin
+from .c_runtime import RuntimeLoweringMixin, escape_c_text
 
 
 class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
@@ -224,21 +224,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             return 'true' if node.value else 'false'
 
         elif type_hint == 'char':
-            # Escape special characters
-            char_val = str(node.value)
-            escaped = char_val.replace('\\', '\\\\').replace("'", "\\'")
-            # Handle common escape sequences
-            escaped = escaped.replace('\n', '\\n').replace('\t', '\\t')
-            escaped = escaped.replace('\r', '\\r').replace('\0', '\\0')
+            escaped = escape_c_text(str(node.value), "'")
             return f"'{escaped}'"
 
         elif type_hint == 'string':
-            # Escape special characters
-            str_val = str(node.value)
-            escaped = str_val.replace('\\', '\\\\').replace('"', '\\"')
-            # Handle common escape sequences
-            escaped = escaped.replace('\n', '\\n').replace('\t', '\\t')
-            escaped = escaped.replace('\r', '\\r').replace('\0', '\\0')
+            escaped = escape_c_text(str(node.value), '"')
             return f'"{escaped}"'
 
         elif type_hint == 'null':
