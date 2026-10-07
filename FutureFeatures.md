@@ -1,8 +1,13 @@
 # 🔮 Fusion Language - Future Features & Enhancements
 
 **Status:** Planning / Not Yet Implemented
-**Last Updated:** 2026-09-27
+**Last Updated:** 2026-10-07
 **Purpose:** Track proposed features and enhancements for post-MVP implementation
+
+> **Read `FutureFeaturesCaution.md` first.** The first goal is a simple working language;
+> everything in this document is a menu of possibilities, not a commitment - some features
+> will be built, some will change, and some will never be added. Core-language work (Task 18
+> in `taskSummary2.md`) comes before any of it.
 
 ---
 

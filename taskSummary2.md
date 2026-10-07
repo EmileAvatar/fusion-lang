@@ -58,7 +58,8 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 15: Deferred Decisions Revisit List** | Not Started | 0% | 0 | 7 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
-| **Overall** | Task 17 Logged | 45% | 46 | 103 |
+| **Task 18: Core Language Foundation** | Not Started (next priority) | 0% | 0 | 5 |
+| **Overall** | Task 18 Logged | 43% | 46 | 108 |
 
 ---
 
@@ -866,6 +867,123 @@ same convention as Tasks 13/14/16.
 
 ---
 
+## TASK 18: Core Language Foundation ("a simple working language first")
+
+**Goal:** Build the small set of core features every other planned feature depends on, so
+Fusion can write real (non-toy) programs before any of the larger future features begin.
+**Status:** Not Started - **recommended next priority** (user agreed with the direction,
+2026-10-07: "the first goal is to get a simple working language first"). Each sub-task still
+needs its own detailed plan approved before implementation, per Rule 1.
+**Priority:** HIGH - nearly every open task is blocked on something in this list (see "Why
+this task exists")
+**Blocked By:** Nothing
+**Estimated Effort:** TBD - each sub-task gets its own plan; 18.4 (import) is the largest
+**Source:** Claude review of the project (2026-10-07) - see `FutureFeaturesCaution.md` for
+the full reasoning. Overlaps heavily with Task 10.2 (self-hosting prerequisites: file I/O,
+collections, string helpers, CLI args) - this task effectively becomes that prerequisite
+work, done for its own sake rather than only in service of self-hosting.
+
+### Why this task exists
+
+The documented vision (FutureFeatures.md) is far larger than the implemented core, and the
+same few missing core features block almost everything else: the Currency Module, Crypto,
+Regex, HIDL, the whole stdlib, the Symbol-ID system, most of Task 16's examples, and
+self-hosting all need `import`; Currency's runtime representation, HIDL register maps, and
+classes all need structs; self-hosting needs strings, file I/O, and collections. Building
+this foundation unblocks roughly 80% of the open task list in one stretch.
+
+### Sub-tasks (each needs its own approved plan before implementation)
+
+Ordered by dependency - each builds on the ones before it.
+
+#### 18.1: Functions With Full Parameter Types
+**Why first:** functions are the unit of all reusable code - a stdlib, a self-hosted
+compiler, or any non-trivial program is built out of them, and today they're restricted.
+- [ ] **Default parameter values don't actually work** (verified 2026-10-07): they're parsed
+      and type-checked, but calling `greet()` on `void function greet(string name = "World")`
+      fails semantic analysis with "expects 1 argument(s), got 0". CLAUDE.md's Quick Syntax
+      Reference advertises this syntax, so it's a correctness gap, not just a missing
+      feature. C has no default arguments, so codegen must fill omitted arguments in at each
+      call site
+- [ ] Arrays as function parameters and return values (rejected outright today in
+      `name_resolver.py`, deferred since Task 9) - needs a pointer+length representation
+      in C, since C arrays decay to pointers and lose their size
+- [ ] Real lambda codegen (currently emits the placeholder `/* <lambda> */`) - this also
+      makes Task 15.3's LambdaExpr scope bug reachable, so fix both together
+- [ ] Example program per Rule 5 / Task 16
+
+#### 18.2: Structs
+**Why second:** the first user-defined composite type, and the lowest-risk way into
+user-defined types - a value type maps directly onto a C `struct`, so it needs no runtime,
+no inheritance, and no decision yet on how classes/interfaces/traits interact.
+- [ ] Struct declaration, field access (`.` member access - which also delivers the parser
+      piece Task 14 needs for `arr.length`), construction, assignment/copy semantics
+- [ ] Structs as function parameters/return values (builds on 18.1)
+- [ ] Nested structs and arrays of structs
+- [ ] Prerequisite for: classes (Task 16.2), Currency's runtime struct, HIDL register maps,
+      AST nodes in a self-hosted compiler
+- [ ] Example program per Rule 5 / Task 16
+
+#### 18.3: Proper Strings
+**Why third:** today strings are only C string literals passed around as `char*` - there is
+no concatenation, length, comparison, substring, or number conversion anywhere in codegen.
+Nearly every real program needs these, and a self-hosted lexer is built entirely on them.
+- [ ] **Latent bug - string `==` compiles to C pointer comparison** (verified 2026-10-07):
+      `x == y` on two strings emits `(x == y)` in C, comparing addresses, not contents. It
+      returns the right answer today only by accident - GCC deduplicates identical string
+      literals - and will silently return false for equal strings as soon as any string is
+      built at runtime. Same bug class as Task 12.6 (semantic analysis accepts something
+      whose generated C is wrong). Fix early, before runtime-created strings exist
+- [ ] Concatenation, length, comparison (`==`/`!=`/ordering by content), indexing/substring,
+      conversion to/from numbers
+- [ ] Decide string memory ownership - concatenation creates new strings, so who frees
+      them? This is the first place the memory model (Task 12.7) becomes practical, and
+      it's the foundation Task 17 (mutable/fixed strings, pooling) builds on
+- [ ] Example program per Rule 5 / Task 16
+
+#### 18.4: `import` and Multi-File Projects
+**Why fourth:** the single biggest unblocker - everything in the stdlib, every proposed
+module, and every program larger than a few hundred lines needs it. Placed after 18.1-18.3
+because there needs to be something worth importing (functions, structs, string utilities).
+- [ ] `import` parsing (lexer keyword only today) and module resolution (how a module name
+      maps to a file path)
+- [ ] Visibility (`public`/`private` - already reserved keywords) across module boundaries
+- [ ] Multi-file compilation: generate one C file per module plus headers, or one combined
+      C file - a real decision, with implications for build speed and the future Symbol-ID
+      system
+- [ ] Record each module's interface signature (exported symbols, plus what capabilities
+      it uses) - the groundwork for the ecosystem-fragmentation answer in
+      `FutureFeaturesCaution.md`. Cheap to capture now, very expensive to retrofit later
+- [ ] Example: a small multi-file project
+
+#### 18.5: Minimal Standard Library (IO and Collections)
+**Why last:** needs everything above - it's the first real importable module (18.4), built
+from functions (18.1), structs (18.2), and strings (18.3).
+- [ ] Console input, and file read/write
+- [ ] A growable list (and probably a map/dictionary)
+- [ ] Command-line arguments
+- [ ] **Layer the stdlib from day one** (core / alloc / std, Rust-style): the core layer
+      works with no heap, no GC, no exceptions; higher layers add allocation and OS
+      services. This is the specific thing D got wrong - its standard library was built
+      assuming a garbage collector, so making GC optional later split the ecosystem. See
+      `FutureFeaturesCaution.md`
+- [ ] Satisfies Task 10.2's self-hosting prerequisites (file I/O, collections, string
+      helpers, CLI args)
+- [ ] Example programs per Rule 5 / Task 16
+
+**Success Criteria:**
+- A non-trivial multi-file Fusion program (e.g. a word counter that reads a file, builds a
+  list/map of words, and prints sorted counts) compiles and runs correctly
+- Default parameters and string equality both behave correctly (the two verified gaps)
+- Full test suite stays green; every sub-task ships with tests and an example program
+
+**Deliverables:**
+- Functions with full parameter support, structs, a real string type, `import`/multi-file
+  compilation, and a minimal layered stdlib (IO + collections)
+- One example program per sub-task
+
+---
+
 ## Working Notes
 
 ### Session 16 (2025-12-14 - Planning Phase)
@@ -1486,6 +1604,22 @@ same convention as Tasks 13/14/16.
 - **Next Action:** Task 17 is logged only - no implementation expected until the user
   re-opens it for scoping. 16.1 remains the nearest actionable item if the user wants to
   build something now.
+- **Project review + Task 18 (Core Language Foundation), 2026-10-07:** Claude reviewed the
+  project at the user's request. Main conclusion: the documented vision is far larger than
+  the implemented core, and a handful of missing core features block almost every open
+  task. The user agreed - "the first goal is to get a simple working language first" - and
+  asked for this to be logged as a task. Task 18 = functions with full parameter types,
+  structs, proper strings, `import`/multi-file projects, and a minimal layered stdlib.
+  - Two real gaps verified while grounding the task: (1) default parameter values are
+    parsed and type-checked but unusable at call sites (`greet()` fails "expects 1
+    argument(s), got 0") even though CLAUDE.md advertises the syntax; (2) string `==`
+    compiles to C pointer comparison, correct today only because GCC deduplicates identical
+    literals - logged as 18.1 and 18.3
+  - Review, cautions, and the user's proposed answer to ecosystem fragmentation (per-symbol
+    capability signatures, with the importing project's strategy overriding imported code)
+    written up in a new `FutureFeaturesCaution.md`
+- **Next Action:** Task 18 is the recommended next priority - start by writing the detailed
+  plan for 18.1 and getting it approved.
 
 ---
 
@@ -1524,5 +1658,7 @@ Task 15 above); Task 16 tracks 7 missing example programs, one per language feat
 (control flow) is buildable now, 16.2-16.7 are each blocked on their own not-yet-built feature;
 Task 17 (mutable/fixed strings, templated fixed strings, string pooling) is logged only, not
 yet approved for scoping; Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning
-complete" but not started, pending the Task 15.4 ordering decision. Completed-task detail for
-Tasks 5-9 and 12 lives in `task/taskSummaryArchive.md`.
+complete" but not started, pending the Task 15.4 ordering decision. **Task 18 (Core Language
+Foundation) is the recommended next priority** - start with a detailed plan for 18.1. Read
+`FutureFeaturesCaution.md` before picking up anything from FutureFeatures.md. Completed-task
+detail for Tasks 5-9 and 12 lives in `task/taskSummaryArchive.md`.

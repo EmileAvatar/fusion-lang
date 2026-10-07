@@ -139,7 +139,8 @@ d:\Dropbox\Fusion\
 ├── examples/                 [Example programs]
 │   ├── *.fusion              [Fusion source]
 │   └── *.exe                 [Compiled executables]
-└── FutureFeatures.md         [Post-MVP features]
+├── FutureFeatures.md         [Post-MVP features - a menu, not commitments]
+└── FutureFeaturesCaution.md  [Read before FutureFeatures.md - review, cautions, priorities]
 ```
 
 **Rules:**
@@ -174,7 +175,10 @@ GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12 (all 12 sub-task
 codegen split, block scoping, memory model semantics, docs sync, project config system, and
 two deliberately-deferred design decisions - IR layer and stdlib lowering)
 
-**In progress:** Nothing. Nearest actionable item is Task 16.1 (control-flow example program).
+**In progress:** Nothing yet. **Recommended next priority: Task 18 (Core Language
+Foundation)** - functions with full parameter types, structs, proper strings, `import`/
+multi-file, minimal layered stdlib. Guiding rule: a simple working language first, complex
+features after (see `FutureFeaturesCaution.md`).
 
 **Open / not yet scoped:** Task 13 (HIDL module), Task 14 (nullable arrays/safe navigation),
 Task 15 (deferred-decisions revisit list), Task 16 (example coverage), Task 17 (mutable/fixed
@@ -239,7 +243,8 @@ The compiler adapts to project configuration (memory model, locking strategy, st
 | **Fusion_domain.md** | files/ | User-facing domain-first feature hierarchy - what Fusion supports/will support, organized by language domain (types, control flow, OOP, memory, concurrency, stdlib), not by build status |
 | **task-10-self-hosting-plan.md** | task/ | Self-hosting detailed plan |
 | **task-11-llvm-backend-plan.md** | task/ | LLVM backend detailed plan |
-| **FutureFeatures.md** | Root | Post-MVP features (IDE, Settings, etc.) |
+| **FutureFeatures.md** | Root | Post-MVP features (IDE, Settings, etc.) - a menu of possibilities, not commitments |
+| **FutureFeaturesCaution.md** | Root | Read before FutureFeatures.md: project review, cautions (scope, feature interactions, ecosystem fragmentation), and why core-language work (Task 18) comes first |
 
 ---
 
@@ -253,6 +258,9 @@ The compiler adapts to project configuration (memory model, locking strategy, st
 // Examples
 int function add(int a, int b) : a + b
 void function greet(string name = "World") : print("Hello, {name}!")
+
+// NOTE: default values are parsed and type-checked, but not yet usable - calling greet()
+// without the argument fails semantic analysis. Fix tracked as Task 18.1.
 ```
 
 ### Block Styles
@@ -472,8 +480,9 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** None in progress. Ask the user what to pick up next - Task 16.1 is the
-only item that's buildable without a scoping decision first.
+**Current Focus:** Task 18 (Core Language Foundation) is the recommended next priority -
+start by writing a detailed plan for 18.1 and getting it approved. Read
+`FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
 
 **Completed:**
 - Tasks 1-9 and 12 - see task/taskSummary.md and task/taskSummaryArchive.md for full detail
