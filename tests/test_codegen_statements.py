@@ -33,7 +33,7 @@ class TestVariableDeclarations:
     """Test variable declaration code generation."""
 
     def test_simple_int_declaration(self):
-        """Test simple int: int x → int x;"""
+        """Test simple int: int x -> int x;"""
         gen = CCodeGenerator()
         var_type = PrimitiveType(location=loc(), name='int')
         node = VarDeclStmt(location=loc(), var_type=var_type, name='x', initializer=None)
@@ -41,7 +41,7 @@ class TestVariableDeclarations:
         assert 'int x;' in '\n'.join(gen.output)
 
     def test_declaration_with_initializer(self):
-        """Test with initializer: int x = 5 → int x = 5;"""
+        """Test with initializer: int x = 5 -> int x = 5;"""
         gen = CCodeGenerator()
         var_type = PrimitiveType(location=loc(), name='int')
         init = LiteralExpr(location=loc(), value=5, type_hint='int')
@@ -50,7 +50,7 @@ class TestVariableDeclarations:
         assert 'int x = 5;' in '\n'.join(gen.output)
 
     def test_float_declaration(self):
-        """Test float: float y = 3.14 → float y = 3.14f;"""
+        """Test float: float y = 3.14 -> float y = 3.14f;"""
         gen = CCodeGenerator()
         var_type = PrimitiveType(location=loc(), name='float')
         init = LiteralExpr(location=loc(), value=3.14, type_hint='float')
@@ -59,7 +59,7 @@ class TestVariableDeclarations:
         assert 'float y = 3.14f;' in '\n'.join(gen.output)
 
     def test_bool_declaration(self):
-        """Test bool: bool flag = true → bool flag = true;"""
+        """Test bool: bool flag = true -> bool flag = true;"""
         gen = CCodeGenerator()
         var_type = PrimitiveType(location=loc(), name='bool')
         init = LiteralExpr(location=loc(), value=True, type_hint='bool')
@@ -68,7 +68,7 @@ class TestVariableDeclarations:
         assert 'bool flag = true;' in '\n'.join(gen.output)
 
     def test_string_declaration(self):
-        """Test string: string s = "hello" → char* s = "hello";"""
+        """Test string: string s = "hello" -> char* s = "hello";"""
         gen = CCodeGenerator()
         var_type = PrimitiveType(location=loc(), name='string')
         init = LiteralExpr(location=loc(), value='hello', type_hint='string')
@@ -88,7 +88,7 @@ class TestVariableDeclarations:
         assert 'int x = (a + b);' in '\n'.join(gen.output)
 
     def test_double_declaration(self):
-        """Test double: double pi = 3.14159 → double pi = 3.14159;"""
+        """Test double: double pi = 3.14159 -> double pi = 3.14159;"""
         gen = CCodeGenerator()
         var_type = PrimitiveType(location=loc(), name='double')
         init = LiteralExpr(location=loc(), value=3.14159, type_hint='double')
@@ -97,7 +97,7 @@ class TestVariableDeclarations:
         assert 'double pi = 3.14159;' in '\n'.join(gen.output)
 
     def test_char_declaration(self):
-        """Test char: char c = 'a' → char c = 'a';"""
+        """Test char: char c = 'a' -> char c = 'a';"""
         gen = CCodeGenerator()
         var_type = PrimitiveType(location=loc(), name='char')
         init = LiteralExpr(location=loc(), value='a', type_hint='char')
@@ -110,7 +110,7 @@ class TestAssignments:
     """Test assignment statement code generation."""
 
     def test_simple_assignment(self):
-        """Test simple assignment: x = 5 → x = 5;"""
+        """Test simple assignment: x = 5 -> x = 5;"""
         gen = CCodeGenerator()
         target = IdentifierExpr(location=loc(), name='x')
         value = LiteralExpr(location=loc(), value=5, type_hint='int')
@@ -119,7 +119,7 @@ class TestAssignments:
         assert 'x = 5;' in '\n'.join(gen.output)
 
     def test_expression_assignment(self):
-        """Test expression assignment: x = a + b → x = (a + b);"""
+        """Test expression assignment: x = a + b -> x = (a + b);"""
         gen = CCodeGenerator()
         target = IdentifierExpr(location=loc(), name='x')
         a = IdentifierExpr(location=loc(), name='a')
@@ -130,7 +130,7 @@ class TestAssignments:
         assert 'x = (a + b);' in '\n'.join(gen.output)
 
     def test_string_assignment(self):
-        """Test string assignment: s = "hello" → s = "hello";"""
+        """Test string assignment: s = "hello" -> s = "hello";"""
         gen = CCodeGenerator()
         target = IdentifierExpr(location=loc(), name='s')
         value = LiteralExpr(location=loc(), value='hello', type_hint='string')
@@ -139,7 +139,7 @@ class TestAssignments:
         assert 's = "hello";' in '\n'.join(gen.output)
 
     def test_boolean_assignment(self):
-        """Test boolean assignment: flag = false → flag = false;"""
+        """Test boolean assignment: flag = false -> flag = false;"""
         gen = CCodeGenerator()
         target = IdentifierExpr(location=loc(), name='flag')
         value = LiteralExpr(location=loc(), value=False, type_hint='bool')
@@ -152,7 +152,7 @@ class TestReturnStatements:
     """Test return statement code generation."""
 
     def test_return_value(self):
-        """Test return value: return 42 → return 42;"""
+        """Test return value: return 42 -> return 42;"""
         gen = CCodeGenerator()
         value = LiteralExpr(location=loc(), value=42, type_hint='int')
         node = ReturnStmt(location=loc(), value=value)
@@ -160,7 +160,7 @@ class TestReturnStatements:
         assert 'return 42;' in '\n'.join(gen.output)
 
     def test_return_expression(self):
-        """Test return expression: return a + b → return (a + b);"""
+        """Test return expression: return a + b -> return (a + b);"""
         gen = CCodeGenerator()
         a = IdentifierExpr(location=loc(), name='a')
         b = IdentifierExpr(location=loc(), name='b')
@@ -170,14 +170,14 @@ class TestReturnStatements:
         assert 'return (a + b);' in '\n'.join(gen.output)
 
     def test_return_void(self):
-        """Test return void: return → return;"""
+        """Test return void: return -> return;"""
         gen = CCodeGenerator()
         node = ReturnStmt(location=loc(), value=None)
         gen.visit_ReturnStmt(node)
         assert 'return;' in '\n'.join(gen.output)
 
     def test_return_variable(self):
-        """Test return variable: return x → return x;"""
+        """Test return variable: return x -> return x;"""
         gen = CCodeGenerator()
         value = IdentifierExpr(location=loc(), name='x')
         node = ReturnStmt(location=loc(), value=value)
@@ -185,7 +185,7 @@ class TestReturnStatements:
         assert 'return x;' in '\n'.join(gen.output)
 
     def test_return_function_call(self):
-        """Test return function call: return foo() → return foo();"""
+        """Test return function call: return foo() -> return foo();"""
         gen = CCodeGenerator()
         callee = IdentifierExpr(location=loc(), name='foo')
         call = CallExpr(location=loc(), callee=callee, arguments=[])
@@ -331,7 +331,7 @@ class TestForLoops:
     """Test for loop code generation."""
 
     def test_simple_for(self):
-        """Test simple for: for i in range(0, 10) → for (int i = 0; i < 10; i += 1)"""
+        """Test simple for: for i in range(0, 10) -> for (int i = 0; i < 10; i += 1)"""
         gen = CCodeGenerator()
 
         # Create range(0, 10) call
@@ -350,7 +350,7 @@ class TestForLoops:
         assert 'for (int i = 0; i < 10; i += 1) {' in output
 
     def test_for_with_step(self):
-        """Test for with step: for i in range(0, 10, 2) → for (int i = 0; i < 10; i += 2)"""
+        """Test for with step: for i in range(0, 10, 2) -> for (int i = 0; i < 10; i += 2)"""
         gen = CCodeGenerator()
 
         # Create range(0, 10, 2) call
@@ -389,7 +389,7 @@ class TestForLoops:
         assert 'for (int i = start; i < end; i += 1) {' in output
 
     def test_for_single_arg_range(self):
-        """Test for with single arg range: for i in range(10) → for (int i = 0; i < 10; i += 1)"""
+        """Test for with single arg range: for i in range(10) -> for (int i = 0; i < 10; i += 1)"""
         gen = CCodeGenerator()
 
         # Create range(10) call
@@ -411,14 +411,14 @@ class TestBreakContinue:
     """Test break/continue statement code generation."""
 
     def test_break_statement(self):
-        """Test break statement: break → break;"""
+        """Test break statement: break -> break;"""
         gen = CCodeGenerator()
         node = BreakStmt(location=loc())
         gen.visit_BreakStmt(node)
         assert 'break;' in '\n'.join(gen.output)
 
     def test_continue_statement(self):
-        """Test continue statement: continue → continue;"""
+        """Test continue statement: continue -> continue;"""
         gen = CCodeGenerator()
         node = ContinueStmt(location=loc())
         gen.visit_ContinueStmt(node)

@@ -938,12 +938,13 @@ Nearly every real program needs these, and a self-hosted lexer is built entirely
       literals - and will silently return false for equal strings as soon as any string is
       built at runtime. Same bug class as Task 12.6 (semantic analysis accepts something
       whose generated C is wrong). Fix early, before runtime-created strings exist
-- [ ] **Bug - `%` in a printed string is treated as a printf format code** (verified
-      2026-10-07): `print("Progress: 100% done")` prints `Progress: 100 1134633984one`, because
-      string text is placed directly into `printf`'s format string, so `% d` reads garbage
-      from the stack. This is the format-string bug class (CWE-134) - `%n` could even write to
-      memory. Fix: escape `%` as `%%` in literal text before it goes into a format string (in
-      `c_runtime.py`'s print and interpolation paths). Small fix - recommended soon
+- [x] **Bug - `%` in a printed string is treated as a printf format code** - FIXED
+      (2026-10-07, user-approved small fix): `print("Progress: 100% done")` printed
+      `Progress: 100 1134633984one`, because string text was placed directly into `printf`'s
+      format string, so `% d` read garbage from the stack (CWE-134 - `%n` could even write to
+      memory). Now `escape_printf_text` in `c_runtime.py` doubles `%` in literal text on both
+      the plain-print and interpolation paths, leaving codegen's own specifiers untouched.
+      4 tests in `tests/test_source_security.py` (incl. end-to-end with `%d %s %n` in text)
 - [ ] Concatenation, length, comparison (`==`/`!=`/ordering by content), indexing/substring,
       conversion to/from numbers
 - [ ] **Equality operator family** (user request and decisions, 2026-10-07) - for strings
@@ -1998,8 +1999,8 @@ Task 17 (mutable/fixed strings, templated fixed strings, string pooling) is logg
 yet approved for scoping; Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning
 complete" but not started, pending the Task 15.4 ordering decision. **Task 18 (Core Language
 Foundation) remains the foundation most other work needs**. **Task 19.6** (source-level attack
-defenses) is complete; the rest of Task 19 needs Task 18.4 (`import`) first. A verified printf
-`%` format-string bug is logged in Task 18.3 - recommended to fix next. Task 20 (multi-format
+defenses) is complete; the rest of Task 19 needs Task 18.4 (`import`) first. The printf `%`
+format-string bug (Task 18.3) is fixed. Task 20 (multi-format
 config) is logged and unblocked. Read
 `FutureFeaturesCaution.md` before picking up anything from FutureFeatures.md. Completed-task
 detail for Tasks 5-9 and 12 lives in `task/taskSummaryArchive.md`.

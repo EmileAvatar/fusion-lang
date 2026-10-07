@@ -116,7 +116,7 @@ def test_actual_tokenize_with_limit():
             print(f"  [Iter {iteration_count[0]}] pos={lexer.pos}, ch={repr(lexer.current_char())}, eof={result}")
 
         if iteration_count[0] > MAX_ITERATIONS:
-            print(f"\n❌ SAFETY LIMIT REACHED! Stopping at iteration {iteration_count[0]}")
+            print(f"\n[FAIL] SAFETY LIMIT REACHED! Stopping at iteration {iteration_count[0]}")
             print(f"   Last position: {lexer.pos}")
             print(f"   Last char: {repr(lexer.current_char())}")
             raise RuntimeError("Infinite loop detected - safety limit reached")

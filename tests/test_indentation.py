@@ -188,7 +188,7 @@ def test_partial_dedent(tracker):
     loc3 = SourceLocation("test.fusion", 3, 1)
     loc4 = SourceLocation("test.fusion", 4, 1)
 
-    # Indent: 0 → 4 → 8 → 12
+    # Indent: 0 -> 4 -> 8 -> 12
     tracker.process_indentation(4, loc1)
     tracker.process_indentation(8, loc2)
     tracker.process_indentation(12, loc3)

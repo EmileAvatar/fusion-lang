@@ -76,7 +76,7 @@ def compile_file(source_path: str) -> int:
             print(f"Lexer error: {error}", file=sys.stderr)
         return 1
 
-    print(f"  ✓ Generated {len(tokens)} tokens", file=sys.stderr)
+    print(f"  [OK] Generated {len(tokens)} tokens", file=sys.stderr)
 
     # Parsing
     print(f"[2/3] Parsing...", file=sys.stderr)
@@ -90,7 +90,7 @@ def compile_file(source_path: str) -> int:
         print(f"Parser exception: {e}", file=sys.stderr)
         return 1
 
-    print(f"  ✓ Parsed {len(ast.declarations)} declarations", file=sys.stderr)
+    print(f"  [OK] Parsed {len(ast.declarations)} declarations", file=sys.stderr)
 
     # Semantic analysis
     print(f"[3/5] Semantic analysis...", file=sys.stderr)
@@ -105,7 +105,7 @@ def compile_file(source_path: str) -> int:
     if analyzer.get_warnings():
         analyzer.print_diagnostics()
 
-    print(f"  ✓ Semantic analysis passed", file=sys.stderr)
+    print(f"  [OK] Semantic analysis passed", file=sys.stderr)
 
     # Code generation
     print(f"[4/5] Code generation...", file=sys.stderr)
@@ -121,7 +121,7 @@ def compile_file(source_path: str) -> int:
     try:
         with open(c_file, 'w', encoding='utf-8') as f:
             f.write(c_code)
-        print(f"  ✓ Generated C code: {c_file}", file=sys.stderr)
+        print(f"  [OK] Generated C code: {c_file}", file=sys.stderr)
     except Exception as e:
         print(f"Error writing C file: {e}", file=sys.stderr)
         return 1
@@ -134,7 +134,7 @@ def compile_file(source_path: str) -> int:
     if gcc_result != 0:
         return 1
 
-    print(f"\n✓ Compilation successful!", file=sys.stderr)
+    print(f"\n[OK] Compilation successful!", file=sys.stderr)
     print(f"  Executable: {exe_file}", file=sys.stderr)
     print(f"  Run with: {exe_file}", file=sys.stderr)
 
@@ -167,7 +167,7 @@ def compile_c_to_executable(c_file: str, exe_file: str) -> int:
             print(result.stderr, file=sys.stderr)
             return 1
 
-        print(f"  ✓ Compiled to executable: {exe_file}", file=sys.stderr)
+        print(f"  [OK] Compiled to executable: {exe_file}", file=sys.stderr)
         return 0
 
     except FileNotFoundError:

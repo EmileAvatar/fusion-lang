@@ -1,7 +1,7 @@
 """Tests for C Code Generator Infrastructure.
 
 Tests the foundational components of the C code generator:
-- Type mapping (Fusion types → C types)
+- Type mapping (Fusion types -> C types)
 - Code formatting helpers (emit, indent, dedent)
 - Header generation (includes, forward declarations)
 """

@@ -42,49 +42,49 @@ class TestLiteralExpressions:
     """Test literal expression code generation."""
 
     def test_integer_literal(self):
-        """Test integer literal: 42 → 42"""
+        """Test integer literal: 42 -> 42"""
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value=42, type_hint='int')
         result = gen.visit_LiteralExpr(node)
         assert result == '42'
 
     def test_float_literal(self):
-        """Test float literal: 3.14 → 3.14f"""
+        """Test float literal: 3.14 -> 3.14f"""
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value=3.14, type_hint='float')
         result = gen.visit_LiteralExpr(node)
         assert result == '3.14f'
 
     def test_double_literal(self):
-        """Test double literal: 3.14159 → 3.14159"""
+        """Test double literal: 3.14159 -> 3.14159"""
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value=3.14159, type_hint='double')
         result = gen.visit_LiteralExpr(node)
         assert result == '3.14159'
 
     def test_boolean_true(self):
-        """Test boolean true: true → true"""
+        """Test boolean true: true -> true"""
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value=True, type_hint='bool')
         result = gen.visit_LiteralExpr(node)
         assert result == 'true'
 
     def test_boolean_false(self):
-        """Test boolean false: false → false"""
+        """Test boolean false: false -> false"""
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value=False, type_hint='bool')
         result = gen.visit_LiteralExpr(node)
         assert result == 'false'
 
     def test_character_literal(self):
-        """Test character: 'a' → 'a'"""
+        """Test character: 'a' -> 'a'"""
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value='a', type_hint='char')
         result = gen.visit_LiteralExpr(node)
         assert result == "'a'"
 
     def test_string_literal(self):
-        """Test string: "hello" → "hello" """
+        """Test string: "hello" -> "hello" """
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value='hello', type_hint='string')
         result = gen.visit_LiteralExpr(node)
@@ -98,7 +98,7 @@ class TestLiteralExpressions:
         assert result == '"hello\\n"'
 
     def test_null_literal(self):
-        """Test null: null → NULL"""
+        """Test null: null -> NULL"""
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value=None, type_hint='null')
         result = gen.visit_LiteralExpr(node)
@@ -116,21 +116,21 @@ class TestIdentifierExpressions:
     """Test identifier expression code generation."""
 
     def test_simple_variable(self):
-        """Test simple variable: x → x"""
+        """Test simple variable: x -> x"""
         gen = CCodeGenerator()
         node = IdentifierExpr(location=loc(), name='x')
         result = gen.visit_IdentifierExpr(node)
         assert result == 'x'
 
     def test_parameter(self):
-        """Test parameter: param → param"""
+        """Test parameter: param -> param"""
         gen = CCodeGenerator()
         node = IdentifierExpr(location=loc(), name='param')
         result = gen.visit_IdentifierExpr(node)
         assert result == 'param'
 
     def test_function_name(self):
-        """Test function name: add → add"""
+        """Test function name: add -> add"""
         gen = CCodeGenerator()
         node = IdentifierExpr(location=loc(), name='add')
         result = gen.visit_IdentifierExpr(node)
@@ -141,7 +141,7 @@ class TestBinaryOperations:
     """Test binary operation code generation."""
 
     def test_addition(self):
-        """Test addition: a + b → (a + b)"""
+        """Test addition: a + b -> (a + b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -150,7 +150,7 @@ class TestBinaryOperations:
         assert result == '(a + b)'
 
     def test_subtraction(self):
-        """Test subtraction: a - b → (a - b)"""
+        """Test subtraction: a - b -> (a - b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -159,7 +159,7 @@ class TestBinaryOperations:
         assert result == '(a - b)'
 
     def test_multiplication(self):
-        """Test multiplication: a * b → (a * b)"""
+        """Test multiplication: a * b -> (a * b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -168,7 +168,7 @@ class TestBinaryOperations:
         assert result == '(a * b)'
 
     def test_division(self):
-        """Test division: a / b → (a / b)"""
+        """Test division: a / b -> (a / b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -177,7 +177,7 @@ class TestBinaryOperations:
         assert result == '(a / b)'
 
     def test_modulo(self):
-        """Test modulo: a % b → (a % b)"""
+        """Test modulo: a % b -> (a % b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -186,7 +186,7 @@ class TestBinaryOperations:
         assert result == '(a % b)'
 
     def test_less_than(self):
-        """Test less than: a < b → (a < b)"""
+        """Test less than: a < b -> (a < b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -195,7 +195,7 @@ class TestBinaryOperations:
         assert result == '(a < b)'
 
     def test_greater_than(self):
-        """Test greater than: a > b → (a > b)"""
+        """Test greater than: a > b -> (a > b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -204,7 +204,7 @@ class TestBinaryOperations:
         assert result == '(a > b)'
 
     def test_equals(self):
-        """Test equals: a == b → (a == b)"""
+        """Test equals: a == b -> (a == b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -213,7 +213,7 @@ class TestBinaryOperations:
         assert result == '(a == b)'
 
     def test_not_equals(self):
-        """Test not equals: a != b → (a != b)"""
+        """Test not equals: a != b -> (a != b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -222,7 +222,7 @@ class TestBinaryOperations:
         assert result == '(a != b)'
 
     def test_logical_and(self):
-        """Test logical and: a and b → (a && b)"""
+        """Test logical and: a and b -> (a && b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -231,7 +231,7 @@ class TestBinaryOperations:
         assert result == '(a && b)'
 
     def test_logical_or(self):
-        """Test logical or: a or b → (a || b)"""
+        """Test logical or: a or b -> (a || b)"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -240,7 +240,7 @@ class TestBinaryOperations:
         assert result == '(a || b)'
 
     def test_power(self):
-        """Test power: a ** b → pow(a, b) and adds math.h"""
+        """Test power: a ** b -> pow(a, b) and adds math.h"""
         gen = CCodeGenerator()
         left = IdentifierExpr(location=loc(), name='a')
         right = IdentifierExpr(location=loc(), name='b')
@@ -254,7 +254,7 @@ class TestUnaryOperations:
     """Test unary operation code generation."""
 
     def test_negation(self):
-        """Test negation: -x → (-x)"""
+        """Test negation: -x -> (-x)"""
         gen = CCodeGenerator()
         operand = IdentifierExpr(location=loc(), name='x')
         node = UnaryExpr(location=loc(), operator='-', operand=operand)
@@ -262,7 +262,7 @@ class TestUnaryOperations:
         assert result == '(-x)'
 
     def test_logical_not_word(self):
-        """Test logical not (word): not x → (!x)"""
+        """Test logical not (word): not x -> (!x)"""
         gen = CCodeGenerator()
         operand = IdentifierExpr(location=loc(), name='x')
         node = UnaryExpr(location=loc(), operator='not', operand=operand)
@@ -270,7 +270,7 @@ class TestUnaryOperations:
         assert result == '(!x)'
 
     def test_logical_not_symbol(self):
-        """Test logical not (symbol): !x → (!x)"""
+        """Test logical not (symbol): !x -> (!x)"""
         gen = CCodeGenerator()
         operand = IdentifierExpr(location=loc(), name='x')
         node = UnaryExpr(location=loc(), operator='!', operand=operand)
@@ -282,7 +282,7 @@ class TestFunctionCalls:
     """Test function call code generation."""
 
     def test_simple_call(self):
-        """Test simple call: add(1, 2) → add(1, 2)"""
+        """Test simple call: add(1, 2) -> add(1, 2)"""
         gen = CCodeGenerator()
         callee = IdentifierExpr(location=loc(), name='add')
         arg1 = LiteralExpr(location=loc(), value=1, type_hint='int')
@@ -292,7 +292,7 @@ class TestFunctionCalls:
         assert result == 'add(1, 2)'
 
     def test_no_args(self):
-        """Test no args: foo() → foo()"""
+        """Test no args: foo() -> foo()"""
         gen = CCodeGenerator()
         callee = IdentifierExpr(location=loc(), name='foo')
         node = CallExpr(location=loc(), callee=callee, arguments=[])
@@ -300,7 +300,7 @@ class TestFunctionCalls:
         assert result == 'foo()'
 
     def test_nested_call(self):
-        """Test nested call: add(mul(2, 3), 4) → add(mul(2, 3), 4)"""
+        """Test nested call: add(mul(2, 3), 4) -> add(mul(2, 3), 4)"""
         gen = CCodeGenerator()
 
         # Inner call: mul(2, 3)
@@ -318,7 +318,7 @@ class TestFunctionCalls:
         assert result == 'add(mul(2, 3), 4)'
 
     def test_print_string(self):
-        """Test print string: print("hello") → printf("hello\\n")"""
+        """Test print string: print("hello") -> printf("hello\\n")"""
         gen = CCodeGenerator()
         callee = IdentifierExpr(location=loc(), name='print')
         arg = LiteralExpr(location=loc(), value='hello', type_hint='string')
@@ -327,7 +327,7 @@ class TestFunctionCalls:
         assert result == 'printf("hello\\n")'
 
     def test_print_empty(self):
-        """Test print empty: print() → printf("\\n")"""
+        """Test print empty: print() -> printf("\\n")"""
         gen = CCodeGenerator()
         callee = IdentifierExpr(location=loc(), name='print')
         node = CallExpr(location=loc(), callee=callee, arguments=[])
@@ -335,7 +335,7 @@ class TestFunctionCalls:
         assert result == 'printf("\\n")'
 
     def test_print_with_variable(self):
-        """Test print with interpolation: print("{x}") → printf("%d\\n", x)"""
+        """Test print with interpolation: print("{x}") -> printf("%d\\n", x)"""
         gen = CCodeGenerator()
         callee = IdentifierExpr(location=loc(), name='print')
 
@@ -350,7 +350,7 @@ class TestFunctionCalls:
         assert result == 'printf("%d\\n", x)'
 
     def test_print_with_multiple_vars(self):
-        """Test print with multiple vars: print("{x} and {y}") → printf("%d and %d\\n", x, y)"""
+        """Test print with multiple vars: print("{x} and {y}") -> printf("%d and %d\\n", x, y)"""
         gen = CCodeGenerator()
         callee = IdentifierExpr(location=loc(), name='print')
 
@@ -454,7 +454,7 @@ class TestComplexExpressions:
     """Test complex nested expressions."""
 
     def test_nested_binary_operations(self):
-        """Test nested binary: (a + b) * c → ((a + b) * c)"""
+        """Test nested binary: (a + b) * c -> ((a + b) * c)"""
         gen = CCodeGenerator()
         a = IdentifierExpr(location=loc(), name='a')
         b = IdentifierExpr(location=loc(), name='b')
@@ -467,7 +467,7 @@ class TestComplexExpressions:
         assert result == '((a + b) * c)'
 
     def test_unary_in_binary(self):
-        """Test unary in binary: -a + b → ((-a) + b)"""
+        """Test unary in binary: -a + b -> ((-a) + b)"""
         gen = CCodeGenerator()
         a = IdentifierExpr(location=loc(), name='a')
         b = IdentifierExpr(location=loc(), name='b')
@@ -479,7 +479,7 @@ class TestComplexExpressions:
         assert result == '((-a) + b)'
 
     def test_function_call_in_binary(self):
-        """Test function call in binary: add(1, 2) + 3 → (add(1, 2) + 3)"""
+        """Test function call in binary: add(1, 2) + 3 -> (add(1, 2) + 3)"""
         gen = CCodeGenerator()
 
         # add(1, 2)

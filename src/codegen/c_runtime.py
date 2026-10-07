@@ -66,6 +66,23 @@ def escape_c_text(value: str, quote: str) -> str:
     return ''.join(out)
 
 
+def escape_printf_text(text: str) -> str:
+    """Double every '%' in literal text that will become part of a printf format string.
+
+    Without this, `print("100% done")` hands printf the directive `% d` and prints garbage
+    read from the stack - the format-string bug class (CWE-134), where `%n` can even write
+    to memory. Only literal text is escaped; the specifiers codegen itself inserts for
+    interpolated values (`%d`, `%s`, ...) must not be.
+
+    Args:
+        text: Literal text from a Fusion string
+
+    Returns:
+        The text with each '%' written as '%%'
+    """
+    return text.replace('%', '%%')
+
+
 class RuntimeLoweringMixin:
     """Provides print()/len()/interpolation lowering - mixed into CCodeGenerator."""
 
@@ -133,9 +150,10 @@ class RuntimeLoweringMixin:
         if isinstance(arg, InterpolatedStringExpr):
             return self._generate_interpolated_print(arg)
 
-        # Handle plain string literals
+        # Handle plain string literals - the text becomes printf's format string, so any
+        # literal '%' must be doubled (see escape_printf_text)
         if isinstance(arg, LiteralExpr) and arg.type_hint == 'string':
-            escaped = escape_c_text(str(arg.value), '"')
+            escaped = escape_c_text(escape_printf_text(str(arg.value)), '"')
             return f'printf("{escaped}\\n")'
 
         # For other types, use the format specifier matching the expression's actual type
@@ -220,7 +238,8 @@ class RuntimeLoweringMixin:
 
         for segment in node.segments:
             if isinstance(segment, StringTextPart):
-                format_parts.append(segment.text)
+                # Literal text only - the specifiers appended below must stay unescaped
+                format_parts.append(escape_printf_text(segment.text))
             else:  # StringExprPart
                 args.append(self.visit(segment.expression))
                 format_parts.append(self._format_specifier_for_expr(segment.expression))

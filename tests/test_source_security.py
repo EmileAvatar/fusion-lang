@@ -2,8 +2,8 @@
 
 Covers: rejection of invisible/bidirectional control characters (Trojan Source,
 CVE-2021-42574), \\uXXXX escapes, ASCII-only identifiers by default with a Unicode opt-in,
-mixed-script and compatibility-character rejection, char literal decoding, and safe C
-emission of control characters.
+mixed-script and compatibility-character rejection, char literal decoding, safe C
+emission of control characters, and '%' escaping in printf format strings (CWE-134).
 
 This file is deliberately pure ASCII: every non-ASCII character below is written as a Python
 \\u escape, so the test source itself never contains the characters it tests for.
@@ -24,7 +24,7 @@ from src.lexer.source_security import (
 from src.parser.parser import Parser
 from src.semantic import SemanticAnalyzer
 from src.codegen import CCodeGenerator
-from src.codegen.c_runtime import escape_c_text
+from src.codegen.c_runtime import escape_c_text, escape_printf_text
 from src.utils.errors import LexerError
 from tests.test_end_to_end import compile_and_run
 
@@ -251,6 +251,42 @@ def test_invisible_character_from_escape_is_never_raw_in_generated_c():
     c_code = generate_c('void function main()\n    print("a\\u200Db")\nEnd function\n')
     assert ZWJ not in c_code
     assert "\\342\\200\\215" in c_code
+
+
+# ============================================================
+# Format-string safety - '%' in printed text (CWE-134, Task 18.3 bug fix)
+# ============================================================
+
+def test_escape_printf_text_doubles_percent():
+    assert escape_printf_text("100% done") == "100%% done"
+    assert escape_printf_text("%%") == "%%%%"
+    assert escape_printf_text("no percent") == "no percent"
+
+
+def test_percent_in_plain_print_is_escaped_in_c():
+    c_code = generate_c('void function main()\n    print("100% done")\nEnd function\n')
+    assert 'printf("100%% done\\n");' in c_code
+
+
+def test_percent_in_interpolated_text_escaped_but_specifier_kept():
+    c_code = generate_c(
+        'void function main()\n    int x = 7\n    print("{x}% %s")\nEnd function\n'
+    )
+    assert 'printf("%d%% %%s\\n", x);' in c_code
+
+
+def test_percent_end_to_end_prints_literally():
+    # Before the fix, "100% done" printed "100 1134633984one": printf read "% d" as a
+    # directive and pulled garbage off the stack
+    exit_code, stdout, stderr = compile_and_run(
+        "void function main()\n"
+        "    int x = 7\n"
+        '    print("Progress: 100% done")\n'
+        '    print("{x}% of 100%, %d %s %n literal")\n'
+        "End function\n"
+    )
+    assert exit_code == 0, stderr
+    assert stdout.splitlines() == ["Progress: 100% done", "7% of 100%, %d %s %n literal"]
 
 
 # ============================================================

@@ -30,7 +30,7 @@ def compile_and_run(fusion_code: str) -> tuple[int, str, str]:
         with open(fusion_file, 'w') as f:
             f.write(fusion_code)
 
-        # Compile Fusion → C
+        # Compile Fusion -> C
         lexer = Lexer(fusion_code, fusion_file)
         tokens = lexer.tokenize()
         assert not lexer.diagnostics.errors, f"Lexer errors: {lexer.diagnostics.errors}"
@@ -50,7 +50,7 @@ def compile_and_run(fusion_code: str) -> tuple[int, str, str]:
         with open(c_file, 'w') as f:
             f.write(c_code)
 
-        # Compile C → executable
+        # Compile C -> executable
         exe_file = os.path.join(tmpdir, 'test.exe')
         gcc_result = subprocess.run(
             ['gcc', c_file, '-o', exe_file, '-lm'],
