@@ -219,7 +219,7 @@ The project can declare restrictions that apply to **all** code in the program -
 and every imported library alike:
 
 ```toml
-# fusion.toml
+# fusion.toml (or fusion.yaml / fusion.json / fusion.ini - all interchangeable, Task 20)
 [restrictions]
 no_unsafe = true
 no_network = true
@@ -290,11 +290,17 @@ signature (section 3.1), so importers always know which strategy each part uses.
 
 ## 5. Library Trust, Isolation & Security
 
-**Principle: do not trust library authors at all.** Not because authors are assumed
-malicious - most aren't - but because even well-meaning code can leak memory or be badly
-optimised, and any library can be compromised without its author knowing. Fusion should
-treat every imported library as code that must earn trust through verification, isolation,
-or both. Tracked as **Task 19**.
+**Principle: never trust code - do not trust library authors at all.** Not because authors
+are assumed malicious - most aren't - but because even well-meaning code can leak memory or
+be badly optimised, and any library can be compromised without its author knowing. Fusion
+should treat every imported library as code that must earn trust through verification,
+isolation, or both. Tracked as **Task 19**.
+
+**The realistic goal:** no defense is ever airtight against a determined attacker, and
+importing code always carries some risk. The aim is to make attacks as hard and as unlikely
+as possible, with several independent layers (verified signatures, restrictions,
+sandboxing, supply-chain checks, source checks), so that getting past one layer still
+leaves the others.
 
 ### 5.1 Closed, compiled, and licensed libraries
 
@@ -334,10 +340,11 @@ driver or a specialised function the application depends on. Nothing more.
 | Memory region | Leaks and memory bugs | Low |
 | Separate process | Actively malicious code | Highest - every call crosses a process boundary |
 
-**Honest caution:** in-process sandboxing protects well against *bugs*, but Java's applet
-history shows it is very hard to make airtight against *deliberate attacks* - JVM sandbox
-escapes were a common exploit class for years. Code that might be actively malicious belongs
-in a separate process.
+**Honest caution:** no isolation level is airtight against deliberate attacks - the goal is
+to make them as unlikely as possible. In-process sandboxing protects well against *bugs*, but
+Java's applet history shows how hard it is to defend against *deliberate* attacks - JVM
+sandbox escapes were a common exploit class for years. Code that might be actively malicious
+belongs in a separate process, which is a much stronger (though still not perfect) barrier.
 
 **Prior art:** WebAssembly's component model (each module gets its own memory and explicit
 imports), Deno's permission flags, Ada's restrictions.
@@ -361,19 +368,29 @@ more recent package and repository compromises. Defenses:
 
 ### 5.4 Source-level attacks, including attacks aimed at AI assistants
 
+**Verified 2026-10-07: the first two attacks below both work against Fusion today** - a
+file with two different variables that look identical (`аge` with a Cyrillic `а`, and `age`)
+compiles cleanly, as does a right-to-left override character hidden in a comment and a
+string. Fixing this is Task 19.6, now in planning.
+
 - **Trojan Source (CVE-2021-42574):** invisible bidirectional-control Unicode characters make
   code *display* differently from how it *compiles* - a reviewer reads one thing, the
   compiler builds another. Fusion's lexer should reject these characters in source,
-  including inside comments and strings unless explicitly escaped
-- **Confusable identifiers:** warn when identifiers mix look-alike characters (e.g. Cyrillic
-  `а` vs Latin `a`)
-- **Content aimed at AI coding assistants:** instructions hidden in a library's comments,
-  strings, or documentation, written to manipulate tools like Claude or ChatGPT that read
-  the code. Tooling can flag suspicious content, but detection is heuristic and never a
-  guarantee. The primary defense is that AI tools treat library content as data, never as
-  instructions
+  including inside comments and strings, with a `\u` escape as the visible way to include
+  one on purpose
+- **Confusable identifiers:** look-alike characters from different scripts (e.g. Cyrillic
+  `а` vs Latin `a`). Recommended defense: ASCII-only identifiers by default, with an opt-in
+  for projects that want non-English identifiers (where mixed-script names are rejected)
+- **Content aimed at AI tools:** instructions hidden in text or code, written to manipulate
+  AI models like Claude or ChatGPT (prompt injection). In Fusion this belongs in the future
+  **`fusionlib.AI` module**: before that module passes any text to an AI model, it parses the
+  text and checks it for embedded code and hidden instructions. Logged now (Task 19.7, far
+  future) because attacks on AI tools are a real and growing risk - including against the AI
+  helping build Fusion - and the requirement should shape that module from its first design.
+  Detection is heuristic and never a guarantee; the model must still treat the text as data,
+  not instructions
 
-These source checks don't depend on `import`, so they can be built any time (Task 19.6).
+The first two checks don't depend on `import`, so they can be built now (Task 19.6).
 
 ---
 

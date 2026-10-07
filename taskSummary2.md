@@ -59,8 +59,9 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
 | **Task 18: Core Language Foundation** | Not Started (next priority) | 0% | 0 | 5 |
-| **Task 19: Library Trust, Isolation & Security** | Not Started | 0% | 0 | 6 |
-| **Overall** | Task 19 Logged | 40% | 46 | 114 |
+| **Task 19: Library Trust, Isolation & Security** | In Planning (19.6) | 0% | 0 | 7 |
+| **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
+| **Overall** | Task 19.6 Planning | 39% | 46 | 119 |
 
 ---
 
@@ -937,20 +938,33 @@ Nearly every real program needs these, and a self-hosted lexer is built entirely
       whose generated C is wrong). Fix early, before runtime-created strings exist
 - [ ] Concatenation, length, comparison (`==`/`!=`/ordering by content), indexing/substring,
       conversion to/from numbers
-- [ ] **Equality operator family** (user request, 2026-10-07): `=`, `==`, `===` and the
-      negations `!=`, `!==`, `!===` - defined for strings first, then every other type
-      (numbers, arrays, structs, later classes/references). **Needs a user decision on the
-      exact meaning before implementation** - two readings:
-      - *Reading A (as written - negation is `!` + the operator):* `=`<->`!=`,
-        `==`<->`!==`, `===`<->`!===`. Consistent, but it makes `=` a comparison in some
-        context (VB-style, which fits Fusion's `End`-keyword style), colliding with `=` as
-        assignment - the source of C's classic `if (x = 5)` bug
-      - *Reading B (conventional, JavaScript-like):* `=` is assignment only; `==`/`!=` value
-        equality; `===`/`!==` strict equality; `!===` unused
-      - Either way, three distinct meanings are worth having once structs and references
-        exist: **value equality** (strings by content; `1 == 1.0` true via promotion),
-        **strict equality** (same type *and* value, no promotion: `1 === 1.0` false), and
-        **identity** (the very same object in memory - matters for `Shared<T>`/references)
+- [ ] **Equality operator family** (user request and decisions, 2026-10-07) - for strings
+      first, then every other type (numbers, arrays, structs, later classes/references).
+      **Decided:**
+      - `=` is **assignment** as a statement (`xx = 2`), and **comparison inside an `if`
+        condition** (`if xx = 2` or `if (xx = 2)`) - the compiler treats it as a compare
+        there, never an assignment. Side benefit: C's classic `if (x = 5)` bug becomes
+        impossible, because assignment can't happen inside a condition at all
+      - `==` is **value comparison everywhere**: `xx == 2` is true if `xx` holds the number
+        2, and `xx == "2"` is also true, because the value is the same
+      - `===` is **strict comparison** - same type *and* same value: `xx === "2"` is false
+        when `xx` is a number and `"2"` is text
+      **Still open (decide when 18.3 is planned):**
+      - Does `if xx = 2` compare like `==` (value) or `===` (strict)? Value seems most
+        natural (VB-style readability) - confirm
+      - Negation pairing: with `=` now a comparison, the original list reads as three
+        pairs - `=`<->`!=`, `==`<->`!==`, `===`<->`!===` - confirm
+      - Does the `=`-compares rule also apply in `else if` / `while` conditions? Consistency
+        suggests yes
+      - **Caution - define a small, explicit cross-type table for `==`:** JavaScript's loose
+        `==` is a notorious bug source because its coercion rules are huge and surprising
+        (`0 == ""` and `"0" == false` are both true). Recommend Fusion's `==` coerce only a
+        few well-defined pairs (number <-> numeric text, char <-> one-character string) and
+        never coerce "truthiness" (no bool <-> number/string)
+      - Note: `'2'` (single quotes) is a **char** literal in Fusion, `"2"` is a string - the
+        cross-type table must say whether char, string, and number all participate
+      - An **identity** operator (the very same object in memory) has no symbol yet - needed
+        once references and `Shared<T>` exist
       - Every operator must be defined per type and never fall through to C's raw `==` -
         that fall-through is exactly the pointer-comparison bug above
       - Security note: comparing secrets (passwords, tokens) needs constant-time comparison
@@ -1018,9 +1032,12 @@ rarely works (the same lesson as D's GC split). Most of this can't start until T
 (`import`) exists; **19.6's lexer checks can be done any time**.
 **Blocked By:** Task 18.4 (`import`/multi-file) for 19.1-19.5; nothing for 19.6
 **Estimated Effort:** TBD - large; each sub-task needs its own plan
-**Source:** User direction (2026-10-07). Principle, in the user's words: **do not trust library
-authors at all** - even well-meaning code can leak memory or be badly optimised, and a library
-can be compromised. Full design reasoning: `FutureFeaturesCaution.md` sections 3-5.
+**Source:** User direction (2026-10-07). Principle, in the user's words: **never trust code** -
+do not trust library authors at all; even well-meaning code can leak memory or be badly
+optimised, and a library can be compromised. **No defense is ever airtight against a
+determined attacker** - the goal is to make attacks as hard and unlikely as possible, with
+layered defenses, accepting that importing code always carries some risk. Full design
+reasoning: `FutureFeaturesCaution.md` sections 3-5.
 
 ### Sub-tasks (NOT YET APPROVED - proposed breakdown only)
 
@@ -1088,14 +1105,28 @@ can be compromised. Full design reasoning: `FutureFeaturesCaution.md` sections 3
       compromise (2018), and recent repository/package compromises that inject backdoors
 
 #### 19.6: Source-Level Attack Defenses (can be done any time - no dependency on `import`)
+**Verified 2026-10-07: both attacks below work against Fusion today.** A file containing two
+different variables `аge` (Cyrillic `а`, U+0430) and `age` (Latin) that look identical
+compiles cleanly, and so does a right-to-left override (U+202E) hidden in a comment and in a
+string literal. Identifiers use Python's Unicode-aware `isalpha()`/`isalnum()`, and comments
+and strings accept any character.
 - [ ] Lexer rejects bidirectional-control and invisible Unicode characters in source - the
       "Trojan Source" attack (CVE-2021-42574), where code *displays* differently from how it
       *compiles* - in comments and strings too, unless explicitly escaped
-- [ ] Warn on confusable identifiers (homoglyphs - e.g. Cyrillic `а` vs Latin `a`)
-- [ ] Tooling that flags **content aimed at AI coding assistants** hidden in imported code -
-      instructions in comments, strings, or docs written to manipulate tools like Claude or
-      ChatGPT that read the code. Detection is heuristic, not a guarantee; the primary defense
-      is that AI tools treat library content as data, never as instructions
+- [ ] Add a `\uXXXX` escape to string/char literals (none exists today), so a legitimate
+      invisible character can still be written - visibly
+- [ ] Defend against confusable identifiers (homoglyphs - e.g. Cyrillic `а` vs Latin `a`)
+- [ ] **Detailed implementation plan: see "19.6 Detailed Plan" below - awaiting approval**
+
+#### 19.7: AI Module Input Guard (far future - depends on fusionlib.AI existing)
+- [ ] When Fusion's future `fusionlib.AI` module passes text to an AI model, it first parses
+      that text and checks for embedded code and hidden instructions - content written to
+      manipulate the model (prompt injection) - before anything reaches the model
+- [ ] Logged now, rather than when the AI module is designed, because attacks aimed at AI
+      tools (including Claude, which helps build Fusion) are a real and growing risk, and
+      the requirement should shape that module from its first design
+- [ ] Detection is heuristic, never a guarantee - the guard reduces risk; it can't remove it.
+      The model receiving the text must still treat it as data, not instructions
 
 **Success Criteria:**
 - Before compiling, a developer can see exactly what every imported function uses
@@ -1110,8 +1141,116 @@ can be compromised. Full design reasoning: `FutureFeaturesCaution.md` sections 3
 - Lockfile, signing, and capability-diff tooling
 - Lexer-level source attack checks
 
-**Explicitly NOT scheduled now:** future work - Task 18 comes first. 19.6 is the exception
-and could be pulled forward as a small, self-contained hardening task.
+**Scheduling:** 19.6 is being started now (user's choice, 2026-10-07) - it's the only part
+with no dependency on `import`. 19.1-19.5 need Task 18.4 first; 19.7 needs `fusionlib.AI`.
+
+### 19.6 Detailed Plan (AWAITING USER APPROVAL - do not implement until approved)
+
+**19.6.1 - Reject invisible and bidirectional control characters**
+- [ ] A pre-pass in the lexer scans the whole source text before tokenizing, so comments
+      and strings are covered - comments are exactly where Trojan Source attacks hide
+- [ ] Rejected code points:
+      - Bidirectional controls: U+202A-U+202E, U+2066-U+2069, U+200E, U+200F, U+061C
+      - Invisible/zero-width: U+200B, U+200C, U+200D, U+2060, and U+FEFF anywhere except
+        the very first character of the file (a UTF-8 byte-order mark that Windows editors
+        often add is legitimate there, and is stripped)
+- [ ] Hard error, not a warning, naming the character and position, e.g.:
+      `trojan.fusion:4:31: error: invisible/bidirectional control character U+202E
+      (RIGHT-TO-LEFT OVERRIDE) - can make code display differently than it compiles
+      (Trojan Source). Write ‮ inside a string literal if this is intended.`
+- [ ] Not configurable - this is a security baseline. Section 19.6.2's `\u` escape is the
+      supported way to include such a character on purpose
+
+**19.6.2 - Add `\uXXXX` escapes to string and char literals**
+- [ ] `\u` followed by exactly four hex digits, e.g. `"‍"`; added to `ESCAPE_SEQUENCES`
+      handling in `src/lexer/literals.py`, and emitted to C correctly
+- [ ] Clear lexer errors for malformed escapes (`\u12`, `\uZZZZ`)
+
+**19.6.3 - Confusable identifiers - DECISION NEEDED (recommendation first)**
+- [ ] **Recommended: identifiers ASCII-only by default.** Simplest and strongest defense - no
+      homoglyph is possible in pure ASCII - and it keeps generated C identifiers portable.
+      Unicode stays fully allowed in strings and comments (`"café"`, `// 中文` are fine)
+- [ ] Opt-in for projects that want non-English identifiers: `fusion.toml`
+      `[source] allow_unicode_identifiers = true`. In that mode, reject identifiers that mix
+      scripts (e.g. Latin plus Cyrillic or Greek in one name), detected from Unicode
+      character names via Python's stdlib `unicodedata`. Full Unicode TR39 confusable
+      detection (the approach Rust's compiler uses) needs a large data table - deferred
+- [ ] Alternative if you prefer: allow Unicode identifiers by default and only reject mixed
+      scripts. Weaker - two identifiers can still be entirely different scripts that look
+      alike (all-Cyrillic `аре` vs all-Latin `ape`)
+
+**19.6.4 - Surface lexer warnings (closes Task 15.7)**
+- [ ] `main.py` currently drops lexer warnings entirely (Task 15.7). Print them, the same way
+      semantic warnings are already printed - needed so any future warning-level source
+      check is actually seen, and it's a small change
+
+**19.6.5 - Tests and documentation**
+- [ ] Unit tests: each rejected code point class, in code / comments / strings; BOM allowed
+      only at the start; `\u` escapes valid and malformed; ASCII-only identifiers by default;
+      Unicode identifiers allowed with the config flag; mixed-script rejection; ordinary
+      Unicode (é, 中文) still accepted in strings and comments
+- [ ] Regression test reproducing the two verified attacks above, now rejected
+- [ ] Before changing identifier rules, confirm no existing test or example uses non-ASCII
+      identifiers (checked 2026-10-07: the only non-ASCII characters in `tests/` are `→`
+      arrows in Python comments/docstrings, not in Fusion source)
+- [ ] Docs: language spec (lexical rules), CLAUDE.md, README; `fusion.toml` `[source]`
+      section documented
+
+**Success criteria for 19.6:** both verified attacks fail to compile with a clear message;
+full suite stays green; 8/8 examples still pass.
+
+---
+
+## TASK 20: Multi-Format Project Configuration
+
+**Goal:** Accept the project configuration file in any of four interchangeable formats -
+`fusion.toml`, `fusion.yaml`, `fusion.json`, or `fusion.ini` - so older applications and
+tooling that can only produce JSON or INI (or prefer YAML) can still configure a Fusion
+project.
+**Status:** Not Started (decided by the user 2026-10-07; detailed plan still needs approval
+before implementation, per Rule 1)
+**Priority:** MEDIUM - small and self-contained; not blocked by anything
+**Source:** User decision (2026-10-07). This extends Task 12.12, which chose TOML-only. TOML
+stays the documented default; the other three become equally valid alternatives.
+
+### Sub-tasks
+
+#### 20.1: One Loader Per Format, One Shared Schema
+- [ ] Each format gets a small loader that produces the **same in-memory dictionary**; the
+      existing validation in `src/config/project_config.py` then runs unchanged on it, so all
+      four formats are guaranteed to mean exactly the same thing
+- [ ] TOML (`tomllib`), JSON (`json`), and INI (`configparser`) are all in Python's standard
+      library - no new dependencies
+- [ ] **YAML needs a third-party package (PyYAML)** - the one format that adds a dependency.
+      Recommend loading it lazily, only when a project actually uses `fusion.yaml`, with a
+      clear error if PyYAML isn't installed - so projects that don't use YAML never need it
+- [ ] INI stores every value as text, so its loader must convert types (`"4"` -> 4,
+      `"true"` -> true) before validation. Nested sections map onto INI section names
+      (`[imports.policy]` works as a literal section name)
+- [ ] Known YAML pitfall to guard against: older YAML parsers read unquoted `no`/`yes`/`on`/
+      `off` as booleans (the "Norway problem" - the country code `NO` becomes `false`). The
+      shared validation step catches wrong types, but the docs should recommend quoting
+
+#### 20.2: Discovery and Ambiguity
+- [ ] Look for all four names (source directory first, then the current directory, as today)
+- [ ] **Recommend: if more than one config file is found in the same place, stop with an
+      error** ("found fusion.toml and fusion.json - keep only one") rather than silently
+      picking one by precedence - two configs that disagree is exactly the kind of silent
+      surprise Fusion avoids
+- [ ] Error messages name the specific file and format that failed
+
+#### 20.3: Tests
+- [ ] The same configuration written in all four formats produces an identical result
+- [ ] Format-specific edge cases: INI type conversion, YAML booleans, JSON syntax errors,
+      missing PyYAML
+- [ ] Ambiguity error when two config files exist
+
+#### 20.4: Documentation
+- [ ] Language spec "Project Configuration" section, CLAUDE.md Quick Syntax Reference,
+      README, and `examples/project_config_demo/` (show at least one non-TOML variant)
+
+**Success Criteria:** all four formats load identically through one shared validation path;
+TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 
 ---
 
@@ -1763,6 +1902,24 @@ and could be pulled forward as a small, self-contained hardening task.
   `FutureFeaturesCaution.md`.
 - **Next Action:** unchanged - Task 18 first. Get the user's answer on the equality operator
   meaning (18.3) before that sub-task is planned.
+- **User decisions + start of Task 19, 2026-10-07:**
+  - Equality: `=` is assignment as a statement but comparison inside an `if` condition;
+    `==` compares value everywhere (`xx == "2"` true when `xx` is 2); `===` compares type and
+    value. Recorded in 18.3 with the remaining open points (negation pairing, `while`/`else
+    if`, a small explicit cross-type table for `==`, char vs string)
+  - Security principle sharpened: **never trust code**; no defense is airtight - the goal is
+    to make attacks as hard and unlikely as possible, accepting importing code always carries
+    risk. AI-targeted content will be handled by an input guard in the future `fusionlib.AI`
+    module - logged now as 19.7 (far future)
+  - Config: `fusion.toml`, `fusion.yaml`, `fusion.json`, and `fusion.ini` to be accepted
+    interchangeably - new **Task 20** (extends Task 12.12)
+  - User chose to start **Task 19** now. Only 19.6 has no dependency on `import`, so it goes
+    first. Verified both 19.6 attacks (homoglyph identifiers, Trojan Source bidi characters)
+    compile today. Wrote the **19.6 Detailed Plan** in Task 19 - **awaiting approval**,
+    including one decision: ASCII-only identifiers by default (recommended) vs. Unicode
+    identifiers with mixed-script checks
+- **Next Action:** get the user's approval on the 19.6 Detailed Plan (and the identifier
+  decision), then implement 19.6.1-19.6.5.
 
 ---
 
@@ -1802,7 +1959,9 @@ Task 15 above); Task 16 tracks 7 missing example programs, one per language feat
 Task 17 (mutable/fixed strings, templated fixed strings, string pooling) is logged only, not
 yet approved for scoping; Task 10 (self-hosting) and Task 11 (LLVM backend) are both "planning
 complete" but not started, pending the Task 15.4 ordering decision. **Task 18 (Core Language
-Foundation) is the recommended next priority** - start with a detailed plan for 18.1. Task 19
-(library trust, isolation & security) is logged for after Task 18.4. Read
+Foundation) remains the foundation most other work needs**. **Task 19.6** (source-level attack
+defenses) is in planning now at the user's request - its detailed plan awaits approval; the
+rest of Task 19 needs Task 18.4 (`import`) first. Task 20 (multi-format config) is logged and
+unblocked. Read
 `FutureFeaturesCaution.md` before picking up anything from FutureFeatures.md. Completed-task
 detail for Tasks 5-9 and 12 lives in `task/taskSummaryArchive.md`.

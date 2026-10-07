@@ -3221,6 +3221,15 @@ need a new dependency; the project has none today) and a custom Fusion-native fo
 mean writing and maintaining a whole new parser for no real benefit). Python 3.11's stdlib
 `tomllib` parses it with zero added dependency.
 
+**Decision update (2026-10-07) - not yet implemented:** the user decided Fusion will accept
+the configuration file in four interchangeable formats - `fusion.toml`, `fusion.yaml`,
+`fusion.json`, and `fusion.ini` - so older applications and tools that can only produce JSON
+or INI can still configure a project. TOML stays the documented default. All four will load
+through one shared validation path, so they always mean the same thing; finding more than
+one config file in the same place is planned to be an error rather than a silent choice.
+YAML is the only format that adds a dependency (PyYAML), loaded only when a project uses it.
+Tracked as Task 20 in `taskSummary2.md`. **Until Task 20 ships, only `fusion.toml` works.**
+
 **Lookup decision:** the compiler looks for `fusion.toml` next to the source file being
 compiled first, then in the current working directory. A missing file is not an error - every
 setting just uses its default, identical to the compiler's previous hardcoded behavior. A

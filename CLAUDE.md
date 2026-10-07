@@ -175,10 +175,12 @@ GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12 (all 12 sub-task
 codegen split, block scoping, memory model semantics, docs sync, project config system, and
 two deliberately-deferred design decisions - IR layer and stdlib lowering)
 
-**In progress:** Nothing yet. **Recommended next priority: Task 18 (Core Language
-Foundation)** - functions with full parameter types, structs, proper strings, `import`/
-multi-file, minimal layered stdlib. Guiding rule: a simple working language first, complex
-features after (see `FutureFeaturesCaution.md`).
+**In progress:** **Task 19.6** (source-level attack defenses - Trojan Source characters and
+homoglyph identifiers, both verified to compile today) - detailed plan written, **awaiting
+user approval** before implementation. Task 18 (Core Language Foundation) remains the
+foundation most other work needs, and Task 19.1-19.5 depend on it. Guiding rule: a simple
+working language first, complex features after (see `FutureFeaturesCaution.md`). Security
+principle: **never trust code**.
 
 **Open / not yet scoped:** Task 13 (HIDL module), Task 14 (nullable arrays/safe navigation),
 Task 15 (deferred-decisions revisit list), Task 16 (example coverage), Task 17 (mutable/fixed
@@ -315,6 +317,8 @@ int n = len(scores)     // size (compile-time constant)
 ```toml
 # Optional - place next to your .fusion source file (or in the cwd). Every key defaults
 # to the value shown; a missing file is not an error.
+# Decided (Task 20, not yet implemented): fusion.yaml / fusion.json / fusion.ini will be
+# accepted interchangeably. Until then only fusion.toml works.
 [indentation]
 tab_width = 4        # spaces per tab
 allow_mixed = true   # mixed tabs/spaces: warning (true) vs compile error (false)
@@ -480,9 +484,9 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Task 18 (Core Language Foundation) is the recommended next priority -
-start by writing a detailed plan for 18.1 and getting it approved. Read
-`FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
+**Current Focus:** Task 19.6 - its detailed plan is in taskSummary2.md, awaiting approval.
+After that, Task 18 (Core Language Foundation). Read `FutureFeaturesCaution.md` before
+picking up anything from `FutureFeatures.md`.
 
 **Completed:**
 - Tasks 1-9 and 12 - see task/taskSummary.md and task/taskSummaryArchive.md for full detail
