@@ -14,10 +14,10 @@ from typing import List, Set
 import json
 from ..parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
-    PrimitiveType, ArrayType, FunctionType,
+    PrimitiveType, ArrayType, FunctionType, StructType, StructDecl,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr,
     CallExpr, LambdaExpr,
-    ArrayLiteralExpr, IndexExpr,
+    ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
     BlockStmt
@@ -82,6 +82,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
 
         # Generate includes
         self._generate_includes()
+
+        # Struct typedefs come first (Task 18.2.1) - function types, forward declarations
+        # and function bodies may all use them
+        self._generate_struct_definitions(program)
         typedef_index = len(self.output)
 
         # Generate forward declarations
@@ -184,6 +188,61 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         for include in sorted(self.includes):
             self.emit(f'#include {include}')
         self.emit()  # Blank line
+
+    # Zero value per primitive type, for struct fields with no default (Task 18.2.1). An
+    # empty string rather than NULL, so printing a never-set string field is safe
+    _ZERO_VALUES = {
+        'int': '0', 'float': '0.0f', 'double': '0.0', 'bool': 'false', 'char': "'\\0'",
+        'string': '""',
+    }
+
+    def _generate_struct_definitions(self, program: ProgramNode) -> None:
+        """Emit one C typedef per struct (Task 18.2.1):
+
+            typedef struct Point {
+                int x;
+                int y;
+            } Point;
+
+        A string field is a `char*` - it holds a string value exactly like a string variable
+        does. Strings can't change at run time yet, so copying the pointer behaves the same
+        as copying the text; Task 18.3 gives string fields their own growable buffers.
+        """
+        structs = [d for d in program.declarations if isinstance(d, StructDecl)]
+        if not structs:
+            return
+        self.emit('// Structs')
+        for struct in structs:
+            c_name = self._mangle_function_name(struct.name)
+            self.emit(f'typedef struct {c_name} {{')
+            self.indent()
+            for field in struct.fields:
+                self.emit_line(f'{self.map_type(field.field_type)} {self._field_name(field.name)}')
+            self.dedent()
+            self.emit(f'}} {c_name};')
+        self.emit()
+
+    def _field_name(self, name: str) -> str:
+        """C name of a struct field - mangled like a function name if it's a C keyword."""
+        return self._mangle_function_name(name)
+
+    def _struct_initializer(self, struct: StructDecl, values) -> str:
+        """C99 compound literal building a struct: `(Point){3, 4}` (Task 18.2.1).
+
+        Args:
+            struct: The struct being built
+            values: One AST expression per field, in field order - or None for a field with
+                no value given (it gets its default, or else zero)
+        """
+        parts = []
+        for field, value in zip(struct.fields, values):
+            if value is None:
+                value = field.default_value
+            if value is None:
+                parts.append(self._ZERO_VALUES.get(field.field_type.name, '0'))
+            else:
+                parts.append(self.visit(value))
+        return f'({self._mangle_function_name(struct.name)}){{{", ".join(parts)}}}'
 
     def _generate_forward_declarations(self, program: ProgramNode) -> None:
         """Generate forward declarations for all functions.
@@ -377,6 +436,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             C function call
         """
+        # A struct constructor, Point(3, 4) (Task 18.2.1) - resolved_arguments has every
+        # field, with omitted ones filled in from their defaults by the type checker
+        if isinstance(node.callee_declaration, StructDecl):
+            return self._struct_initializer(node.callee_declaration, node.resolved_arguments)
+
         # Get function name
         if isinstance(node.callee, IdentifierExpr):
             func_name = node.callee.name
@@ -475,6 +539,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         index_code = self.visit(node.index)
         return f'{array_code}[{index_code}]'
 
+    def visit_MemberExpr(self, node: MemberExpr) -> str:
+        """Generate C code for struct field access: point.x (Task 18.2.1)
+
+        Valid as both an rvalue and an assignment lvalue.
+        """
+        return f'{self.visit(node.object)}.{self._field_name(node.member)}'
+
     # _FORMAT_SPECIFIERS, _format_specifier_for_expr, _generate_print_call,
     # visit_InterpolatedStringExpr, _generate_interpolated_print,
     # _build_interpolation_format: see RuntimeLoweringMixin (c_runtime.py)
@@ -528,6 +599,14 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
 
         c_type = self.map_type(node.var_type)
         name = node.name
+
+        # A struct declared without a value starts with every field at its default, or zero
+        # (Task 18.2.1)
+        if isinstance(node.var_type, StructType) and not node.initializer:
+            struct = node.var_type.declaration
+            init_code = self._struct_initializer(struct, [None] * len(struct.fields))
+            self.emit_line(f'{const_keyword}{c_type} {name} = {init_code}')
+            return ''
 
         if node.initializer:
             init_code = self.visit(node.initializer)

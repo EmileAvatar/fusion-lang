@@ -5,7 +5,8 @@ behavior-preserving refactor: CCodeGenerator now includes TypeMapperMixin instea
 defining map_type() itself. No logic changed.
 """
 
-from ..parser.ast_nodes import PrimitiveType, FunctionType, ArrayType, TypeNode
+from ..parser.ast_nodes import PrimitiveType, FunctionType, ArrayType, StructType, TypeNode
+from .c_names import mangle_function_name
 
 
 class TypeMapperMixin:
@@ -49,6 +50,11 @@ class TypeMapperMixin:
             # appended after the variable name (`int arr[5]`, not `int[5] arr`), which is
             # built directly in visit_VarDeclStmt rather than through this generic mapping
             return self.map_type(fusion_type.element_type)
+
+        elif isinstance(fusion_type, StructType):
+            # A typedef'd C struct of the same name (Task 18.2.1), mangled like a function
+            # name if it collides with a C keyword
+            return mangle_function_name(fusion_type.name)
 
         return 'void'
 

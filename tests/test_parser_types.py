@@ -277,18 +277,14 @@ def test_check_any_helper():
 # Error Handling
 # ============================================================================
 
-def test_error_invalid_type():
-    """Test error when parsing invalid type."""
-    with pytest.raises(ParserError) as exc_info:
-        parse_type_from_source("invalid_type")
-    assert "Expected type name" in str(exc_info.value)
-
-
-def test_error_identifier_instead_of_type():
-    """Test error when identifier used instead of type."""
-    with pytest.raises(ParserError) as exc_info:
-        parse_type_from_source("myType")
-    assert "Expected type name" in str(exc_info.value)
+def test_identifier_type_parses_as_struct_type():
+    """An identifier in a type position is a struct name since Task 18.2.1. Whether that
+    struct exists is the name resolver's job ("Unknown type" - see tests/test_structs.py),
+    since a struct may be declared later in the file than its first use."""
+    for name in ("invalid_type", "myType"):
+        type_node = parse_type_from_source(name)
+        assert isinstance(type_node, StructType)
+        assert type_node.name == name
 
 
 def test_error_number_instead_of_type():
@@ -326,9 +322,11 @@ def test_type_with_whitespace():
 
 def test_type_case_sensitivity():
     """Test that type keywords are case-sensitive."""
-    # 'INT' is not the same as 'int' - lexer should treat 'INT' as identifier
-    with pytest.raises(ParserError):
-        parse_type_from_source("INT")
+    # 'INT' is not the same as 'int' - the lexer treats 'INT' as an identifier, so it's a
+    # struct name (unknown unless declared - reported by the name resolver), not int
+    type_node = parse_type_from_source("INT")
+    assert isinstance(type_node, StructType)
+    assert type_node.name == "INT"
 
 
 def test_multiple_var_declarations_different_types():

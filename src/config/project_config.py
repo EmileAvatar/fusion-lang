@@ -8,7 +8,8 @@ reads an optional `fusion.toml` file and produces a ProjectConfig the rest of th
 reads instead of hardcoding values.
 
 v1 scope (decided 2026-09-13): only the [indentation] section is actually wired to real
-behavior (the lexer's tab_width/allow_mixed). [safety] and [backend] are parsed and
+behavior (the lexer's tab_width/allow_mixed). Since then [source] (Task 19.6) reaches the
+lexer and [structs] (Task 18.2) reaches the semantic analyzer. [safety] and [backend] are parsed and
 validated here but not yet enforced anywhere else in the compiler - reserved for future
 work, the same "recognized, not yet implemented" status as the Unique/Shared/Weak keywords
 (see Task 12.7). See files/fusion-language-spec.md's "Project Configuration" section for
@@ -49,6 +50,24 @@ VALID_SAFETY_MODES = ("normal", "strict")
 # like "C" or "clang" fails fast instead of silently doing nothing.
 VALID_BACKENDS = ("c",)
 
+# [structs] (Task 18.2, user decisions 2026-10-08). Nesting depth counts levels of structs: a
+# struct of plain fields is depth 1, a struct holding one of those is depth 2, and so on.
+# Defaults: depth 3 compiles with a warning, depth 4 is an error - a project can lower the
+# maximum (1 = no struct inside a struct) or raise it.
+DEFAULT_MAX_NESTING_DEPTH = 3
+DEFAULT_WARN_NESTING_DEPTH = 3
+# A string field holds its own value (not pooled) and can be changed, by default. "pooled" is
+# accepted here so a project can declare its intent, but compiling with it is an error until
+# Task 17 builds string pooling.
+VALID_STRING_STORAGE = ("owned", "pooled")
+DEFAULT_STRING_STORAGE = "owned"
+DEFAULT_STRING_MUTABLE = True
+# string_warn_length is only a guideline (a longer string is kept in full, with a warning);
+# string_max_length is the one hard cut-off. MAX_MEMORY means no cut-off at all - unsafe.
+DEFAULT_STRING_WARN_LENGTH = 64
+DEFAULT_STRING_MAX_LENGTH = 4096
+MAX_MEMORY = "max memory"
+
 
 class ProjectConfigError(Exception):
     """Raised when fusion.toml exists but is malformed or contains an invalid value."""
@@ -68,12 +87,37 @@ class SourceConfig:
 
 
 @dataclass
+class StructsConfig:
+    """Struct rules passed to the semantic analyzer (Task 18.2).
+
+    Attributes:
+        max_nesting_depth: Deepest allowed struct nesting (1 = no nested structs).
+        warn_nesting_depth: Warn when a struct reaches this depth (0 = never warn).
+        string_storage: "owned" (each struct holds its own string value) or "pooled"
+            (reserved - Task 17).
+        string_mutable: False makes a string field unchangeable after construction.
+        string_warn_length: Warn when a string field holds more characters than this
+            (0 = never warn). The string is still kept in full.
+        string_max_length: Hard cut-off for a string field, or None for no limit (the
+            unsafe "max memory" setting).
+    """
+    max_nesting_depth: int = DEFAULT_MAX_NESTING_DEPTH
+    warn_nesting_depth: int = DEFAULT_WARN_NESTING_DEPTH
+    string_storage: str = DEFAULT_STRING_STORAGE
+    string_mutable: bool = DEFAULT_STRING_MUTABLE
+    string_warn_length: int = DEFAULT_STRING_WARN_LENGTH
+    string_max_length: Optional[int] = DEFAULT_STRING_MAX_LENGTH
+
+
+@dataclass
 class ProjectConfig:
     """Resolved project configuration - either loaded from fusion.toml or all defaults.
 
     Attributes:
         indentation: Wired to the lexer (Task 12.12 v1 scope).
         source: Wired to the lexer - Unicode identifier opt-in (Task 19.6).
+        structs: Wired to the semantic analyzer - nesting depth and string field rules
+            (Task 18.2).
         safety_mode: Reserved for future strict-mode enforcement - not yet read by any pass.
         backend: Reserved for Task 11's LLVM backend - not yet read by any pass (only "c"
             exists today, so there is only one legal value right now).
@@ -82,6 +126,7 @@ class ProjectConfig:
     """
     indentation: IndentationConfig = field(default_factory=IndentationConfig)
     source: SourceConfig = field(default_factory=SourceConfig)
+    structs: StructsConfig = field(default_factory=StructsConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     backend: str = DEFAULT_BACKEND
     source_path: Optional[str] = None
@@ -113,6 +158,83 @@ def _require_table(data: dict, key: str, config_path: str) -> dict:
     if not isinstance(section, dict):
         raise ProjectConfigError(f"{config_path}: [{key}] must be a table")
     return section
+
+
+def _is_int(value) -> bool:
+    # bool is a subclass of int in Python - `true` must not pass as the number 1
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
+    """Parse and validate the [structs] section (Task 18.2)."""
+    structs = StructsConfig()
+    section = _require_table(data, "structs", config_path)
+
+    known = {"max_nesting_depth", "warn_nesting_depth", "string_storage", "string_mutable",
+             "string_warn_length", "string_max_length"}
+    for key in section:
+        if key not in known:
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting structs.{key} (known: {sorted(known)})"
+            )
+
+    if "max_nesting_depth" in section:
+        value = section["max_nesting_depth"]
+        if not _is_int(value) or value < 1:
+            raise ProjectConfigError(
+                f"{config_path}: structs.max_nesting_depth must be an integer of at least 1 "
+                f"(1 = no struct inside another struct), got {value!r}"
+            )
+        structs.max_nesting_depth = value
+    if "warn_nesting_depth" in section:
+        value = section["warn_nesting_depth"]
+        if not _is_int(value) or value < 0:
+            raise ProjectConfigError(
+                f"{config_path}: structs.warn_nesting_depth must be an integer of at least 0 "
+                f"(0 = never warn), got {value!r}"
+            )
+        structs.warn_nesting_depth = value
+    if "string_storage" in section:
+        value = section["string_storage"]
+        if value not in VALID_STRING_STORAGE:
+            raise ProjectConfigError(
+                f"{config_path}: structs.string_storage must be one of "
+                f"{list(VALID_STRING_STORAGE)}, got {value!r}"
+            )
+        structs.string_storage = value
+    if "string_mutable" in section:
+        value = section["string_mutable"]
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: structs.string_mutable must be a boolean, got {value!r}"
+            )
+        structs.string_mutable = value
+    if "string_warn_length" in section:
+        value = section["string_warn_length"]
+        if not _is_int(value) or value < 0:
+            raise ProjectConfigError(
+                f"{config_path}: structs.string_warn_length must be an integer of at least 0 "
+                f"(0 = never warn), got {value!r}"
+            )
+        structs.string_warn_length = value
+    if "string_max_length" in section:
+        value = section["string_max_length"]
+        if value == MAX_MEMORY:
+            structs.string_max_length = None
+        elif _is_int(value) and value >= 1:
+            structs.string_max_length = value
+        else:
+            raise ProjectConfigError(
+                f"{config_path}: structs.string_max_length must be a positive integer (TOML "
+                f"can't calculate, so write 64 * 64 as 4096) or \"{MAX_MEMORY}\", got {value!r}"
+            )
+
+    if structs.string_max_length is not None and structs.string_warn_length > structs.string_max_length:
+        raise ProjectConfigError(
+            f"{config_path}: structs.string_warn_length ({structs.string_warn_length}) can't be "
+            f"larger than structs.string_max_length ({structs.string_max_length})"
+        )
+    return structs
 
 
 def load_project_config(source_path: str) -> ProjectConfig:
@@ -165,6 +287,8 @@ def load_project_config(source_path: str) -> ProjectConfig:
             )
         source.allow_unicode_identifiers = allow_unicode
 
+    structs = _load_structs_section(data, config_path)
+
     safety_mode = DEFAULT_SAFETY_MODE
     safety_section = _require_table(data, "safety", config_path)
     if "mode" in safety_section:
@@ -190,6 +314,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
     return ProjectConfig(
         indentation=indentation,
         source=source,
+        structs=structs,
         safety_mode=safety_mode,
         backend=backend,
         source_path=config_path,

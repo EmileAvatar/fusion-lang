@@ -153,19 +153,19 @@ d:\Dropbox\Fusion\
 
 ## 📍 CURRENT STATUS
 
-**Date:** 2026-10-07
+**Date:** 2026-10-08
 **Phase:** Post-MVP Development - Tasks 5-9 and 12 complete; Task 18 (Core Language) in progress
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,234 tests passing (99.3%)
+- 1,312 tests passing (99.4%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
 
 **Example Verification:**
-- 9/9 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
-  calculator, sum_array, max_three, const_demo, arrays_demo, functions_demo)
+- 10/10 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
+  calculator, sum_array, max_three, const_demo, arrays_demo, functions_demo, structs_demo)
 - Plus `examples/project_config_demo/` - a manual (not automated-harness) demo of
   `fusion.toml` actually changing compiler behavior (Task 12.12)
 - FizzBuzz bug fixed long ago (Task 6.2) - was a lexer bug in interpolation part-splitting
@@ -176,8 +176,8 @@ codegen split, block scoping, memory model semantics, docs sync, project config 
 two deliberately-deferred design decisions - IR layer and stdlib lowering)
 
 **In progress:** Task 18 (Core Language Foundation). **18.1** (default params, array
-params, lambdas) is complete; next is **18.2 (structs)**, which needs a detailed plan approved
-first. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
+params, lambdas) is complete. **18.2 (structs)** has an approved four-part plan; **18.2.1**
+(core structs) is complete, next is **18.2.2 (named arguments)**. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
 a simple working language first, complex features after (see `FutureFeaturesCaution.md`).
 Security principle: **never trust code**.
 
@@ -323,6 +323,27 @@ int function sum(int[] values)
 int total = sum(scores)
 ```
 
+### Structs (Task 18.2.1 - fields only, value types)
+```fusion
+struct Point            // also: struct Point { ... }  or  ... End struct
+    int x
+    int y
+
+struct Player
+    string name
+    float health = 100.0     // field defaults: constants only
+
+Point a = Point(3, 4)        // generated constructor, fields in declaration order
+Point b = a                  // copies; b.x = 9 leaves a alone
+Point z                      // every field its default, or zero
+a.x = 10
+print("({a.x}, {a.y})")      // fields in interpolation
+Point function add(Point p, Point q) : Point(p.x + q.x, p.y + q.y)   // by value
+```
+No methods/operators in structs - use functions. Not yet: `==` on structs (18.3), printing a
+whole struct, nested structs / array fields / arrays of structs (18.2.3), named construction
+`Point(y = 4, x = 3)` (18.2.2).
+
 ### Project Configuration (`fusion.toml`)
 ```toml
 # Optional - place next to your .fusion source file (or in the cwd). Every key defaults
@@ -335,6 +356,14 @@ allow_mixed = true   # mixed tabs/spaces: warning (true) vs compile error (false
 
 [source]
 allow_unicode_identifiers = false   # ASCII-only identifiers by default (Task 19.6)
+
+[structs]                      # Task 18.2
+max_nesting_depth  = 3         # 1 = no nested structs (enforced from 18.2.3)
+warn_nesting_depth = 3         # 0 = never warn (enforced from 18.2.3)
+string_storage     = "owned"   # "pooled" reserved (Task 17) - compile error until then
+string_mutable     = true      # false = string fields fixed after construction
+string_warn_length = 64        # guideline only: longer strings kept, with a warning
+string_max_length  = 4096      # the one hard cut-off; "max memory" = no limit (unsafe)
 
 [safety]
 mode = "normal"      # "normal" | "strict" - reserved, not yet enforced (Task 12.12)
@@ -441,6 +470,10 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 - Functions (Task 18.1, complete): parameter default values; arrays as parameters (`int[]` any
   size, `int[5]` exact, by reference); lambdas and function types (`(int) : int`), named
   functions as values, calls through function variables - no closures yet (Task 18.3 first)
+- Structs (Task 18.2.1): fields only (no methods), three block styles, generated positional
+  constructor, field defaults, `.` access/assignment incl. in `{p.x}` interpolation, value
+  semantics (copy on assign/pass/return), const structs, `[structs]` string-field length
+  rules (see `tests/test_structs.py`, `examples/structs_demo.fusion`)
 
 **Known Limitations (by design):**
 - Single-quote comments disabled (conflicts with char literals)
@@ -449,12 +482,16 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 **Known bugs (logged, not yet fixed):**
 - String `==` compares C pointers, not contents (correct today only by accident). Task 18.3
+- Interpolated strings only work as `print()`'s own argument - elsewhere they're now a clear
+  error (Task 15.10, they used to generate invalid C); `{...}` holds a name or field path
+  (`{p.x}`), not a full expression yet. Building strings at run time is Task 18.3
 - const follows the same block scoping as other variables (no global/class-level
   constants yet - classes not implemented)
 - `fusion.toml`'s `[safety]`/`[backend]` sections are recognized and validated but not
   enforced by any compiler pass yet (same status as the `Unique`/`Shared`/`Weak` keywords
-  below - reserved, not implemented); only `[indentation]` changes real behavior today
-- Arrays can be function parameters (by reference) but not return types (Task 18.2); they're
+  below - reserved, not implemented); `[indentation]`, `[source]` and `[structs]` change
+  real behavior today
+- Arrays can be function parameters (by reference) but not return types (Task 18.2.4); they're
   single-dimension,
   fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
   `?.`, or `?[` yet - see taskSummary2.md Task 14)
@@ -512,7 +549,8 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Task 18.1 is done. Next: a detailed plan for 18.2 (structs). Read
+**Current Focus:** Task 18.2.1 (core structs) is done. Next: 18.2.2 (named arguments), per the
+approved 18.2 plan in taskSummary2.md. Read
 `FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
 
 **Completed:**
@@ -538,8 +576,8 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1234 passed, 8 skipped**
-5. `python tests/verify_examples.py` - expect **9/9**
+4. `python -m pytest tests/ -q` - expect **1312 passed, 8 skipped**
+5. `python tests/verify_examples.py` - expect **10/10**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and
 `.claude/settings.local.json` (Claude Code permissions) are gitignored - they exist only via
@@ -547,6 +585,6 @@ Dropbox sync, not via `git clone`.
 
 ---
 
-**Last Updated:** 2026-10-07
+**Last Updated:** 2026-10-08
 **Version:** 2.0 (Post-MVP)
 **Next Action:** See taskSummary2.md

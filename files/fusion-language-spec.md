@@ -1269,97 +1269,130 @@ class GameObject implements IMovable, IDamageable
 
 ## Structures and Value Types
 
-Description: Lightweight value types for performance-critical code.
+Description: Lightweight value types for copying data around an application and reading or
+changing it conveniently.
+
+**Implementation status (Task 18.2):** 18.2.1 (core structs) is implemented. Nested structs,
+array fields and arrays of structs are 18.2.3; named construction (`Point(y = 4, x = 3)`) is
+18.2.2. See `taskSummary2.md`.
 
 ---
 
-### Struct Restrictions
+### Struct Rules
 
-Description: Structs are pure value containers, not complex objects.
+Description: Structs are **pure value containers - fields only** (user decision, 2026-10-08).
 
-* **Allowed Types in Structs**
-     * Primitives: byte, ubyte, short, ushort, int, uint, long, ulong
-     * Floating: float, double, decimal
-     * Boolean: bool
-     * Character: char
-     * String: string (stored separately in string pool)
-     * Fixed arrays: int[10], float[5] (size must be specified)
-
-* **NOT Allowed in Structs**
-     * Object references
-     * Dynamic collections (List, Dictionary, Set)
-     * Other complex types
-
-* **Reasoning**: If you need objects or complex behavior, use a class instead
+* **No methods, no operator overloading, no user-written constructors.** Behaviour belongs in
+  ordinary functions that take or return the struct
+* **One generated constructor:** the compiler creates `Point(...)`, taking every field in the
+  order the fields are declared, so all values can be set at once
+* **Allowed field types (implemented):** `int`, `float`, `double`, `bool`, `char`, `string`
+* **Planned (Task 18.2.3):** other structs (nested, depth-limited by project settings) and
+  fixed-size arrays (`int[3] position`, size required)
+* **Not allowed:** `void`, functions, object references, dynamic collections (List,
+  Dictionary, Set). If you need objects or behaviour, use a class (future)
 
 ---
 
 ### Structure Definition
 
-claude to be reworked. notify user. we don't have methods/functions only value types.
-contructor is useffull if youu need to add all the values at once. 
-Description: Stack-allocated value types with value semantics.
+Description: Declared at the top level of a file, in any of the three block styles.
 
 ```
-// inValid struct - value types only, no constructor or methods
-// user edited file
+// Indentation style
+struct Point
+    int x
+    int y
+
+// Braces style, with field defaults (constants only, like parameter defaults)
+struct Player {
+    string name
+    float health = 100.0
+    int score
+}
+
+// End keyword style
+struct Book
+    string title
+    bool available = true
+End struct
+
+// Invalid - structs can only contain fields
+/*
 struct Vector3
     float x
-    float y
-    float z
-    
-    // Constructor
-    constructor(float x, float y, float z)
-        this.x = x
-        this.y = y
-        this.z = z
-    
-    // Operator overloading
-    Vector3 operator +(Vector3 other)
-        return Vector3(x + other.x, y + other.y, z + other.z)
-    
-    Vector3 operator *(float scalar)
-        return Vector3(x * scalar, y * scalar, z * scalar)
-    
-    float function magnitude()
-        return sqrt(x * x + y * y + z * z)
-
-// Valid struct with fixed array and value types only
-struct PlayerData
-    int[3] position      // Fixed-size array
-    float health
-    int score
-    string name          // String stored separately
-    bool isAlive
-
-// Invalid struct - would cause compile error
-/*
-struct InvalidExample
-    List<Item> inventory     // ERROR: dynamic collection not allowed
-    Weapon weapon            // ERROR: object reference not allowed
+    Vector3 operator +(Vector3 other)       // ERROR: no operators in structs
+    float function magnitude()               // ERROR: no functions in structs
 */
 ```
+
+**Construction and fields:**
+
+```
+Point a = Point(3, 4)              // generated constructor, fields in declaration order
+Player ada = Player("Ada", 75)     // trailing fields with defaults may be left off (score = 0)
+Point z                            // no value given: every field is its default, or zero
+                                   //   (zero for numbers, false, '\0', and "" for strings)
+a.x = 10                           // read and write fields with '.'
+print("({a.x}, {a.y})")            // fields can be printed through interpolation
+const Point ORIGIN = Point(0, 0)   // no field of a const struct can be changed
+```
+
+**Rules:**
+* A struct can be used before it is declared in the file (like functions)
+* A struct can't share its name with a function, another struct, or a builtin, and a
+  variable or parameter can't reuse a struct's name
+* A field with a default can only be left off when no later field is given - so every field
+  up to the last one *without* a default is required when constructing positionally
+* Not supported yet, each with a clear error: comparing structs with `==`/`!=` (struct
+  equality is part of Task 18.3's equality-operator design - compare fields instead),
+  printing a whole struct (`print("{p}")`), arithmetic on structs
+
+---
+
+### String Fields
+
+Description: A `string` field holds its own value and can be changed - not pooled, by
+default. It can hold anything from a book title to a full product description; strings are
+never cut below the project's hard limit. Controlled per project in `fusion.toml`'s
+`[structs]` section (see "Project Configuration"):
+
+* `string_warn_length` (default **64**) - a guideline only: a longer string is kept in full,
+  and the compiler warns
+* `string_max_length` (default **4096**) - the one hard cut-off: a longer string is cut to
+  this length, with a warning. `"max memory"` removes the limit - **unsafe**, for rare use;
+  the compiler warns on every build that uses it
+* `string_mutable` (default `true`) - `false` makes a string field unchangeable after the
+  struct is created
+* `string_storage` (default `"owned"`) - `"pooled"` is reserved for Task 17 and is a compile
+  error until then
+
+Today every string in a Fusion program is text written in the source, so these rules are
+checked at compile time on string literals going into a field. Once strings can be built at
+run time (Task 18.3), string fields become their own growable buffers and the same rules are
+checked at run time too.
 
 ---
 
 ### Value Semantics
 
-Description: Structs are copied, not referenced.
+Description: Structs are copied, not referenced - on assignment, when passed to a function,
+and when returned.
 
 ```
-// Usage - value semantics
-Vector3 pos1 = Vector3(10, 20, 30)
-Vector3 pos2 = pos1           // Copied, not referenced
-pos2.x = 50                   // pos1.x is still 10
+Point pos1 = Point(10, 20)
+Point pos2 = pos1           // Copied, not referenced
+pos2.x = 50                 // pos1.x is still 10
 
-// invalid no methods allowed
-void function modifyVector(Vector3 v)
-    v.x = 100  // Modifies copy, not original
+void function modifyPoint(Point p)
+    p.x = 100               // Modifies the function's own copy
 
-Vector3 original = Vector3(1, 2, 3)
-modifyVector(original)
+Point original = Point(1, 2)
+modifyPoint(original)
 // original.x is still 1
 ```
+
+Arrays are different: they are passed **by reference** (see "Array parameters").
 
 ---
 
@@ -3043,20 +3076,17 @@ Description: Putting it all together in a simple space game using Fusion v2 synt
 // game.fusion - Complete space game example
 module SpaceGame
 
-// Vector math structure
+// Vector math structure - a plain value type (structs hold fields only)
 struct Vector2
     float x
     float y
-    
-    constructor(float x, float y)
-        this.x = x
-        this.y = y
-    
-    Vector2 operator +(Vector2 other)
-        return Vector2(x + other.x, y + other.y)
-    
-    Vector2 operator *(float scalar)
-        return Vector2(x * scalar, y * scalar)
+
+// Vector math lives in ordinary functions
+Vector2 function vadd(Vector2 a, Vector2 b)
+    return Vector2(a.x + b.x, a.y + b.y)
+
+Vector2 function vscale(Vector2 v, float scalar)
+    return Vector2(v.x * scalar, v.y * scalar)
 
 // Base game object interface
 interface IGameObject
@@ -3084,15 +3114,15 @@ class Spaceship implements IGameObject
     
     void function accelerate(Vector2 direction, float power)
         if fuel > 0 and isActive
-            Velocity = Velocity + (direction * power)
+            Velocity = vadd(Velocity, vscale(direction, power))
             fuel -= power * 0.1
     
     void function update(float deltaTime)
         if isActive
-            Position = Position + (Velocity * deltaTime)
-            
+            Position = vadd(Position, vscale(Velocity, deltaTime))
+
             // Apply drag
-            Velocity = Velocity * 0.99
+            Velocity = vscale(Velocity, 0.99)
             
             // Regenerate fuel slowly
             if fuel < 100
@@ -3127,7 +3157,7 @@ class Projectile implements IGameObject
         this.lifetime = 0
     
     void function update(float deltaTime)
-        Position = Position + (Velocity * deltaTime)
+        Position = vadd(Position, vscale(Velocity, deltaTime))
         lifetime += deltaTime
     
     void function render()
@@ -3213,7 +3243,7 @@ class GameManager
     void function fireProjectile(Spaceship fromShip, Vector2 direction)
         Projectile projectile = Projectile(
             fromShip.Position,
-            direction * 500.0,
+            vscale(direction, 500.0),
             25.0
         )
         projectiles.append(projectile)
@@ -3346,9 +3376,10 @@ silently compile with different settings than intended. (Deliberately not a pare
 walk like git's `.git` or npm's `package.json` - Fusion has no multi-file project/workspace
 concept yet, so that would solve a problem that doesn't exist yet. Revisit once it does.)
 
-**v1 scope decision:** only `[indentation]` is wired to real behavior today - it reaches
+**v1 scope decision:** only `[indentation]` was wired to real behavior at first - it reaches
 `src/lexer/lexer.py`'s `IndentationTracker` exactly as this section's own hardcoded values
-used to. `[safety]` and `[backend]` are parsed and validated (so a project can already state
+used to. Since then `[source]` (Task 19.6) reaches the lexer and `[structs]` (Task 18.2)
+reaches the semantic analyzer. `[safety]` and `[backend]` are parsed and validated (so a project can already state
 its intent and catch typos) but **not yet enforced anywhere** - the same "recognized, not yet
 implemented" status as the `Unique`/`Shared`/`Weak` keywords (see "Memory Management").
 
@@ -3363,6 +3394,14 @@ allow_mixed = true   # allow mixed tabs/spaces with a warning instead of an erro
 allow_unicode_identifiers = false   # identifiers ASCII-only by default (homoglyph defense) -
                                     # see "Source Text Rules" under Syntax Overview
 
+[structs]                      # Task 18.2 - see "Structures and Value Types"
+max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct) - Task 18.2.3
+warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = never) - Task 18.2.3
+string_storage     = "owned"   # each struct holds its own string value; "pooled" reserved (Task 17)
+string_mutable     = true      # false = string fields can't be changed after construction
+string_warn_length = 64        # guideline: warn when a string field is longer (0 = never warn)
+string_max_length  = 4096      # the one hard cut-off, or "max memory" = no limit (unsafe)
+
 [safety]
 mode = "normal"      # "normal" | "strict" - reserved, not yet enforced by any compiler pass
 
@@ -3370,8 +3409,10 @@ mode = "normal"      # "normal" | "strict" - reserved, not yet enforced by any c
 target = "c"         # "c" only for now - "llvm" is reserved for the Task 11 backend, not implemented yet
 ```
 
-Every key is optional and defaults to the value shown above. See `src/config/project_config.py`
-for the authoritative schema, validation rules, and error messages.
+Every key is optional and defaults to the value shown above. An unknown key in `[structs]`
+is an error (so a misspelled setting can't silently do nothing). See
+`src/config/project_config.py` for the authoritative schema, validation rules, and error
+messages.
 
 ---
 
@@ -3678,6 +3719,12 @@ print("Name: {name}, Age: {age}")  // Name: Alice, Age: 30
 // Works with expressions
 print("Next year: {age + 1}")  // Next year: 31
 ```
+
+**Implemented today:** a variable name, or a struct field path such as `{player.name}` or
+`{p.x}` (Task 18.2.1). Full expressions inside `{...}` (like `{age + 1}` above) are not
+implemented yet. A whole array or struct can't be printed - print its elements or fields. An
+interpolated string can only be passed directly to `print()` until strings can be built at
+run time (Task 18.3).
 
 **Syntax 2: Positional Formatting** (`{@1}`, `{@2}`, ...)
 ```fusion
@@ -4907,9 +4954,12 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 ### Structures
 
+* **Fields Only**: No methods, operators or user-written constructors - one generated
+  constructor, `Point(3, 4)`, fields in declaration order
 * **Value Semantics**: Copied, not referenced
-* **Allowed Types**: Primitives, string, fixed arrays only
-* **Not Allowed**: Objects, dynamic collections
+* **Allowed Types**: Primitives and string (implemented); nested structs and fixed arrays
+  (Task 18.2.3)
+* **Not Allowed**: Functions, objects, dynamic collections
 * **Use Case**: Pure data containers for performance
 
 ---

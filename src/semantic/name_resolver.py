@@ -10,8 +10,8 @@ from src.parser.ast_nodes import (
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
-    InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr,
-    TypeNode, PrimitiveType, FunctionType, ArrayType
+    InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
+    StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType
 )
 from .symbol_table import SymbolTable
 from .symbol import Symbol
@@ -131,7 +131,9 @@ class NameResolver:
         """
         self.errors = []  # Reset errors
 
-        # Pass 1: Register all function declarations
+        # Pass 1: Register all struct and function declarations. Structs go first, so any
+        # function signature can use any struct, wherever it's declared
+        self.register_structs(program)
         for decl in program.declarations:
             if isinstance(decl, FunctionDecl):
                 self.register_function(decl)
@@ -145,6 +147,139 @@ class NameResolver:
                 self.resolve_var_decl(decl)
 
         return self.errors
+
+    # ========================================================================
+    # Pass 1: Struct Registration (Task 18.2.1)
+    # ========================================================================
+
+    def register_structs(self, program: ProgramNode) -> None:
+        """Register every struct, then check their fields - in two loops, so a field (or
+        any function signature) can name a struct declared later in the file."""
+        structs = [d for d in program.declarations if isinstance(d, StructDecl)]
+        for struct in structs:
+            self.register_struct(struct)
+        for struct in structs:
+            self.check_struct(struct)
+
+    def register_struct(self, struct: StructDecl) -> None:
+        """Register a struct's name in the global scope.
+
+        Sharing the global scope with functions and builtins means a struct can't have the
+        same name as a function, another struct, or a builtin (`print`) - the duplicate is
+        reported like any other.
+
+        Args:
+            struct: Struct declaration node
+        """
+        try:
+            self.symbol_table.define(Symbol(
+                name=struct.name,
+                symbol_type='struct',
+                data_type=StructType(location=struct.location, name=struct.name,
+                                     declaration=struct),
+                location=struct.location,
+                declaration=struct
+            ))
+        except SemanticError as e:
+            self.errors.append(e)
+
+    def check_struct(self, struct: StructDecl) -> None:
+        """Check a struct's fields.
+
+        v1 (18.2.1) field types are the primitives other than void. Struct fields and array
+        fields are Task 18.2.3; function-typed fields aren't planned (a struct holds plain
+        values only).
+
+        Args:
+            struct: Struct declaration node
+        """
+        if not struct.fields:
+            self.errors.append(SemanticError(
+                f"Struct '{struct.name}' has no fields - a struct needs at least one",
+                struct.location
+            ))
+
+        seen = set()
+        for field in struct.fields:
+            if field.name in seen:
+                self.errors.append(SemanticError(
+                    f"Struct '{struct.name}' has two fields named '{field.name}'",
+                    field.location
+                ))
+            seen.add(field.name)
+
+            field_type = field.field_type
+            if isinstance(field_type, PrimitiveType) and field_type.name == 'void':
+                self.errors.append(SemanticError(
+                    f"Field '{field.name}' of struct '{struct.name}' can't be void",
+                    field.location
+                ))
+            elif isinstance(field_type, FunctionType):
+                self.errors.append(SemanticError(
+                    f"Field '{field.name}' of struct '{struct.name}' can't hold a function - "
+                    f"structs hold plain values only",
+                    field.location
+                ))
+            elif isinstance(field_type, ArrayType):
+                self.errors.append(SemanticError(
+                    f"Field '{field.name}' of struct '{struct.name}': array fields are not "
+                    f"supported yet (Task 18.2.3)",
+                    field.location
+                ))
+            elif isinstance(field_type, StructType):
+                self.resolve_type(field_type)
+                if field_type.declaration is not None:
+                    self.errors.append(SemanticError(
+                        f"Field '{field.name}' of struct '{struct.name}': a struct inside a "
+                        f"struct is not supported yet (Task 18.2.3)",
+                        field.location
+                    ))
+
+            if field.default_value is not None and not self.is_constant_default(field.default_value):
+                self.errors.append(SemanticError(
+                    f"Default value for field '{field.name}' must be a constant (a "
+                    f"literal such as 5, -1, 2.5, \"text\", 'c' or true)",
+                    field.default_value.location
+                ))
+
+    def resolve_type(self, type_node: TypeNode) -> None:
+        """Check that every struct named in a type exists, and link its declaration
+        (Task 18.2.1). Recurses into array element types and function types.
+
+        Args:
+            type_node: The type to check
+        """
+        if isinstance(type_node, StructType):
+            symbol = self.symbol_table.global_scope.lookup(type_node.name)
+            if symbol is not None and symbol.symbol_type == 'struct':
+                type_node.declaration = symbol.declaration
+            else:
+                self.errors.append(SemanticError(
+                    f"Unknown type '{type_node.name}'",
+                    type_node.location
+                ))
+        elif isinstance(type_node, ArrayType):
+            if isinstance(type_node.element_type, StructType):
+                self.errors.append(SemanticError(
+                    f"Arrays of structs ({type_node.element_type.name}[]) are not supported "
+                    f"yet (Task 18.2.3)",
+                    type_node.location
+                ))
+            self.resolve_type(type_node.element_type)
+        elif isinstance(type_node, FunctionType):
+            for param_type in type_node.parameter_types:
+                self.resolve_type(param_type)
+            self.resolve_type(type_node.return_type)
+
+    def check_not_struct_name(self, name: str, kind: str, location) -> None:
+        """A variable or parameter can't reuse a struct's name - in the generated C it would
+        hide the struct's type for the rest of its scope (Task 18.2.1)."""
+        symbol = self.symbol_table.global_scope.lookup(name)
+        if symbol is not None and symbol.symbol_type == 'struct':
+            self.errors.append(SemanticError(
+                f"{kind} '{name}' has the same name as struct '{name}' - choose another name",
+                location
+            ))
 
     # ========================================================================
     # Pass 1: Function Registration
@@ -165,6 +300,11 @@ class NameResolver:
             ))
 
         self.check_parameter_defaults(func)
+
+        # Struct names in the signature (Task 18.2.1)
+        self.resolve_type(func.return_type)
+        for param in func.parameters:
+            self.resolve_type(param.param_type)
 
         try:
             # Create function type
@@ -282,6 +422,7 @@ class NameResolver:
         Args:
             param: Parameter declaration node
         """
+        self.check_not_struct_name(param.name, "Parameter", param.location)
         try:
             symbol = Symbol(
                 name=param.name,
@@ -339,6 +480,9 @@ class NameResolver:
                 stmt.location
             ))
 
+        self.resolve_type(stmt.var_type)
+        self.check_not_struct_name(stmt.name, "Variable", stmt.location)
+
         # First resolve initializer (if any)
         if stmt.initializer:
             self.resolve_expression(stmt.initializer)
@@ -373,6 +517,8 @@ class NameResolver:
                     f"Undefined variable: '{stmt.target.name}'",
                     stmt.location
                 ))
+        elif isinstance(stmt.target, (MemberExpr, IndexExpr)):
+            self.resolve_expression(stmt.target)
 
         # Resolve value expression
         self.resolve_expression(stmt.value)
@@ -520,6 +666,10 @@ class NameResolver:
         elif isinstance(expr, IndexExpr):
             self.resolve_expression(expr.array)
             self.resolve_expression(expr.index)
+        elif isinstance(expr, MemberExpr):
+            # Only the object needs resolving - the field name is checked by the type
+            # checker, once the object's struct type is known
+            self.resolve_expression(expr.object)
         # else: unknown expression type, silently ignore
 
     def resolve_identifier(self, expr: IdentifierExpr) -> None:
@@ -578,6 +728,8 @@ class NameResolver:
                     f"Undefined function: '{func_name}'",
                     expr.location
                 ))
+            elif symbol.symbol_type == 'struct':
+                pass  # A struct constructor, Point(3, 4) (Task 18.2.1)
             elif symbol.symbol_type != 'function' and not isinstance(symbol.data_type, FunctionType):
                 # A variable or parameter holding a function can be called (Task 18.1.3)
                 self.errors.append(SemanticError(
@@ -614,6 +766,7 @@ class NameResolver:
             # Register lambda parameters. A lambda is called through a function value, which
             # carries only parameter types - so its parameters can't have defaults
             for param in expr.parameters:
+                self.resolve_type(param.param_type)
                 if param.default_value is not None:
                     self.errors.append(SemanticError(
                         f"Lambda parameter '{param.name}' can't have a default value",

@@ -20,6 +20,7 @@ from src.parser.ast_nodes import (
     StringExprPart,
     ArrayLiteralExpr,
     IndexExpr,
+    MemberExpr,
     # Statements
     ExpressionStmt,
     VarDeclStmt,
@@ -32,12 +33,15 @@ from src.parser.ast_nodes import (
     # Declarations
     ParameterDecl,
     FunctionDecl,
+    StructField,
+    StructDecl,
     ProgramNode,
     # Types
     TypeNode,
     PrimitiveType,
     FunctionType,
     ArrayType,
+    StructType,
 )
 
 __all__ = [
@@ -58,6 +62,7 @@ __all__ = [
     'StringExprPart',
     'ArrayLiteralExpr',
     'IndexExpr',
+    'MemberExpr',
     # Statements
     'ExpressionStmt',
     'VarDeclStmt',
@@ -70,10 +75,13 @@ __all__ = [
     # Declarations
     'ParameterDecl',
     'FunctionDecl',
+    'StructField',
+    'StructDecl',
     'ProgramNode',
     # Types
     'TypeNode',
     'PrimitiveType',
     'FunctionType',
     'ArrayType',
+    'StructType',
 ]

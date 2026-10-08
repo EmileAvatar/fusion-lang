@@ -55,13 +55,13 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 12: Architecture Hardening** | Complete | 100% | 12 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Task 15: Deferred Decisions Revisit List** | In Progress | 22% | 2 | 9 |
+| **Task 15: Deferred Decisions Revisit List** | In Progress | 40% | 4 | 10 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
-| **Task 18: Core Language Foundation** | In Progress (18.1 done) | 20% | 1 | 5 |
+| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2.1 done) | 25% | 1 | 5 |
 | **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
 | **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
-| **Overall** | Task 18.1 Complete | 41% | 50 | 121 |
+| **Overall** | Task 18.2.1 Complete | 43% | 52 | 122 |
 
 ---
 
@@ -690,11 +690,22 @@ trigger has arrived, rather than re-discovering them by reading old commit messa
 - [ ] Fix: reject user identifiers starting with `fusion_` (clear error), or mangle every
       user identifier. Cheap now; harder once libraries exist. Found during 18.1.2
 
-#### 15.9: Printing an Array Crashes the Compiler (trigger: next touch of print/interpolation)
-- [ ] `print("{arr}")` where `arr` is an array fails in codegen with "Internal compiler error:
+#### 15.9: Printing an Array Crashes the Compiler - RESOLVED (2026-10-08, as part of Task 18.2.1)
+- [x] `print("{arr}")` where `arr` is an array fails in codegen with "Internal compiler error:
       no printf format specifier for type 'ArrayType'" - semantic analysis should reject it
       with a normal error (or, later, print the elements). Found during 18.1.2 (verified
       2026-10-07), not fixed there - unrelated to array parameters
+- [x] Fixed: the type checker now rejects printing any whole array, struct or function value
+      ("Can't print a whole int[3] value - print its elements or fields one at a time").
+      Printing the elements automatically is still a possible later feature
+
+#### 15.10: Interpolated Strings Outside print() Generate Invalid C - GUARDED (2026-10-08, Task 18.2.1)
+- [x] `string s = "x is {x}"` passed semantic analysis, then generated `char* s = "x is %d",
+      x;` - invalid C (Task 12.6 bug class). Found while planning struct string fields, which
+      would have hit the same thing. Now a clear error: an interpolated string can only be
+      passed directly to `print()`
+- [ ] **Real fix belongs to 18.3:** once strings can be built at run time, an interpolated
+      string becomes an ordinary string value usable anywhere - remove the guard then
 
 **Success Criteria:** Not applicable in the usual sense - this is a tracking list, not a
 single feature. Each sub-task's own trigger condition (not a shared deadline) determines
@@ -893,7 +904,7 @@ same convention as Tasks 13/14/16.
 
 **Goal:** Build the small set of core features every other planned feature depends on, so
 Fusion can write real (non-toy) programs before any of the larger future features begin.
-**Status:** Not Started - **recommended next priority** (user agreed with the direction,
+**Status:** In Progress - 18.1 complete; 18.2 plan proposed 2026-10-08 (user agreed with the direction,
 2026-10-07: "the first goal is to get a simple working language first"). Each sub-task still
 needs its own detailed plan approved before implementation, per Rule 1.
 **Priority:** HIGH - nearly every open task is blocked on something in this list (see "Why
@@ -1047,6 +1058,221 @@ no inheritance, and no decision yet on how classes/interfaces/traits interact.
       AST nodes in a self-hosted compiler
 - [ ] Example program per Rule 5 / Task 16
 
+### 18.2 Detailed Plan (APPROVED 2026-10-08 - all four parts)
+
+**Ground rule (user note in `fusion-language-spec.md`, "Structure Definition"):** structs are
+**pure value types - fields only**. No methods, no operator overloading, no user-written
+constructor. The only "constructor" is one the compiler generates, so every field can be set
+in one expression ("useful if you need to add all the values at once"). Behaviour belongs in
+ordinary functions that take or return the struct.
+
+**Today:** the lexer has `struct` and `.` tokens; the parser, semantic passes and codegen know
+nothing about structs. Every type is a keyword today (`int`, `string`...), so the parser must
+learn that a plain name like `Point` can be a type.
+
+**User decisions (2026-10-08):**
+1. **Nested structs are supported**, with depth limits set in the project config (warn at
+   depth 3, maximum depth 3 by default) so a project can switch nesting off or allow more
+2. **Both construction forms**: positional `Point(3, 4)` (field order = declaration order,
+   the default) **and** named `Point(x = 3, y = 4)`. Named arguments are built now, for
+   function calls too, not deferred
+3. **A `string` field in a struct is a mutable string, not pooled, by default**, and it
+   **grows to fit** - a struct can hold anything from a book title to a full product
+   description. Strings are **never cut** below the hard limit. Two separate limits (revised
+   2026-10-08 - replaces the earlier "fixed 64-character buffer, cut to fit" idea):
+   - `string_warn_length` (default **64**) - only a guideline: a longer string still works,
+     the compiler (and later the dev's IDE) just warns
+   - `string_max_length` (default **4096**) - the real cut-off, the only place a string is
+     ever cut. A project picks its own (e.g. sized for text coming from a database).
+     `"max memory"` means no cut-off - **unsafe**, for rare use only
+   All of this is controlled from the project config, so a project can also choose pooled
+   and/or immutable instead. Purpose: a struct is the convenient way to copy value data
+   around a large application and read/change it easily
+4. These settings live in the project config file. Today only `fusion.toml` is read; once
+   Task 20 lands, the same keys work in `fusion.yaml` / `.json` / `.ini` with no extra work
+   (Task 20.1's one shared schema)
+
+**New project settings** (all optional; defaults shown; validated like the existing sections -
+a bad value is a config error, never a silent fallback):
+```toml
+[structs]
+max_nesting_depth  = 3         # 1 = no struct may contain another struct; raise to allow deeper
+warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = never warn)
+string_storage     = "owned"   # "owned" (default: each struct has its own copy) | "pooled" (reserved - Task 17)
+string_mutable     = true      # false = a string field can't be changed after construction
+string_warn_length = 64        # guideline only: warn when a string field holds more (0 = never)
+string_max_length  = 4096      # hard cut-off, or "max memory" = no limit (unsafe, rarely used)
+```
+- **Depth** counts levels of structs: a struct of plain fields is depth 1; `Rect` holding
+  `Point`s is depth 2; a struct holding `Rect` is depth 3. An array of structs counts the same
+  as one struct (`Point[4] corners` is still depth 2)
+- With the defaults, depth 3 compiles with a warning and depth 4 is a compile error naming
+  the chain (`Scene -> Shape -> Rect -> Point is 4 levels deep; max_nesting_depth is 3`)
+- `string_storage = "pooled"` is accepted by the validator but rejected at compile time with
+  "not implemented yet (Task 17)" - same treatment as `[backend] target = "llvm"` today
+- **Length rules:** below `string_warn_length` nothing happens. Above it the string is kept in
+  full and the compiler warns (`string field 'description' holds 210 characters; the project
+  guideline is 64`). Above `string_max_length` the string is cut to that length, with a
+  warning saying so - the only cut-off. `string_max_length` must be >= `string_warn_length`
+  (config error otherwise)
+- `string_max_length` takes a plain number. TOML can't calculate, so "64 * 64" is written
+  `4096`. `"max memory"` turns the cut-off off; the compiler prints an "unsafe setting"
+  warning on every build that uses it, and once `[safety] mode = "strict"` is enforced
+  (Task 15.6) strict mode will refuse it
+- **How "grows to fit" is built (recommended split - please confirm):**
+  - **Now, in 18.2:** a string field holds a string value, exactly like a `string` variable
+    does today. Assigning any length works with nothing cut (`p.description = "...210
+    characters..."`), and assigning a new value is the "mutable" part. Today every string
+    in a Fusion program is a fixed piece of text written in the source - there's no way yet
+    to build or edit a string while the program runs. So the compiler knows every string's
+    length at compile time: the warning and the cut-off both apply now, at compile time, and
+    copying a struct already behaves exactly like a full copy
+  - **In 18.3 (proper strings):** once programs can build and edit strings at runtime
+    (joining, editing characters), a string field becomes its own heap-allocated, growable
+    buffer: copied in full when the struct is copied, freed when the struct goes away, with
+    the cut-off checked at runtime too. That needs 18.3's "who frees a string" decision,
+    which is exactly what 18.3 is for, so building it in 18.2 would mean making that
+    decision twice
+  - Not pooled by default: each struct copy owns its value. (Two identical pieces of text in
+    the source may share storage in the compiled C today, but nothing in Fusion can tell -
+    there is no identity operator yet. Pooling as a project choice is Task 17)
+
+Split into four parts, each shippable and committed on its own (same pattern as 18.1). Each
+adds tests, extends the example program (Rule 5), and updates spec/EBNF/CLAUDE.md.
+
+**18.2.1 - Core structs**
+**Status: COMPLETE (2026-10-08)**
+- [x] Declaration, top level only, in all three block styles:
+      ```
+      struct Point            struct Point {          struct Point
+          int x                   int x                   int x
+          int y                   int y                   int y
+                              }                       End struct
+      ```
+- [x] v1 field types: `int`, `float`, `double`, `bool`, `char`, `string`. Rejected with a
+      clear error: `void`, function types, duplicate field names, an empty struct
+- [x] Optional field defaults - same rule as parameter defaults (18.1.1): constant literals
+      only: `int hp = 100`
+- [x] Declaring a variable: `Point p` -> every field zero / its default (like `float[3] buf`)
+- [x] Generated positional constructor, fields in declaration order: `Point(3, 4)`. Fields
+      with defaults may be left off the end, exactly like default parameters (reuses 18.1.1's
+      call-site filling). Same int -> float promotion as function arguments
+- [x] Field read and write with `.`: `p.x`, `p.x = 5`, `p.x + 1`, `print("{p.x}")` (the `.`
+      postfix also gives Task 14 the parser piece it needs for `arr.length`)
+- [x] **Value semantics** (per spec): `Point b = a` copies; `b.x = 9` leaves `a` alone. Passed
+      to functions **by value** (a copy - unlike arrays, which pass by reference) and returned
+      by value. Maps directly onto C: structs copy natively
+- [x] `const Point ORIGIN = Point(0, 0)` - no field of a const struct can be assigned
+- [x] **String fields** per the settings above: any length, never cut below
+      `string_max_length`; `string_warn_length` warning; cut-off with a warning above
+      `string_max_length`; `"max memory"` unsafe warning; `string_mutable = false` makes field
+      assignment after construction an error; `string_storage = "pooled"` -> "not implemented
+      yet (Task 17)". Reading `p.name` gives an ordinary `string` (works with `print`,
+      parameters, etc.). Runtime growable buffers come with 18.3 (above)
+- [x] `[structs]` section added to `src/config/project_config.py` (parse + validate + tests),
+      and the config is passed into the semantic analyzer and codegen - today only the lexer
+      receives any config (`[indentation]`), so this is new plumbing
+- [x] Struct names: may be used before they're declared (like functions); can't clash with a
+      function, another struct, or a builtin; a variable/parameter can't reuse a struct's name
+      (in C it would hide the type). C keyword names are mangled like functions are
+- [x] Clear errors for things not supported yet: `==`/`!=` on structs (equality is 18.3's
+      operator-family decision - C can't compare structs either), printing a whole struct
+      (`print("{p}")`), arithmetic on structs, unknown field, unknown type name
+- [x] Codegen: `typedef struct Point { int x; int y; } Point;` emitted before function typedefs
+      and forward declarations; constructor -> C99 compound literal `(Point){3, 4}`; `Point p`
+      -> `Point p = {0};` (or with defaults filled in)
+- [x] Fix Task 15.9 at the same time (its trigger is "next touch of print/interpolation", and
+      this part touches it): `print("{arr}")` gets a clear error instead of crashing codegen
+- [x] New example `examples/structs_demo.fusion` (added to `verify_examples.py` -> 10/10)
+- [x] **Implementation notes:** the parser treats an identifier in a type position as a struct
+      type (`StructType`) and recognises `Point p` / `Point function f()` by lookahead (two
+      identifiers in a row never form an expression); unknown names are reported by the name
+      resolver ("Unknown type 'X'"), so 4 parser tests that pinned "an identifier is never a
+      type" were updated. The lexer accepts dotted paths inside `{...}` (`{p.x}`). A string
+      field is a `char*` (fine while every string is a literal - growable buffers are 18.3).
+      Unknown keys in `[structs]` are a config error (catches typos). A field with a default
+      can only be left off when no later field is given (`max required index` rule)
+- [x] **Found and fixed:** arithmetic on a non-number (`arr + 1`, or a struct) crashed the
+      compiler with a Python TypeError - `PrimitiveType('void', location=...)` passed 'void'
+      as the location in 3 places of `type_checker.py`. Regression test added
+- [x] **Found and guarded:** Task 15.10 (interpolated string outside `print()` -> invalid C)
+- [x] **Spec rewritten:** "Structures and Value Types" (fields-only rules, construction,
+      string fields, value semantics - the user's note in the spec is handled and removed),
+      the space-game `Vector2` (now a plain struct + `vadd`/`vscale` functions), the quick
+      reference, "Project Configuration" (`[structs]`), and the interpolation section (now says
+      honestly that `{age + 1}` expressions aren't implemented yet - only names and field
+      paths). EBNF `struct_declaration`/`struct_field`, `.` member access. CLAUDE.md updated
+- [x] 79 new tests (`tests/test_structs.py` 64, `tests/test_project_config.py` 15 incl. one
+      that compiles through `main.py` with and without a `fusion.toml`); generated C compiles
+      cleanly with `gcc -Wall -Wextra`. Full suite 1312 passed, 8 skipped; 10/10 examples
+
+**18.2.2 - Named arguments (function calls and struct construction)**
+Syntax as the spec already shows it (`fusion-language-spec.md`, "Named Arguments"):
+`createShip(crew = 100, name = "Voyager")`, `Point(y = 4, x = 3)`.
+- [ ] Named arguments in any order; positional and named can be mixed, but **positional must
+      come first** (`createShip("Discovery", crew = 80)` ok; `f(a = 1, 2)` is an error)
+- [ ] Combines with defaults: any parameter/field with a default can be skipped, not only
+      trailing ones - `createShip(crew = 200)` uses the defaults for `name` and `speed`
+- [ ] Errors: unknown name; the same parameter given twice (by position and by name, or named
+      twice); a required parameter missing (`missing argument 'b'`)
+- [ ] Codegen reorders into declaration order and fills defaults (extends 18.1.1's
+      `CallExpr.resolved_arguments`); C sees an ordinary positional call
+- [ ] **Evaluation order:** arguments are evaluated left to right *as written*. C doesn't
+      guarantee argument order, so when reordering would change what runs first and an
+      argument can have side effects (it contains a call), codegen stores those arguments in
+      temporaries first. Otherwise `f(b = next(), a = next())` could silently swap results
+- [ ] No ambiguity with `=` meaning comparison inside `if` conditions (18.3 decision): inside a
+      call's parentheses `name = value` is always a named argument
+- [ ] Not allowed (clear error): named arguments when calling through a function-type variable
+      (`op(x = 5)` - a function type has no parameter names), and on builtins (`print`, `len`)
+- [ ] Spec: remove "Named arguments ... are not implemented yet"; mark the section implemented
+
+**18.2.3 - Nesting: structs in structs, arrays in structs, arrays of structs**
+- [ ] A struct field can be another struct (`Rect` holding two `Point`s): `r.min.x = 1`.
+      Depth limits from `[structs] max_nesting_depth` / `warn_nesting_depth` (above).
+      A struct can't contain itself directly or through a cycle (infinite size) - error
+      naming the cycle. Codegen orders struct typedefs by dependency
+- [ ] Fixed-size array fields, size required: `int[3] position` -> `p.position[0] = 5`;
+      `len(p.position)` is a compile-time constant; an array field can be passed to an
+      `int[]` parameter (by reference, as today). Copying the struct copies the array too
+      (true value semantics - C does this natively for arrays inside structs)
+- [ ] Arrays of structs: `Point[3] pts` (zeroed), `Point[] pts = [Point(1, 2), Point(3, 4)]`,
+      `pts[0].x = 7`, passing `Point[]` to a function (by reference, like other arrays)
+- [ ] Example extended
+
+**18.2.4 - Arrays as function return values (moved here from 18.1.2)**
+- [ ] `int[3] function make()` - **fixed size only**; `int[]` as a return type is rejected (the
+      caller needs the size at compile time; growable/sized-at-runtime arrays are 18.5's list)
+- [ ] Codegen wraps the array in a hidden struct C *can* return (`typedef struct { int
+      data[3]; } fusion_arr_int_3;`), unwrapped at the call site
+- [ ] Usable as: `int[3] a = make()`, `a = make()` (whole-array assignment from a call only),
+      and `make()[0]`. Element types/sizes must match exactly (as with array parameters)
+- [ ] Example extended
+
+**Out of scope (logged for later):** methods / functions inside structs (never - user
+decision; use free functions); struct equality (18.3); printing a whole struct; passing a
+struct by reference to avoid copying a large one (a `ref`/`in` parameter form - later);
+growable heap string fields (18.3); pooled string fields (Task 17); generic structs; nullable structs
+(Task 14); classes (Task 16.2 / after 18.x).
+
+**Spec/doc updates (Auto-Update Policy):** rewrite the spec's "Structure Definition" section
+(remove the constructor/operator/method example, and the user note once handled) and its
+"Struct Restrictions" list (nested structs now allowed, depth-limited; string fields inline
+and mutable by default); rewrite the space-game example's `Vector2` (spec ~line 3047) as a
+plain struct plus free functions; check `CacheEntry` (~line 2827); spec "Project
+Configuration" section gets `[structs]`; EBNF `struct_declaration` (field defaults, brace /
+`End struct` forms) and named arguments in the call grammar; CLAUDE.md Quick Syntax Reference
+(structs, named arguments, `[structs]` config) + Current Features; Task 20's key list gains
+`[structs]`.
+
+**Success criteria:** a `Point`/`Rect` program builds, copies, nests, passes and returns structs
+correctly; `Point(y = 4, x = 3)` and `createShip(crew = 200)` work; `int[3] function make()`
+works; mutating a copy never changes the original (string fields included); a 210-character
+string field compiles with a warning and is kept in full; changing `max_nesting_depth` /
+`string_warn_length` / `string_max_length` in `fusion.toml` visibly changes compiler behaviour;
+every rejected case gives a clear error (never a GCC error - the Task 12.6 bug class);
+generated C compiles with `gcc -Wall -Wextra`; full suite green; 10/10 examples.
+
 #### 18.3: Proper Strings
 **Why third:** today strings are only C string literals passed around as `char*` - there is
 no concatenation, length, comparison, substring, or number conversion anywhere in codegen.
@@ -1101,6 +1327,10 @@ Nearly every real program needs these, and a self-hosted lexer is built entirely
 - [ ] Decide string memory ownership - concatenation creates new strings, so who frees
       them? This is the first place the memory model (Task 12.7) becomes practical, and
       it's the foundation Task 17 (mutable/fixed strings, pooling) builds on
+- [ ] **Struct string fields become growable heap buffers** (from 18.2, user decision
+      2026-10-08): owned by the struct, copied in full on struct copy, freed with the struct,
+      `[structs] string_max_length` cut-off checked at runtime, `string_warn_length` stays a
+      compile-time guideline
 - [ ] Example program per Rule 5 / Task 16
 
 #### 18.4: `import` and Multi-File Projects
@@ -2079,6 +2309,23 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
   printf `%` bug (small, security-relevant), then Task 18 (Core Language Foundation) starting
   with a detailed plan for 18.1.
 
+### Session 29 (2026-10-08 - New PC Setup, Task 18.2 Plan, 18.2.1 Core Structs)
+
+- **New machine (via Dropbox):** Python 3.13.1 present; installed requirements.txt and GCC
+  16.2.0 (WinLibs MinGW-w64 UCRT, via winget). Baseline confirmed: 1234 passed, 8 skipped;
+  9/9 examples. Note: on this Dropbox copy git can't append to `.git/logs/HEAD` ("Invalid
+  argument" - git suggests `git config windows.appendAtomically false`)
+- **18.2 plan written and approved** after three rounds of user decisions: nested structs
+  supported with `[structs]` depth limits (warn 3, max 3); positional **and** named
+  construction, with named arguments built now for function calls too (18.2.2); string
+  fields mutable, not pooled, never cut below `string_max_length` (default 4096, or "max
+  memory" = unsafe/no limit), `string_warn_length` (64) a guideline only. User accepted that
+  growable heap string fields wait for 18.3 ("for now the string fixed length is ok")
+- **18.2.1 COMPLETE** - see the 18.2 Detailed Plan for the full checklist and notes
+- **Next Action:** implement **18.2.2 (named arguments)** per the approved plan - function
+  calls and struct construction, positional first, evaluation order kept left to right as
+  written.
+
 ---
 
 ## CRITICAL RULES (Reminder)
@@ -2108,10 +2355,10 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 
 ---
 
-**Next Action:** Task 18.1 (functions: default params, array params, lambdas v1) is complete.
-Next: write the detailed plan for **Task 18.2 (structs)** and get it approved (Rule 1) - it now
-also owns array return values (moved from 18.1.2). Open logged items from this session: Task
-15.8 (reserve the `fusion_` prefix - before 18.4) and 15.9 (`print("{arr}")` crashes codegen).
+**Next Action:** Task 18.2.1 (core structs) is complete. Next: **18.2.2 (named arguments)**, then
+18.2.3 (nesting) and 18.2.4 (array return values) - the 18.2 Detailed Plan is already approved,
+so no new approval is needed for these. Open logged items: Task 15.8 (reserve the `fusion_`
+prefix - before 18.4) and 15.10 (interpolated strings outside `print()` - real fix in 18.3).
 Closures wait for 18.3's memory-ownership decision. Task 19.1-19.5 need 18.4 (`import`); Task
 20 (multi-format config) is unblocked. Read `FutureFeaturesCaution.md` before picking up
 anything from FutureFeatures.md. Completed-task detail for Tasks 5-9 and 12 lives in

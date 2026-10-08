@@ -303,3 +303,91 @@ def test_source_config_feeds_lexer(tmp_path):
                   allow_unicode_identifiers=config.source.allow_unicode_identifiers)
     names = [t.value for t in lexer.tokenize() if t.value == "caf\u00e9"]
     assert names == ["caf\u00e9"]
+
+
+# ============================================================
+# [structs] (Task 18.2.1)
+# ============================================================
+
+def _load_with(tmp_path, toml_text):
+    source_path = tmp_path / "hello.fusion"
+    source_path.write_text("")
+    (tmp_path / "fusion.toml").write_text(toml_text)
+    return load_project_config(str(source_path))
+
+
+def test_structs_defaults(tmp_path):
+    structs = _load_with(tmp_path, "").structs
+    assert structs.max_nesting_depth == 3
+    assert structs.warn_nesting_depth == 3
+    assert structs.string_storage == "owned"
+    assert structs.string_mutable is True
+    assert structs.string_warn_length == 64
+    assert structs.string_max_length == 4096
+
+
+def test_structs_all_keys(tmp_path):
+    structs = _load_with(tmp_path, (
+        "[structs]\nmax_nesting_depth = 1\nwarn_nesting_depth = 0\n"
+        'string_storage = "pooled"\nstring_mutable = false\n'
+        "string_warn_length = 128\nstring_max_length = 8192\n"
+    )).structs
+    assert (structs.max_nesting_depth, structs.warn_nesting_depth) == (1, 0)
+    assert structs.string_storage == "pooled"
+    assert structs.string_mutable is False
+    assert (structs.string_warn_length, structs.string_max_length) == (128, 8192)
+
+
+def test_structs_max_memory_means_no_limit(tmp_path):
+    assert _load_with(tmp_path, '[structs]\nstring_max_length = "max memory"\n').structs.string_max_length is None
+
+
+@pytest.mark.parametrize("toml_text, message", [
+    ("[structs]\nmax_nesting_depth = 0\n", "max_nesting_depth must be an integer of at least 1"),
+    ("[structs]\nmax_nesting_depth = true\n", "max_nesting_depth must be an integer"),
+    ("[structs]\nwarn_nesting_depth = -1\n", "warn_nesting_depth must be an integer of at least 0"),
+    ('[structs]\nstring_storage = "inline"\n', "string_storage must be one of"),
+    ('[structs]\nstring_mutable = "no"\n', "string_mutable must be a boolean"),
+    ("[structs]\nstring_warn_length = 1.5\n", "string_warn_length must be an integer"),
+    ('[structs]\nstring_max_length = "64 * 64"\n', r"write 64 \* 64 as 4096"),
+    ("[structs]\nstring_max_length = 0\n", "string_max_length must be a positive integer"),
+    ("[structs]\nstring_warn_length = 100\nstring_max_length = 50\n", "can't be larger than"),
+    ("[structs]\nstring_max_lenght = 10\n", "unknown setting structs.string_max_lenght"),
+    ("structs = 5\n", r"\[structs\] must be a table"),
+])
+def test_structs_invalid_values_raise(tmp_path, toml_text, message):
+    with pytest.raises(ProjectConfigError, match=message):
+        _load_with(tmp_path, toml_text)
+
+
+def test_structs_config_changes_compiler_behaviour(tmp_path):
+    """The [structs] settings reach the compiler through main.py: the same program warns
+    with the defaults and is cut to fit with a lower string_max_length."""
+    import subprocess
+    import sys
+    source_file = tmp_path / "book.fusion"
+    source_file.write_text(
+        'struct Book\n    string title\n\n'
+        'void function main()\n    Book b = Book("' + "t" * 100 + '")\n    print("{b.title}")\n',
+        encoding="utf-8"
+    )
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def compile_it():
+        return subprocess.run(
+            [sys.executable, "main.py", str(source_file)],
+            cwd=repo_root, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=120
+        )
+
+    result = compile_it()
+    assert result.returncode == 0, result.stderr
+    assert "has 100 characters (the project's string_warn_length guideline is 64)" in result.stderr
+
+    (tmp_path / "fusion.toml").write_text("[structs]\nstring_warn_length = 10\nstring_max_length = 20\n")
+    result = compile_it()
+    assert result.returncode == 0, result.stderr
+    assert "cut to the project's string_max_length of 20" in result.stderr
+    exe = str(source_file).replace(".fusion", ".exe" if sys.platform == "win32" else "")
+    run = subprocess.run([exe], capture_output=True, text=True, timeout=30)
+    assert run.stdout.strip() == "t" * 20

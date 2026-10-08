@@ -124,8 +124,9 @@ class CallExpr(ASTNode):
         resolved_arguments: The arguments as written plus any omitted trailing parameters'
             default values, in parameter order - set by the type checker (Task 18.1.1).
             None until type-checked; codegen uses it when set, since C has no defaults
-        callee_declaration: For a direct call to a declared function, its FunctionDecl - set
-            by the type checker; None for builtins and calls through function values
+        callee_declaration: For a direct call to a declared function, its FunctionDecl; for
+            a struct constructor such as Point(3, 4), the StructDecl (Task 18.2.1) - set by
+            the type checker; None for builtins and calls through function values
     """
     callee: ASTNode  # Usually IdentifierExpr
     arguments: List[ASTNode]
@@ -181,6 +182,21 @@ class IndexExpr(ASTNode):
     """
     array: ASTNode
     index: ASTNode
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
+class MemberExpr(ASTNode):
+    """Struct field access: point.x (Task 18.2.1)
+
+    Attributes:
+        object: The expression whose field is read (a struct value)
+        member: The field name
+        inferred_type: Type resolved by the semantic analyzer (the field's type, None until
+            type-checked)
+    """
+    object: ASTNode
+    member: str
     inferred_type: Optional['TypeNode'] = None
 
 
@@ -399,13 +415,41 @@ class FunctionDecl(ASTNode):
 
 
 @dataclass
+class StructField(ASTNode):
+    """One field of a struct declaration: int x, or int hp = 100 (Task 18.2.1)
+
+    Attributes:
+        field_type: The field's type node
+        name: Field name
+        default_value: Optional constant default (same rule as parameter defaults)
+    """
+    field_type: 'TypeNode'
+    name: str
+    default_value: Optional[ASTNode] = None
+
+
+@dataclass
+class StructDecl(ASTNode):
+    """Struct declaration (Task 18.2.1): a pure value type - fields only, no methods.
+
+    The compiler generates the only constructor, Point(3, 4), with arguments in field order.
+
+    Attributes:
+        name: Struct name, which is also the type name
+        fields: The fields, in declaration order
+    """
+    name: str
+    fields: List[StructField]
+
+
+@dataclass
 class ProgramNode(ASTNode):
     """Root node of the AST representing the entire program.
 
     Attributes:
-        declarations: List of top-level declarations (functions, variables, etc.)
+        declarations: List of top-level declarations (functions, structs, etc.)
     """
-    declarations: List[ASTNode]  # FunctionDecl, VarDeclStmt, etc.
+    declarations: List[ASTNode]  # FunctionDecl, StructDecl, etc.
 
 
 # ============================================================================
@@ -459,3 +503,18 @@ class ArrayType(TypeNode):
     """
     element_type: TypeNode
     size: Optional[int] = None
+
+
+@dataclass
+class StructType(TypeNode):
+    """A struct used as a type: Point p (Task 18.2.1)
+
+    The parser only knows the name - a plain identifier in a type position. The name
+    resolver checks that a struct of that name exists and links its declaration here.
+
+    Attributes:
+        name: The struct's name
+        declaration: The StructDecl, set by the name resolver (None until then)
+    """
+    name: str
+    declaration: Optional[Any] = None

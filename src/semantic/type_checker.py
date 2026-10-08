@@ -10,9 +10,10 @@ from src.parser.ast_nodes import (
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     BreakStmt, ContinueStmt, ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
-    InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr,
-    TypeNode, PrimitiveType, FunctionType, ArrayType
+    InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
+    StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType
 )
+from src.config.project_config import StructsConfig
 from .symbol_table import SymbolTable
 from .symbol import Symbol
 from .errors import SemanticError
@@ -29,17 +30,26 @@ class TypeChecker:
         symbol_table: Symbol table for looking up variable/function types
         current_function_return_type: Expected return type of current function
         errors: List of semantic errors found during type checking
+        warnings: List of warnings (e.g. a long string in a struct field, Task 18.2.1)
+        structs_config: The project's [structs] settings (fusion.toml)
     """
 
-    def __init__(self, symbol_table: SymbolTable):
+    def __init__(self, symbol_table: SymbolTable, structs_config: Optional[StructsConfig] = None):
         """Initialize type checker.
 
         Args:
             symbol_table: Symbol table for symbol lookup
+            structs_config: The project's [structs] settings - defaults if not given
         """
         self.symbol_table = symbol_table
         self.current_function_return_type: Optional[TypeNode] = None
         self.errors: List[SemanticError] = []
+        self.warnings: List[SemanticError] = []
+        self.structs_config = structs_config or StructsConfig()
+
+        # The interpolated string passed directly to print() - the only place one can be
+        # used until strings can be built at run time (Task 15.10 / 18.3)
+        self.print_interpolation: Optional[InterpolatedStringExpr] = None
 
     def check_program(self, program: ProgramNode) -> List[SemanticError]:
         """Type check entire program.
@@ -154,6 +164,10 @@ class TypeChecker:
             return self.types_equal(type1.element_type, type2.element_type) and \
                 type1.size == type2.size
 
+        # Structs: same struct, by name (Task 18.2.1)
+        if isinstance(type1, StructType) and isinstance(type2, StructType):
+            return type1.name == type2.name
+
         return False
 
     def is_numeric_promotion(self, target: TypeNode, source: TypeNode) -> bool:
@@ -189,7 +203,7 @@ class TypeChecker:
             Wider type (double > float > int)
         """
         if not isinstance(type1, PrimitiveType) or not isinstance(type2, PrimitiveType):
-            return PrimitiveType('void', location=type1.location)
+            return PrimitiveType(location=type1.location, name='void')
 
         # Width hierarchy: double > float > int
         widths = {'double': 3, 'float': 2, 'int': 1}
@@ -242,7 +256,54 @@ class TypeChecker:
         if isinstance(type_node, ArrayType):
             size_str = str(type_node.size) if type_node.size is not None else ''
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
+        if isinstance(type_node, StructType):
+            return type_node.name
         return "unknown"
+
+    def struct_declaration(self, type_node: TypeNode) -> Optional[StructDecl]:
+        """The StructDecl for a struct type, looked up by name (Task 18.2.1) - or None if
+        the type isn't a known struct. Looked up rather than read from type_node.declaration
+        so it works no matter which pass created the type node."""
+        if not isinstance(type_node, StructType):
+            return None
+        symbol = self.symbol_table.global_scope.lookup(type_node.name)
+        if symbol is not None and symbol.symbol_type == 'struct':
+            return symbol.declaration
+        return None
+
+    def check_string_field_value(self, struct_name: str, field: StructField, value: ASTNode) -> None:
+        """Apply the project's string-length rules to a value going into a string field
+        (Task 18.2.1, [structs] in fusion.toml):
+
+        - longer than string_warn_length: kept in full, with a warning (a guideline only)
+        - longer than string_max_length: cut to that length, with a warning - the only
+          place a string is ever cut ("max memory" = no limit)
+
+        Only a string literal's length is known at compile time. Strings can't be built or
+        changed at run time yet (Task 18.3), when the same rules will be checked at run time.
+        The cut is done here, on the literal itself, so codegen emits the shortened text.
+        """
+        if not (isinstance(field.field_type, PrimitiveType) and field.field_type.name == 'string'):
+            return
+        if not (isinstance(value, LiteralExpr) and value.type_hint == 'string'):
+            return
+        length = len(value.value)
+        max_length = self.structs_config.string_max_length
+        warn_length = self.structs_config.string_warn_length
+        if max_length is not None and length > max_length:
+            value.value = value.value[:max_length]
+            self.warnings.append(SemanticError(
+                f"String for field '{field.name}' of struct '{struct_name}' has {length} "
+                f"characters - cut to the project's string_max_length of {max_length}",
+                value.location
+            ))
+        elif warn_length and length > warn_length:
+            self.warnings.append(SemanticError(
+                f"String for field '{field.name}' of struct '{struct_name}' has {length} "
+                f"characters (the project's string_warn_length guideline is {warn_length}) - "
+                f"kept in full",
+                value.location
+            ))
 
     # ========================================================================
     # Expression Visitors
@@ -283,6 +344,14 @@ class TypeChecker:
         if not symbol:
             self.errors.append(SemanticError(
                 f"Undefined variable: '{node.name}'",
+                node.location
+            ))
+            return PrimitiveType(location=node.location, name='void')
+
+        if symbol.symbol_type == 'struct':
+            self.errors.append(SemanticError(
+                f"'{node.name}' is a struct type, not a value - create one with "
+                f"{node.name}(...)",
                 node.location
             ))
             return PrimitiveType(location=node.location, name='void')
@@ -346,8 +415,17 @@ class TypeChecker:
         if node.operator in ['<', '>', '<=', '>=', '==', '!=']:
             # For equality, any types can be compared (just checking if they're compatible)
             if node.operator in ['==', '!=']:
-                # Allow comparison of any types
-                pass
+                # Except structs: comparing them is part of 18.3's equality-operator design,
+                # and C can't compare structs with == at all (Task 18.2.1)
+                for operand, operand_type in ((node.left, left_type), (node.right, right_type)):
+                    if isinstance(operand_type, StructType):
+                        self.errors.append(SemanticError(
+                            f"Comparing structs with '{node.operator}' is not supported yet - "
+                            f"compare their fields instead (struct equality comes with Task "
+                            f"18.3)",
+                            operand.location
+                        ))
+                        break
             else:
                 # For ordering comparisons, require numeric types
                 if not self.is_numeric_type(left_type):
@@ -377,7 +455,7 @@ class TypeChecker:
             return PrimitiveType(location=node.location, name='bool')
 
         # Unknown operator - return void for error recovery
-        return PrimitiveType('void', location=node.location)
+        return PrimitiveType(location=node.location, name='void')
 
     def visit_UnaryExpr(self, node: UnaryExpr) -> TypeNode:
         """Check unary operation type.
@@ -407,7 +485,7 @@ class TypeChecker:
             return PrimitiveType(location=node.location, name='bool')
 
         # Unknown operator - return void for error recovery
-        return PrimitiveType('void', location=node.location)
+        return PrimitiveType(location=node.location, name='void')
 
     def visit_CallExpr(self, node: CallExpr) -> TypeNode:
         """Check function call argument types.
@@ -432,6 +510,9 @@ class TypeChecker:
                 node.location
             ))
             return PrimitiveType(location=node.location, name='void')
+
+        if symbol.symbol_type == 'struct':
+            return self._check_struct_construction(node, symbol.declaration)
 
         if symbol.symbol_type != 'function':
             # A variable or parameter holding a function (Task 18.1.3)
@@ -514,6 +595,10 @@ class TypeChecker:
         # A direct call to a declared function - codegen reads its parameters from here
         node.callee_declaration = declaration
 
+        # An interpolated string can only be print's own argument (Task 15.10)
+        if func_name == 'print' and node.arguments and isinstance(node.arguments[0], InterpolatedStringExpr):
+            self.print_interpolation = node.arguments[0]
+
         # Check each argument type
         for i, (arg, expected_type) in enumerate(zip(node.arguments, func_type.parameter_types)):
             actual_type = self.visit(arg)
@@ -527,6 +612,51 @@ class TypeChecker:
                 ))
 
         return func_type.return_type
+
+    def _check_struct_construction(self, node: CallExpr, struct: StructDecl) -> TypeNode:
+        """Check a generated struct constructor call: Point(3, 4) (Task 18.2.1).
+
+        Arguments are matched to fields in declaration order. A field with a default can be
+        left off when no field after it is given - so every field up to the last one
+        without a default is required. Same int -> float promotion as function arguments.
+
+        Returns:
+            The struct type
+        """
+        struct_type = StructType(location=node.location, name=struct.name, declaration=struct)
+        fields = struct.fields
+        required = max((i + 1 for i, f in enumerate(fields) if f.default_value is None), default=0)
+        actual_count = len(node.arguments)
+
+        if actual_count < required or actual_count > len(fields):
+            if required == len(fields):
+                expected_text = f"{len(fields)} argument(s)"
+            else:
+                expected_text = f"{required} to {len(fields)} arguments"
+            self.errors.append(SemanticError(
+                f"Struct '{struct.name}' expects {expected_text} (one per field, in order: "
+                f"{', '.join(f.name for f in fields)}), got {actual_count}",
+                node.location
+            ))
+            for arg in node.arguments:
+                self.visit(arg)
+            return struct_type
+
+        for i, (arg, field) in enumerate(zip(node.arguments, fields)):
+            actual_type = self.visit(arg)
+            if not self.types_compatible(field.field_type, actual_type):
+                self.errors.append(SemanticError(
+                    f"Argument {i+1} to '{struct.name}' (field '{field.name}'): expected "
+                    f"{self.type_to_string(field.field_type)}, got "
+                    f"{self.type_to_string(actual_type)}",
+                    arg.location
+                ))
+            self.check_string_field_value(struct.name, field, arg)
+
+        # C needs every field - fill in the omitted fields' defaults, as for function calls
+        node.resolved_arguments = list(node.arguments) + [f.default_value for f in fields[actual_count:]]
+        node.callee_declaration = struct
+        return struct_type
 
     def _check_function_value_call(self, node: CallExpr, callee_type: TypeNode,
                                    description: str) -> TypeNode:
@@ -660,12 +790,32 @@ class TypeChecker:
         Returns:
             String type
         """
+        # Until strings can be built at run time (Task 18.3), an interpolated string only
+        # works as print's own argument - anywhere else it used to pass this check and then
+        # produce invalid C (`char* s = "x is %d", x;`) - Task 15.10
+        if node is not self.print_interpolation:
+            self.errors.append(SemanticError(
+                "A string with {...} values can only be passed directly to print() for now - "
+                "building strings while the program runs comes with Task 18.3",
+                node.location
+            ))
+
         # Type check each interpolated expression segment (this also populates each
         # expression's inferred_type, which the code generator reads to pick the
         # correct format specifier - see Task 12.3)
         for segment in node.segments:
             if isinstance(segment, StringExprPart):
-                self.visit(segment.expression)
+                expr_type = self.visit(segment.expression)
+                # Only single values can be printed - a whole array (Task 15.9, used to crash
+                # codegen), struct, or function has no printf format. (void is the error-
+                # recovery type - its own error, e.g. an undefined variable, is already
+                # reported)
+                if not isinstance(expr_type, PrimitiveType):
+                    self.errors.append(SemanticError(
+                        f"Can't print a whole {self.type_to_string(expr_type)} value - print "
+                        f"its elements or fields one at a time",
+                        segment.expression.location
+                    ))
 
         return PrimitiveType(location=node.location, name='string')
 
@@ -733,6 +883,33 @@ class TypeChecker:
             ))
 
         return array_type.element_type
+
+    def visit_MemberExpr(self, node: MemberExpr) -> TypeNode:
+        """Check struct field access: point.x (Task 18.2.1)
+
+        Returns:
+            The field's type (void for error recovery)
+        """
+        object_type = self.visit(node.object)
+        struct = self.struct_declaration(object_type)
+        if struct is None:
+            self.errors.append(SemanticError(
+                f"Cannot read field '{node.member}' of a value of type "
+                f"{self.type_to_string(object_type)} - only structs have fields",
+                node.location
+            ))
+            return PrimitiveType(location=node.location, name='void')
+
+        for field in struct.fields:
+            if field.name == node.member:
+                return field.field_type
+
+        self.errors.append(SemanticError(
+            f"Struct '{struct.name}' has no field '{node.member}' (its fields: "
+            f"{', '.join(f.name for f in struct.fields)})",
+            node.location
+        ))
+        return PrimitiveType(location=node.location, name='void')
 
     # ========================================================================
     # Statement Visitors
@@ -851,9 +1028,11 @@ class TypeChecker:
             self._check_identifier_assignment(node)
         elif isinstance(node.target, IndexExpr):
             self._check_index_assignment(node)
+        elif isinstance(node.target, MemberExpr):
+            self._check_member_assignment(node)
         else:
             self.errors.append(SemanticError(
-                "Assignment target must be an identifier or array index",
+                "Assignment target must be an identifier, array index, or struct field",
                 node.target.location
             ))
 
@@ -912,6 +1091,52 @@ class TypeChecker:
                 f"{self.type_to_string(element_type)}",
                 node.location
             ))
+
+    def _check_member_assignment(self, node: AssignmentStmt) -> None:
+        """Check assignment to a struct field: point.x = value (Task 18.2.1)
+
+        The struct must be stored in a variable (not, say, a function's return value, which
+        C can't assign into), which must not be const. A string field can't be changed after
+        construction when the project sets [structs] string_mutable = false.
+        """
+        target: MemberExpr = node.target
+        field_type = self.visit(target)
+
+        root = target.object
+        while isinstance(root, (MemberExpr, IndexExpr)):
+            root = root.object if isinstance(root, MemberExpr) else root.array
+        if not isinstance(root, IdentifierExpr):
+            self.errors.append(SemanticError(
+                f"Can only assign to field '{target.member}' of a struct stored in a variable",
+                node.location
+            ))
+        else:
+            symbol = self.symbol_table.lookup(root.name)
+            if symbol and symbol.is_constant:
+                self.errors.append(SemanticError(
+                    f"Cannot assign to field '{target.member}' of constant '{root.name}'",
+                    node.location
+                ))
+
+        struct = self.struct_declaration(getattr(target.object, 'inferred_type', None))
+        field = next((f for f in struct.fields if f.name == target.member), None) if struct else None
+        if field is not None and isinstance(field_type, PrimitiveType) and field_type.name == 'string' \
+                and not self.structs_config.string_mutable:
+            self.errors.append(SemanticError(
+                f"String field '{field.name}' of struct '{struct.name}' can't be changed after "
+                f"the struct is created - the project sets [structs] string_mutable = false",
+                node.location
+            ))
+
+        value_type = self.visit(node.value)
+        if not self.types_compatible(field_type, value_type):
+            self.errors.append(SemanticError(
+                f"Cannot assign {self.type_to_string(value_type)} to field '{target.member}' "
+                f"of type {self.type_to_string(field_type)}",
+                node.location
+            ))
+        if field is not None:
+            self.check_string_field_value(struct.name, field, node.value)
 
     def visit_ReturnStmt(self, node: ReturnStmt) -> None:
         """Check return type matches function return type.
@@ -1092,6 +1317,22 @@ class TypeChecker:
                     f"Default value type {self.type_to_string(default_type)} does not match parameter type {self.type_to_string(node.param_type)}",
                     node.location
                 ))
+
+    def visit_StructDecl(self, node: StructDecl) -> None:
+        """Check a struct's field defaults (Task 18.2.1): each must suit its field's type,
+        and string defaults follow the project's string-length rules."""
+        for field in node.fields:
+            if field.default_value is None:
+                continue
+            default_type = self.visit(field.default_value)
+            if not self.types_compatible(field.field_type, default_type):
+                self.errors.append(SemanticError(
+                    f"Default value for field '{field.name}' of struct '{node.name}': expected "
+                    f"{self.type_to_string(field.field_type)}, got "
+                    f"{self.type_to_string(default_type)}",
+                    field.default_value.location
+                ))
+            self.check_string_field_value(node.name, field, field.default_value)
 
     def visit_ProgramNode(self, node: ProgramNode) -> None:
         """Check program (handled by check_program).

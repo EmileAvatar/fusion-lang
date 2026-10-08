@@ -310,12 +310,13 @@ class Parser:
         return self.parse_call()
 
     def parse_call(self) -> ASTNode:
-        """Parse postfix operators: function calls func(...) and array indexing arr[...]
+        """Parse postfix operators: function calls func(...), array indexing arr[...], and
+        struct field access point.x (Task 18.2.1)
 
         Precedence: 1 (postfix operator)
 
         Returns:
-            Expression AST node (CallExpr, IndexExpr, or primary expression)
+            Expression AST node (CallExpr, IndexExpr, MemberExpr, or primary expression)
         """
         expr = self.parse_primary()
 
@@ -345,6 +346,13 @@ class Parser:
                     location=expr.location,
                     array=expr,
                     index=index
+                )
+            elif self.match(TokenType.DOT):
+                member = self.consume(TokenType.IDENTIFIER, "Expected field name after '.'")
+                expr = MemberExpr(
+                    location=expr.location,
+                    object=expr,
+                    member=member.value
                 )
             else:
                 break
@@ -589,8 +597,11 @@ class Parser:
         )
 
     def parse_type(self) -> TypeNode:
-        """Parse type annotation: int, float, double, string, bool, char, void,
-        or an array of one of those: int[], int[5]
+        """Parse type annotation: int, float, double, string, bool, char, void, a struct
+        name (Point, Task 18.2.1), or an array of one of those: int[], int[5]
+
+        A struct name is just an identifier here - the parser can't know whether a struct of
+        that name exists (it may be declared later in the file); the name resolver checks.
 
         Array size, if given, must be an integer literal for now (e.g. `int[5]`) - an
         arbitrary size expression (`int[n]`) is not yet supported. Multi-dimensional
@@ -603,7 +614,7 @@ class Parser:
         if self.check(TokenType.LPAREN):
             return self.parse_function_type()
 
-        # Otherwise a primitive type (optionally as an array)
+        # Otherwise a primitive type or a struct name (optionally as an array)
         if self.match(TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                       TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
                       TokenType.VOID):
@@ -612,7 +623,13 @@ class Parser:
                 location=token.location,
                 name=token.value
             )
+        elif self.match(TokenType.IDENTIFIER):
+            token = self.previous()
+            base_type = StructType(location=token.location, name=token.value)
+        else:
+            base_type = None
 
+        if base_type is not None:
             if self.match(TokenType.LBRACKET):
                 size = None
                 if not self.check(TokenType.RBRACKET):
@@ -664,6 +681,30 @@ class Parser:
             parameter_types=parameter_types,
             return_type=return_type
         )
+
+    def is_struct_type_declaration_start(self) -> bool:
+        """Check whether a declaration with a struct type starts here (Task 18.2.1) - e.g.
+        `Point p`, `Point[3] pts`, or at top level `Point function origin()`.
+
+        A struct type is a plain identifier, so `Point p` has to be told apart from an
+        expression statement that also starts with an identifier (`x = 5`, `print(x)`,
+        `arr[0] = 1`). Two identifiers in a row never form an expression, so an identifier
+        type followed by a name (or `function`) can only be a declaration.
+
+        Returns:
+            True if a struct type followed by a name or `function` starts here
+        """
+        if not self.check(TokenType.IDENTIFIER):
+            return False
+        offset = 1
+        if self.peek(offset).type == TokenType.LBRACKET:
+            offset += 1
+            if self.peek(offset).type == TokenType.INTEGER:
+                offset += 1
+            if self.peek(offset).type != TokenType.RBRACKET:
+                return False
+            offset += 1
+        return self.peek(offset).type in (TokenType.IDENTIFIER, TokenType.FUNCTION)
 
     def is_function_type_declaration_start(self) -> bool:
         """Check whether a declaration with a function type starts here - e.g.
@@ -792,7 +833,8 @@ class Parser:
             return self.parse_const_declaration()
 
         # Check if it's a variable declaration (starts with type)
-        if self.is_type_start() or self.is_function_type_declaration_start():
+        if (self.is_type_start() or self.is_function_type_declaration_start()
+                or self.is_struct_type_declaration_start()):
             return self.parse_var_declaration()
 
         # Otherwise, parse as expression (could be assignment)
@@ -1166,8 +1208,13 @@ class Parser:
         Raises:
             ParserError: If declaration is malformed
         """
+        # Struct declaration (Task 18.2.1)
+        if self.match(TokenType.STRUCT):
+            return self.parse_struct_declaration()
+
         # Function declaration: <return_type> function <name>(<params>) { body }
-        if self.is_type_start() or self.is_function_type_declaration_start():
+        if (self.is_type_start() or self.is_function_type_declaration_start()
+                or self.is_struct_type_declaration_start()):
             return_type = self.parse_type()
 
             # Skip newlines after return type
@@ -1183,6 +1230,90 @@ class Parser:
 
         # Skip unexpected tokens (error recovery)
         raise ParserError(self.peek(), f"Unexpected token '{self.peek().value}' at top level")
+
+    def parse_struct_declaration(self) -> StructDecl:
+        """Parse a struct declaration (Task 18.2.1), in any of the three block styles:
+
+            struct Point        struct Point {        struct Point
+                int x               int x                 int x
+                int y               int y                 int y
+                                }                     End struct
+
+        Fields only - each is `<type> <name>`, optionally `= <constant default>`. Structs are
+        pure value types: no methods, operators or constructors (the compiler generates the
+        only constructor). The STRUCT token has already been consumed.
+
+        Returns:
+            StructDecl AST node
+        """
+        struct_token = self.previous()
+        name_token = self.consume(TokenType.IDENTIFIER, "Expected struct name after 'struct'")
+
+        while self.match(TokenType.NEWLINE):
+            pass
+
+        if self.match(TokenType.LBRACE):
+            closing = TokenType.RBRACE
+        elif self.match(TokenType.INDENT):
+            closing = TokenType.DEDENT
+        else:
+            raise ParserError(
+                self.peek(),
+                f"Expected the fields of struct '{name_token.value}' - an indented block, or "
+                f"'{{' ... '}}'"
+            )
+
+        fields = []
+        while self.match(TokenType.NEWLINE):
+            pass
+        while not self.check(closing) and not self.is_at_end():
+            if self.check_any(TokenType.FUNCTION, TokenType.FUNC) or (
+                    self.check(TokenType.IDENTIFIER) and self.peek().value == 'constructor'):
+                raise ParserError(
+                    self.peek(),
+                    f"Struct '{name_token.value}' can only contain fields - structs are pure "
+                    f"value types with no functions or constructors (write a separate function "
+                    f"that takes the struct instead)"
+                )
+            fields.append(self.parse_struct_field())
+            while self.match(TokenType.NEWLINE):
+                pass
+
+        self.consume(closing, f"Expected end of struct '{name_token.value}'")
+        while self.match(TokenType.NEWLINE):
+            pass
+
+        # Optional `End struct` (End keyword style)
+        if self.match(TokenType.END):
+            self.consume(TokenType.STRUCT, "Expected 'struct' after 'End'")
+
+        return StructDecl(location=struct_token.location, name=name_token.value, fields=fields)
+
+    def parse_struct_field(self) -> StructField:
+        """Parse one struct field: `int x` or `int hp = 100` (Task 18.2.1)."""
+        field_type = self.parse_type()
+        if self.check_any(TokenType.FUNCTION, TokenType.FUNC):
+            raise ParserError(
+                self.peek(),
+                "Structs can only contain fields - structs are pure value types with no "
+                "functions (write a separate function that takes the struct instead)"
+            )
+        name_token = self.consume(TokenType.IDENTIFIER, "Expected field name")
+        if self.check(TokenType.LPAREN):
+            raise ParserError(
+                self.peek(),
+                "Structs can only contain fields - structs are pure value types with no "
+                "functions (write a separate function that takes the struct instead)"
+            )
+        default_value = None
+        if self.match(TokenType.ASSIGN):
+            default_value = self.parse_expression()
+        return StructField(
+            location=name_token.location,
+            field_type=field_type,
+            name=name_token.value,
+            default_value=default_value
+        )
 
     def parse_function_declaration(self, return_type: TypeNode) -> ASTNode:
         """Parse function declaration: int function add(int a, int b) { body }

@@ -1,0 +1,66 @@
+// Fusion Structs Demo (Task 18.2)
+// Structs are pure value types: fields only - behaviour lives in ordinary functions
+
+// Indentation style
+struct Point
+    int x
+    int y
+
+// Braces style, with field defaults
+struct Player {
+    string name
+    float health = 100.0
+    int score
+}
+
+// End keyword style
+struct Book
+    string title
+    bool available = true
+End struct
+
+// Structs are passed and returned by value (a copy)
+Point function add(Point a, Point b)
+    return Point(a.x + b.x, a.y + b.y)
+End function
+
+// Changes the function's own copy - the caller's struct is untouched
+void function moveRight(Point p)
+    p.x = p.x + 100
+    print("Inside moveRight: x = {p.x}")
+End function
+
+void function main()
+    // The compiler-generated constructor takes the fields in declaration order
+    Point a = Point(3, 4)
+
+    // Assigning copies the whole struct
+    Point b = a
+    b.x = 10
+    print("a = ({a.x}, {a.y}), b = ({b.x}, {b.y})")
+
+    Point sum = add(a, b)
+    print("a + b = ({sum.x}, {sum.y})")
+
+    moveRight(a)
+    print("After moveRight: a.x = {a.x}")
+
+    // Fields with defaults can be left off the end; a struct declared without a value
+    // starts with every field at its default, or zero
+    Player ada = Player("Ada", 75, 10)
+    ada.score = ada.score + 5
+    print("{ada.name}: health {ada.health}, score {ada.score}")
+    Player newcomer
+    print("Newcomer score: {newcomer.score}, health {newcomer.health}")
+
+    // String fields can be changed
+    Book book = Book("Dune")
+    book.title = "Dune Messiah"
+    if book.available
+        print("{book.title} is available")
+    End if
+
+    const Point ORIGIN = Point(0, 0)
+    print("Origin: ({ORIGIN.x}, {ORIGIN.y})")
+    print("All struct tests passed!")
+End function

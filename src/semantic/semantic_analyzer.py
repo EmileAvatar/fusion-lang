@@ -5,9 +5,10 @@ all semantic analysis passes over the AST.
 """
 
 import sys
-from typing import List
+from typing import List, Optional
 
-from ..parser.ast_nodes import ProgramNode, BlockStmt
+from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType
+from ..config.project_config import StructsConfig, MAX_MEMORY
 from .errors import SemanticError
 from .symbol_table import SymbolTable
 from .name_resolver import NameResolver
@@ -35,11 +36,17 @@ class SemanticAnalyzer:
         warnings: List of warnings found during analysis
     """
 
-    def __init__(self):
-        """Initialize the semantic analyzer with all validation passes."""
+    def __init__(self, structs_config: Optional[StructsConfig] = None):
+        """Initialize the semantic analyzer with all validation passes.
+
+        Args:
+            structs_config: The project's [structs] settings from fusion.toml (Task 18.2) -
+                defaults if not given
+        """
+        self.structs_config = structs_config or StructsConfig()
         self.symbol_table = SymbolTable()
         self.name_resolver = NameResolver(self.symbol_table)
-        self.type_checker = TypeChecker(self.symbol_table)
+        self.type_checker = TypeChecker(self.symbol_table, self.structs_config)
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
@@ -72,8 +79,15 @@ class SemanticAnalyzer:
         self.errors.extend(ep_errors)
         self.warnings.extend(ep_warnings)
 
-        # Pass 2: Register all function declarations (global scope only)
+        # Pass 2: Register all struct declarations, check their fields, then register all
+        # function declarations (global scope only) - structs first, so any signature can
+        # use any struct (Task 18.2.1)
         from src.parser.ast_nodes import FunctionDecl
+        self.name_resolver.register_structs(ast)
+        structs = [d for d in ast.declarations if isinstance(d, StructDecl)]
+        for struct in structs:
+            self.type_checker.visit(struct)
+        self.check_structs_settings(structs)
         for decl in ast.declarations:
             if isinstance(decl, FunctionDecl):
                 self.name_resolver.register_function(decl)
@@ -125,11 +139,38 @@ class SemanticAnalyzer:
         # Collect errors from each component
         self.errors.extend(self.name_resolver.errors)
         self.errors.extend(self.type_checker.errors)
+        self.warnings.extend(self.type_checker.warnings)
         self.errors.extend(self.control_flow_validator.errors)
         self.warnings.extend(self.control_flow_validator.warnings)
 
         # Return success if no errors
         return len(self.errors) == 0
+
+    def check_structs_settings(self, structs: List[StructDecl]) -> None:
+        """Report [structs] settings that need saying on every build (Task 18.2.1).
+
+        - string_storage = "pooled" is accepted in fusion.toml but not built yet (Task 17) -
+          an error only when the program actually has a string field it would apply to
+        - string_max_length = "max memory" removes the cut-off - unsafe, so it's flagged on
+          every build that uses it
+        """
+        location = structs[0].location if structs else None
+        has_string_field = any(
+            isinstance(f.field_type, PrimitiveType) and f.field_type.name == 'string'
+            for s in structs for f in s.fields
+        )
+        if self.structs_config.string_storage == 'pooled' and has_string_field:
+            self.errors.append(SemanticError(
+                'fusion.toml sets [structs] string_storage = "pooled", which is not '
+                'implemented yet (Task 17) - use "owned"',
+                location
+            ))
+        if self.structs_config.string_max_length is None and structs:
+            self.warnings.append(SemanticError(
+                f'Unsafe setting: fusion.toml sets [structs] string_max_length = '
+                f'"{MAX_MEMORY}", so string fields have no length limit',
+                location
+            ))
 
     def get_errors(self) -> List[SemanticError]:
         """Get all collected errors.

@@ -526,13 +526,14 @@ def test_error_missing_parameter_name():
     assert "Expected parameter name" in str(exc_info.value)
 
 
-def test_error_invalid_return_type():
-    """Test error: invalid return type."""
-    with pytest.raises(ParserError) as exc_info:
-        source = "unknown function test() { return 0 }"
-        parse_program(source)
-    # Parser sees "unknown" as an identifier, not a type keyword
-    assert "Unexpected token" in str(exc_info.value)
+def test_unknown_return_type_parses_as_struct_type():
+    """An identifier in a type position is a struct name since Task 18.2.1 - the parser
+    can't know which structs exist, so an unknown name is reported later by the name
+    resolver ("Unknown type 'unknown'" - see tests/test_structs.py)."""
+    program = parse_program("unknown function test() { return 0 }")
+    func = program.declarations[0]
+    assert isinstance(func.return_type, StructType)
+    assert func.return_type.name == "unknown"
 
 
 def test_error_missing_function_body():

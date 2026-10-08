@@ -94,7 +94,7 @@ def compile_file(source_path: str) -> int:
 
     # Semantic analysis
     print(f"[3/5] Semantic analysis...", file=sys.stderr)
-    analyzer = SemanticAnalyzer()
+    analyzer = SemanticAnalyzer(structs_config=project_config.structs)
     success = analyzer.analyze(ast)
 
     if not success:

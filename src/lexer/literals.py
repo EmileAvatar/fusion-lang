@@ -242,14 +242,22 @@ def parse_string_interpolation(text: str, position: int) -> Tuple[List[StringPar
                 parts.append(('INTERP_POS', index))
 
             else:
-                # Inline interpolation: {varName}
-                # Read identifier (alphanumeric + underscore)
+                # Inline interpolation: {varName}, or a struct field path {point.x}
+                # (Task 18.2.1). Read identifiers (alphanumeric + underscore) joined by '.'
                 ident_start = pos
                 while pos < len(text) and (text[pos].isalnum() or text[pos] == '_'):
                     pos += 1
 
                 if pos == ident_start:
                     raise ValueError("Expected variable name in inline interpolation")
+
+                while pos < len(text) and text[pos] == '.':
+                    field_start = pos + 1
+                    pos = field_start
+                    while pos < len(text) and (text[pos].isalnum() or text[pos] == '_'):
+                        pos += 1
+                    if pos == field_start:
+                        raise ValueError("Expected field name after '.' in interpolation")
 
                 var_name = text[ident_start:pos]
                 parts.append(('INTERP_VAR', var_name))
