@@ -5,6 +5,8 @@
         pass and return), const structs, string fields with the project's [structs] length
         rules, and clear errors for what isn't supported yet. Also Task 15.9 (printing an
         array) and 15.10 (an interpolated string outside print) now give clear errors.
+18.2.2: named arguments for function calls and struct construction - any order, positional
+        first, any defaulted parameter skippable, evaluated left to right as written.
 """
 
 import pytest
@@ -316,6 +318,138 @@ def test_immutable_string_fields():
 def test_pooled_storage_not_implemented_yet():
     assert 'string_storage = "pooled", which is not implemented yet (Task 17)' in errors_of(
         BOOK + main('Book b = Book("a")'), StructsConfig(string_storage='pooled'))
+
+
+# ============================================================
+# 18.2.2 - Named arguments (function calls and struct construction)
+# ============================================================
+
+SUB = 'int function sub(int a, int b) : a - b\n'
+SHIP = ('void function createShip(string name = "Unnamed", float speed = 100.0, int crew = 50)\n'
+        '    print("{name} {speed} {crew}")\n')
+NEXT = ('int function next(int[] counter)\n'
+        '    counter[0] = counter[0] + 1\n'
+        '    return counter[0]\n')
+
+
+def test_named_arguments_parse():
+    ast = parse(SUB + main('int r = sub(b = 5, a = 3)'))
+    call = ast.declarations[1].body.statements[0].initializer
+    assert [type(a).__name__ for a in call.arguments] == ['NamedArgument', 'NamedArgument']
+    assert [a.name for a in call.arguments] == ['b', 'a']
+
+
+def test_named_arguments_reordered_to_parameter_order():
+    assert 'int r = sub(3, 5);' in generate_c(SUB + main('int r = sub(b = 5, a = 3)'))
+
+
+def test_named_argument_skips_any_defaulted_parameter():
+    c_code = generate_c(SHIP + main('createShip(crew = 200)'))
+    assert 'createShip("Unnamed", 100.0f, 200);' in c_code
+
+
+def test_positional_then_named():
+    c_code = generate_c(SHIP + main('createShip("Discovery", crew = 80, speed = 150.0)'))
+    assert 'createShip("Discovery", 150.0f, 80);' in c_code
+
+
+def test_named_struct_construction():
+    assert 'Point p = (Point){3, 4};' in generate_c(POINT + main('Point p = Point(y = 4, x = 3)'))
+
+
+def test_named_struct_construction_with_defaults():
+    source = ('struct Ship\n    string name = "Unnamed"\n    float speed = 100.0\n    int crew = 50\n\n'
+              + main('Ship s = Ship(crew = 7)'))
+    assert 'Ship s = (Ship){"Unnamed", 100.0f, 7};' in generate_c(source)
+
+
+def test_named_struct_field_string_rules_apply():
+    source = BOOK + main(f'Book b = Book(title = "{"n" * 100}")')
+    assert "has 100 characters" in warnings_of(source)
+
+
+def test_named_arguments_without_calls_need_no_temporaries():
+    assert 'fusion_arg' not in generate_c(SUB + main('int x = 1\nint r = sub(b = x, a = 3)'))
+
+
+def test_reordered_calls_use_temporaries_in_written_order():
+    c_code = generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(b = next(c), a = next(c))'))
+    assert 'int fusion_arg_1;' in c_code and 'int fusion_arg_2;' in c_code
+    assert ('int d = (fusion_arg_1 = next(c, 1), fusion_arg_2 = next(c, 1), '
+            'sub(fusion_arg_2, fusion_arg_1));') in c_code
+
+
+def test_temporaries_in_a_lambda_are_declared_in_the_lambda():
+    c_code = generate_c(
+        SUB + 'int function twice(int v) : v * 2\n'
+        + main('(int) : int f = func(int x) : sub(b = twice(x), a = x)\nint r = f(3)'))
+    lambda_code = c_code[c_code.index('static int fusion_lambda_1'):]
+    lambda_code = lambda_code[:lambda_code.index('}')]
+    assert 'int fusion_arg_1;' in lambda_code
+
+
+@pytest.mark.parametrize("body, message", [
+    ('int r = sub(a = 1, 2)',
+     "Argument 2 to 'sub' has no name but comes after a named argument"),
+    ('int r = sub(a = 1, c = 2)', "'sub' has no parameter named 'c' (its parameters: a, b)"),
+    ('int r = sub(a = 1, a = 2)', "Parameter 'a' of 'sub' is given twice"),
+    ('int r = sub(1, 2, b = 3)', "Parameter 'b' of 'sub' is given twice (by position and by name)"),
+    ('int r = sub(b = 2)', "Missing argument for parameter 'a' of 'sub'"),
+    ('int r = sub(a = 1, b = "x")', "Argument 'b' to 'sub': expected int, got string"),
+    ('(int, int) : int f = sub\nint r = f(a = 1, b = 2)',
+     "Named argument 'a' can't be used when calling 'f' (a function variable)"),
+    ('print(message = "hi")', "Named argument 'message' can't be used when calling built-in function 'print'"),
+    ('int r = (func(int a) : a)(a = 1)', "Named argument 'a' can't be used when calling a function value"),
+])
+def test_named_argument_errors(body, message):
+    assert message in errors_of(SUB + main(body))
+
+
+def test_unknown_name_does_not_also_report_missing():
+    message = errors_of(SUB + main('int r = sub(a = 1, c = 2)'))
+    assert "Missing argument" not in message
+
+
+def test_every_missing_argument_is_reported():
+    message = errors_of('int function f(int a, int b, int c) : a\n' + main('int r = f(b = 1)'))
+    assert "Missing argument for parameter 'a'" in message
+    assert "Missing argument for parameter 'c'" in message
+
+
+@pytest.mark.parametrize("body, message", [
+    ('Point p = Point(x = 1)', "Missing argument for field 'y' of struct 'Point'"),
+    ('Point p = Point(z = 1, x = 1, y = 2)', "Struct 'Point' has no field named 'z' (its fields: x, y)"),
+    ('Point p = Point(1, x = 2)', "Field 'x' of struct 'Point' is given twice (by position and by name)"),
+])
+def test_named_construction_errors(body, message):
+    assert message in errors_of(POINT + main(body))
+
+
+def test_named_arguments_end_to_end():
+    exit_code, stdout, stderr = compile_and_run(
+        POINT + SUB + SHIP + NEXT + main(
+            'int r = sub(b = 5, a = 3)\n'
+            'print("{r}")\n'
+            'createShip(crew = 200)\n'
+            'createShip("Discovery", crew = 80, speed = 150.0)\n'
+            'Point p = Point(y = 4, x = 3)\n'
+            'print("{p.x} {p.y}")\n'
+            'int[] c = [0]\n'
+            'int d = sub(b = next(c), a = next(c))\n'
+            'print("{d}")\n'
+            'Point q = Point(y = next(c), x = next(c))\n'
+            'print("{q.x} {q.y}")\n'
+        )
+    )
+    assert exit_code == 0, stderr
+    assert stdout.splitlines() == [
+        "-2",
+        "Unnamed 100.000000 200",
+        "Discovery 150.000000 80",
+        "3 4",
+        "1",       # b = next() runs first (1), then a = next() (2): 2 - 1
+        "4 3",     # y = next() runs first (3), then x = next() (4)
+    ]
 
 
 # ============================================================

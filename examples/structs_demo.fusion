@@ -1,5 +1,6 @@
 // Fusion Structs Demo (Task 18.2)
-// Structs are pure value types: fields only - behaviour lives in ordinary functions
+// Structs are pure value types: fields only - behaviour lives in ordinary functions.
+// Also shows named arguments (Task 18.2.2)
 
 // Indentation style
 struct Point
@@ -62,5 +63,15 @@ void function main()
 
     const Point ORIGIN = Point(0, 0)
     print("Origin: ({ORIGIN.x}, {ORIGIN.y})")
+
+    // Named arguments: any order, and any field with a default can be skipped
+    Point named = Point(y = 8, x = 7)
+    print("Named point: ({named.x}, {named.y})")
+    Player scorer = Player(score = 42, name = "Linus")
+    print("{scorer.name}: health {scorer.health}, score {scorer.score}")
+
+    // Named arguments work for function calls too
+    Point shifted = add(b = Point(1, 1), a = named)
+    print("Shifted: ({shifted.x}, {shifted.y})")
     print("All struct tests passed!")
 End function

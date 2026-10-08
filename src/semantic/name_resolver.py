@@ -9,7 +9,7 @@ from src.parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     ExpressionStmt, BlockStmt,
-    LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
+    LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType
 )
@@ -666,6 +666,8 @@ class NameResolver:
         elif isinstance(expr, IndexExpr):
             self.resolve_expression(expr.array)
             self.resolve_expression(expr.index)
+        elif isinstance(expr, NamedArgument):
+            self.resolve_expression(expr.value)
         elif isinstance(expr, MemberExpr):
             # Only the object needs resolving - the field name is checked by the type
             # checker, once the object's struct type is known

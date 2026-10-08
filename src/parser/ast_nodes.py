@@ -119,11 +119,14 @@ class CallExpr(ASTNode):
 
     Attributes:
         callee: The function expression (usually IdentifierExpr)
-        arguments: List of argument expressions
+        arguments: List of argument expressions, as written - a named argument
+            (`crew = 100`) is a NamedArgument wrapping its value (Task 18.2.2)
         inferred_type: Type resolved by the semantic analyzer (None until type-checked)
-        resolved_arguments: The arguments as written plus any omitted trailing parameters'
-            default values, in parameter order - set by the type checker (Task 18.1.1).
-            None until type-checked; codegen uses it when set, since C has no defaults
+        resolved_arguments: One value expression per parameter, in parameter order: the
+            arguments as written (named ones moved to their parameter's position) plus the
+            default value of every omitted parameter - set by the type checker (Tasks
+            18.1.1, 18.2.2). None until type-checked; codegen uses it when set, since C has
+            no defaults or named arguments
         callee_declaration: For a direct call to a declared function, its FunctionDecl; for
             a struct constructor such as Point(3, 4), the StructDecl (Task 18.2.1) - set by
             the type checker; None for builtins and calls through function values
@@ -133,6 +136,22 @@ class CallExpr(ASTNode):
     inferred_type: Optional['TypeNode'] = None
     resolved_arguments: Optional[List[ASTNode]] = None
     callee_declaration: Optional[Any] = None
+
+
+@dataclass
+class NamedArgument(ASTNode):
+    """A named argument in a call: `crew = 100` in createShip(crew = 100) (Task 18.2.2)
+
+    Only valid as an element of CallExpr.arguments. Works for declared functions and struct
+    constructors; not for builtins or calls through function values (a function type has no
+    parameter names).
+
+    Attributes:
+        name: The parameter (or struct field) name
+        value: The argument's value expression
+    """
+    name: str
+    value: ASTNode
 
 
 @dataclass

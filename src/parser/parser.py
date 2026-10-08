@@ -327,9 +327,9 @@ class Parser:
 
                 # Parse argument list
                 if not self.check(TokenType.RPAREN):
-                    arguments.append(self.parse_expression())
+                    arguments.append(self.parse_argument())
                     while self.match(TokenType.COMMA):
-                        arguments.append(self.parse_expression())
+                        arguments.append(self.parse_argument())
 
                 self.consume(TokenType.RPAREN, "Expected ')' after function arguments")
 
@@ -358,6 +358,26 @@ class Parser:
                 break
 
         return expr
+
+    def parse_argument(self) -> ASTNode:
+        """Parse one call argument: an expression, or a named argument `name = value`
+        (Task 18.2.2).
+
+        Assignment is a statement in Fusion, never an expression, so `name =` at the start of
+        an argument can only be a named argument.
+
+        Returns:
+            Expression AST node, or NamedArgument
+        """
+        if self.check(TokenType.IDENTIFIER) and self.peek(1).type == TokenType.ASSIGN:
+            name_token = self.advance()
+            self.advance()  # =
+            return NamedArgument(
+                location=name_token.location,
+                name=name_token.value,
+                value=self.parse_expression()
+            )
+        return self.parse_expression()
 
     def parse_primary(self) -> ASTNode:
         """Parse primary expressions: literals, identifiers, parentheses, lambdas.

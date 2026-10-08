@@ -10,13 +10,14 @@ Split into focused modules (Task 12.5 - C Codegen Module Split):
 This file keeps AST traversal, statement/declaration codegen, and output management.
 """
 
+from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import List, Set
 import json
 from ..parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
     PrimitiveType, ArrayType, FunctionType, StructType, StructDecl,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr,
-    CallExpr, LambdaExpr,
+    CallExpr, LambdaExpr, NamedArgument,
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
@@ -73,6 +74,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.function_typedefs = {}      # function types -> typedef names (Task 18.1.3)
         self.lambda_definitions = []     # lifted lambda functions, as C lines (Task 18.1.3)
         self.lambda_count = 0
+        self.temp_scopes = []            # per-function temporary declarations (Task 18.2.2)
+        self.temp_count = 0
+        self.argument_temps = {}         # id(argument expression) -> its temporary's name
 
         # Function declarations by name - call lowering needs each callee's parameter
         # types, to add hidden array-length arguments (Task 18.1.2)
@@ -241,8 +245,74 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             if value is None:
                 parts.append(self._ZERO_VALUES.get(field.field_type.name, '0'))
             else:
-                parts.append(self.visit(value))
+                parts.append(self._argument_code(value))
         return f'({self._mangle_function_name(struct.name)}){{{", ".join(parts)}}}'
+
+    # ========================================================================
+    # Argument evaluation order (Task 18.2.2)
+    # ========================================================================
+
+    def _argument_code(self, value: ASTNode) -> str:
+        """C code for one argument: its temporary, if _evaluate_in_written_order stored it
+        in one, otherwise the expression itself."""
+        temps = getattr(self, 'argument_temps', {})
+        return temps.get(id(value)) or self.visit(value)
+
+    @classmethod
+    def _contains_call(cls, node) -> bool:
+        """True if an expression contains a call anywhere inside it - a call may have side
+        effects (changing an array passed to it, printing), so its timing can matter."""
+        if isinstance(node, CallExpr):
+            return True
+        if isinstance(node, list):
+            return any(cls._contains_call(item) for item in node)
+        if is_dataclass(node) and isinstance(node, ASTNode):
+            return any(cls._contains_call(getattr(node, f.name)) for f in dataclass_fields(node)
+                       if f.name not in ('location', 'inferred_type', 'scope'))
+        return False
+
+    def _new_temp(self, c_type: str) -> str:
+        """Declare a compiler temporary at the top of the C function being generated."""
+        self.temp_count = getattr(self, 'temp_count', 0) + 1
+        name = f'fusion_arg_{self.temp_count}'
+        self.temp_scopes[-1].append(f'{c_type} {name};')
+        return name
+
+    def _evaluate_in_written_order(self, node: CallExpr, slot_types: list) -> list:
+        """Named arguments (Task 18.2.2) are evaluated left to right *as written*, but C
+        evaluates a call's arguments in no guaranteed order - and named ones have been moved
+        to their parameter's position. So when a call with named arguments contains another
+        call, each argument is first stored in a temporary, in the written order, using C's
+        comma operator (which does guarantee left-to-right):
+
+            f(b = next(), a = next())  ->  (fusion_arg_1 = next(), fusion_arg_2 = next(),
+                                            f(fusion_arg_2, fusion_arg_1))
+
+        Array arguments are left in place: they are passed by reference (nothing to
+        evaluate early), and C can't copy an array into a temporary.
+
+        Args:
+            node: The call (already type-checked - resolved_arguments is set)
+            slot_types: The parameter/field type for each entry of resolved_arguments
+
+        Returns:
+            The temporary assignments, in written order (empty if none are needed)
+        """
+        if not any(isinstance(arg, NamedArgument) for arg in node.arguments):
+            return []
+        written = [arg.value if isinstance(arg, NamedArgument) else arg for arg in node.arguments]
+        if not any(self._contains_call(value) for value in written) or not self.temp_scopes:
+            return []
+        assignments = []
+        for value in written:
+            index = next(i for i, resolved in enumerate(node.resolved_arguments) if resolved is value)
+            if isinstance(slot_types[index], ArrayType):
+                continue
+            code = self.visit(value)
+            name = self._new_temp(self.map_type(slot_types[index]))
+            assignments.append(f'{name} = {code}')
+            self.argument_temps[id(value)] = name
+        return assignments
 
     def _generate_forward_declarations(self, program: ProgramNode) -> None:
         """Generate forward declarations for all functions.
@@ -439,7 +509,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # A struct constructor, Point(3, 4) (Task 18.2.1) - resolved_arguments has every
         # field, with omitted ones filled in from their defaults by the type checker
         if isinstance(node.callee_declaration, StructDecl):
-            return self._struct_initializer(node.callee_declaration, node.resolved_arguments)
+            struct = node.callee_declaration
+            ordered = self._evaluate_in_written_order(node, [f.field_type for f in struct.fields])
+            code = self._struct_initializer(struct, node.resolved_arguments)
+            return f'({", ".join(ordered + [code])})' if ordered else code
 
         # Get function name
         if isinstance(node.callee, IdentifierExpr):
@@ -470,13 +543,19 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             callee_decl = getattr(self, 'function_decls', {}).get(node.callee.name)
         params = callee_decl.parameters if callee_decl else [None] * len(arguments)
 
+        ordered = []
+        if callee_decl is not None and node.resolved_arguments is not None:
+            ordered = self._evaluate_in_written_order(node, [p.param_type for p in params])
+
         c_args = []
         for param, arg in zip(params, arguments):
             if param is not None and isinstance(param.param_type, ArrayType):
                 c_args.extend(self._array_argument(arg, param.param_type))
             else:
-                c_args.append(self.visit(arg))
+                c_args.append(self._argument_code(arg))
         args = ', '.join(c_args)
+        if ordered:
+            return f'({", ".join(ordered)}, {func}({args}))'
 
         return f'{func}({args})'
 
@@ -538,6 +617,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         array_code = self.visit(node.array)
         index_code = self.visit(node.index)
         return f'{array_code}[{index_code}]'
+
+    def visit_NamedArgument(self, node: NamedArgument) -> str:
+        """A named argument's C code is its value's - normally codegen reads the values from
+        CallExpr.resolved_arguments, already in parameter order (Task 18.2.2)."""
+        return self.visit(node.value)
 
     def visit_MemberExpr(self, node: MemberExpr) -> str:
         """Generate C code for struct field access: point.x (Task 18.2.1)
@@ -826,6 +910,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.emit(f'{return_type} {func_name}({params}) {{')
         self.indent()
 
+        # Temporaries for argument evaluation order (Task 18.2.2) are found while generating
+        # the body, and declared at its top
+        if not hasattr(self, 'temp_scopes'):
+            self.temp_scopes = []
+        self.temp_scopes.append([])
+        temp_index = len(self.output)
+
         # Generate function body
         if node.body:
             if node.is_lambda:
@@ -838,6 +929,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # Add return 0 for void main()
         if is_void_main:
             self.emit_line('return 0')
+
+        temps = self.temp_scopes.pop()
+        if temps:
+            indent = '    ' * self.indent_level
+            self.output[temp_index:temp_index] = [indent + line for line in temps]
 
         self.dedent()
         self.emit('}')
@@ -935,13 +1031,17 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         return_type = self.map_type(node.return_type) if node.return_type else 'void'
         params = self._c_parameter_list(node.parameters)
         # Generated before this lambda's lines are added, so a lambda nested in this body
-        # is lifted (and defined) ahead of this one
+        # is lifted (and defined) ahead of this one. A lambda is its own C function, so it
+        # gets its own temporaries (Task 18.2.2)
+        if not hasattr(self, 'temp_scopes'):
+            self.temp_scopes = []
+        self.temp_scopes.append([])
         body_code = self.visit(node.body)
+        temps = self.temp_scopes.pop()
         statement = body_code if return_type == 'void' else f'return {body_code}'
-        self.lambda_definitions.extend([
-            f'static {return_type} {name}({params}) {{',
-            f'    {statement};',
-            '}',
-            '',
-        ])
+        self.lambda_definitions.extend(
+            [f'static {return_type} {name}({params}) {{']
+            + [f'    {line}' for line in temps]
+            + [f'    {statement};', '}', '']
+        )
         return name

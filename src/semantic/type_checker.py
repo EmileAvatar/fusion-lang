@@ -9,7 +9,7 @@ from src.parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
     VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt, WhileStmt, ForStmt,
     BreakStmt, ContinueStmt, ExpressionStmt, BlockStmt,
-    LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr,
+    LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType
 )
@@ -498,7 +498,11 @@ class TypeChecker:
         """
         # Calling the result of an expression, e.g. (func(int x) : x * 2)(5) (Task 18.1.3)
         if not isinstance(node.callee, IdentifierExpr):
-            return self._check_function_value_call(node, self.visit(node.callee), "function value")
+            callee_type = self.visit(node.callee)
+            if self._reject_named_arguments(node, "a function value"):
+                return callee_type.return_type if isinstance(callee_type, FunctionType) else \
+                    PrimitiveType(location=node.location, name='void')
+            return self._check_function_value_call(node, callee_type, "function value")
 
         func_name = node.callee.name
 
@@ -512,12 +516,21 @@ class TypeChecker:
             return PrimitiveType(location=node.location, name='void')
 
         if symbol.symbol_type == 'struct':
-            return self._check_struct_construction(node, symbol.declaration)
+            struct = symbol.declaration
+            if self._has_named_arguments(node):
+                self._check_named_call(
+                    node, f"struct '{struct.name}'", 'field',
+                    [(f.name, f.field_type, f.default_value) for f in struct.fields], struct=struct)
+                node.callee_declaration = struct
+                return StructType(location=node.location, name=struct.name, declaration=struct)
+            return self._check_struct_construction(node, struct)
 
         if symbol.symbol_type != 'function':
             # A variable or parameter holding a function (Task 18.1.3)
             if isinstance(symbol.data_type, FunctionType):
                 node.callee.inferred_type = symbol.data_type
+                if self._reject_named_arguments(node, f"'{func_name}' (a function variable)"):
+                    return symbol.data_type.return_type
                 return self._check_function_value_call(node, symbol.data_type, f"'{func_name}'")
             self.errors.append(SemanticError(
                 f"'{func_name}' is not a function",
@@ -529,6 +542,19 @@ class TypeChecker:
         func_type = symbol.data_type
         if not isinstance(func_type, FunctionType):
             return PrimitiveType(location=node.location, name='void')
+
+        # Named arguments (Task 18.2.2) need the declared parameter names - builtins have none
+        declaration = symbol.declaration if isinstance(symbol.declaration, FunctionDecl) else None
+        if self._has_named_arguments(node):
+            if declaration is None:
+                self._reject_named_arguments(node, f"built-in function '{func_name}'")
+                return func_type.return_type
+            self._check_named_call(
+                node, f"'{func_name}'", 'parameter',
+                [(p.name, p.param_type, p.default_value) for p in declaration.parameters],
+                func_name=func_name)
+            node.callee_declaration = declaration
+            return func_type.return_type
 
         # Check argument count
         # Special case for range() function: accepts 2 or 3 arguments
@@ -573,7 +599,6 @@ class TypeChecker:
             return func_type.return_type
 
         # Trailing parameters with defaults may be omitted (Task 18.1.1)
-        declaration = symbol.declaration if isinstance(symbol.declaration, FunctionDecl) else None
         defaults = [p.default_value for p in declaration.parameters] if declaration else []
         expected_count = len(func_type.parameter_types)
         required_count = sum(1 for d in defaults if d is None) if declaration else expected_count
@@ -612,6 +637,115 @@ class TypeChecker:
                 ))
 
         return func_type.return_type
+
+    @staticmethod
+    def _has_named_arguments(node: CallExpr) -> bool:
+        return any(isinstance(arg, NamedArgument) for arg in node.arguments)
+
+    def _reject_named_arguments(self, node: CallExpr, description: str) -> bool:
+        """Report named arguments where they can't work (Task 18.2.2): builtins and calls
+        through function values have no parameter names to match. Returns True (after
+        visiting the argument values, for error recovery) if any were found."""
+        if not self._has_named_arguments(node):
+            return False
+        for arg in node.arguments:
+            if isinstance(arg, NamedArgument):
+                self.errors.append(SemanticError(
+                    f"Named argument '{arg.name}' can't be used when calling {description} - "
+                    f"it has no parameter names to match; pass the arguments in order",
+                    arg.location
+                ))
+            self.visit(arg.value if isinstance(arg, NamedArgument) else arg)
+        return True
+
+    def _check_named_call(self, node: CallExpr, owner: str, kind: str, slots: list,
+                          func_name: str = None, struct: StructDecl = None) -> None:
+        """Match a call's arguments to parameters (or struct fields) when some are named
+        (Task 18.2.2): `createShip("Discovery", crew = 80)`, `Point(y = 4, x = 3)`.
+
+        - positional arguments fill the first slots, in order, and must all come before any
+          named argument
+        - a named argument fills the slot with that name, in any order
+        - any slot with a default may be left out - not only trailing ones
+        - errors: unknown name, the same slot given twice, a slot with no default left out
+
+        On success, node.resolved_arguments holds one value per slot in declaration order -
+        what codegen emits, since C has no named arguments.
+
+        Args:
+            node: The call
+            owner: How to name the callee in messages ("'f'" or "struct 'Point'")
+            kind: 'parameter' or 'field'
+            slots: (name, type, default_value) per parameter/field, in declaration order
+            func_name: The function's name, for array-argument checks
+            struct: The struct being constructed, for string-field length rules
+        """
+        names = [name for name, _, _ in slots]
+        bound = [None] * len(slots)
+        bound_by_name = [False] * len(slots)
+        ok = True
+        seen_named = False
+        # Sentence-start form of the owner, for messages that begin with it
+        owner_title = owner[0].upper() + owner[1:]
+
+        def fail(message, location, value):
+            nonlocal ok
+            ok = False
+            self.errors.append(SemanticError(message, location))
+            self.visit(value)  # still type-check it, for error recovery
+
+        for position, arg in enumerate(node.arguments):
+            if isinstance(arg, NamedArgument):
+                seen_named = True
+                if arg.name not in names:
+                    fail(f"{owner_title} has no {kind} named '{arg.name}' (its {kind}s: "
+                         f"{', '.join(names)})", arg.location, arg.value)
+                elif bound[names.index(arg.name)] is not None:
+                    how = "" if bound_by_name[names.index(arg.name)] else " (by position and by name)"
+                    fail(f"{kind.capitalize()} '{arg.name}' of {owner} is given twice{how}",
+                         arg.location, arg.value)
+                else:
+                    bound[names.index(arg.name)] = arg.value
+                    bound_by_name[names.index(arg.name)] = True
+            elif seen_named:
+                fail(f"Argument {position + 1} to {owner} has no name but comes after a named "
+                     f"argument - arguments without names must come first", arg.location, arg)
+            elif position >= len(slots):
+                fail(f"{owner_title} has {len(slots)} {kind}(s), got an argument {position + 1}",
+                     arg.location, arg)
+            else:
+                bound[position] = arg
+
+        # A missing slot is only worth reporting when every argument matched - after an
+        # unknown or misplaced one, "missing" is usually just a side effect of that mistake
+        all_matched = ok
+        for index, (name, _, default) in enumerate(slots):
+            if all_matched and bound[index] is None and default is None:
+                ok = False
+                self.errors.append(SemanticError(
+                    f"Missing argument for {kind} '{name}' of {owner}", node.location))
+
+        for index, value in enumerate(bound):
+            if value is None:
+                continue
+            name, expected_type, _ = slots[index]
+            actual_type = self.visit(value)
+            if isinstance(expected_type, ArrayType) and func_name is not None:
+                self._check_array_argument(func_name, index, value, expected_type, actual_type)
+            elif not self.types_compatible(expected_type, actual_type):
+                ok = False
+                self.errors.append(SemanticError(
+                    f"Argument '{name}' to {owner}: expected "
+                    f"{self.type_to_string(expected_type)}, got {self.type_to_string(actual_type)}",
+                    value.location
+                ))
+            if struct is not None:
+                self.check_string_field_value(struct.name, struct.fields[index], value)
+
+        if ok:
+            node.resolved_arguments = [
+                value if value is not None else slots[index][2] for index, value in enumerate(bound)
+            ]
 
     def _check_struct_construction(self, node: CallExpr, struct: StructDecl) -> TypeNode:
         """Check a generated struct constructor call: Point(3, 4) (Task 18.2.1).
@@ -736,6 +870,11 @@ class TypeChecker:
             if symbol and symbol.is_constant:
                 error(f"const array '{arg.name}' can't be passed to a function, because the "
                       f"function could change its elements")
+
+    def visit_NamedArgument(self, node: NamedArgument) -> TypeNode:
+        """A named argument's type is its value's type. Normally reached only through
+        _check_named_call / _reject_named_arguments, which visit the value directly."""
+        return self.visit(node.value)
 
     def visit_LambdaExpr(self, node: LambdaExpr) -> TypeNode:
         """Check lambda expression.

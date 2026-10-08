@@ -345,7 +345,7 @@ def main():
         'const_demo': 'MAX_ITERATIONS = 1000\nBASE (100) * MULTIPLIER (2) = 200\nScreen size: 80x24 = 1920 pixels\nAll const tests passed!',
         'arrays_demo': 'First score: 10\nUpdated first score: 99\nNumber of scores: 5\nSum of [10, 20, 30, 40, 50] = 150\nAll array tests passed!',
         'functions_demo': 'Hello, World!\nHello, Fusion!\nWelcome, Fusion!\noffset(10) = 5, offset(10, 2) = 12\nsum: 6, 150, 15\nAfter doubleAll, middle of small = 4\ntripled = 15, added = 105, squared = 49, viaName = 21\nAll function tests passed!',
-        'structs_demo': 'a = (3, 4), b = (10, 4)\na + b = (13, 8)\nInside moveRight: x = 103\nAfter moveRight: a.x = 3\nAda: health 75.000000, score 15\nNewcomer score: 0, health 100.000000\nDune Messiah is available\nOrigin: (0, 0)\nAll struct tests passed!',
+        'structs_demo': 'a = (3, 4), b = (10, 4)\na + b = (13, 8)\nInside moveRight: x = 103\nAfter moveRight: a.x = 3\nAda: health 75.000000, score 15\nNewcomer score: 0, health 100.000000\nDune Messiah is available\nOrigin: (0, 0)\nNamed point: (7, 8)\nLinus: health 100.000000, score 42\nShifted: (8, 9)\nAll struct tests passed!',
     }
 
     # Find all .fusion files in examples/

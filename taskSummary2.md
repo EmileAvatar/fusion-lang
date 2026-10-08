@@ -55,13 +55,13 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 12: Architecture Hardening** | Complete | 100% | 12 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Task 15: Deferred Decisions Revisit List** | In Progress | 40% | 4 | 10 |
+| **Task 15: Deferred Decisions Revisit List** | In Progress | 36% | 4 | 11 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
-| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2.1 done) | 25% | 1 | 5 |
+| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2.1-18.2.2 done) | 30% | 1 | 5 |
 | **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
 | **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
-| **Overall** | Task 18.2.1 Complete | 43% | 52 | 122 |
+| **Overall** | Task 18.2.2 Complete | 43% | 52 | 123 |
 
 ---
 
@@ -707,6 +707,15 @@ trigger has arrived, rather than re-discovering them by reading old commit messa
 - [ ] **Real fix belongs to 18.3:** once strings can be built at run time, an interpolated
       string becomes an ordinary string value usable anywhere - remove the guard then
 
+#### 15.11: Positional Interpolation `{@1}` Doesn't Work (trigger: next touch of print, or 18.3)
+- [ ] `print("User {@1} is {@2} years old", name, age)` fails with "Function 'print' expects 1
+      argument(s), got 2" - `print` is registered with one string parameter, so the extra
+      arguments are never accepted. Shown in CLAUDE.md's Quick Syntax Reference and the spec
+      as working; CLAUDE.md now marks it as not working. Found during 18.2.2 (2026-10-08).
+      Fix: let `print` take extra arguments when its string uses `{@N}`, check each `N` is in
+      range, and lower to printf in the referenced order (a `{@1}` used twice repeats the
+      argument)
+
 **Success Criteria:** Not applicable in the usual sense - this is a tracking list, not a
 single feature. Each sub-task's own trigger condition (not a shared deadline) determines
 when it gets actioned; "done" for this task as a whole just means every item above has
@@ -1207,25 +1216,44 @@ adds tests, extends the example program (Rule 5), and updates spec/EBNF/CLAUDE.m
       cleanly with `gcc -Wall -Wextra`. Full suite 1312 passed, 8 skipped; 10/10 examples
 
 **18.2.2 - Named arguments (function calls and struct construction)**
+**Status: COMPLETE (2026-10-08)**
 Syntax as the spec already shows it (`fusion-language-spec.md`, "Named Arguments"):
 `createShip(crew = 100, name = "Voyager")`, `Point(y = 4, x = 3)`.
-- [ ] Named arguments in any order; positional and named can be mixed, but **positional must
+- [x] Named arguments in any order; positional and named can be mixed, but **positional must
       come first** (`createShip("Discovery", crew = 80)` ok; `f(a = 1, 2)` is an error)
-- [ ] Combines with defaults: any parameter/field with a default can be skipped, not only
+- [x] Combines with defaults: any parameter/field with a default can be skipped, not only
       trailing ones - `createShip(crew = 200)` uses the defaults for `name` and `speed`
-- [ ] Errors: unknown name; the same parameter given twice (by position and by name, or named
+- [x] Errors: unknown name; the same parameter given twice (by position and by name, or named
       twice); a required parameter missing (`missing argument 'b'`)
-- [ ] Codegen reorders into declaration order and fills defaults (extends 18.1.1's
+- [x] Codegen reorders into declaration order and fills defaults (extends 18.1.1's
       `CallExpr.resolved_arguments`); C sees an ordinary positional call
-- [ ] **Evaluation order:** arguments are evaluated left to right *as written*. C doesn't
+- [x] **Evaluation order:** arguments are evaluated left to right *as written*. C doesn't
       guarantee argument order, so when reordering would change what runs first and an
       argument can have side effects (it contains a call), codegen stores those arguments in
       temporaries first. Otherwise `f(b = next(), a = next())` could silently swap results
-- [ ] No ambiguity with `=` meaning comparison inside `if` conditions (18.3 decision): inside a
+- [x] No ambiguity with `=` meaning comparison inside `if` conditions (18.3 decision): inside a
       call's parentheses `name = value` is always a named argument
-- [ ] Not allowed (clear error): named arguments when calling through a function-type variable
+- [x] Not allowed (clear error): named arguments when calling through a function-type variable
       (`op(x = 5)` - a function type has no parameter names), and on builtins (`print`, `len`)
-- [ ] Spec: remove "Named arguments ... are not implemented yet"; mark the section implemented
+- [x] Spec: remove "Named arguments ... are not implemented yet"; mark the section implemented
+- [x] **Implementation notes:** new AST node `NamedArgument` inside `CallExpr.arguments`
+      (written order kept); the parser reads `name = value` at the start of an argument. One
+      shared matcher (`TypeChecker._check_named_call`) handles functions and struct
+      constructors; calls with no named arguments keep the 18.1.1/18.2.1 code path and
+      messages unchanged. After an unknown or misplaced argument, "missing argument" isn't
+      also reported (it's usually a side effect). Temporaries are `fusion_arg_N`, declared at
+      the top of the C function (or lifted lambda) using them, and sequenced with C's comma
+      operator; they're only used when a call has named arguments *and* some argument
+      contains a call. Array arguments are never put in temporaries (passed by reference)
+- [x] **Not changed (noted):** calls with only positional arguments still leave argument order
+      to C, as before - e.g. `f(next(), next())`. Fusion never promised an order there;
+      making all calls left-to-right would be a small follow-up if wanted
+- [x] **Found and logged, not fixed:** Task 15.11 - positional interpolation `print("{@1}",
+      name)` has never compiled (`print` takes one argument), although CLAUDE.md's Quick
+      Syntax Reference shows it. CLAUDE.md now marks it as not working
+- [x] 25 new tests in `tests/test_structs.py`; `structs_demo.fusion` extended (named struct
+      construction and a named function call). Spec "Calling Functions" rules + struct
+      section, EBNF `argument`, CLAUDE.md updated. Full suite 1337 passed, 8 skipped; 10/10
 
 **18.2.3 - Nesting: structs in structs, arrays in structs, arrays of structs**
 - [ ] A struct field can be another struct (`Rect` holding two `Point`s): `r.min.x = 1`.
@@ -2321,10 +2349,14 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
   fields mutable, not pooled, never cut below `string_max_length` (default 4096, or "max
   memory" = unsafe/no limit), `string_warn_length` (64) a guideline only. User accepted that
   growable heap string fields wait for 18.3 ("for now the string fixed length is ok")
-- **18.2.1 COMPLETE** - see the 18.2 Detailed Plan for the full checklist and notes
-- **Next Action:** implement **18.2.2 (named arguments)** per the approved plan - function
-  calls and struct construction, positional first, evaluation order kept left to right as
-  written.
+- **18.2.1 COMPLETE** - see the 18.2 Detailed Plan for the full checklist and notes. Committed
+  (`88d0ef5`) and pushed; `main` now tracks `origin/main`. Set `windows.appendAtomically
+  false` (repo-local) so git can write its logs in the Dropbox folder - safe because only one
+  PC uses the folder at a time
+- **18.2.2 COMPLETE** - named arguments for function calls and struct construction; logged
+  Task 15.11 (`{@1}` positional interpolation never worked)
+- **Next Action:** implement **18.2.3 (nesting)** per the approved plan - structs in structs
+  (with the `[structs]` depth limits), array fields, arrays of structs.
 
 ---
 
@@ -2355,10 +2387,11 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 
 ---
 
-**Next Action:** Task 18.2.1 (core structs) is complete. Next: **18.2.2 (named arguments)**, then
-18.2.3 (nesting) and 18.2.4 (array return values) - the 18.2 Detailed Plan is already approved,
-so no new approval is needed for these. Open logged items: Task 15.8 (reserve the `fusion_`
-prefix - before 18.4) and 15.10 (interpolated strings outside `print()` - real fix in 18.3).
+**Next Action:** Tasks 18.2.1 (core structs) and 18.2.2 (named arguments) are complete. Next:
+**18.2.3 (nesting)**, then 18.2.4 (array return values) - the 18.2 Detailed Plan is already
+approved, so no new approval is needed for these. Open logged items: Task 15.8 (reserve the `fusion_`
+prefix - before 18.4), 15.10 (interpolated strings outside `print()` - real fix in 18.3) and
+15.11 (`{@1}` positional interpolation doesn't work).
 Closures wait for 18.3's memory-ownership decision. Task 19.1-19.5 need 18.4 (`import`); Task
 20 (multi-format config) is unblocked. Read `FutureFeaturesCaution.md` before picking up
 anything from FutureFeatures.md. Completed-task detail for Tasks 5-9 and 12 lives in

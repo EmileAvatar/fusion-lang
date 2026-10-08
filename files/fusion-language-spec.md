@@ -423,7 +423,8 @@ void function configure(bool debug = false, int logLevel = 1)
   or a negated number (`-1`). It can't refer to another parameter or a variable
 * Calls may omit any number of trailing parameters that have defaults; the compiler fills in
   each omitted value at the call site (C itself has no default arguments)
-* Named arguments (`createShip(crew = 200)`, below) are not implemented yet
+* With named arguments (below), any parameter with a default can be skipped, not only
+  trailing ones - `createShip(crew = 200)`
 
 ---
 
@@ -611,6 +612,19 @@ Spaceship ship2 = createShip("Enterprise")  // name="Enterprise", others default
 // Override with named parameters
 Spaceship ship3 = createShip(crew = 200)  // Only crew changed
 ```
+
+**Rules for named arguments** (implemented, Task 18.2.2 - for declared functions and struct
+constructors):
+* Named arguments can come in any order, but arguments without names must all come first
+* Any parameter with a default can be left out; one without a default must be given
+* Errors: an unknown name, the same parameter given twice (by name twice, or by position and
+  by name), a missing parameter
+* Arguments are evaluated **left to right as written**, even when named ones are moved to
+  their parameter's position - `f(b = next(), a = next())` runs the `b` call first
+* Not available for built-in functions (`print`, `len`, `range`) or when calling through a
+  function variable or lambda - a function type has parameter types but no names
+* Inside a call's parentheses, `name = value` is always a named argument (assignment is a
+  statement in Fusion, never an expression)
 
 ---
 
@@ -1272,9 +1286,9 @@ class GameObject implements IMovable, IDamageable
 Description: Lightweight value types for copying data around an application and reading or
 changing it conveniently.
 
-**Implementation status (Task 18.2):** 18.2.1 (core structs) is implemented. Nested structs,
-array fields and arrays of structs are 18.2.3; named construction (`Point(y = 4, x = 3)`) is
-18.2.2. See `taskSummary2.md`.
+**Implementation status (Task 18.2):** 18.2.1 (core structs) and 18.2.2 (named construction,
+`Point(y = 4, x = 3)`) are implemented. Nested structs, array fields and arrays of structs
+are 18.2.3. See `taskSummary2.md`.
 
 ---
 
@@ -1330,7 +1344,9 @@ struct Vector3
 
 ```
 Point a = Point(3, 4)              // generated constructor, fields in declaration order
+Point b = Point(y = 4, x = 3)      // named: any order (see "Calling Functions" for the rules)
 Player ada = Player("Ada", 75)     // trailing fields with defaults may be left off (score = 0)
+Player bo = Player(score = 9, name = "Bo")   // named: any field with a default can be skipped
 Point z                            // no value given: every field is its default, or zero
                                    //   (zero for numbers, false, '\0', and "" for strings)
 a.x = 10                           // read and write fields with '.'
@@ -1342,8 +1358,9 @@ const Point ORIGIN = Point(0, 0)   // no field of a const struct can be changed
 * A struct can be used before it is declared in the file (like functions)
 * A struct can't share its name with a function, another struct, or a builtin, and a
   variable or parameter can't reuse a struct's name
-* A field with a default can only be left off when no later field is given - so every field
-  up to the last one *without* a default is required when constructing positionally
+* Positionally, a field with a default can only be left off when no later field is given -
+  every field up to the last one *without* a default is required. With named arguments, any
+  field with a default can be skipped
 * Not supported yet, each with a clear error: comparing structs with `==`/`!=` (struct
   equality is part of Task 18.3's equality-operator design - compare fields instead),
   printing a whole struct (`print("{p}")`), arithmetic on structs

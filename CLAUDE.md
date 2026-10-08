@@ -158,7 +158,7 @@ d:\Dropbox\Fusion\
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,312 tests passing (99.4%)
+- 1,337 tests passing (99.4%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
@@ -177,7 +177,7 @@ two deliberately-deferred design decisions - IR layer and stdlib lowering)
 
 **In progress:** Task 18 (Core Language Foundation). **18.1** (default params, array
 params, lambdas) is complete. **18.2 (structs)** has an approved four-part plan; **18.2.1**
-(core structs) is complete, next is **18.2.2 (named arguments)**. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
+(core structs) and **18.2.2** (named arguments) are complete, next is **18.2.3 (nesting)**. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
 a simple working language first, complex features after (see `FutureFeaturesCaution.md`).
 Security principle: **never trust code**.
 
@@ -262,6 +262,11 @@ void function greet(string name = "World") : print("Hello, {name}!")
 
 // Defaults must come last and be constants (literals, or a negated number); omitted
 // trailing arguments are filled in at the call site: greet() -> greet("World") (Task 18.1.1)
+
+// Named arguments (Task 18.2.2): any order, unnamed ones first, any default skippable;
+// evaluated left to right as written. Not for builtins or function variables
+createShip("Discovery", crew = 80)
+int r = sub(b = 5, a = 3)
 ```
 
 ### Lambdas (Task 18.1.3 - no closures yet)
@@ -293,7 +298,7 @@ End if
 // Inline: {variable}
 print("Name: {name}, Age: {age}")
 
-// Positional: {@1}, {@2}, ...
+// Positional: {@1}, {@2}, ... - documented but NOT working yet (Task 15.11)
 print("User {@1} is {@2} years old", name, age)
 ```
 
@@ -334,6 +339,7 @@ struct Player
     float health = 100.0     // field defaults: constants only
 
 Point a = Point(3, 4)        // generated constructor, fields in declaration order
+Point n = Point(y = 4, x = 3)   // named construction (18.2.2)
 Point b = a                  // copies; b.x = 9 leaves a alone
 Point z                      // every field its default, or zero
 a.x = 10
@@ -341,8 +347,7 @@ print("({a.x}, {a.y})")      // fields in interpolation
 Point function add(Point p, Point q) : Point(p.x + q.x, p.y + q.y)   // by value
 ```
 No methods/operators in structs - use functions. Not yet: `==` on structs (18.3), printing a
-whole struct, nested structs / array fields / arrays of structs (18.2.3), named construction
-`Point(y = 4, x = 3)` (18.2.2).
+whole struct, nested structs / array fields / arrays of structs (18.2.3).
 
 ### Project Configuration (`fusion.toml`)
 ```toml
@@ -448,7 +453,7 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
   real bug: semantic analysis accepted programs whose generated C could never actually
   compile, since C's own `{ }` braces are natively block-scoped)
 - Three block styles (indentation, braces, End keywords)
-- String interpolation ({var} and {@1} syntax)
+- String interpolation ({var} and {p.x}; the {@1} positional form does not work yet - Task 15.11)
 - Type checking with automatic int→float promotion
 - Recursive functions and lambdas
 - void main() → int main() automatic conversion
@@ -474,6 +479,8 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
   constructor, field defaults, `.` access/assignment incl. in `{p.x}` interpolation, value
   semantics (copy on assign/pass/return), const structs, `[structs]` string-field length
   rules (see `tests/test_structs.py`, `examples/structs_demo.fusion`)
+- Named arguments (Task 18.2.2): `f(b = 1, a = 2)`, `Point(y = 4, x = 3)` - any order after
+  unnamed ones, any defaulted parameter skippable, evaluated left to right as written
 
 **Known Limitations (by design):**
 - Single-quote comments disabled (conflicts with char literals)
@@ -485,6 +492,8 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 - Interpolated strings only work as `print()`'s own argument - elsewhere they're now a clear
   error (Task 15.10, they used to generate invalid C); `{...}` holds a name or field path
   (`{p.x}`), not a full expression yet. Building strings at run time is Task 18.3
+- Positional interpolation (`print("{@1}", name)`, shown in the Quick Syntax Reference) has
+  never compiled - `print` accepts only one argument (Task 15.11)
 - const follows the same block scoping as other variables (no global/class-level
   constants yet - classes not implemented)
 - `fusion.toml`'s `[safety]`/`[backend]` sections are recognized and validated but not
@@ -549,8 +558,8 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Task 18.2.1 (core structs) is done. Next: 18.2.2 (named arguments), per the
-approved 18.2 plan in taskSummary2.md. Read
+**Current Focus:** Tasks 18.2.1 (core structs) and 18.2.2 (named arguments) are done. Next:
+18.2.3 (nesting), per the approved 18.2 plan in taskSummary2.md. Read
 `FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
 
 **Completed:**
@@ -576,7 +585,7 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1312 passed, 8 skipped**
+4. `python -m pytest tests/ -q` - expect **1337 passed, 8 skipped**
 5. `python tests/verify_examples.py` - expect **10/10**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and

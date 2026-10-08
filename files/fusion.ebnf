@@ -266,7 +266,14 @@ lambda_expression =
     [ "func" | "function" ] "(" [ parameter_list ] ")" ":" expression ;
 
 argument_list =
-    expression { "," expression } [ "," ] ;  (* Trailing comma allowed *)
+    argument { "," argument } [ "," ] ;  (* Trailing comma allowed *)
+
+argument =
+    identifier "=" expression    (* Named argument - implemented (Task 18.2.2) *)
+    | expression ;
+    (* Named arguments may come in any order, after every unnamed one. Declared functions and
+       struct constructors only - not builtins or function values. Evaluated left to right
+       as written. *)
 
 (* ========== Literals ========== *)
 
