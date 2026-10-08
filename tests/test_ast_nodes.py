@@ -253,21 +253,21 @@ def test_interpolated_string_expr_inline(test_location):
 
 def test_interpolated_string_expr_positional(test_location):
     """Test interpolated string with positional arguments."""
-    # "User {@1} is {@2} years old"
+    # "User {@1} is {@2} years old" - {@N} is its own segment type (Task 18.2.2b)
     segments = [
         StringTextPart(text="User "),
-        StringExprPart(expression=IdentifierExpr(test_location, name="name")),
+        StringPositionalPart(index=1),
         StringTextPart(text=" is "),
-        StringExprPart(expression=IdentifierExpr(test_location, name="age")),
+        StringPositionalPart(index=2),
         StringTextPart(text=" years old"),
     ]
 
     node = InterpolatedStringExpr(test_location, segments=segments)
 
     text_segments = [s for s in node.segments if isinstance(s, StringTextPart)]
-    expr_segments = [s for s in node.segments if isinstance(s, StringExprPart)]
+    positional_segments = [s for s in node.segments if isinstance(s, StringPositionalPart)]
     assert len(text_segments) == 3
-    assert len(expr_segments) == 2
+    assert [s.index for s in positional_segments] == [1, 2]
 
 
 # ============================================================================

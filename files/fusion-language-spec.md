@@ -589,6 +589,13 @@ int result = add(5, 3)
 Spaceship ship = createShip("Enterprise", 200.0, 100)
 ```
 
+**Evaluation order (implemented, Tasks 18.2.2 and 18.2.2b):** a call's arguments are always
+evaluated **left to right as written** - positional or named, for functions, struct
+constructors and function values: `sub(next(c), next(c))` runs the first `next` first. (C
+itself leaves argument order unspecified; the compiler only adds sequencing where the order
+could change the result.) Operators such as `next(c) - next(c)` don't have this guarantee
+yet - Task 15.12.
+
 * **Named Arguments**: Explicit parameter names
 
 ```
@@ -3757,7 +3764,22 @@ print("{@1} is {@2} years old. {@1} likes coding.", name, age)
 
 // Mix with expressions
 print("User: {@1} ({@2})", name, age + 1)
+
+// Any order (translations often reorder words)
+print("{@2}, {@1}", "first", "second")   // second, first
 ```
+
+**Rules (implemented, Task 18.2.2b - in `print` for now):**
+* `{@N}` is the Nth argument after the text, counting from 1 - in any order, as often as
+  needed, and mixable with `{name}` values in the same text
+* Each argument is evaluated **once, left to right as written** - a repeated `{@1}` never
+  re-runs a function call, and the order the placeholders appear in doesn't change when the
+  arguments run
+* Errors: `{@N}` with no argument N, `{@0}`, extra arguments when the text has no `{@N}`, and
+  an argument that can't be printed (a whole array or struct)
+* An argument that no placeholder uses is a warning, not an error - a translated message may
+  leave one out on purpose (its function calls still run)
+* A general `format(...)` returning a string waits for runtime strings (Task 18.3)
 
 **Example Usage**:
 ```fusion

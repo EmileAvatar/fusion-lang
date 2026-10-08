@@ -258,18 +258,42 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         temps = getattr(self, 'argument_temps', {})
         return temps.get(id(value)) or self.visit(value)
 
+    # Fields that aren't sub-expressions evaluated at the call: type information, links back
+    # to declarations (a function's own body!), and scopes
+    _NOT_EVALUATED = ('location', 'inferred_type', 'scope', 'resolved_arguments',
+                      'callee_declaration', 'declaration', 'parameters', 'return_type')
+
     @classmethod
-    def _contains_call(cls, node) -> bool:
-        """True if an expression contains a call anywhere inside it - a call may have side
-        effects (changing an array passed to it, printing), so its timing can matter."""
-        if isinstance(node, CallExpr):
+    def _contains(cls, node, node_type) -> bool:
+        """True if an expression contains a node of `node_type` anywhere it is evaluated. A
+        lambda's body isn't evaluated when the lambda value is created, so it's skipped."""
+        if isinstance(node, node_type):
             return True
         if isinstance(node, list):
-            return any(cls._contains_call(item) for item in node)
+            return any(cls._contains(item, node_type) for item in node)
+        if isinstance(node, LambdaExpr):
+            return False
         if is_dataclass(node) and isinstance(node, ASTNode):
-            return any(cls._contains_call(getattr(node, f.name)) for f in dataclass_fields(node)
-                       if f.name not in ('location', 'inferred_type', 'scope'))
+            return any(cls._contains(getattr(node, f.name), node_type)
+                       for f in dataclass_fields(node) if f.name not in cls._NOT_EVALUATED)
         return False
+
+    @classmethod
+    def _contains_call(cls, node) -> bool:
+        """True if an expression contains a call - a call may have side effects (changing an
+        array passed to it, printing), so its timing can matter."""
+        return cls._contains(node, CallExpr)
+
+    @classmethod
+    def _order_matters(cls, values) -> bool:
+        """Whether evaluating these argument expressions in a different order could change
+        the result (Task 18.2.2b). In Fusion a call can only change the caller's data
+        through an array passed to it - there are no globals or closures, and structs are
+        copies - so the order is visible only when at least one argument contains a call
+        and another one also contains a call or reads an array element."""
+        calls = sum(1 for v in values if cls._contains_call(v))
+        touched = sum(1 for v in values if cls._contains_call(v) or cls._contains(v, IndexExpr))
+        return calls >= 1 and touched >= 2
 
     def _new_temp(self, c_type: str) -> str:
         """Declare a compiler temporary at the top of the C function being generated."""
@@ -279,11 +303,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         return name
 
     def _evaluate_in_written_order(self, node: CallExpr, slot_types: list) -> list:
-        """Named arguments (Task 18.2.2) are evaluated left to right *as written*, but C
-        evaluates a call's arguments in no guaranteed order - and named ones have been moved
-        to their parameter's position. So when a call with named arguments contains another
-        call, each argument is first stored in a temporary, in the written order, using C's
-        comma operator (which does guarantee left-to-right):
+        """Every call's arguments are evaluated left to right *as written* (Tasks 18.2.2 and
+        18.2.2b), but C evaluates a call's arguments in no guaranteed order - and named ones
+        have been moved to their parameter's position. So when the order could change the
+        result (see _order_matters), each argument is first stored in a temporary, in the
+        written order, using C's comma operator (which does guarantee left-to-right):
 
             f(b = next(), a = next())  ->  (fusion_arg_1 = next(), fusion_arg_2 = next(),
                                             f(fusion_arg_2, fusion_arg_1))
@@ -298,10 +322,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             The temporary assignments, in written order (empty if none are needed)
         """
-        if not any(isinstance(arg, NamedArgument) for arg in node.arguments):
-            return []
         written = [arg.value if isinstance(arg, NamedArgument) else arg for arg in node.arguments]
-        if not any(self._contains_call(value) for value in written) or not self.temp_scopes:
+        if not getattr(self, 'temp_scopes', None) or not self._order_matters(written):
             return []
         assignments = []
         for value in written:
@@ -544,8 +566,15 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         params = callee_decl.parameters if callee_decl else [None] * len(arguments)
 
         ordered = []
-        if callee_decl is not None and node.resolved_arguments is not None:
-            ordered = self._evaluate_in_written_order(node, [p.param_type for p in params])
+        if node.resolved_arguments is not None:
+            if callee_decl is not None:
+                slot_types = [p.param_type for p in params]
+            else:
+                # A call through a function value: its type has the parameter types
+                callee_type = getattr(node.callee, 'inferred_type', None)
+                slot_types = callee_type.parameter_types if isinstance(callee_type, FunctionType) else None
+            if slot_types is not None:
+                ordered = self._evaluate_in_written_order(node, slot_types)
 
         c_args = []
         for param, arg in zip(params, arguments):

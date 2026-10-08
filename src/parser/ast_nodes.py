@@ -240,22 +240,36 @@ class StringExprPart:
 
 
 @dataclass
+class StringPositionalPart:
+    """A positional placeholder within an interpolated string: {@1}, {@2}, ... (Task 18.2.2b)
+
+    Refers to print's extra arguments by number, starting at 1 - in any order, and as often
+    as wanted: print("{@2} before {@1}", a, b).
+
+    Attributes:
+        index: The placeholder number (1 = the first argument after the text)
+    """
+    index: int
+
+
+@dataclass
 class InterpolatedStringExpr(ASTNode):
     """Interpolated string expression: "Hello {name}, you are {age} years old"
 
     Supports two interpolation syntaxes:
-    - Inline: {variable_name}
-    - Positional: {@1}, {@2}, ...
+    - Inline: {variable} or a struct field path {point.x} (StringExprPart)
+    - Positional: {@1}, {@2}, ... (StringPositionalPart) - print's extra arguments
 
     Represented as a single ordered list of text/expression segments (rather than two
     parallel arrays) so the structure cannot desync between text and interpolated
     expressions - see taskSummary2.md Task 12.4.
 
     Attributes:
-        segments: Ordered list of StringTextPart and StringExprPart segments
+        segments: Ordered list of StringTextPart, StringExprPart and StringPositionalPart
+            segments
         inferred_type: Type resolved by the semantic analyzer (always string once resolved)
     """
-    segments: List[Union[StringTextPart, StringExprPart]]
+    segments: List[Union[StringTextPart, StringExprPart, 'StringPositionalPart']]
     inferred_type: Optional['TypeNode'] = None
 
 

@@ -768,14 +768,19 @@ class Parser:
         Returns:
             InterpolatedStringExpr or LiteralExpr
         """
-        segments: List[Union[StringTextPart, StringExprPart]] = []
+        segments: List[Union[StringTextPart, StringExprPart, StringPositionalPart]] = []
         has_interpolation = False
 
         for part_type, part_value in parts:
             if part_type == "STRING_PART":
                 segments.append(StringTextPart(text=part_value))
-            elif part_type in ("INTERP_VAR", "INTERP_POS", "INTERPOLATION"):
-                # INTERP_VAR: {varname}, INTERP_POS: {@1}, INTERPOLATION: legacy
+            elif part_type == "INTERP_POS":
+                # {@1}: a placeholder for print's first extra argument (Task 18.2.2b). It used
+                # to be parsed as the expression `1`, so print("{@1}") printed "1"
+                has_interpolation = True
+                segments.append(StringPositionalPart(index=int(part_value)))
+            elif part_type in ("INTERP_VAR", "INTERPOLATION"):
+                # INTERP_VAR: {varname} or {point.x}, INTERPOLATION: legacy
                 has_interpolation = True
                 # Tokenize and parse the embedded expression
                 from src.lexer.lexer import Lexer

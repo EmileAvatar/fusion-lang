@@ -21,7 +21,7 @@ import unicodedata
 
 from ..parser.ast_nodes import (
     ASTNode, CallExpr, LiteralExpr, InterpolatedStringExpr,
-    StringTextPart, StringExprPart, PrimitiveType, ArrayType, IdentifierExpr
+    StringTextPart, StringExprPart, StringPositionalPart, PrimitiveType, ArrayType, IdentifierExpr
 )
 from .c_names import array_length_name
 
@@ -147,9 +147,12 @@ class RuntimeLoweringMixin:
 
         arg = node.arguments[0]
 
-        # Handle string interpolation
+        # Handle string interpolation, including {@N} placeholders for the arguments after
+        # the text (Task 18.2.2b)
         if isinstance(arg, InterpolatedStringExpr):
-            return self._generate_interpolated_print(arg)
+            assignments, positional = self._print_argument_codes(arg, node.arguments[1:])
+            call = self._generate_interpolated_print(arg, positional)
+            return f'({", ".join(assignments + [call])})' if assignments else call
 
         # Handle plain string literals - the text becomes printf's format string, so any
         # literal '%' must be doubled (see escape_printf_text)
@@ -208,16 +211,48 @@ class RuntimeLoweringMixin:
         else:
             return f'"{format_str}"'
 
-    def _generate_interpolated_print(self, node: InterpolatedStringExpr) -> str:
+    def _print_argument_codes(self, text: InterpolatedStringExpr, extras) -> tuple:
+        """C code for print's extra arguments, which {@N} placeholders refer to (Task
+        18.2.2b).
+
+        Each argument is evaluated exactly once, left to right as written - whatever order
+        the placeholders use, and however often. An argument goes into a temporary first
+        when that's needed for this guarantee: when the order could change the result, or
+        when it contains a call and isn't used exactly once (a repeated {@1} mustn't re-run
+        the call, and an unused argument's call must still run).
+
+        Returns:
+            (temporary assignments in written order, [(c_code, format_specifier)] per
+            argument)
+        """
+        uses = {}
+        for segment in text.segments:
+            if isinstance(segment, StringPositionalPart):
+                uses[segment.index] = uses.get(segment.index, 0) + 1
+
+        order_matters = self._order_matters(extras)
+        assignments, positional = [], []
+        for number, extra in enumerate(extras, start=1):
+            code = self.visit(extra)
+            if order_matters or (self._contains_call(extra) and uses.get(number, 0) != 1):
+                name = self._new_temp(self.map_type(extra.inferred_type))
+                assignments.append(f'{name} = {code}')
+                code = name
+            positional.append((code, self._format_specifier_for_expr(extra)))
+        return assignments, positional
+
+    def _generate_interpolated_print(self, node: InterpolatedStringExpr, positional=None) -> str:
         """Generate printf for interpolated string.
 
         Args:
             node: Interpolated string node
+            positional: (c_code, format_specifier) per print argument after the text, for
+                {@N} placeholders (Task 18.2.2b)
 
         Returns:
             printf() with format string and arguments
         """
-        format_str, args = self._build_interpolation_format(node)
+        format_str, args = self._build_interpolation_format(node, positional)
         format_str += '\\n'
 
         if args:
@@ -227,12 +262,14 @@ class RuntimeLoweringMixin:
 
         return f'printf("{format_str}"{args_str})'
 
-    def _build_interpolation_format(self, node: InterpolatedStringExpr) -> tuple:
+    def _build_interpolation_format(self, node: InterpolatedStringExpr, positional=None) -> tuple:
         """Build a printf format string and argument list from an interpolated string's
         segments, in order, using each interpolated expression's actual resolved type.
 
         Args:
             node: Interpolated string node
+            positional: (c_code, format_specifier) per print argument after the text - a
+                {@N} placeholder uses entry N-1 (Task 18.2.2b)
 
         Returns:
             (escaped_format_string, list_of_c_argument_expressions)
@@ -244,6 +281,15 @@ class RuntimeLoweringMixin:
             if isinstance(segment, StringTextPart):
                 # Literal text only - the specifiers appended below must stay unescaped
                 format_parts.append(escape_printf_text(segment.text))
+            elif isinstance(segment, StringPositionalPart):
+                if positional is None or not 1 <= segment.index <= len(positional):
+                    raise NotImplementedError(
+                        f"Internal compiler error: {{@{segment.index}}} at {node.location} has "
+                        "no matching print argument - semantic analysis must reject it."
+                    )
+                code, spec = positional[segment.index - 1]
+                args.append(code)
+                format_parts.append(spec)
             else:  # StringExprPart
                 args.append(self.visit(segment.expression))
                 format_parts.append(self._format_specifier_for_expr(segment.expression))

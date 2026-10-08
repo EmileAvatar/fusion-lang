@@ -382,7 +382,7 @@ def test_reordered_calls_use_temporaries_in_written_order():
 def test_temporaries_in_a_lambda_are_declared_in_the_lambda():
     c_code = generate_c(
         SUB + 'int function twice(int v) : v * 2\n'
-        + main('(int) : int f = func(int x) : sub(b = twice(x), a = x)\nint r = f(3)'))
+        + main('(int) : int f = func(int x) : sub(b = twice(x), a = twice(x + 1))\nint r = f(3)'))
     lambda_code = c_code[c_code.index('static int fusion_lambda_1'):]
     lambda_code = lambda_code[:lambda_code.index('}')]
     assert 'int fusion_arg_1;' in lambda_code

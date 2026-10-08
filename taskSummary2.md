@@ -55,13 +55,13 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 12: Architecture Hardening** | Complete | 100% | 12 | 12 |
 | **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
 | **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
-| **Task 15: Deferred Decisions Revisit List** | In Progress | 36% | 4 | 11 |
+| **Task 15: Deferred Decisions Revisit List** | In Progress | 42% | 5 | 12 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
 | **Task 18: Core Language Foundation** | In Progress (18.1, 18.2.1-18.2.2 done) | 30% | 1 | 5 |
 | **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
 | **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
-| **Overall** | Task 18.2.2 Complete | 43% | 52 | 123 |
+| **Overall** | Task 18.2.2b Complete | 43% | 53 | 124 |
 
 ---
 
@@ -707,14 +707,20 @@ trigger has arrived, rather than re-discovering them by reading old commit messa
 - [ ] **Real fix belongs to 18.3:** once strings can be built at run time, an interpolated
       string becomes an ordinary string value usable anywhere - remove the guard then
 
-#### 15.11: Positional Interpolation `{@1}` Doesn't Work (trigger: next touch of print, or 18.3)
-- [ ] `print("User {@1} is {@2} years old", name, age)` fails with "Function 'print' expects 1
+#### 15.11: Positional Interpolation `{@1}` Doesn't Work - RESOLVED (2026-10-08, Task 18.2.2b)
+- [x] `print("User {@1} is {@2} years old", name, age)` fails with "Function 'print' expects 1
       argument(s), got 2" - `print` is registered with one string parameter, so the extra
       arguments are never accepted. Shown in CLAUDE.md's Quick Syntax Reference and the spec
       as working; CLAUDE.md now marks it as not working. Found during 18.2.2 (2026-10-08).
       Fix: let `print` take extra arguments when its string uses `{@N}`, check each `N` is in
       range, and lower to printf in the referenced order (a `{@1}` used twice repeats the
       argument)
+
+#### 15.12: Operand Evaluation Order (trigger: after 18.2.2b, or when it bites)
+- [ ] `next(c) - next(c)` leaves the order of the two calls to C (unspecified). 18.2.2b makes
+      call *arguments* left to right; operators (`+ - * / == and or ...`) should follow the
+      same rule. `and`/`or` already short-circuit left to right in C, so only the others need
+      it. Logged 2026-10-08
 
 **Success Criteria:** Not applicable in the usual sense - this is a tracking list, not a
 single feature. Each sub-task's own trigger condition (not a shared deadline) determines
@@ -1254,6 +1260,58 @@ Syntax as the spec already shows it (`fusion-language-spec.md`, "Named Arguments
 - [x] 25 new tests in `tests/test_structs.py`; `structs_demo.fusion` extended (named struct
       construction and a named function call). Spec "Calling Functions" rules + struct
       section, EBNF `argument`, CLAUDE.md updated. Full suite 1337 passed, 8 skipped; 10/10
+
+**18.2.2b - Positional placeholders `{@N}` and left-to-right argument order** (added
+2026-10-08 at the user's request - APPROVED 2026-10-08)
+**Status: COMPLETE (2026-10-08)**
+
+User decisions: "both" - left-to-right evaluation is the **default for every call**, and
+`{@N}` placeholders must work in any order (`{@3} {@1} {@2}`). Two parts, committed together.
+
+*Part A - left-to-right argument order for all calls (extends 18.2.2's guarantee)*
+- [x] Every call's arguments are evaluated left to right as written - positional calls too
+      (`f(next(c), next(c))`), struct constructors, and calls through function values
+- [x] Same mechanism as 18.2.2 (temporaries + C's comma operator), but only where the order
+      could actually be seen, so ordinary calls stay plain C: at least one argument contains
+      a call, **and** another argument also contains a call or reads an array element
+      (`arr[i]`). Reasoning: in Fusion a call can only change the caller's data through an
+      array passed to it (no globals, no closures, structs are copies), so a plain variable
+      or literal argument reads the same value whenever it is evaluated
+- [x] Not in this part (logged as Task 15.12): the same question for operators -
+      `next(c) - next(c)` leaves operand order to C. Recommend the same left-to-right rule
+      later
+
+*Part B - positional placeholders in print (closes Task 15.11)*
+- [x] `print("User {@1} is {@2} years old", name, age)` - extra arguments after the text are
+      referenced by number, starting at 1
+- [x] Placeholders in any order and repeatable: `print("{@3} {@1} {@2} {@1}", a, b, c)`
+- [x] Each argument is evaluated **once, left to right as written** - whatever order or
+      however often the placeholders use it. An argument containing a call goes into a
+      temporary first, so a repeated `{@1}` never re-runs the call
+- [x] Can be mixed with named values: `print("{name} scored {@1}", total)`
+- [x] Errors: `{@N}` with no argument N (`{@3}` with 2 arguments); `{@0}`; extra arguments
+      when the text has no `{@N}` at all (today's "expects 1 argument" error, clearer);
+      an argument that can't be printed (whole array/struct)
+- [x] Warning (not error): an argument that no `{@N}` uses - likely a mistake, but a
+      translated message may leave one out on purpose (the spec's i18n use case)
+- [x] **Fix the silent bug:** `print("value {@1}")` with no arguments compiles today and prints
+      `value 1` - the parser turns `{@1}` into the number 1. It becomes the "no argument 1"
+      error above. `{@N}` gets its own AST segment type instead of a fake integer
+- [x] Only in `print` for now (interpolated strings only work in `print` - Task 15.10); a
+      general `format(...)` waits for runtime strings (18.3)
+- [x] Tests, `structs_demo`/`functions_demo` example lines, spec + CLAUDE.md (remove the "not
+      working" marks), Task 15.11 closed
+- [x] **Implementation notes:** `{@N}` is a new segment type, `StringPositionalPart` (it used to
+      be re-parsed as the integer `N`). The type checker special-cases `print` with
+      `_check_print_call`. Codegen's ordering rule is `_order_matters` (shared by calls and
+      print); print arguments also get a temporary when they contain a call and aren't used
+      exactly once. `_contains_call` skips lambda bodies and links to declarations (a
+      recursive function's body would otherwise be walked forever). One 18.2.2 test changed:
+      a lambda with one call beside a plain variable rightly no longer gets temporaries
+- [x] 25 new tests in `tests/test_positional.py`, one AST test updated to the new segment type;
+      `structs_demo` prints with out-of-order placeholders. Spec ("Calling Functions"
+      evaluation order, placeholder rules) and CLAUDE.md updated. Full suite 1362 passed,
+      8 skipped; 10/10 examples
 
 **18.2.3 - Nesting: structs in structs, arrays in structs, arrays of structs**
 - [ ] A struct field can be another struct (`Rect` holding two `Point`s): `r.min.x = 1`.
@@ -2355,6 +2413,9 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
   PC uses the folder at a time
 - **18.2.2 COMPLETE** - named arguments for function calls and struct construction; logged
   Task 15.11 (`{@1}` positional interpolation never worked)
+- **18.2.2b COMPLETE** (added at the user's request, plan approved): `{@N}` placeholders in
+  print (closes 15.11, fixes `print("{@1}")` printing "1") and left-to-right argument order
+  for every call. Logged Task 15.12 (operator operand order)
 - **Next Action:** implement **18.2.3 (nesting)** per the approved plan - structs in structs
   (with the `[structs]` depth limits), array fields, arrays of structs.
 
@@ -2387,11 +2448,12 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 
 ---
 
-**Next Action:** Tasks 18.2.1 (core structs) and 18.2.2 (named arguments) are complete. Next:
+**Next Action:** Tasks 18.2.1 (core structs), 18.2.2 (named arguments) and 18.2.2b (`{@N}`
+placeholders, left-to-right arguments) are complete. Next:
 **18.2.3 (nesting)**, then 18.2.4 (array return values) - the 18.2 Detailed Plan is already
 approved, so no new approval is needed for these. Open logged items: Task 15.8 (reserve the `fusion_`
 prefix - before 18.4), 15.10 (interpolated strings outside `print()` - real fix in 18.3) and
-15.11 (`{@1}` positional interpolation doesn't work).
+15.12 (operator operand evaluation order).
 Closures wait for 18.3's memory-ownership decision. Task 19.1-19.5 need 18.4 (`import`); Task
 20 (multi-format config) is unblocked. Read `FutureFeaturesCaution.md` before picking up
 anything from FutureFeatures.md. Completed-task detail for Tasks 5-9 and 12 lives in

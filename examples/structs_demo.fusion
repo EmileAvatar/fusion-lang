@@ -73,5 +73,9 @@ void function main()
     // Named arguments work for function calls too
     Point shifted = add(b = Point(1, 1), a = named)
     print("Shifted: ({shifted.x}, {shifted.y})")
+
+    // Positional placeholders (Task 18.2.2b): {@N} is print's Nth argument after the text,
+    // in any order and as often as needed
+    print("{@2} ({@3}) beat {@1} ({@4})", ada.name, scorer.name, scorer.score, ada.score)
     print("All struct tests passed!")
 End function
