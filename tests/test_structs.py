@@ -7,6 +7,9 @@
         array) and 15.10 (an interpolated string outside print) now give clear errors.
 18.2.2: named arguments for function calls and struct construction - any order, positional
         first, any defaulted parameter skippable, evaluated left to right as written.
+18.2.3: nesting - structs in structs (with the [structs] depth limits), fixed-size array
+        fields, arrays of structs; array and struct fields start with their own defaults.
+        Also: string arrays declared without a value now start as "" instead of NULL.
 """
 
 import pytest
@@ -190,9 +193,6 @@ def test_interpolating_fields():
     ('struct P\n    int x\n    float x\n\n' + main('int y = 1'), "two fields named 'x'"),
     ('struct P\n    void x\n\n' + main('int y = 1'), "can't be void"),
     ('struct P\n    (int) : int f\n\n' + main('int y = 1'), "can't hold a function"),
-    ('struct P\n    int[3] xs\n\n' + main('int y = 1'), "array fields are not supported yet"),
-    (POINT + 'struct Line\n    Point a\n\n' + main('int y = 1'), "struct inside a struct is not supported yet"),
-    (POINT + main('Point[2] ps'), "Arrays of structs (Point[]) are not supported yet"),
     ('struct P\n    int x = y\n\n' + main('int y = 1'), "must be a constant"),
     ('struct P\n    int x = "no"\n\n' + main('int y = 1'), "expected int, got string"),
 ])
@@ -450,6 +450,212 @@ def test_named_arguments_end_to_end():
         "1",       # b = next() runs first (1), then a = next() (2): 2 - 1
         "4 3",     # y = next() runs first (3), then x = next() (4)
     ]
+
+
+# ============================================================
+# 18.2.3 - Nesting: structs in structs, array fields, arrays of structs
+# ============================================================
+
+LINE = 'struct Line\n    Point a\n    Point b\n\n'
+SHAPE = 'struct Shape\n    Line[2] edges\n\n'
+SCENE = 'struct Scene\n    Shape s\n\n'
+SCORES = 'struct Player\n    string name\n    int[3] scores\n    string[2] tags\n\n'
+
+
+def test_nested_struct_typedefs_in_dependency_order():
+    # Line is declared before Point in the source, but C needs Point first
+    c_code = generate_c(LINE + POINT + main('Line l'))
+    assert c_code.index('typedef struct Point') < c_code.index('typedef struct Line')
+    assert '    Point a;' in c_code
+
+
+def test_array_fields_are_c_arrays():
+    c_code = generate_c(SCORES + main('Player p'))
+    assert '    int scores[3];' in c_code
+    assert '    char* tags[2];' in c_code
+
+
+def test_nested_field_access_and_assignment():
+    c_code = generate_c(POINT + LINE + main('Line l\nl.a.x = 5\nint y = l.b.y'))
+    assert 'l.a.x = 5;' in c_code
+    assert 'int y = l.b.y;' in c_code
+
+
+def test_nested_defaults_and_empty_strings():
+    c_code = generate_c(POINT + 'struct Box\n    Point corner\n    string label = "box"\n\n'
+                        + SCORES + main('Box b\nPlayer p'))
+    assert 'Box b = (Box){(Point){0, 0}, "box"};' in c_code
+    assert 'Player p = (Player){"", {0}, {"", ""}};' in c_code
+
+
+def test_array_and_struct_fields_can_be_left_out_of_constructor():
+    c_code = generate_c(SCORES + main('Player p = Player("Ada")'))
+    assert 'Player p = (Player){"Ada", {0}, {"", ""}};' in c_code
+
+
+def test_array_field_from_literal():
+    c_code = generate_c(SCORES + main('Player p = Player("Ada", [1, 2, 3])'))
+    assert '(Player){"Ada", {1, 2, 3}, {"", ""}}' in c_code
+
+
+def test_named_construction_with_nested_struct():
+    c_code = generate_c(POINT + LINE + main('Line l = Line(b = Point(5, 5))'))
+    assert 'Line l = (Line){(Point){0, 0}, (Point){5, 5}};' in c_code
+
+
+def test_array_of_structs_zeroed_with_nested_braces():
+    assert 'Point pts[3] = {{0}};' in generate_c(POINT + main('Point[3] pts'))
+
+
+def test_array_of_structs_from_literal_and_element_access():
+    c_code = generate_c(POINT + main('Point[] pts = [Point(1, 2), Point(3, 4)]\npts[0].x = 7'))
+    assert 'Point pts[2] = {(Point){1, 2}, (Point){3, 4}};' in c_code
+    assert 'pts[0].x = 7;' in c_code
+
+
+def test_array_of_structs_parameter():
+    c_code = generate_c(POINT + 'void function shift(Point[] pts)\n    pts[0].x = 1\n'
+                        + main('Point[2] ps\nshift(ps)'))
+    assert 'void shift(Point* pts, int fusion_len_pts);' in c_code
+    assert 'shift(ps, 2);' in c_code
+
+
+def test_array_field_passed_to_array_parameter():
+    c_code = generate_c(SCORES + 'int function first(int[] v) : v[0]\n'
+                        + main('Player p\nint f = first(p.scores)\nint n = len(p.scores)'))
+    assert 'first(p.scores, 3)' in c_code
+    assert 'int n = 3;' in c_code
+
+
+def test_string_array_variable_starts_with_empty_strings():
+    """Found during 18.2.3: `string[2] names` left NULL pointers (printed "(null)", or
+    crashes on other C runtimes)."""
+    assert 'char* names[2] = {"", ""};' in generate_c(main('string[2] names'))
+
+
+def test_large_string_array_filled_in_a_loop():
+    c_code = generate_c(main('string[100] names'))
+    assert 'for (int fusion_i = 0; fusion_i < 100; fusion_i++) {' in c_code
+    assert 'names[fusion_i] = "";' in c_code
+
+
+# --- Depth limits ([structs] in fusion.toml) and cycles
+
+def test_depth_three_warns_by_default():
+    warnings = warnings_of(POINT + LINE + SHAPE + main('int y = 1'))
+    assert "Struct 'Shape' is nested 3 levels deep (Shape -> Line -> Point) - the project warns " \
+           "from 3 levels" in warnings
+
+
+def test_depth_two_has_no_warning_by_default():
+    assert warnings_of(POINT + LINE + main('int y = 1')) == ''
+
+
+def test_depth_four_is_an_error_by_default():
+    message = errors_of(POINT + LINE + SHAPE + SCENE + main('int y = 1'))
+    assert "Struct 'Scene' is nested 4 levels deep (Scene -> Shape -> Line -> Point) - the " \
+           "project allows 3" in message
+
+
+def test_max_depth_one_turns_off_nested_structs():
+    message = errors_of(POINT + LINE + main('int y = 1'), StructsConfig(max_nesting_depth=1))
+    assert "Struct 'Line' is nested 2 levels deep (Line -> Point) - the project allows 1" in message
+
+
+def test_raising_the_max_allows_deeper_structs():
+    assert analyze(POINT + LINE + SHAPE + SCENE + main('int y = 1'),
+                   StructsConfig(max_nesting_depth=4))[2]
+
+
+def test_warn_depth_zero_never_warns():
+    assert warnings_of(POINT + LINE + SHAPE + main('int y = 1'),
+                       StructsConfig(warn_nesting_depth=0)) == ''
+
+
+def test_depth_error_reported_once_where_it_starts():
+    source = POINT + LINE + SHAPE + SCENE + 'struct World\n    Scene sc\n\n' + main('int y = 1')
+    message = errors_of(source)
+    assert "Struct 'Scene' is nested 4" in message
+    assert "Struct 'World'" not in message
+
+
+@pytest.mark.parametrize("source, message", [
+    ('struct A\n    B b\n\nstruct B\n    A a\n\n', "Struct 'A' contains itself (A -> B -> A)"),
+    ('struct A\n    A[2] kids\n\n', "Struct 'A' contains itself (A -> A)"),
+])
+def test_struct_containing_itself_rejected(source, message):
+    assert message in errors_of(source + main('int y = 1'))
+
+
+# --- Errors
+
+@pytest.mark.parametrize("source, message", [
+    ('struct P\n    int[] xs\n\n' + main('int y = 1'), "Array field 'xs' of struct 'P' needs a size"),
+    ('struct P\n    void[2] xs\n\n' + main('int y = 1'), "can't hold void"),
+    (POINT + 'struct Q\n    Point p = 5\n\n' + main('int y = 1'),
+     "Field 'p' of struct 'Q' can't have a default value - an array or struct field"),
+    ('struct P\n    int[3] xs\n\n' + main('int[3] a = [1, 2, 3]\nP p = P(a)'),
+     "Field 'xs' of struct 'P': needs an array literal here"),
+    ('struct P\n    int[3] xs\n\n' + main('P p = P([1, 2])'),
+     "Field 'xs' of struct 'P': expected 3 element(s), got 2"),
+    ('struct P\n    int[3] xs\n\n' + main('P p = P(xs = ["a", "b", "c"])'),
+     "expected elements of type int, got string"),
+    ('struct P\n    int[3] xs\n\n' + main('P p\np.xs = [1, 2, 3]'),
+     "Cannot assign array field 'xs' as a whole"),
+    ('struct P\n    int[3] xs\n\n' + main('const P c = P([1, 2, 3])\nc.xs[0] = 5'),
+     "Cannot assign to an element of an array inside constant 'c'"),
+    ('struct P\n    int[3] xs\n\nvoid function z(int[] v)\n    v[0] = 0\n'
+     + main('const P c = P([1, 2, 3])\nz(c.xs)'), "an array inside const 'c' can't be passed"),
+    (POINT + LINE + main('const Line k = Line(Point(1, 1), Point(2, 2))\nk.a.x = 5'),
+     "Cannot assign to field 'x' of constant 'k'"),
+    (POINT + main('const Point[] P = [Point(1, 1)]\nP[0].x = 5'),
+     "Cannot assign to field 'x' of constant 'P'"),
+    (POINT + LINE + main('Line l\nprint("{l.a}")'), "Can't print a whole Point value"),
+])
+def test_nesting_errors(source, message):
+    assert message in errors_of(source)
+
+
+def test_struct_field_default_reports_one_error():
+    message = errors_of(POINT + 'struct Q\n    Point p = 5\n\n' + main('int y = 1'))
+    assert "expected Point, got int" not in message
+
+
+def test_nesting_end_to_end():
+    exit_code, stdout, stderr = compile_and_run(
+        POINT + LINE + SCORES +
+        'struct Path\n    Point[3] stops\n\n'
+        'int function total(int[] values)\n'
+        '    int sum = 0\n'
+        '    for i in range(0, len(values))\n'
+        '        sum = sum + values[i]\n'
+        '    return sum\n'
+        'void function shift(Point[] pts)\n'
+        '    for i in range(0, len(pts))\n'
+        '        pts[i].x = pts[i].x + 10\n'
+        + main(
+            'Line l = Line(Point(1, 2), Point(3, 4))\n'
+            'l.a.x = 9\n'
+            'Line copy = l\n'
+            'copy.b.y = 100\n'
+            'print("{@1} {@2} {@3} {@4}", l.a.x, l.a.y, l.b.y, copy.b.y)\n'
+            'Player p = Player("Ada", [10, 20, 30])\n'
+            'p.scores[1] = 25\n'
+            'Player q = p\n'
+            'q.scores[0] = 0\n'
+            'print("{@1} {@2} {@3} [{@4}]", total(p.scores), len(p.scores), p.scores[0], p.tags[0])\n'
+            'print("{@1}", q.scores[0])\n'
+            'Point[] more = [Point(1, 1), Point(2, 2)]\n'
+            'shift(more)\n'
+            'Path path\n'
+            'path.stops[2].x = 7\n'
+            'print("{@1} {@2} {@3}", more[0].x, more[1].x, path.stops[2].x)\n'
+            'string[2] names\n'
+            'print("[{@1}][{@2}]", names[0], names[1])\n'
+        )
+    )
+    assert exit_code == 0, stderr
+    assert stdout.splitlines() == ["9 2 4 100", "65 3 10 []", "0", "11 12 7", "[][]"]
 
 
 # ============================================================

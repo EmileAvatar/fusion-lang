@@ -1,6 +1,6 @@
 // Fusion Structs Demo (Task 18.2)
 // Structs are pure value types: fields only - behaviour lives in ordinary functions.
-// Also shows named arguments (Task 18.2.2)
+// Also shows named arguments (Task 18.2.2), {@N} placeholders (18.2.2b) and nesting (18.2.3)
 
 // Indentation style
 struct Point
@@ -29,6 +29,32 @@ End function
 void function moveRight(Point p)
     p.x = p.x + 100
     print("Inside moveRight: x = {p.x}")
+End function
+
+// Nesting (Task 18.2.3): a struct can hold other structs and fixed-size arrays
+struct Rect
+    Point min
+    Point max
+    string label = "box"
+
+struct Team
+    string name
+    int[3] scores
+    Point[2] positions
+
+// Arrays (including arrays of structs) are passed by reference
+void function nudge(Point[] points)
+    for i in range(0, len(points))
+        points[i].x = points[i].x + 1
+    End for
+End function
+
+int function total(int[] values)
+    int sum = 0
+    for i in range(0, len(values))
+        sum = sum + values[i]
+    End for
+    return sum
 End function
 
 void function main()
@@ -77,5 +103,17 @@ void function main()
     // Positional placeholders (Task 18.2.2b): {@N} is print's Nth argument after the text,
     // in any order and as often as needed
     print("{@2} ({@3}) beat {@1} ({@4})", ada.name, scorer.name, scorer.score, ada.score)
+
+    // Nested structs: copying a Rect copies the Points inside it too
+    Rect box = Rect(Point(0, 0), Point(4, 3))
+    Rect bigger = box
+    bigger.max.x = 40
+    print("{box.label}: max.x = {box.max.x}, bigger max.x = {bigger.max.x}")
+
+    // Array fields start zeroed; arrays of structs can be passed to functions
+    Team team = Team("Blue", [3, 5, 7])
+    team.scores[0] = 10
+    nudge(team.positions)
+    print("{team.name} total {@1}, first position x = {@2}", total(team.scores), team.positions[0].x)
     print("All struct tests passed!")
 End function

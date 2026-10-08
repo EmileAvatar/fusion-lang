@@ -83,6 +83,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.function_decls = {
             decl.name: decl for decl in program.declarations if isinstance(decl, FunctionDecl)
         }
+        # Struct declarations by name - default values of struct-typed fields and arrays
+        # need them (Task 18.2.3)
+        self.struct_decls = {
+            decl.name: decl for decl in program.declarations if isinstance(decl, StructDecl)
+        }
 
         # Generate includes
         self._generate_includes()
@@ -200,6 +205,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         'string': '""',
     }
 
+    # Arrays up to this size whose default isn't all-zero get their defaults spelled out in
+    # the initializer; bigger ones are filled in a loop (Task 18.2.3)
+    _INLINE_DEFAULTS_LIMIT = 64
+
     def _generate_struct_definitions(self, program: ProgramNode) -> None:
         """Emit one C typedef per struct (Task 18.2.1):
 
@@ -211,17 +220,45 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         A string field is a `char*` - it holds a string value exactly like a string variable
         does. Strings can't change at run time yet, so copying the pointer behaves the same
         as copying the text; Task 18.3 gives string fields their own growable buffers.
+
+        An array field is a C array inside the struct (`int scores[3];`), so copying the
+        struct copies the array too. C needs a struct defined before another struct can hold
+        it, so structs are emitted in dependency order rather than source order (Task
+        18.2.3) - semantic analysis has already rejected cycles.
         """
         structs = [d for d in program.declarations if isinstance(d, StructDecl)]
         if not structs:
             return
-        self.emit('// Structs')
+        by_name = {s.name: s for s in structs}
+        ordered, seen = [], set()
+
+        def add(struct):
+            if struct.name in seen:
+                return
+            seen.add(struct.name)
+            for field in struct.fields:
+                inner = field.field_type
+                if isinstance(inner, ArrayType):
+                    inner = inner.element_type
+                if isinstance(inner, StructType) and inner.name in by_name:
+                    add(by_name[inner.name])
+            ordered.append(struct)
+
         for struct in structs:
+            add(struct)
+
+        self.emit('// Structs')
+        for struct in ordered:
             c_name = self._mangle_function_name(struct.name)
             self.emit(f'typedef struct {c_name} {{')
             self.indent()
             for field in struct.fields:
-                self.emit_line(f'{self.map_type(field.field_type)} {self._field_name(field.name)}')
+                name = self._field_name(field.name)
+                if isinstance(field.field_type, ArrayType):
+                    element = self.map_type(field.field_type.element_type)
+                    self.emit_line(f'{element} {name}[{field.field_type.size}]')
+                else:
+                    self.emit_line(f'{self.map_type(field.field_type)} {name}')
             self.dedent()
             self.emit(f'}} {c_name};')
         self.emit()
@@ -243,10 +280,55 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             if value is None:
                 value = field.default_value
             if value is None:
-                parts.append(self._ZERO_VALUES.get(field.field_type.name, '0'))
+                parts.append(self._default_value_code(field.field_type))
             else:
                 parts.append(self._argument_code(value))
         return f'({self._mangle_function_name(struct.name)}){{{", ".join(parts)}}}'
+
+    # ========================================================================
+    # Default values (Task 18.2.3)
+    # ========================================================================
+
+    def _struct_decl(self, type_node: StructType) -> StructDecl:
+        return type_node.declaration or getattr(self, 'struct_decls', {})[type_node.name]
+
+    def _is_zero_safe(self, type_node) -> bool:
+        """True if C's all-zero value is also the Fusion default for this type. Not for a
+        string (zero would be a NULL pointer - Fusion's default is ""), or a struct with a
+        field default or a string anywhere inside it."""
+        if isinstance(type_node, PrimitiveType):
+            return type_node.name != 'string'
+        if isinstance(type_node, ArrayType):
+            return self._is_zero_safe(type_node.element_type)
+        if isinstance(type_node, StructType):
+            return all(f.default_value is None and self._is_zero_safe(f.field_type)
+                       for f in self._struct_decl(type_node).fields)
+        return True
+
+    def _zero_initializer(self, type_node) -> str:
+        """An all-zero C initializer with one level of braces per level of nesting -
+        `{0}` for int[3], `{{0}}` for Point[3]. C zero-fills the rest either way, but a bare
+        `{0}` for nested data draws GCC's -Wmissing-braces warning."""
+        if isinstance(type_node, ArrayType):
+            return '{' + self._zero_initializer(type_node.element_type) + '}'
+        if isinstance(type_node, StructType):
+            return '{' + self._zero_initializer(self._struct_decl(type_node).fields[0].field_type) + '}'
+        return '0'
+
+    def _default_value_code(self, type_node) -> str:
+        """C initializer for a value nobody gave: zero for numbers, false, '\\0', "" for a
+        string, a struct's own field defaults, and an array of default elements."""
+        if isinstance(type_node, PrimitiveType):
+            return self._ZERO_VALUES.get(type_node.name, '0')
+        if isinstance(type_node, StructType):
+            struct = self._struct_decl(type_node)
+            return self._struct_initializer(struct, [None] * len(struct.fields))
+        if isinstance(type_node, ArrayType):
+            if self._is_zero_safe(type_node.element_type):
+                return self._zero_initializer(type_node)
+            element = self._default_value_code(type_node.element_type)
+            return '{' + ', '.join([element] * type_node.size) + '}'
+        return '0'
 
     # ========================================================================
     # Argument evaluation order (Task 18.2.2)
@@ -704,10 +786,25 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             if node.initializer:
                 init_code = self.visit(node.initializer)
                 self.emit_line(f'{const_keyword}{elem_c_type} {node.name}[{size}] = {init_code}')
-            else:
+            elif self._is_zero_safe(node.var_type.element_type):
                 # Zero-initialize, matching Fusion's existing "uninitialized = 0" convention
                 # for scalars ({0} zero-fills every element in C, not just the first)
-                self.emit_line(f'{const_keyword}{elem_c_type} {node.name}[{size}] = {{0}}')
+                self.emit_line(f'{const_keyword}{elem_c_type} {node.name}[{size}] = '
+                               f'{self._zero_initializer(node.var_type)}')
+            elif size <= self._INLINE_DEFAULTS_LIMIT:
+                # Strings (and structs with strings or defaults) need each element set - a
+                # zero string is a NULL pointer, not "" (Task 18.2.3)
+                self.emit_line(f'{const_keyword}{elem_c_type} {node.name}[{size}] = '
+                               f'{self._default_value_code(node.var_type)}')
+            else:
+                # Too many elements to spell out - fill them in a loop
+                element = self._default_value_code(node.var_type.element_type)
+                self.emit_line(f'{elem_c_type} {node.name}[{size}]')
+                self.emit(f'for (int fusion_i = 0; fusion_i < {size}; fusion_i++) {{')
+                self.indent()
+                self.emit_line(f'{node.name}[fusion_i] = {element}')
+                self.dedent()
+                self.emit('}')
             return ''
 
         c_type = self.map_type(node.var_type)

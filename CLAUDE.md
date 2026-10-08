@@ -158,7 +158,7 @@ d:\Dropbox\Fusion\
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,362 tests passing (99.4%)
+- 1,396 tests passing (99.4%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
@@ -178,7 +178,8 @@ two deliberately-deferred design decisions - IR layer and stdlib lowering)
 **In progress:** Task 18 (Core Language Foundation). **18.1** (default params, array
 params, lambdas) is complete. **18.2 (structs)** has an approved four-part plan; **18.2.1**
 (core structs), **18.2.2** (named arguments) and **18.2.2b** (`{@N}` placeholders,
-left-to-right argument order) are complete, next is **18.2.3 (nesting)**. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
+left-to-right argument order) and **18.2.3** (nesting) are complete, next is **18.2.4 (array
+return values)**. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
 a simple working language first, complex features after (see `FutureFeaturesCaution.md`).
 Security principle: **never trust code**.
 
@@ -349,8 +350,10 @@ a.x = 10
 print("({a.x}, {a.y})")      // fields in interpolation
 Point function add(Point p, Point q) : Point(p.x + q.x, p.y + q.y)   // by value
 ```
+Nesting (18.2.3): struct fields can be structs and fixed-size arrays (`int[3] scores`,
+`Point[2] corners`); arrays of structs (`Point[] pts = [Point(1, 2)]`, `pts[0].x = 7`).
 No methods/operators in structs - use functions. Not yet: `==` on structs (18.3), printing a
-whole struct, nested structs / array fields / arrays of structs (18.2.3).
+whole struct, returning arrays from functions (18.2.4).
 
 ### Project Configuration (`fusion.toml`)
 ```toml
@@ -366,8 +369,8 @@ allow_mixed = true   # mixed tabs/spaces: warning (true) vs compile error (false
 allow_unicode_identifiers = false   # ASCII-only identifiers by default (Task 19.6)
 
 [structs]                      # Task 18.2
-max_nesting_depth  = 3         # 1 = no nested structs (enforced from 18.2.3)
-warn_nesting_depth = 3         # 0 = never warn (enforced from 18.2.3)
+max_nesting_depth  = 3         # 1 = no nested structs; depth 4+ is an error by default
+warn_nesting_depth = 3         # warn from this depth; 0 = never warn
 string_storage     = "owned"   # "pooled" reserved (Task 17) - compile error until then
 string_mutable     = true      # false = string fields fixed after construction
 string_warn_length = 64        # guideline only: longer strings kept, with a warning
@@ -481,7 +484,8 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 - Structs (Task 18.2.1): fields only (no methods), three block styles, generated positional
   constructor, field defaults, `.` access/assignment incl. in `{p.x}` interpolation, value
   semantics (copy on assign/pass/return), const structs, `[structs]` string-field length
-  rules (see `tests/test_structs.py`, `examples/structs_demo.fusion`)
+  rules (see `tests/test_structs.py`, `examples/structs_demo.fusion`); nesting (18.2.3) -
+  struct and fixed-size array fields, arrays of structs, `[structs]` depth limits
 - Named arguments (Task 18.2.2): `f(b = 1, a = 2)`, `Point(y = 4, x = 3)` - any order after
   unnamed ones, any defaulted parameter skippable
 - Every call's arguments are evaluated left to right as written; `print("{@2} {@1}", a, b)`
@@ -563,8 +567,9 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Tasks 18.2.1 (core structs) and 18.2.2 (named arguments) are done. Next:
-18.2.3 (nesting), per the approved 18.2 plan in taskSummary2.md. Read
+**Current Focus:** Tasks 18.2.1-18.2.3 (core structs, named arguments, `{@N}` placeholders,
+nesting) are done. Next:
+18.2.4 (array return values), per the approved 18.2 plan in taskSummary2.md. Read
 `FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
 
 **Completed:**
@@ -590,7 +595,7 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1362 passed, 8 skipped**
+4. `python -m pytest tests/ -q` - expect **1396 passed, 8 skipped**
 5. `python tests/verify_examples.py` - expect **10/10**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and

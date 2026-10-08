@@ -58,10 +58,10 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 15: Deferred Decisions Revisit List** | In Progress | 42% | 5 | 12 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
-| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2.1-18.2.2 done) | 30% | 1 | 5 |
+| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2.1-18.2.3 done) | 35% | 1 | 5 |
 | **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
 | **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
-| **Overall** | Task 18.2.2b Complete | 43% | 53 | 124 |
+| **Overall** | Task 18.2.3 Complete | 43% | 53 | 124 |
 
 ---
 
@@ -1314,17 +1314,41 @@ User decisions: "both" - left-to-right evaluation is the **default for every cal
       8 skipped; 10/10 examples
 
 **18.2.3 - Nesting: structs in structs, arrays in structs, arrays of structs**
-- [ ] A struct field can be another struct (`Rect` holding two `Point`s): `r.min.x = 1`.
+**Status: COMPLETE (2026-10-08)**
+- [x] A struct field can be another struct (`Rect` holding two `Point`s): `r.min.x = 1`.
       Depth limits from `[structs] max_nesting_depth` / `warn_nesting_depth` (above).
       A struct can't contain itself directly or through a cycle (infinite size) - error
       naming the cycle. Codegen orders struct typedefs by dependency
-- [ ] Fixed-size array fields, size required: `int[3] position` -> `p.position[0] = 5`;
+- [x] Fixed-size array fields, size required: `int[3] position` -> `p.position[0] = 5`;
       `len(p.position)` is a compile-time constant; an array field can be passed to an
       `int[]` parameter (by reference, as today). Copying the struct copies the array too
       (true value semantics - C does this natively for arrays inside structs)
-- [ ] Arrays of structs: `Point[3] pts` (zeroed), `Point[] pts = [Point(1, 2), Point(3, 4)]`,
+- [x] Arrays of structs: `Point[3] pts` (zeroed), `Point[] pts = [Point(1, 2), Point(3, 4)]`,
       `pts[0].x = 7`, passing `Point[]` to a function (by reference, like other arrays)
-- [ ] Example extended
+- [x] Example extended
+- [x] **Design detail decided during implementation:** array and struct fields start with their
+      own defaults (zero, `""`, or the inner struct's field defaults), so - like a field with a
+      written default - they can be left out of a constructor (positionally at the end, or
+      skipped by name); they can't have a written default themselves. An array field in a
+      constructor takes an array literal of exactly its size (same rule as array variables).
+      A whole array field can't be assigned (`t.scores = [...]`) - only its elements
+- [x] Depth errors/warnings are reported once, on the struct where the limit is first crossed
+      (not on every struct that contains it); a cycle is reported once, naming the chain
+- [x] const checks now look through fields and indexes to the variable underneath:
+      `c.xs[0] = 5`, `k.a.x = 5`, `P[0].x = 5` and passing `c.xs` to a function are all
+      rejected when the variable is const
+- [x] Codegen: struct typedefs in dependency order; one shared "default value" builder
+      (`_default_value_code`) used for struct variables, omitted fields and arrays;
+      all-zero data gets correctly nested braces (`{{0}}` for `Point[3]`) so `-Wall -Wextra`
+      stays clean; arrays over 64 elements that need non-zero defaults are filled in a loop
+- [x] **Found and fixed:** `string[2] names` (no value) left NULL pointers - printed `(null)`
+      here, can crash on other C runtimes. String arrays now start as `""`
+- [x] 37 new tests (`tests/test_structs.py` 36 incl. an end-to-end run; `tests/
+      test_project_config.py` 1 compiling through `main.py` with `max_nesting_depth = 1`);
+      3 tests that pinned the old "not supported yet (18.2.3)" errors removed.
+      `structs_demo` shows a nested `Rect`, a `Team` with array fields, and an array of
+      structs passed to a function. Spec, EBNF and CLAUDE.md updated. Full suite 1396
+      passed, 8 skipped; 10/10 examples
 
 **18.2.4 - Arrays as function return values (moved here from 18.1.2)**
 - [ ] `int[3] function make()` - **fixed size only**; `int[]` as a return type is rejected (the
@@ -2416,8 +2440,10 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 - **18.2.2b COMPLETE** (added at the user's request, plan approved): `{@N}` placeholders in
   print (closes 15.11, fixes `print("{@1}")` printing "1") and left-to-right argument order
   for every call. Logged Task 15.12 (operator operand order)
-- **Next Action:** implement **18.2.3 (nesting)** per the approved plan - structs in structs
-  (with the `[structs]` depth limits), array fields, arrays of structs.
+- Pushed 18.2.2 and 18.2.2b to GitHub
+- **18.2.3 COMPLETE** - nesting with the `[structs]` depth limits; fixed NULL string arrays
+- **Next Action:** implement **18.2.4 (array return values)** per the approved plan - the last
+  part of 18.2.
 
 ---
 
@@ -2449,9 +2475,8 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 ---
 
 **Next Action:** Tasks 18.2.1 (core structs), 18.2.2 (named arguments) and 18.2.2b (`{@N}`
-placeholders, left-to-right arguments) are complete. Next:
-**18.2.3 (nesting)**, then 18.2.4 (array return values) - the 18.2 Detailed Plan is already
-approved, so no new approval is needed for these. Open logged items: Task 15.8 (reserve the `fusion_`
+placeholders, left-to-right arguments) and 18.2.3 (nesting) are complete. Next: **18.2.4 (array
+return values)**, the last part of 18.2 - already approved in the 18.2 Detailed Plan. Open logged items: Task 15.8 (reserve the `fusion_`
 prefix - before 18.4), 15.10 (interpolated strings outside `print()` - real fix in 18.3) and
 15.12 (operator operand evaluation order).
 Closures wait for 18.3's memory-ownership decision. Task 19.1-19.5 need 18.4 (`import`); Task

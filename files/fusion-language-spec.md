@@ -1293,9 +1293,9 @@ class GameObject implements IMovable, IDamageable
 Description: Lightweight value types for copying data around an application and reading or
 changing it conveniently.
 
-**Implementation status (Task 18.2):** 18.2.1 (core structs) and 18.2.2 (named construction,
-`Point(y = 4, x = 3)`) are implemented. Nested structs, array fields and arrays of structs
-are 18.2.3. See `taskSummary2.md`.
+**Implementation status (Task 18.2):** 18.2.1 (core structs), 18.2.2 (named construction,
+`Point(y = 4, x = 3)`) and 18.2.3 (nested structs, array fields, arrays of structs) are
+implemented. Arrays as function return values are 18.2.4. See `taskSummary2.md`.
 
 ---
 
@@ -1307,9 +1307,16 @@ Description: Structs are **pure value containers - fields only** (user decision,
   ordinary functions that take or return the struct
 * **One generated constructor:** the compiler creates `Point(...)`, taking every field in the
   order the fields are declared, so all values can be set at once
-* **Allowed field types (implemented):** `int`, `float`, `double`, `bool`, `char`, `string`
-* **Planned (Task 18.2.3):** other structs (nested, depth-limited by project settings) and
-  fixed-size arrays (`int[3] position`, size required)
+* **Allowed field types (implemented):** `int`, `float`, `double`, `bool`, `char`, `string`,
+  other structs, and fixed-size arrays of any of these (`int[3] scores`, `Point[4] corners` -
+  the size is required, because a struct's size is fixed)
+* **Nesting depth** is limited per project (`[structs]` in `fusion.toml`): with the defaults,
+  a struct 3 levels deep compiles with a warning and 4 levels is an error.
+  `max_nesting_depth = 1` turns nested structs off; raising it allows deeper ones. Depth
+  counts levels of structs - plain fields only = 1, holding such a struct = 2; an array of
+  structs counts like one struct
+* A struct can't contain itself, directly or through other structs (it would be infinitely
+  large)
 * **Not allowed:** `void`, functions, object references, dynamic collections (List,
   Dictionary, Set). If you need objects or behaviour, use a class (future)
 
@@ -1346,6 +1353,34 @@ struct Vector3
     float function magnitude()               // ERROR: no functions in structs
 */
 ```
+
+**Nesting (Task 18.2.3):**
+
+```
+struct Rect
+    Point min
+    Point max
+
+struct Team
+    string name
+    int[3] scores            // array fields need a size
+    Point[2] positions       // arrays of structs too
+
+Rect r = Rect(Point(0, 0), Point(4, 3))
+r.max.x = 40                 // nested field access
+Team t = Team("Blue", [3, 5, 7])   // an array field takes an array literal of its exact size
+t.scores[0] = 10
+Point[] pts = [Point(1, 2), Point(3, 4)]   // arrays of structs
+pts[0].x = 7
+```
+
+* Array and struct fields start with their own defaults (zero, `""`, or the inner struct's
+  field defaults), so they can be left out of a constructor - like a field with a default -
+  but can't be given a written default themselves
+* Copying a struct copies everything inside it, nested structs and arrays included
+* A whole array field can't be assigned at once (`t.scores = [...]`) - assign its elements
+* An array field or an array of structs is passed to `int[]`/`Point[]` parameters by
+  reference, like any array
 
 **Construction and fields:**
 
@@ -3419,8 +3454,8 @@ allow_unicode_identifiers = false   # identifiers ASCII-only by default (homogly
                                     # see "Source Text Rules" under Syntax Overview
 
 [structs]                      # Task 18.2 - see "Structures and Value Types"
-max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct) - Task 18.2.3
-warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = never) - Task 18.2.3
+max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct)
+warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = never)
 string_storage     = "owned"   # each struct holds its own string value; "pooled" reserved (Task 17)
 string_mutable     = true      # false = string fields can't be changed after construction
 string_warn_length = 64        # guideline: warn when a string field is longer (0 = never warn)
@@ -4996,8 +5031,8 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 * **Fields Only**: No methods, operators or user-written constructors - one generated
   constructor, `Point(3, 4)`, fields in declaration order
 * **Value Semantics**: Copied, not referenced
-* **Allowed Types**: Primitives and string (implemented); nested structs and fixed arrays
-  (Task 18.2.3)
+* **Allowed Types**: Primitives, string, other structs (depth-limited per project), and
+  fixed-size arrays of these
 * **Not Allowed**: Functions, objects, dynamic collections
 * **Use Case**: Pure data containers for performance
 

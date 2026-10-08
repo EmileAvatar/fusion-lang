@@ -87,6 +87,7 @@ class SemanticAnalyzer:
         structs = [d for d in ast.declarations if isinstance(d, StructDecl)]
         for struct in structs:
             self.type_checker.visit(struct)
+        self.type_checker.check_struct_nesting(structs)
         self.check_structs_settings(structs)
         for decl in ast.declarations:
             if isinstance(decl, FunctionDecl):

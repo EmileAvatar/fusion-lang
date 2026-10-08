@@ -391,3 +391,32 @@ def test_structs_config_changes_compiler_behaviour(tmp_path):
     exe = str(source_file).replace(".fusion", ".exe" if sys.platform == "win32" else "")
     run = subprocess.run([exe], capture_output=True, text=True, timeout=30)
     assert run.stdout.strip() == "t" * 20
+
+
+def test_nesting_depth_config_changes_compiler_behaviour(tmp_path):
+    """max_nesting_depth from fusion.toml reaches the compiler (Task 18.2.3): a struct
+    holding a struct compiles with the defaults and is rejected with max_nesting_depth = 1."""
+    import subprocess
+    import sys
+    source_file = tmp_path / "line.fusion"
+    source_file.write_text(
+        'struct Point\n    int x\n    int y\n\n'
+        'struct Line\n    Point a\n    Point b\n\n'
+        'void function main()\n    Line l\n    print("{l.a.x}")\n',
+        encoding="utf-8"
+    )
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def compile_it():
+        return subprocess.run(
+            [sys.executable, "main.py", str(source_file)],
+            cwd=repo_root, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=120
+        )
+
+    assert compile_it().returncode == 0
+
+    (tmp_path / "fusion.toml").write_text("[structs]\nmax_nesting_depth = 1\n")
+    result = compile_it()
+    assert result.returncode != 0
+    assert "Struct 'Line' is nested 2 levels deep (Line -> Point) - the project allows 1" in result.stderr

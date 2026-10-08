@@ -186,9 +186,10 @@ class NameResolver:
     def check_struct(self, struct: StructDecl) -> None:
         """Check a struct's fields.
 
-        v1 (18.2.1) field types are the primitives other than void. Struct fields and array
-        fields are Task 18.2.3; function-typed fields aren't planned (a struct holds plain
-        values only).
+        Field types: the primitives other than void, other structs (18.2.3 - how deep is
+        checked separately, against the project's [structs] limits), and fixed-size arrays
+        of either (18.2.3). Function-typed fields aren't planned (a struct holds plain values
+        only).
 
         Args:
             struct: Struct declaration node
@@ -221,21 +222,32 @@ class NameResolver:
                     field.location
                 ))
             elif isinstance(field_type, ArrayType):
-                self.errors.append(SemanticError(
-                    f"Field '{field.name}' of struct '{struct.name}': array fields are not "
-                    f"supported yet (Task 18.2.3)",
-                    field.location
-                ))
-            elif isinstance(field_type, StructType):
-                self.resolve_type(field_type)
-                if field_type.declaration is not None:
+                element = field_type.element_type
+                if field_type.size is None:
                     self.errors.append(SemanticError(
-                        f"Field '{field.name}' of struct '{struct.name}': a struct inside a "
-                        f"struct is not supported yet (Task 18.2.3)",
+                        f"Array field '{field.name}' of struct '{struct.name}' needs a size, "
+                        f"e.g. {self._type_text(element)}[3] - a struct's size is fixed",
                         field.location
                     ))
+                if isinstance(element, FunctionType) or (
+                        isinstance(element, PrimitiveType) and element.name == 'void'):
+                    self.errors.append(SemanticError(
+                        f"Array field '{field.name}' of struct '{struct.name}' can't hold "
+                        f"{'functions' if isinstance(element, FunctionType) else 'void'}",
+                        field.location
+                    ))
+                self.resolve_type(field_type)
+            elif isinstance(field_type, StructType):
+                self.resolve_type(field_type)
 
-            if field.default_value is not None and not self.is_constant_default(field.default_value):
+            if field.default_value is not None and isinstance(field_type, (ArrayType, StructType)):
+                self.errors.append(SemanticError(
+                    f"Field '{field.name}' of struct '{struct.name}' can't have a default value - "
+                    f"an array or struct field already starts with its own defaults (zero, or "
+                    f"its fields' defaults)",
+                    field.default_value.location
+                ))
+            elif field.default_value is not None and not self.is_constant_default(field.default_value):
                 self.errors.append(SemanticError(
                     f"Default value for field '{field.name}' must be a constant (a "
                     f"literal such as 5, -1, 2.5, \"text\", 'c' or true)",
@@ -259,17 +271,16 @@ class NameResolver:
                     type_node.location
                 ))
         elif isinstance(type_node, ArrayType):
-            if isinstance(type_node.element_type, StructType):
-                self.errors.append(SemanticError(
-                    f"Arrays of structs ({type_node.element_type.name}[]) are not supported "
-                    f"yet (Task 18.2.3)",
-                    type_node.location
-                ))
             self.resolve_type(type_node.element_type)
         elif isinstance(type_node, FunctionType):
             for param_type in type_node.parameter_types:
                 self.resolve_type(param_type)
             self.resolve_type(type_node.return_type)
+
+    @staticmethod
+    def _type_text(type_node: TypeNode) -> str:
+        """A short name for a type in messages."""
+        return getattr(type_node, 'name', 'int')
 
     def check_not_struct_name(self, name: str, kind: str, location) -> None:
         """A variable or parameter can't reuse a struct's name - in the generated C it would

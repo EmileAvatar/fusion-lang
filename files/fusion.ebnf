@@ -362,8 +362,10 @@ struct_declaration =
 
 struct_field =
     type_name identifier [ "=" expression ] ;
-    (* v1 field types: int, float, double, bool, char, string. Nested structs and fixed-size
-       array fields are Task 18.2.3. A default must be a constant, like a parameter default: a
+    (* Field types: int, float, double, bool, char, string, other structs (depth limited by
+       [structs] max_nesting_depth, Task 18.2.3), and fixed-size arrays of these (size
+       required). Array and struct fields can't have a written default. A default must be a
+       constant, like a parameter default: a
        literal (not null) or a negated number literal. *)
 
 (* ========== Enums ========== *)

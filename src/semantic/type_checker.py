@@ -20,6 +20,21 @@ from .errors import SemanticError
 from src.lexer.token import SourceLocation
 
 
+# Marks a struct field that has no written default but can still be left out of a
+# constructor: an array or struct field starts with its own defaults (Task 18.2.3)
+IMPLICIT_DEFAULT = object()
+
+
+def field_default(field: StructField):
+    """The default for a struct field in a constructor call: its written default, the
+    IMPLICIT_DEFAULT marker for an array or struct field, or None if it must be given."""
+    if field.default_value is not None:
+        return field.default_value
+    if isinstance(field.field_type, (ArrayType, StructType)):
+        return IMPLICIT_DEFAULT
+    return None
+
+
 class TypeChecker:
     """Type checks the AST using visitor pattern.
 
@@ -520,7 +535,7 @@ class TypeChecker:
             if self._has_named_arguments(node):
                 self._check_named_call(
                     node, f"struct '{struct.name}'", 'field',
-                    [(f.name, f.field_type, f.default_value) for f in struct.fields], struct=struct)
+                    [(f.name, f.field_type, field_default(f)) for f in struct.fields], struct=struct)
                 node.callee_declaration = struct
                 return StructType(location=node.location, name=struct.name, declaration=struct)
             return self._check_struct_construction(node, struct)
@@ -801,6 +816,9 @@ class TypeChecker:
             actual_type = self.visit(value)
             if isinstance(expected_type, ArrayType) and func_name is not None:
                 self._check_array_argument(func_name, index, value, expected_type, actual_type)
+            elif isinstance(expected_type, ArrayType) and struct is not None:
+                if not self._check_array_field_value(struct, struct.fields[index], value, actual_type):
+                    ok = False
             elif not self.types_compatible(expected_type, actual_type):
                 ok = False
                 self.errors.append(SemanticError(
@@ -812,23 +830,27 @@ class TypeChecker:
                 self.check_string_field_value(struct.name, struct.fields[index], value)
 
         if ok:
+            # An omitted array/struct field stays None: codegen gives it its own defaults
             node.resolved_arguments = [
-                value if value is not None else slots[index][2] for index, value in enumerate(bound)
+                value if value is not None
+                else (None if slots[index][2] is IMPLICIT_DEFAULT else slots[index][2])
+                for index, value in enumerate(bound)
             ]
 
     def _check_struct_construction(self, node: CallExpr, struct: StructDecl) -> TypeNode:
         """Check a generated struct constructor call: Point(3, 4) (Task 18.2.1).
 
-        Arguments are matched to fields in declaration order. A field with a default can be
-        left off when no field after it is given - so every field up to the last one
-        without a default is required. Same int -> float promotion as function arguments.
+        Arguments are matched to fields in declaration order. A field with a default - or an
+        array or struct field, which starts with its own defaults (18.2.3) - can be left off
+        when no field after it is given, so every field up to the last one without a default
+        is required. Same int -> float promotion as function arguments.
 
         Returns:
             The struct type
         """
         struct_type = StructType(location=node.location, name=struct.name, declaration=struct)
         fields = struct.fields
-        required = max((i + 1 for i, f in enumerate(fields) if f.default_value is None), default=0)
+        required = max((i + 1 for i, f in enumerate(fields) if field_default(f) is None), default=0)
         actual_count = len(node.arguments)
 
         if actual_count < required or actual_count > len(fields):
@@ -847,7 +869,9 @@ class TypeChecker:
 
         for i, (arg, field) in enumerate(zip(node.arguments, fields)):
             actual_type = self.visit(arg)
-            if not self.types_compatible(field.field_type, actual_type):
+            if isinstance(field.field_type, ArrayType):
+                self._check_array_field_value(struct, field, arg, actual_type)
+            elif not self.types_compatible(field.field_type, actual_type):
                 self.errors.append(SemanticError(
                     f"Argument {i+1} to '{struct.name}' (field '{field.name}'): expected "
                     f"{self.type_to_string(field.field_type)}, got "
@@ -860,6 +884,121 @@ class TypeChecker:
         node.resolved_arguments = list(node.arguments) + [f.default_value for f in fields[actual_count:]]
         node.callee_declaration = struct
         return struct_type
+
+    def _check_array_field_value(self, struct: StructDecl, field: StructField, value: ASTNode,
+                                 actual_type: TypeNode) -> bool:
+        """Check the value given for an array field in a constructor (Task 18.2.3).
+
+        Like initializing an array variable, it must be an array literal of exactly the
+        field's size - C can't initialize one array from another, and whether that should
+        copy or share is still undecided (see _check_array_var_decl).
+
+        Returns:
+            True if the value is acceptable
+        """
+        expected: ArrayType = field.field_type
+
+        def error(message: str) -> bool:
+            self.errors.append(SemanticError(
+                f"Field '{field.name}' of struct '{struct.name}': {message}", value.location))
+            return False
+
+        if not isinstance(value, ArrayLiteralExpr):
+            return error(f"needs an array literal here (e.g. [1, 2, 3]) - copying an existing "
+                         f"array into a field isn't supported yet; set its elements one by one")
+        if len(value.elements) != expected.size:
+            return error(f"expected {expected.size} element(s), got {len(value.elements)}")
+        if value.elements and not self.types_compatible(expected.element_type, actual_type.element_type):
+            return error(f"expected elements of type {self.type_to_string(expected.element_type)}, "
+                         f"got {self.type_to_string(actual_type.element_type)}")
+        return True
+
+    @staticmethod
+    def _root_variable(expr: ASTNode) -> Optional[IdentifierExpr]:
+        """The variable at the base of `a`, `a.b[i].c`, ... - or None if it isn't a variable
+        (e.g. a function's return value). Used for const checks (Task 18.2.3)."""
+        while isinstance(expr, (MemberExpr, IndexExpr)):
+            expr = expr.object if isinstance(expr, MemberExpr) else expr.array
+        return expr if isinstance(expr, IdentifierExpr) else None
+
+    def check_struct_nesting(self, structs: List[StructDecl]) -> None:
+        """Check how deeply structs nest, against the project's [structs] settings (Task
+        18.2.3), and reject a struct that contains itself.
+
+        Depth counts levels of structs: plain fields only = 1; holding a struct of depth 1 =
+        2, and so on. An array of structs counts like one struct. Each problem is reported
+        once, on the struct where it starts, rather than on every struct that contains it.
+        """
+        by_name = {s.name: s for s in structs}
+
+        def children(struct):
+            for field in struct.fields:
+                field_type = field.field_type
+                if isinstance(field_type, ArrayType):
+                    field_type = field_type.element_type
+                if isinstance(field_type, StructType) and field_type.name in by_name:
+                    yield field_type.name
+
+        # A struct containing itself (directly or through others) would be infinitely large
+        finished, reported, found_cycle = set(), set(), False
+
+        def walk(name, path):
+            nonlocal found_cycle
+            if name in finished:
+                return
+            if name in path:
+                cycle = path[path.index(name):] + [name]
+                found_cycle = True
+                key = frozenset(cycle)
+                if key not in reported:
+                    reported.add(key)
+                    self.errors.append(SemanticError(
+                        f"Struct '{name}' contains itself ({' -> '.join(cycle)}) - a struct "
+                        f"can't hold itself, directly or through other structs, because it "
+                        f"would be infinitely large",
+                        by_name[name].location
+                    ))
+                return
+            path.append(name)
+            for child in children(by_name[name]):
+                walk(child, path)
+            path.pop()
+            finished.add(name)
+
+        for name in by_name:
+            walk(name, [])
+        if found_cycle:
+            return  # depth is meaningless for a cycle
+
+        chains = {}
+
+        def chain(name):
+            """The deepest nesting chain starting at this struct, e.g. [Scene, Shape, Point]."""
+            if name not in chains:
+                deepest = max((chain(c) for c in children(by_name[name])), key=len, default=[])
+                chains[name] = [name] + deepest
+            return chains[name]
+
+        max_depth = self.structs_config.max_nesting_depth
+        warn_depth = self.structs_config.warn_nesting_depth
+        for struct in structs:
+            path = chain(struct.name)
+            depth = len(path)
+            child_depth = depth - 1
+            if depth > max_depth and child_depth <= max_depth:
+                self.errors.append(SemanticError(
+                    f"Struct '{struct.name}' is nested {depth} levels deep "
+                    f"({' -> '.join(path)}) - the project allows {max_depth} "
+                    f"([structs] max_nesting_depth in fusion.toml)",
+                    struct.location
+                ))
+            elif warn_depth and warn_depth <= depth <= max_depth and child_depth < warn_depth:
+                self.warnings.append(SemanticError(
+                    f"Struct '{struct.name}' is nested {depth} levels deep "
+                    f"({' -> '.join(path)}) - the project warns from {warn_depth} levels "
+                    f"([structs] warn_nesting_depth in fusion.toml)",
+                    struct.location
+                ))
 
     def _check_function_value_call(self, node: CallExpr, callee_type: TypeNode,
                                    description: str) -> TypeNode:
@@ -934,11 +1073,14 @@ class TypeChecker:
                 error(f"expected an array of exactly {expected.size} elements, got "
                       f"{actual.size}")
                 return
-        if isinstance(arg, IdentifierExpr):
-            symbol = self.symbol_table.lookup(arg.name)
+        root = self._root_variable(arg)
+        if root is not None:
+            symbol = self.symbol_table.lookup(root.name)
             if symbol and symbol.is_constant:
-                error(f"const array '{arg.name}' can't be passed to a function, because the "
-                      f"function could change its elements")
+                what = f"const array '{root.name}'" if root is arg else \
+                    f"an array inside const '{root.name}'"
+                error(f"{what} can't be passed to a function, because the function could change "
+                      f"its elements")
 
     def visit_NamedArgument(self, node: NamedArgument) -> TypeNode:
         """A named argument's type is its value's type. Normally reached only through
@@ -1284,13 +1426,16 @@ class TypeChecker:
         # visit_IndexExpr validates the array/index types and returns the element type
         element_type = self.visit(target)
 
-        if isinstance(target.array, IdentifierExpr):
-            array_symbol = self.symbol_table.lookup(target.array.name)
+        # The array may be a variable, or a field of one (`p.scores[0] = 1`, Task 18.2.3)
+        root = self._root_variable(target.array)
+        if root is not None:
+            array_symbol = self.symbol_table.lookup(root.name)
             if array_symbol and array_symbol.is_constant:
-                self.errors.append(SemanticError(
-                    f"Cannot assign to element of constant array '{target.array.name}'",
-                    node.location
-                ))
+                if root is target.array:
+                    message = f"Cannot assign to element of constant array '{root.name}'"
+                else:
+                    message = f"Cannot assign to an element of an array inside constant '{root.name}'"
+                self.errors.append(SemanticError(message, node.location))
 
         value_type = self.visit(node.value)
         if not self.types_compatible(element_type, value_type):
@@ -1310,10 +1455,16 @@ class TypeChecker:
         target: MemberExpr = node.target
         field_type = self.visit(target)
 
-        root = target.object
-        while isinstance(root, (MemberExpr, IndexExpr)):
-            root = root.object if isinstance(root, MemberExpr) else root.array
-        if not isinstance(root, IdentifierExpr):
+        if isinstance(field_type, ArrayType):
+            self.errors.append(SemanticError(
+                f"Cannot assign array field '{target.member}' as a whole - assign its elements "
+                f"instead (e.g. ...{target.member}[i] = value)",
+                node.location
+            ))
+            return
+
+        root = self._root_variable(target.object)
+        if root is None:
             self.errors.append(SemanticError(
                 f"Can only assign to field '{target.member}' of a struct stored in a variable",
                 node.location
@@ -1530,7 +1681,9 @@ class TypeChecker:
         """Check a struct's field defaults (Task 18.2.1): each must suit its field's type,
         and string defaults follow the project's string-length rules."""
         for field in node.fields:
-            if field.default_value is None:
+            # Array and struct fields can't have defaults - already reported by the name
+            # resolver, so don't add a second, type-mismatch error (Task 18.2.3)
+            if field.default_value is None or isinstance(field.field_type, (ArrayType, StructType)):
                 continue
             default_type = self.visit(field.default_value)
             if not self.types_compatible(field.field_type, default_type):
