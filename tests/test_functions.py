@@ -47,13 +47,13 @@ GREET = (
 
 def test_omitted_default_is_filled_at_call_site():
     c_code = generate_c(GREET + 'void function main()\n    greet()\n    greet("Fusion")\n')
-    assert 'greet("World", 1);' in c_code
-    assert 'greet("Fusion", 1);' in c_code
+    assert 'greet(FUSION_STR("World"), 1);' in c_code
+    assert 'greet(FUSION_STR("Fusion"), 1);' in c_code
 
 
 def test_all_arguments_given_uses_none_of_the_defaults():
     c_code = generate_c(GREET + 'void function main()\n    greet("x", 3)\n')
-    assert 'greet("x", 3);' in c_code
+    assert 'greet(FUSION_STR("x"), 3);' in c_code
 
 
 def test_negative_number_default():
@@ -124,7 +124,7 @@ def test_default_type_mismatch_still_rejected():
 def test_call_before_definition_gets_defaults():
     # main calls greet before greet is declared - registration happens in an earlier pass
     c_code = generate_c('void function main()\n    greet()\n' + GREET)
-    assert 'greet("World", 1);' in c_code
+    assert 'greet(FUSION_STR("World"), 1);' in c_code
 
 
 def test_defaults_end_to_end():
@@ -190,7 +190,7 @@ def test_string_array_parameter():
         'string function pick(string[] names) : names[0]\n'
         'void function main()\n    string[] n = ["a", "b"]\n    string p = pick(n)\n'
     )
-    assert 'char** names, int fusion_len_names' in c_code
+    assert 'fusion_string* names, int fusion_len_names' in c_code
     assert 'pick(n, 2)' in c_code
 
 

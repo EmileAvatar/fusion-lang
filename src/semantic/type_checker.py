@@ -246,6 +246,10 @@ class TypeChecker:
             return False
         return type_node.name in ['int', 'float', 'double']
 
+    @staticmethod
+    def _is_string_type(type_node: TypeNode) -> bool:
+        return isinstance(type_node, PrimitiveType) and type_node.name == 'string'
+
     def is_bool_type(self, type_node: TypeNode) -> bool:
         """Check if type is bool.
 
@@ -456,8 +460,10 @@ class TypeChecker:
                             operand.location
                         ))
                         break
+            elif self._is_string_type(left_type) and self._is_string_type(right_type):
+                pass  # strings order alphabetically (Task 18.3.1)
             else:
-                # For ordering comparisons, require numeric types
+                # For ordering comparisons, require numeric types (or two strings)
                 if not self.is_numeric_type(left_type):
                     self.errors.append(SemanticError(
                         f"Left operand of '{node.operator}' must be numeric, got {self.type_to_string(left_type)}",

@@ -1,0 +1,49 @@
+// Fusion Strings Demo (Task 18.3)
+// Strings are values: each variable owns its own text, copies are independent, and the
+// compiler frees every string automatically - no garbage collector, nothing to free by hand
+
+struct Contact
+    string name
+    string[2] phones
+
+// A function that changes its parameter works on its own copy
+string function shout(string word)
+    word = "LOUD"
+    return word
+End function
+
+// Strings in a loop - each one is freed when its pass of the loop ends, or on return
+string function findFirst(string[] names, string wanted)
+    for i in range(0, len(names))
+        string candidate = names[i]
+        if candidate == wanted
+            return "found"
+        End if
+    End for
+    return "missing"
+End function
+
+void function main()
+    string a = "apple"
+    string b = a
+    b = "banana"
+    print("a = {a}, b = {b}")
+
+    string original = "quiet"
+    string loud = shout(original)
+    print("original = {original}, loud = {loud}")
+
+    // == compares the text, < and > compare alphabetically
+    print("a == apple: {@1}, a < b: {@2}", a == "apple", a < b)
+
+    // Structs and arrays holding strings copy all of their text
+    Contact first = Contact("Ada", ["555-0100", "555-0199"])
+    Contact copy = first
+    copy.name = "Grace"
+    copy.phones[0] = "555-0123"
+    print("{first.name} {@1} / {copy.name} {@2}", first.phones[0], copy.phones[0])
+
+    string[] team = ["Ada", "Grace", "Linus"]
+    print("Grace: {@1}, Alan: {@2}", findFirst(team, "Grace"), findFirst(team, "Alan"))
+    print("All string tests passed!")
+End function

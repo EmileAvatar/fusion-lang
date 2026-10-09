@@ -317,31 +317,45 @@ team.scores = podium()     // an array field too
 
 ### String Implementation
 
-Description: Immutable strings with copy-on-write semantics.
+Description: Strings are **values**, like structs (decided 2026-10-09, Task 18.3).
 
-* **Characteristics**
-     * Readonly array of chars
-     * Stored in string pool (separate from other values)
-     * Multiple references share same string in memory
-     * Immutable: editing creates new string
-     * Old string garbage collected if no references
+**Implementation status:** 18.3.1 (values, automatic cleanup, comparison) is implemented. The
+operations below (joining, `len`, `s[i]`, `substring`, conversions) are 18.3.2, and
+interpolated strings outside `print` are 18.3.3 - see `taskSummary2.md`.
 
-* **Memory Model**
+* **Ownership**
+     * Each string variable, struct field and array element owns its own text
+     * Copying a string (`b = a`, passing it into a struct, returning it) gives an
+       independent copy - changing one never changes the other
+     * The compiler frees every string automatically, exactly once: when its block ends,
+       on `return`, `break` and `continue`, and - for a temporary result nobody keeps - at
+       the end of its statement. There is no garbage collector and nothing to free by hand
+     * Text written in the source costs nothing at run time and is never freed; only
+       strings built while the program runs use memory
+     * Function parameters borrow the caller's string (no copy); a function that assigns
+       to a parameter works on its own copy, so the caller's string never changes
+     * Strings are replaced, never edited in place (`s[0] = 'X'` and mutable/fixed strings
+       are Task 17); pooling as a project choice is Task 17 too
+
+* **Comparison**: `==` and `!=` compare the text; `<`, `>`, `<=`, `>=` compare alphabetically
+  (byte order). (Before Task 18.3.1, `==` compared memory addresses - right only by accident)
 
 ```
-string name = "Enterprise"     // Stored in string pool
-string ref = name              // Both reference same "Enterprise"
-ref = "Modified"               // New string created, name unchanged
-// Old "Enterprise" kept in pool (name still references it)
+string name = "Enterprise"
+string copy = name             // an independent copy
+copy = "Modified"              // name is still "Enterprise"
+bool same = name == "Enterprise"   // true - compares the text
 ```
 
-* **String Operations**: All return new strings
+* **String Operations** (Task 18.3.2): all return a new string and leave the original
+  unchanged. They are built-in functions rather than methods, consistent with structs
+  (fields only)
 
 ```
 string original = "Hello"
-string upper = original.toUpper()      // Returns "HELLO", original unchanged
-string sub = original.substring(0, 3)  // Returns "Hel", original unchanged
-string concat = original + " World"    // Returns "Hello World", original unchanged
+string upper = toUpper(original)          // "HELLO", original unchanged
+string sub = substring(original, 0, 3)    // "Hel"
+string joined = original + " World"       // "Hello World"
 ```
 
 ---
@@ -1455,10 +1469,10 @@ never cut below the project's hard limit. Controlled per project in `fusion.toml
 * `string_storage` (default `"owned"`) - `"pooled"` is reserved for Task 17 and is a compile
   error until then
 
-Today every string in a Fusion program is text written in the source, so these rules are
-checked at compile time on string literals going into a field. Once strings can be built at
-run time (Task 18.3), string fields become their own growable buffers and the same rules are
-checked at run time too.
+A string field owns its text like any string value (see "String Implementation"), so it is
+copied with the struct and freed with it (Task 18.3.1). The length rules are checked at
+compile time on string literals going into a field; once strings can be built at run time
+(Task 18.3.2-18.3.4), `string_max_length` is also applied at run time.
 
 ---
 
@@ -5189,7 +5203,7 @@ Feature | C | Java | Python | VB.NET | Go | Fusion
 **Type Inference** | Limited | Limited | N/A | Limited | Yes | **Yes**
 **Nullable Types** | All (pointers) | Objects only | All | Limited | Pointers only | **Objects only**
 **Value Types** | Structs | Primitives | N/A | Structures | Structs | **Primitives + Structs**
-**String Type** | `char*` | `String` (object) | `str` | `String` | `string` | **`string` (immutable)**
+**String Type** | `char*` | `String` (object) | `str` | `String` | `string` | **`string` (value type, freed automatically)**
 **Generics** | No | Yes | No | Yes | Yes | **Yes**
 **Auto-boxing** | No | Yes | N/A | Yes | No | **Yes**
 

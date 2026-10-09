@@ -74,7 +74,7 @@ class TestVariableDeclarations:
         init = LiteralExpr(location=loc(), value='hello', type_hint='string')
         node = VarDeclStmt(location=loc(), var_type=var_type, name='s', initializer=init)
         gen.visit_VarDeclStmt(node)
-        assert 'char* s = "hello";' in '\n'.join(gen.output)
+        assert 'fusion_string s = FUSION_STR("hello");' in '\n'.join(gen.output)
 
     def test_declaration_with_expression(self):
         """Test declaration with expression: int x = a + b"""
@@ -136,7 +136,7 @@ class TestAssignments:
         value = LiteralExpr(location=loc(), value='hello', type_hint='string')
         node = AssignmentStmt(location=loc(), target=target, value=value)
         gen.visit_AssignmentStmt(node)
-        assert 's = "hello";' in '\n'.join(gen.output)
+        assert 's = FUSION_STR("hello");' in '\n'.join(gen.output)
 
     def test_boolean_assignment(self):
         """Test boolean assignment: flag = false -> flag = false;"""

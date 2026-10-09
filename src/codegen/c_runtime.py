@@ -133,6 +133,13 @@ class RuntimeLoweringMixin:
             )
         return self._FORMAT_SPECIFIERS[inferred_type.name]
 
+    def _printf_argument(self, expr: ASTNode, code: str) -> str:
+        """A value as a printf argument - a string value prints its text (Task 18.3.1)."""
+        inferred = getattr(expr, 'inferred_type', None)
+        if isinstance(inferred, PrimitiveType) and inferred.name == 'string':
+            return f'{code}.data'
+        return code
+
     def _generate_print_call(self, node: CallExpr) -> str:
         """Generate code for print() built-in function.
 
@@ -164,7 +171,7 @@ class RuntimeLoweringMixin:
         # (print() is currently declared string-only in the symbol table, so this path is
         # only reachable from codegen-level tests/tools that bypass semantic analysis - it
         # still must not guess)
-        arg_code = self.visit(arg)
+        arg_code = self._printf_argument(arg, self.visit(arg))
         format_spec = self._format_specifier_for_expr(arg)
         return f'printf("{format_spec}\\n", {arg_code})'
 
@@ -238,7 +245,8 @@ class RuntimeLoweringMixin:
                 name = self._new_temp(self.map_type(extra.inferred_type))
                 assignments.append(f'{name} = {code}')
                 code = name
-            positional.append((code, self._format_specifier_for_expr(extra)))
+            positional.append((self._printf_argument(extra, code),
+                               self._format_specifier_for_expr(extra)))
         return assignments, positional
 
     def _generate_interpolated_print(self, node: InterpolatedStringExpr, positional=None) -> str:
@@ -291,7 +299,8 @@ class RuntimeLoweringMixin:
                 args.append(code)
                 format_parts.append(spec)
             else:  # StringExprPart
-                args.append(self.visit(segment.expression))
+                args.append(self._printf_argument(segment.expression,
+                                                  self.visit(segment.expression)))
                 format_parts.append(self._format_specifier_for_expr(segment.expression))
 
         format_str = ''.join(format_parts)

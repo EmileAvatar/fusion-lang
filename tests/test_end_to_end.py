@@ -53,7 +53,9 @@ def compile_and_run(fusion_code: str) -> tuple[int, str, str]:
         # Compile C -> executable
         exe_file = os.path.join(tmpdir, 'test.exe')
         gcc_result = subprocess.run(
-            ['gcc', c_file, '-o', exe_file, '-lm'],
+            # Every end-to-end test runs under the string leak check (Task 18.3.1): exit
+            # code 3 = a string was never freed, 4 = freed twice
+            ['gcc', '-DFUSION_LEAK_CHECK', c_file, '-o', exe_file, '-lm'],
             capture_output=True,
             text=True,
             timeout=30

@@ -260,13 +260,22 @@ def test_arithmetic_on_string_error(type_checker, location):
     assert "must be numeric" in type_checker.errors[0].message
 
 
-def test_comparison_ordering_string_error(type_checker, location):
-    """Test error for ordering comparison with string."""
+def test_comparison_ordering_strings_allowed(type_checker, location):
+    """Two strings order alphabetically (Task 18.3.1) - this used to be an error."""
     left = LiteralExpr(value="hello", type_hint='string', location=location)
     right = LiteralExpr(value="world", type_hint='string', location=location)
     binary = BinaryExpr(left=left, operator='<', right=right, location=location)
     type_checker.visit_BinaryExpr(binary)
-    assert len(type_checker.errors) == 2  # Both operands must be numeric
+    assert len(type_checker.errors) == 0
+
+
+def test_comparison_ordering_string_and_number_error(type_checker, location):
+    """A string can't be ordered against a number."""
+    left = LiteralExpr(value="hello", type_hint='string', location=location)
+    right = LiteralExpr(value=5, type_hint='int', location=location)
+    binary = BinaryExpr(left=left, operator='<', right=right, location=location)
+    type_checker.visit_BinaryExpr(binary)
+    assert len(type_checker.errors) == 1
 
 
 def test_logical_and_on_int_error(type_checker, location):

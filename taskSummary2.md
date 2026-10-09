@@ -58,9 +58,10 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 15: Deferred Decisions Revisit List** | In Progress | 42% | 5 | 12 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
-| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2 done) | 40% | 2 | 5 |
+| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2, 18.3.1 done) | 44% | 2 | 5 |
 | **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
 | **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
+| **Task 21: Error Handling** | Not Started (after 18.3) | 0% | 0 | TBD |
 | **Overall** | Task 18.2 Complete | 44% | 54 | 124 |
 
 ---
@@ -689,6 +690,9 @@ trigger has arrived, rather than re-discovering them by reading old commit messa
       collide with them in the C output
 - [ ] Fix: reject user identifiers starting with `fusion_` (clear error), or mangle every
       user identifier. Cheap now; harder once libraries exist. Found during 18.1.2
+- [ ] Same problem with C library names (noted 2026-10-09, 18.3.1): a Fusion function named
+      `rename`, `free`, `exit`, `abs`, ... collides with `<stdio.h>`/`<stdlib.h>` in GCC.
+      Mangling every user identifier fixes both
 
 #### 15.9: Printing an Array Crashes the Compiler - RESOLVED (2026-10-08, as part of Task 18.2.1)
 - [x] `print("{arr}")` where `arr` is an array fails in codegen with "Internal compiler error:
@@ -1409,7 +1413,8 @@ generated C compiles with `gcc -Wall -Wextra`; full suite green; 10/10 examples.
 **Why third:** today strings are only C string literals passed around as `char*` - there is
 no concatenation, length, comparison, substring, or number conversion anywhere in codegen.
 Nearly every real program needs these, and a self-hosted lexer is built entirely on them.
-- [ ] **Latent bug - string `==` compiles to C pointer comparison** (verified 2026-10-07):
+- [x] **Latent bug - string `==` compiles to C pointer comparison** (verified 2026-10-07) -
+      FIXED in 18.3.1 (`fusion_str_eq`):
       `x == y` on two strings emits `(x == y)` in C, comparing addresses, not contents. It
       returns the right answer today only by accident - GCC deduplicates identical string
       literals - and will silently return false for equal strings as soon as any string is
@@ -1464,6 +1469,158 @@ Nearly every real program needs these, and a self-hosted lexer is built entirely
       `[structs] string_max_length` cut-off checked at runtime, `string_warn_length` stays a
       compile-time guideline
 - [ ] Example program per Rule 5 / Task 16
+
+### 18.3 Detailed Plan (APPROVED 2026-10-09 - all five parts)
+
+**Today:** a `string` is a C `char*` pointing at text written in the source. Nothing can build,
+change or free a string while the program runs; `==` compares addresses (the latent bug
+above); interpolated strings only work inside `print` (Task 15.10); struct string fields are
+fixed text (user accepted for 18.2, "eventually we will work on the strings").
+
+**The core decision - who frees a string?** Building strings at run time means memory that
+must be released. Recommended (decision 1 below): **strings are values, like structs** -
+each string variable, field and array element owns its own text, copying makes an
+independent copy, and the compiler frees it automatically when its owner goes away. No
+garbage collector and no reference counts: the "stack / value types" row of
+`FutureFeaturesCaution.md`'s strategy guide, and a core that works without GC (the D lesson).
+Same model as C++ `std::string` and Rust `String`.
+
+Split into five parts, each shippable and committed on its own (same pattern as 18.1/18.2).
+Each adds tests, an example program (Rule 5), and spec/EBNF/CLAUDE.md updates.
+
+**18.3.1 - String values and automatic cleanup (the foundation)**
+**Status: COMPLETE (2026-10-09)**
+- [x] A small C runtime emitted into each generated program: `fusion_string` = text pointer
+      + length + "owned" flag. Literals cost nothing at run time (they point at the
+      program's built-in text and are never freed); only strings built at run time use the
+      heap
+- [x] Ownership rules (value semantics): storing a string into a variable, field or array
+      element gives the owner its own copy - except a freshly built value (a temporary),
+      which is simply handed over (moved), so `string s = a + b` copies nothing extra.
+      Function parameters borrow the caller's string (no copy); returning a string hands it
+      to the caller
+- [x] Automatic cleanup: every owned string is freed exactly once when its owner goes away -
+      end of its block, and on every exit path (`return`, `break`, `continue`); a
+      temporary is freed at the end of the statement that made it. Structs holding strings
+      get generated copy/free helpers (copying a struct copies its strings), as do arrays of
+      strings
+- [x] Content comparison: `==` and `!=` compare the text, not the address (fixes the latent
+      bug); `<`, `>`, `<=`, `>=` compare alphabetically (byte order)
+- [x] Run-time errors: a small `fusion_runtime_error` that prints `Runtime error at
+      file:line: message` and stops the program. Used here for "out of memory", and by
+      18.3.2 for bad indexes and conversions
+- [x] Everything that uses strings today moves onto the new type unchanged in behaviour:
+      literals, `print`, interpolation, parameters and defaults, struct fields, arrays,
+      function types
+- [x] **Leak check in the test suite:** tests can compile with a counting allocator
+      (`-DFUSION_LEAK_CHECK`) that reports any string not freed - or freed twice - when the
+      program ends. Every end-to-end string test runs with it, so "freed exactly once" is
+      tested, not assumed
+- [x] Example `examples/strings_demo.fusion` (-> 11/11)
+- [x] **Implementation notes:** new module `src/codegen/c_memory.py` - the C runtime
+      (`fusion_string` = data/len/owned; `FUSION_STR(lit)` for source text), the
+      "managed type" rules (a string, or a struct/array holding one anywhere), generated
+      `fusion_copy_S`/`fusion_free_S`/`fusion_set_S` helpers per string-holding struct,
+      cleanup scopes (function / block / loop) and per-statement temporaries. Returned-array
+      wrappers of strings deep-copy (`_from`), free the old elements (`_copy`) and can be freed
+      (`_free`). Lambdas are now generated through the same statement machinery
+- [x] A temporary in a condition is settled into a plain value and freed before the branch
+      runs; `while` conditions that make temporaries become `while (1) { ...; if (!c) break; }`
+- [x] **Found and fixed during testing:** a temporary on the right of `and`/`or` may be
+      skipped, and freeing an unset one was undefined - the leak check caught it as a bad
+      free (exit 4). Every temporary now starts as an empty value
+- [x] **Found:** `string s` with no value used to be an uninitialized C pointer - it is now `""`
+- [x] **Limitation (clear error):** a string-holding variable can't reuse the name of one in
+      an enclosing block (the cleanup on `return` would free the wrong one) - codegen error
+- [x] **Noted for Task 15.8:** `<stdlib.h>` is now included, so a user function named like a C
+      library function (`free`, `exit`, `abs`, ...) collides in GCC - `rename` already did
+      (`<stdio.h>`). Same fix as 15.8 (mangle or reserve names)
+- [x] The leak check is verified itself (a never-freed string -> exit 3, a double free ->
+      exit 4), and **every end-to-end test in the suite** now compiles with it - all pass.
+      All 11 examples are leak-free under it too
+- [x] 27 new tests (26 in `tests/test_strings.py`, 1 in `test_type_checker.py`); 30 existing tests updated for the new
+      representation (`FUSION_STR("...")`, `fusion_string`, `.data` in printf, new includes)
+      and one type-checker test (string ordering is now allowed). New example
+      `strings_demo.fusion`. Spec "String Implementation" rewritten (it described a pool +
+      GC + methods - superseded by the user's decisions). Full suite 1452 passed, 8 skipped;
+      11/11 examples
+
+**18.3.2 - String operations**
+- [ ] `a + b` joins two strings (also string + char); numbers are joined with interpolation
+      (`"{name}{count}"`) rather than `+`, which avoids JavaScript's `"1" + 1` surprises
+- [ ] `len(s)`, and `s[i]` reads one character (a `char`). **Bounds-checked**: a bad index
+      stops the program with a run-time error - strings know their length, so this is cheap
+      (arrays stay unchecked for now)
+- [ ] Built-in functions (no methods - consistent with fields-only structs):
+      `substring(s, start, count)`, `contains(s, part)`, `indexOf(s, part)` (-1 if absent),
+      `startsWith`, `endsWith`, `toUpper`, `toLower`, `trim`
+- [ ] Conversions: `toString(x)` for int/float/double/bool/char; `toInt(s)`, `toFloat(s)`
+      (decision 2: invalid text stops the program with a clear run-time error), plus
+      `isInt(s)` / `isFloat(s)` to check first
+- [ ] Length/indexing unit (decision 3): bytes. `len("cafe")` is 4; accented or other
+      non-ASCII text counts its UTF-8 bytes. Unicode-aware character functions are later work
+
+**18.3.3 - Interpolated strings as values (the real fix for Task 15.10)**
+- [ ] `string s = "x is {x}"`, `return "Hello, {name}"`, `f("{a}-{b}")` - an interpolated
+      string builds a new string anywhere, not only in `print`. Remove the 15.10 guard
+- [ ] `format("{@2} before {@1}", a, b)` returns the text `print` would print - the same
+      placeholder rules as 18.2.2b (any order, repeatable, each argument evaluated once,
+      left to right)
+- [ ] `print` itself is unchanged (still writes directly, no extra copy)
+
+**18.3.4 - Struct string fields become growable (user decision 2026-10-08)**
+- [ ] Follows from 18.3.1: a string field owns its text, so it holds any length, is copied
+      with the struct, and is freed with it
+- [ ] `[structs] string_max_length` now also applies at run time: a longer value stored into
+      a field is cut to the limit (compile-time warnings for literals stay as they are;
+      `"max memory"` = no cut). `string_warn_length` stays a compile-time guideline -
+      there's nothing useful to warn about while a program runs
+- [ ] `string_mutable = false` keeps working (no assignment after construction)
+
+**18.3.5 - The equality operator family (user decisions 2026-10-07)**
+Decided already: `=` assigns as a statement but compares inside a condition; `==` compares
+value; `===` compares type and value. Open points, with recommendations (decision 4):
+- [ ] `if x = 2` compares like `==` (value) - VB-style readability
+- [ ] The same rule in `while` and `else if` conditions, for consistency
+- [ ] Negations as in JavaScript: `!=` is "not `==`" and `!==` is "not `===`". (A
+      separate "not `=`" isn't needed, since `=` in a condition already means `==`)
+- [ ] `==` across types uses a small, explicit table - and nothing else: a number equals
+      numeric text (`2 == "2"`, `2.5 == "2.5"`); a char equals a one-character string
+      (`'a' == "a"`); int and float compare by value (`2 == 2.0`). Never "truthiness" (no
+      bool <-> number/string), never anything else. Any other mixed pair is a compile error
+      for `==`, and simply false for `===`
+- [ ] Structs: `==` compares every field with these same rules; `===` also requires the
+      same struct type. Arrays: element by element, same size. (Closes "struct equality"
+      deferred from 18.2)
+- [ ] Every comparison is generated per type - never C's raw `==` on anything that isn't a
+      plain number (the root of the pointer-comparison bug)
+
+**Out of scope (logged for later):** in-place editing (`s[0] = 'X'`) and mutable vs fixed
+strings (Task 17 - 18.3 strings are replaced, never edited in place, which keeps the
+ownership rules simple); string pooling (Task 17); Unicode-aware functions; full expressions
+inside `{...}` (`{a + b}`); an identity operator (needs references, `Shared<T>`); constant-time
+comparison for secrets (Task 17.5); bounds checking for arrays (its own item).
+
+**Decisions (user, 2026-10-09 - all four chose the recommended option):** 1. strings are
+values with automatic cleanup; 2. invalid conversions stop with a clear run-time error (plus
+`isInt`/`isFloat`); 3. `len`/`s[i]` count bytes for now; 4. the 18.3.5 equality
+recommendations are accepted as written. The options that were offered:
+1. **Who frees strings:** values with automatic cleanup (recommended) / reference-counted
+   shared strings / never free during the run (simplest, but memory only grows - unusable
+   for long-running programs)
+2. **Invalid conversions** (`toInt("12x")`): stop with a clear run-time error, with
+   `isInt`/`isFloat` to check first (recommended) / quietly return 0 / a fallback argument
+   (`toInt(s, 0)`)
+3. **What `len(s)` and `s[i]` count:** bytes for now (recommended - simple and fast; correct
+   for ASCII, Unicode-aware functions later) / Unicode characters now (slower `s[i]`, more
+   work in 18.3.2)
+4. **Equality (18.3.5):** accept the recommendations above / decide them when 18.3.5 starts
+
+**Success criteria:** strings can be built, joined, sliced, converted and compared by
+content; `string s = "x is {x}"` works anywhere; a struct holds a 10,000-character string
+built at run time; every string test runs leak-free under the counting allocator (nothing
+freed twice, nothing left over); generated C compiles cleanly with `gcc -Wall -Wextra`; full
+suite green; 11/11 examples.
 
 #### 18.4: `import` and Multi-File Projects
 **Why fourth:** the single biggest unblocker - everything in the stdlib, every proposed
@@ -1753,6 +1910,45 @@ stays the documented default; the other three become equally valid alternatives.
 
 **Success Criteria:** all four formats load identically through one shared validation path;
 TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
+
+---
+
+## TASK 21: Error Handling (Go-style error returns + try/catch)
+
+**Goal:** Let Fusion programs report and handle errors - both ways the spec describes,
+as **complementary** tools, not competing ones.
+**Status:** Not Started - **scheduled right after Task 18.3** (needs real strings for error
+messages), before 18.5's standard library (file I/O must be able to report "file not found")
+**Priority:** HIGH
+**Blocked By:** Task 18.3 (strings - "we do need strings to be working properly as to make sure
+we can pass string error messages")
+**Source:** user decisions, 2026-10-09
+
+**User decisions (2026-10-09):**
+- **Go-style error returns are supported, on by default** - and are **only for returning an
+  error from a function**: `Spaceship, Error function loadShip(string file)`, then
+  `Spaceship ship, Error err = loadShip("ship.dat")` and a simple `if err` check. Not a
+  general multiple-return-values feature. "Sometimes we don't need the full try catch but
+  just the simple check for the error"
+- **`try`, `catch`, `finally`, `throw` and `Error` are supported, on by default**
+- **Both can be turned off per project** in the config file (`fusion.toml`, and the other
+  formats once Task 20 lands) - consistent with FutureFeaturesCaution.md: the core stdlib
+  layer works with no exceptions, and `[imports.policy] exceptions = "abort"` maps a throw to
+  a clear termination when a project disables them
+- Both are complementary: a function can return an error for a caller that just checks it,
+  or throw for a caller that wants try/catch
+
+**Sub-tasks:** a detailed plan is written and approved before any implementation (Rule 1).
+Starting points for that plan (not yet decided):
+- How the two meet: can `try` catch an error *returned* Go-style, and can an `Error` return
+  value be re-thrown? What happens to an unchecked returned error (spec: "bubbles up")?
+- `Error` as a built-in struct (message, plus file/line?), and error chaining (spec section
+  "Error Chaining")
+- C lowering for try/catch (setjmp/longjmp vs. explicit error propagation) - and how
+  automatic string cleanup (18.3.1) runs when an error unwinds through a function
+- Config keys, e.g. `[errors] error_returns = true`, `exceptions = true`
+- 18.3.2's stop-with-a-run-time-error conversions (`toInt("12x")`) can then become catchable
+- Example program: Task 16.5 (catch an error, and show an uncaught one) is unblocked by this
 
 ---
 
@@ -2465,10 +2661,13 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 - Pushed 18.2.2 and 18.2.2b to GitHub
 - **18.2.3 COMPLETE** - nesting with the `[structs]` depth limits; fixed NULL string arrays
 - **18.2.4 COMPLETE (2026-10-09)** - arrays as function return values; **Task 18.2 done**
-- **Next Action:** write the detailed plan for **Task 18.3 (proper strings)** and get it
-  approved (Rule 1). It now also owns: struct string fields as growable heap buffers (user
-  decision 2026-10-08), the real fix for 15.10 (interpolated strings outside `print`), the
-  equality operator family's open questions, and string ownership/freeing.
+- **18.3 plan approved (2026-10-09)** - all four decisions took the recommended option
+  (values + automatic cleanup; bad conversions stop with an error; bytes; equality
+  recommendations accepted). User decided error handling: Go-style error returns *and*
+  try/catch, both on by default, both switchable in the config - logged as **Task 21**,
+  scheduled right after 18.3
+- **18.3.1 COMPLETE** - strings are values with automatic cleanup; leak check on every test
+- **Next Action:** implement **18.3.2 (string operations)** per the approved plan.
 
 ---
 
@@ -2501,8 +2700,8 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 
 **Next Action:** Tasks 18.2.1 (core structs), 18.2.2 (named arguments) and 18.2.2b (`{@N}`
 placeholders, left-to-right arguments), 18.2.3 (nesting) and 18.2.4 (array return values)
-are complete - **Task 18.2 is done**. Next: write the detailed plan for **Task 18.3 (proper
-strings)** and get it approved (Rule 1). Open logged items: Task 15.8 (reserve the `fusion_`
+are complete - **Task 18.2 is done**. **18.3.1** (string values, automatic cleanup) is
+complete. Next: **18.3.2 (string operations)** - the 18.3 plan is approved. Then Task 21. Open logged items: Task 15.8 (reserve the `fusion_`
 prefix - before 18.4), 15.10 (interpolated strings outside `print()` - real fix in 18.3) and
 15.12 (operator operand evaluation order).
 Closures wait for 18.3's memory-ownership decision. Task 19.1-19.5 need 18.4 (`import`); Task

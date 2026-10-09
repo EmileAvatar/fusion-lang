@@ -126,14 +126,14 @@ def test_uninitialized_struct_gets_zero_and_defaults():
         'struct Player\n    string name\n    float health = 100.0\n    bool alive\n    char tag\n\n'
         + main('Player p')
     )
-    assert "Player p = (Player){\"\", 100.0f, false, '\\0'};" in c_code
+    assert "Player p = (Player){FUSION_STR(\"\"), 100.0f, false, '\\0'};" in c_code
 
 
 def test_omitted_trailing_defaults_filled_in():
     c_code = generate_c(
         'struct Book\n    string title\n    bool available = true\n\n' + main('Book b = Book("Dune")')
     )
-    assert 'Book b = (Book){"Dune", true};' in c_code
+    assert 'Book b = (Book){FUSION_STR("Dune"), true};' in c_code
 
 
 def test_field_access_and_assignment():
@@ -288,7 +288,7 @@ def test_custom_lengths():
     warnings = warnings_of(source, config)
     assert "has 6 characters (the project's string_warn_length guideline is 5)" in warnings
     assert "has 9 characters - cut to the project's string_max_length of 8" in warnings
-    assert 'b.title = "12345678";' in generate_c(source, config)
+    assert 'fusion_str_set(&b.title, FUSION_STR("12345678"));' in generate_c(source, config)
 
 
 def test_warn_length_zero_never_warns():
@@ -347,12 +347,12 @@ def test_named_arguments_reordered_to_parameter_order():
 
 def test_named_argument_skips_any_defaulted_parameter():
     c_code = generate_c(SHIP + main('createShip(crew = 200)'))
-    assert 'createShip("Unnamed", 100.0f, 200);' in c_code
+    assert 'createShip(FUSION_STR("Unnamed"), 100.0f, 200);' in c_code
 
 
 def test_positional_then_named():
     c_code = generate_c(SHIP + main('createShip("Discovery", crew = 80, speed = 150.0)'))
-    assert 'createShip("Discovery", 150.0f, 80);' in c_code
+    assert 'createShip(FUSION_STR("Discovery"), 150.0f, 80);' in c_code
 
 
 def test_named_struct_construction():
@@ -362,7 +362,7 @@ def test_named_struct_construction():
 def test_named_struct_construction_with_defaults():
     source = ('struct Ship\n    string name = "Unnamed"\n    float speed = 100.0\n    int crew = 50\n\n'
               + main('Ship s = Ship(crew = 7)'))
-    assert 'Ship s = (Ship){"Unnamed", 100.0f, 7};' in generate_c(source)
+    assert 'Ship s = (Ship){FUSION_STR("Unnamed"), 100.0f, 7};' in generate_c(source)
 
 
 def test_named_struct_field_string_rules_apply():
@@ -474,7 +474,7 @@ def test_nested_struct_typedefs_in_dependency_order():
 def test_array_fields_are_c_arrays():
     c_code = generate_c(SCORES + main('Player p'))
     assert '    int scores[3];' in c_code
-    assert '    char* tags[2];' in c_code
+    assert '    fusion_string tags[2];' in c_code
 
 
 def test_nested_field_access_and_assignment():
@@ -486,18 +486,18 @@ def test_nested_field_access_and_assignment():
 def test_nested_defaults_and_empty_strings():
     c_code = generate_c(POINT + 'struct Box\n    Point corner\n    string label = "box"\n\n'
                         + SCORES + main('Box b\nPlayer p'))
-    assert 'Box b = (Box){(Point){0, 0}, "box"};' in c_code
-    assert 'Player p = (Player){"", {0}, {"", ""}};' in c_code
+    assert 'Box b = (Box){(Point){0, 0}, FUSION_STR("box")};' in c_code
+    assert 'Player p = (Player){FUSION_STR(""), {0}, {FUSION_STR(""), FUSION_STR("")}};' in c_code
 
 
 def test_array_and_struct_fields_can_be_left_out_of_constructor():
     c_code = generate_c(SCORES + main('Player p = Player("Ada")'))
-    assert 'Player p = (Player){"Ada", {0}, {"", ""}};' in c_code
+    assert 'Player p = (Player){FUSION_STR("Ada"), {0}, {FUSION_STR(""), FUSION_STR("")}};' in c_code
 
 
 def test_array_field_from_literal():
     c_code = generate_c(SCORES + main('Player p = Player("Ada", [1, 2, 3])'))
-    assert '(Player){"Ada", {1, 2, 3}, {"", ""}}' in c_code
+    assert '(Player){FUSION_STR("Ada"), {1, 2, 3}, {FUSION_STR(""), FUSION_STR("")}}' in c_code
 
 
 def test_named_construction_with_nested_struct():
@@ -532,13 +532,13 @@ def test_array_field_passed_to_array_parameter():
 def test_string_array_variable_starts_with_empty_strings():
     """Found during 18.2.3: `string[2] names` left NULL pointers (printed "(null)", or
     crashes on other C runtimes)."""
-    assert 'char* names[2] = {"", ""};' in generate_c(main('string[2] names'))
+    assert 'fusion_string names[2] = {FUSION_STR(""), FUSION_STR("")};' in generate_c(main('string[2] names'))
 
 
 def test_large_string_array_filled_in_a_loop():
     c_code = generate_c(main('string[100] names'))
     assert 'for (int fusion_i = 0; fusion_i < 100; fusion_i++) {' in c_code
-    assert 'names[fusion_i] = "";' in c_code
+    assert 'names[fusion_i] = FUSION_STR("");' in c_code
 
 
 # --- Depth limits ([structs] in fusion.toml) and cycles

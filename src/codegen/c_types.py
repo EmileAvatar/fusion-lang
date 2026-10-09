@@ -33,7 +33,7 @@ class TypeMapperMixin:
                 'double': 'double',
                 'bool': 'bool',
                 'char': 'char',
-                'string': 'char*',  # Strings as char pointers
+                'string': 'fusion_string',  # an owned string value (Task 18.3.1)
                 'void': 'void'
             }
             return type_map.get(fusion_type.name, 'void')
@@ -93,21 +93,40 @@ class TypeMapperMixin:
         element = fusion_type.element_type
         key = mangle_function_name(element.name) if isinstance(element, StructType) else element.name
         name = f'fusion_arr_{key}_{fusion_type.size}'
-        self.array_wrappers[name] = (self.map_type(element), fusion_type.size)
+        self.array_wrappers[name] = (self.map_type(element), fusion_type.size, element)
         return name
 
     def array_wrapper_lines(self) -> list:
-        """The wrapper typedefs, plus two helpers each: `_from` copies an array into a
-        wrapper (for `return arr`), `_copy` copies a returned wrapper into an array (for
-        `int[3] a = make()` and `a = make()`). `static inline`, so unused ones don't warn."""
+        """The wrapper typedefs, plus helpers: `_from` copies an array into a wrapper (for
+        `return arr`), `_copy` moves a returned wrapper into an array (for `int[3] a =
+        make()` and `a = make()`). `static inline`, so unused ones don't warn.
+
+        For elements holding strings (Task 18.3.1) `_from` makes independent copies, `_copy`
+        frees the array's old elements before moving the new ones in, and `_free` releases
+        a wrapper nobody took over."""
         lines = []
-        for name, (element, size) in getattr(self, 'array_wrappers', {}).items():
+        for name, (element, size, element_type) in getattr(self, 'array_wrappers', {}).items():
+            lines.append(f'typedef struct {{ {element} data[{size}]; }} {name};')
+            if not self.is_managed(element_type):
+                lines += [
+                    f'static inline {name} {name}_from(const void* src) {{ {name} r; '
+                    f'memcpy(r.data, src, sizeof r.data); return r; }}',
+                    f'static inline void {name}_copy(void* dst, {name} v) {{ '
+                    f'memcpy(dst, v.data, sizeof v.data); }}',
+                ]
+                continue
+            free_one = ' '.join(self.free_lines(element_type, 'dst[i]'))
+            free_own = ' '.join(self.free_lines(element_type, 'w->data[i]'))
+            copy_one = self.copy_code(element_type, 'r.data[i]')
             lines += [
-                f'typedef struct {{ {element} data[{size}]; }} {name};',
-                f'static inline {name} {name}_from(const void* src) {{ {name} r; '
-                f'memcpy(r.data, src, sizeof r.data); return r; }}',
-                f'static inline void {name}_copy(void* dst, {name} v) {{ '
+                f'static inline {name} {name}_from(const {element}* src) {{ {name} r; '
+                f'memcpy(r.data, src, sizeof r.data); '
+                f'for (int i = 0; i < {size}; i++) r.data[i] = {copy_one}; return r; }}',
+                f'static inline void {name}_copy({element}* dst, {name} v) {{ '
+                f'for (int i = 0; i < {size}; i++) {{ {free_one} }} '
                 f'memcpy(dst, v.data, sizeof v.data); }}',
+                f'static inline void {name}_free({name}* w) {{ '
+                f'for (int i = 0; i < {size}; i++) {{ {free_own} }} }}',
             ]
         return lines
 

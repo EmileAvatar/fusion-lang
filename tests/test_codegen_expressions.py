@@ -88,14 +88,14 @@ class TestLiteralExpressions:
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value='hello', type_hint='string')
         result = gen.visit_LiteralExpr(node)
-        assert result == '"hello"'
+        assert result == 'FUSION_STR("hello")'  # a string value (Task 18.3.1)
 
     def test_string_with_escape(self):
         """Test string with newline escape"""
         gen = CCodeGenerator()
         node = LiteralExpr(location=loc(), value='hello\n', type_hint='string')
         result = gen.visit_LiteralExpr(node)
-        assert result == '"hello\\n"'
+        assert result == 'FUSION_STR("hello\\n")'
 
     def test_null_literal(self):
         """Test null: null -> NULL"""
@@ -423,7 +423,7 @@ class TestStringInterpolation:
             ]
         )
         result = gen.visit_InterpolatedStringExpr(node)
-        assert result == '"Pi: %f, name: %s", pi, name'
+        assert result == '"Pi: %f, name: %s", pi, name.data'
 
     def test_interpolation_missing_inferred_type_raises(self):
         """Codegen must not silently guess when semantic analysis hasn't run."""

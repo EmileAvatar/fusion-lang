@@ -158,14 +158,15 @@ d:\Dropbox\Fusion\
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,425 tests passing (99.4%)
+- 1,452 tests passing (99.5%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
 
 **Example Verification:**
-- 10/10 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
-  calculator, sum_array, max_three, const_demo, arrays_demo, functions_demo, structs_demo)
+- 11/11 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
+  calculator, sum_array, max_three, const_demo, arrays_demo, functions_demo, structs_demo,
+  strings_demo)
 - Plus `examples/project_config_demo/` - a manual (not automated-harness) demo of
   `fusion.toml` actually changing compiler behavior (Task 12.12)
 - FizzBuzz bug fixed long ago (Task 6.2) - was a lexer bug in interpolation part-splitting
@@ -179,8 +180,9 @@ two deliberately-deferred design decisions - IR layer and stdlib lowering)
 params, lambdas) is complete. **18.2 (structs)** has an approved four-part plan; **18.2.1**
 (core structs), **18.2.2** (named arguments), **18.2.2b** (`{@N}` placeholders,
 left-to-right argument order), **18.2.3** (nesting) and **18.2.4** (array return values) are
-complete - **18.2 is done**. Next is **18.3 (proper strings)**, which needs a detailed plan
-approved first. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
+complete - **18.2 is done**. **18.3 (proper strings)** has an approved five-part plan;
+**18.3.1** (string values, automatic cleanup, comparison) is complete, next is **18.3.2
+(string operations)**. Then **Task 21 (error handling)**, scheduled right after 18.3. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
 a simple working language first, complex features after (see `FutureFeaturesCaution.md`).
 Security principle: **never trust code**.
 
@@ -306,6 +308,15 @@ print("Name: {name}, Age: {age}")
 print("User {@1} is {@2} years old", name, age)
 print("{@2} before {@1}", a, b)
 ```
+
+### Strings (Task 18.3 - values, freed automatically)
+```fusion
+string a = "apple"
+string b = a            // an independent copy
+b = "banana"            // a is still "apple"
+bool same = a == "apple"    // compares the text; < and > are alphabetical
+```
+Joining, `len`, `s[i]`, `substring`, conversions: 18.3.2. `string s = "x is {x}"`: 18.3.3.
 
 ### Variable Declaration
 ```fusion
@@ -491,6 +502,11 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
   semantics (copy on assign/pass/return), const structs, `[structs]` string-field length
   rules (see `tests/test_structs.py`, `examples/structs_demo.fusion`); nesting (18.2.3) -
   struct and fixed-size array fields, arrays of structs, `[structs]` depth limits
+- Strings are values (Task 18.3.1): each variable/field/element owns its text, copies are
+  independent, and the compiler frees every string exactly once (block end, return, break,
+  continue, end of statement for temporaries) - no GC. `==`/`!=` compare text, `<`/`>`
+  alphabetical. Tests compile with `-DFUSION_LEAK_CHECK`, which fails a program that leaks
+  (exit 3) or double-frees (exit 4) - see `src/codegen/c_memory.py`
 - Named arguments (Task 18.2.2): `f(b = 1, a = 2)`, `Point(y = 4, x = 3)` - any order after
   unnamed ones, any defaulted parameter skippable
 - Every call's arguments are evaluated left to right as written; `print("{@2} {@1}", a, b)`
@@ -502,7 +518,6 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
   character (a C `char` is one byte) - both by design (Task 19.6)
 
 **Known bugs (logged, not yet fixed):**
-- String `==` compares C pointers, not contents (correct today only by accident). Task 18.3
 - Interpolated strings only work as `print()`'s own argument - elsewhere they're now a clear
   error (Task 15.10, they used to generate invalid C); `{...}` holds a name or field path
   (`{p.x}`), not a full expression yet. Building strings at run time is Task 18.3
@@ -572,8 +587,9 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Task 18.2 (structs, named arguments, `{@N}` placeholders, nesting, array
-return values) is done. Next: a detailed plan for 18.3 (proper strings). Read
+**Current Focus:** Task 18.3.1 (string values and automatic cleanup) is done. Next: 18.3.2
+(string operations), per the approved 18.3 plan in taskSummary2.md; then Task 21 (error
+handling). Read
 `FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
 
 **Completed:**
@@ -599,8 +615,8 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1425 passed, 8 skipped**
-5. `python tests/verify_examples.py` - expect **10/10**
+4. `python -m pytest tests/ -q` - expect **1452 passed, 8 skipped**
+5. `python tests/verify_examples.py` - expect **11/11**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and
 `.claude/settings.local.json` (Claude Code permissions) are gitignored - they exist only via

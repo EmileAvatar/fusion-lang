@@ -26,9 +26,10 @@ from ..parser.ast_nodes import (
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name
 from .c_runtime import RuntimeLoweringMixin, escape_c_text
+from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
 
 
-class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
+class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin):
     """Generates C code from Fusion AST.
 
     Uses visitor pattern to traverse the AST and generate equivalent C code.
@@ -58,6 +59,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.includes.add('<stdbool.h>') # For bool type
         self.includes.add('<string.h>')  # For string operations
         self.includes.add('<math.h>')    # For math operations (pow, etc.)
+        self.includes.add('<stdlib.h>')  # malloc/free for strings (Task 18.3.1)
+        self.includes.add('<stdarg.h>')  # run-time error messages (Task 18.3.1)
+
+        # String ownership state (Task 18.3.1), also reset by generate() - set here too so
+        # statement and expression visitors work when called directly (unit tests do)
+        self.consumed = set()
+        self.stmt_temps = []
+        self.cleanup_scopes = []
+        self.temp_scopes = []
+        self.temp_count = 0
 
     def generate(self, program: ProgramNode) -> str:
         """Generate C code from program AST.
@@ -78,6 +89,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.temp_scopes = []            # per-function temporary declarations (Task 18.2.2)
         self.temp_count = 0
         self.argument_temps = {}         # id(argument expression) -> its temporary's name
+        # Strings and cleanup (Task 18.3.1) - see c_memory.py
+        self.consumed = set()            # ids of fresh values something has taken over
+        self.stmt_temps = []             # per statement: temporaries to free after it
+        self.cleanup_scopes = []         # per block: owned variables to free when it ends
 
         # Function declarations by name - call lowering needs each callee's parameter
         # types, to add hidden array-length arguments (Task 18.1.2)
@@ -90,8 +105,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             decl.name: decl for decl in program.declarations if isinstance(decl, StructDecl)
         }
 
-        # Generate includes
+        # Generate includes, then the runtime every program shares (Task 18.3.1)
         self._generate_includes()
+        self.output.extend(RUNTIME_PRELUDE.splitlines())
+        self.emit()
 
         # Struct typedefs come first (Task 18.2.1) - function types, forward declarations
         # and function bodies may all use them
@@ -143,6 +160,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # Return complete C code
         return '\n'.join(self.output)
 
+    # Statements whose temporaries are freed when they finish (Task 18.3.1)
+    _STATEMENTS = (ExpressionStmt, VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt,
+                   WhileStmt, ForStmt)
+
     def visit(self, node: ASTNode) -> str:
         """Visit an AST node and generate C code.
 
@@ -154,6 +175,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         """
         method_name = f'visit_{type(node).__name__}'
         visitor = getattr(self, method_name, self.generic_visit)
+        if isinstance(node, self._STATEMENTS) and hasattr(self, 'stmt_temps'):
+            self.begin_statement()
+            try:
+                return visitor(node)
+            finally:
+                self.end_statement()
         return visitor(node)
 
     def generic_visit(self, node: ASTNode) -> str:
@@ -209,7 +236,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
     # empty string rather than NULL, so printing a never-set string field is safe
     _ZERO_VALUES = {
         'int': '0', 'float': '0.0f', 'double': '0.0', 'bool': 'false', 'char': "'\\0'",
-        'string': '""',
+        'string': 'FUSION_STR("")',
     }
 
     # Arrays up to this size whose default isn't all-zero get their defaults spelled out in
@@ -270,6 +297,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             self.emit(f'}} {c_name};')
         self.emit()
 
+        # Copy/free helpers for structs holding strings (Task 18.3.1)
+        helpers = self.struct_helper_lines(ordered)
+        if helpers:
+            self.output.extend(['// Struct copy and cleanup'] + helpers + [''])
+
     def _field_name(self, name: str) -> str:
         """C name of a struct field - mangled like a function name if it's a C keyword."""
         return self._mangle_function_name(name)
@@ -288,8 +320,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
                 value = field.default_value
             if value is None:
                 parts.append(self._default_value_code(field.field_type))
+            elif id(value) in getattr(self, 'argument_temps', {}):
+                parts.append(self.argument_temps[id(value)])  # already owned (see below)
             else:
-                parts.append(self._argument_code(value))
+                # The struct owns its fields: strings are copied in (Task 18.3.1)
+                parts.append(self.owned_value(value, field.field_type))
         return f'({self._mangle_function_name(struct.name)}){{{", ".join(parts)}}}'
 
     # ========================================================================
@@ -391,7 +426,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.temp_scopes[-1].append(f'{c_type} {name};')
         return name
 
-    def _evaluate_in_written_order(self, node: CallExpr, slot_types: list) -> list:
+    def _evaluate_in_written_order(self, node: CallExpr, slot_types: list,
+                                   owning: bool = False) -> list:
         """Every call's arguments are evaluated left to right *as written* (Tasks 18.2.2 and
         18.2.2b), but C evaluates a call's arguments in no guaranteed order - and named ones
         have been moved to their parameter's position. So when the order could change the
@@ -407,6 +443,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Args:
             node: The call (already type-checked - resolved_arguments is set)
             slot_types: The parameter/field type for each entry of resolved_arguments
+            owning: True for a struct constructor - its fields own their values, so a
+                temporary holds an owned copy (Task 18.3.1); a function only borrows
 
         Returns:
             The temporary assignments, in written order (empty if none are needed)
@@ -419,7 +457,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             index = next(i for i, resolved in enumerate(node.resolved_arguments) if resolved is value)
             if isinstance(slot_types[index], ArrayType):
                 continue
-            code = self.visit(value)
+            code = self.owned_value(value, slot_types[index]) if owning else self.visit(value)
             name = self._new_temp(self.map_type(slot_types[index]))
             assignments.append(f'{name} = {code}')
             self.argument_temps[id(value)] = name
@@ -516,8 +554,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             return f"'{escaped}'"
 
         elif type_hint == 'string':
+            # Source text as a string value that is never freed (Task 18.3.1)
             escaped = escape_c_text(str(node.value), '"')
-            return f'"{escaped}"'
+            return f'FUSION_STR("{escaped}")'
 
         elif type_hint == 'null':
             return 'NULL'
@@ -551,6 +590,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         left = self.visit(node.left)
         right = self.visit(node.right)
         op = node.operator
+
+        # Strings compare by their text, never by address (Task 18.3.1 - this was the latent
+        # pointer-comparison bug); ordering is alphabetical (byte order)
+        if self._is_string(node.left) and self._is_string(node.right):
+            if op == '==':
+                return f'fusion_str_eq({left}, {right})'
+            if op == '!=':
+                return f'(!fusion_str_eq({left}, {right}))'
+            if op in ('<', '>', '<=', '>='):
+                return f'(fusion_str_cmp({left}, {right}) {op} 0)'
 
         # Map Fusion operators to C operators
         operator_map = {
@@ -608,7 +657,20 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         c_op = operator_map.get(op, op)
         return f'({c_op}{operand})'
 
+    @staticmethod
+    def _is_string(expr) -> bool:
+        inferred = getattr(expr, 'inferred_type', None)
+        return isinstance(inferred, PrimitiveType) and inferred.name == 'string'
+
     def visit_CallExpr(self, node: CallExpr) -> str:
+        """A call - whose fresh string (or string-holding) result is held in a temporary
+        and freed after the statement, unless something takes it over (Task 18.3.1)."""
+        code = self._call_code(node)
+        if self.is_fresh(node) and id(node) not in getattr(self, 'consumed', set()):
+            return self.fresh_temporary(code, node.inferred_type)
+        return code
+
+    def _call_code(self, node: CallExpr) -> str:
         """Generate C code for function call expression.
 
         Args:
@@ -621,7 +683,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # field, with omitted ones filled in from their defaults by the type checker
         if isinstance(node.callee_declaration, StructDecl):
             struct = node.callee_declaration
-            ordered = self._evaluate_in_written_order(node, [f.field_type for f in struct.fields])
+            ordered = self._evaluate_in_written_order(
+                node, [f.field_type for f in struct.fields], owning=True)
             code = self._struct_initializer(struct, node.resolved_arguments)
             return f'({", ".join(ordered + [code])})' if ordered else code
 
@@ -781,7 +844,17 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             Empty string (code emitted directly)
         """
-        const_keyword = 'const ' if node.is_const else ''
+        # A const string (or string-holding) variable is still freed when its block ends,
+        # which C's const would forbid - Fusion's own const check already prevents changes
+        const_keyword = 'const ' if node.is_const and not self.is_managed(node.var_type) else ''
+        try:
+            return self._var_decl_code(node, const_keyword)
+        finally:
+            self.register_owned(node.name, node.var_type, node.location)
+
+    def _var_decl_code(self, node: VarDeclStmt, const_keyword: str) -> str:
+        """Emit a variable declaration (see visit_VarDeclStmt)."""
+        managed = self.is_managed(node.var_type)
 
         if isinstance(node.var_type, ArrayType):
             # C array declarator puts the size after the name: `int arr[3]`, not `int[3] arr`
@@ -795,12 +868,17 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
                 )
             if self._returns_array(node.initializer):
                 # int[3] a = make() - declared, then the returned array is copied in
-                # (Task 18.2.4)
+                # (Task 18.2.4). Strings start as "" first, since the copy frees the old ones
                 wrapper = self.array_wrapper_name(node.initializer.inferred_type)
-                self.emit_line(f'{elem_c_type} {node.name}[{size}]')
+                if managed:
+                    self.emit_line(f'{elem_c_type} {node.name}[{size}] = '
+                                   f'{self._default_value_code(node.var_type)}')
+                else:
+                    self.emit_line(f'{elem_c_type} {node.name}[{size}]')
+                self.consumed.add(id(node.initializer))
                 self.emit_line(f'{wrapper}_copy({node.name}, {self.visit(node.initializer)})')
             elif node.initializer:
-                init_code = self.visit(node.initializer)
+                init_code = self.owned_value(node.initializer, node.var_type)
                 self.emit_line(f'{const_keyword}{elem_c_type} {node.name}[{size}] = {init_code}')
             elif self._is_zero_safe(node.var_type.element_type):
                 # Zero-initialize, matching Fusion's existing "uninitialized = 0" convention
@@ -835,8 +913,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             return ''
 
         if node.initializer:
-            init_code = self.visit(node.initializer)
+            init_code = self.owned_value(node.initializer, node.var_type)
             self.emit_line(f'{const_keyword}{c_type} {name} = {init_code}')
+        elif managed:
+            # A string declared without a value is "" (it used to be an uninitialized
+            # pointer)
+            self.emit_line(f'{c_type} {name} = {self._default_value_code(node.var_type)}')
         else:
             self.emit_line(f'{const_keyword}{c_type} {name}')
 
@@ -854,13 +936,24 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         # target is an lvalue-producing expression - IdentifierExpr ("x") or IndexExpr
         # ("arr[i]") - both generate valid C lvalue syntax via their own visitor
         target_code = self.visit(node.target)
-        value_code = self.visit(node.value)
 
-        # A whole array replaced by one a function returned: copy it in (Task 18.2.4)
+        # A whole array replaced by one a function returned: moved in (Task 18.2.4)
         if self._returns_array(node.value):
             wrapper = self.array_wrapper_name(node.value.inferred_type)
-            self.emit_line(f'{wrapper}_copy({target_code}, {value_code})')
+            self.consumed.add(id(node.value))
+            self.emit_line(f'{wrapper}_copy({target_code}, {self.visit(node.value)})')
             return ''
+
+        # Replacing a stored string (or string-holding struct): the new value is made first,
+        # then the old one is freed (Task 18.3.1). String and struct assignments need the
+        # exact same type, so the value's type is the target's
+        value_type = getattr(node.value, 'inferred_type', None)
+        if self.is_managed(value_type):
+            self.emit(self.set_code(value_type, target_code,
+                                    self.owned_value(node.value, value_type)))
+            return ''
+
+        value_code = self.visit(node.value)
 
         self.emit_line(f'{target_code} = {value_code}')
         return ''
@@ -875,22 +968,38 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             Empty string (code emitted directly)
         """
         return_type = getattr(self, 'current_return_type', None)
+        value_code = None
         if node.value and isinstance(return_type, ArrayType):
             # Returned inside the hidden wrapper struct (Task 18.2.4): a literal fills it
             # directly, another call's result already is one, anything else is copied in
             wrapper = self.array_wrapper_name(return_type)
             if isinstance(node.value, ArrayLiteralExpr):
-                self.emit_line(f'return ({wrapper}){{{self.visit(node.value)}}}')
+                value_code = f'({wrapper}){{{self.owned_value(node.value, return_type)}}}'
             elif self._returns_array(node.value):
-                self.emit_line(f'return {self.visit(node.value)}')
+                self.consumed.add(id(node.value))
+                value_code = self.visit(node.value)
             else:
-                self.emit_line(f'return {wrapper}_from({self.visit(node.value)})')
+                value_code = f'{wrapper}_from({self.visit(node.value)})'
         elif node.value:
-            value_code = self.visit(node.value)
-            self.emit_line(f'return {value_code}')
-        else:
-            self.emit_line('return')
+            # The caller owns the returned value: a string is copied out (Task 18.3.1)
+            value_code = self.owned_value(node.value, return_type)
 
+        # Leaving the function: this statement's temporaries and every owned variable in
+        # the function are freed first - after the returned value is safely computed
+        owned = self.owned_in_scopes('function') if hasattr(self, 'cleanup_scopes') else []
+        if not owned and not self.has_pending_temps():
+            self.emit_line(f'return {value_code}' if value_code is not None else 'return')
+            return ''
+        if value_code is None:
+            self.flush_temps()
+            self.emit_frees(owned)
+            self.emit_line('return')
+            return ''
+        result = self._declare_temp('ret', self.return_c_type(return_type))
+        self.emit_line(f'{result} = {value_code}')
+        self.flush_temps()
+        self.emit_frees(owned)
+        self.emit_line(f'return {result}')
         return ''
 
     @staticmethod
@@ -908,7 +1017,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             Empty string (code emitted directly)
         """
-        condition = self.visit(node.condition)
+        condition = self._settled_condition(self.visit(node.condition))
         self.emit(f'if ({condition}) {{')
         self.indent()
 
@@ -937,10 +1046,20 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             Empty string (code emitted directly)
         """
         condition = self.visit(node.condition)
-        self.emit(f'while ({condition}) {{')
-        self.indent()
+        if self.has_pending_temps():
+            # The condition made temporary strings: evaluate it at the top of each pass,
+            # free them, then decide (Task 18.3.1)
+            self.emit('while (1) {')
+            self.indent()
+            settled = self._settled_condition(condition)
+            self.emit(f'if (!({settled})) break;')
+        else:
+            self.emit(f'while ({condition}) {{')
+            self.indent()
 
+        self.push_scope('loop')
         self.visit(node.body)
+        self.pop_scope()
 
         self.dedent()
         self.emit('}')
@@ -997,12 +1116,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
 
         var_name = node.variable
 
+        # Bounds that made temporary strings are worked out (once) first (Task 18.3.1)
+        if self.has_pending_temps():
+            start, end, step = (self._settled_value(code, 'int') for code in (start, end, step))
+
         # Generate for loop header
         # for (int i = start; i < end; i += step)
         self.emit(f'for (int {var_name} = {start}; {var_name} < {end}; {var_name} += {step}) {{')
         self.indent()
 
+        self.push_scope('loop')
         self.visit(node.body)
+        self.pop_scope()
 
         self.dedent()
         self.emit('}')
@@ -1018,6 +1143,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             Empty string (code emitted directly)
         """
+        # Leaving the loop: free what its body owns (Task 18.3.1)
+        if hasattr(self, 'cleanup_scopes'):
+            self.emit_frees(self.owned_in_scopes('loop'))
         self.emit_line('break')
         return ''
 
@@ -1030,6 +1158,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             Empty string (code emitted directly)
         """
+        if hasattr(self, 'cleanup_scopes'):
+            self.emit_frees(self.owned_in_scopes('loop'))
         self.emit_line('continue')
         return ''
 
@@ -1042,10 +1172,28 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             Empty string (code emitted directly)
         """
+        # Each block frees its own strings when it ends (Task 18.3.1)
+        if hasattr(self, 'cleanup_scopes'):
+            self.push_scope('block')
         for stmt in node.statements:
             self.visit(stmt)
+        if hasattr(self, 'cleanup_scopes'):
+            self.pop_scope()
 
         return ''
+
+    def _settled_condition(self, condition: str) -> str:
+        """If evaluating a condition made temporary strings, store the result in a bool
+        and free them before the branch runs (Task 18.3.1)."""
+        return self._settled_value(condition, 'bool')
+
+    def _settled_value(self, code: str, c_type: str) -> str:
+        if not self.has_pending_temps():
+            return code
+        name = self._declare_temp('val', c_type)
+        self.emit_line(f'{name} = {code}')
+        self.flush_temps()
+        return name
 
     # ========================================================================
     # Function & Declaration Visitors
@@ -1083,6 +1231,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.temp_scopes.append([])
         temp_index = len(self.output)
 
+        # Parameters borrow the caller's values; one the function assigns to gets its own
+        # copy first, so the caller's string is never changed or freed (Task 18.3.1)
+        if not hasattr(self, 'cleanup_scopes'):
+            self.cleanup_scopes, self.stmt_temps, self.consumed = [], [], set()
+        self.push_scope('function')
+        assigned = self.assigned_roots(node.body)
+        for param in node.parameters:
+            if param.name in assigned and not isinstance(param.param_type, ArrayType) \
+                    and self.is_managed(param.param_type):
+                self.emit_line(f'{param.name} = {self.copy_code(param.param_type, param.name)}')
+                self.register_owned(param.name, param.param_type, param.location)
+
         # Generate function body
         if node.body:
             if node.is_lambda:
@@ -1091,6 +1251,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             else:
                 # Regular function: block statement
                 self.visit(node.body)
+
+        self.pop_scope()
 
         # Add return 0 for void main()
         if is_void_main:
@@ -1192,18 +1354,32 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
 
         return_type = self.map_type(node.return_type) if node.return_type else 'void'
         params = self._c_parameter_list(node.parameters)
-        # Generated before this lambda's lines are added, so a lambda nested in this body
-        # is lifted (and defined) ahead of this one. A lambda is its own C function, so it
-        # gets its own temporaries (Task 18.2.2)
+        # Generated into its own buffer, as a function whose body is one return (or
+        # expression) statement - so it gets its own temporaries (Task 18.2.2) and string
+        # cleanup (Task 18.3.1). A lambda nested in this body is lifted ahead of this one
         if not hasattr(self, 'temp_scopes'):
             self.temp_scopes = []
+        if not hasattr(self, 'cleanup_scopes'):
+            self.cleanup_scopes, self.stmt_temps, self.consumed = [], [], set()
+        saved = (self.output, self.indent_level, getattr(self, 'current_return_type', None),
+                 self.cleanup_scopes, self.stmt_temps)
+        self.output, self.indent_level = [], 1
+        self.current_return_type = node.return_type
+        self.cleanup_scopes, self.stmt_temps = [], []
         self.temp_scopes.append([])
-        body_code = self.visit(node.body)
+        self.push_scope('function')
+        if return_type == 'void':
+            self.visit(ExpressionStmt(location=node.location, expression=node.body))
+        else:
+            self.visit(ReturnStmt(location=node.location, value=node.body))
+        self.pop_scope()
         temps = self.temp_scopes.pop()
-        statement = body_code if return_type == 'void' else f'return {body_code}'
+        body_lines = self.output
+        (self.output, self.indent_level, self.current_return_type,
+         self.cleanup_scopes, self.stmt_temps) = saved
         self.lambda_definitions.extend(
             [f'static {return_type} {name}({params}) {{']
             + [f'    {line}' for line in temps]
-            + [f'    {statement};', '}', '']
+            + body_lines + ['}', '']
         )
         return name

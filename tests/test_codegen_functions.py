@@ -634,7 +634,7 @@ class TestParameters:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'void test(int x, float y, char* s, bool flag) {' in output
+        assert 'void test(int x, float y, fusion_string s, bool flag) {' in output
 
     def test_visit_parameter_decl_directly(self):
         """Test visiting ParameterDecl directly"""

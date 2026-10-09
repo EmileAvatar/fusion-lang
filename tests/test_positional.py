@@ -105,17 +105,18 @@ def test_placeholder_parses_as_its_own_segment():
 def test_placeholders_in_order():
     c_code = generate_c(main('string name = "Ada"\nint age = 36\n'
                              'print("User {@1} is {@2} years old", name, age)'))
-    assert 'printf("User %s is %d years old\\n", name, age);' in c_code
+    assert 'printf("User %s is %d years old\\n", name.data, age);' in c_code
 
 
 def test_placeholders_out_of_order_and_repeated():
     c_code = generate_c(main('print("{@3} {@1} {@2} {@1}", "a", "b", "c")'))
-    assert 'printf("%s %s %s %s\\n", "c", "a", "b", "a");' in c_code
+    assert ('printf("%s %s %s %s\\n", FUSION_STR("c").data, FUSION_STR("a").data, '
+            'FUSION_STR("b").data, FUSION_STR("a").data);') in c_code
 
 
 def test_placeholders_mix_with_named_values():
     c_code = generate_c(main('string name = "Ada"\nprint("{name} scored {@1}", 99)'))
-    assert 'printf("%s scored %d\\n", name, 99);' in c_code
+    assert 'printf("%s scored %d\\n", name.data, 99);' in c_code
 
 
 def test_repeated_call_argument_is_evaluated_once():
