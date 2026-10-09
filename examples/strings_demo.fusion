@@ -48,7 +48,7 @@ void function main()
 
     // Operations (Task 18.3.2) - each returns a new string
     string full = first.name + " " + "Lovelace" + '!'
-    print("{full} has {@1} bytes, starts with {@2}", len(full), full[0])
+    print("{full} has {@1} characters, starts with {@2}", len(full), full[0])
     print("[{@1}] [{@2}] [{@3}]", substring(full, 4, 8), toUpper(first.name), trim("  spaced  "))
     print("contains Love: {@1}, index of Love: {@2}", contains(full, "Love"), indexOf(full, "Love"))
 
