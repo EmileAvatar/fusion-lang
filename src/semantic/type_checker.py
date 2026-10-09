@@ -471,22 +471,14 @@ class TypeChecker:
             # Result type is the wider of the two
             return self.get_wider_type(left_type, right_type)
 
+        # Equality operators (Task 18.3.5): ==, !=, ===, !==
+        if node.operator in ['==', '!=', '===', '!==']:
+            self._check_equality(node, left_type, right_type)
+            return PrimitiveType(location=node.location, name='bool')
+
         # Comparison operators: comparable types -> bool
-        if node.operator in ['<', '>', '<=', '>=', '==', '!=']:
-            # For equality, any types can be compared (just checking if they're compatible)
-            if node.operator in ['==', '!=']:
-                # Except structs: comparing them is part of 18.3's equality-operator design,
-                # and C can't compare structs with == at all (Task 18.2.1)
-                for operand, operand_type in ((node.left, left_type), (node.right, right_type)):
-                    if isinstance(operand_type, StructType):
-                        self.errors.append(SemanticError(
-                            f"Comparing structs with '{node.operator}' is not supported yet - "
-                            f"compare their fields instead (struct equality comes with Task "
-                            f"18.3)",
-                            operand.location
-                        ))
-                        break
-            elif self._is_string_type(left_type) and self._is_string_type(right_type):
+        if node.operator in ['<', '>', '<=', '>=']:
+            if self._is_string_type(left_type) and self._is_string_type(right_type):
                 pass  # strings order alphabetically (Task 18.3.1)
             else:
                 # For ordering comparisons, require numeric types (or two strings)
@@ -518,6 +510,87 @@ class TypeChecker:
 
         # Unknown operator - return void for error recovery
         return PrimitiveType(location=node.location, name='void')
+
+    _NUMBER_TYPES = ('int', 'float', 'double')
+
+    def _check_equality(self, node: BinaryExpr, left_type: TypeNode, right_type: TypeNode) -> None:
+        """The equality operators (Task 18.3.5, user decisions 2026-10-07):
+
+        - `==` / `!=` compare values, across types only through a small fixed table (see
+          `_equality_problem`); any other pair is an error
+        - `===` / `!==` also compare the type: on two different types the result is always
+          the same, so it's a warning, and the node is marked `never_equal` for the generator
+        """
+        if self._is_void(left_type) or self._is_void(right_type):
+            return  # an error was already reported for an operand
+        strict = node.operator in ('===', '!==')
+        if strict and not self._same_type_for_strict(left_type, right_type):
+            node.never_equal = True
+            always = 'false' if node.operator == '===' else 'true'
+            self.warnings.append(SemanticError(
+                f"'{node.operator}' is always {always} here: "
+                f"{self.type_to_string(left_type)} and {self.type_to_string(right_type)} are "
+                f"different types (use '==' to compare values across types)",
+                node.location
+            ))
+            return
+        problem = self._equality_problem(left_type, right_type)
+        if problem:
+            self.errors.append(SemanticError(
+                f"Can't compare {self.type_to_string(left_type)} with "
+                f"{self.type_to_string(right_type)} using '{node.operator}': {problem}",
+                node.location
+            ))
+
+    @staticmethod
+    def _is_void(type_node: TypeNode) -> bool:
+        return isinstance(type_node, PrimitiveType) and type_node.name == 'void'
+
+    def _same_type_for_strict(self, left: TypeNode, right: TypeNode) -> bool:
+        """Same type for `===`: arrays only need the same element type - their sizes are
+        compared when the program runs, like their elements."""
+        if isinstance(left, ArrayType) and isinstance(right, ArrayType):
+            return self._same_type_for_strict(left.element_type, right.element_type)
+        return self.types_equal(left, right)
+
+    def _equality_problem(self, left: TypeNode, right: TypeNode) -> Optional[str]:
+        """None when `==` can compare the two types, else the reason it can't. Across types
+        only: a number and text (numeric text equals the number), a char and a string (a
+        one-character string equals the char), int / float / double by value. Never
+        "truthiness": a bool only equals a bool."""
+        if isinstance(left, PrimitiveType) and isinstance(right, PrimitiveType):
+            names = (left.name, right.name)
+            if all(n in self._NUMBER_TYPES for n in names):
+                return None
+            if left.name == right.name and left.name in ('string', 'char', 'bool'):
+                return None
+            if set(names) == {'string', 'char'}:
+                return None
+            if 'string' in names and any(n in self._NUMBER_TYPES for n in names):
+                return None
+            if 'bool' in names:
+                return "a bool only equals a bool (no truthiness)"
+            return "these types never compare equal - convert one first"
+        if isinstance(left, ArrayType) and isinstance(right, ArrayType):
+            if isinstance(left.element_type, ArrayType) or isinstance(right.element_type, ArrayType):
+                return "arrays of arrays can't be compared yet"
+            problem = self._equality_problem(left.element_type, right.element_type)
+            return f"their elements can't be compared ({problem})" if problem else None
+        if isinstance(left, StructType) and isinstance(right, StructType):
+            left_struct, right_struct = self.struct_declaration(left), self.struct_declaration(right)
+            if left_struct is None or right_struct is None:
+                return "unknown struct"
+            if [f.name for f in left_struct.fields] != [f.name for f in right_struct.fields]:
+                return (f"structs {left_struct.name} and {right_struct.name} have different "
+                        f"fields - they compare only with the same field names in the same order")
+            for left_field, right_field in zip(left_struct.fields, right_struct.fields):
+                problem = self._equality_problem(left_field.field_type, right_field.field_type)
+                if problem:
+                    return f"field '{left_field.name}' can't be compared ({problem})"
+            return None
+        if isinstance(left, FunctionType) or isinstance(right, FunctionType):
+            return "functions can't be compared"
+        return "these types never compare equal"
 
     def visit_UnaryExpr(self, node: UnaryExpr) -> TypeNode:
         """Check unary operation type.

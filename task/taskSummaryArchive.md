@@ -3123,3 +3123,37 @@ testing/preview only - they reach the other PC through Dropbox); `.fusion` files
       statement records `fusion_at` for the error message
 - [x] `[structs] string_warn_length = 64` kept as the compile-time guideline
 - [x] Tests rewritten (config, structs, strings); 1509 passed
+
+---
+
+#### 18.3.5 (archived 2026-10-09)
+
+**18.3.5 - The equality operator family (user decisions 2026-10-07 - COMPLETE)**
+Decided already: `=` assigns as a statement but compares inside a condition; `==` compares
+value; `===` compares type and value. Open points, with recommendations (decision 4):
+- [x] `if x = 2` compares like `==` (value) - VB-style readability
+- [x] The same rule in `while` and `else if` conditions, for consistency
+- [x] Negations as in JavaScript: `!=` is "not `==`" and `!==` is "not `===`". (A
+      separate "not `=`" isn't needed, since `=` in a condition already means `==`)
+- [x] `==` across types uses a small, explicit table - and nothing else: a number equals
+      numeric text (`2 == "2"`, `2.5 == "2.5"`); a char equals a one-character string
+      (`'a' == "a"`); int and float compare by value (`2 == 2.0`). Never "truthiness" (no
+      bool <-> number/string), never anything else. Any other mixed pair is a compile error
+      for `==`, and simply false for `===`
+- [x] Structs: `==` compares every field with these same rules; `===` also requires the
+      same struct type. Arrays: element by element, same size. (Closes "struct equality"
+      deferred from 18.2)
+- [x] Every comparison is generated per type - never C's raw `==` on anything that isn't a
+      plain number (the root of the pointer-comparison bug)
+
+Implementation (2026-10-09):
+- Lexer: `===` / `!==` tokens (three-character operators). Parser: an `if` / `while` / `else
+  if` condition is parsed with a flag that lets `=` act as `==` at equality level (named
+  arguments `f(x = 2)` still win, as they're matched first)
+- Checker: one table for `==` (above); `===` on two different types is a warning ("always
+  false"), not an error. Functions can't be compared. Different struct types are `==` when
+  they have the same field names in the same order and every field pair compares
+- Generator (`c_equality.py`): numbers -> C `==`; number vs text ->
+  `fusion_double_eq_str` / `fusion_float_eq_str` (text that isn't a number is simply
+  unequal); char vs one-character string -> `fusion_char_eq_str`; structs and arrays ->
+  helpers generated on demand (`fusion_eq_A__B`, `fusion_arr_eq_A__B`, length + elements)

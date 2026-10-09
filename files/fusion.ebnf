@@ -165,9 +165,13 @@ expression_statement = expression ;
 (* ========== Control Flow ========== *)
 
 if_statement =
-    "if" expression ( block | end_if_block )
-    { "else" "if" expression ( block | end_if_block ) }
+    "if" condition ( block | end_if_block )
+    { "else" "if" condition ( block | end_if_block ) }
     [ "else" ( block | end_else_block ) ] ;
+
+(* Task 18.3.5: inside a condition "=" compares, the same as "==" (if x = 2) *)
+condition =
+    expression ;
 
 end_if_block =
     newline { statement } "End" "if" ;
@@ -194,7 +198,7 @@ for_loop =
     "for" identifier "in" expression block "end" "loop" ;
 
 while_loop =
-    "while" expression block "end" "loop" ;
+    "while" condition block "end" "loop" ;
 
 loop_infinite =
     "loop" block "end" "loop" ;
@@ -218,7 +222,8 @@ logical_and =
     equality { ( "and" | "&&" ) equality } ;
 
 equality =
-    comparison { ( "==" | "!=" | "<>" | "is" | "is" "not" ) comparison } ;
+    comparison { ( "==" | "!=" | "===" | "!==" | "<>" | "is" | "is" "not"
+                 | "=" (* only inside a condition *) ) comparison } ;
 
 comparison =
     range { ( "<" | ">" | "<=" | ">=" ) range } ;
@@ -502,7 +507,7 @@ DEDENT = ? decrease indentation level ? ;
 (* 5. Additive: + - *)
 (* 6. Range: ... *)
 (* 7. Comparison: < > <= >= *)
-(* 8. Equality: == != <> is *)
+(* 8. Equality: == != === !== <> is, and = inside a condition *)
 (* 9. Logical AND: and && *)
 (* 10. Logical OR: or || *)
 (* 11. Assignment: = += -= *= /= %= **= *)

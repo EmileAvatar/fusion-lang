@@ -132,7 +132,7 @@ class TokenType(Enum):
     POWER = auto()          # **
 
     # ============================================================
-    # OPERATORS - Comparison (7 tokens)
+    # OPERATORS - Comparison (9 tokens)
     # ============================================================
     LESS = auto()           # <
     GREATER = auto()        # >
@@ -141,6 +141,8 @@ class TokenType(Enum):
     EQUAL = auto()          # ==
     NOT_EQUAL = auto()      # !=
     NOT_EQUAL_ALT = auto()  # <> (alternative syntax)
+    STRICT_EQUAL = auto()       # === same type and value (Task 18.3.5)
+    STRICT_NOT_EQUAL = auto()   # !== not ===
 
     # ============================================================
     # OPERATORS - Logical (3 tokens)
@@ -257,7 +259,7 @@ _OPERATOR_TYPES: Set[TokenType] = {
     # Comparison
     TokenType.LESS, TokenType.GREATER, TokenType.LESS_EQUAL,
     TokenType.GREATER_EQUAL, TokenType.EQUAL, TokenType.NOT_EQUAL,
-    TokenType.NOT_EQUAL_ALT,
+    TokenType.NOT_EQUAL_ALT, TokenType.STRICT_EQUAL, TokenType.STRICT_NOT_EQUAL,
 
     # Logical
     TokenType.LOGICAL_AND, TokenType.LOGICAL_OR, TokenType.LOGICAL_NOT,

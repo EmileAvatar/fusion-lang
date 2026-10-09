@@ -4892,9 +4892,34 @@ Operator | Description | Example
 
 Operator | Description | Example
 ---|---|---
-`==` | Equal to | `a == b`
-`!=` | Not equal to | `a != b`
+`==` | Equal value | `a == b`
+`!=` | Not `==` | `a != b`
+`===` | Same type and equal value | `a === b`
+`!==` | Not `===` | `a !== b`
+`=` | Inside an `if` / `while` / `else if` condition: the same as `==` | `if a = b`
 `<>` | Not equal to (alternative) | `a <> b`
+
+**Equality rules (Task 18.3.5, user decisions 2026-10-07):**
+
+* `=` assigns as a statement, but compares inside an `if`, `while` or `else if` condition
+  (VB-style readability): `if x = 2` is `if x == 2`. Named arguments still win:
+  `if f(x = 2)` passes `x`
+* `==` compares values. Across types it uses a small fixed table, and nothing else:
+  * a number equals text holding that number - `2 == "2"`, `2.5 == "2.5"`, `2 == "2.0"`;
+    text that isn't a number is simply unequal (`2 == "two"` is false, no error)
+  * a char equals a one-character string - `'a' == "a"`
+  * int, float and double compare by value - `2 == 2.0`
+  * never "truthiness": a bool only equals a bool. Any other mixed pair (bool and int,
+    char and int, a struct and a number, ...) is a compile error
+* `===` also requires the same type: `2 === 2.0` and `2 === "2"` are false. On two
+  different types the answer is known when compiling, so the compiler warns that it is
+  always false (both sides still run)
+* `!=` is "not `==`" and `!==` is "not `===`", as in JavaScript
+* Structs compare field by field with the same rules; two different struct types compare
+  with `==` when they have the same field names in the same order (`===` needs the same
+  struct). Arrays compare element by element and must have the same length
+* Every comparison is generated per type - C's raw `==` is used only on plain numbers,
+  chars and bools, never on strings, structs or arrays
 `<` | Less than | `a < b`
 `>` | Greater than | `a > b`
 `<=` | Less than or equal to | `a <= b`

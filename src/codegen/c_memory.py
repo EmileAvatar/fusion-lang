@@ -369,6 +369,11 @@ static inline float fusion_str_toFloat(fusion_string s, const char* where) {
     if (!fusion_parse_float(s, &v)) fusion_runtime_error(where, "'%.*s' is not a number (check with isFloat first)", s.len, s.data);
     return (float)v;
 }
+// Equality across types (Task 18.3.5): a number equals text holding that number (text that
+// isn't a number is simply unequal); a char equals a one-character string
+static inline bool fusion_double_eq_str(double n, fusion_string s) { double v; return fusion_parse_float(s, &v) && v == n; }
+static inline bool fusion_float_eq_str(float n, fusion_string s) { double v; return fusion_parse_float(s, &v) && (float)v == n; }
+static inline bool fusion_char_eq_str(fusion_char c, fusion_string s) { return s.chars == 1 && fusion_utf8_decode(s.data) == c; }
 // ---- end of runtime ----
 '''
 

@@ -28,9 +28,10 @@ from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name
 from .c_runtime import RuntimeLoweringMixin, escape_c_text
 from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
+from .c_equality import EqualityMixin, EQUALITY_OPERATORS
 
 
-class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin):
+class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin):
     """Generates C code from Fusion AST.
 
     Uses visitor pattern to traverse the AST and generate equivalent C code.
@@ -98,6 +99,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.lambda_definitions = []     # lifted lambda functions, as C lines (Task 18.1.3)
         self.lambda_count = 0
         self.array_wrappers = {}         # returned-array wrapper structs (Task 18.2.4)
+        self.equality_helpers = {}       # struct / array comparison helpers (Task 18.3.5)
         self.temp_scopes = []            # per-function temporary declarations (Task 18.2.2)
         self.temp_count = 0
         self.argument_temps = {}         # id(argument expression) -> its temporary's name
@@ -161,6 +163,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # later position first so the earlier index stays valid
         if self.lambda_definitions:
             self.output[lambda_index:lambda_index] = self.lambda_definitions
+        # Equality helpers (Task 18.3.5) - inserted first, so they end up after the
+        # typedefs and wrappers inserted at the same position below
+        self.output[typedef_index:typedef_index] = self.equality_helper_lines()
         typedef_lines = self.function_typedef_lines()
         if typedef_lines:
             self.output[typedef_index:typedef_index] = (
@@ -613,6 +618,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C binary operation expression
         """
+        # ==, !=, ===, !== - generated per type, never C's raw == on strings, structs or
+        # arrays (Task 18.3.5, see c_equality.py)
+        if node.operator in EQUALITY_OPERATORS:
+            return self.equality_code(node)
+
         left = self.visit(node.left)
         right = self.visit(node.right)
         op = node.operator
@@ -630,13 +640,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return code
             return self.fresh_temporary(code, node.inferred_type)
 
-        # Strings compare by their text, never by address (Task 18.3.1 - this was the latent
-        # pointer-comparison bug); ordering is alphabetical (byte order)
+        # Strings order alphabetically (byte order) - equality is handled above
         if self._is_string(node.left) and self._is_string(node.right):
-            if op == '==':
-                return f'fusion_str_eq({left}, {right})'
-            if op == '!=':
-                return f'(!fusion_str_eq({left}, {right}))'
             if op in ('<', '>', '<=', '>='):
                 return f'(fusion_str_cmp({left}, {right}) {op} 0)'
 
@@ -655,8 +660,6 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             '>': '>',
             '<=': '<=',
             '>=': '>=',
-            '==': '==',
-            '!=': '!=',
 
             # Logical
             'and': '&&',

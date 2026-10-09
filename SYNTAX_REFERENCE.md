@@ -210,6 +210,30 @@ void function main()
     print(joined)
 ```
 
+#### Equality: `=`, `==`, `===`
+
+<!-- example: syntax_equality | task: 18.3.5 -->
+```fusion
+struct Point
+    int x
+    int y
+
+void function main()
+    int x = 2
+    if x = 2                            // inside a condition `=` compares, like `==`
+        print("x is 2")
+    if x == "2" and 'a' == "a" and x == 2.0
+        print("== compares values across a few types")
+    if x !== "2"
+        print("=== also compares the type")
+    Point a = Point(1, 2)
+    if a == Point(1, 2)
+        print("structs compare field by field")
+    int[3] n = [1, 2, 3]
+    if n == [1, 2, 3] and n != [3, 2, 1]
+        print("arrays compare element by element")
+```
+
 #### Project settings - `fusion.toml` (optional, next to the source file)
 
 ```toml

@@ -45,6 +45,8 @@ class Parser:
         """
         self.tokens = tokens
         self.current = 0
+        # Inside an if / while / else-if condition `=` compares, like `==` (Task 18.3.5)
+        self.in_condition = False
 
     # ========================================================================
     # Token Navigation
@@ -195,8 +197,19 @@ class Parser:
 
         return expr
 
+    def parse_condition(self) -> ASTNode:
+        """Parse the condition of an if / while / else if, where `=` compares like `==`
+        (Task 18.3.5 - `if x = 2`). Outside a condition `=` is always assignment."""
+        outer = self.in_condition
+        self.in_condition = True
+        try:
+            return self.parse_expression()
+        finally:
+            self.in_condition = outer
+
     def parse_equality(self) -> ASTNode:
-        """Parse equality: expr == expr, expr != expr
+        """Parse equality: expr == expr, expr != expr, expr === expr, expr !== expr,
+        and expr = expr inside a condition (Task 18.3.5)
 
         Precedence: 6
         Associativity: Left
@@ -206,8 +219,14 @@ class Parser:
         """
         expr = self.parse_relational()
 
-        while self.match(TokenType.EQUAL, TokenType.NOT_EQUAL):
+        operators = [TokenType.EQUAL, TokenType.NOT_EQUAL,
+                     TokenType.STRICT_EQUAL, TokenType.STRICT_NOT_EQUAL]
+        if self.in_condition:
+            operators.append(TokenType.ASSIGN)
+        while self.match(*operators):
             operator = self.previous().value
+            if operator == '=':
+                operator = '=='  # `if x = 2` compares by value, the same as `==`
             right = self.parse_relational()
             expr = BinaryExpr(
                 location=expr.location,
@@ -999,7 +1018,7 @@ class Parser:
         if_token = self.previous()  # IF token
 
         # Condition
-        condition = self.parse_expression()
+        condition = self.parse_condition()
 
         # Skip newlines after condition
         while self.match(TokenType.NEWLINE):
@@ -1041,7 +1060,7 @@ class Parser:
         while_token = self.previous()  # WHILE token
 
         # Condition
-        condition = self.parse_expression()
+        condition = self.parse_condition()
 
         # Skip newlines after condition
         while self.match(TokenType.NEWLINE):

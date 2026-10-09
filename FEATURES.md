@@ -105,7 +105,7 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.3.4b No string length limit by default; `[strings] max_length` (a number) for
 			memory-constrained devices - exceeding it is always an error, never a cut; replaces
 			[structs] string_max_length
-		[ ] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
+		[DONE] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
 		[ ] 18.3.6 Versatile string functions
 			[ ] Inspect: isEmpty, isBlank, isDigits, isLetters, countOf
 			[ ] Search: lastIndexOf, indexOfFrom, containsAny

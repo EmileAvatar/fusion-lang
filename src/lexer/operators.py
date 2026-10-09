@@ -3,7 +3,7 @@
 This module provides operator recognition using longest-match algorithm
 to correctly handle multi-character operators like '...', '**=', '?.', etc.
 
-Total Operators: 30 operator token types (excluding delimiters)
+Total Operators: 32 operator token types (excluding delimiters)
 Total Delimiters: 10 delimiter token types
 """
 
@@ -17,6 +17,8 @@ from typing import Dict, Optional, Tuple
 THREE_CHAR_OPERATORS: Dict[str, TokenType] = {
     '...': TokenType.RANGE,        # Range operator
     '**=': TokenType.POWER_ASSIGN, # Power assignment
+    '===': TokenType.STRICT_EQUAL,      # Same type and value (Task 18.3.5)
+    '!==': TokenType.STRICT_NOT_EQUAL,  # Not ===
 }
 
 
@@ -209,7 +211,7 @@ def is_operator(token_type: TokenType) -> bool:
         # Comparison
         TokenType.LESS, TokenType.GREATER, TokenType.LESS_EQUAL,
         TokenType.GREATER_EQUAL, TokenType.EQUAL, TokenType.NOT_EQUAL,
-        TokenType.NOT_EQUAL_ALT,
+        TokenType.NOT_EQUAL_ALT, TokenType.STRICT_EQUAL, TokenType.STRICT_NOT_EQUAL,
 
         # Logical
         TokenType.LOGICAL_AND, TokenType.LOGICAL_OR, TokenType.LOGICAL_NOT,

@@ -127,23 +127,7 @@ Each adds tests, an example program (Rule 4), and spec/EBNF/CLAUDE.md updates.
 
 **18.3.4b - One length limit for every string** - COMPLETE, detail archived
 
-**18.3.5 - The equality operator family (user decisions 2026-10-07)**
-Decided already: `=` assigns as a statement but compares inside a condition; `==` compares
-value; `===` compares type and value. Open points, with recommendations (decision 4):
-- [ ] `if x = 2` compares like `==` (value) - VB-style readability
-- [ ] The same rule in `while` and `else if` conditions, for consistency
-- [ ] Negations as in JavaScript: `!=` is "not `==`" and `!==` is "not `===`". (A
-      separate "not `=`" isn't needed, since `=` in a condition already means `==`)
-- [ ] `==` across types uses a small, explicit table - and nothing else: a number equals
-      numeric text (`2 == "2"`, `2.5 == "2.5"`); a char equals a one-character string
-      (`'a' == "a"`); int and float compare by value (`2 == 2.0`). Never "truthiness" (no
-      bool <-> number/string), never anything else. Any other mixed pair is a compile error
-      for `==`, and simply false for `===`
-- [ ] Structs: `==` compares every field with these same rules; `===` also requires the
-      same struct type. Arrays: element by element, same size. (Closes "struct equality"
-      deferred from 18.2)
-- [ ] Every comparison is generated per type - never C's raw `==` on anything that isn't a
-      plain number (the root of the pointer-comparison bug)
+**18.3.5 - The equality operator family** - COMPLETE, detail archived
 
 **Out of scope (logged for later):** in-place editing (`s[0] = 'X'`) and mutable vs fixed
 strings (Task 17 - 18.3 strings are replaced, never edited in place, which keeps the
@@ -264,4 +248,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.3 COMPLETE (interpolated strings as values, format).
 - 18.3.4 COMPLETE (string_max_length at run time).
 - 18.3.4b COMPLETE (no length limit by default; exceeding a project limit is an error).
-- **Next Action:** implement **18.3.5 (equality operator family)** per the approved 18.3 plan above.
+- 18.3.5 COMPLETE (equality operator family; Task 18.3 core done).
+- **Next Action:** plan **18.3.6 (versatile string functions)** and get approval.
