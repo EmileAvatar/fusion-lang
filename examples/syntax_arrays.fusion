@@ -1,0 +1,14 @@
+int function sum(int[] values)          // any size, passed by reference
+    int total = 0
+    for i in range(0, len(values))
+        total = total + values[i]
+    return total
+
+int[3] function podium() : [3, 1, 2]    // returned arrays need a size
+
+void function main()
+    int[] scores = [10, 20, 30]         // size from the literal
+    float[3] buffer                     // zero-filled
+    scores[0] = 99
+    int[3] p = podium()
+    print("{@1} {@2} {@3} {@4}", sum(scores), len(scores), buffer[0], p[0])

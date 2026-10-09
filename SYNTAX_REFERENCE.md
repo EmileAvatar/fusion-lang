@@ -2,7 +2,8 @@
 
 A showcase: one short example per **implemented** feature. Every ` ```fusion ` block is a
 complete program that `python check.py` compiles and runs, so this file can't drift from the
-compiler. Planned features are listed in `FEATURES.md`; the full design is in
+compiler. The marker above each block (`<!-- example: name | task: N -->`) names the program
+`python check.py --build-examples` writes to `examples/`. Planned features are listed in `FEATURES.md`; the full design is in
 `files/fusion-language-spec.md`.
 
 When a feature ships, add its example here (Auto-Update Policy in `CLAUDE.md`).
@@ -11,6 +12,7 @@ When a feature ships, add its example here (Auto-Update Policy in `CLAUDE.md`).
 
 #### Hello, functions and the three block styles
 
+<!-- example: syntax_functions_and_blocks | task: 01-04 -->
 ```fusion
 // Return type first. One-line functions use ':'
 int function add(int a, int b) : a + b
@@ -38,6 +40,7 @@ End function
 
 #### Variables, constants, control flow
 
+<!-- example: syntax_variables_and_control_flow | task: 08 -->
 ```fusion
 void function main()
     int count = 0
@@ -60,6 +63,7 @@ void function main()
 
 #### Default parameters and named arguments
 
+<!-- example: syntax_defaults_and_named_args | task: 18.2.2 -->
 ```fusion
 void function greet(string name = "World", int times = 1)
     for i in range(0, times)
@@ -76,6 +80,7 @@ void function main()
 
 #### Interpolation and `{@N}` placeholders
 
+<!-- example: syntax_interpolation | task: 18.2.2b -->
 ```fusion
 void function main()
     string name = "Ada"
@@ -87,6 +92,7 @@ void function main()
 
 #### Lambdas and function values
 
+<!-- example: syntax_lambdas | task: 18.1.3 -->
 ```fusion
 int function apply((int) : int f, int v) : f(v)
 int function triple(int x) : x * 3
@@ -98,6 +104,7 @@ void function main()
 
 #### Arrays
 
+<!-- example: syntax_arrays | task: 18.2.4 -->
 ```fusion
 int function sum(int[] values)          // any size, passed by reference
     int total = 0
@@ -117,6 +124,7 @@ void function main()
 
 #### Structs (fields only, copied by value)
 
+<!-- example: syntax_structs | task: 18.2 -->
 ```fusion
 struct Point
     int x
@@ -149,6 +157,7 @@ void function main()
 
 #### Strings (values, freed automatically)
 
+<!-- example: syntax_strings | task: 18.3.1 -->
 ```fusion
 string function shout(string word)
     word = "LOUD"                       // works on its own copy
@@ -165,6 +174,7 @@ void function main()
 
 ## String operations (each returns a new string)
 
+<!-- example: syntax_string_operations | task: 18.3.2 -->
 ```fusion
 void function main()
     string name = "Ada"

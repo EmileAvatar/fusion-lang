@@ -1,0 +1,27 @@
+struct Point
+    int x
+    int y
+
+struct Player {
+    string name
+    float health = 100.0
+    int[3] scores
+}
+
+struct Line
+    Point a
+    Point b
+End struct
+
+Point function add(Point p, Point q) : Point(p.x + q.x, p.y + q.y)
+
+void function main()
+    Point a = Point(3, 4)
+    Point b = a                         // a copy
+    b.x = 10
+    Point n = Point(y = 2, x = 1)       // named construction
+    Player ada = Player("Ada", scores = [5, 6, 7])
+    Line l = Line(a, n)
+    l.b.y = 9
+    Point[] pts = [Point(1, 1), add(a, n)]
+    print("{@1} {@2} {@3} {@4} {@5}", a.x, b.x, ada.health, l.b.y, pts[1].x)

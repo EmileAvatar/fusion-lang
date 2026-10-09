@@ -1,0 +1,22 @@
+// Return type first. One-line functions use ':'
+int function add(int a, int b) : a + b
+
+// 1. Indentation
+int function bigger(int a, int b)
+    if a > b
+        return a
+    return b
+
+// 2. Braces
+int function smaller(int a, int b) {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+// 3. End keywords
+void function main()
+    print("Hello, Fusion!")
+    print("{@1} {@2} {@3}", add(2, 3), bigger(4, 9), smaller(4, 9))
+End function

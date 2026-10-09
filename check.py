@@ -4,21 +4,27 @@
 Replaces the commands that used to be run by hand after every change, and prints a short
 summary - full output only for what failed:
 
-    python check.py            everything below
-    python check.py --quick    unit tests only
-    python check.py --status   open items from FEATURES.md + the next action (no build)
+    python check.py                   everything below
+    python check.py --quick           unit tests only
+    python check.py --status          open items from FEATURES.md + the next action (no build)
+    python check.py --build-examples  write SYNTAX_REFERENCE.md programs to examples/, build
+                                      every example (.c + .exe), regenerate #list.csv and
+                                      #run.bat (Task 23 - see examples/CLAUDE.md)
 
 Checks:
     tests     pytest (every end-to-end test already runs under the string leak check)
     examples  tests/verify_examples.py - compile, run, compare output
     leaks     every examples/*.fusion and every SYNTAX_REFERENCE.md program, built with
               -DFUSION_LEAK_CHECK and run: exit 3 = a string never freed, 4 = freed twice
-    reference every ```fusion block in SYNTAX_REFERENCE.md compiles and runs (exit 0)
+    reference every ```fusion block in SYNTAX_REFERENCE.md compiles and runs (exit 0), and
+              its copy in examples/ is up to date
     ascii     no non-ASCII characters in .py / .fusion files (CLAUDE.md Rule 2)
 
 Exit code 0 only if everything passed.
 """
 
+import csv
+import datetime
 import os
 import re
 import subprocess
@@ -27,7 +33,14 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+EXAMPLES = ROOT / 'examples'
 sys.path.insert(0, str(ROOT))
+
+# SYNTAX_REFERENCE.md: `<!-- example: <file name> | task: <task> -->` right above a block
+EXAMPLE_MARKER = re.compile(r'<!-- example: (\S+) \| task: (\S+) -->\n```fusion\n(.*?)```', re.S)
+
+# Hand-written demos without "(Task N)" in their first line
+DEMO_TASKS = {'arrays_demo': '09', 'const_demo': '08'}
 
 
 def run(cmd, **kwargs):
@@ -97,9 +110,96 @@ def reference_programs():
     return re.findall(r'```fusion\n(.*?)```', text, re.S)
 
 
+def reference_examples():
+    """(file name, task, code) for every marked SYNTAX_REFERENCE.md program."""
+    text = (ROOT / 'SYNTAX_REFERENCE.md').read_text(encoding='utf-8')
+    return EXAMPLE_MARKER.findall(text)
+
+
+def check_reference_sync():
+    """Every reference program is marked, and its copy in examples/ matches."""
+    examples = reference_examples()
+    problems = []
+    if len(examples) != len(reference_programs()):
+        problems.append('a ```fusion block in SYNTAX_REFERENCE.md has no '
+                        '<!-- example: name | task: N --> marker above it')
+    for name, _, code in examples:
+        path = EXAMPLES / f'{name}.fusion'
+        if not path.exists() or path.read_text(encoding='utf-8') != code:
+            problems.append(f'examples/{name}.fusion is missing or out of date')
+    if problems:
+        problems.append('fix: python check.py --build-examples')
+    return not problems, f'{len(examples)} in sync' if not problems else 'out of sync', \
+        '\n'.join(problems)
+
+
+def example_task(path: Path, reference_tasks: dict) -> str:
+    if path.stem in reference_tasks:
+        return reference_tasks[path.stem]
+    first = path.read_text(encoding='utf-8').splitlines()[:1]
+    match = re.search(r'\(Task ([\w.]+)\)', first[0]) if first else None
+    return match.group(1) if match else DEMO_TASKS.get(path.stem, '01-04')
+
+
+def first_added(path: Path) -> str:
+    """The date a file first appeared in git, or today for a new one."""
+    result = run(['git', 'log', '--diff-filter=A', '--follow', '--format=%as', '--',
+                  str(path.relative_to(ROOT))])
+    dates = result.stdout.split()
+    return dates[-1] if dates else datetime.date.today().isoformat()
+
+
+def build_examples():
+    """Task 23: write the reference programs to examples/, build every example, and
+    regenerate #list.csv and #run.bat (both local-only, see examples/CLAUDE.md)."""
+    examples = reference_examples()
+    reference_tasks = {name: task for name, task, _ in examples}
+    for name, _, code in examples:
+        path = EXAMPLES / f'{name}.fusion'
+        if not path.exists() or path.read_text(encoding='utf-8') != code:
+            path.write_text(code, encoding='utf-8', newline='')
+            print(f'wrote     examples/{path.name}')
+
+    failures = []
+    sources = sorted(EXAMPLES.glob('*.fusion'))
+    for path in sources:
+        result = run([sys.executable, 'main.py', str(path.relative_to(ROOT))])
+        if result.returncode != 0:
+            failures.append(f'{path.name}:\n{result.stderr[-800:]}')
+
+    list_file = EXAMPLES / '#list.csv'
+    previous = {}
+    if list_file.exists():
+        with open(list_file, newline='', encoding='utf-8') as f:
+            previous = {row['fusion']: row for row in csv.DictReader(f)}
+    with open(list_file, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(['fusion', 'c', 'exe', 'task', 'added'])
+        for path in sources:
+            added = previous.get(path.name, {}).get('added') or first_added(path)
+            writer.writerow([path.name, f'{path.stem}.c', f'{path.stem}.exe',
+                             example_task(path, reference_tasks), added])
+
+    lines = ['@echo off', 'rem Generated by "python check.py --build-examples" - do not edit',
+             'cd /d "%~dp0"']
+    for path in sources:
+        lines += ['echo.', 'echo.', f'echo ---- {path.stem}.exe ----', 'echo.', 'echo.',
+                  f'".\\{path.stem}.exe"']
+    lines += ['echo.', 'pause']
+    (EXAMPLES / '#run.bat').write_text('\r\n'.join(lines) + '\r\n', encoding='ascii')
+
+    print(f'built     {len(sources) - len(failures)}/{len(sources)} examples; '
+          f'#list.csv and #run.bat updated')
+    for failure in failures:
+        print('\n' + failure)
+    return 0 if not failures else 1
+
+
 def check_leaks():
+    # Reference programs are checked from SYNTAX_REFERENCE.md itself; their copies in
+    # examples/ (syntax_*) would only repeat them
     programs = [(p.name, p.read_text(encoding='utf-8'), str(p))
-                for p in sorted((ROOT / 'examples').glob('*.fusion'))]
+                for p in sorted(EXAMPLES.glob('*.fusion')) if not p.name.startswith('syntax_')]
     programs += [(f'SYNTAX_REFERENCE #{i}', code, str(ROOT / 'reference.fusion'))
                  for i, code in enumerate(reference_programs(), 1)]
     failures = []
@@ -149,9 +249,12 @@ def main(argv):
     if '--status' in argv:
         show_status()
         return 0
+    if '--build-examples' in argv:
+        return build_examples()
     checks = [('tests', check_tests)]
     if '--quick' not in argv:
-        checks += [('examples', check_examples), ('leaks', check_leaks), ('ascii', check_ascii)]
+        checks += [('examples', check_examples), ('leaks', check_leaks),
+                   ('reference', check_reference_sync), ('ascii', check_ascii)]
     all_ok = True
     details = []
     for name, check in checks:

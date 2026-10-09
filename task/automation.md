@@ -15,6 +15,7 @@ command is typed more than twice.
 | Python one-liner scanning files for non-ASCII characters | after every edit session | **Automated** - `check.py` ascii |
 | Reading `taskSummary2.md` to find status / next action | every session start | **Automated** - `python check.py --status` |
 | Compiling each SYNTAX_REFERENCE.md example by hand | after doc changes | **Automated** - `check.py` (it already caught a wrong example) |
+| Copying reference examples into `examples/`, building every example, keeping a list and a runner | per feature | **Automated** - `python check.py --build-examples` (Task 23) |
 | `gcc -Wall -Wextra -std=c99 -c x.c` to check generated C for warnings | after codegen changes | **Candidate** - add `check.py --warnings` (needs a list of accepted warnings, e.g. unused hidden `fusion_len_*` parameters) |
 | Python edit scripts written to the scratchpad (`patch(old, new)` helper) | many per task | **Partly** - use the Edit tool for small changes; a reusable `tools/patch.py` is possible but low value |
 | Shell heredocs containing `\n` or quotes | (caused repeated breakage) | **Stopped** - the shell mangles escapes; write a script file instead (CLAUDE.md Rule 8) |

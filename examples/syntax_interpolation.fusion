@@ -1,0 +1,6 @@
+void function main()
+    string name = "Ada"
+    int age = 36
+    print("{name} is {age}")                       // a name or a field path inside {}
+    print("{@2}, {@1}!", "World", "Hello")          // any order, repeatable
+    print("100% sure")                              // % is printed as-is

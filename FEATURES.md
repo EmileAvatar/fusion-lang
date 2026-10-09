@@ -97,11 +97,28 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 18.3 Proper strings
 		[DONE] 18.3.1 String values and automatic cleanup, compare by content, leak check
 		[DONE] 18.3.2 String operations: `+`, `len`, `s[i]`, substring/contains/indexOf/..., conversions
+		[ ] 18.3.2b Unicode by default: `[strings] encoding = "utf-8"` (ascii | utf-8 | utf-16 | utf-32);
+			len counts characters, lenb counts bytes; s[i]/substring by character; char holds any
+			Unicode character; fast path for ASCII text; isAscii, asciiOnly, charCode, fromCharCode, byteAt
 		[ ] 18.3.3 Interpolated strings as values anywhere, `format(...)`
 		[ ] 18.3.4 Struct string fields growable, string_max_length at run time
 		[ ] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
+		[ ] 18.3.6 Versatile string functions
+			[ ] Inspect: isEmpty, isBlank, isDigits, isLetters, countOf
+			[ ] Search: lastIndexOf, indexOfFrom, containsAny
+			[ ] Extract: left, right
+			[ ] Change: replace, replaceFirst, insert, remove, repeat, reverse, trimStart, trimEnd, capitalize, toTitle
+			[ ] Padding & alignment: padLeft, padRight, center, truncate (with "...")
+			[ ] Masking: email, phone, number and custom string-number formats - planning overview only;
+				design in detail when this item starts
+			[ ] Number formatting: formatNumber(1234.5, "#,##0.00"), zero padding, toHex / parseInt with base
+			[ ] Compare: equalsIgnoreCase, compareIgnoreCase, natural order ("file2" before "file10")
+		[ ] 18.3.7 The String class and method syntax - every string function reachable three ways:
+			`String.replace(s, old, new)` (static class, always available), `name.toUpper()` (a string
+			variable), `"Claude".toUpper()` (a string literal)
 	[ ] 18.4 `import` and multi-file projects
 	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std
+		[ ] 18.5.x String split & join: split(s, ","), join(list, ", "), lines(s), words(s) (need lists)
 
 #### 19 Library trust, isolation & security [ ]
 	[POSTPONED to 18.4] 19.1 Compiler-verified capability signatures
@@ -121,6 +138,15 @@ The single place to see what is done, open, or postponed. One line per item.
 #### 21 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
 	[POSTPONED to 18.3] 21.1 Detailed plan (needs working strings for error messages)
 
+#### 23 Examples folder as a showcase [ ]
+	[DONE] 23.1 One example per SYNTAX_REFERENCE.md section, written and built by `check.py --build-examples`
+	[DONE] 23.2 `examples/#list.csv` (fusion, c, exe, task, date added) - local only, not in git
+	[DONE] 23.3 `examples/#run.bat` runs every .exe with `---- name.exe ----` separators, then pauses - local only
+	[DONE] 23.4 `examples/CLAUDE.md` - the folder's rules
+	[DONE] 23.5 Main CLAUDE.md Rule 4 points to it
+	[ ] 23.6 Remove the stray `examples/New folder` (deleting was blocked by permissions - user to
+		delete it, or allow it); `fusion.yaml` -> `files/fusion-overview.yaml` done
+
 #### 22 Project tracking restructure (FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, check.py) [ ]
 	[DONE] 22.1 FEATURES.md
 	[DONE] 22.2 SYNTAX_REFERENCE.md
@@ -138,15 +164,21 @@ The single place to see what is done, open, or postponed. One line per item.
 ## Later / advanced (after MVP)
 
 Kept in Fusion's design, deliberately postponed - the simple version comes first.
-	[POSTPONED to 17.4] String pool (shared storage for identical text)
+	[POSTPONED to 17.4] String pool (shared storage for identical text) - when pooling is on,
+		strings are pooled and mutable strings use a StringBuilder internally (user note 2026-10-09)
+	[POSTPONED to 17] StringBuilder for fast repeated appends (internal for mutable strings)
 	[POSTPONED to 15.5] Garbage collection as a project-selectable memory strategy
 	[POSTPONED to 15.5] Unique<T> / Shared<T> / Weak<T> (decided in 12.7, not built)
 	[POSTPONED to 17] Copy-on-write string sharing, in-place string editing
-	[POSTPONED - after MVP] Method-call syntax on strings and structs (`name.toUpper()`)
+	[POSTPONED to 18.3.7] Method-call syntax on strings (`name.toUpper()`); on structs - after MVP
 	[POSTPONED to 18.3] Closures (lambdas using outer variables) - need string ownership first
 	[POSTPONED - after MVP] Named lambdas inside functions; multi-line lambda bodies
 	[POSTPONED - after MVP] Lambdas / function types returning arrays; const array set from a call
-	[POSTPONED - after MVP] Unicode-aware string length and indexing (bytes for now)
+	[POSTPONED - after MVP] Unicode-aware case changes (é -> É), normalization (é typed two ways
+		compares equal), counting what users see as one symbol (emoji families)
+	[POSTPONED - needs IO (18.5) / Data module] Bytes <-> string, Base64, URL encoding,
+		JSON/HTML escaping, validating UTF-8 from files and networks
+	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
 	[POSTPONED - needs references] Identity operator (same object in memory)
 	[POSTPONED to 18.5] Growable arrays / lists; multi-dimensional arrays

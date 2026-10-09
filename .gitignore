@@ -16,6 +16,10 @@ build/
 *.out
 *.obj
 
+# Examples index and runner - local preview only for now (Task 23, user decision)
+examples/#list.csv
+examples/#run.bat
+
 # Generated C code (from Fusion compilation)
 *.c
 examples/*.c

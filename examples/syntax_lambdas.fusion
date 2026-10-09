@@ -1,0 +1,6 @@
+int function apply((int) : int f, int v) : f(v)
+int function triple(int x) : x * 3
+
+void function main()
+    (int) : int twice = func(int x) : x * 2
+    print("{@1} {@2}", apply(twice, 5), apply(triple, 5))   // named functions are values too

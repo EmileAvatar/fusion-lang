@@ -1,0 +1,11 @@
+void function greet(string name = "World", int times = 1)
+    for i in range(0, times)
+        print("Hello, {name}!")
+
+int function sub(int a, int b) : a - b
+
+void function main()
+    greet()                      // defaults filled in
+    greet("Fusion", 2)
+    greet(times = 1)             // named: skip any parameter with a default
+    print("{@1}", sub(b = 5, a = 3))   // any order, unnamed ones first

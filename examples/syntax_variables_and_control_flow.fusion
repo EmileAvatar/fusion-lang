@@ -1,0 +1,17 @@
+void function main()
+    int count = 0
+    float price = 2.5
+    bool ready = true
+    char grade = 'A'
+    const int LIMIT = 3
+
+    while count < LIMIT
+        count = count + 1
+    for i in range(0, 10, 2)
+        if i == 4
+            continue
+        if i == 8
+            break
+        print("i = {i}")
+    if ready and not (price > 5.0)
+        print("count {count}, grade {grade}")

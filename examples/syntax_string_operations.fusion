@@ -1,0 +1,13 @@
+void function main()
+    string name = "Ada"
+    string full = name + " " + "Lovelace" + '!'   // join strings (and chars) with +
+    print("{full}: {@1} bytes, first {@2}", len(full), full[0])   // s[i] is bounds-checked
+    print("[{@1}] [{@2}] [{@3}]", substring(full, 4, 8), toUpper(name), trim("  x  "))
+    print("{@1} {@2} {@3} {@4}", contains(full, "Love"), indexOf(full, "Love"), startsWith(full, "Ada"), endsWith(full, "!"))
+
+    string input = "42"
+    if isInt(input)                                // check before converting
+        int n = toInt(input)
+        string text = toString(n * 2) + " / " + toString(2.5) + " / " + toString(true)
+        print(text)
+    // toInt("12x") would stop the program: Runtime error at file:line: '12x' is not a whole number

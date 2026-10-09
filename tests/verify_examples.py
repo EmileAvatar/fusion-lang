@@ -370,7 +370,9 @@ def main():
         print_error(f"Examples directory not found: {examples_dir}")
         return 1
 
-    fusion_files = list(examples_dir.glob('*.fusion'))
+    # syntax_*.fusion are generated from SYNTAX_REFERENCE.md (Task 23) - check.py builds and
+    # runs those under the leak check; this script covers the hand-written demos
+    fusion_files = [f for f in examples_dir.glob('*.fusion') if not f.name.startswith('syntax_')]
 
     if not fusion_files:
         print_warning("No .fusion files found in examples/")

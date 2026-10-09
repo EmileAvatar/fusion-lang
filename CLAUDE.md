@@ -35,10 +35,14 @@ files and chat; never in `.py`, `.c`, `.h`, `.fusion`, config, JSON or YAML. Use
 - **`task/taskBacklog.md`** - write-ups of tasks not started yet; a task's section moves
   back to `taskSummary2.md` when it becomes active
 - Detail of *what* changed is in git commit messages and tests - don't repeat it in notes
+- **"Add it to the tasks"** (user phrase) means: schedule it in `FEATURES.md` - under the task
+  being worked on if it belongs there, otherwise under the future task it fits, or "Later /
+  advanced" with a `[POSTPONED to X]`
 
 ### Rule 4: Ship an example for every new feature
-When a language feature lands: add a runnable program to `examples/` (and its expected
-output to `tests/verify_examples.py`) and a short example to `SYNTAX_REFERENCE.md`.
+When a language feature lands: add a short example to `SYNTAX_REFERENCE.md` (it becomes an
+example program in `examples/` - see `examples/CLAUDE.md`), or a fuller demo program in
+`examples/` with its expected output in `tests/verify_examples.py`.
 
 ### Rule 5: Headings in tracking and reference files
 In `FEATURES.md`, `SYNTAX_REFERENCE.md` and similar files, `##` is only for **major

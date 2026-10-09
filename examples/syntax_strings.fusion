@@ -1,0 +1,11 @@
+string function shout(string word)
+    word = "LOUD"                       // works on its own copy
+    return word
+
+void function main()
+    string a = "apple"
+    string b = a                        // an independent copy
+    b = "banana"
+    string loud = shout(a)
+    print("{@1} {@2} {@3}", a, b, loud)
+    print("{@1} {@2}", a == "apple", a < b)   // compares text; < > alphabetical
