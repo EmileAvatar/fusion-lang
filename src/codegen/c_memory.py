@@ -257,6 +257,15 @@ static inline fusion_string fusion_str_format(const char* format, ...) {
     return r;
 }
 
+// A string stored into a struct field is cut to the project's [structs] string_max_length,
+// counted in characters (Task 18.3.4). Takes ownership of `s`
+static inline fusion_string fusion_str_limit(fusion_string s, int max) {
+    if (s.chars <= max) return s;
+    fusion_string r = fusion_str_make(s.data, fusion_utf8_offset(s, max));
+    fusion_str_free(&s);
+    return r;
+}
+
 // Encoding helpers (Task 18.3.2b)
 static inline bool fusion_str_isAscii(fusion_string s) { return s.chars == s.len; }
 static inline fusion_string fusion_str_asciiOnly(fusion_string s, fusion_char replacement) {

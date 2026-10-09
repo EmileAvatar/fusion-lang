@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Fri Oct  9 20:55:56 SAST 2026
+**Date:** Fri Oct  9 21:03:46 SAST 2026
 **Total Examples:** 11
 
 ## Summary
@@ -655,7 +655,7 @@ original = quiet, loud = LOUD
 a == apple: 1, a < b: 1
 Ada 555-0100 / Grace 555-0123
 Grace: found, Alan: missing
-Ada Lovelace! has 13 bytes, starts with A
+Ada Lovelace! has 13 characters, starts with A
 [Lovelace] [ADA] [spaced]
 contains Love: 1, index of Love: 4
 42 doubled is 84
@@ -669,7 +669,7 @@ original = quiet, loud = LOUD
 a == apple: 1, a < b: 1
 Ada 555-0100 / Grace 555-0123
 Grace: found, Alan: missing
-Ada Lovelace! has 13 bytes, starts with A
+Ada Lovelace! has 13 characters, starts with A
 [Lovelace] [ADA] [spaced]
 contains Love: 1, index of Love: 4
 42 doubled is 84

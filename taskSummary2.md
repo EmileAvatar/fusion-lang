@@ -123,14 +123,7 @@ Each adds tests, an example program (Rule 4), and spec/EBNF/CLAUDE.md updates.
 
 **18.3.3 - Interpolated strings as values** - COMPLETE, detail archived
 
-**18.3.4 - Struct string fields become growable (user decision 2026-10-08)**
-- [ ] Follows from 18.3.1: a string field owns its text, so it holds any length, is copied
-      with the struct, and is freed with it
-- [ ] `[structs] string_max_length` now also applies at run time: a longer value stored into
-      a field is cut to the limit (compile-time warnings for literals stay as they are;
-      `"max memory"` = no cut). `string_warn_length` stays a compile-time guideline -
-      there's nothing useful to warn about while a program runs
-- [ ] `string_mutable = false` keeps working (no assignment after construction)
+**18.3.4 - Struct string fields become growable** - COMPLETE, detail archived
 
 **18.3.5 - The equality operator family (user decisions 2026-10-07)**
 Decided already: `=` assigns as a statement but compares inside a condition; `==` compares
@@ -267,4 +260,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.2 COMPLETE (string operations).
 - 18.3.2b COMPLETE (Unicode by default).
 - 18.3.3 COMPLETE (interpolated strings as values, format).
-- **Next Action:** implement **18.3.4 (growable struct string fields, string_max_length at run time)** per the approved 18.3 plan above.
+- 18.3.4 COMPLETE (string_max_length at run time).
+- **Next Action:** implement **18.3.5 (equality operator family)** per the approved 18.3 plan above.

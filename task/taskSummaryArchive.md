@@ -3087,3 +3087,21 @@ testing/preview only - they reach the other PC through Dropbox); `.fusion` files
 - [x] Done 2026-10-09: `fusion_str_format` (vsnprintf, measured first) builds the string; an
       interpolated value is a fresh temporary like a call result; `format` reuses print's
       placeholder checks. `{@N}` outside print/format is an error. 15 new tests
+
+---
+
+#### 18.3.4 (archived 2026-10-09)
+
+**18.3.4 - Struct string fields become growable (user decision 2026-10-08)**
+- [x] Follows from 18.3.1: a string field owns its text, so it holds any length, is copied
+      with the struct, and is freed with it
+- [x] `[structs] string_max_length` now also applies at run time: a longer value stored into
+      a field is cut to the limit (compile-time warnings for literals stay as they are;
+      `"max memory"` = no cut). `string_warn_length` stays a compile-time guideline -
+      there's nothing useful to warn about while a program runs
+- [x] `string_mutable = false` keeps working (no assignment after construction)
+- [x] Done 2026-10-09: growable fields came with 18.3.1; added `fusion_str_limit` (cuts by
+      character, takes ownership) applied by codegen to non-literal values stored in a field
+      or string-array field element; `CCodeGenerator(string_max_length=...)` from fusion.toml.
+      Not covered: an array returned by a function copied into an array field (`t.tags =
+      names()`) is not limited - noted. 4 new tests incl. a 10,000-character field

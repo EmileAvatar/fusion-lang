@@ -18,6 +18,7 @@ import tempfile
 import pytest
 
 from src.codegen.c_memory import RUNTIME_PRELUDE
+from src.config import StructsConfig
 from tests.test_structs import parse, analyze, errors_of, generate_c, main
 from tests.test_end_to_end import compile_and_run
 
@@ -500,3 +501,69 @@ def test_interpolated_value_codegen():
 ])
 def test_interpolation_errors(body, message):
     assert message in errors_of(main(body))
+
+
+# ============================================================
+# 18.3.4 - Struct string fields: any length, string_max_length at run time
+# ============================================================
+
+def run_with_limit(source: str, limit) -> list:
+    """Compile with a given [structs] string_max_length (None = "max memory") under the leak
+    check, run, and return stdout lines."""
+    from src.codegen import CCodeGenerator
+    analyzer, ast, ok = analyze(source, StructsConfig(string_warn_length=0, string_max_length=limit))
+    assert ok, analyzer.get_errors()
+    c_code = CCodeGenerator(string_max_length=limit).generate(ast)
+    with tempfile.TemporaryDirectory() as tmp:
+        c_file, exe = os.path.join(tmp, 'limit.c'), os.path.join(tmp, 'limit.exe')
+        with open(c_file, 'w', encoding='utf-8') as f:
+            f.write(c_code)
+        build = subprocess.run(['gcc', '-DFUSION_LEAK_CHECK', c_file, '-o', exe],
+                               capture_output=True, text=True)
+        assert build.returncode == 0, build.stderr
+        result = subprocess.run([exe], capture_output=True, text=True, encoding='utf-8')
+        assert result.returncode == 0, result.stderr
+        return result.stdout.splitlines()
+
+
+NOTE = 'struct Note\n    string text\n    string[2] tags\n\n'
+
+
+def test_run_time_strings_cut_to_the_limit_when_stored_in_fields():
+    assert run_with_limit(ECHO + NOTE + main(
+        'Note n = Note(echo("abcdefgh"), [echo("123456789"), "x"])\n'
+        'print("{@1} {@2} {@3}", n.text, n.tags[0], n.tags[1])\n'
+        'n.text = echo("ABCDEFGHIJ")\n'
+        'n.tags[1] = echo("zzzzzzzz")\n'
+        'print("{@1} {@2}", n.text, n.tags[1])\n'
+        'string loose = echo("not a field, never cut")\n'
+        'print(loose)\n'
+    ), 5) == ["abcde 12345 x", "ABCDE zzzzz", "not a field, never cut"]
+
+
+def test_limit_counts_characters_not_bytes():
+    assert run_with_limit(ECHO + NOTE + main(
+        'Note n = Note(echo("\u00e9\u00e9\u00e9\u00e9"))\n'
+        'print("{@1} {@2}", len(n.text), lenb(n.text))\n'
+    ), 3) == ["3 6"]
+
+
+def test_struct_holds_a_10000_character_string_built_at_run_time():
+    assert run_with_limit(NOTE + main(
+        'string big = ""\n'
+        'for i in range(0, 1000)\n'
+        '    big = big + "0123456789"\n'
+        'Note n = Note(big)\n'
+        'Note copy = n\n'
+        'print("{@1} {@2}", len(n.text), len(copy.text))\n'
+    ), None) == ["10000 10000"]
+
+
+def test_default_limit_4096_applies_at_run_time():
+    assert run_with_limit(NOTE + main(
+        'string big = ""\n'
+        'for i in range(0, 500)\n'
+        '    big = big + "0123456789"\n'
+        'Note n = Note(big)\n'
+        'print("{@1}", len(n.text))\n'
+    ), 4096) == ["4096"]

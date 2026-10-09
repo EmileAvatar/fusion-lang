@@ -89,7 +89,8 @@ def compile_and_run_leak_checked(source: str, source_path: str):
         analyzer = SemanticAnalyzer(structs_config=config.structs, strings_config=config.strings)
         if not analyzer.analyze(ast):
             return None, '\n'.join(str(e) for e in analyzer.get_errors())
-        c_code = CCodeGenerator(encoding=config.strings.encoding).generate(ast)
+        c_code = CCodeGenerator(encoding=config.strings.encoding,
+                                string_max_length=config.structs.string_max_length).generate(ast)
     except Exception as e:  # report, don't crash the checker
         return None, f'{type(e).__name__}: {e}'
 

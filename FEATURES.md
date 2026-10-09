@@ -101,7 +101,7 @@ The single place to see what is done, open, or postponed. One line per item.
 			len counts characters, lenb counts bytes; s[i]/substring by character; char holds any
 			Unicode character; fast path for ASCII text; isAscii, asciiOnly, charCode, fromCharCode, byteAt
 		[DONE] 18.3.3 Interpolated strings as values anywhere, `format(...)`
-		[ ] 18.3.4 Struct string fields growable, string_max_length at run time
+		[DONE] 18.3.4 Struct string fields growable, string_max_length at run time
 		[ ] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
 		[ ] 18.3.6 Versatile string functions
 			[ ] Inspect: isEmpty, isBlank, isDigits, isLetters, countOf

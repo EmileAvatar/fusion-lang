@@ -1498,10 +1498,13 @@ never cut below the project's hard limit. Controlled per project in `fusion.toml
 * `string_storage` (default `"owned"`) - `"pooled"` is reserved for Task 17 and is a compile
   error until then
 
-A string field owns its text like any string value (see "String Implementation"), so it is
-copied with the struct and freed with it (Task 18.3.1). The length rules are checked at
-compile time on string literals going into a field; once strings can be built at run time
-(Task 18.3.2-18.3.4), `string_max_length` is also applied at run time.
+A string field owns its text like any string value (see "String Implementation"), so it
+holds any length, is copied with the struct and freed with it (Task 18.3.1).
+`string_max_length` applies both at compile time (string literals going into a field, with a
+warning) and at run time (Task 18.3.4): a string built while the program runs is cut to the
+limit - counted in characters - when it is stored in a field or an element of a string-array
+field. Strings that aren't stored in a struct are never cut. `string_warn_length` stays a
+compile-time guideline.
 
 ---
 
