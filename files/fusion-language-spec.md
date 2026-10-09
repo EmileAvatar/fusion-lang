@@ -267,15 +267,43 @@ int other = sum([7, 8])            // or an array literal directly
 * A `const` array can't be passed (the function could change it - a read-only parameter
   form doesn't exist yet); array parameters can't have default values
 * An array can only be initialized from an array literal - `int[] b = a` is an error
-  (whether that should copy or share `a` is undecided)
+  (whether that should copy or share `a` is undecided) - or from an array a function
+  returns (below)
+
+**Array return values (implemented, Task 18.2.4):**
+
+```
+int[3] function podium() : [3, 1, 2]
+Point[2] function ends(int size)
+    return [Point(0, 0), Point(size, size)]
+
+int[3] a = podium()        // copied into a new array
+a = podium()               // replaces a's elements
+int top = podium()[0]      // indexed directly
+team.scores = podium()     // an array field too
+```
+
+* The return type needs a fixed size (`int[3]`, not `int[]`) - the caller must know how big
+  the array is
+* `return` takes an array literal of exactly that size (numbers may be promoted), or any
+  array of exactly the same type and size - a variable, parameter, struct field, or another
+  call; it is copied
+* A returned array can be stored, assigned to an array (or array field), indexed, returned
+  again, or ignored. Passing it straight to another function, `len()`, or `print` is an
+  error - store it in a variable first
+* Copying needs exactly the same element type and size (no int -> float promotion), and a
+  `const` array can't be set from a call
+* Not yet: lambdas and function types returning arrays, and using such a function as a value
+* Under the hood, C can't return an array, so it's returned inside a hidden struct and
+  copied out
 
 **Not yet implemented (see taskSummary2.md Task 9 for the full list and reasoning):**
-- Arrays as function return types (C can't return an array - planned with structs, Task 18.2)
 - Multi-dimensional arrays (`int[][]`)
 - An array size given as anything other than an integer literal (`int[n]` where `n` is a
   variable is not supported; only `int[5]`-style literal sizes are)
-- Whole-array reassignment after declaration (`arr = [4, 5, 6]`) - only per-element
-  assignment is supported, since a plain C array isn't reassignable that way
+- Whole-array reassignment after declaration (`arr = [4, 5, 6]`, `arr = other`) - only
+  per-element assignment, or assigning an array a function returns (`arr = make()`), is
+  supported, since a plain C array isn't reassignable that way
 - Dynamic/resizable arrays (no `malloc`-backed growth yet - fixed-size only)
 - Bounds checking (indexing out of range is undefined behavior, same as in C, for now)
 - Nullable arrays, `arr.length` (property syntax), `arr?.length` / `arr?[i]` (safe
@@ -1295,7 +1323,8 @@ changing it conveniently.
 
 **Implementation status (Task 18.2):** 18.2.1 (core structs), 18.2.2 (named construction,
 `Point(y = 4, x = 3)`) and 18.2.3 (nested structs, array fields, arrays of structs) are
-implemented. Arrays as function return values are 18.2.4. See `taskSummary2.md`.
+implemented, and so are arrays as function return values (18.2.4) - see "Array return
+values". See `taskSummary2.md`.
 
 ---
 

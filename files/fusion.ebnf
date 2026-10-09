@@ -105,8 +105,9 @@ array_type =
     (* Implemented (Task 9 v1): [ expression ] is restricted to an integer literal, e.g.
        int[5] - an arbitrary size expression (int[n]) is not yet supported. Nesting
        array_type inside itself (int[][], multi-dimensional) is not yet supported either -
-       both raise a clear parser error. Arrays are also not yet valid as function
-       parameter or return types (local variables only) - see taskSummary2.md Task 9. *)
+       both raise a clear parser error. Arrays are valid as function parameters (by
+       reference, Task 18.1.2) and as return types when sized - int[3], not int[] (Task
+       18.2.4). *)
 
 pointer_type =
     "Unique" "<" type_name ">"

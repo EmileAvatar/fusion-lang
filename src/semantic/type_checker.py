@@ -66,6 +66,10 @@ class TypeChecker:
         # used until strings can be built at run time (Task 15.10 / 18.3)
         self.print_interpolation: Optional[InterpolatedStringExpr] = None
 
+        # ids of calls whose returned array is used in a supported way (Task 18.2.4) - see
+        # visit_CallExpr
+        self.allowed_array_calls = set()
+
     def check_program(self, program: ProgramNode) -> List[SemanticError]:
         """Type check entire program.
 
@@ -384,6 +388,12 @@ class TypeChecker:
                     f"value yet",
                     node.location
                 ))
+            elif isinstance(symbol.declaration.return_type, ArrayType):
+                self.errors.append(SemanticError(
+                    f"Function '{node.name}' returns an array, so it can't be used as a "
+                    f"value yet",
+                    node.location
+                ))
         return symbol.data_type
 
     def _check_function_type_supported(self, type_node: TypeNode, location) -> None:
@@ -397,6 +407,11 @@ class TypeChecker:
                         location
                     ))
                 self._check_function_type_supported(param_type, location)
+            if isinstance(type_node.return_type, ArrayType):
+                self.errors.append(SemanticError(
+                    "Function types can't return arrays yet",
+                    location
+                ))
             self._check_function_type_supported(type_node.return_type, location)
 
     def visit_BinaryExpr(self, node: BinaryExpr) -> TypeNode:
@@ -502,7 +517,30 @@ class TypeChecker:
         # Unknown operator - return void for error recovery
         return PrimitiveType(location=node.location, name='void')
 
+    # Where the array a function returns can be used (Task 18.2.4) - anywhere else, the
+    # call is an error with this hint
+    _ARRAY_CALL_USES = ("store it in a variable (int[3] a = make()), assign it to an array "
+                        "(a = make()), index it directly (make()[0]), or return it")
+
+    def _allow_array_call(self, expr: ASTNode) -> None:
+        """Mark a call as being in a place where a returned array is supported."""
+        if isinstance(expr, CallExpr):
+            self.allowed_array_calls.add(id(expr))
+
     def visit_CallExpr(self, node: CallExpr) -> TypeNode:
+        """Check a call, then check that a returned array is used in a supported place
+        (Task 18.2.4). C returns the array inside a hidden struct, which can be copied into
+        an array or indexed - but not passed on by reference or printed whole."""
+        result = self._visit_call(node)
+        if isinstance(result, ArrayType) and id(node) not in self.allowed_array_calls:
+            name = node.callee.name if isinstance(node.callee, IdentifierExpr) else "this function"
+            self.errors.append(SemanticError(
+                f"The array returned by '{name}' can't be used here - {self._ARRAY_CALL_USES}",
+                node.location
+            ))
+        return result
+
+    def _visit_call(self, node: CallExpr) -> TypeNode:
         """Check function call argument types.
 
         Args:
@@ -1118,6 +1156,12 @@ class TypeChecker:
             if node.return_type is None:
                 if isinstance(node.body, BlockStmt) or body_type is None:
                     node.return_type = PrimitiveType(location=node.location, name='void')
+                elif isinstance(body_type, ArrayType):
+                    self.errors.append(SemanticError(
+                        "A lambda can't return an array yet - use a named function",
+                        node.location
+                    ))
+                    node.return_type = PrimitiveType(location=node.location, name='void')
                 else:
                     node.return_type = body_type
         finally:
@@ -1216,6 +1260,7 @@ class TypeChecker:
         Returns:
             The array's element type (void for error recovery if the target isn't an array)
         """
+        self._allow_array_call(node.array)  # make()[0] (Task 18.2.4)
         array_type = self.visit(node.array)
         index_type = self.visit(node.index)
 
@@ -1271,6 +1316,7 @@ class TypeChecker:
         Args:
             node: Expression statement node
         """
+        self._allow_array_call(node.expression)  # calling make() and ignoring the result
         self.visit(node.expression)
 
     def visit_VarDeclStmt(self, node: VarDeclStmt) -> None:
@@ -1324,6 +1370,7 @@ class TypeChecker:
                 ))
             return
 
+        self._allow_array_call(node.initializer)  # int[3] a = make() (Task 18.2.4)
         init_type = self.visit(node.initializer)
         if not isinstance(init_type, ArrayType):
             self.errors.append(SemanticError(
@@ -1331,6 +1378,19 @@ class TypeChecker:
                 f"{self.type_to_string(init_type)}",
                 node.location
             ))
+            return
+
+        # An array returned by a function is copied in (Task 18.2.4)
+        if isinstance(node.initializer, CallExpr):
+            if node.is_const:
+                self.errors.append(SemanticError(
+                    f"const array '{node.name}' must be initialized with an array literal - "
+                    f"copying a returned array into a const array isn't supported yet",
+                    node.location
+                ))
+            if array_type.size is None:
+                array_type.size = init_type.size
+            self._check_array_copy(f"array '{node.name}'", array_type, init_type, node.location)
             return
 
         # Only an array literal can initialize an array. `int[] b = a` used to pass this
@@ -1399,9 +1459,21 @@ class TypeChecker:
             return
 
         if isinstance(symbol.data_type, ArrayType):
+            # A whole array can be replaced by one a function returns (Task 18.2.4) - copied
+            # element by element. From another array variable it still isn't supported
+            if isinstance(node.value, CallExpr):
+                if symbol.is_constant:
+                    self.errors.append(SemanticError(
+                        f"Cannot assign to constant: '{target_name}'", node.location))
+                self._allow_array_call(node.value)
+                value_type = self.visit(node.value)
+                self._check_array_copy(f"array '{target_name}'", symbol.data_type, value_type,
+                                       node.location)
+                return
             self.errors.append(SemanticError(
                 f"Cannot reassign array '{target_name}' as a whole - assign to individual "
-                f"elements instead (e.g. {target_name}[i] = value)",
+                f"elements instead (e.g. {target_name}[i] = value), or assign the array a "
+                f"function returns ({target_name} = make())",
                 node.location
             ))
             return
@@ -1456,6 +1528,23 @@ class TypeChecker:
         field_type = self.visit(target)
 
         if isinstance(field_type, ArrayType):
+            if isinstance(node.value, CallExpr):
+                # Replaced by an array a function returns (Task 18.2.4)
+                root = self._root_variable(target.object)
+                symbol = self.symbol_table.lookup(root.name) if root is not None else None
+                if root is None:
+                    self.errors.append(SemanticError(
+                        f"Can only assign to field '{target.member}' of a struct stored in a "
+                        f"variable", node.location))
+                elif symbol and symbol.is_constant:
+                    self.errors.append(SemanticError(
+                        f"Cannot assign to field '{target.member}' of constant '{root.name}'",
+                        node.location))
+                self._allow_array_call(node.value)
+                value_type = self.visit(node.value)
+                self._check_array_copy(f"field '{target.member}'", field_type, value_type,
+                                       node.location)
+                return
             self.errors.append(SemanticError(
                 f"Cannot assign array field '{target.member}' as a whole - assign its elements "
                 f"instead (e.g. ...{target.member}[i] = value)",
@@ -1497,6 +1586,64 @@ class TypeChecker:
         if field is not None:
             self.check_string_field_value(struct.name, field, node.value)
 
+    def _check_array_copy(self, target: str, expected: ArrayType, actual: TypeNode,
+                          location) -> bool:
+        """Check that an array value can be copied into `expected` element by element
+        (Task 18.2.4): same element type exactly (the copy is byte-for-byte, so no int ->
+        float promotion), and the same, known size.
+
+        Returns:
+            True if it can
+        """
+        if not isinstance(actual, ArrayType):
+            self.errors.append(SemanticError(
+                f"Cannot copy {self.type_to_string(actual)} into {target} of type "
+                f"{self.type_to_string(expected)}", location))
+            return False
+        if not self.types_equal(expected.element_type, actual.element_type):
+            self.errors.append(SemanticError(
+                f"Cannot copy {self.type_to_string(actual)} into {target} of type "
+                f"{self.type_to_string(expected)} - element types must match exactly",
+                location))
+            return False
+        if actual.size is None:
+            self.errors.append(SemanticError(
+                f"Cannot copy into {target}: the array's size is only known at run time",
+                location))
+            return False
+        if expected.size != actual.size:
+            self.errors.append(SemanticError(
+                f"Cannot copy {self.type_to_string(actual)} into {target} of type "
+                f"{self.type_to_string(expected)} - the sizes differ", location))
+            return False
+        return True
+
+    def _check_array_return(self, node: ReturnStmt) -> None:
+        """Check `return <value>` in a function returning a fixed-size array (Task 18.2.4).
+
+        The value can be an array literal of exactly the right size (numbers may be
+        promoted, as in any array literal), or any array of exactly the same type and size -
+        a variable, parameter, struct field, or another call returning one. It's copied.
+        """
+        expected: ArrayType = self.current_function_return_type
+        self._allow_array_call(node.value)
+        actual = self.visit(node.value)
+        if expected.size is None:
+            return  # the unsized return type is already reported by the name resolver
+        if isinstance(node.value, ArrayLiteralExpr):
+            if len(node.value.elements) != expected.size:
+                self.errors.append(SemanticError(
+                    f"Returned array has {len(node.value.elements)} element(s), but the "
+                    f"function returns {self.type_to_string(expected)}", node.location))
+            elif node.value.elements and not self.types_compatible(expected.element_type,
+                                                                    actual.element_type):
+                self.errors.append(SemanticError(
+                    f"Returned array has elements of type "
+                    f"{self.type_to_string(actual.element_type)}, but the function returns "
+                    f"{self.type_to_string(expected)}", node.location))
+            return
+        self._check_array_copy("the returned array", expected, actual, node.location)
+
     def visit_ReturnStmt(self, node: ReturnStmt) -> None:
         """Check return type matches function return type.
 
@@ -1510,7 +1657,9 @@ class TypeChecker:
             ))
             return
 
-        if node.value:
+        if node.value and isinstance(self.current_function_return_type, ArrayType):
+            self._check_array_return(node)
+        elif node.value:
             return_type = self.visit(node.value)
             if not self.types_compatible(self.current_function_return_type, return_type):
                 self.errors.append(SemanticError(

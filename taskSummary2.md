@@ -58,10 +58,10 @@ see CLAUDE.md Rule 3 for when/how sections move there
 | **Task 15: Deferred Decisions Revisit List** | In Progress | 42% | 5 | 12 |
 | **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
 | **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
-| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2.1-18.2.3 done) | 35% | 1 | 5 |
+| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2 done) | 40% | 2 | 5 |
 | **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
 | **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
-| **Overall** | Task 18.2.3 Complete | 43% | 53 | 124 |
+| **Overall** | Task 18.2 Complete | 44% | 54 | 124 |
 
 ---
 
@@ -1059,21 +1059,21 @@ values)` function works on arrays of different sizes; `apply(func(int x) : x * 2
 (Met: `apply(func(int x) : x * x, 7)` gives 49 in the example; closures are rejected with
 "Lambda uses 'offset' from the surrounding function - closures ... not supported yet".)
 
-#### 18.2: Structs
+#### 18.2: Structs - COMPLETE (2026-10-09)
 **Why second:** the first user-defined composite type, and the lowest-risk way into
 user-defined types - a value type maps directly onto a C `struct`, so it needs no runtime,
 no inheritance, and no decision yet on how classes/interfaces/traits interact.
-- [ ] Struct declaration, field access (`.` member access - which also delivers the parser
+- [x] Struct declaration, field access (`.` member access - which also delivers the parser
       piece Task 14 needs for `arr.length`), construction, assignment/copy semantics
-- [ ] Structs as function parameters/return values (builds on 18.1)
-- [ ] Arrays as function return values (moved here from 18.1.2 - C can't return an array,
+- [x] Structs as function parameters/return values (builds on 18.1)
+- [x] Arrays as function return values (moved here from 18.1.2 - C can't return an array,
       but it can return a struct wrapping one)
-- [ ] Nested structs and arrays of structs
-- [ ] Prerequisite for: classes (Task 16.2), Currency's runtime struct, HIDL register maps,
+- [x] Nested structs and arrays of structs
+- [x] Prerequisite for: classes (Task 16.2), Currency's runtime struct, HIDL register maps,
       AST nodes in a self-hosted compiler
-- [ ] Example program per Rule 5 / Task 16
+- [x] Example program per Rule 5 / Task 16
 
-### 18.2 Detailed Plan (APPROVED 2026-10-08 - all four parts)
+### 18.2 Detailed Plan (APPROVED 2026-10-08 - all four parts) - COMPLETE (2026-10-09)
 
 **Ground rule (user note in `fusion-language-spec.md`, "Structure Definition"):** structs are
 **pure value types - fields only**. No methods, no operator overloading, no user-written
@@ -1351,13 +1351,35 @@ User decisions: "both" - left-to-right evaluation is the **default for every cal
       passed, 8 skipped; 10/10 examples
 
 **18.2.4 - Arrays as function return values (moved here from 18.1.2)**
-- [ ] `int[3] function make()` - **fixed size only**; `int[]` as a return type is rejected (the
+**Status: COMPLETE (2026-10-09)**
+- [x] `int[3] function make()` - **fixed size only**; `int[]` as a return type is rejected (the
       caller needs the size at compile time; growable/sized-at-runtime arrays are 18.5's list)
-- [ ] Codegen wraps the array in a hidden struct C *can* return (`typedef struct { int
+- [x] Codegen wraps the array in a hidden struct C *can* return (`typedef struct { int
       data[3]; } fusion_arr_int_3;`), unwrapped at the call site
-- [ ] Usable as: `int[3] a = make()`, `a = make()` (whole-array assignment from a call only),
+- [x] Usable as: `int[3] a = make()`, `a = make()` (whole-array assignment from a call only),
       and `make()[0]`. Element types/sizes must match exactly (as with array parameters)
-- [ ] Example extended
+- [x] Example extended
+- [x] **Implementation notes:** each returned array type gets `typedef struct { T data[N]; }
+      fusion_arr_T_N;` plus two `static inline` helpers - `_from` (copy an array into the
+      wrapper, for `return arr`) and `_copy` (copy a wrapper into an array, for
+      `int[3] a = make()` / `a = make()`), both via `memcpy`. `make()[0]` is
+      `make().data[0]`. Prototyped in plain C first - clean under `-Wall -Wextra -std=c99`
+- [x] Where a returned array may be used is checked in one place (`TypeChecker.visit_CallExpr`
+      wraps the old body, now `_visit_call`): stored, assigned (to an array variable *or* an
+      array field - the field case was a natural extra), indexed, returned, or ignored.
+      Anywhere else (`len(make())`, `print("{@1}", make())`, passing to a function) is an
+      error with a hint. `return` accepts a literal of the exact size, or any array of the
+      same type and size (variable, parameter, field, call)
+- [x] Not supported yet, each with a clear error: unsized `int[]` return types, lambdas and
+      function types returning arrays, using an array-returning function as a value, a
+      `const` array set from a call
+- [x] **Found and fixed while testing:** a one-line function `int[3] function f() : [1, 2, 3]`
+      generated invalid C (`return {1, 2, 3};`) - one-line bodies now go through the same
+      return handling as `return` statements
+- [x] 29 new tests (`tests/test_structs.py`, incl. end-to-end); 2 tests that pinned the old
+      "not yet supported as function return types" error now check the unsized-return error.
+      `structs_demo` returns an array of structs. Spec ("Array return values"), EBNF and
+      CLAUDE.md updated. Full suite 1425 passed, 8 skipped; 10/10 examples
 
 **Out of scope (logged for later):** methods / functions inside structs (never - user
 decision; use free functions); struct equality (18.3); printing a whole struct; passing a
@@ -2442,8 +2464,11 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
   for every call. Logged Task 15.12 (operator operand order)
 - Pushed 18.2.2 and 18.2.2b to GitHub
 - **18.2.3 COMPLETE** - nesting with the `[structs]` depth limits; fixed NULL string arrays
-- **Next Action:** implement **18.2.4 (array return values)** per the approved plan - the last
-  part of 18.2.
+- **18.2.4 COMPLETE (2026-10-09)** - arrays as function return values; **Task 18.2 done**
+- **Next Action:** write the detailed plan for **Task 18.3 (proper strings)** and get it
+  approved (Rule 1). It now also owns: struct string fields as growable heap buffers (user
+  decision 2026-10-08), the real fix for 15.10 (interpolated strings outside `print`), the
+  equality operator family's open questions, and string ownership/freeing.
 
 ---
 
@@ -2475,8 +2500,9 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 ---
 
 **Next Action:** Tasks 18.2.1 (core structs), 18.2.2 (named arguments) and 18.2.2b (`{@N}`
-placeholders, left-to-right arguments) and 18.2.3 (nesting) are complete. Next: **18.2.4 (array
-return values)**, the last part of 18.2 - already approved in the 18.2 Detailed Plan. Open logged items: Task 15.8 (reserve the `fusion_`
+placeholders, left-to-right arguments), 18.2.3 (nesting) and 18.2.4 (array return values)
+are complete - **Task 18.2 is done**. Next: write the detailed plan for **Task 18.3 (proper
+strings)** and get it approved (Rule 1). Open logged items: Task 15.8 (reserve the `fusion_`
 prefix - before 18.4), 15.10 (interpolated strings outside `print()` - real fix in 18.3) and
 15.12 (operator operand evaluation order).
 Closures wait for 18.3's memory-ownership decision. Task 19.1-19.5 need 18.4 (`import`); Task

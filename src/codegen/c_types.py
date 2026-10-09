@@ -74,6 +74,43 @@ class TypeMapperMixin:
             self.function_typedefs[signature] = f'fusion_fn_{len(self.function_typedefs) + 1}'
         return self.function_typedefs[signature]
 
+    def return_c_type(self, fusion_type: TypeNode) -> str:
+        """C type for a function's return value - like map_type, except that an array is
+        returned inside its hidden wrapper struct (Task 18.2.4), since C can't return one."""
+        if isinstance(fusion_type, ArrayType):
+            return self.array_wrapper_name(fusion_type)
+        return self.map_type(fusion_type)
+
+    def array_wrapper_name(self, fusion_type: ArrayType) -> str:
+        """The hidden struct a fixed-size array is returned in (Task 18.2.4), registering
+        it on first use - e.g. int[3] -> fusion_arr_int_3:
+
+            typedef struct { int data[3]; } fusion_arr_int_3;
+
+        Uses the `fusion_` prefix like the other compiler-generated names (Task 15.8)."""
+        if not hasattr(self, 'array_wrappers'):
+            self.array_wrappers = {}
+        element = fusion_type.element_type
+        key = mangle_function_name(element.name) if isinstance(element, StructType) else element.name
+        name = f'fusion_arr_{key}_{fusion_type.size}'
+        self.array_wrappers[name] = (self.map_type(element), fusion_type.size)
+        return name
+
+    def array_wrapper_lines(self) -> list:
+        """The wrapper typedefs, plus two helpers each: `_from` copies an array into a
+        wrapper (for `return arr`), `_copy` copies a returned wrapper into an array (for
+        `int[3] a = make()` and `a = make()`). `static inline`, so unused ones don't warn."""
+        lines = []
+        for name, (element, size) in getattr(self, 'array_wrappers', {}).items():
+            lines += [
+                f'typedef struct {{ {element} data[{size}]; }} {name};',
+                f'static inline {name} {name}_from(const void* src) {{ {name} r; '
+                f'memcpy(r.data, src, sizeof r.data); return r; }}',
+                f'static inline void {name}_copy(void* dst, {name} v) {{ '
+                f'memcpy(dst, v.data, sizeof v.data); }}',
+            ]
+        return lines
+
     def function_typedef_lines(self) -> list:
         """The typedef declarations for every function type used, in first-use order."""
         lines = []

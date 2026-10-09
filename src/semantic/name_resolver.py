@@ -302,11 +302,13 @@ class NameResolver:
         Args:
             func: Function declaration node
         """
-        # Array parameters are supported (Task 18.1.2); array return values are not - C
-        # can't return an array, and wrapping one in a struct needs structs (Task 18.2)
-        if isinstance(func.return_type, ArrayType):
+        # Array return values (Task 18.2.4) need a fixed size - the caller has to know how
+        # big the returned array is at compile time (growable arrays are Task 18.5)
+        if isinstance(func.return_type, ArrayType) and func.return_type.size is None:
+            element = self._type_text(func.return_type.element_type)
             self.errors.append(SemanticError(
-                "Arrays are not yet supported as function return types",
+                f"Function '{func.name}' returns an array, so its return type needs a size "
+                f"(e.g. {element}[3]) - the caller needs to know how big the array is",
                 func.location
             ))
 

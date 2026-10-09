@@ -1,6 +1,7 @@
 // Fusion Structs Demo (Task 18.2)
 // Structs are pure value types: fields only - behaviour lives in ordinary functions.
-// Also shows named arguments (Task 18.2.2), {@N} placeholders (18.2.2b) and nesting (18.2.3)
+// Also shows named arguments (Task 18.2.2), {@N} placeholders (18.2.2b), nesting (18.2.3)
+// and functions returning arrays (18.2.4)
 
 // Indentation style
 struct Point
@@ -47,6 +48,11 @@ void function nudge(Point[] points)
     for i in range(0, len(points))
         points[i].x = points[i].x + 1
     End for
+End function
+
+// Functions can return fixed-size arrays (Task 18.2.4) - the size is part of the type
+Point[2] function diagonal(int size)
+    return [Point(0, 0), Point(size, size)]
 End function
 
 int function total(int[] values)
@@ -115,5 +121,10 @@ void function main()
     team.scores[0] = 10
     nudge(team.positions)
     print("{team.name} total {@1}, first position x = {@2}", total(team.scores), team.positions[0].x)
+
+    // A returned array can be stored, assigned to an array, or indexed directly
+    Point[2] ends = diagonal(9)
+    team.positions = diagonal(2)
+    print("Diagonal ends at ({@1}, {@2}); team now at x = {@3}; diagonal(4)[1].y = {@4}", ends[1].x, ends[1].y, team.positions[1].x, diagonal(4)[1].y)
     print("All struct tests passed!")
 End function

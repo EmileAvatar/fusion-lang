@@ -257,14 +257,15 @@ int function sum(int[] arr)
 
 
 def test_array_as_return_type_fails():
-    """Arrays as function return types are deferred (Task 9 v1 is local-only)."""
+    """An unsized array return type is rejected - the caller needs the size. (Sized array
+    returns, int[3], work since Task 18.2.4.)"""
     code = """
 int[] function makeArray()
     int[] arr = [1, 2, 3]
     return arr
 """
     errors, _ = analyze_code(code)
-    assert_error_contains(errors, "not yet supported as function return types")
+    assert_error_contains(errors, "returns an array, so its return type needs a size")
 
 
 def test_multi_dimensional_array_rejected_at_parse():

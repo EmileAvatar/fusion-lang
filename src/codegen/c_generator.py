@@ -74,6 +74,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.function_typedefs = {}      # function types -> typedef names (Task 18.1.3)
         self.lambda_definitions = []     # lifted lambda functions, as C lines (Task 18.1.3)
         self.lambda_count = 0
+        self.array_wrappers = {}         # returned-array wrapper structs (Task 18.2.4)
         self.temp_scopes = []            # per-function temporary declarations (Task 18.2.2)
         self.temp_count = 0
         self.argument_temps = {}         # id(argument expression) -> its temporary's name
@@ -131,6 +132,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         if typedef_lines:
             self.output[typedef_index:typedef_index] = (
                 ['// Function types'] + typedef_lines + ['']
+            )
+        # Wrappers for returned arrays (Task 18.2.4) - after the structs they may hold
+        wrapper_lines = self.array_wrapper_lines()
+        if wrapper_lines:
+            self.output[typedef_index:typedef_index] = (
+                ['// Returned arrays'] + wrapper_lines + ['']
             )
 
         # Return complete C code
@@ -427,7 +434,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         self.emit('// Forward declarations')
         for decl in program.declarations:
             if isinstance(decl, FunctionDecl):
-                return_type = self.map_type(decl.return_type)
+                return_type = self.return_c_type(decl.return_type)
                 # Special case: void main() -> int main() in C
                 if decl.name == 'main' and return_type == 'void':
                     return_type = 'int'
@@ -727,6 +734,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         """
         array_code = self.visit(node.array)
         index_code = self.visit(node.index)
+        # make()[0] - the returned array is inside its wrapper struct (Task 18.2.4)
+        if self._returns_array(node.array):
+            return f'{array_code}.data[{index_code}]'
         return f'{array_code}[{index_code}]'
 
     def visit_NamedArgument(self, node: NamedArgument) -> str:
@@ -783,7 +793,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
                     "no resolved size - semantic analysis must resolve every array's size "
                     "before code generation."
                 )
-            if node.initializer:
+            if self._returns_array(node.initializer):
+                # int[3] a = make() - declared, then the returned array is copied in
+                # (Task 18.2.4)
+                wrapper = self.array_wrapper_name(node.initializer.inferred_type)
+                self.emit_line(f'{elem_c_type} {node.name}[{size}]')
+                self.emit_line(f'{wrapper}_copy({node.name}, {self.visit(node.initializer)})')
+            elif node.initializer:
                 init_code = self.visit(node.initializer)
                 self.emit_line(f'{const_keyword}{elem_c_type} {node.name}[{size}] = {init_code}')
             elif self._is_zero_safe(node.var_type.element_type):
@@ -840,6 +856,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         target_code = self.visit(node.target)
         value_code = self.visit(node.value)
 
+        # A whole array replaced by one a function returned: copy it in (Task 18.2.4)
+        if self._returns_array(node.value):
+            wrapper = self.array_wrapper_name(node.value.inferred_type)
+            self.emit_line(f'{wrapper}_copy({target_code}, {value_code})')
+            return ''
+
         self.emit_line(f'{target_code} = {value_code}')
         return ''
 
@@ -852,13 +874,30 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         Returns:
             Empty string (code emitted directly)
         """
-        if node.value:
+        return_type = getattr(self, 'current_return_type', None)
+        if node.value and isinstance(return_type, ArrayType):
+            # Returned inside the hidden wrapper struct (Task 18.2.4): a literal fills it
+            # directly, another call's result already is one, anything else is copied in
+            wrapper = self.array_wrapper_name(return_type)
+            if isinstance(node.value, ArrayLiteralExpr):
+                self.emit_line(f'return ({wrapper}){{{self.visit(node.value)}}}')
+            elif self._returns_array(node.value):
+                self.emit_line(f'return {self.visit(node.value)}')
+            else:
+                self.emit_line(f'return {wrapper}_from({self.visit(node.value)})')
+        elif node.value:
             value_code = self.visit(node.value)
             self.emit_line(f'return {value_code}')
         else:
             self.emit_line('return')
 
         return ''
+
+    @staticmethod
+    def _returns_array(expr) -> bool:
+        """True for a call to a function returning an array - whose C value is the hidden
+        wrapper struct, not an array (Task 18.2.4)."""
+        return isinstance(expr, CallExpr) and isinstance(expr.inferred_type, ArrayType)
 
     def visit_IfStmt(self, node: IfStmt) -> str:
         """Generate C code for if statement.
@@ -1022,8 +1061,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
             Empty string (code emitted directly)
         """
         # Generate function signature
-        return_type = self.map_type(node.return_type)
+        return_type = self.return_c_type(node.return_type)
         func_name = self._mangle_function_name(node.name)
+        self.current_return_type = node.return_type
 
         # Special case: void main() -> int main() in C
         is_void_main = (node.name == 'main' and return_type == 'void')
@@ -1080,13 +1120,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin):
         if isinstance(body, BlockStmt):
             # Check if it's a single return statement
             if len(body.statements) == 1 and isinstance(body.statements[0], ReturnStmt):
-                # Extract the return expression
-                return_stmt = body.statements[0]
-                if return_stmt.value:
-                    expr_code = self.visit(return_stmt.value)
-                    self.emit_line(f'return {expr_code}')
-                else:
-                    self.emit_line('return')
+                # A single return - through visit_ReturnStmt, which also wraps a returned
+                # array (`int[3] function f() : [1, 2, 3]`, Task 18.2.4)
+                self.visit(body.statements[0])
             else:
                 # Multiple statements - treat as regular block
                 self.visit(body)

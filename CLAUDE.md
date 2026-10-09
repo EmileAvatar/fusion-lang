@@ -158,7 +158,7 @@ d:\Dropbox\Fusion\
 **MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
 
 **Test Results:**
-- 1,396 tests passing (99.4%)
+- 1,425 tests passing (99.4%)
 - 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
   char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
 - 0 tests failing
@@ -177,9 +177,10 @@ two deliberately-deferred design decisions - IR layer and stdlib lowering)
 
 **In progress:** Task 18 (Core Language Foundation). **18.1** (default params, array
 params, lambdas) is complete. **18.2 (structs)** has an approved four-part plan; **18.2.1**
-(core structs), **18.2.2** (named arguments) and **18.2.2b** (`{@N}` placeholders,
-left-to-right argument order) and **18.2.3** (nesting) are complete, next is **18.2.4 (array
-return values)**. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
+(core structs), **18.2.2** (named arguments), **18.2.2b** (`{@N}` placeholders,
+left-to-right argument order), **18.2.3** (nesting) and **18.2.4** (array return values) are
+complete - **18.2 is done**. Next is **18.3 (proper strings)**, which needs a detailed plan
+approved first. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
 a simple working language first, complex features after (see `FutureFeaturesCaution.md`).
 Security principle: **never trust code**.
 
@@ -330,6 +331,10 @@ int n = len(scores)     // size (compile-time constant)
 // Array parameters (by reference): int[] = any size (len() works), int[3] = exactly 3
 int function sum(int[] values)
 int total = sum(scores)
+
+// Array return values need a size (Task 18.2.4)
+int[3] function podium() : [3, 1, 2]
+int[3] p = podium()     // or: p = podium(), podium()[0]
 ```
 
 ### Structs (Task 18.2.1 - fields only, value types)
@@ -353,7 +358,7 @@ Point function add(Point p, Point q) : Point(p.x + q.x, p.y + q.y)   // by value
 Nesting (18.2.3): struct fields can be structs and fixed-size arrays (`int[3] scores`,
 `Point[2] corners`); arrays of structs (`Point[] pts = [Point(1, 2)]`, `pts[0].x = 7`).
 No methods/operators in structs - use functions. Not yet: `==` on structs (18.3), printing a
-whole struct, returning arrays from functions (18.2.4).
+whole struct.
 
 ### Project Configuration (`fusion.toml`)
 ```toml
@@ -509,9 +514,9 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
   enforced by any compiler pass yet (same status as the `Unique`/`Shared`/`Weak` keywords
   below - reserved, not implemented); `[indentation]`, `[source]` and `[structs]` change
   real behavior today
-- Arrays can be function parameters (by reference) but not return types (Task 18.2.4); they're
-  single-dimension,
-  fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
+- Arrays can be function parameters (by reference) and sized return values (`int[3]
+  function f()`, Task 18.2.4 - a returned array must be stored, assigned, indexed or
+  returned, not passed straight on); they're single-dimension, fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
   `?.`, or `?[` yet - see taskSummary2.md Task 14)
 
 ---
@@ -567,9 +572,8 @@ target = "c"         # "c" only for now - "llvm" reserved for Task 11
 
 ## 🚀 Next Steps
 
-**Current Focus:** Tasks 18.2.1-18.2.3 (core structs, named arguments, `{@N}` placeholders,
-nesting) are done. Next:
-18.2.4 (array return values), per the approved 18.2 plan in taskSummary2.md. Read
+**Current Focus:** Task 18.2 (structs, named arguments, `{@N}` placeholders, nesting, array
+return values) is done. Next: a detailed plan for 18.3 (proper strings). Read
 `FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
 
 **Completed:**
@@ -595,7 +599,7 @@ The repo is fully self-describing - no out-of-band context is needed beyond this
 1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
 2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
 3. `pip install -r requirements.txt`
-4. `python -m pytest tests/ -q` - expect **1396 passed, 8 skipped**
+4. `python -m pytest tests/ -q` - expect **1425 passed, 8 skipped**
 5. `python tests/verify_examples.py` - expect **10/10**
 
 If both match, the environment is correct. Note `Notes/` (user's AI review notes) and

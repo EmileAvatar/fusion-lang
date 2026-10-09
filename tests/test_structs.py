@@ -10,6 +10,8 @@
 18.2.3: nesting - structs in structs (with the [structs] depth limits), fixed-size array
         fields, arrays of structs; array and struct fields start with their own defaults.
         Also: string arrays declared without a value now start as "" instead of NULL.
+18.2.4: arrays as function return values - fixed size only, returned inside a hidden
+        wrapper struct; usable stored, assigned, indexed, returned, or ignored.
 """
 
 import pytest
@@ -656,6 +658,133 @@ def test_nesting_end_to_end():
     )
     assert exit_code == 0, stderr
     assert stdout.splitlines() == ["9 2 4 100", "65 3 10 []", "0", "11 12 7", "[][]"]
+
+
+# ============================================================
+# 18.2.4 - Arrays as function return values
+# ============================================================
+
+MAKE = 'int[3] function make() : [1, 2, 3]\n'
+
+
+def test_returned_array_uses_a_wrapper_struct():
+    c_code = generate_c(MAKE + main('int[3] a = make()'))
+    assert 'typedef struct { int data[3]; } fusion_arr_int_3;' in c_code
+    assert 'fusion_arr_int_3 make(void);' in c_code
+    assert 'return (fusion_arr_int_3){{1, 2, 3}};' in c_code
+
+
+def test_wrappers_come_after_the_structs_they_hold():
+    c_code = generate_c(POINT + 'Point[2] function corners() : [Point(0, 0), Point(1, 1)]\n'
+                        + main('Point[2] c = corners()'))
+    assert c_code.index('typedef struct Point') < c_code.index('fusion_arr_Point_2;')
+
+
+def test_array_variable_initialized_from_call():
+    c_code = generate_c(MAKE + main('int[3] a = make()'))
+    assert 'int a[3];' in c_code
+    assert 'fusion_arr_int_3_copy(a, make());' in c_code
+
+
+def test_unsized_variable_takes_the_returned_size():
+    assert 'int a[3];' in generate_c(MAKE + main('int[] a = make()'))
+
+
+def test_whole_array_assignment_from_call():
+    c_code = generate_c(MAKE + main('int[3] a\na = make()'))
+    assert 'fusion_arr_int_3_copy(a, make());' in c_code
+
+
+def test_array_field_assignment_from_call():
+    c_code = generate_c(MAKE + 'struct Team\n    int[3] scores\n\n' + main('Team t\nt.scores = make()'))
+    assert 'fusion_arr_int_3_copy(t.scores, make());' in c_code
+
+
+def test_indexing_a_returned_array():
+    assert 'int v = make().data[1];' in generate_c(MAKE + main('int v = make()[1]'))
+
+
+def test_returning_an_array_variable_copies_it():
+    c_code = generate_c('int[3] function f()\n    int[3] a = [7, 8, 9]\n    return a\n'
+                        + main('int[3] b = f()'))
+    assert 'return fusion_arr_int_3_from(a);' in c_code
+
+
+def test_returning_another_call_passes_the_wrapper_through():
+    c_code = generate_c(MAKE + 'int[3] function again() : make()\n' + main('int[3] b = again()'))
+    assert 'return make();' in c_code
+
+
+def test_returned_literal_may_promote_numbers():
+    assert 'return (fusion_arr_float_2){{1, 2.5f}};' in generate_c(
+        'float[2] function f() : [1, 2.5]\n' + main('float[2] v = f()'))
+
+
+def test_calling_and_ignoring_the_result_is_allowed():
+    assert '    make();' in generate_c(MAKE + main('make()'))
+
+
+ARRAY_CALL_HINT = "The array returned by 'make' can't be used here"
+
+
+@pytest.mark.parametrize("source, message", [
+    ('int[] function f() : [1]\n' + main('int y = 1'),
+     "Function 'f' returns an array, so its return type needs a size (e.g. int[3])"),
+    (MAKE + main('int n = len(make())'), ARRAY_CALL_HINT),
+    (MAKE + main('print("{@1}", make())'), ARRAY_CALL_HINT),
+    (MAKE + 'int function s(int[] v) : v[0]\n' + main('int r = s(make())'), ARRAY_CALL_HINT),
+    (MAKE + main('int[2] a = make()'), "Cannot copy int[3] into array 'a' of type int[2] - the sizes differ"),
+    (MAKE + main('float[3] a = make()'), "element types must match exactly"),
+    (MAKE + main('const int[3] a = make()'), "const array 'a' must be initialized with an array literal"),
+    (MAKE + main('const int[3] a = [1, 2, 3]\na = make()'), "Cannot assign to constant: 'a'"),
+    (MAKE + main('int[3] a\nint[3] b\na = b'), "Cannot reassign array 'a' as a whole"),
+    ('int[3] function f()\n    return [1, 2]\n' + main('int y = 1'),
+     "Returned array has 2 element(s), but the function returns int[3]"),
+    ('int[3] function f()\n    return ["a", "b", "c"]\n' + main('int y = 1'),
+     "Returned array has elements of type string"),
+    ('int[3] function f(int[] v)\n    return v\n' + main('int y = 1'),
+     "the array's size is only known at run time"),
+    ('int[3] function f()\n    return 5\n' + main('int y = 1'), "Cannot copy int into the returned array"),
+    (MAKE + main('() : int[3] g = make'), "Function types can't return arrays yet"),
+    (MAKE + main('int[3] a = make\nint y = 1'), "returns an array, so it can't be used as a value yet"),
+    (main('(int) : int g = func(int x) : [x, x]'), "A lambda can't return an array yet"),
+])
+def test_array_return_errors(source, message):
+    assert message in errors_of(source)
+
+
+def test_unsized_return_reported_once():
+    message = errors_of('int[] function f() : [1]\n' + main('int y = 1'))
+    assert "Returned array has" not in message
+
+
+def test_array_returns_end_to_end():
+    exit_code, stdout, stderr = compile_and_run(
+        POINT + MAKE +
+        'struct Team\n    int[3] scores\n\n'
+        'int[3] function fromVar()\n'
+        '    int[3] a = [7, 8, 9]\n'
+        '    a[0] = 70\n'
+        '    return a\n'
+        'int[3] function fromField(Team t)\n'
+        '    return t.scores\n'
+        'Point[2] function corners() : [Point(0, 0), Point(5, 5)]\n'
+        'string[2] function names() : ["Ada", "Linus"]\n'
+        + main(
+            'int[3] a = make()\n'
+            'print("{@1} {@2} {@3}", a[0], a[1], a[2])\n'
+            'a = fromVar()\n'
+            'print("{@1} {@2}", a[0], make()[2])\n'
+            'Team t = Team([4, 5, 6])\n'
+            'print("{@1}", fromField(t)[2])\n'
+            't.scores = make()\n'
+            'print("{@1}", t.scores[0])\n'
+            'Point[2] c = corners()\n'
+            'print("{@1} {@2}", c[1].x, names()[1])\n'
+        )
+    )
+    assert exit_code == 0, stderr
+    assert stdout.splitlines() == ["1 2 3", "70 3", "6", "1", "5 Linus"]
 
 
 # ============================================================

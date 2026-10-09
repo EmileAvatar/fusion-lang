@@ -236,9 +236,10 @@ def test_const_array_argument_rejected():
     assert "const array 'a' can't be passed" in message
 
 
-def test_array_return_type_still_rejected():
+def test_unsized_array_return_type_rejected():
+    # Sized array returns (int[1]) work since Task 18.2.4 - see tests/test_structs.py
     message = errors_of('int[] function make()\n    int[] a = [1]\n    return a\n')
-    assert "not yet supported as function return types" in message
+    assert "returns an array, so its return type needs a size" in message
 
 
 def test_array_default_value_rejected():
