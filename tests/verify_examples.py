@@ -13,6 +13,7 @@ Usage:
     python verify_examples.py
 """
 
+import io
 import os
 import subprocess
 import sys
@@ -273,8 +274,11 @@ def verify_example(fusion_file: Path, expected_outputs: dict) -> VerificationRes
 
 
 def generate_report(results: list[VerificationResult], report_file: Path):
-    """Generate a verification report."""
-    with open(report_file, 'w') as f:
+    """Generate a verification report.
+
+    The file is only rewritten when something other than its date line changed - otherwise
+    every run left a modified file in git just for a new timestamp (Task 22.6)."""
+    with io.StringIO() as f:
         f.write("# Fusion Compiler Verification Report\n\n")
         f.write(f"**Date:** {subprocess.run(['date'], capture_output=True, text=True).stdout.strip()}\n")
         f.write(f"**Total Examples:** {len(results)}\n\n")
@@ -328,6 +332,17 @@ def generate_report(results: list[VerificationResult], report_file: Path):
             if len(result.c_code.split('\n')) > 50:
                 f.write("\n... (truncated)")
             f.write("\n```\n\n")
+        content = f.getvalue()
+
+    def without_date(text):
+        return [line for line in text.splitlines() if not line.startswith('**Date:**')]
+
+    if report_file.exists():
+        with open(report_file, encoding='utf-8', errors='replace') as old:
+            if without_date(old.read()) == without_date(content):
+                return
+    with open(report_file, 'w', encoding='utf-8', newline='') as out:
+        out.write(content)
 
 
 def main():

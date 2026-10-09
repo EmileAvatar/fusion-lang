@@ -335,7 +335,13 @@ interpolated strings outside `print` are 18.3.3 - see `taskSummary2.md`.
      * Function parameters borrow the caller's string (no copy); a function that assigns
        to a parameter works on its own copy, so the caller's string never changes
      * Strings are replaced, never edited in place (`s[0] = 'X'` and mutable/fixed strings
-       are Task 17); pooling as a project choice is Task 17 too
+       are Task 17)
+
+* **Planned (advanced, after MVP - user decision 2026-10-09):** these remain part of
+  Fusion's design and will be added on top of the simple value model above, which is what
+  MVP needs: a **string pool** (shared storage for identical text, Task 17), **garbage
+  collection** as a project-selectable memory strategy, copy-on-write sharing, and
+  **method-call syntax** such as `name.toUpper()` alongside the built-in functions
 
 * **Comparison**: `==` and `!=` compare the text; `<`, `>`, `<=`, `>=` compare alphabetically
   (byte order). (Before Task 18.3.1, `==` compared memory addresses - right only by accident)

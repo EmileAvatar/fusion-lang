@@ -1,13 +1,13 @@
 # Fusion Compiler Verification Report
 
-**Date:** Wed Oct  7 23:56:58 SAST 2026
-**Total Examples:** 9
+**Date:** Fri Oct  9 19:28:52 SAST 2026
+**Total Examples:** 11
 
 ## Summary
 
-- **Compilation Success:** 9/9
-- **Execution Success:** 9/9
-- **Output Matches:** 9/9
+- **Compilation Success:** 11/11
+- **Execution Success:** 11/11
+- **Output Matches:** 11/11
 
 ## Detailed Results
 
@@ -41,50 +41,56 @@ All array tests passed!```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-int sumArray(void);
-int main(void);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-int sumArray(void) {
-    int scores[5] = {10, 20, 30, 40, 50};
-    int total = 0;
-    for (int i = 0; i < 5; i += 1) {
-        total = (total + scores[i]);
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
     }
-    return total;
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
-int main(void) {
-    printf("=== Fusion Arrays Demo ===\n");
-    printf("\n");
-    int scores[5] = {10, 20, 30, 40, 50};
-    int first = scores[0];
-    printf("First score: %d\n", first);
-    scores[0] = 99;
-    int updated = scores[0];
-    printf("Updated first score: %d\n", updated);
-    int count = 5;
-    printf("Number of scores: %d\n", count);
-    printf("\n");
-    float buffer[3] = {0};
-    buffer[0] = 1.5f;
-    buffer[1] = 2.5f;
-    float b0 = buffer[0];
-    float b1 = buffer[1];
-    float b2 = buffer[2];
-    printf("Buffer: %f, %f, %f\n", b0, b1, b2);
-    printf("\n");
-    int total = sumArray();
-    printf("Sum of [10, 20, 30, 40, 50] = %d\n", total);
-    printf("\n");
-    printf("All array tests passed!\n");
-    return 0;
-}
-
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
 ```
 
 ### calculator
@@ -107,40 +113,56 @@ Prod: 50```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-int add(int a, int b);
-int subtract(int a, int b);
-int multiply(int a, int b);
-int main(void);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-int add(int a, int b) {
-    return (a + b);
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
-int subtract(int a, int b) {
-    return (a - b);
-}
-
-int multiply(int a, int b) {
-    return (a * b);
-}
-
-int main(void) {
-    int x = 10;
-    int y = 5;
-    int sum = add(x, y);
-    int diff = subtract(x, y);
-    int prod = multiply(x, y);
-    printf("Sum: %d\n", sum);
-    printf("Diff: %d\n", diff);
-    printf("Prod: %d\n", prod);
-    return 0;
-}
-
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
 ```
 
 ### const_demo
@@ -182,41 +204,56 @@ All const tests passed!```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-int main(void);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-int main(void) {
-    printf("=== Fusion Const Demo ===\n");
-    printf("\n");
-    const int MAX_ITERATIONS = 1000;
-    printf("MAX_ITERATIONS = %d\n", MAX_ITERATIONS);
-    printf("\n");
-    printf("Counting to 10 using const MAX:\n");
-    const int MAX = 10;
-    int i = 1;
-    while ((i <= MAX)) {
-        printf("  %d\n", i);
-        i = (i + 1);
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
     }
-    printf("\n");
-    const int BASE = 100;
-    const int MULTIPLIER = 2;
-    int result = (BASE * MULTIPLIER);
-    printf("BASE (%d) * MULTIPLIER (%d) = %d\n", BASE, MULTIPLIER, result);
-    printf("\n");
-    const int WIDTH = 80;
-    const int HEIGHT = 24;
-    int total_pixels = (WIDTH * HEIGHT);
-    printf("Screen size: %dx%d = %d pixels\n", WIDTH, HEIGHT, total_pixels);
-    printf("\n");
-    printf("All const tests passed!\n");
-    return 0;
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
 ```
 
 ### factorial
@@ -235,27 +272,56 @@ Factorial of 5 is 120```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-int factorial(int n);
-int main(void);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-int factorial(int n) {
-    if ((n <= 1)) {
-        return 1;
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
     }
-    return (n * factorial((n - 1)));
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
-int main(void) {
-    int result = factorial(5);
-    printf("Factorial of 5 is %d\n", result);
-    return 0;
-}
-
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
 ```
 
 ### fizzbuzz
@@ -307,34 +373,56 @@ FizzBuzz```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-int main(void);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-int main(void) {
-    int i = 1;
-    while ((i <= 20)) {
-        if (((i % 15) == 0)) {
-            printf("FizzBuzz\n");
-        } else {
-            if (((i % 3) == 0)) {
-                printf("Fizz\n");
-            } else {
-                if (((i % 5) == 0)) {
-                    printf("Buzz\n");
-                } else {
-                    printf("%d\n", i);
-                }
-            }
-        }
-        i = (i + 1);
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
     }
-    return 0;
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
 ```
 
 ### functions_demo
@@ -368,55 +456,55 @@ All function tests passed!```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Function types
-typedef int (*fusion_fn_1)(int);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-// Forward declarations
-void greet(char* name, char* greeting);
-int offset(int value, int by);
-int sum(int* values, int fusion_len_values);
-void doubleAll(int* values, int fusion_len_values);
-int middle(int trio[3]);
-int triple(int x);
-int apply(fusion_fn_1 operation, int value);
-int main(void);
-
-static int fusion_lambda_1(int x) {
-    return (x + 100);
-}
-
-static int fusion_lambda_2(int x) {
-    return (x * x);
-}
-
-void greet(char* name, char* greeting) {
-    printf("%s, %s!\n", greeting, name);
-}
-
-int offset(int value, int by) {
-    return (value + by);
-}
-
-int sum(int* values, int fusion_len_values) {
-    int total = 0;
-    for (int i = 0; i < fusion_len_values; i += 1) {
-        total = (total + values[i]);
-    }
-    return total;
-}
-
-void doubleAll(int* values, int fusion_len_values) {
-    for (int i = 0; i < fusion_len_values; i += 1) {
-        values[i] = (values[i] * 2);
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
     }
 }
+#endif
 
-int middle(int trio[3]) {
-    return trio[1];
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
+}
+
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
 ... (truncated)
 ```
 
@@ -436,18 +524,56 @@ Hello, World!```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-int main(void);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-int main(void) {
-    printf("Hello, World!\n");
-    return 0;
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
 ```
 
 ### max_three
@@ -466,34 +592,232 @@ Maximum of 10, 25, 15 is 25```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-int max(int a, int b, int c);
-int main(void);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-int max(int a, int b, int c) {
-    int result = a;
-    if ((b > result)) {
-        result = b;
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
     }
-    if ((c > result)) {
-        result = c;
-    }
-    return result;
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
-int main(void) {
-    int x = 10;
-    int y = 25;
-    int z = 15;
-    int maximum = max(x, y, z);
-    printf("Maximum of %d, %d, %d is %d\n", x, y, z, maximum);
-    return 0;
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
+```
+
+### strings_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+a = apple, b = banana
+original = quiet, loud = LOUD
+a == apple: 1, a < b: 1
+Ada 555-0100 / Grace 555-0123
+Grace: found, Alan: missing
+All string tests passed!
+```
+
+**Expected:**
+```
+a = apple, b = banana
+original = quiet, loud = LOUD
+a == apple: 1, a < b: 1
+Ada 555-0100 / Grace 555-0123
+Grace: found, Alan: missing
+All string tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
+```
+
+### structs_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+a = (3, 4), b = (10, 4)
+a + b = (13, 8)
+Inside moveRight: x = 103
+After moveRight: a.x = 3
+Ada: health 75.000000, score 15
+Newcomer score: 0, health 100.000000
+Dune Messiah is available
+Origin: (0, 0)
+Named point: (7, 8)
+Linus: health 100.000000, score 42
+Shifted: (8, 9)
+Linus (42) beat Ada (15)
+box: max.x = 4, bigger max.x = 40
+Blue total 22, first position x = 1
+Diagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4
+All struct tests passed!
+```
+
+**Expected:**
+```
+a = (3, 4), b = (10, 4)
+a + b = (13, 8)
+Inside moveRight: x = 103
+After moveRight: a.x = 3
+Ada: health 75.000000, score 15
+Newcomer score: 0, health 100.000000
+Dune Messiah is available
+Origin: (0, 0)
+Named point: (7, 8)
+Linus: health 100.000000, score 42
+Shifted: (8, 9)
+Linus (42) beat Ada (15)
+box: max.x = 4, bigger max.x = 40
+Blue total 22, first position x = 1
+Diagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4
+All struct tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
+}
+
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
 ```
 
 ### sum_array
@@ -512,27 +836,55 @@ Sum of 1 to 10: 55```
 **Generated C Code (first 50 lines):**
 ```c
 #include <math.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-int sum_range(int start, int end);
-int main(void);
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+typedef struct { char* data; int len; int owned; } fusion_string;
+// Text written in the source: never freed, costs nothing at run time
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
 
-int sum_range(int start, int end) {
-    int total = 0;
-    for (int i = start; i < end; i += 1) {
-        total = (total + i);
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
     }
-    return total;
+}
+#endif
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fputc('\n', stderr);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(1);
 }
 
-int main(void) {
-    int result = sum_range(1, 11);
-    printf("Sum of 1 to 10: %d\n", result);
-    return 0;
-}
-
+static inline void* fusion_alloc(size_t size) {
+    void* p = malloc(size);
+    if (!p) fusion_runtime_error(NULL, "out of memory");
+#ifdef FUSION_LEAK_CHECK
+    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
+    if (fusion_live_count == fusion_live_cap) {
+        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
+        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
+        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+    }
+    fusion_live[fusion_live_count++] = p;
+#endif
+... (truncated)
 ```
 

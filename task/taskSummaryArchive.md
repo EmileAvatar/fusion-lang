@@ -857,3 +857,2145 @@ Session 19 decision to plan self-hosting first. Not changed here - flagged for d
 not acted on.
 
 ---
+
+---
+
+# Moved from taskSummary2.md on 2026-10-09 (Task 22 - tracking restructure)
+
+Verbatim. Finished tasks, finished sub-tasks (18.1, 18.2, 18.3.1, 19.6), resolved
+Task 15 items, the old progress table, and session notes 16-28.
+## ⚠️ NAMING CONFLICT
+
+**Discovered:** There is an existing programming language called "Fusion" (https://fusion-lang.org/)
+
+**Renaming Plan:**
+- Continue using "Fusion" name during development
+- **MUST rename before 1.0 release**
+- Rename will happen when language is fully working and stable
+- No urgency during development - focus is on getting compiler working correctly first
+- Renaming task will be added to roadmap closer to 1.0 release
+
+---
+
+## Current Objective
+
+**ORGANIZE** the project structure and **VERIFY** the MVP compiler works correctly in real-world scenarios.
+
+---
+
+## Overall Progress
+
+| Phase | Status | Progress | Tasks Complete | Total Tasks |
+|-------|--------|----------|----------------|-------------|
+| **Task 5: Cleanup & Organization** | Complete | 100% | 5 | 5 |
+| **Task 6: Verification & Bug Fixes** | Complete | 100% | 7 | 7 |
+| **Task 7: Git Integration** | Complete | 100% | 4 | 4 |
+| **Task 8: Language Features (const)** | Complete | 100% | 8 | 8 |
+| **Task 9: Language Features (arrays v1)** | Complete | 100% | 8 | 8 |
+| **Task 10: Self-Hosting** | Planning Complete | 8% | 1 | 12 |
+| **Task 11: LLVM Backend** | Planning Complete | 8% | 1 | 13 |
+| **Task 12: Architecture Hardening** | Complete | 100% | 12 | 12 |
+| **Task 13: HIDL (Hardware Interface)** | Blocked / Future | 0% | 0 | 9 |
+| **Task 14: Nullable Arrays & Safe Nav** | Blocked / Future | 0% | 0 | 6 |
+| **Task 15: Deferred Decisions Revisit List** | In Progress | 42% | 5 | 12 |
+| **Task 16: Example Program Coverage** | Not Started | 0% | 0 | 7 |
+| **Task 17: Mutable/Fixed Strings & Pooling** | Not Started | 0% | 0 | 5 |
+| **Task 18: Core Language Foundation** | In Progress (18.1, 18.2, 18.3.1 done) | 44% | 2 | 5 |
+| **Task 19: Library Trust, Isolation & Security** | In Progress (19.6 done) | 14% | 1 | 7 |
+| **Task 20: Multi-Format Project Config** | Not Started | 0% | 0 | 4 |
+| **Task 21: Error Handling** | Not Started (after 18.3) | 0% | 0 | TBD |
+| **Overall** | Task 18.2 Complete | 44% | 54 | 124 |
+
+---
+
+## Completed Tasks (Archived)
+
+Tasks 5-9 and 12 are complete. Their full sub-task detail, success criteria, and
+deliverables have been moved to `task/taskSummaryArchive.md` to keep this file small (see
+CLAUDE.md Rule 3). The Overall Progress table above still tracks their status at a glance.
+
+- Task 5: Project Cleanup & Organization - Complete
+- Task 6: Verification & Bug Fixes - Complete
+- Task 7: Git Integration & GitHub Setup - Complete
+- Task 8: Language Features - const Keyword - Complete
+- Task 9: Language Features - Array Support (v1) - Complete (fixed-size, local-variable
+  arrays; nullable/safe-navigation follow-on split out to Task 14)
+- Task 12: Compiler Architecture Hardening (Typed AST & Codegen Refactor) - Complete (all
+  12 sub-tasks - Typed AST, C codegen split, block-level scoping, memory model semantics,
+  docs sync, project configuration system, and two deliberately-deferred design decisions
+  with rationale recorded - see `task/taskSummaryArchive.md` for full detail, or this
+  file's Working Notes below for the session-by-session narrative)
+
+---
+
+## Task Order Note (2026-09-13)
+
+Tasks below are now listed in numerical order (9, 10, 11, 12, 13, 14, 15, 16) rather than
+the historical order they were written in - they had drifted out of order across sessions
+(Task 14 briefly sat between 9 and 10). Task numbers themselves are unchanged; only their
+position in this file moved, to make the file easier to scan.
+
+---
+
+## TASK 9: Language Features - Array Support - COMPLETE
+
+**Status:** Complete (v1 scope - fixed-size, local-variable arrays) - 2026-09-13. Full
+sub-task detail (syntax design, lexer/parser/semantic/codegen work, examples, docs),
+success criteria, and deliverables have been moved verbatim to
+`task/taskSummaryArchive.md` (see CLAUDE.md Rule 3). See the Overall Progress table above
+for a glance.
+**Deferred, tracked separately:** arrays as function parameters/return types,
+multi-dimensional arrays, non-literal array sizes, whole-array reassignment, dynamic/
+resizable arrays, bounds checking, and everything nullability-related (`.length`,
+`?.length`, `?[i]`) - see **Task 14** below.
+
+---
+
+## TASK 12: Compiler Architecture Hardening (Typed AST & Codegen Refactor) - COMPLETE
+
+**Status:** Complete (all 12 sub-tasks) - 2026-09-13. Full sub-task detail (Typed AST,
+C codegen module split, block-level scoping, memory model semantics, docs sync, project
+configuration system, and two deliberately-deferred design decisions), success criteria,
+and deliverables have been moved verbatim to `task/taskSummaryArchive.md` (see CLAUDE.md
+Rule 3). See the Overall Progress table above for a glance, and this file's Working Notes
+below for the session-by-session narrative of how each sub-task was decided/implemented.
+Task 12's completion unblocked Task 13 and Task 14 (both still need their own scoping
+approval before implementation, per Rule 1).
+
+---
+
+#### 15.3: LambdaExpr Scope Bug - RESOLVED (2026-10-07, as part of Task 18.1.3)
+- [x] Fixed: `resolve_lambda()` now calls `resolve_block(new_scope=False)` for a block body, and
+      stores the lambda's own scope on `LambdaExpr.scope` so the type checker re-enters it.
+      A second, related bug was found and fixed with it: the type checker never entered
+      the lambda's scope at all, so a lambda's parameters were undefined inside its body
+- [x] (original note) `NameResolver.resolve_lambda()` resolves a `BlockStmt`-bodied lambda's statements
+      inline without going through `resolve_block()`, so the block's `.scope` never gets
+      set - under block-level scoping (Task 12.6), `TypeChecker.visit_BlockStmt()` falls
+      back to creating a fresh scope in this one case instead of reusing the correct one
+- [ ] Not fixed during Task 12.6 because no current test exercises this path and lambda
+      codegen is itself still a stub (`c_generator.py` emits `/* <lambda> */`) - this was a
+      deliberate, flagged deferral, not an oversight
+- [ ] Fix: make `resolve_lambda()` call `resolve_block()` properly, once lambda codegen is
+      actually implemented and this path becomes reachable by real programs
+
+#### 15.7: Lexer Warnings Are Never Surfaced - RESOLVED (2026-10-07, as part of Task 19.6.4)
+- [x] Fixed: `main.py` now prints every lexer warning (`Lexer warning: ...`) before checking
+      errors; covered by `test_main_prints_lexer_warnings` in `tests/test_source_security.py`
+- [x] (original note) `main.py` checks `lexer.diagnostics.errors` and stops the build on any, but never
+      prints `lexer.diagnostics.warnings` anywhere - e.g. the mixed-tabs-spaces warning
+      (`allow_mixed = true`, the default) is generated and silently collected, then
+      dropped without ever reaching the user
+- [ ] Discovered while building `examples/project_config_demo/` (Task 12.12) - not fixed
+      there since it's a pre-existing gap unrelated to that task's scope
+- [ ] Compare with `SemanticAnalyzer.print_diagnostics()`, which already surfaces semantic
+      warnings even on a successful build (see `main.py`'s "Print warnings even on
+      success" step) - `main.py` should do the equivalent for lexer warnings
+
+#### 15.9: Printing an Array Crashes the Compiler - RESOLVED (2026-10-08, as part of Task 18.2.1)
+- [x] `print("{arr}")` where `arr` is an array fails in codegen with "Internal compiler error:
+      no printf format specifier for type 'ArrayType'" - semantic analysis should reject it
+      with a normal error (or, later, print the elements). Found during 18.1.2 (verified
+      2026-10-07), not fixed there - unrelated to array parameters
+- [x] Fixed: the type checker now rejects printing any whole array, struct or function value
+      ("Can't print a whole int[3] value - print its elements or fields one at a time").
+      Printing the elements automatically is still a possible later feature
+
+#### 15.11: Positional Interpolation `{@1}` Doesn't Work - RESOLVED (2026-10-08, Task 18.2.2b)
+- [x] `print("User {@1} is {@2} years old", name, age)` fails with "Function 'print' expects 1
+      argument(s), got 2" - `print` is registered with one string parameter, so the extra
+      arguments are never accepted. Shown in CLAUDE.md's Quick Syntax Reference and the spec
+      as working; CLAUDE.md now marks it as not working. Found during 18.2.2 (2026-10-08).
+      Fix: let `print` take extra arguments when its string uses `{@N}`, check each `N` is in
+      range, and lower to printf in the referenced order (a `{@1}` used twice repeats the
+      argument)
+
+#### 18.1: Functions With Full Parameter Types - COMPLETE (2026-10-07)
+**Why first:** functions are the unit of all reusable code - a stdlib, a self-hosted
+compiler, or any non-trivial program is built out of them, and today they're restricted.
+- [x] **Default parameter values don't actually work** (verified 2026-10-07) - FIXED in 18.1.1: they're parsed
+      and type-checked, but calling `greet()` on `void function greet(string name = "World")`
+      fails semantic analysis with "expects 1 argument(s), got 0". CLAUDE.md's Quick Syntax
+      Reference advertises this syntax, so it's a correctness gap, not just a missing
+      feature. C has no default arguments, so codegen must fill omitted arguments in at each
+      call site
+- [x] Arrays as function parameters - DONE in 18.1.2 (return values moved to 18.2)
+- [x] Real lambda codegen - DONE in 18.1.3 (was the placeholder `/* <lambda> */`) - this also
+      makes Task 15.3's LambdaExpr scope bug reachable, so fix both together
+- [x] Example program per Rule 5 / Task 16 - `examples/functions_demo.fusion`
+
+### 18.1 Detailed Plan (APPROVED 2026-10-07 - all three parts)
+
+Split into three parts, each shippable and committed on its own, in this order. Each one
+adds tests, an example program (Rule 5), and spec/CLAUDE.md updates.
+
+**18.1.1 - Default parameter values (the verified bug)**
+**Status: COMPLETE (2026-10-07)**
+- [x] Semantic: a parameter with a default must be followed only by parameters that also have
+      defaults (`int f(int a = 1, int b)` is an error - otherwise the call `f(5)` is ambiguous)
+      - `NameResolver.check_parameter_defaults`
+- [x] Semantic: v1 defaults must be **compile-time constants** - a literal (not `null`) or a
+      negated number literal. A default that references another parameter or a variable is
+      an error with a clear message. This keeps C call-site filling trivially correct and
+      avoids Python's "default evaluated once" trap entirely. (Planned to also allow a
+      `const` - dropped, since Fusion has no global constants yet, so a function parameter
+      can never see one.) Array parameters can't have defaults
+- [x] Type checker: accept any argument count from (required) to (total); reports
+      `expects 1 to 2 arguments, got 0`. Stores the completed list on the call node as
+      `CallExpr.resolved_arguments`; the function's declaration is reached through the new
+      `Symbol.declaration` field
+- [x] Codegen: C has no default arguments, so each call site emits the omitted values
+      (`greet()` -> `greet("World", 1)`)
+- [x] Out of scope: named arguments (`f(b: 2)`, which the spec shows) - logged for later
+- [x] 20 tests (`tests/test_functions.py`); new example `examples/functions_demo.fusion`
+      (added to `verify_examples.py`, now 9/9); spec "Rules for default values" added.
+      Full suite 1197 passed, 8 skipped
+
+**18.1.2 - Arrays as function parameters**
+**Status: COMPLETE (2026-10-07)**
+- [x] `int[] values` parameter - accepts an array of **any** size. C loses an array's length
+      when it's passed, so codegen adds a hidden length parameter: `void f(int* values,
+      int values_len)`, and every call passes it (`f(scores, 3)`). `len(values)` inside the
+      function compiles to `values_len`
+- [x] `int[5] values` parameter - accepts only a 5-element array (checked at compile time);
+      `len(values)` stays a compile-time constant
+- [x] An `int[]` parameter can be passed on to another `int[]` parameter (its hidden length
+      goes with it), but not to an `int[5]` parameter (size unknown at compile time - error)
+- [x] **Passing is by reference** (recommended - same as C, Java, C#): the function works on
+      the caller's array, so element changes are visible to the caller, and nothing is
+      copied. A read-only (`const`) parameter can be added later if wanted
+- [x] **Arrays as return values stay rejected** - C can't return an array; this becomes easy
+      once structs exist (wrap the array in a struct), so it moves to 18.2
+- [x] Still no bounds checking (unchanged - its own future item)
+- [x] Also (safety rules added during implementation): element types must match exactly (no
+      int -> float promotion - the callee reads the caller's memory directly); a `const`
+      array can't be passed (no read-only parameter form yet); an array literal can be
+      passed directly (C99 compound literal `(int[]){7, 8}`); array params can't have defaults
+- [x] **Found and fixed: `int[] b = a` passed semantic analysis, then failed in GCC**
+      (`int b[3] = a;` is invalid C - same bug class as Task 12.6). Arrays can now only be
+      initialized from an array literal, with a clear error otherwise
+- [x] Logged, not fixed: Task 15.8 (`fusion_` prefix collisions) and 15.9 (`print("{arr}")`
+      crashes codegen)
+- [x] 15 tests in `tests/test_functions.py`; `test_array_as_function_parameter_fails` (which
+      pinned the old deferral) became `..._allowed`; `functions_demo.fusion` extended; spec
+      "Array parameters" section. Full suite 1212 passed, 8 skipped; 9/9 examples
+
+**18.1.3 - Lambdas v1 (no closures)**
+**Status: COMPLETE (2026-10-07)**
+The spec (`fusion-language-spec.md`, "Lambda Expressions") describes function types, inline
+lambdas, passing functions as arguments, and closures. v1 builds everything except closures:
+- [x] Function type syntax, per spec: `(int, int) : int` (and the `->` alternative) for
+      variables and parameters - e.g. `(int) : int op = tripler`
+- [x] Inline lambda expressions: `func(int x) : x * 2`, `function(...) : ...`, and the current
+      `(int x) : x * 2`. The return type is inferred from the body expression (the parser
+      currently records `void` as a placeholder)
+- [x] A named function can be used as a value (`apply(tripler, 5)`)
+- [x] Calling through a function-typed variable or parameter (`op(5)`)
+- [x] Codegen: each inline lambda becomes a private top-level C function
+      (`static int fusion_lambda_1(int x)`), and function types become C function pointers.
+      Replaces the `/* <lambda> */` placeholder
+- [x] Fix Task 15.3 (lambda block-scope bug) at the same time - this makes it reachable
+- [x] **Closures (a lambda using a variable from the surrounding function) are rejected** with
+      a clear "not yet supported" error. Captured variables must outlive the function that
+      created them, which needs heap memory and an ownership rule - the same decision 18.3
+      has to make for strings. Revisit after 18.3
+- [x] Function-typed variables must be initialized - no `= null` yet (calling a null function
+      crashes; nullability is Task 14's design)
+- [x] Out of scope: named lambdas declared inside a function body (`int adder(int x) : ...`
+      inside another function) - they only matter once closures exist
+- [x] Implementation notes: function types become C typedefs (`typedef int
+      (*fusion_fn_1)(int);`), so variables, parameters and return types are all plain
+      `<type> <name>` in C; functions can return functions (`(int) : int function pick()`);
+      calling the result of an expression works (`(func(int x) : x)(5)`); a nested lambda is
+      lifted ahead of the lambda that uses it
+- [x] Further v1 limits, each with a clear error: lambda parameters can't have defaults or be
+      arrays; function types can't have array parameters, and a function with array
+      parameters can't be used as a value (a function value can't carry the hidden length);
+      builtins (`print`, `len`, `range`) can't be used as values; lambda bodies are single
+      expressions (multi-line lambda bodies, which the spec shows, are not supported yet)
+- [x] A parser test (`test_error_missing_argument`) passed by accident - it used the reserved
+      keyword `func` as a function name, so it failed at `func`, not at the missing argument
+      it meant to test. Now uses `foo`
+- [x] 22 tests in `tests/test_functions.py`; lambdas added to `functions_demo.fusion`; generated
+      C compiles cleanly with `gcc -Wall -Wextra`. Full suite 1234 passed, 8 skipped; 9/9
+
+**Success criteria for 18.1 - all met:** `greet()` with a default compiles and runs; a `sum(int[]
+values)` function works on arrays of different sizes; `apply(func(int x) : x * 2, 5)` prints
+10; a capturing lambda fails with a clear message; full suite green; 8/8 + new examples.
+(Met: `apply(func(int x) : x * x, 7)` gives 49 in the example; closures are rejected with
+"Lambda uses 'offset' from the surrounding function - closures ... not supported yet".)
+
+#### 18.2: Structs - COMPLETE (2026-10-09)
+**Why second:** the first user-defined composite type, and the lowest-risk way into
+user-defined types - a value type maps directly onto a C `struct`, so it needs no runtime,
+no inheritance, and no decision yet on how classes/interfaces/traits interact.
+- [x] Struct declaration, field access (`.` member access - which also delivers the parser
+      piece Task 14 needs for `arr.length`), construction, assignment/copy semantics
+- [x] Structs as function parameters/return values (builds on 18.1)
+- [x] Arrays as function return values (moved here from 18.1.2 - C can't return an array,
+      but it can return a struct wrapping one)
+- [x] Nested structs and arrays of structs
+- [x] Prerequisite for: classes (Task 16.2), Currency's runtime struct, HIDL register maps,
+      AST nodes in a self-hosted compiler
+- [x] Example program per Rule 5 / Task 16
+
+### 18.2 Detailed Plan (APPROVED 2026-10-08 - all four parts) - COMPLETE (2026-10-09)
+
+**Ground rule (user note in `fusion-language-spec.md`, "Structure Definition"):** structs are
+**pure value types - fields only**. No methods, no operator overloading, no user-written
+constructor. The only "constructor" is one the compiler generates, so every field can be set
+in one expression ("useful if you need to add all the values at once"). Behaviour belongs in
+ordinary functions that take or return the struct.
+
+**Today:** the lexer has `struct` and `.` tokens; the parser, semantic passes and codegen know
+nothing about structs. Every type is a keyword today (`int`, `string`...), so the parser must
+learn that a plain name like `Point` can be a type.
+
+**User decisions (2026-10-08):**
+1. **Nested structs are supported**, with depth limits set in the project config (warn at
+   depth 3, maximum depth 3 by default) so a project can switch nesting off or allow more
+2. **Both construction forms**: positional `Point(3, 4)` (field order = declaration order,
+   the default) **and** named `Point(x = 3, y = 4)`. Named arguments are built now, for
+   function calls too, not deferred
+3. **A `string` field in a struct is a mutable string, not pooled, by default**, and it
+   **grows to fit** - a struct can hold anything from a book title to a full product
+   description. Strings are **never cut** below the hard limit. Two separate limits (revised
+   2026-10-08 - replaces the earlier "fixed 64-character buffer, cut to fit" idea):
+   - `string_warn_length` (default **64**) - only a guideline: a longer string still works,
+     the compiler (and later the dev's IDE) just warns
+   - `string_max_length` (default **4096**) - the real cut-off, the only place a string is
+     ever cut. A project picks its own (e.g. sized for text coming from a database).
+     `"max memory"` means no cut-off - **unsafe**, for rare use only
+   All of this is controlled from the project config, so a project can also choose pooled
+   and/or immutable instead. Purpose: a struct is the convenient way to copy value data
+   around a large application and read/change it easily
+4. These settings live in the project config file. Today only `fusion.toml` is read; once
+   Task 20 lands, the same keys work in `fusion.yaml` / `.json` / `.ini` with no extra work
+   (Task 20.1's one shared schema)
+
+**New project settings** (all optional; defaults shown; validated like the existing sections -
+a bad value is a config error, never a silent fallback):
+```toml
+[structs]
+max_nesting_depth  = 3         # 1 = no struct may contain another struct; raise to allow deeper
+warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = never warn)
+string_storage     = "owned"   # "owned" (default: each struct has its own copy) | "pooled" (reserved - Task 17)
+string_mutable     = true      # false = a string field can't be changed after construction
+string_warn_length = 64        # guideline only: warn when a string field holds more (0 = never)
+string_max_length  = 4096      # hard cut-off, or "max memory" = no limit (unsafe, rarely used)
+```
+- **Depth** counts levels of structs: a struct of plain fields is depth 1; `Rect` holding
+  `Point`s is depth 2; a struct holding `Rect` is depth 3. An array of structs counts the same
+  as one struct (`Point[4] corners` is still depth 2)
+- With the defaults, depth 3 compiles with a warning and depth 4 is a compile error naming
+  the chain (`Scene -> Shape -> Rect -> Point is 4 levels deep; max_nesting_depth is 3`)
+- `string_storage = "pooled"` is accepted by the validator but rejected at compile time with
+  "not implemented yet (Task 17)" - same treatment as `[backend] target = "llvm"` today
+- **Length rules:** below `string_warn_length` nothing happens. Above it the string is kept in
+  full and the compiler warns (`string field 'description' holds 210 characters; the project
+  guideline is 64`). Above `string_max_length` the string is cut to that length, with a
+  warning saying so - the only cut-off. `string_max_length` must be >= `string_warn_length`
+  (config error otherwise)
+- `string_max_length` takes a plain number. TOML can't calculate, so "64 * 64" is written
+  `4096`. `"max memory"` turns the cut-off off; the compiler prints an "unsafe setting"
+  warning on every build that uses it, and once `[safety] mode = "strict"` is enforced
+  (Task 15.6) strict mode will refuse it
+- **How "grows to fit" is built (recommended split - please confirm):**
+  - **Now, in 18.2:** a string field holds a string value, exactly like a `string` variable
+    does today. Assigning any length works with nothing cut (`p.description = "...210
+    characters..."`), and assigning a new value is the "mutable" part. Today every string
+    in a Fusion program is a fixed piece of text written in the source - there's no way yet
+    to build or edit a string while the program runs. So the compiler knows every string's
+    length at compile time: the warning and the cut-off both apply now, at compile time, and
+    copying a struct already behaves exactly like a full copy
+  - **In 18.3 (proper strings):** once programs can build and edit strings at runtime
+    (joining, editing characters), a string field becomes its own heap-allocated, growable
+    buffer: copied in full when the struct is copied, freed when the struct goes away, with
+    the cut-off checked at runtime too. That needs 18.3's "who frees a string" decision,
+    which is exactly what 18.3 is for, so building it in 18.2 would mean making that
+    decision twice
+  - Not pooled by default: each struct copy owns its value. (Two identical pieces of text in
+    the source may share storage in the compiled C today, but nothing in Fusion can tell -
+    there is no identity operator yet. Pooling as a project choice is Task 17)
+
+Split into four parts, each shippable and committed on its own (same pattern as 18.1). Each
+adds tests, extends the example program (Rule 5), and updates spec/EBNF/CLAUDE.md.
+
+**18.2.1 - Core structs**
+**Status: COMPLETE (2026-10-08)**
+- [x] Declaration, top level only, in all three block styles:
+      ```
+      struct Point            struct Point {          struct Point
+          int x                   int x                   int x
+          int y                   int y                   int y
+                              }                       End struct
+      ```
+- [x] v1 field types: `int`, `float`, `double`, `bool`, `char`, `string`. Rejected with a
+      clear error: `void`, function types, duplicate field names, an empty struct
+- [x] Optional field defaults - same rule as parameter defaults (18.1.1): constant literals
+      only: `int hp = 100`
+- [x] Declaring a variable: `Point p` -> every field zero / its default (like `float[3] buf`)
+- [x] Generated positional constructor, fields in declaration order: `Point(3, 4)`. Fields
+      with defaults may be left off the end, exactly like default parameters (reuses 18.1.1's
+      call-site filling). Same int -> float promotion as function arguments
+- [x] Field read and write with `.`: `p.x`, `p.x = 5`, `p.x + 1`, `print("{p.x}")` (the `.`
+      postfix also gives Task 14 the parser piece it needs for `arr.length`)
+- [x] **Value semantics** (per spec): `Point b = a` copies; `b.x = 9` leaves `a` alone. Passed
+      to functions **by value** (a copy - unlike arrays, which pass by reference) and returned
+      by value. Maps directly onto C: structs copy natively
+- [x] `const Point ORIGIN = Point(0, 0)` - no field of a const struct can be assigned
+- [x] **String fields** per the settings above: any length, never cut below
+      `string_max_length`; `string_warn_length` warning; cut-off with a warning above
+      `string_max_length`; `"max memory"` unsafe warning; `string_mutable = false` makes field
+      assignment after construction an error; `string_storage = "pooled"` -> "not implemented
+      yet (Task 17)". Reading `p.name` gives an ordinary `string` (works with `print`,
+      parameters, etc.). Runtime growable buffers come with 18.3 (above)
+- [x] `[structs]` section added to `src/config/project_config.py` (parse + validate + tests),
+      and the config is passed into the semantic analyzer and codegen - today only the lexer
+      receives any config (`[indentation]`), so this is new plumbing
+- [x] Struct names: may be used before they're declared (like functions); can't clash with a
+      function, another struct, or a builtin; a variable/parameter can't reuse a struct's name
+      (in C it would hide the type). C keyword names are mangled like functions are
+- [x] Clear errors for things not supported yet: `==`/`!=` on structs (equality is 18.3's
+      operator-family decision - C can't compare structs either), printing a whole struct
+      (`print("{p}")`), arithmetic on structs, unknown field, unknown type name
+- [x] Codegen: `typedef struct Point { int x; int y; } Point;` emitted before function typedefs
+      and forward declarations; constructor -> C99 compound literal `(Point){3, 4}`; `Point p`
+      -> `Point p = {0};` (or with defaults filled in)
+- [x] Fix Task 15.9 at the same time (its trigger is "next touch of print/interpolation", and
+      this part touches it): `print("{arr}")` gets a clear error instead of crashing codegen
+- [x] New example `examples/structs_demo.fusion` (added to `verify_examples.py` -> 10/10)
+- [x] **Implementation notes:** the parser treats an identifier in a type position as a struct
+      type (`StructType`) and recognises `Point p` / `Point function f()` by lookahead (two
+      identifiers in a row never form an expression); unknown names are reported by the name
+      resolver ("Unknown type 'X'"), so 4 parser tests that pinned "an identifier is never a
+      type" were updated. The lexer accepts dotted paths inside `{...}` (`{p.x}`). A string
+      field is a `char*` (fine while every string is a literal - growable buffers are 18.3).
+      Unknown keys in `[structs]` are a config error (catches typos). A field with a default
+      can only be left off when no later field is given (`max required index` rule)
+- [x] **Found and fixed:** arithmetic on a non-number (`arr + 1`, or a struct) crashed the
+      compiler with a Python TypeError - `PrimitiveType('void', location=...)` passed 'void'
+      as the location in 3 places of `type_checker.py`. Regression test added
+- [x] **Found and guarded:** Task 15.10 (interpolated string outside `print()` -> invalid C)
+- [x] **Spec rewritten:** "Structures and Value Types" (fields-only rules, construction,
+      string fields, value semantics - the user's note in the spec is handled and removed),
+      the space-game `Vector2` (now a plain struct + `vadd`/`vscale` functions), the quick
+      reference, "Project Configuration" (`[structs]`), and the interpolation section (now says
+      honestly that `{age + 1}` expressions aren't implemented yet - only names and field
+      paths). EBNF `struct_declaration`/`struct_field`, `.` member access. CLAUDE.md updated
+- [x] 79 new tests (`tests/test_structs.py` 64, `tests/test_project_config.py` 15 incl. one
+      that compiles through `main.py` with and without a `fusion.toml`); generated C compiles
+      cleanly with `gcc -Wall -Wextra`. Full suite 1312 passed, 8 skipped; 10/10 examples
+
+**18.2.2 - Named arguments (function calls and struct construction)**
+**Status: COMPLETE (2026-10-08)**
+Syntax as the spec already shows it (`fusion-language-spec.md`, "Named Arguments"):
+`createShip(crew = 100, name = "Voyager")`, `Point(y = 4, x = 3)`.
+- [x] Named arguments in any order; positional and named can be mixed, but **positional must
+      come first** (`createShip("Discovery", crew = 80)` ok; `f(a = 1, 2)` is an error)
+- [x] Combines with defaults: any parameter/field with a default can be skipped, not only
+      trailing ones - `createShip(crew = 200)` uses the defaults for `name` and `speed`
+- [x] Errors: unknown name; the same parameter given twice (by position and by name, or named
+      twice); a required parameter missing (`missing argument 'b'`)
+- [x] Codegen reorders into declaration order and fills defaults (extends 18.1.1's
+      `CallExpr.resolved_arguments`); C sees an ordinary positional call
+- [x] **Evaluation order:** arguments are evaluated left to right *as written*. C doesn't
+      guarantee argument order, so when reordering would change what runs first and an
+      argument can have side effects (it contains a call), codegen stores those arguments in
+      temporaries first. Otherwise `f(b = next(), a = next())` could silently swap results
+- [x] No ambiguity with `=` meaning comparison inside `if` conditions (18.3 decision): inside a
+      call's parentheses `name = value` is always a named argument
+- [x] Not allowed (clear error): named arguments when calling through a function-type variable
+      (`op(x = 5)` - a function type has no parameter names), and on builtins (`print`, `len`)
+- [x] Spec: remove "Named arguments ... are not implemented yet"; mark the section implemented
+- [x] **Implementation notes:** new AST node `NamedArgument` inside `CallExpr.arguments`
+      (written order kept); the parser reads `name = value` at the start of an argument. One
+      shared matcher (`TypeChecker._check_named_call`) handles functions and struct
+      constructors; calls with no named arguments keep the 18.1.1/18.2.1 code path and
+      messages unchanged. After an unknown or misplaced argument, "missing argument" isn't
+      also reported (it's usually a side effect). Temporaries are `fusion_arg_N`, declared at
+      the top of the C function (or lifted lambda) using them, and sequenced with C's comma
+      operator; they're only used when a call has named arguments *and* some argument
+      contains a call. Array arguments are never put in temporaries (passed by reference)
+- [x] **Not changed (noted):** calls with only positional arguments still leave argument order
+      to C, as before - e.g. `f(next(), next())`. Fusion never promised an order there;
+      making all calls left-to-right would be a small follow-up if wanted
+- [x] **Found and logged, not fixed:** Task 15.11 - positional interpolation `print("{@1}",
+      name)` has never compiled (`print` takes one argument), although CLAUDE.md's Quick
+      Syntax Reference shows it. CLAUDE.md now marks it as not working
+- [x] 25 new tests in `tests/test_structs.py`; `structs_demo.fusion` extended (named struct
+      construction and a named function call). Spec "Calling Functions" rules + struct
+      section, EBNF `argument`, CLAUDE.md updated. Full suite 1337 passed, 8 skipped; 10/10
+
+**18.2.2b - Positional placeholders `{@N}` and left-to-right argument order** (added
+2026-10-08 at the user's request - APPROVED 2026-10-08)
+**Status: COMPLETE (2026-10-08)**
+
+User decisions: "both" - left-to-right evaluation is the **default for every call**, and
+`{@N}` placeholders must work in any order (`{@3} {@1} {@2}`). Two parts, committed together.
+
+*Part A - left-to-right argument order for all calls (extends 18.2.2's guarantee)*
+- [x] Every call's arguments are evaluated left to right as written - positional calls too
+      (`f(next(c), next(c))`), struct constructors, and calls through function values
+- [x] Same mechanism as 18.2.2 (temporaries + C's comma operator), but only where the order
+      could actually be seen, so ordinary calls stay plain C: at least one argument contains
+      a call, **and** another argument also contains a call or reads an array element
+      (`arr[i]`). Reasoning: in Fusion a call can only change the caller's data through an
+      array passed to it (no globals, no closures, structs are copies), so a plain variable
+      or literal argument reads the same value whenever it is evaluated
+- [x] Not in this part (logged as Task 15.12): the same question for operators -
+      `next(c) - next(c)` leaves operand order to C. Recommend the same left-to-right rule
+      later
+
+*Part B - positional placeholders in print (closes Task 15.11)*
+- [x] `print("User {@1} is {@2} years old", name, age)` - extra arguments after the text are
+      referenced by number, starting at 1
+- [x] Placeholders in any order and repeatable: `print("{@3} {@1} {@2} {@1}", a, b, c)`
+- [x] Each argument is evaluated **once, left to right as written** - whatever order or
+      however often the placeholders use it. An argument containing a call goes into a
+      temporary first, so a repeated `{@1}` never re-runs the call
+- [x] Can be mixed with named values: `print("{name} scored {@1}", total)`
+- [x] Errors: `{@N}` with no argument N (`{@3}` with 2 arguments); `{@0}`; extra arguments
+      when the text has no `{@N}` at all (today's "expects 1 argument" error, clearer);
+      an argument that can't be printed (whole array/struct)
+- [x] Warning (not error): an argument that no `{@N}` uses - likely a mistake, but a
+      translated message may leave one out on purpose (the spec's i18n use case)
+- [x] **Fix the silent bug:** `print("value {@1}")` with no arguments compiles today and prints
+      `value 1` - the parser turns `{@1}` into the number 1. It becomes the "no argument 1"
+      error above. `{@N}` gets its own AST segment type instead of a fake integer
+- [x] Only in `print` for now (interpolated strings only work in `print` - Task 15.10); a
+      general `format(...)` waits for runtime strings (18.3)
+- [x] Tests, `structs_demo`/`functions_demo` example lines, spec + CLAUDE.md (remove the "not
+      working" marks), Task 15.11 closed
+- [x] **Implementation notes:** `{@N}` is a new segment type, `StringPositionalPart` (it used to
+      be re-parsed as the integer `N`). The type checker special-cases `print` with
+      `_check_print_call`. Codegen's ordering rule is `_order_matters` (shared by calls and
+      print); print arguments also get a temporary when they contain a call and aren't used
+      exactly once. `_contains_call` skips lambda bodies and links to declarations (a
+      recursive function's body would otherwise be walked forever). One 18.2.2 test changed:
+      a lambda with one call beside a plain variable rightly no longer gets temporaries
+- [x] 25 new tests in `tests/test_positional.py`, one AST test updated to the new segment type;
+      `structs_demo` prints with out-of-order placeholders. Spec ("Calling Functions"
+      evaluation order, placeholder rules) and CLAUDE.md updated. Full suite 1362 passed,
+      8 skipped; 10/10 examples
+
+**18.2.3 - Nesting: structs in structs, arrays in structs, arrays of structs**
+**Status: COMPLETE (2026-10-08)**
+- [x] A struct field can be another struct (`Rect` holding two `Point`s): `r.min.x = 1`.
+      Depth limits from `[structs] max_nesting_depth` / `warn_nesting_depth` (above).
+      A struct can't contain itself directly or through a cycle (infinite size) - error
+      naming the cycle. Codegen orders struct typedefs by dependency
+- [x] Fixed-size array fields, size required: `int[3] position` -> `p.position[0] = 5`;
+      `len(p.position)` is a compile-time constant; an array field can be passed to an
+      `int[]` parameter (by reference, as today). Copying the struct copies the array too
+      (true value semantics - C does this natively for arrays inside structs)
+- [x] Arrays of structs: `Point[3] pts` (zeroed), `Point[] pts = [Point(1, 2), Point(3, 4)]`,
+      `pts[0].x = 7`, passing `Point[]` to a function (by reference, like other arrays)
+- [x] Example extended
+- [x] **Design detail decided during implementation:** array and struct fields start with their
+      own defaults (zero, `""`, or the inner struct's field defaults), so - like a field with a
+      written default - they can be left out of a constructor (positionally at the end, or
+      skipped by name); they can't have a written default themselves. An array field in a
+      constructor takes an array literal of exactly its size (same rule as array variables).
+      A whole array field can't be assigned (`t.scores = [...]`) - only its elements
+- [x] Depth errors/warnings are reported once, on the struct where the limit is first crossed
+      (not on every struct that contains it); a cycle is reported once, naming the chain
+- [x] const checks now look through fields and indexes to the variable underneath:
+      `c.xs[0] = 5`, `k.a.x = 5`, `P[0].x = 5` and passing `c.xs` to a function are all
+      rejected when the variable is const
+- [x] Codegen: struct typedefs in dependency order; one shared "default value" builder
+      (`_default_value_code`) used for struct variables, omitted fields and arrays;
+      all-zero data gets correctly nested braces (`{{0}}` for `Point[3]`) so `-Wall -Wextra`
+      stays clean; arrays over 64 elements that need non-zero defaults are filled in a loop
+- [x] **Found and fixed:** `string[2] names` (no value) left NULL pointers - printed `(null)`
+      here, can crash on other C runtimes. String arrays now start as `""`
+- [x] 37 new tests (`tests/test_structs.py` 36 incl. an end-to-end run; `tests/
+      test_project_config.py` 1 compiling through `main.py` with `max_nesting_depth = 1`);
+      3 tests that pinned the old "not supported yet (18.2.3)" errors removed.
+      `structs_demo` shows a nested `Rect`, a `Team` with array fields, and an array of
+      structs passed to a function. Spec, EBNF and CLAUDE.md updated. Full suite 1396
+      passed, 8 skipped; 10/10 examples
+
+**18.2.4 - Arrays as function return values (moved here from 18.1.2)**
+**Status: COMPLETE (2026-10-09)**
+- [x] `int[3] function make()` - **fixed size only**; `int[]` as a return type is rejected (the
+      caller needs the size at compile time; growable/sized-at-runtime arrays are 18.5's list)
+- [x] Codegen wraps the array in a hidden struct C *can* return (`typedef struct { int
+      data[3]; } fusion_arr_int_3;`), unwrapped at the call site
+- [x] Usable as: `int[3] a = make()`, `a = make()` (whole-array assignment from a call only),
+      and `make()[0]`. Element types/sizes must match exactly (as with array parameters)
+- [x] Example extended
+- [x] **Implementation notes:** each returned array type gets `typedef struct { T data[N]; }
+      fusion_arr_T_N;` plus two `static inline` helpers - `_from` (copy an array into the
+      wrapper, for `return arr`) and `_copy` (copy a wrapper into an array, for
+      `int[3] a = make()` / `a = make()`), both via `memcpy`. `make()[0]` is
+      `make().data[0]`. Prototyped in plain C first - clean under `-Wall -Wextra -std=c99`
+- [x] Where a returned array may be used is checked in one place (`TypeChecker.visit_CallExpr`
+      wraps the old body, now `_visit_call`): stored, assigned (to an array variable *or* an
+      array field - the field case was a natural extra), indexed, returned, or ignored.
+      Anywhere else (`len(make())`, `print("{@1}", make())`, passing to a function) is an
+      error with a hint. `return` accepts a literal of the exact size, or any array of the
+      same type and size (variable, parameter, field, call)
+- [x] Not supported yet, each with a clear error: unsized `int[]` return types, lambdas and
+      function types returning arrays, using an array-returning function as a value, a
+      `const` array set from a call
+- [x] **Found and fixed while testing:** a one-line function `int[3] function f() : [1, 2, 3]`
+      generated invalid C (`return {1, 2, 3};`) - one-line bodies now go through the same
+      return handling as `return` statements
+- [x] 29 new tests (`tests/test_structs.py`, incl. end-to-end); 2 tests that pinned the old
+      "not yet supported as function return types" error now check the unsized-return error.
+      `structs_demo` returns an array of structs. Spec ("Array return values"), EBNF and
+      CLAUDE.md updated. Full suite 1425 passed, 8 skipped; 10/10 examples
+
+**Out of scope (logged for later):** methods / functions inside structs (never - user
+decision; use free functions); struct equality (18.3); printing a whole struct; passing a
+struct by reference to avoid copying a large one (a `ref`/`in` parameter form - later);
+growable heap string fields (18.3); pooled string fields (Task 17); generic structs; nullable structs
+(Task 14); classes (Task 16.2 / after 18.x).
+
+**Spec/doc updates (Auto-Update Policy):** rewrite the spec's "Structure Definition" section
+(remove the constructor/operator/method example, and the user note once handled) and its
+"Struct Restrictions" list (nested structs now allowed, depth-limited; string fields inline
+and mutable by default); rewrite the space-game example's `Vector2` (spec ~line 3047) as a
+plain struct plus free functions; check `CacheEntry` (~line 2827); spec "Project
+Configuration" section gets `[structs]`; EBNF `struct_declaration` (field defaults, brace /
+`End struct` forms) and named arguments in the call grammar; CLAUDE.md Quick Syntax Reference
+(structs, named arguments, `[structs]` config) + Current Features; Task 20's key list gains
+`[structs]`.
+
+**Success criteria:** a `Point`/`Rect` program builds, copies, nests, passes and returns structs
+correctly; `Point(y = 4, x = 3)` and `createShip(crew = 200)` work; `int[3] function make()`
+works; mutating a copy never changes the original (string fields included); a 210-character
+string field compiles with a warning and is kept in full; changing `max_nesting_depth` /
+`string_warn_length` / `string_max_length` in `fusion.toml` visibly changes compiler behaviour;
+every rejected case gives a clear error (never a GCC error - the Task 12.6 bug class);
+generated C compiles with `gcc -Wall -Wextra`; full suite green; 10/10 examples.
+
+**18.3.1 - String values and automatic cleanup (the foundation)**
+**Status: COMPLETE (2026-10-09)**
+- [x] A small C runtime emitted into each generated program: `fusion_string` = text pointer
+      + length + "owned" flag. Literals cost nothing at run time (they point at the
+      program's built-in text and are never freed); only strings built at run time use the
+      heap
+- [x] Ownership rules (value semantics): storing a string into a variable, field or array
+      element gives the owner its own copy - except a freshly built value (a temporary),
+      which is simply handed over (moved), so `string s = a + b` copies nothing extra.
+      Function parameters borrow the caller's string (no copy); returning a string hands it
+      to the caller
+- [x] Automatic cleanup: every owned string is freed exactly once when its owner goes away -
+      end of its block, and on every exit path (`return`, `break`, `continue`); a
+      temporary is freed at the end of the statement that made it. Structs holding strings
+      get generated copy/free helpers (copying a struct copies its strings), as do arrays of
+      strings
+- [x] Content comparison: `==` and `!=` compare the text, not the address (fixes the latent
+      bug); `<`, `>`, `<=`, `>=` compare alphabetically (byte order)
+- [x] Run-time errors: a small `fusion_runtime_error` that prints `Runtime error at
+      file:line: message` and stops the program. Used here for "out of memory", and by
+      18.3.2 for bad indexes and conversions
+- [x] Everything that uses strings today moves onto the new type unchanged in behaviour:
+      literals, `print`, interpolation, parameters and defaults, struct fields, arrays,
+      function types
+- [x] **Leak check in the test suite:** tests can compile with a counting allocator
+      (`-DFUSION_LEAK_CHECK`) that reports any string not freed - or freed twice - when the
+      program ends. Every end-to-end string test runs with it, so "freed exactly once" is
+      tested, not assumed
+- [x] Example `examples/strings_demo.fusion` (-> 11/11)
+- [x] **Implementation notes:** new module `src/codegen/c_memory.py` - the C runtime
+      (`fusion_string` = data/len/owned; `FUSION_STR(lit)` for source text), the
+      "managed type" rules (a string, or a struct/array holding one anywhere), generated
+      `fusion_copy_S`/`fusion_free_S`/`fusion_set_S` helpers per string-holding struct,
+      cleanup scopes (function / block / loop) and per-statement temporaries. Returned-array
+      wrappers of strings deep-copy (`_from`), free the old elements (`_copy`) and can be freed
+      (`_free`). Lambdas are now generated through the same statement machinery
+- [x] A temporary in a condition is settled into a plain value and freed before the branch
+      runs; `while` conditions that make temporaries become `while (1) { ...; if (!c) break; }`
+- [x] **Found and fixed during testing:** a temporary on the right of `and`/`or` may be
+      skipped, and freeing an unset one was undefined - the leak check caught it as a bad
+      free (exit 4). Every temporary now starts as an empty value
+- [x] **Found:** `string s` with no value used to be an uninitialized C pointer - it is now `""`
+- [x] **Limitation (clear error):** a string-holding variable can't reuse the name of one in
+      an enclosing block (the cleanup on `return` would free the wrong one) - codegen error
+- [x] **Noted for Task 15.8:** `<stdlib.h>` is now included, so a user function named like a C
+      library function (`free`, `exit`, `abs`, ...) collides in GCC - `rename` already did
+      (`<stdio.h>`). Same fix as 15.8 (mangle or reserve names)
+- [x] The leak check is verified itself (a never-freed string -> exit 3, a double free ->
+      exit 4), and **every end-to-end test in the suite** now compiles with it - all pass.
+      All 11 examples are leak-free under it too
+- [x] 27 new tests (26 in `tests/test_strings.py`, 1 in `test_type_checker.py`); 30 existing tests updated for the new
+      representation (`FUSION_STR("...")`, `fusion_string`, `.data` in printf, new includes)
+      and one type-checker test (string ordering is now allowed). New example
+      `strings_demo.fusion`. Spec "String Implementation" rewritten around the value model;
+      the pool, GC and method syntax it described are kept as **planned advanced features
+      (after MVP)** - user correction 2026-10-09, they are not dropped. Full suite 1452 passed, 8 skipped;
+      11/11 examples
+
+#### 19.6: Source-Level Attack Defenses - COMPLETE (2026-10-07)
+**Before this task, both attacks below worked against Fusion.** A file containing two
+different variables `аge` (Cyrillic `а`, U+0430) and `age` (Latin) that look identical
+compiled cleanly, and so did a right-to-left override (U+202E) hidden in a comment and in a
+string literal. Both are now rejected with a precise error.
+- [x] Lexer rejects bidirectional-control and invisible Unicode characters anywhere in source,
+      including comments and strings (Trojan Source, CVE-2021-42574) - new
+      `src/lexer/source_security.py`, a pre-pass in `Lexer.tokenize()`
+- [x] `\uXXXX` escapes added to string and char literals
+- [x] Identifiers ASCII-only by default (user decision); opt-in via `fusion.toml`
+      `[source] allow_unicode_identifiers = true`, where mixed look-alike scripts and
+      compatibility characters are still rejected
+- [x] Lexer warnings now printed by `main.py` (closes Task 15.7)
+- [x] **Found and fixed along the way: char literals were broken end-to-end.** `char c = 'a'`
+      compiled to the C multi-character constant `'\'a\''` and printed `'` instead of `a`,
+      because nothing ever decoded the literal - the lexer keeps the raw text (`'a'`), and the
+      parser passed it straight into the AST. The parser now decodes it
+      (`decode_char_literal`). A parser test (`test_char_literal`) had been asserting the
+      buggy behavior, and was corrected
+- [x] Also: codegen's C-escaping (previously duplicated in four places) is now one helper,
+      `escape_c_text`, which writes control/invisible characters as octal escapes so they
+      never appear raw in generated C; char literals must be ASCII (a C `char` is one byte);
+      Unicode digits no longer start a number
+- [x] 54 new tests (`tests/test_source_security.py`, 4 config tests, 1 parser test). Full
+      suite 1173 passed, 8 skipped; 8/8 examples
+
+### 19.6 Detailed Plan (APPROVED 2026-10-07 - IMPLEMENTED, kept for reference)
+
+**19.6.1 - Reject invisible and bidirectional control characters**
+- [ ] A pre-pass in the lexer scans the whole source text before tokenizing, so comments
+      and strings are covered - comments are exactly where Trojan Source attacks hide
+- [ ] Rejected code points:
+      - Bidirectional controls: U+202A-U+202E, U+2066-U+2069, U+200E, U+200F, U+061C
+      - Invisible/zero-width: U+200B, U+200C, U+200D, U+2060, and U+FEFF anywhere except
+        the very first character of the file (a UTF-8 byte-order mark that Windows editors
+        often add is legitimate there, and is stripped)
+- [ ] Hard error, not a warning, naming the character and position, e.g.:
+      `trojan.fusion:4:31: error: invisible/bidirectional control character U+202E
+      (RIGHT-TO-LEFT OVERRIDE) - can make code display differently than it compiles
+      (Trojan Source). Write ‮ inside a string literal if this is intended.`
+- [ ] Not configurable - this is a security baseline. Section 19.6.2's `\u` escape is the
+      supported way to include such a character on purpose
+
+**19.6.2 - Add `\uXXXX` escapes to string and char literals**
+- [ ] `\u` followed by exactly four hex digits, e.g. `"‍"`; added to `ESCAPE_SEQUENCES`
+      handling in `src/lexer/literals.py`, and emitted to C correctly
+- [ ] Clear lexer errors for malformed escapes (`\u12`, `\uZZZZ`)
+
+**19.6.3 - Confusable identifiers - DECISION NEEDED (recommendation first)**
+- [ ] **Recommended: identifiers ASCII-only by default.** Simplest and strongest defense - no
+      homoglyph is possible in pure ASCII - and it keeps generated C identifiers portable.
+      Unicode stays fully allowed in strings and comments (`"café"`, `// 中文` are fine)
+- [ ] Opt-in for projects that want non-English identifiers: `fusion.toml`
+      `[source] allow_unicode_identifiers = true`. In that mode, reject identifiers that mix
+      scripts (e.g. Latin plus Cyrillic or Greek in one name), detected from Unicode
+      character names via Python's stdlib `unicodedata`. Full Unicode TR39 confusable
+      detection (the approach Rust's compiler uses) needs a large data table - deferred
+- [ ] Alternative if you prefer: allow Unicode identifiers by default and only reject mixed
+      scripts. Weaker - two identifiers can still be entirely different scripts that look
+      alike (all-Cyrillic `аре` vs all-Latin `ape`)
+
+**19.6.4 - Surface lexer warnings (closes Task 15.7)**
+- [ ] `main.py` currently drops lexer warnings entirely (Task 15.7). Print them, the same way
+      semantic warnings are already printed - needed so any future warning-level source
+      check is actually seen, and it's a small change
+
+**19.6.5 - Tests and documentation**
+- [ ] Unit tests: each rejected code point class, in code / comments / strings; BOM allowed
+      only at the start; `\u` escapes valid and malformed; ASCII-only identifiers by default;
+      Unicode identifiers allowed with the config flag; mixed-script rejection; ordinary
+      Unicode (é, 中文) still accepted in strings and comments
+- [ ] Regression test reproducing the two verified attacks above, now rejected
+- [ ] Before changing identifier rules, confirm no existing test or example uses non-ASCII
+      identifiers (checked 2026-10-07: the only non-ASCII characters in `tests/` are `→`
+      arrows in Python comments/docstrings, not in Fusion source)
+- [ ] Docs: language spec (lexical rules), CLAUDE.md, README; `fusion.toml` `[source]`
+      section documented
+
+**Success criteria for 19.6:** both verified attacks fail to compile with a clear message;
+full suite stays green; 8/8 examples still pass.
+
+---
+
+### Session 16 (2025-12-14 - Planning Phase)
+- Created taskSummary2.md for post-MVP work
+- Updated CLAUDE.md with strict PLAN-FIRST methodology
+- Added NO EMOJIS IN CODE rule
+- Defined Tasks 5-9:
+  - Task 5: Project cleanup
+  - Task 6: Verification fixes
+  - Task 7: Git integration
+  - Task 8: const keyword
+  - Task 9: Array support
+- Identified FizzBuzz bug (missing numbers in output)
+
+### Session 17 (2025-12-14 - Task 5 Execution)
+- **Task 5: Project Cleanup & Organization - COMPLETE**
+  - 5.1: Moved taskSummary.md to task/ folder (archive)
+  - 5.2: Moved verify_examples.py to tests/ folder
+  - 5.3: Organized documentation (verification_report.md → files/reports/)
+  - 5.4: Updated path references in README.md
+  - 5.5: Verified all tests passing (1,041/1,041)
+- **All Files Now Properly Organized**
+
+### Session 18 (2025-01-08 - Project Review & Task 6 Planning)
+- **Claude Opus Project Review Completed**
+  - FizzBuzz bug ROOT CAUSE identified: String interpolation codegen issue
+  - print("{i}") generates printf("\n") instead of printf("%d\n", i)
+  - Identified 5 "stale" test files in root
+  - Identified 2 empty folders (Compiler/, Specification/)
+  - Identified 4 AI review files needing organization
+- **Added Task 6.0: Pre-Verification Cleanup**
+- **Executed Task 6.0 - CRITICAL DISCOVERY:**
+  - "Stale test files" are actually DEBUG SCRIPTS that patch Lexer class
+  - test_trace_pos_changes.py wraps pos property → breaks 290 tests when collected
+  - Created debug/ folder to isolate debugging scripts from pytest
+  - Moved 6 debug scripts to debug/ (pytest now ignores them)
+  - Organized 4 AI review files to files/reviews/
+  - Updated pytest.ini with norecursedirs = debug
+  - All 1,041 tests passing after cleanup
+  - Empty folders require user permission to delete
+- **Executed Task 6.1 & 6.2: FizzBuzz Bug Fix - COMPLETE**
+  - Investigated generated C code: printf("\n") instead of printf("%d\n", i)
+  - Traced bug to lexer parse_string_interpolation() function
+  - Bug: For "{i}", lexer returned [('INTERP_VAR', 'i')] with NO STRING_PART entries
+  - Should return: [('STRING_PART', ''), ('INTERP_VAR', 'i'), ('STRING_PART', '')]
+  - Fixed src/lexer/literals.py to always add STRING_PART (even if empty)
+  - Updated 10 tests in test_literals.py to expect correct format
+  - FizzBuzz now outputs correctly: 1, 2, Fizz, 4, Buzz, Fizz, 7, 8, ...
+  - All 1,041 tests passing, verification 3/6 examples match expected output
+- **Executed Task 6.3, 6.4, 6.5: Example Verification - COMPLETE**
+  - Ran all 6 examples to capture actual outputs
+  - Updated verify_examples.py with correct expected outputs:
+    - calculator: "Sum: 15\nDiff: 5\nProd: 50"
+    - factorial: "Factorial of 5 is 120"
+    - fizzbuzz: First 15 lines (1, 2, Fizz, 4, Buzz, ..., FizzBuzz)
+    - hello_world: "Hello, World!"
+    - max_three: "Maximum of 10, 25, 15 is 25"
+    - sum_array: "Sum of 1 to 10: 55"
+  - Verification results: 6/6 compile, 6/6 run, 6/6 match expected output
+  - **100% verification success rate achieved**
+  - Generated detailed verification_report.md in files/reports/
+- **Executed Task 6.6: C Code Quality Review - COMPLETE**
+  - Reviewed all 6 generated C files
+  - **All code functionally correct - no bugs found**
+  - String interpolation working correctly in all examples
+  - Recursion (factorial.c): Correct base case and recursive case
+  - Loops (while, for): Generated correctly
+  - Conditionals (if/else): Logic correct
+  - Minor style observations: Excessive parentheses, unused headers (not bugs)
+  - **Quality assessment: EXCELLENT**
+- **TASK 6: VERIFICATION & BUG FIXES - 100% COMPLETE**
+- **Updated Task Progress Table** (Task 6: 7/7 complete, Overall: 12/32 complete)
+
+### Session 19 (2025-01-09 - Future Planning)
+- **User Request:** Plan self-hosting and LLVM backend integration
+  1. Keep current C-based approach
+  2. Add LLVM task (after self-hosting working)
+  3. Add self-hosting task (must be added eventually)
+  4. "lets plan this properly before doing coding"
+- **Created task/task-10-self-hosting-plan.md**
+  - Comprehensive 12-phase plan (40-60 hours)
+  - Prerequisites: file I/O, collections, string manipulation
+  - Bootstrap process: Python v1 → Fusion v2 → v3 (self-compile)
+  - Detailed porting strategy for all compiler components
+- **Created task/task-11-llvm-backend-plan.md**
+  - Comprehensive 13-phase plan (30-40 hours)
+  - Replace C code generator with LLVM IR backend
+  - Type mapping, optimization pipeline, performance benchmarking
+- **Updated taskSummary2.md** with Tasks 10 & 11
+  - Task 10.1: Planning complete (1/12 phases)
+  - Task 11.1: Planning complete (1/13 phases)
+  - Overall progress: 14/57 tasks complete (30%)
+- **Next Action:** Task 7 - Git Integration & GitHub Setup (next in sequence)
+
+### Session 20 (2025-01-09 - Git Integration)
+- **Executed Task 7: Git Integration & GitHub Setup - 94% COMPLETE**
+  - Task 7.1: Created .gitignore (excludes .exe, .c, cache, IDE files)
+  - Task 7.2: Initialized local Git repository
+    - Initial commit: e62d2cf "Initial commit - Fusion compiler MVP complete"
+    - 153 files, 61,458+ lines of code
+  - Task 7.3: Connected to GitHub
+    - Repository URL: https://github.com/EmileAvatar/fusion-lang.git
+    - Renamed branch: master → main
+    - Pushed successfully to origin/main
+  - Task 7.4: Verified remote backup
+    - Branch tracking configured: main → origin/main
+    - All commits pushed successfully
+    - .gitignore working (executables, cache excluded)
+- **Security Audit Completed**
+  - No credentials, API keys, or sensitive information found
+  - Configuration files reviewed and safe
+  - Personal email only in git config (standard practice)
+- **Completed Task 7.4.4: README.md Comprehensive Update**
+  - Enhanced project description: Fusion as agnostic, configurable language
+  - Expanded Features section with MVP complete vs. planned features
+  - Added comprehensive Contributing section with PLAN FIRST methodology
+  - Added MIT License (recommended for open-source)
+  - Added Author section: Emile M Steenkamp
+  - Added Contributors section with AI transparency:
+    - Claude AI (Opus 4.5, Sonnet 4.5) - compiler implementation
+    - ChatGPT (GPT-4) - language design consultation
+  - Updated acknowledgments with language inspirations
+  - Fixed repository URL: https://github.com/EmileAvatar/fusion-lang
+  - Updated project structure to reflect actual directories
+  - Enhanced Development Status with accurate test results (1,041 passing)
+- **TASK 7: GIT INTEGRATION & GITHUB SETUP - 100% COMPLETE ✅**
+- **Updated Task Progress Table** (Task 7: 4/4 complete, Overall: 18/57 complete, 32%)
+- **Next Action:** Task 8 - const Keyword Implementation (8 sub-tasks, 4-6 hours estimated)
+
+### Session 21 (2026-08-04 - Git History Scrub, Review Intake & README Refresh)
+- **Removed personal email from public git history**: rewrote all 12 commits with
+  git-filter-repo (redacted email from a README commit, remapped author/committer emails to
+  the GitHub noreply address), backed up original history, force-pushed to origin/main
+- **Repo made public by user**; verified via GitHub API that the repo is public (200) and
+  that a commit-search for the email string returns zero results
+- **Committed previously-untracked files**: const keyword debug/lexer/semantic test scripts
+  and language-planning notes (commit 1067556)
+- **Read two ChatGPT reviews** (Notes/02/Readme todo.md - README reframing copy; Notes/02/
+  notes.md - full architecture review of lexer/parser/semantic/codegen/roadmap)
+- **Added Task 12: Compiler Architecture Hardening** (Typed AST, codegen module split,
+  InterpolatedString refactor, scoping ADR, memory model spec draft) - sub-tasks proposed
+  only, NOT YET APPROVED for implementation
+- **Flagged for Task 9**: recommended (not forced) to sequence after/alongside Task 12
+- **Flagged for discussion**: review's suggestion to do LLVM before self-hosting, which
+  contradicts the existing Session 19 decision - left Task 10/11 order unchanged
+- **Verified ground truth before touching docs**: ran full test suite (1,057 passed, 8
+  skipped - not the stale 1,041/10 figure sitting in README/CLAUDE.md), confirmed
+  `examples/const_demo.fusion` already exists
+- **Rewrote README.md**: applied the review's repositioning (Code as Infrastructure, Why
+  Fusion Exists, Syntax Without Lock-In, elevator pitch) ahead of the existing technical
+  content; moved const out of "Planned Features" into "Complete", added const example
+  reference, corrected test counts to 1,057 passed / 8 skipped throughout
+- **Did NOT touch**: CLAUDE.md's stale "const not yet implemented" note or the EBNF/language
+  spec (Task 8.6 items) - out of scope for this session, still outstanding
+- **Next Action:** User to review/approve Task 12 sub-tasks before any implementation begins;
+  Task 8.6-8.8 (docs/verification/commit for const) still open
+
+### Session 22 (2026-09-13 - HIDL Intake)
+- **Moved** `Fusion_Hardware_Interface_Definition_Language_HIDL.md` from repo root into
+  `files/`, alongside the other spec documents (fusion-language-spec.md, fusion.ebnf, etc.)
+- **Reviewed the HIDL vision doc** (43 sections - hardware-supplier-writes-spec-once,
+  tooling-generates-typed-API-per-language). Findings:
+  - Strong, well-organized concept; register/bitfield/access-mode modeling (write-one-to-clear
+    etc.) and the HIDL = hardware truth / Interface = promise / Trait = behavior split are the
+    most valuable ideas
+  - Matches real prior art worth studying: ARM CMSIS-SVD, IP-XACT, Zephyr devicetree - not a
+    novel problem space
+  - Gaps flagged: no concrete grammar (all examples explicitly illustrative per the doc's own
+    section 6), very large surface area for one "future feature" (DMA/interrupts/security/
+    simulator/IDE each is its own subsystem), no interaction defined yet with the planned
+    `Unique`/`Shared`/`Weak` memory model
+  - Recommended sequencing after Task 12 (Typed AST), since hardware range/state compile-time
+    checks need the same `inferred_type` infrastructure Task 12 introduces
+- **User confirmed:** blocked for now, eventual future integration - added as **Task 13** with
+  proposed-only sub-tasks (13.1-13.9), same "not yet approved for implementation" status as
+  Task 12. No code or grammar work started.
+- **Updated Overall Progress table:** 23/75 tasks (31%) - denominator grew from adding Task 13's
+  9 proposed sub-tasks; completed count unchanged
+- **Next Action:** No action on Task 13 until Task 12 is approved and complete, and the user
+  re-opens Task 13 for v1 scoping. Task 12 approval and Task 8.6-8.8 (const docs/commit) remain
+  the actual next actionable items.
+
+### Session 23 (2026-09-13 - Task 8.6-8.8 Closeout)
+- **Task 8.6 (Documentation):** fixed `files/fusion-language-spec.md`'s Constants section,
+  which still showed a stale `name: type = value` syntax that never matched the implemented
+  type-first grammar - rewrote examples to `const int X = 1` style and added notes on current
+  scope (function-local only, explicit type required, no class-level consts). Fixed
+  `CLAUDE.md`'s "const keyword not yet implemented" limitation (moved to Current Features).
+  Checked README.md and `files/fusion.ebnf` - both already had accurate const coverage from
+  Session 21/earlier implementation work, so left unchanged.
+- **Task 8.7 (Verification):** full suite 1057 passed / 8 skipped. Found
+  `tests/verify_examples.py` had no expected-output entry for `const_demo`, so its output was
+  being silently skipped rather than checked (6/7 "matches", not 7/7) - added an expected-output
+  entry; re-ran and got 7/7 compile, run, and match. Regenerated verification_report.md.
+- **Task 8.8 (Git):** deliberately did NOT run a blanket `git add .` - the working tree also had
+  unrelated pending changes (deleted Notes/*.pdf and Notes/*.md files, new untracked Notes/01/
+  and Notes/02/ folders, and the HIDL file moved into files/ from the previous session) that
+  have nothing to do with const. Staged only the six docs/verification files, committed as
+  `3e67816` "docs: Close out Task 8.6-8.8 - const keyword documentation and verification"
+  (broadened from the stale placeholder message "feat: Add const keyword support" written when
+  8.8 was first planned, since the actual diff was documentation, not new code), pushed
+  fast-forward to origin/main with no conflicts.
+- **TASK 8: const KEYWORD - 100% COMPLETE**
+- **Left untouched, still pending in the working tree:** the Notes/ deletions/additions and the
+  HIDL file relocation - these are separate from Task 8 and need their own review/commit
+  whenever the user wants to address them.
+- **Next Action:** Task 8 fully closed. Remaining open items: Task 12 approval (Architecture
+  Hardening, blocks Task 9 and Task 13), and the unrelated pending Notes/ changes sitting
+  uncommitted in the working tree.
+
+### Session 24 (2026-09-13 - Git Cleanup, Task 12 Review Gap Check, HIDL Reframing)
+- **Notes/ cleanup:** confirmed with the user that the "deleted" Notes/*.pdf and .md files (plus
+  root's "Readme todo.md") were never actually lost - they'd been reorganized into Notes/01/ and
+  Notes/02/ subfolders in an earlier session. Added `Notes/` to `.gitignore` (personal working
+  scratch space for point-in-time AI reviews, not project documentation) and committed the
+  resulting removals as `351026d`. Working tree confirmed clean afterward except the HIDL file.
+- **Cross-checked `Notes/02/notes.md` (the ChatGPT architecture review) against Task 12** per
+  the user's standing instruction to log any review findings not yet task-tracked. Found three
+  recommendations from the review with no corresponding task item:
+  1. A dedicated Fusion IR layer between Typed AST and backends (review section 8) - ties into
+     the already-flagged Task 10/11 ordering question but is a distinct design point on its own
+  2. Lowering `print()`/stdlib calls through a runtime API instead of special-casing each
+     builtin in codegen (review section 10)
+  3. A project-level language configuration system (indentation, safety mode, backend target) -
+     notable because this is Fusion's own marketed core concept (see CLAUDE.md "Core Concept")
+     but currently hardcoded in the lexer instead of configurable, and wasn't tracked anywhere
+  - Added these as Task 12.10, 12.11, 12.12 (proposed-only, same as the rest of Task 12); also
+    added the review's doc-hierarchy suggestion (Language Spec -> ADRs -> Roadmap -> Tasks) as
+    a bullet under 12.8. Task 12's sub-task count grew from 9 to 12; overall total 75 -> 78.
+- **HIDL scope correction:** user clarified HIDL is a standalone, language-agnostic hardware
+  framework, not a Fusion-specific concept - Fusion's actual work is a future "HIDL module"
+  that consumes an independently-specified `.hidl` file. The source doc's title and Section 1
+  originally described HIDL as being "for the future Fusion programming language", which
+  overstated the coupling. Added a scope-note callout at the top of
+  `files/Fusion_Hardware_Interface_Definition_Language_HIDL.md` and reworded Task 13 (retitled
+  "HIDL Module", goal/why-this-exists/13.1/13.4 reworded) to reflect that HIDL's grammar and
+  parser are their own standalone effort, and only the Fusion-side consumer belongs on this
+  compiler's roadmap.
+- **Committed the HIDL doc** (previously sitting untracked since it was moved in Session 22) -
+  the user asked for this explicitly, calling it important future work.
+- **Next Action:** Task 12 approval remains the key blocker (now 12 sub-tasks, unblocks Task 9
+  and Task 13). No other pending working-tree changes remain.
+
+### Session 25 (2026-09-13 - Archive Completed Tasks)
+- **User request:** move completed task sections out of `taskSummary2.md` into a new
+  `taskSummaryArchive.md`, to keep the active tracker small (token usage), and add the practice
+  to CLAUDE.md as a standing rule.
+- Created `task/taskSummaryArchive.md` (alongside the existing `task/taskSummary.md` MVP
+  archive) and moved Tasks 5, 6, 7, and 8 - full sub-task detail, success criteria, and
+  deliverables - there verbatim. Corrected one stale field while moving it: Task 6's `Status`
+  field still said "Not Started" despite every sub-task being checked off and the Overall
+  Progress table already showing it Complete - fixed to `Complete` in the archive copy.
+- Replaced that block in `taskSummary2.md` with a 6-line pointer + status list; left the
+  Overall Progress table and Working Notes (session history) in place, since those still cover
+  active/recent context, not just completed-task detail.
+- File size: `taskSummary2.md` dropped from ~1,220 lines to ~900 lines.
+- Added CLAUDE.md Rule 3 bullet documenting the archiving practice (see CLAUDE.md itself).
+- **Next Action:** proceed to Task 9 (Array Support) per user's request - see Task 9 section
+  below. Flag before starting: Task 9's own header already carries a standing recommendation
+  (from the same architecture review as Task 12) to sequence Task 12 before or alongside Task 9,
+  and Task 12 is still unapproved - raised to the user rather than silently started or blocked.
+
+### Session 26 (2026-09-13 - Task 12 Core Typed AST Implementation)
+- **User approved a scoped subset of Task 12** ("Core Typed AST only": 12.1-12.4 + 12.9) rather
+  than the full 12-item list, to unblock Task 9 without a multi-week design detour through the
+  five design-only items (12.6/12.7/12.10/12.11/12.12) and the non-blocking cleanup items
+  (12.5 codegen split, 12.8 doc sync).
+- **Investigated the actual code before planning implementation** (not just the review's
+  pseudocode) and found the real shape was better/simpler than expected:
+  - `TypeChecker.visit()` already computes the correct type for every expression while
+    validating it - it was being thrown away, not missing. Fix was a one-line hook in the
+    dispatcher, not a new type-inference system.
+  - The review's suggested `class Expr(ASTNode): inferred_type: TypeNode | None` doesn't work
+    as literal Python - dataclass field-ordering rules block a defaulted field on a common base
+    when subclasses add their own required fields. Used a trailing optional field on each of
+    the 7 expression classes instead.
+  - The interpolation "parallel array" bug source is one step earlier than the review implied:
+    the lexer already emits a safe ordered/tagged sequence; the *parser* was the one splitting
+    it into two parallel arrays on the AST node. Fixed at that exact point.
+  - `print()` is declared as accepting only a `string` parameter in the symbol table, so the
+    review-quoted `%s` fallback in `_generate_print_call` was already dead code for any
+    semantically-valid program - only reachable from codegen-only unit tests that skip semantic
+    analysis. Fixed anyway (defensive correctness + those unit tests exercise it directly).
+- **Implemented 12.1-12.4 + 12.9:**
+  - `src/parser/ast_nodes.py`: added `inferred_type: Optional[TypeNode] = None` to
+    `LiteralExpr`, `IdentifierExpr`, `BinaryExpr`, `UnaryExpr`, `CallExpr`, `LambdaExpr`; added
+    new `StringTextPart`/`StringExprPart` classes; `InterpolatedStringExpr` now holds a single
+    ordered `segments` list instead of parallel `parts`/`expressions` arrays
+  - `src/parser/parser.py`: rewrote `parse_interpolated_string_from_parts` to build `segments`
+    directly from the lexer's already-ordered tuples; deleted `parse_interpolated_string`, a
+    dead method (never called, referenced a `token.interpolation` JSON shape that's never
+    populated)
+  - `src/semantic/name_resolver.py`, `src/semantic/type_checker.py`: updated to iterate
+    `segments` instead of `expressions`; `TypeChecker.visit()` now writes the computed type
+    back onto `node.inferred_type` for every expression
+  - `src/codegen/c_generator.py`: added `_format_specifier_for_expr()` (reads `inferred_type`,
+    maps int->%d, float/double->%f, string->%s, char->%c, bool->%d, raises a clear internal
+    error if the type is missing/unrecognized instead of guessing); rewired
+    `_generate_print_call`, `visit_InterpolatedStringExpr`, and `_generate_interpolated_print`
+    to use it; de-duplicated the latter two into one shared `_build_interpolation_format()`
+    helper (they were near-identical)
+  - Updated ~30 test call sites across `tests/test_ast_nodes.py`, `tests/test_type_checker.py`,
+    `tests/test_codegen_expressions.py` to the new `segments` shape; added 3 new regression
+    tests covering float/string interpolation, direct non-string `print()` args, and the
+    missing-`inferred_type` error path (`tests/test_parser_expressions.py`'s old interpolation
+    tests were already commented out/dead - left untouched, out of scope)
+- **Verified for real, not just unit tests:** compiled an ad-hoc snippet interpolating a float,
+  bool, and string together - got `printf("Pi is %f, flag is %d, name is %s\n", pi, flag,
+  name)` and correct runtime output. Confirms the fix is real: before it, all three would have
+  used `%d`, silently reinterpreting the float's bit pattern as an int and the string's pointer
+  as a raw integer.
+- **Full verification:** `pytest tests/` - 1060 passed, 8 skipped (up from 1057 passed; 3 new
+  tests, nothing weakened). `python tests/verify_examples.py` - 7/7 compile, run, and match.
+- **Deferred, not started:** 12.5 (codegen module split), 12.6 (scoping ADR), 12.7 (memory
+  model spec), 12.8 (doc sync pass), 12.10-12.12 (IR layer, stdlib lowering, project config -
+  all design-only, no code changes made or implied by this session's work)
+- **Task 9 unblocked:** its standing "do Task 12 first" recommendation is now satisfied for
+  arrays' purposes - array type-checking/codegen can read `inferred_type` directly.
+- **Next Action:** proceed to Task 9 (Array Support) planning - the user's original request,
+  now actually unblocked rather than just flagged.
+
+### Session 27 (2026-09-13 - Task 9: Array Support v1)
+- **User request:** "lets do task 9 plz"
+- **Scoped before coding, per Task 9.1's own checklist item ("Get user approval on syntax")**:
+  proposed fixed-size, local-variable-only arrays with `len(arr)`; asked one open question
+  (`len(arr)` vs `arr.length`)
+- **User asked for both `len(arr)` AND `arr.length`, with `arr.length` null-aware** (warn/crash
+  depending on provability, `?.`/`?[` returning 0 silently) - this doesn't fit a fixed-size C
+  array (can't be null) and needs member-access parsing (doesn't exist), a null-flow-analysis
+  pass, and a real nullability/memory-model decision (Task 12.7 territory). Flagged this
+  explicitly rather than improvising a memory-model decision inline. User agreed to ship plain
+  arrays now and track nullability separately - see new **Task 14** below.
+- **Investigated the actual code before implementing** (mirroring the Task 12 approach):
+  confirmed `LBRACKET`/`RBRACKET` tokens already existed and were already tokenized (just
+  unused downstream); confirmed zero array support existed anywhere else (`sum_array.fusion`
+  doesn't use real arrays, just sums a `range()`); found `files/fusion.ebnf` already had a
+  draft array grammar to build from; found `TypeChecker.visit_CallExpr` already had a
+  precedent (`range()`'s special-casing) for a builtin that needs bespoke argument checking
+  rather than a fixed `FunctionType` signature - reused that exact pattern for `len()`.
+- **Implemented (v1):**
+  - AST: `ArrayType(element_type, size)`, `ArrayLiteralExpr(elements)`, `IndexExpr(array,
+    index)` in `src/parser/ast_nodes.py`
+  - Parser: `parse_type()` recognizes `int[]`/`int[5]` (integer-literal sizes only,
+    multi-dimensional rejected with a clear error); array literals in `parse_primary()`;
+    indexing folded into `parse_call()`'s postfix loop (renamed in spirit - now handles both
+    `(...)` and `[...]` chained); array-element assignment needed zero extra parser work
+  - Semantic: `ArrayType` added to `types_equal`/`types_compatible`/`type_to_string`;
+    `visit_ArrayLiteralExpr` (element-type inference with numeric promotion),
+    `visit_IndexExpr` (array/int-index validation); `visit_VarDeclStmt` resolves size from an
+    explicit `[N]`, an initializer, or both (must agree); `visit_AssignmentStmt` split into
+    identifier- and index-target paths, explicitly rejecting whole-array reassignment (a
+    plain C array isn't reassignable that way) and enforcing const on elements; `len()`
+    registered as a builtin and special-cased like `range()`; arrays rejected as function
+    parameters/return types with a clear error (`register_function` in name_resolver.py)
+  - Codegen: `map_type` handles `ArrayType`; `visit_VarDeclStmt` emits real C array
+    declarators (`int arr[3] = {1, 2, 3};`, size after the name, `{0}` zero-init when no
+    literal); `visit_ArrayLiteralExpr` emits C brace-init (only reachable as an initializer,
+    per the semantic rules above); `visit_IndexExpr` emits plain `arr[i]`;
+    `visit_AssignmentStmt` generalized from `target.name` to `self.visit(target)` so index
+    targets work through the same path; **`len(arr)` compiles directly to the array's
+    resolved size as an integer literal - no runtime call at all**, since sizes are always
+    known at compile time in v1
+- **Verified for real, not just unit tests:** compiled an ad-hoc program using array literals,
+  explicit-size arrays, element read/write, a function returning a sum over a local array, and
+  `len()` inside a `range()` bound - confirmed correct generated C and correct runtime output.
+  Manually tested and confirmed all 7 rejection paths fire with clear messages: whole-array
+  reassignment, const-element assignment, size mismatch, element type mismatch, indexing a
+  non-array, missing size with no initializer, and arrays as function parameters.
+- **Found and worked around a pre-existing, unrelated lexer limitation while testing:** string
+  interpolation (`"{...}"`) only accepts a bare identifier inside `{}` - `{arr[0]}` or `{x+1}`
+  fail to lex ("Expected } to close interpolation"). This predates Task 9 entirely (confirmed
+  via the interpolation lexer's `isalnum()`-only identifier scan) and matches an already-dead,
+  already-commented-out test in `tests/test_parser_expressions.py`. Not fixed here - noted as a
+  pre-existing limitation, worked around in the example program with temp variables
+  (`int first = scores[0]; print("{first}")`).
+- **Tests:** added `tests/test_array_semantic.py` (22 tests) and `tests/test_array_codegen.py`
+  (8 tests, including a full GCC compile-and-run round trip). Full suite: 1090 passed, 8
+  skipped (up from 1060). Added `examples/arrays_demo.fusion`; `verify_examples.py`: 8/8.
+- **Documentation:** new "Arrays" section in `files/fusion-language-spec.md` (cross-referenced
+  against the spec's existing "Array Safe Navigation"/"Null Safety" sections, which already
+  described the nullable design Task 14 will build toward); annotated `files/fusion.ebnf`'s
+  array/postfix grammar with implemented-vs-aspirational notes; updated CLAUDE.md and README.md
+  (Features, Example Programs, Development Status, Test Results) - also caught and fixed a
+  small test-count drift left over from Task 12 (README's Code Generation Tests line was still
+  126, three short of the actual 129 after Task 12's own additions, since README wasn't touched
+  in that commit - fixed to the current accurate 137 while updating this line anyway)
+- **Added Task 14** ("Nullable Arrays & Safe Navigation") - proposed-only, blocked on Task
+  12.7, same convention as Tasks 12/13 - capturing the null-safety design the user actually
+  asked for, scoped properly instead of bolted onto Task 9
+- **TASK 9: ARRAY SUPPORT (v1) - 100% COMPLETE**
+- **Next Action:** Task 9 is done and shipped. Remaining open items: Task 12 approval for its
+  deferred items (12.5-12.8, 12.10-12.12), Task 14 blocked on Task 12.7, Task 13 blocked on
+  Task 12.
+
+### Session 28 (2026-09-13 - Task 12 Remaining Items, Starting with 12.8)
+- **User request:** "lets do the next task" - clarified via question that "next" was ambiguous
+  (Task 12's remaining items vs. Task 10/11 by number); user confirmed finishing Task 12
+  first, in the proposed order: 12.8 (docs) -> 12.5 (codegen split) -> 12.6 (scoping) -> 12.7
+  (memory model) -> 12.12 (project config) -> 12.10 (IR layer) -> 12.11 (stdlib lowering)
+- **Executed 12.8 (Documentation Sync Pass) - COMPLETE.** Found real, meaningful staleness
+  beyond what Tasks 8/9 already kept current:
+  - `CLAUDE.md` claimed the repo was PRIVATE (it went public 2026-08-04) - verified via GitHub
+    API (`"private": false`) and fixed; its "CURRENT STATUS"/"Next Steps" sections were still
+    dated 2025-12-14, describing the FizzBuzz bug as unresolved and Tasks 5+ as not started -
+    rewrote both
+  - `README.md`: a "126 tests" figure never got updated after Task 12's own new codegen tests
+    (should have been 129, is now correctly 137 after Task 9's additions too) - fixed while
+    already touching that line for Task 9's numbers
+  - `files/fusion-summary.md`, `files/README.md`, `files/fusion-planning.md`: all three
+    predate the compiler entirely and still claimed `Compiler: Not Started 0%` - actively
+    misleading now, not just outdated. Added historical-snapshot disclaimers to each rather
+    than rewriting every stale cell (matches how `task/taskSummary.md` is already frozen and
+    labeled ARCHIVED)
+  - `task/Revisit.md`: "29 failing tests" (2025-12-07) is now 0 - updated the summary and
+    marked the historical detail section resolved (kept for its resolution-path value, not
+    deleted); also fixed a broken relative link to `taskSummary.md` left over from that file's
+    move into `task/`
+  - Verified test counts precisely rather than guessing: cross-checked README's
+    lexer/parser/semantic/codegen category breakdown against actual `pytest --collect-only`
+    groupings (251 = 198 parser-file tests + 53 `test_ast_nodes.py` tests, etc.) to confirm
+    exactly where each category's count comes from, not just trust prior numbers
+- **Executed 12.5 (C Codegen Module Split) - COMPLETE.** Split `src/codegen/c_generator.py`
+  (962 lines) into `c_types.py` (`TypeMapperMixin`), `c_names.py` (`mangle_function_name`),
+  and `c_runtime.py` (`RuntimeLoweringMixin`), leaving `c_generator.py` at 773 lines holding
+  AST traversal, statements/declarations, and output management. Used mixin classes (not
+  standalone functions) for the two pieces that need `self` - `map_type()` recurses on
+  itself, and the print/len/interpolation helpers call `self.visit(...)` - and confirmed via
+  grep that existing tests call several of these (`map_type`, `visit_InterpolatedStringExpr`,
+  `_generate_interpolated_print`) directly as instance methods, which mixins preserve exactly
+  and standalone functions would have broken. Public API (class name, every method name and
+  signature) is unchanged - purely an internal reorganization. Verified: full suite still
+  1090 passed/8 skipped (identical, since this added/removed no tests), `verify_examples.py`
+  still 8/8.
+- **Executed 12.6 (Scoping Decision) - COMPLETE, and actually implemented, not left as a
+  paper ADR.** Presented function-level vs. block-level scoping tradeoffs; user chose
+  block-level (lexical) scoping, matching the review's original recommendation ahead of
+  Task 12.7's memory model.
+  - **Verified this was a real bug fix, not just a style choice**, before implementing:
+    compiled `if cond { int x = 10 } print(x)` and confirmed semantic analysis said "no
+    errors" while GCC then failed with `'x' undeclared` - the C output was already
+    natively block-scoped via its own `{ }` braces; only the semantic analyzer was
+    wrongly claiming function-wide visibility.
+  - Implemented via a `scope` field on `BlockStmt`/`ForStmt` (populated by NameResolver,
+    reused by TypeChecker via a new `SymbolTable.enter_existing_scope()` - works because
+    `Scope.parent` is a fixed object reference, so lookup_recursive is correct regardless
+    of which pass is walking).
+  - Verified two subtle rules against real GCC before assuming them, rather than
+    guessing: (1) a function's top-level body must share its parameter scope directly, not
+    nest below it (redeclaring a parameter at that level is itself a C error) - handled
+    via a `new_scope=False` flag on `resolve_block()`; (2) a for-loop's body CAN shadow
+    the loop's own iteration variable in real C, confirmed by compiling a minimal repro,
+    so for-bodies do get their own nested scope.
+  - Found and fixed a second bug surfaced by this change:
+    `control_flow_validator.py`'s `validate_conditions()` re-checks conditions via the
+    type checker *after* the main walk already unwound its scopes, which broke
+    loop-variable lookups inside conditions - fixed by having it re-enter the relevant
+    `.scope` too.
+  - Updated 5 tests that asserted the old (now-incorrect) function-scoping behavior;
+    added 6 new regression tests locking in shadowing, the original bug's rejection, and
+    the parameter-redeclaration rule.
+  - Full suite: 1095 passed, 8 skipped (up from 1090). `verify_examples.py`: 8/8.
+  - Committed and pushed as `24db585` "feat: Task 12.6 - switch to block-level (lexical)
+    scoping".
+  - Flagged one known follow-up, not fixed: `LambdaExpr` with a `BlockStmt` body doesn't
+    get its scope reused correctly - safe to defer since that path isn't functionally
+    complete anyway (codegen still stubs lambdas as `/* <lambda> */`).
+- **Next Action:** proceed to 12.7 (memory model - `Unique`/`Shared`/`Weak` semantics),
+  the next design-decision item in the confirmed order.
+- **Executed 12.7 (Memory Model Semantics) - COMPLETE, design doc only, no code change (as
+  scoped).** Presented three tradeoff questions (`Unique<T>` move semantics, `Shared<T>`
+  refcount atomicity + cycle handling, `Weak<T>` upgrade behavior); user chose the
+  recommended option on all three:
+  - `Unique<T>`: plain assignment is a compile error, explicit `.move()` required
+    (rejected C++-style implicit move) - and use-after-move should share one analysis
+    pass with Task 14's null-flow tracking later, not a separate mechanism.
+  - `Shared<T>`: refcount is always atomic, never configurable per project (rejected
+    Fusion's own "agnostic per-project config" pattern here deliberately, to avoid two
+    runtime code paths before there's a concrete need); no automatic cycle detection,
+    documented as a permanent accepted limitation (`Weak<T>` is the required way out).
+  - `Weak<T>`: `.lock()` returns a nullable `Shared<T>?`, caller must check - never a
+    silent crash - chosen so Fusion has one null-handling story shared with Task 14's
+    array work, not a different rule per type.
+  - Wrote all three decisions with rationale directly into
+    `files/fusion-language-spec.md`'s existing Memory Management section (had draft
+    Unique/Shared/Weak examples from the original pre-compiler planning phase already -
+    resolved their ambiguous parts rather than replacing the section), plus a top-of-
+    section status note flagging this as decided-but-not-yet-implemented.
+  - Confirmed via source search that `Unique`/`Shared`/`Weak` remain lexer-keyword-only
+    today (no parser/semantic/codegen handling anywhere in `src/`) - nothing to test or
+    regress, matches this sub-task's "design doc, no code change" scope exactly.
+  - This unblocks Task 14 (Nullable Arrays & Safe Navigation) to be scoped/approved
+    whenever the user wants to pick it up - noted its `Weak<T>` and array-nullability
+    null-checks should share one analysis design, not be built twice.
+- **Next Action:** proceed to 12.12 (project-level language configuration system), the
+  next item in the confirmed order (12.12 -> 12.10 -> 12.11 remain).
+- **Executed 12.12 (Project-Level Language Configuration System) - COMPLETE, implemented,
+  not just designed.** Presented three tradeoff questions (config format, lookup location,
+  how much to actually implement now); user chose the recommended option on all three:
+  - Format: TOML via an optional `fusion.toml`, parsed with Python 3.11's stdlib `tomllib`
+    (zero new dependency) - **raises the project's minimum Python version to 3.11**,
+    updated everywhere README.md stated 3.10+.
+  - Lookup: source file's own directory, then cwd - no parent-directory walk, since Fusion
+    has no multi-file project concept yet.
+  - Scope: actually wired `[indentation]` (`tab_width`/`allow_mixed`) into the lexer - the
+    real gap this task existed to close (`src/lexer/lexer.py` used to hardcode both) - and
+    documented `[safety]`/`[backend]` as parsed-and-validated-but-not-yet-enforced,
+    matching how `Unique`/`Shared`/`Weak` are already handled.
+  - New `src/config/project_config.py` (`ProjectConfig`, `load_project_config()`,
+    `find_config_file()`, `ProjectConfigError`); `Lexer.__init__` gained optional
+    `tab_width`/`allow_mixed` params (old hardcoded values as defaults, so every existing
+    call site/test is unaffected); `main.py` loads config before constructing the lexer,
+    catches `ProjectConfigError` as a clean one-line error instead of a traceback.
+  - Verified for real, not just unit-tested: a file with one line mixing spaces and a tab
+    compiles with only a warning by default, but fails to compile with a clear error once
+    a `fusion.toml` with `allow_mixed = false` sits next to it - the config genuinely
+    changes compiler behavior end to end. Also verified a malformed `fusion.toml` fails
+    cleanly rather than crashing.
+  - 24 new tests (`tests/test_project_config.py`); `examples/project_config_demo/` added
+    as a permanent manual demo (kept out of `examples/`'s top level specifically so its
+    `fusion.toml` can't silently affect the other 8 examples - confirmed `verify_examples.py`
+    still reports 8/8 after adding it).
+  - Full suite: 1119 passed, 8 skipped (up from 1095). `verify_examples.py`: 8/8.
+  - Documentation synced: `files/fusion-language-spec.md` (new "Project Configuration"
+    subsection with full schema + rationale), `CLAUDE.md`, `README.md` (including the
+    Python 3.10 -> 3.11 requirement bump in all three places it was stated).
+- **Next Action:** proceed to 12.10 (Fusion IR layer - design consideration), the next
+  item in the confirmed order (12.10 -> 12.11 remain to close out Task 12).
+- **Executed 12.10 (Fusion IR Layer) - COMPLETE, decision recorded, no code change
+  (deferred).** Presented a three-way tradeoff (defer until Task 11 starts / adopt a full
+  IR now / adopt a thin contract-only IR now); user chose to defer.
+  - Rationale: only one backend (C) exists today - an IR layer would have no real second
+    consumer to validate against, and would mean reworking the just-cleanly-split (Task
+    12.5) C codegen for no immediate capability gain. Accepted the opposite risk (Task 11
+    might copy the C backend's AST-walking pattern and need a costlier retrofit later)
+    rather than pay the IR-design cost now on a single-backend compiler.
+  - Added a "Revisit at kickoff" note to `task/task-11-llvm-backend-plan.md` so this gets
+    re-opened with real LLVM requirements in hand before any LLVM codegen is written,
+    rather than silently forgotten.
+  - Left the separately-flagged Task 10/11 ordering question (LLVM/IR before self-hosting)
+    untouched - still open, not part of this decision.
+  - No code changed - matches this sub-task's design-consideration scope exactly.
+- **Next Action:** proceed to 12.11 (print()/stdlib runtime lowering - design
+  consideration), the last remaining item to close out Task 12.
+- **Executed 12.11 (print()/Stdlib Runtime Lowering) - COMPLETE, decision recorded, no
+  code change (deferred).** Same three-way tradeoff shape as 12.10 (defer / lightweight
+  registry refactor now / full runtime-API design now); user chose to defer again.
+  - Checked the actual code before reasoning about it, rather than assuming: exactly 2
+    builtins are special-cased in `visit_CallExpr` (`print`, `len`); `range()` isn't a
+    runtime call at all, it's consumed structurally inside `visit_ForStmt`. Confirmed via
+    source search that `import` has zero parser support (lexer keyword only) - there is no
+    stdlib call mechanism to lower yet.
+  - Updated `src/codegen/c_runtime.py`'s module docstring, which had flagged this exact
+    open question since Task 12.5, to record the decision instead of leaving it open.
+  - No code changed - matches this sub-task's design-consideration scope.
+- **TASK 12 IS NOW FULLY COMPLETE (12/12 sub-tasks), 2026-09-13.** Summary of the whole
+  task across both sessions: Typed AST (12.1-12.4, 12.9) closed the "codegen guesses
+  types" architectural gap that caused the FizzBuzz bug; C codegen module split (12.5);
+  block-level scoping (12.6, which fixed a second real bug along the way); memory model
+  semantics for `Unique`/`Shared`/`Weak` (12.7, decided and documented, not yet
+  implemented); documentation sync (12.8); project configuration via `fusion.toml`
+  (12.12, implemented for indentation); and two deliberately deferred design decisions
+  with rationale recorded for their actual trigger points (Fusion IR layer at Task 11
+  kickoff, 12.10; stdlib runtime lowering once `import`/fusionlib work is scoped, 12.11).
+  This also clears Task 13's blocker (still needs its own scoping approval) and, combined
+  with 12.7, both of Task 14's original blockers.
+  - **Archiving (per CLAUDE.md Rule 3):** Task 12's full section (all 12 sub-tasks, Why
+    This Task Exists, Success Criteria, Deliverables, Open Question) has been moved
+    verbatim to `task/taskSummaryArchive.md`. This file keeps only the short pointer below
+    and the Overall Progress table row.
+- **Next Action:** Task 12 is complete. Remaining open items: Task 13 (HIDL module) and
+  Task 14 (nullable arrays) are both unblocked but still need their own scoping approval
+  before any implementation begins (per Rule 1) - or begin Task 10/11 (self-hosting/LLVM),
+  both already "planning complete" - whichever the user wants to take on next.
+- **Housekeeping (2026-09-13):** archived Task 9 (per CLAUDE.md Rule 3 - it was complete
+  but its full section had been left in this file); reordered Tasks 9/10/11/12/13/14 into
+  numerical order (Task 14 had drifted to sit between 9 and 10 across sessions - purely a
+  position change, no task renumbered); added **Task 15: Deferred Decisions Revisit List**
+  - a checklist capturing every "defer this, revisit later" point that Task 12's work
+  produced (Fusion IR layer, stdlib runtime lowering, the LambdaExpr scope bug, the Task
+  10/11 ordering question, memory-model implementation not being tracked anywhere, fusion.toml
+  safety/backend keys not being enforced, and lexer warnings never reaching the user) - each
+  with its own trigger condition, so none of them stay buried in old commit messages or
+  archived prose once Task 12 itself is no longer active in this file.
+- **Next Action:** see the bottom-of-file Next Action line, updated to match all of the
+  above.
+- **Added CRITICAL RULES Rule 5 and Task 16 (Example Program Coverage), per user request
+  (2026-09-13):** "add more examples in fusion examples for each new feature... so that
+  users have more examples to work with." Rule 5 makes shipping an example part of closing
+  out any feature task going forward, not an afterthought. Task 16 is the concrete
+  checklist: 16.1 (a comprehensive control-flow example covering `while`/`for`/`break`/
+  `continue` - buildable now, since the feature already exists and only `break`/`continue`
+  currently have zero example coverage) plus six more items (16.2-16.7: classes/structs/
+  interfaces/enums, generics, multithreading, error handling/try-catch, the Unique/Shared/
+  Weak memory model, and the module system) - all six explicitly blocked, since none of
+  those features are implemented yet and none currently have a task tracking their
+  implementation either (flagged as its own gap on each relevant sub-item, not just "not
+  done yet"). Logged only, not implemented - per Rule 1, implementation of 16.1 (the one
+  unblocked item) awaits the user's go-ahead.
+- **Next Action:** offer to build 16.1 (`examples/control_flow_demo.fusion`) now, since
+  it's the only Task 16 item not blocked on an unbuilt feature; everything else in Task 16
+  waits on its own feature being scoped and built first.
+- **Added Task 17 (Mutable vs. Fixed Strings, Templated Fixed Strings & String Pooling),
+  per user request (2026-09-27):** `m"..."` (explicit, though a plain literal is already
+  mutable) vs. `f"..."` (fixed/immutable - "mutating" methods return a new value, never
+  change the original) vs. templated fixed strings, the genuinely new part - a fixed string
+  holding unresolved `{@1}`/`{@2}` placeholders becomes a reusable, callable template
+  invoked later with fresh arguments each time (deferred resolution, distinct from Fusion's
+  existing `{@N}` interpolation which resolves immediately at the call site). Also: strings
+  are not pooled by default (each stored only where declared), pooling proposed as an
+  opt-in `fusion.toml` `[strings]` setting to enable only after profiling shows real
+  benefit; and a security note that plain strings are the wrong type for passwords/secrets
+  (can't be reliably zeroed, pooling could retain copies) - flagged for a future
+  `fusionlib.Crypto` secure-storage type, not scoped here.
+  - Logged in both places per the user's explicit request: full design write-up in
+    `FutureFeatures.md` (under "Type System Enhancements"), tracked task with 5 proposed
+    sub-tasks here. Logged only, not implemented - per Rule 1, needs scoping approval
+    before any work begins, same as Tasks 13/14/16.
+- **Next Action:** Task 17 is logged only - no implementation expected until the user
+  re-opens it for scoping. 16.1 remains the nearest actionable item if the user wants to
+  build something now.
+- **Project review + Task 18 (Core Language Foundation), 2026-10-07:** Claude reviewed the
+  project at the user's request. Main conclusion: the documented vision is far larger than
+  the implemented core, and a handful of missing core features block almost every open
+  task. The user agreed - "the first goal is to get a simple working language first" - and
+  asked for this to be logged as a task. Task 18 = functions with full parameter types,
+  structs, proper strings, `import`/multi-file projects, and a minimal layered stdlib.
+  - Two real gaps verified while grounding the task: (1) default parameter values are
+    parsed and type-checked but unusable at call sites (`greet()` fails "expects 1
+    argument(s), got 0") even though CLAUDE.md advertises the syntax; (2) string `==`
+    compiles to C pointer comparison, correct today only because GCC deduplicates identical
+    literals - logged as 18.1 and 18.3
+  - Review, cautions, and the user's proposed answer to ecosystem fragmentation (per-symbol
+    capability signatures, with the importing project's strategy overriding imported code)
+    written up in a new `FutureFeaturesCaution.md`
+- **Next Action:** Task 18 is the recommended next priority - start by writing the detailed
+  plan for 18.1 and getting it approved.
+- **Equality operators + Task 19 + memory guide, 2026-10-07:** user added the equality
+  operator family (`=`, `==`, `===`, `!=`, `!==`, `!===`) to Task 18.3 - logged with two
+  possible readings, **awaiting the user's decision on meaning**. User set a zero-trust
+  principle for libraries ("do not trust library authors at all") and asked for: explicit
+  per-function capability signatures visible before compiling, Ada-style project
+  restrictions, handling of closed/licensed libraries, sandboxing with resource budgets and
+  host-reclaimed memory, supply-chain security against compromised repos, and defenses
+  against code hidden to manipulate AI assistants. Logged as **Task 19** (6 sub-tasks).
+  Added a memory-strategy selection guide and the expanded security design to
+  `FutureFeaturesCaution.md`.
+- **Next Action:** unchanged - Task 18 first. Get the user's answer on the equality operator
+  meaning (18.3) before that sub-task is planned.
+- **User decisions + start of Task 19, 2026-10-07:**
+  - Equality: `=` is assignment as a statement but comparison inside an `if` condition;
+    `==` compares value everywhere (`xx == "2"` true when `xx` is 2); `===` compares type and
+    value. Recorded in 18.3 with the remaining open points (negation pairing, `while`/`else
+    if`, a small explicit cross-type table for `==`, char vs string)
+  - Security principle sharpened: **never trust code**; no defense is airtight - the goal is
+    to make attacks as hard and unlikely as possible, accepting importing code always carries
+    risk. AI-targeted content will be handled by an input guard in the future `fusionlib.AI`
+    module - logged now as 19.7 (far future)
+  - Config: `fusion.toml`, `fusion.yaml`, `fusion.json`, and `fusion.ini` to be accepted
+    interchangeably - new **Task 20** (extends Task 12.12)
+  - User chose to start **Task 19** now. Only 19.6 has no dependency on `import`, so it goes
+    first. Verified both 19.6 attacks (homoglyph identifiers, Trojan Source bidi characters)
+    compile today. Wrote the **19.6 Detailed Plan** in Task 19 - **awaiting approval**,
+    including one decision: ASCII-only identifiers by default (recommended) vs. Unicode
+    identifiers with mixed-script checks
+- **Next Action:** get the user's approval on the 19.6 Detailed Plan (and the identifier
+  decision), then implement 19.6.1-19.6.5.
+- **Task 19.6 COMPLETE, 2026-10-07.** User approved the plan and chose ASCII-only identifiers
+  by default. Implemented: new `src/lexer/source_security.py` (rejects bidi/invisible
+  characters everywhere incl. comments and strings; ASCII-only identifiers with an opt-in that
+  still rejects mixed scripts and compatibility characters); `\uXXXX` escapes; `[source]
+  allow_unicode_identifiers` in `fusion.toml`; lexer warnings printed by `main.py` (closes
+  Task 15.7). Both originally-verified attacks are now rejected with precise errors.
+  - **Found and fixed:** char literals were broken end-to-end (`char c = 'a'` printed `'`) -
+    nothing decoded the literal; the parser now does. A parser test asserting the buggy
+    behavior was corrected
+  - **Found and logged, not fixed (outside the approved plan):** `%` inside a printed string
+    is treated as a printf format code - `print("100% done")` prints stack garbage. Logged in
+    Task 18.3 as a verified format-string bug (CWE-134), recommended to fix soon
+  - Codegen C-escaping consolidated into one helper (`escape_c_text`), which also keeps
+    control/invisible characters out of generated C as octal escapes
+  - 54 new tests; full suite 1173 passed, 8 skipped; 8/8 examples
+- **Next Action:** the rest of Task 19 needs `import` (Task 18.4). Recommended next: fix the
+  printf `%` bug (small, security-relevant), then Task 18 (Core Language Foundation) starting
+  with a detailed plan for 18.1.
+
+## CRITICAL RULES (Reminder)
+
+**FOR CLAUDE:**
+1. **NEVER start implementation without approved plan**
+2. **ALWAYS update this file after each sub-task**
+3. **NEVER use emojis in code files (.py, .c, .h, etc.)**
+4. **ALWAYS follow PLAN → APPROVE → IMPLEMENT → UPDATE workflow**
+5. **Mark tasks as complete IMMEDIATELY after finishing**
+6. **Ship a runnable example in `examples/` for every new feature** - see Task 16
+
+---
+
+## Related Documentation
+
+- **task/taskSummary.md** - MVP tasks (Tasks 1-4, ARCHIVED)
+- **task/taskSummaryArchive.md** - Completed post-MVP task detail (Tasks 5-9, 12, ARCHIVED)
+- **CLAUDE.md** - AI assistant instructions
+- **task/Revisit.md** - Technical debt
+- **files/fusion-language-spec.md** - Language specification
+- **FutureFeatures.md** - Long-term planned features
+- **task/task-10-self-hosting-plan.md** - Self-hosting detailed plan
+- **task/task-11-llvm-backend-plan.md** - LLVM backend detailed plan
+- **files/Fusion_Hardware_Interface_Definition_Language_HIDL.md** - HIDL vision doc (Task 13,
+  blocked/future)
+
+---
+
+**Next Action:** Tasks 18.2.1 (core structs), 18.2.2 (named arguments) and 18.2.2b (`{@N}`
+placeholders, left-to-right arguments), 18.2.3 (nesting) and 18.2.4 (array return values)
+are complete - **Task 18.2 is done**. **18.3.1** (string values, automatic cleanup) is
+complete. Next: **18.3.2 (string operations)** - the 18.3 plan is approved. Then Task 21. Open logged items: Task 15.8 (reserve the `fusion_`
+prefix - before 18.4), 15.10 (interpolated strings outside `print()` - real fix in 18.3) and
+15.12 (operator operand evaluation order).
+Closures wait for 18.3's memory-ownership decision. Task 19.1-19.5 need 18.4 (`import`); Task
+20 (multi-format config) is unblocked. Read `FutureFeaturesCaution.md` before picking up
+anything from FutureFeatures.md. Completed-task detail for Tasks 5-9 and 12 lives in
+`task/taskSummaryArchive.md`.
+
+
+---
+
+# CLAUDE.md as it was before Task 22 (2026-10-09), verbatim
+
+Status, feature lists and the syntax reference now live in FEATURES.md and
+SYNTAX_REFERENCE.md; this copy keeps the old narrative searchable.
+
+## Fusion Programming Language - Claude Code Instructions
+
+**Project:** Fusion Compiler Development
+**Icon:** 🏗️ (official)
+**Status:** MVP Complete - Post-MVP Development Phase
+
+---
+
+### 🚨 CRITICAL RULES - READ FIRST EVERY SESSION
+
+#### Rule 1: PLAN FIRST, THEN ACT
+
+**NEVER implement without an approved plan!**
+
+1. **Read taskSummary2.md** at session start
+2. **Create detailed plan** in taskSummary2.md for ANY new work
+3. **Show plan to user** and get approval
+4. **ONLY THEN** implement the approved plan
+5. **Update taskSummary2.md** after completing each sub-task
+
+**Why:** Prevents AI drift, hallucinations, and wasted effort.
+
+**Example Workflow:**
+```
+User: "Add const keyword support"
+Claude: [Read taskSummary2.md]
+Claude: [Add Task 7.X with detailed sub-tasks]
+Claude: "Here's my plan... [show plan]. Should I proceed?"
+User: "Yes, go ahead"
+Claude: [Implement Task 7.X.1]
+Claude: [Update taskSummary2.md - Task 7.X.1 complete]
+Claude: [Implement Task 7.X.2]
+... etc
+```
+
+---
+
+### 📋 IMPORTANT NOTES
+
+#### Repository Status
+- **Repository is PUBLIC** (made public 2026-08-04, after a git-history scrub removed the
+  personal email address that had been in early commits - verified via GitHub API that the
+  scrub held and a commit-search for the email returns zero results)
+- **Naming Conflict Discovered**: There is an existing programming language called "Fusion"
+  - https://github.com/fusionlanguage/fut
+  - https://fusion-lang.org/
+- **Renaming Plan**:
+  - Will continue using "Fusion" name during development
+  - Will rename ONLY after language is fully working and stable
+  - Rename will happen after we can compile Fusion code to executables without issues
+  - No rush - focus is on getting the language working correctly first
+
+---
+
+#### Rule 2: NO EMOJIS IN CODE FILES
+
+**CRITICAL: Emojis cause encoding errors!**
+
+✅ **Emojis OK in:**
+- Chat responses
+- Markdown files (*.md)
+- Comments in markdown
+
+❌ **NEVER use emojis in:**
+- Python files (*.py)
+- C files (*.c, *.h)
+- Any source code files
+- Configuration files
+- JSON/YAML files
+
+**Why:** Unicode characters cause encoding errors on different systems (cp1252 on Windows, UTF-8 on Linux, etc.)
+
+**Instead of emojis in code, use:**
+- `[OK]` not ✓
+- `[FAIL]` not ✗
+- `[WARN]` not ⚠️
+- `# TODO` not 🔴
+
+---
+
+#### Rule 3: Task Tracking
+
+**Active Files:**
+- `taskSummary2.md` (ROOT folder) - Post-MVP tasks (Tasks 5+)
+- `task/taskSummary.md` (ARCHIVED) - MVP tasks (Tasks 1-4)
+- `task/taskSummaryArchive.md` (ARCHIVED) - Completed post-MVP task detail (Tasks 5+)
+- `task/task-X.X.md` - Detailed task breakdowns
+
+**Task Numbering:**
+- Tasks 1-4: MVP (Phases 1-4) - COMPLETE
+- Tasks 5+: Post-MVP (Verification, new features) - ACTIVE
+
+**Update Frequency:**
+- After EVERY sub-task completion
+- At session start
+- At session end
+
+**Archiving Policy (minimize token usage):**
+- `taskSummary2.md` grows every session and gets expensive to read into context - keep it
+  small by moving fully-completed task sections out of it
+- When a whole numbered task (all its sub-tasks) is marked Complete, move that task's full
+  section (sub-tasks, success criteria, deliverables) from `taskSummary2.md` to
+  `task/taskSummaryArchive.md`, verbatim
+- Leave behind a short pointer in `taskSummary2.md` where the section was (task name + status +
+  "see task/taskSummaryArchive.md") - do NOT delete the Overall Progress table row or Working
+  Notes session history; those stay in the active file
+- Do this as part of closing out a task (same session it's completed, or the next time
+  `taskSummary2.md` is touched), not as a separate ceremony the user has to ask for each time
+
+---
+
+#### Rule 4: File Organization
+
+**Current Structure:**
+```
+d:\Dropbox\Fusion\
+├── taskSummary2.md           [ACTIVE - Keep in root]
+├── CLAUDE.md                 [This file]
+├── README.md                 [Project readme]
+├── main.py                   [Compiler entry point]
+├── task/                     [Task tracking]
+│   ├── taskSummary.md        [ARCHIVED - MVP complete]
+│   ├── taskSummaryArchive.md [ARCHIVED - completed post-MVP task detail]
+│   ├── task-*.md             [Task details]
+│   └── Revisit.md            [Technical debt]
+├── files/                    [Documentation]
+│   ├── *.md specs            [Language specs]
+│   └── archive/              [Old versions]
+├── src/                      [Source code]
+│   ├── lexer/
+│   ├── parser/
+│   ├── semantic/
+│   ├── codegen/
+│   ├── config/               [Project config - fusion.toml loading, Task 12.12]
+│   └── utils/
+├── tests/                    [All test files]
+│   ├── test_*.py             [Unit tests]
+│   └── verify_examples.py    [Verification script]
+├── examples/                 [Example programs]
+│   ├── *.fusion              [Fusion source]
+│   └── *.exe                 [Compiled executables]
+├── FutureFeatures.md         [Post-MVP features - a menu, not commitments]
+└── FutureFeaturesCaution.md  [Read before FutureFeatures.md - review, cautions, priorities]
+```
+
+**Rules:**
+- taskSummary2.md stays in ROOT (active file)
+- Use `files/` for documentation
+- Use `tests/` for all test scripts
+- NO `docs/` folder until compiler goes live
+
+---
+
+### 📍 CURRENT STATUS
+
+**Date:** 2026-10-08
+**Phase:** Post-MVP Development - Tasks 5-9 and 12 complete; Task 18 (Core Language) in progress
+**MVP Status:** ✅ COMPLETE - see task/taskSummary.md; Tasks 5-9 and 12 also complete (see below)
+
+**Test Results:**
+- 1,452 tests passing (99.5%)
+- 8 tests skipped (single-quote comment syntax - deferred design decision, conflicts with
+  char literals; the earlier 2 skipped const tests were unskipped in Task 8.5)
+- 0 tests failing
+
+**Example Verification:**
+- 11/11 examples compile, run, and produce correct output (hello_world, factorial, fizzbuzz,
+  calculator, sum_array, max_three, const_demo, arrays_demo, functions_demo, structs_demo,
+  strings_demo)
+- Plus `examples/project_config_demo/` - a manual (not automated-harness) demo of
+  `fusion.toml` actually changing compiler behavior (Task 12.12)
+- FizzBuzz bug fixed long ago (Task 6.2) - was a lexer bug in interpolation part-splitting
+
+**Completed since MVP:** Task 5 (cleanup), Task 6 (verification/FizzBuzz fix), Task 7 (git/
+GitHub), Task 8 (const), Task 9 (fixed-size arrays v1), Task 12 (all 12 sub-tasks: Typed AST,
+codegen split, block scoping, memory model semantics, docs sync, project config system, and
+two deliberately-deferred design decisions - IR layer and stdlib lowering)
+
+**In progress:** Task 18 (Core Language Foundation). **18.1** (default params, array
+params, lambdas) is complete. **18.2 (structs)** has an approved four-part plan; **18.2.1**
+(core structs), **18.2.2** (named arguments), **18.2.2b** (`{@N}` placeholders,
+left-to-right argument order), **18.2.3** (nesting) and **18.2.4** (array return values) are
+complete - **18.2 is done**. **18.3 (proper strings)** has an approved five-part plan;
+**18.3.1** (string values, automatic cleanup, comparison) is complete, next is **18.3.2
+(string operations)**. Then **Task 21 (error handling)**, scheduled right after 18.3. Task 19.1-19.5 depend on 18.4 (`import`). Guiding rule:
+a simple working language first, complex features after (see `FutureFeaturesCaution.md`).
+Security principle: **never trust code**.
+
+**Open / not yet scoped:** Task 13 (HIDL module), Task 14 (nullable arrays/safe navigation),
+Task 15 (deferred-decisions revisit list), Task 16 (example coverage), Task 17 (mutable/fixed
+strings & pooling), Task 10 (self-hosting), Task 11 (LLVM backend) - see taskSummary2.md
+
+**Next:** See taskSummary2.md's "Next Action" line (bottom of file) for the current session's
+starting point
+
+---
+
+### 🎯 Core Concept
+
+Fusion is an **agnostic programming language** where developers configure which features, safety levels, and performance systems apply per build or project.
+
+The compiler adapts to project configuration (memory model, locking strategy, strictness level, async behavior).
+
+---
+
+### 📊 MVP Summary (Tasks 1-4 - COMPLETE)
+
+#### Phase 1: Lexer (100% Complete)
+- 9/9 tasks complete
+- 412 tests passing
+- Tokenization, indentation tracking, block styles, keywords, operators, literals, comments
+
+#### Phase 2: Parser (100% Complete)
+- 6/6 tasks complete
+- 251 tests passing
+- AST nodes, expression/statement/declaration parsing, all 3 block styles
+
+#### Phase 3: Semantic Analyzer (100% Complete)
+- 6/6 tasks complete
+- 230 tests passing
+- Symbol table, type checking, name resolution, control flow, entry point validation
+
+#### Phase 4: Code Generator (100% Complete)
+- 5/5 tasks complete
+- 150 tests passing
+- C code generation, GCC integration, end-to-end compilation
+
+**Total:** 1,041 tests passing across all phases
+
+---
+
+### 🗂️ Documentation Reference
+
+| File | Location | Purpose |
+|------|----------|---------|
+| **taskSummary2.md** | Root | Active task tracking (Tasks 5+) |
+| **taskSummary.md** | task/ | Archived MVP tasks (Tasks 1-4) |
+| **taskSummaryArchive.md** | task/ | Archived completed post-MVP task detail (Tasks 5+) |
+| **task-X.X.md** | task/ | Detailed task breakdowns |
+| **Revisit.md** | task/ | Technical debt tracking |
+| **fusion.ebnf** | files/ | Grammar specification |
+| **fusion-language-spec.md** | files/ | Complete language spec (5000+ lines) |
+| **fusion-summary.md** | files/ | High-level overview (historical planning snapshot - predates compiler work, see its own header note) |
+| **fusion_specs.md** | files/ | API specifications |
+| **fusion-strict.md** | files/ | Strict mode rules |
+| **fusion-threading-concurrency.md** | files/ | Threading model |
+| **fusion-planning.md** | files/ | Development roadmap |
+| **Fusion_Hardware_Interface_Definition_Language_HIDL.md** | files/ | HIDL vision doc (Task 13, blocked/future) |
+| **Fusion_domain.md** | files/ | User-facing domain-first feature hierarchy - what Fusion supports/will support, organized by language domain (types, control flow, OOP, memory, concurrency, stdlib), not by build status |
+| **task-10-self-hosting-plan.md** | task/ | Self-hosting detailed plan |
+| **task-11-llvm-backend-plan.md** | task/ | LLVM backend detailed plan |
+| **FutureFeatures.md** | Root | Post-MVP features (IDE, Settings, etc.) - a menu of possibilities, not commitments |
+| **FutureFeaturesCaution.md** | Root | Read before FutureFeatures.md: project review, cautions (scope, feature interactions, ecosystem fragmentation), memory-strategy selection guide, library trust/sandboxing/supply-chain security (zero trust in library authors), and why core-language work (Task 18) comes first |
+
+---
+
+### 🔧 Quick Syntax Reference
+
+#### Function Declaration
+```fusion
+// Return-type-first syntax
+<return_type> function <name>(<type> <param> = <default>)
+
+// Examples
+int function add(int a, int b) : a + b
+void function greet(string name = "World") : print("Hello, {name}!")
+
+// Defaults must come last and be constants (literals, or a negated number); omitted
+// trailing arguments are filled in at the call site: greet() -> greet("World") (Task 18.1.1)
+
+// Named arguments (Task 18.2.2): any order, unnamed ones first, any default skippable;
+// evaluated left to right as written. Not for builtins or function variables
+createShip("Discovery", crew = 80)
+int r = sub(b = 5, a = 3)
+```
+
+#### Lambdas (Task 18.1.3 - no closures yet)
+```fusion
+(int) : int op = func(int x) : x * 2     // function type, inline lambda
+int function apply((int) : int f, int v) : f(v)
+int r = apply(tripler, 5)                // named functions are values too
+```
+
+#### Block Styles
+```fusion
+// 1. Indentation (Python-style)
+if condition
+    statement1
+
+// 2. Braces (C/Java-style)
+if condition {
+    statement1
+}
+
+// 3. End keyword (VB.NET-style)
+if condition
+    statement1
+End if
+```
+
+#### String Interpolation
+```fusion
+// Inline: {variable}
+print("Name: {name}, Age: {age}")
+
+// Positional: {@1}, {@2}, ... - print's arguments after the text, any order, repeatable;
+// each argument evaluated once, left to right (Task 18.2.2b)
+print("User {@1} is {@2} years old", name, age)
+print("{@2} before {@1}", a, b)
+```
+
+#### Strings (Task 18.3 - values, freed automatically)
+```fusion
+string a = "apple"
+string b = a            // an independent copy
+b = "banana"            // a is still "apple"
+bool same = a == "apple"    // compares the text; < and > are alphabetical
+```
+Joining, `len`, `s[i]`, `substring`, conversions: 18.3.2. `string s = "x is {x}"`: 18.3.3.
+
+#### Variable Declaration
+```fusion
+// Explicit type (required in safe mode)
+int count = 0
+string name = "Alice"
+
+// Constant (must initialize)
+const float PI = 3.14159
+```
+
+#### Arrays
+```fusion
+// Fixed size, inferred from the literal
+int[] scores = [10, 20, 30]
+
+// Explicit size, zero-initialized
+float[3] buffer
+
+scores[0] = 99          // element assignment
+int n = len(scores)     // size (compile-time constant)
+
+// Array parameters (by reference): int[] = any size (len() works), int[3] = exactly 3
+int function sum(int[] values)
+int total = sum(scores)
+
+// Array return values need a size (Task 18.2.4)
+int[3] function podium() : [3, 1, 2]
+int[3] p = podium()     // or: p = podium(), podium()[0]
+```
+
+#### Structs (Task 18.2.1 - fields only, value types)
+```fusion
+struct Point            // also: struct Point { ... }  or  ... End struct
+    int x
+    int y
+
+struct Player
+    string name
+    float health = 100.0     // field defaults: constants only
+
+Point a = Point(3, 4)        // generated constructor, fields in declaration order
+Point n = Point(y = 4, x = 3)   // named construction (18.2.2)
+Point b = a                  // copies; b.x = 9 leaves a alone
+Point z                      // every field its default, or zero
+a.x = 10
+print("({a.x}, {a.y})")      // fields in interpolation
+Point function add(Point p, Point q) : Point(p.x + q.x, p.y + q.y)   // by value
+```
+Nesting (18.2.3): struct fields can be structs and fixed-size arrays (`int[3] scores`,
+`Point[2] corners`); arrays of structs (`Point[] pts = [Point(1, 2)]`, `pts[0].x = 7`).
+No methods/operators in structs - use functions. Not yet: `==` on structs (18.3), printing a
+whole struct.
+
+#### Project Configuration (`fusion.toml`)
+```toml
+## Optional - place next to your .fusion source file (or in the cwd). Every key defaults
+## to the value shown; a missing file is not an error.
+## Decided (Task 20, not yet implemented): fusion.yaml / fusion.json / fusion.ini will be
+## accepted interchangeably. Until then only fusion.toml works.
+[indentation]
+tab_width = 4        # spaces per tab
+allow_mixed = true   # mixed tabs/spaces: warning (true) vs compile error (false)
+
+[source]
+allow_unicode_identifiers = false   # ASCII-only identifiers by default (Task 19.6)
+
+[structs]                      # Task 18.2
+max_nesting_depth  = 3         # 1 = no nested structs; depth 4+ is an error by default
+warn_nesting_depth = 3         # warn from this depth; 0 = never warn
+string_storage     = "owned"   # "pooled" reserved (Task 17) - compile error until then
+string_mutable     = true      # false = string fields fixed after construction
+string_warn_length = 64        # guideline only: longer strings kept, with a warning
+string_max_length  = 4096      # the one hard cut-off; "max memory" = no limit (unsafe)
+
+[safety]
+mode = "normal"      # "normal" | "strict" - reserved, not yet enforced (Task 12.12)
+
+[backend]
+target = "c"         # "c" only for now - "llvm" reserved for Task 11
+```
+
+---
+
+### 🔑 Reserved Keywords (67 total)
+
+**Control Flow:** if, else, for, while, loop, end, break, continue, return, match, case
+
+**Functions:** function, func, async, await
+
+**Classes:** class, struct, interface, enum, inherits, implements, property, get, set
+
+**Modifiers:** public, private, protected, static, virtual, override, abstract, sealed
+
+**Variables:** var, const
+
+**Literals:** true, false, null, this
+
+**Operators:** and, or, not, is, in
+
+**Types:** int, float, double, string, bool, char, byte, short, long, void
+
+**Memory:** Unique, Shared, Weak
+
+**Threading:** go
+
+**Error:** try, catch, finally, throw, Error
+
+---
+
+### 📚 Fusion Standard Library (fusionlib)
+
+**21 Modules Total**
+
+#### Core Libraries (5 modules)
+- **Core** - Essential types, Console I/O, DateTime
+- **Math** - Vector, Matrix, Quaternion, trigonometry
+- **Collections** - List, Dictionary, Set, Queue, Stack, LINQ
+- **Threading** - Threads, Goroutines, Channels, Mutex, Async/await
+- **IO** - File operations, Streams, Compression
+
+#### Additional Libraries (12 modules)
+- **Net** - TCP/UDP, HTTP, WebSocket, DNS, Email, FTP
+- **Data** - JSON, CSV, XML, YAML, Markdown, INI
+- **System** - Process management, DLL loading, environment
+- **Lang** - Multi-language compilation (C, C++, Java, Python)
+- **Languages** - i18n/l10n, translations, locale
+- **GUI** - HTML5-compliant cross-platform UI
+- **Graphics** - 2D/3D rendering, sprites, shaders
+- **Audio** - Sound playback, synthesis, effects, MIDI
+- **Crypto** - Encryption, hashing, SSL/TLS
+- **Database** - SQL/NoSQL support, ORM
+- **Web** - HTTP server, REST API framework
+- **AI** - Neural networks, ML algorithms
+
+#### IDE & Development (4 modules)
+- **Reflection** - Runtime type inspection, dynamic execution
+- **Test** - Unit testing framework, assertions, coverage
+- **Diagnostics** - Profiling, logging, debugging
+- **DocWiki** - Automatic documentation generation
+
+**Import Pattern:** `import Fusion.<ModuleName>` or `import fusionlib.<ModuleName>`
+
+---
+
+### ⚙️ Compiler Implementation Details
+
+**Language:** Python (for MVP)
+**Target:** C code → GCC → Native executable
+**Future:** Self-hosting (rewrite compiler in Fusion)
+
+**Current Features:**
+- Block-level (lexical) scoping: a variable declared inside `if`/`while`/`for` is only
+  visible inside that block, and a nested block can shadow an outer variable of the same
+  name (Task 12.6, complete - replaced the earlier function-scoped model, which had a
+  real bug: semantic analysis accepted programs whose generated C could never actually
+  compile, since C's own `{ }` braces are natively block-scoped)
+- Three block styles (indentation, braces, End keywords)
+- String interpolation ({var}, {p.x}, and positional {@1} placeholders in print - Task 18.2.2b)
+- Type checking with automatic int→float promotion
+- Recursive functions and lambdas
+- void main() → int main() automatic conversion
+- C keyword name mangling (function "double" → "fusion_double")
+- const declarations: must initialize, enforced immutable by semantic analyzer, emitted as
+  C `const` (Task 8, complete)
+- Fixed-size arrays: `int[] x = [1,2,3]` or `int[5] x`, element read/write (`x[i]`,
+  `x[i] = v`), `len(x)` resolved to a compile-time constant (Task 9 v1, complete)
+- Project configuration via an optional `fusion.toml` (source file's directory, then cwd) -
+  `[indentation]` (`tab_width`/`allow_mixed`) actually reaches the lexer; `[safety]`/
+  `[backend]` are parsed/validated but not yet enforced (Task 12.12, complete - see
+  `src/config/project_config.py` and `examples/project_config_demo/`)
+- Source-level attack defenses (Task 19.6, complete - `src/lexer/source_security.py`):
+  invisible/bidirectional control characters rejected anywhere in a file incl. comments and
+  strings (Trojan Source); identifiers ASCII-only by default, opt-in via `[source]
+  allow_unicode_identifiers` (mixed look-alike scripts still rejected); `\uXXXX` escapes in
+  string and char literals; lexer warnings printed by `main.py`
+- Char literals work correctly end-to-end (`char c = 'a'` - was broken before Task 19.6)
+- Functions (Task 18.1, complete): parameter default values; arrays as parameters (`int[]` any
+  size, `int[5]` exact, by reference); lambdas and function types (`(int) : int`), named
+  functions as values, calls through function variables - no closures yet (Task 18.3 first)
+- Structs (Task 18.2.1): fields only (no methods), three block styles, generated positional
+  constructor, field defaults, `.` access/assignment incl. in `{p.x}` interpolation, value
+  semantics (copy on assign/pass/return), const structs, `[structs]` string-field length
+  rules (see `tests/test_structs.py`, `examples/structs_demo.fusion`); nesting (18.2.3) -
+  struct and fixed-size array fields, arrays of structs, `[structs]` depth limits
+- Strings are values (Task 18.3.1): each variable/field/element owns its text, copies are
+  independent, and the compiler frees every string exactly once (block end, return, break,
+  continue, end of statement for temporaries) - no GC. `==`/`!=` compare text, `<`/`>`
+  alphabetical. Tests compile with `-DFUSION_LEAK_CHECK`, which fails a program that leaks
+  (exit 3) or double-frees (exit 4) - see `src/codegen/c_memory.py`
+- Named arguments (Task 18.2.2): `f(b = 1, a = 2)`, `Point(y = 4, x = 3)` - any order after
+  unnamed ones, any defaulted parameter skippable
+- Every call's arguments are evaluated left to right as written; `print("{@2} {@1}", a, b)`
+  positional placeholders (Task 18.2.2b)
+
+**Known Limitations (by design):**
+- Single-quote comments disabled (conflicts with char literals)
+- Identifiers are ASCII-only unless `fusion.toml` opts in; char literals hold one ASCII
+  character (a C `char` is one byte) - both by design (Task 19.6)
+
+**Known bugs (logged, not yet fixed):**
+- Interpolated strings only work as `print()`'s own argument - elsewhere they're now a clear
+  error (Task 15.10, they used to generate invalid C); `{...}` holds a name or field path
+  (`{p.x}`), not a full expression yet. Building strings at run time is Task 18.3
+- Operands of operators (`next(c) - next(c)`) are still evaluated in C's unspecified order -
+  call arguments are left to right since Task 18.2.2b; operators are Task 15.12
+- const follows the same block scoping as other variables (no global/class-level
+  constants yet - classes not implemented)
+- `fusion.toml`'s `[safety]`/`[backend]` sections are recognized and validated but not
+  enforced by any compiler pass yet (same status as the `Unique`/`Shared`/`Weak` keywords
+  below - reserved, not implemented); `[indentation]`, `[source]` and `[structs]` change
+  real behavior today
+- Arrays can be function parameters (by reference) and sized return values (`int[3]
+  function f()`, Task 18.2.4 - a returned array must be stored, assigned, indexed or
+  returned, not passed straight on); they're single-dimension, fixed-size (no dynamic resize), no bounds checking, and not nullable (no `.length`,
+  `?.`, or `?[` yet - see taskSummary2.md Task 14)
+
+---
+
+### 🔄 Archive Policy
+
+**Ignore unless explicitly requested:**
+- `files/archive/*` - Old specification versions
+- Single-quote comment tests (8 skipped) - Future design decision
+
+**Technical Debt:**
+- See `task/Revisit.md` for deferred issues
+- Review before each major release
+
+---
+
+### 🎯 Auto-Update Policy
+
+**When updating any Fusion specification, automatically propagate changes to ALL relevant files:**
+
+| If User Changes... | Must Auto-Update... |
+|-------------------|---------------------|
+| Lambda syntax | EBNF grammar, language-spec, summary, CLAUDE.md, examples |
+| Block syntax | EBNF grammar, language-spec, summary, CLAUDE.md |
+| Standard library module | fusionlib table (CLAUDE.md), language-spec, summary |
+| Type system | EBNF grammar, language-spec, summary, CLAUDE.md |
+| String interpolation | language-spec, CLAUDE.md, code examples |
+| Keywords/operators | EBNF grammar, language-spec, summary |
+
+**DO NOT ASK** - just update all files automatically to maintain consistency.
+
+---
+
+### 📝 Session Workflow
+
+**At Session Start:**
+1. Read `taskSummary2.md`
+2. Check current task status
+3. Review any notes from previous session
+
+**During Work:**
+1. Create plan in taskSummary2.md for new tasks
+2. Get user approval
+3. Implement approved plan
+4. Update taskSummary2.md after each sub-task
+
+**At Session End:**
+1. Update taskSummary2.md with current state
+2. Document any blockers or issues
+3. Set "Next Action" for next session
+
+---
+
+### 🚀 Next Steps
+
+**Current Focus:** Task 18.3.1 (string values and automatic cleanup) is done. Next: 18.3.2
+(string operations), per the approved 18.3 plan in taskSummary2.md; then Task 21 (error
+handling). Read
+`FutureFeaturesCaution.md` before picking up anything from `FutureFeatures.md`.
+
+**Completed:**
+- Tasks 1-9 and 12 - see task/taskSummary.md and task/taskSummaryArchive.md for full detail
+
+**Planned (see taskSummary2.md for full detail and current blockers):**
+- Task 13: HIDL module, Task 14: Nullable arrays & safe navigation - both unblocked, need
+  scoping approval
+- Task 15: Deferred decisions revisit list (IR layer, stdlib lowering, a LambdaExpr scope
+  bug, Task 10/11 ordering, etc.) - each item has its own trigger
+- Task 16: Example program coverage (16.1 buildable now)
+- Task 17: Mutable/fixed strings, templated strings, string pooling - logged, not scoped
+- Task 10: Self-hosting, Task 11: LLVM backend (both planning-complete, intentionally not
+  started - ordering between them is itself an open question, Task 15.4)
+
+---
+
+### 💻 Setting Up a New Machine
+
+The repo is fully self-describing - no out-of-band context is needed beyond this file and
+`taskSummary2.md`. To verify a fresh environment:
+
+1. **Python 3.11+** (required - `src/config/project_config.py` uses stdlib `tomllib`)
+2. **GCC on PATH** (MinGW-w64 on Windows) - `main.py` invokes `gcc` directly
+3. `pip install -r requirements.txt`
+4. `python -m pytest tests/ -q` - expect **1452 passed, 8 skipped**
+5. `python tests/verify_examples.py` - expect **11/11**
+
+If both match, the environment is correct. Note `Notes/` (user's AI review notes) and
+`.claude/settings.local.json` (Claude Code permissions) are gitignored - they exist only via
+Dropbox sync, not via `git clone`.
+
+---
+
+**Last Updated:** 2026-10-08
+**Version:** 2.0 (Post-MVP)
+**Next Action:** See taskSummary2.md
+
+---
+
+## TASK 22: Project Tracking Restructure (COMPLETE 2026-10-09)
+
+**Goal:** save tokens without losing context (user request). Housekeeping only - no compiler
+changes, test count unchanged. One commit.
+- [x] 22.1 New `FEATURES.md` (root) - the one status tracker. Line format, grep-friendly:
+      top-level `## 18 Core Language Foundation [ ]`; sub-tasks tab-indented, status first:
+      `<TAB>[DONE] 18.1 Functions`, `<TAB><TAB>[ ] 18.3.2 String operations`,
+      `[POSTPONED to 17.4] String pool` (blocked by a needed feature). Every task 5-21, plus a
+      "Later / advanced" part (pool, GC, string methods, closures, ...) and known bugs as items
+- [x] 22.2 New `SYNTAX_REFERENCE.md` (root) - a showcase: one short working example per
+      implemented feature (functions, named args, lambdas, block styles, arrays, structs,
+      strings, interpolation/placeholders, control flow, fusion.toml), plus reserved words.
+      Grows as features ship
+- [x] 22.3 Slim `CLAUDE.md` to rules + how to run: keep the 4 rules (rewritten tracking
+      rule), file layout, auto-update policy (+ the two new files), session workflow, how to
+      run/test (incl. leak check), doc pointers. Remove: current status, MVP summary, syntax
+      reference, feature/bug lists, next steps (-> FEATURES.md / SYNTAX_REFERENCE.md)
+- [x] 22.4 Slim `taskSummary2.md` to a working file: active task's detailed plan + next action
+      + latest session note. Completed detail (Tasks 9/12 leftovers, 18.1, 18.2, 18.3.1, 19.6,
+      resolved 15.x, sessions 16-28) -> `task/taskSummaryArchive.md` verbatim; not-started
+      task write-ups (10, 11, 13, 14, 16, 17, 19.1-19.5, 19.7, 20, 21) -> new
+      `task/taskBacklog.md` verbatim, each one line in FEATURES.md
+- [x] 22.5 Verify nothing lost (moved line counts match), suite + examples unchanged, commit
+
+---
+
