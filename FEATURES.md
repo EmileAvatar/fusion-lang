@@ -96,7 +96,7 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.2.4 Arrays as function return values
 	[ ] 18.3 Proper strings
 		[DONE] 18.3.1 String values and automatic cleanup, compare by content, leak check
-		[ ] 18.3.2 String operations: `+`, `len`, `s[i]`, substring/contains/indexOf/..., conversions
+		[DONE] 18.3.2 String operations: `+`, `len`, `s[i]`, substring/contains/indexOf/..., conversions
 		[ ] 18.3.3 Interpolated strings as values anywhere, `format(...)`
 		[ ] 18.3.4 Struct string fields growable, string_max_length at run time
 		[ ] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)

@@ -319,9 +319,9 @@ team.scores = podium()     // an array field too
 
 Description: Strings are **values**, like structs (decided 2026-10-09, Task 18.3).
 
-**Implementation status:** 18.3.1 (values, automatic cleanup, comparison) is implemented. The
-operations below (joining, `len`, `s[i]`, `substring`, conversions) are 18.3.2, and
-interpolated strings outside `print` are 18.3.3 - see `taskSummary2.md`.
+**Implementation status:** 18.3.1 (values, automatic cleanup, comparison) and 18.3.2
+(operations below) are implemented; interpolated strings outside `print` are 18.3.3 - see
+`FEATURES.md`.
 
 * **Ownership**
      * Each string variable, struct field and array element owns its own text
@@ -353,15 +353,26 @@ copy = "Modified"              // name is still "Enterprise"
 bool same = name == "Enterprise"   // true - compares the text
 ```
 
-* **String Operations** (Task 18.3.2): all return a new string and leave the original
-  unchanged. They are built-in functions rather than methods, consistent with structs
-  (fields only)
+* **String Operations** (Task 18.3.2, implemented): all return a new string and leave the
+  original unchanged. They are built-in functions for now (method syntax such as
+  `name.toUpper()` is a planned advanced feature). Lengths and indexes count bytes
+     * `a + b` joins strings (or a string and a char); numbers are joined with interpolation
+       (`"{name}{count}"`) - `"a" + 5` is a compile error
+     * `len(s)`; `s[i]` reads one `char` - a bad index stops the program with a run-time
+       error naming the file and line
+     * `substring(s, start, count)`, `contains(s, part)`, `indexOf(s, part)` (-1 if absent),
+       `startsWith`, `endsWith`, `toUpper`, `toLower`, `trim`
+     * `toString(x)` for int/float/double/bool/char/string; `toInt(s)`, `toFloat(s)` stop the
+       program with a clear error on text that isn't a number - check first with `isInt(s)` /
+       `isFloat(s)` (until error handling, Task 21, makes it catchable)
+     * The names are reserved: a user function can't be called `trim`, `toInt`, ...
 
 ```
 string original = "Hello"
 string upper = toUpper(original)          // "HELLO", original unchanged
 string sub = substring(original, 0, 3)    // "Hel"
 string joined = original + " World"       // "Hello World"
+int n = toInt("42")                       // 42; toInt("12x") stops with a run-time error
 ```
 
 ---

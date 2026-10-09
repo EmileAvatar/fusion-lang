@@ -117,20 +117,7 @@ Same model as C++ `std::string` and Rust `String`.
 Split into five parts, each shippable and committed on its own (same pattern as 18.1/18.2).
 Each adds tests, an example program (Rule 4), and spec/EBNF/CLAUDE.md updates.
 
-**18.3.2 - String operations**
-- [ ] `a + b` joins two strings (also string + char); numbers are joined with interpolation
-      (`"{name}{count}"`) rather than `+`, which avoids JavaScript's `"1" + 1` surprises
-- [ ] `len(s)`, and `s[i]` reads one character (a `char`). **Bounds-checked**: a bad index
-      stops the program with a run-time error - strings know their length, so this is cheap
-      (arrays stay unchecked for now)
-- [ ] Built-in functions (no methods - consistent with fields-only structs):
-      `substring(s, start, count)`, `contains(s, part)`, `indexOf(s, part)` (-1 if absent),
-      `startsWith`, `endsWith`, `toUpper`, `toLower`, `trim`
-- [ ] Conversions: `toString(x)` for int/float/double/bool/char; `toInt(s)`, `toFloat(s)`
-      (decision 2: invalid text stops the program with a clear run-time error), plus
-      `isInt(s)` / `isFloat(s)` to check first
-- [ ] Length/indexing unit (decision 3): bytes. `len("cafe")` is 4; accented or other
-      non-ASCII text counts its UTF-8 bytes. Unicode-aware character functions are later work
+**18.3.2 - String operations** - COMPLETE, detail archived (`task/taskSummaryArchive.md`)
 
 **18.3.3 - Interpolated strings as values (the real fix for Task 15.10)**
 - [ ] `string s = "x is {x}"`, `return "Hello, {name}"`, `f("{a}-{b}")` - an interpolated
@@ -281,4 +268,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - User notes: string pool, GC and string methods stay planned as advanced features (after
   MVP); keep `task/automation.md` updated with repeated commands
 - Not pushed yet: 18.2.3, 18.2.4, 18.3.1, 22 (ask before pushing)
-- **Next Action:** implement **18.3.2 (string operations)** per the approved 18.3 plan above.
+- 18.3.2 COMPLETE (string operations).
+- **Next Action:** implement **18.3.3 (interpolated strings as values, `format`)** per the approved 18.3 plan above.

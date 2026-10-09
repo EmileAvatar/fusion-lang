@@ -30,6 +30,7 @@ from dataclasses import fields as dataclass_fields, is_dataclass
 
 from ..parser.ast_nodes import (
     ASTNode, AssignmentStmt, MemberExpr, IndexExpr, IdentifierExpr, CallExpr, LiteralExpr,
+    BinaryExpr,
     ArrayLiteralExpr, LambdaExpr, PrimitiveType, ArrayType, StructType, StructDecl,
 )
 from .c_names import mangle_function_name
@@ -132,6 +133,117 @@ static inline int fusion_str_cmp(fusion_string a, fusion_string b) {
     int c = memcmp(a.data, b.data, (size_t)n);
     return c != 0 ? c : a.len - b.len;
 }
+// ---- String operations (Task 18.3.2) - each returns a new string, the input is unchanged.
+// Lengths and indexes count bytes; `where` is "file:line" for run-time error messages
+static inline fusion_string fusion_str_make(const char* data, int len) {
+    fusion_string r;
+    r.data = (char*)fusion_alloc((size_t)len + 1);
+    if (len > 0) memcpy(r.data, data, (size_t)len);
+    r.data[len] = '\0';
+    r.len = len;
+    r.owned = 1;
+    return r;
+}
+
+static inline fusion_string fusion_str_join(const char* a, int alen, const char* b, int blen) {
+    fusion_string r;
+    r.data = (char*)fusion_alloc((size_t)alen + (size_t)blen + 1);
+    memcpy(r.data, a, (size_t)alen);
+    memcpy(r.data + alen, b, (size_t)blen);
+    r.data[alen + blen] = '\0';
+    r.len = alen + blen;
+    r.owned = 1;
+    return r;
+}
+
+static inline fusion_string fusion_str_concat(fusion_string a, fusion_string b) { return fusion_str_join(a.data, a.len, b.data, b.len); }
+static inline fusion_string fusion_str_concat_char(fusion_string a, char c) { return fusion_str_join(a.data, a.len, &c, 1); }
+static inline fusion_string fusion_char_concat_str(char c, fusion_string b) { return fusion_str_join(&c, 1, b.data, b.len); }
+
+static inline char fusion_str_at(fusion_string s, int i, const char* where) {
+    if (i < 0 || i >= s.len) fusion_runtime_error(where, "index %d is outside the string (length %d)", i, s.len);
+    return s.data[i];
+}
+
+static inline fusion_string fusion_str_substring(fusion_string s, int start, int count, const char* where) {
+    if (start < 0 || count < 0 || start > s.len || count > s.len - start)
+        fusion_runtime_error(where, "substring(start %d, count %d) is outside the string (length %d)", start, count, s.len);
+    return fusion_str_make(s.data + start, count);
+}
+
+static inline int fusion_str_indexOf(fusion_string s, fusion_string part) {
+    for (int i = 0; i + part.len <= s.len; i++)
+        if (memcmp(s.data + i, part.data, (size_t)part.len) == 0) return i;
+    return -1;
+}
+static inline bool fusion_str_contains(fusion_string s, fusion_string part) { return fusion_str_indexOf(s, part) >= 0; }
+static inline bool fusion_str_startsWith(fusion_string s, fusion_string part) {
+    return part.len <= s.len && memcmp(s.data, part.data, (size_t)part.len) == 0;
+}
+static inline bool fusion_str_endsWith(fusion_string s, fusion_string part) {
+    return part.len <= s.len && memcmp(s.data + s.len - part.len, part.data, (size_t)part.len) == 0;
+}
+
+static inline fusion_string fusion_str_toUpper(fusion_string s) {
+    fusion_string r = fusion_str_make(s.data, s.len);
+    for (int i = 0; i < r.len; i++) if (r.data[i] >= 'a' && r.data[i] <= 'z') r.data[i] -= 32;
+    return r;
+}
+static inline fusion_string fusion_str_toLower(fusion_string s) {
+    fusion_string r = fusion_str_make(s.data, s.len);
+    for (int i = 0; i < r.len; i++) if (r.data[i] >= 'A' && r.data[i] <= 'Z') r.data[i] += 32;
+    return r;
+}
+static inline bool fusion_is_space(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f'; }
+static inline fusion_string fusion_str_trim(fusion_string s) {
+    int start = 0, end = s.len;
+    while (start < end && fusion_is_space(s.data[start])) start++;
+    while (end > start && fusion_is_space(s.data[end - 1])) end--;
+    return fusion_str_make(s.data + start, end - start);
+}
+
+// Conversions to text
+static inline fusion_string fusion_int_to_str(int value) { char buf[16]; int n = snprintf(buf, sizeof buf, "%d", value); return fusion_str_make(buf, n); }
+static inline fusion_string fusion_double_to_str(double value) { char buf[32]; int n = snprintf(buf, sizeof buf, "%g", value); return fusion_str_make(buf, n); }
+static inline fusion_string fusion_bool_to_str(bool value) { return value ? FUSION_STR("true") : FUSION_STR("false"); }
+static inline fusion_string fusion_char_to_str(char value) { return fusion_str_make(&value, 1); }
+
+// Conversions from text: the whole text must be a number, or the program stops with a
+// clear error (user decision 2026-10-09) - check first with isInt / isFloat
+static inline bool fusion_parse_int(fusion_string s, int* out) {
+    int i = 0; long long value = 0; int negative = 0;
+    if (i < s.len && (s.data[i] == '+' || s.data[i] == '-')) negative = s.data[i++] == '-';
+    if (i >= s.len) return false;
+    for (; i < s.len; i++) {
+        if (s.data[i] < '0' || s.data[i] > '9') return false;
+        value = value * 10 + (s.data[i] - '0');
+        if (value > 2147483648LL) return false;
+    }
+    if (negative) value = -value;
+    if (value > 2147483647LL || value < -2147483648LL) return false;
+    *out = (int)value;
+    return true;
+}
+static inline bool fusion_parse_float(fusion_string s, double* out) {
+    char* end;
+    if (s.len == 0) return false;
+    for (int i = 0; i < s.len; i++)
+        if (!strchr("0123456789+-.eE", s.data[i]) || s.data[i] == '\0') return false;
+    *out = strtod(s.data, &end);
+    return end == s.data + s.len;
+}
+static inline bool fusion_str_isInt(fusion_string s) { int v; return fusion_parse_int(s, &v); }
+static inline bool fusion_str_isFloat(fusion_string s) { double v; return fusion_parse_float(s, &v); }
+static inline int fusion_str_toInt(fusion_string s, const char* where) {
+    int v;
+    if (!fusion_parse_int(s, &v)) fusion_runtime_error(where, "'%.*s' is not a whole number (check with isInt first)", s.len, s.data);
+    return v;
+}
+static inline float fusion_str_toFloat(fusion_string s, const char* where) {
+    double v;
+    if (!fusion_parse_float(s, &v)) fusion_runtime_error(where, "'%.*s' is not a number (check with isFloat first)", s.len, s.data);
+    return (float)v;
+}
 // ---- end of runtime ----
 '''
 
@@ -218,8 +330,11 @@ class MemoryManagementMixin:
 
     def is_fresh(self, expr) -> bool:
         """True for an expression whose managed value is newly made and owned by nobody
-        yet: a call returning a managed value (including a constructor). Storing it
-        takes it over; otherwise it's freed at the end of the statement."""
+        yet: a call returning a managed value (including a constructor and the string
+        built-ins), or joining strings with `+` (18.3.2). Storing it takes it over;
+        otherwise it's freed at the end of the statement."""
+        if isinstance(expr, BinaryExpr):
+            return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
         return isinstance(expr, CallExpr) and self.is_managed(getattr(expr, 'inferred_type', None))
 
     def owned_value(self, expr, type_node) -> str:

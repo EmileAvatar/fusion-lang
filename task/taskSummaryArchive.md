@@ -2999,3 +2999,28 @@ changes, test count unchanged. One commit.
 
 ---
 
+
+---
+
+#### 18.3.2 (archived 2026-10-09)
+
+**18.3.2 - String operations**
+**Status: COMPLETE (2026-10-09)**
+- [x] `a + b` joins two strings (also string + char); numbers are joined with interpolation
+      (`"{name}{count}"`) rather than `+`, which avoids JavaScript's `"1" + 1` surprises
+- [x] `len(s)`, and `s[i]` reads one character (a `char`). **Bounds-checked**: a bad index
+      stops the program with a run-time error - strings know their length, so this is cheap
+      (arrays stay unchecked for now)
+- [x] Built-in functions (no methods - consistent with fields-only structs):
+      `substring(s, start, count)`, `contains(s, part)`, `indexOf(s, part)` (-1 if absent),
+      `startsWith`, `endsWith`, `toUpper`, `toLower`, `trim`
+- [x] Conversions: `toString(x)` for int/float/double/bool/char; `toInt(s)`, `toFloat(s)`
+      (decision 2: invalid text stops the program with a clear run-time error), plus
+      `isInt(s)` / `isFloat(s)` to check first
+- [x] Length/indexing unit (decision 3): bytes. `len("cafe")` is 4; accented or other
+      non-ASCII text counts its UTF-8 bytes. Unicode-aware character functions are later work
+- [x] Implementation: runtime functions in `c_memory.py` (`fusion_str_concat`, `_at`,
+      `_substring`, `_indexOf`, ..., `fusion_parse_int/float`); built-ins registered in the
+      name resolver (names reserved); a joined string is a fresh temporary like a call result.
+      Run-time errors carry "file:line". 26 new tests in `tests/test_strings.py`; strings_demo
+      and SYNTAX_REFERENCE extended

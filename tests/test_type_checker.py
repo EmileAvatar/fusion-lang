@@ -257,7 +257,8 @@ def test_arithmetic_on_string_error(type_checker, location):
     binary = BinaryExpr(left=left, operator='+', right=right, location=location)
     type_checker.visit_BinaryExpr(binary)
     assert len(type_checker.errors) == 1
-    assert "must be numeric" in type_checker.errors[0].message
+    # string + int is rejected with a pointer to interpolation (Task 18.3.2)
+    assert "use interpolation" in type_checker.errors[0].message
 
 
 def test_comparison_ordering_strings_allowed(type_checker, location):

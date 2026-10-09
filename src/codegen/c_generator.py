@@ -13,6 +13,7 @@ This file keeps AST traversal, statement/declaration codegen, and output managem
 from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import List, Set
 import json
+import os
 from ..parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
     PrimitiveType, ArrayType, FunctionType, StructType, StructDecl,
@@ -591,6 +592,19 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         right = self.visit(node.right)
         op = node.operator
 
+        # Joining strings makes a new string (Task 18.3.2) - held in a temporary unless
+        # something takes it over
+        if op == '+' and self._is_string(node):
+            if self._is_string(node.left) and self._is_string(node.right):
+                code = f'fusion_str_concat({left}, {right})'
+            elif self._is_string(node.left):
+                code = f'fusion_str_concat_char({left}, {right})'
+            else:
+                code = f'fusion_char_concat_str({left}, {right})'
+            if id(node) in self.consumed:
+                return code
+            return self.fresh_temporary(code, node.inferred_type)
+
         # Strings compare by their text, never by address (Task 18.3.1 - this was the latent
         # pointer-comparison bug); ordering is alphabetical (byte order)
         if self._is_string(node.left) and self._is_string(node.right):
@@ -698,6 +712,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return self._generate_print_call(node)
             if func_name == 'len':
                 return self._generate_len_call(node)
+            if func_name in self._STRING_BUILTINS and node.callee_declaration is None:
+                return self._string_builtin_call(node)
 
             # Mangle user-defined function names (a variable holding a function keeps its
             # own name - C calls through a function pointer the same way)
@@ -739,6 +755,47 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return f'({", ".join(ordered)}, {func}({args}))'
 
         return f'{func}({args})'
+
+    # String built-ins (Task 18.3.2): Fusion name -> (C function, takes a "file:line" for
+    # run-time errors)
+    _STRING_BUILTINS = {
+        'substring': ('fusion_str_substring', True), 'contains': ('fusion_str_contains', False),
+        'indexOf': ('fusion_str_indexOf', False), 'startsWith': ('fusion_str_startsWith', False),
+        'endsWith': ('fusion_str_endsWith', False), 'toUpper': ('fusion_str_toUpper', False),
+        'toLower': ('fusion_str_toLower', False), 'trim': ('fusion_str_trim', False),
+        'toInt': ('fusion_str_toInt', True), 'toFloat': ('fusion_str_toFloat', True),
+        'isInt': ('fusion_str_isInt', False), 'isFloat': ('fusion_str_isFloat', False),
+        'toString': (None, False),
+    }
+    _TO_STRING = {'int': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
+                  'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
+                  'char': 'fusion_char_to_str', 'string': 'fusion_str_copy'}
+
+    def _where(self, node) -> str:
+        """A C string literal naming a source position, for run-time error messages."""
+        location = node.location
+        name = os.path.basename(str(getattr(location, 'filename', '')))
+        return f'"{escape_c_text(f"{name}:{getattr(location, "line", 0)}", chr(34))}"'
+
+    def _string_builtin_call(self, node: CallExpr) -> str:
+        """substring(...), contains(...), toInt(...), ... (Task 18.3.2). Arguments are
+        borrowed and evaluated left to right as written."""
+        name = node.callee.name
+        c_function, needs_where = self._STRING_BUILTINS[name]
+        arguments = list(node.arguments)
+        if name == 'toString':
+            c_function = self._TO_STRING[arguments[0].inferred_type.name]
+        codes = [self.visit(arg) for arg in arguments]
+        ordered = []
+        if self._order_matters(arguments) and self.temp_scopes:
+            for i, (arg, code) in enumerate(zip(arguments, codes)):
+                temp = self._new_temp(self.map_type(arg.inferred_type))
+                ordered.append(f'{temp} = {code}')
+                codes[i] = temp
+        if needs_where:
+            codes.append(self._where(node))
+        call = f'{c_function}({", ".join(codes)})'
+        return f'({", ".join(ordered)}, {call})' if ordered else call
 
     def _array_argument(self, arg: ASTNode, param_type: ArrayType) -> list:
         """Lower an argument passed to an array parameter (Task 18.1.2).
@@ -797,6 +854,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         array_code = self.visit(node.array)
         index_code = self.visit(node.index)
+        # s[i] - one character, bounds-checked (Task 18.3.2)
+        if self._is_string(node.array):
+            return f'fusion_str_at({array_code}, {index_code}, {self._where(node)})'
         # make()[0] - the returned array is inside its wrapper struct (Task 18.2.4)
         if self._returns_array(node.array):
             return f'{array_code}.data[{index_code}]'

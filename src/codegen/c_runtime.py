@@ -191,6 +191,9 @@ class RuntimeLoweringMixin:
         """
         arg = node.arguments[0]
         array_type = getattr(arg, 'inferred_type', None)
+        # A string's length in bytes (Task 18.3.2)
+        if isinstance(array_type, PrimitiveType) and array_type.name == 'string':
+            return f'({self.visit(arg)}).len'
         if isinstance(array_type, ArrayType) and array_type.size is None and isinstance(arg, IdentifierExpr):
             return array_length_name(arg.name)
         if not isinstance(array_type, ArrayType) or array_type.size is None:

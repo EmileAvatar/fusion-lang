@@ -430,6 +430,19 @@ class TypeChecker:
         left_type = self.visit(node.left)
         right_type = self.visit(node.right)
 
+        # Joining strings (Task 18.3.2): string + string, string + char, char + string.
+        # Numbers are joined with interpolation instead ("{a}{b}") - never `"1" + 1`
+        if node.operator == '+' and (self._is_string_type(left_type) or self._is_string_type(right_type)):
+            joinable = ('string', 'char')
+            for operand, operand_type in ((node.left, left_type), (node.right, right_type)):
+                if not (isinstance(operand_type, PrimitiveType) and operand_type.name in joinable):
+                    self.errors.append(SemanticError(
+                        f"Can't join a string and {self.type_to_string(operand_type)} with '+' - "
+                        f"use interpolation instead, e.g. \"{{name}}{{count}}\"",
+                        operand.location
+                    ))
+            return PrimitiveType(location=node.location, name='string')
+
         # Arithmetic operators: int/float/double + int/float/double
         if node.operator in ['+', '-', '*', '/', '%']:
             if not self.is_numeric_type(left_type):
@@ -654,11 +667,28 @@ class TypeChecker:
                 ))
                 return func_type.return_type
             arg_type = self.visit(node.arguments[0])
-            if not isinstance(arg_type, ArrayType):
+            if not isinstance(arg_type, ArrayType) and not self._is_string_type(arg_type):
                 self.errors.append(SemanticError(
-                    f"Function 'len' expects an array, got {self.type_to_string(arg_type)}",
+                    f"Function 'len' expects an array or a string, got "
+                    f"{self.type_to_string(arg_type)}",
                     node.arguments[0].location
                 ))
+            return func_type.return_type
+
+        # toString(x) - any single value: int, float, double, bool, char, string (18.3.2)
+        if func_name == 'toString':
+            if len(node.arguments) != 1:
+                self.errors.append(SemanticError(
+                    f"Function 'toString' expects 1 argument, got {len(node.arguments)}",
+                    node.location))
+                return func_type.return_type
+            arg_type = self.visit(node.arguments[0])
+            if not isinstance(arg_type, PrimitiveType) or arg_type.name == 'void':
+                self.errors.append(SemanticError(
+                    f"Function 'toString' expects a single value (int, float, double, bool, "
+                    f"char or string), got {self.type_to_string(arg_type)}",
+                    node.arguments[0].location))
+            node.resolved_arguments = list(node.arguments)
             return func_type.return_type
 
         # Trailing parameters with defaults may be omitted (Task 18.1.1)
@@ -1270,6 +1300,14 @@ class TypeChecker:
         array_type = self.visit(node.array)
         index_type = self.visit(node.index)
 
+        # s[i] reads one character of a string - bounds-checked at run time (18.3.2)
+        if self._is_string_type(array_type):
+            if not (isinstance(index_type, PrimitiveType) and index_type.name == 'int'):
+                self.errors.append(SemanticError(
+                    f"String index must be int, got {self.type_to_string(index_type)}",
+                    node.index.location))
+            return PrimitiveType(location=node.location, name='char')
+
         if not isinstance(array_type, ArrayType):
             self.errors.append(SemanticError(
                 f"Cannot index non-array type '{self.type_to_string(array_type)}'",
@@ -1503,6 +1541,14 @@ class TypeChecker:
 
         # visit_IndexExpr validates the array/index types and returns the element type
         element_type = self.visit(target)
+
+        if self._is_string_type(getattr(target.array, 'inferred_type', None)):
+            self.errors.append(SemanticError(
+                "A string can't be changed in place yet (Task 17) - build a new string "
+                "instead, e.g. with substring() and +",
+                node.location))
+            self.visit(node.value)
+            return
 
         # The array may be a variable, or a field of one (`p.scores[0] = 1`, Task 18.2.3)
         root = self._root_variable(target.array)

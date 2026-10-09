@@ -120,6 +120,34 @@ class NameResolver:
             # Ignore if already defined (shouldn't happen)
             pass
 
+        # String built-ins (Task 18.3.2) - functions rather than methods, consistent with
+        # fields-only structs. toString accepts any single value; TypeChecker special-cases it
+        bool_type = PrimitiveType(location=builtin_loc, name='bool')
+        float_type = PrimitiveType(location=builtin_loc, name='float')
+        string_builtins = {
+            'substring': ([string_type, int_type, int_type], string_type),
+            'contains': ([string_type, string_type], bool_type),
+            'indexOf': ([string_type, string_type], int_type),
+            'startsWith': ([string_type, string_type], bool_type),
+            'endsWith': ([string_type, string_type], bool_type),
+            'toUpper': ([string_type], string_type),
+            'toLower': ([string_type], string_type),
+            'trim': ([string_type], string_type),
+            'toInt': ([string_type], int_type),
+            'toFloat': ([string_type], float_type),
+            'isInt': ([string_type], bool_type),
+            'isFloat': ([string_type], bool_type),
+            'toString': ([string_type], string_type),
+        }
+        for name, (params, result) in string_builtins.items():
+            try:
+                self.symbol_table.define(Symbol(
+                    name=name, symbol_type='function', location=builtin_loc,
+                    data_type=FunctionType(parameter_types=params, return_type=result,
+                                           location=builtin_loc)))
+            except SemanticError:
+                pass
+
     def resolve_program(self, program: ProgramNode) -> List[SemanticError]:
         """Resolve all names in the program (two-pass).
 

@@ -271,3 +271,82 @@ def test_changing_a_struct_parameter_never_touches_the_caller():
                       'Book other = retag(mine)\n'
                       'print("{@1} {@2} {@3} {@4}", mine.title, mine.tags[1], other.title, other.tags[1])\n'
                   )) == ["mine b inside new"]
+
+
+# ============================================================
+# 18.3.2 - String operations
+# ============================================================
+
+def run_error(source: str) -> str:
+    """Compile and run a program expected to stop with a run-time error; return stderr."""
+    exit_code, stdout, stderr = compile_and_run(source)
+    assert exit_code == 1, f"expected a run-time error, got exit {exit_code}: {stdout}{stderr}"
+    return stderr
+
+
+def test_join_codegen_and_cleanup():
+    c_code = generate_c(main('string a = "x"\nstring b = a + "y" + a'))
+    assert 'fusion_string b = fusion_str_concat((fusion_tmp_' in c_code
+    assert 'fusion_str_free(&fusion_tmp_' in c_code
+
+
+def test_string_operations_end_to_end():
+    assert run_ok(ECHO + main(
+        'string a = "Hello"\n'
+        'string b = a + ", " + "World" + \'!\'\n'
+        'print("{b} {@1}", len(b))\n'
+        'print("{@1}{@2}{@3}", b[0], b[len(b) - 1], \'!\' + a)\n'
+        'print("[{@1}] {@2} {@3} {@4}", substring(b, 7, 5), contains(b, "World"), indexOf(b, "o"), indexOf(b, "z"))\n'
+        'print("{@1} {@2}", startsWith(b, "Hell"), endsWith(echo(b), "!"))\n'
+        'print("[{@1}] [{@2}] [{@3}]", toUpper(a), toLower("MiXeD"), trim("  padded \t"))\n'
+    )) == ["Hello, World! 13", "H!!Hello", "[World] 1 4 -1", "1 1", "[HELLO] [mixed] [padded]"]
+
+
+def test_conversions_end_to_end():
+    assert run_ok(main(
+        'print("{@1} {@2} {@3} {@4} {@5}", toString(42), toString(2.5), toString(true), toString(\'c\'), toString("s"))\n'
+        'int n = toInt("-123")\n'
+        'float f = toFloat("2.75")\n'
+        'print("{@1} {@2}", n + 1, f)\n'
+        'print("{@1} {@2} {@3} {@4} {@5}", isInt("12x"), isInt("2147483647"), isInt("2147483648"), isFloat("1e3"), isFloat(""))\n'
+    )) == ["42 2.5 true c s", "-122 2.750000", "0 1 0 1 0"]
+
+
+def test_building_a_string_in_a_loop_is_leak_free():
+    assert run_ok(main(
+        'string built = ""\n'
+        'for i in range(0, 5)\n'
+        '    built = built + toString(i) + ","\n'
+        'print("{built}")\n'
+    )) == ["0,1,2,3,4,"]
+
+
+@pytest.mark.parametrize("statement, message", [
+    ('char c = "abc"[5]', "index 5 is outside the string (length 3)"),
+    ('char c = "abc"[-1]', "index -1 is outside the string (length 3)"),
+    ('int n = toInt("12x")', "'12x' is not a whole number (check with isInt first)"),
+    ('int n = toInt("99999999999")', "'99999999999' is not a whole number"),
+    ('float f = toFloat("nan")', "'nan' is not a number (check with isFloat first)"),
+    ('string s = substring("abc", 2, 5)', "substring(start 2, count 5) is outside the string (length 3)"),
+])
+def test_run_time_errors(statement, message):
+    stderr = run_error(main(f'print("before")\n{statement}\nprint("after")'))
+    assert "Runtime error at test.fusion:3: " + message in stderr
+
+
+@pytest.mark.parametrize("body, message", [
+    ('string s = "a" + 5', "Can't join a string and int with '+' - use interpolation"),
+    ('string s = "a"\ns[0] = \'b\'', "A string can't be changed in place yet (Task 17)"),
+    ('int n = len(5)', "Function 'len' expects an array or a string, got int"),
+    ('string t = toString([1])', "Function 'toString' expects a single value"),
+    ('char c = "abc"["x"]', "String index must be int, got string"),
+    ('string s = substring("abc", 1)', "Function 'substring' expects 3 argument(s), got 2"),
+    ('string s = trim(substring = "a")', "Named argument 'substring' can't be used when calling built-in"),
+])
+def test_string_operation_errors(body, message):
+    assert message in errors_of(main(body))
+
+
+def test_builtin_names_are_reserved():
+    assert "Duplicate declaration of 'trim'" in errors_of(
+        'string function trim(string s) : s\n' + main('int x = 1'))

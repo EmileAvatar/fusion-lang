@@ -45,5 +45,19 @@ void function main()
 
     string[] team = ["Ada", "Grace", "Linus"]
     print("Grace: {@1}, Alan: {@2}", findFirst(team, "Grace"), findFirst(team, "Alan"))
+
+    // Operations (Task 18.3.2) - each returns a new string
+    string full = first.name + " " + "Lovelace" + '!'
+    print("{full} has {@1} bytes, starts with {@2}", len(full), full[0])
+    print("[{@1}] [{@2}] [{@3}]", substring(full, 4, 8), toUpper(first.name), trim("  spaced  "))
+    print("contains Love: {@1}, index of Love: {@2}", contains(full, "Love"), indexOf(full, "Love"))
+
+    // Conversions - check text with isInt before converting it
+    string input = "42"
+    if isInt(input)
+        int answer = toInt(input) * 2
+        string message = input + " doubled is " + toString(answer)
+        print(message)
+    End if
     print("All string tests passed!")
 End function
