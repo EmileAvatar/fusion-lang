@@ -82,4 +82,119 @@ static inline fusion_string fusion_str_right(fusion_string s, int n, const char*
     int from = fusion_utf8_offset(s, s.chars - n);
     return fusion_str_make(s.data + from, s.len - from);
 }
+
+// ---- Change (18.3.6b)
+// A new string from a buffer of `len` bytes made with fusion_alloc(len + 1)
+static inline fusion_string fusion_str_take(char* data, int len) {
+    fusion_string r;
+    data[len] = '\0';
+    r.data = data; r.len = len; r.chars = fusion_utf8_count(data, len); r.owned = 1;
+    FUSION_CHECK_LENGTH(r);
+    return r;
+}
+static inline int fusion_checked_size(long long len, const char* name, const char* where) {
+    if (len > 2147483646LL) fusion_runtime_error(where, "%s: the result would be longer than 2,147,483,646 bytes", name);
+    return (int)len;
+}
+
+// Case: ASCII + Latin-1 (user decision 2026-10-09). Each pair keeps its UTF-8 byte count, so
+// a changed string has the same length as the original
+static inline uint32_t fusion_upper(uint32_t c) {
+    if ((c >= 'a' && c <= 'z') || (c >= 0xE0 && c <= 0xFE && c != 0xF7)) return c - 32;
+    return c == 0xFF ? 0x178 : c;
+}
+static inline uint32_t fusion_lower(uint32_t c) {
+    if ((c >= 'A' && c <= 'Z') || (c >= 0xC0 && c <= 0xDE && c != 0xD7)) return c + 32;
+    return c == 0x178 ? 0xFF : c;
+}
+// mode 0 lower, 1 upper, 2 capitalize (the first letter), 3 title (each word's first letter)
+static inline fusion_string fusion_str_case(fusion_string s, int mode) {
+    fusion_string r = fusion_str_make(s.data, s.len);
+    bool word_start = true, done = false;
+    for (int i = 0; i < r.len; ) {
+        int n = fusion_utf8_size((unsigned char)r.data[i]);
+        uint32_t c = (uint32_t)fusion_utf8_decode(r.data + i), m = c;
+        bool letter = fusion_is_letter((fusion_char)c);
+        if (mode == 0) m = fusion_lower(c);
+        else if (mode == 1) m = fusion_upper(c);
+        else if (mode == 2 && letter && !done) { m = fusion_upper(c); done = true; }
+        else if (mode == 3 && letter && word_start) m = fusion_upper(c);
+        if (mode == 3) word_start = fusion_is_space(r.data[i]);
+        if (m != c) { char buf[4]; fusion_utf8_encode((fusion_char)m, buf); memcpy(r.data + i, buf, (size_t)n); }
+        i += n;
+    }
+    return r;
+}
+static inline fusion_string fusion_str_toLower(fusion_string s) { return fusion_str_case(s, 0); }
+static inline fusion_string fusion_str_toUpper(fusion_string s) { return fusion_str_case(s, 1); }
+static inline fusion_string fusion_str_capitalize(fusion_string s) { return fusion_str_case(s, 2); }
+static inline fusion_string fusion_str_toTitle(fusion_string s) { return fusion_str_case(s, 3); }
+
+// Replace up to `limit` matches (-1 = all); an empty `old` changes nothing
+static inline fusion_string fusion_str_replace_n(fusion_string s, fusion_string old, fusion_string with, int limit, const char* where) {
+    int count = 0;
+    if (old.len == 0) return fusion_str_make(s.data, s.len);
+    for (int i = fusion_find(s, 0, old.data, old.len); i >= 0 && count != limit; i = fusion_find(s, i + old.len, old.data, old.len)) count++;
+    int len = fusion_checked_size((long long)s.len + (long long)count * (with.len - old.len), "replace", where);
+    char* out = (char*)fusion_alloc((size_t)len + 1);
+    int from = 0, o = 0;
+    for (int k = 0; k < count; k++) {
+        int i = fusion_find(s, from, old.data, old.len);
+        memcpy(out + o, s.data + from, (size_t)(i - from)); o += i - from;
+        memcpy(out + o, with.data, (size_t)with.len); o += with.len;
+        from = i + old.len;
+    }
+    memcpy(out + o, s.data + from, (size_t)(s.len - from));
+    return fusion_str_take(out, len);
+}
+static inline fusion_string fusion_str_replace(fusion_string s, fusion_string old, fusion_string with, const char* where) { return fusion_str_replace_n(s, old, with, -1, where); }
+static inline fusion_string fusion_str_replaceFirst(fusion_string s, fusion_string old, fusion_string with, const char* where) { return fusion_str_replace_n(s, old, with, 1, where); }
+
+static inline fusion_string fusion_str_insert(fusion_string s, int index, fusion_string part, const char* where) {
+    if (index < 0 || index > s.chars) fusion_runtime_error(where, "insert(index %d) is outside the string (length %d)", index, s.chars);
+    int at = fusion_utf8_offset(s, index);
+    int len = fusion_checked_size((long long)s.len + part.len, "insert", where);
+    char* out = (char*)fusion_alloc((size_t)len + 1);
+    memcpy(out, s.data, (size_t)at);
+    memcpy(out + at, part.data, (size_t)part.len);
+    memcpy(out + at + part.len, s.data + at, (size_t)(s.len - at));
+    return fusion_str_take(out, len);
+}
+static inline fusion_string fusion_str_remove(fusion_string s, int start, int count, const char* where) {
+    if (start < 0 || count < 0 || start > s.chars || count > s.chars - start)
+        fusion_runtime_error(where, "remove(start %d, count %d) is outside the string (length %d)", start, count, s.chars);
+    int from = fusion_utf8_offset(s, start), to = fusion_utf8_offset(s, start + count);
+    char* out = (char*)fusion_alloc((size_t)(s.len - (to - from)) + 1);
+    memcpy(out, s.data, (size_t)from);
+    memcpy(out + from, s.data + to, (size_t)(s.len - to));
+    return fusion_str_take(out, s.len - (to - from));
+}
+static inline fusion_string fusion_str_repeat(fusion_string s, int n, const char* where) {
+    if (n < 0) fusion_runtime_error(where, "repeat(%d): the count can't be negative", n);
+    int len = fusion_checked_size((long long)s.len * n, "repeat", where);
+    char* out = (char*)fusion_alloc((size_t)len + 1);
+    for (int k = 0; k < n; k++) memcpy(out + (size_t)k * s.len, s.data, (size_t)s.len);
+    return fusion_str_take(out, len);
+}
+// By character: "caf\u00e9" -> "\u00e9fac" (a character's bytes stay in order)
+static inline fusion_string fusion_str_reverse(fusion_string s) {
+    char* out = (char*)fusion_alloc((size_t)s.len + 1);
+    for (int i = 0; i < s.len; ) {
+        int n = fusion_utf8_size((unsigned char)s.data[i]);
+        if (n > s.len - i) n = s.len - i;
+        memcpy(out + s.len - i - n, s.data + i, (size_t)n);
+        i += n;
+    }
+    return fusion_str_take(out, s.len);
+}
+static inline fusion_string fusion_str_trimStart(fusion_string s) {
+    int start = 0;
+    while (start < s.len && fusion_is_space(s.data[start])) start++;
+    return fusion_str_make(s.data + start, s.len - start);
+}
+static inline fusion_string fusion_str_trimEnd(fusion_string s) {
+    int end = s.len;
+    while (end > 0 && fusion_is_space(s.data[end - 1])) end--;
+    return fusion_str_make(s.data, end);
+}
 '''

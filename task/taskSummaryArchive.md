@@ -3180,3 +3180,16 @@ Implementation (2026-10-09):
 - [x] The whole runtime compiles warning-free under -Wall -Wextra, UTF-8 and ascii mode
 - [x] Fixed on the way: `## String operations` heading -> `####` (Rule 5); its example said
       "bytes" where len counts characters
+
+---
+
+#### 18.3.6b (archived 2026-10-09)
+
+**18.3.6b - Change** (COMPLETE)
+- [x] replace / replaceFirst (empty `old` changes nothing), insert, remove (positions must be
+      valid, like substring), repeat (negative count and results over 2 GB are run-time
+      errors), reverse (by character), trimStart, trimEnd
+- [x] Case rules ASCII + Latin-1 in one place (`fusion_str_case`): toUpper / toLower moved
+      from c_memory.py and upgraded; capitalize / toTitle change only first letters (acronyms
+      survive), words split on whitespace; y-umlaut <-> U+0178; sharp s stays
+- [x] Every growing result goes through `fusion_str_take`, so `[strings] max_length` applies

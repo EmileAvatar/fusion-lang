@@ -113,7 +113,8 @@ The single place to see what is done, open, or postponed. One line per item.
 			[DONE] Inspect: isEmpty, isBlank, isDigits, isLetters (ASCII + Latin-1), countOf
 			[DONE] Search: lastIndexOf, indexOf(s, part, from), containsAny
 			[DONE] Extract: left, right (clamp; negative count = run-time error)
-			[ ] Change: replace, replaceFirst, insert, remove, repeat, reverse, trimStart, trimEnd, capitalize, toTitle
+			[DONE] 18.3.6b Change: replace, replaceFirst, insert, remove, repeat, reverse, trimStart,
+				trimEnd, capitalize, toTitle; toUpper / toLower now cover Latin-1 too
 			[ ] Padding & alignment: padLeft, padRight, center, truncate (with "...")
 			[ ] Masking: email, phone, number and custom string-number formats - planning overview only;
 				design in detail when this item starts

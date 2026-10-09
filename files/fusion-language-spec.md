@@ -399,6 +399,14 @@ bool same = name == "Enterprise"   // true - compares the text
      * Search (18.3.6a): `indexOf(s, part, from)`, `lastIndexOf(s, part)`,
        `containsAny(s, chars)` (any one of the characters)
      * Extract (18.3.6a): `left(s, n)`, `right(s, n)` - up to n characters
+     * Change (18.3.6b): `replace(s, old, new)` (every match; an empty `old` changes nothing),
+       `replaceFirst`, `insert(s, index, part)`, `remove(s, start, count)`, `repeat(s, n)`,
+       `reverse(s)` (by character), `trimStart`, `trimEnd`, `capitalize(s)` (the first
+       letter), `toTitle(s)` (the first letter of each word - words are separated by spaces,
+       tabs and newlines). Only first letters change, so "NASA" stays "NASA": use
+       `toTitle(toLower(s))` for "Hello World" from "HELLO WORLD". `toUpper` / `toLower`
+       change ASCII and Latin-1 letters ("cafe-acute" -> "CAFE-ACUTE"; sharp s has no
+       one-letter capital and stays as it is)
      * **Letters** are ASCII plus Latin-1 (Western European accented letters such as e-acute,
        u-umlaut, sharp s); full Unicode letter and case tables come later
      * **Built-ins take optional arguments** like user functions' defaults:
@@ -406,8 +414,7 @@ bool same = name == "Enterprise"   // true - compares the text
      * **Out of range:** "up to n" functions (`left`, `right`, padding, `truncate`) clamp
        quietly - `left("ab", 5)` is "ab"; a negative count stops the program with a run-time
        error; positions inside the string (`insert`, `remove`, like `substring`) must be valid
-     * Still to come in 18.3.6: change (`replace`, `insert`, `remove`, `repeat`, `reverse`,
-       `trimStart` / `trimEnd`, `capitalize`, `toTitle`), padding (`padLeft`, `padRight`,
+     * Still to come in 18.3.6: padding (`padLeft`, `padRight`,
        `center`, `truncate`), number formatting (`formatNumber` with Excel/.NET or printf
        patterns, `toHex`, `toBinary`, `parseInt(s, base)`), comparing (`equalsIgnoreCase`,
        `compareIgnoreCase`, `compareNatural`), and a masking design (`mask`)

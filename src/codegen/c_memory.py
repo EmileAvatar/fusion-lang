@@ -310,16 +310,7 @@ static inline bool fusion_str_endsWith(fusion_string s, fusion_string part) {
     return part.len <= s.len && memcmp(s.data + s.len - part.len, part.data, (size_t)part.len) == 0;
 }
 
-static inline fusion_string fusion_str_toUpper(fusion_string s) {
-    fusion_string r = fusion_str_make(s.data, s.len);
-    for (int i = 0; i < r.len; i++) if (r.data[i] >= 'a' && r.data[i] <= 'z') r.data[i] -= 32;
-    return r;
-}
-static inline fusion_string fusion_str_toLower(fusion_string s) {
-    fusion_string r = fusion_str_make(s.data, s.len);
-    for (int i = 0; i < r.len; i++) if (r.data[i] >= 'A' && r.data[i] <= 'Z') r.data[i] += 32;
-    return r;
-}
+// toUpper / toLower: see the string library (c_strings.py, Task 18.3.6b)
 static inline bool fusion_is_space(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f'; }
 static inline fusion_string fusion_str_trim(fusion_string s) {
     int start = 0, end = s.len;

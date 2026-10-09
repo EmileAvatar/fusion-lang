@@ -142,7 +142,7 @@ Indexes start at 0, as `s[i]` and `substring` do. Six parts, each committed on i
     (0-9 only, not empty), `isLetters(s)` (letters only, not empty), `countOf(s, part)`
     (non-overlapping), `lastIndexOf(s, part)`, `indexOf(s, part, from)`,
     `containsAny(s, chars)` (any one of the characters), `left(s, n)`, `right(s, n)`
-- **18.3.6b Change**: `replace(s, old, new)` (every match), `replaceFirst`,
+- **18.3.6b Change** - COMPLETE, detail archived: `replace(s, old, new)` (every match), `replaceFirst`,
   `insert(s, index, part)`, `remove(s, start, count)`, `repeat(s, n)`, `reverse(s)` (by
   character), `trimStart`, `trimEnd`, `capitalize(s)` ("hello world" -> "Hello world"),
   `toTitle(s)` ("hello world" -> "Hello World"). An empty `old` in replace returns `s`
@@ -308,4 +308,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.5b COMPLETE (a bool prints as true / false).
 - 18.3.6 plan approved (all four decisions; formatNumber takes both pattern styles).
 - 18.3.6a COMPLETE (optional built-in arguments, inspect / search / extract).
-- **Next Action:** implement **18.3.6b (change functions)** per the approved plan.
+- 18.3.6b COMPLETE (change functions; toUpper / toLower cover Latin-1).
+- **Next Action:** implement **18.3.6c (padding & alignment)** per the approved plan.

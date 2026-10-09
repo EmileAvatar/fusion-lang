@@ -97,3 +97,49 @@ def test_own_function_replaces_a_library_built_in():
 def test_core_built_ins_cannot_be_replaced():
     assert "Duplicate declaration of 'print'" in errors_of('void function print(string s)\n    return\n\n'
                                                             + main('int x = 1'))
+
+
+# ============================================================
+# 18.3.6b - Change
+# ============================================================
+
+def test_replace_insert_remove():
+    assert run_ok(ECHO + main(
+        'string s = echo("a-b-c")\n'
+        'print("[{@1}] [{@2}] [{@3}] [{@4}]", replace(s, "-", "+="), replaceFirst(s, "-", ""), replace(s, "", "x"), replace(s, "z", "y"))\n'
+        'print("[{@1}] [{@2}] [{@3}]", insert("caf\u00e9", 3, "-"), insert("ab", 2, "!"), insert("", 0, "x"))\n'
+        'print("[{@1}] [{@2}] [{@3}]", remove("caf\u00e9 au", 2, 3), remove("abc", 0, 3), remove("abc", 3, 0))\n'
+        's = replace(s, "b", s)\n'
+        'print(s)'
+    )) == ['[a+=b+=c] [ab-c] [a-b-c] [a-b-c]', '[caf-\u00e9] [ab!] [x]', '[caau] [] [abc]', 'a-a-b-c-c']
+
+
+def test_repeat_reverse_trim():
+    assert run_ok(main(
+        'print("[{@1}] [{@2}] [{@3}]", repeat("ab", 3), repeat("ab", 0), repeat("", 5))\n'
+        'print("[{@1}] [{@2}] [{@3}]", reverse("caf\u00e9"), reverse(""), reverse("\u65e5\u672c!"))\n'
+        'print("[{@1}] [{@2}]", trimStart("  x  "), trimEnd("  x \t\n"))'
+    )) == ['[ababab] [] []', '[\u00e9fac] [] [!\u672c\u65e5]', '[x  ] [  x]']
+
+
+def test_case_covers_latin_1():
+    """ASCII + Latin-1 (user decision): toUpper / toLower now change accented letters too;
+    capitalize and toTitle change only first letters, so acronyms survive."""
+    assert run_ok(main(
+        'print("{@1} {@2}", toUpper("caf\u00e9 \u00fcber \u00ff\u00df"), toLower("CAF\u00c9 \u0178"))\n'
+        'print("[{@1}] [{@2}] [{@3}]", capitalize("  hello world"), capitalize("\u00e9t\u00e9"), capitalize("42"))\n'
+        'print("[{@1}] [{@2}]", toTitle("hello  big\tworld"), toTitle("NASA and jean-luc"))'
+    )) == ['CAF\u00c9 \u00dcBER \u0178\u00df caf\u00e9 \u00ff',
+           '[  Hello world] [\u00c9t\u00e9] [42]',
+           '[Hello  Big\tWorld] [NASA And Jean-luc]']
+
+
+@pytest.mark.parametrize("call, message", [
+    ('insert("abc", 4, "x")', "insert(index 4) is outside the string (length 3)"),
+    ('insert("abc", -1, "x")', "insert(index -1) is outside the string"),
+    ('remove("abc", 1, 3)', "remove(start 1, count 3) is outside the string (length 3)"),
+    ('repeat("ab", -1)', "repeat(-1): the count can't be negative"),
+    ('repeat("abcdefgh", 1000000000)', "repeat: the result would be longer than"),
+])
+def test_change_run_time_errors(call, message):
+    assert message in run_error(main(f'print({call})'))

@@ -176,6 +176,16 @@ class NameResolver:
             'containsAny': ([string_type, string_type], bool_type),
             'left': ([string_type, int_type], string_type),
             'right': ([string_type, int_type], string_type),
+            'replace': ([string_type, string_type, string_type], string_type),
+            'replaceFirst': ([string_type, string_type, string_type], string_type),
+            'insert': ([string_type, int_type, string_type], string_type),
+            'remove': ([string_type, int_type, int_type], string_type),
+            'repeat': ([string_type, int_type], string_type),
+            'reverse': ([string_type], string_type),
+            'trimStart': ([string_type], string_type),
+            'trimEnd': ([string_type], string_type),
+            'capitalize': ([string_type], string_type),
+            'toTitle': ([string_type], string_type),
         }
         string_builtins['indexOf'] = ([string_type, string_type, int_type], int_type)
         # A program's own function or struct may reuse one of these names (Task 18.3.6 -

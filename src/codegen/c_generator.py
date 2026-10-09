@@ -805,7 +805,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'isDigits': ('fusion_str_isDigits', False), 'isLetters': ('fusion_str_isLetters', False),
         'countOf': ('fusion_str_countOf', False), 'lastIndexOf': ('fusion_str_lastIndexOf', False),
         'containsAny': ('fusion_str_containsAny', False), 'left': ('fusion_str_left', True),
-        'right': ('fusion_str_right', True),
+        'right': ('fusion_str_right', True), 'replace': ('fusion_str_replace', True),
+        'replaceFirst': ('fusion_str_replaceFirst', True), 'insert': ('fusion_str_insert', True),
+        'remove': ('fusion_str_remove', True), 'repeat': ('fusion_str_repeat', True),
+        'reverse': ('fusion_str_reverse', False), 'trimStart': ('fusion_str_trimStart', False),
+        'trimEnd': ('fusion_str_trimEnd', False), 'capitalize': ('fusion_str_capitalize', False),
+        'toTitle': ('fusion_str_toTitle', False),
     }
     _TO_STRING = {'int': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
