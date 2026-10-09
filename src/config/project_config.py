@@ -62,11 +62,9 @@ DEFAULT_WARN_NESTING_DEPTH = 3
 VALID_STRING_STORAGE = ("owned", "pooled")
 DEFAULT_STRING_STORAGE = "owned"
 DEFAULT_STRING_MUTABLE = True
-# string_warn_length is only a guideline (a longer string is kept in full, with a warning);
-# string_max_length is the one hard cut-off. MAX_MEMORY means no cut-off at all - unsafe.
+# string_warn_length is only a guideline (a longer string is kept in full, with a warning).
+# The hard limit moved to [strings] max_length in Task 18.3.4b.
 DEFAULT_STRING_WARN_LENGTH = 64
-DEFAULT_STRING_MAX_LENGTH = 4096
-MAX_MEMORY = "max memory"
 
 # [strings] (Task 18.3.2b, user decision 2026-10-09): text is Unicode stored as UTF-8 by
 # default; "ascii" (English only, one byte per character) is for very small or legacy
@@ -74,6 +72,12 @@ MAX_MEMORY = "max memory"
 VALID_ENCODINGS = ("utf-8", "ascii")
 RESERVED_ENCODINGS = ("utf-16", "utf-32")
 DEFAULT_ENCODING = "utf-8"
+
+# [strings] max_length (Task 18.3.4b, user decisions 2026-10-09): strings grow as large as the
+# machine allows ("max", the default). A project for a memory-constrained device can set a
+# number; a string longer than that is always an error - never cut, because a silent cut
+# causes more problems than it solves.
+MAX_LENGTH_UNLIMITED = "max"
 
 
 class ProjectConfigError(Exception):
@@ -105,15 +109,12 @@ class StructsConfig:
         string_mutable: False makes a string field unchangeable after construction.
         string_warn_length: Warn when a string field holds more characters than this
             (0 = never warn). The string is still kept in full.
-        string_max_length: Hard cut-off for a string field, or None for no limit (the
-            unsafe "max memory" setting).
     """
     max_nesting_depth: int = DEFAULT_MAX_NESTING_DEPTH
     warn_nesting_depth: int = DEFAULT_WARN_NESTING_DEPTH
     string_storage: str = DEFAULT_STRING_STORAGE
     string_mutable: bool = DEFAULT_STRING_MUTABLE
     string_warn_length: int = DEFAULT_STRING_WARN_LENGTH
-    string_max_length: Optional[int] = DEFAULT_STRING_MAX_LENGTH
 
 
 @dataclass
@@ -123,8 +124,11 @@ class StringsConfig:
     Attributes:
         encoding: "utf-8" (default - any Unicode character; len counts characters, lenb
             bytes) or "ascii" (English only; non-ASCII text is a compile error)
+        max_length: The most characters any string may hold, or None for no limit ("max",
+            the default) - a longer string is an error (Task 18.3.4b)
     """
     encoding: str = DEFAULT_ENCODING
+    max_length: Optional[int] = None
 
 
 @dataclass
@@ -190,7 +194,11 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
     section = _require_table(data, "structs", config_path)
 
     known = {"max_nesting_depth", "warn_nesting_depth", "string_storage", "string_mutable",
-             "string_warn_length", "string_max_length"}
+             "string_warn_length"}
+    if "string_max_length" in section:
+        raise ProjectConfigError(
+            f"{config_path}: structs.string_max_length has moved to [strings] max_length (it now "
+            f"limits every string, and defaults to \"max\" = no limit)")
     for key in section:
         if key not in known:
             raise ProjectConfigError(
@@ -236,23 +244,6 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
                 f"(0 = never warn), got {value!r}"
             )
         structs.string_warn_length = value
-    if "string_max_length" in section:
-        value = section["string_max_length"]
-        if value == MAX_MEMORY:
-            structs.string_max_length = None
-        elif _is_int(value) and value >= 1:
-            structs.string_max_length = value
-        else:
-            raise ProjectConfigError(
-                f"{config_path}: structs.string_max_length must be a positive integer (TOML "
-                f"can't calculate, so write 64 * 64 as 4096) or \"{MAX_MEMORY}\", got {value!r}"
-            )
-
-    if structs.string_max_length is not None and structs.string_warn_length > structs.string_max_length:
-        raise ProjectConfigError(
-            f"{config_path}: structs.string_warn_length ({structs.string_warn_length}) can't be "
-            f"larger than structs.string_max_length ({structs.string_max_length})"
-        )
     return structs
 
 
@@ -260,10 +251,23 @@ def _load_strings_section(data: dict, config_path: str) -> StringsConfig:
     """Parse and validate the [strings] section (Task 18.3.2b)."""
     strings = StringsConfig()
     section = _require_table(data, "strings", config_path)
+    known = {"encoding", "max_length"}
     for key in section:
-        if key != "encoding":
+        if key not in known:
             raise ProjectConfigError(
-                f"{config_path}: unknown setting strings.{key} (known: ['encoding'])")
+                f"{config_path}: unknown setting strings.{key} (known: {sorted(known)})")
+    if "max_length" in section:
+        value = section["max_length"]
+        if value == MAX_LENGTH_UNLIMITED:
+            strings.max_length = None
+        elif _is_int(value) and value >= 1:
+            strings.max_length = value
+        else:
+            raise ProjectConfigError(
+                f"{config_path}: strings.max_length must be \"{MAX_LENGTH_UNLIMITED}\" (no limit) or a "
+                f"positive number of characters (TOML can't calculate, so write 64 * 64 as "
+                f"4096), got {value!r}")
+
     if "encoding" in section:
         value = section["encoding"]
         if value in RESERVED_ENCODINGS:
@@ -330,6 +334,10 @@ def load_project_config(source_path: str) -> ProjectConfig:
 
     structs = _load_structs_section(data, config_path)
     strings = _load_strings_section(data, config_path)
+    if strings.max_length is not None and structs.string_warn_length > strings.max_length:
+        raise ProjectConfigError(
+            f"{config_path}: structs.string_warn_length ({structs.string_warn_length}) can't be "
+            f"larger than strings.max_length ({strings.max_length})")
 
     safety_mode = DEFAULT_SAFETY_MODE
     safety_section = _require_table(data, "safety", config_path)

@@ -504,66 +504,86 @@ def test_interpolation_errors(body, message):
 
 
 # ============================================================
-# 18.3.4 - Struct string fields: any length, string_max_length at run time
+# 18.3.4 / 18.3.4b - Any length by default; [strings] max_length for constrained devices
 # ============================================================
 
-def run_with_limit(source: str, limit) -> list:
-    """Compile with a given [structs] string_max_length (None = "max memory") under the leak
-    check, run, and return stdout lines."""
+def run_with_limit(source: str, limit):
+    """Compile with a [strings] max_length (None = "max") under the leak check, run, and
+    return (exit code, stdout lines, stderr)."""
     from src.codegen import CCodeGenerator
-    analyzer, ast, ok = analyze(source, StructsConfig(string_warn_length=0, string_max_length=limit))
-    assert ok, analyzer.get_errors()
-    c_code = CCodeGenerator(string_max_length=limit).generate(ast)
+    from src.semantic import SemanticAnalyzer
+    from src.config import StringsConfig
+    ast = parse(source)
+    analyzer = SemanticAnalyzer(structs_config=StructsConfig(string_warn_length=0),
+                                strings_config=StringsConfig(max_length=limit))
+    assert analyzer.analyze(ast), analyzer.get_errors()
+    c_code = CCodeGenerator(max_length=limit).generate(ast)
     with tempfile.TemporaryDirectory() as tmp:
         c_file, exe = os.path.join(tmp, 'limit.c'), os.path.join(tmp, 'limit.exe')
         with open(c_file, 'w', encoding='utf-8') as f:
             f.write(c_code)
-        build = subprocess.run(['gcc', '-DFUSION_LEAK_CHECK', c_file, '-o', exe],
+        build = subprocess.run(['gcc', '-DFUSION_LEAK_CHECK', '-Wall', '-Wextra', c_file, '-o', exe],
                                capture_output=True, text=True)
         assert build.returncode == 0, build.stderr
+        assert 'warning' not in build.stderr.replace('fusion_len_', ''), build.stderr
         result = subprocess.run([exe], capture_output=True, text=True, encoding='utf-8')
-        assert result.returncode == 0, result.stderr
-        return result.stdout.splitlines()
+        return result.returncode, result.stdout.splitlines(), result.stderr
 
 
 NOTE = 'struct Note\n    string text\n    string[2] tags\n\n'
 
 
-def test_run_time_strings_cut_to_the_limit_when_stored_in_fields():
-    assert run_with_limit(ECHO + NOTE + main(
-        'Note n = Note(echo("abcdefgh"), [echo("123456789"), "x"])\n'
-        'print("{@1} {@2} {@3}", n.text, n.tags[0], n.tags[1])\n'
-        'n.text = echo("ABCDEFGHIJ")\n'
-        'n.tags[1] = echo("zzzzzzzz")\n'
-        'print("{@1} {@2}", n.text, n.tags[1])\n'
-        'string loose = echo("not a field, never cut")\n'
-        'print(loose)\n'
-    ), 5) == ["abcde 12345 x", "ABCDE zzzzz", "not a field, never cut"]
-
-
-def test_limit_counts_characters_not_bytes():
-    assert run_with_limit(ECHO + NOTE + main(
-        'Note n = Note(echo("\u00e9\u00e9\u00e9\u00e9"))\n'
-        'print("{@1} {@2}", len(n.text), lenb(n.text))\n'
-    ), 3) == ["3 6"]
-
-
-def test_struct_holds_a_10000_character_string_built_at_run_time():
-    assert run_with_limit(NOTE + main(
+def test_strings_have_no_limit_by_default():
+    code, out, _ = run_with_limit(NOTE + main(
         'string big = ""\n'
         'for i in range(0, 1000)\n'
         '    big = big + "0123456789"\n'
         'Note n = Note(big)\n'
         'Note copy = n\n'
-        'print("{@1} {@2}", len(n.text), len(copy.text))\n'
-    ), None) == ["10000 10000"]
+        'print("{@1} {@2} {@3}", len(big), len(n.text), len(copy.text))\n'
+    ), None)
+    assert (code, out) == (0, ["10000 10000 10000"])
 
 
-def test_default_limit_4096_applies_at_run_time():
-    assert run_with_limit(NOTE + main(
-        'string big = ""\n'
-        'for i in range(0, 500)\n'
-        '    big = big + "0123456789"\n'
-        'Note n = Note(big)\n'
-        'print("{@1}", len(n.text))\n'
-    ), 4096) == ["4096"]
+def test_no_limit_means_no_checking_code():
+    c_code = generate_c(main('string s = "a" + "b"'))
+    assert '#define FUSION_MAX_LENGTH' not in c_code
+    assert 'fusion_at = "' not in c_code
+
+
+def test_within_the_limit_runs_normally():
+    code, out, err = run_with_limit(ECHO + NOTE + main(
+        'Note n = Note(echo("abc"), [echo("12345"), "x"])\n'
+        'print("{@1} {@2}", n.text, n.tags[0])\n'
+    ), 5)
+    assert (code, out, err) == (0, ["abc 12345"], "")
+
+
+@pytest.mark.parametrize("statement", [
+    'string s = echo("abcdef") + echo("ghijk")',         # call results joined
+    'string s = "abcdef" + "ghijk"',                     # source text joined
+    'int n = 123456\nstring s = "n={n}{n}"',              # interpolation
+    'Note n = Note(echo("abcdef") + "ghijk")',           # into a struct field
+])
+def test_a_longer_string_is_a_run_time_error_never_a_cut(statement):
+    code, out, err = run_with_limit(ECHO + NOTE + main(f'print("before")\n{statement}\nprint("after")'), 10)
+    assert code == 1 and out == ["before"]
+    assert "Runtime error at test.fusion:" in err
+    assert "characters is longer than max_length 10 ([strings] in fusion.toml)" in err
+
+
+def test_limit_counts_characters_not_bytes():
+    code, out, _ = run_with_limit(ECHO + main(
+        'string s = echo("\\u00e9\\u00e9\\u00e9")\n'
+        'print("{@1} {@2}", len(s), lenb(s))\n'
+    ), 3)
+    assert (code, out) == (0, ["3 6"])
+
+
+def test_source_text_over_the_limit_is_a_compile_error():
+    from src.semantic import SemanticAnalyzer
+    from src.config import StringsConfig
+    analyzer = SemanticAnalyzer(strings_config=StringsConfig(max_length=5))
+    assert not analyzer.analyze(parse(main('string s = "abcdefgh"')))
+    assert any("String has 8 characters, more than the project's max_length of 5" in str(e)
+               for e in analyzer.get_errors())

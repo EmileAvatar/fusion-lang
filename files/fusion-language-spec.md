@@ -323,6 +323,15 @@ Description: Strings are **values**, like structs (decided 2026-10-09, Task 18.3
 (operations below) and 18.3.2b (Unicode by default) are implemented; interpolated strings
 outside `print` are 18.3.3 - see `FEATURES.md`.
 
+* **Length (Task 18.3.4b, user decisions 2026-10-09):** strings grow as large as the machine
+  allows - there is no limit by default (`[strings] max_length = "max"`). A project for a
+  memory-constrained device or app can set a number of characters; a string longer than that
+  is always an **error**, never cut: a compile error for text written in the source, a
+  run-time error (naming the file and line) for text built while the program runs. A silent
+  cut causes more problems than it solves - and other languages agree: Python, Java, C#, Go
+  and Rust never cut strings, and SQL Server, PostgreSQL and strict-mode MySQL reject
+  too-long values with an error. Paged strings (loading only part of a huge string) are a
+  later, advanced feature
 * **Encoding (Task 18.3.2b, user decision 2026-10-09):** text is Unicode, stored as UTF-8, by
   default. `len(s)` counts **characters**; `lenb(s)` counts **bytes** (for files, networks,
   databases). `s[i]`, `substring` and `indexOf` count characters. A `char` holds any Unicode
@@ -1484,15 +1493,13 @@ const Point ORIGIN = Point(0, 0)   // no field of a const struct can be changed
 ### String Fields
 
 Description: A `string` field holds its own value and can be changed - not pooled, by
-default. It can hold anything from a book title to a full product description; strings are
-never cut below the project's hard limit. Controlled per project in `fusion.toml`'s
-`[structs]` section (see "Project Configuration"):
+default. It can hold anything from a book title to a full product description - strings
+have no length limit unless the project sets one (`[strings] max_length`, see "String
+Implementation"). Controlled per project in `fusion.toml`'s `[structs]` section (see
+"Project Configuration"):
 
 * `string_warn_length` (default **64**) - a guideline only: a longer string is kept in full,
   and the compiler warns
-* `string_max_length` (default **4096**) - the one hard cut-off: a longer string is cut to
-  this length, with a warning. `"max memory"` removes the limit - **unsafe**, for rare use;
-  the compiler warns on every build that uses it
 * `string_mutable` (default `true`) - `false` makes a string field unchangeable after the
   struct is created
 * `string_storage` (default `"owned"`) - `"pooled"` is reserved for Task 17 and is a compile
@@ -1500,11 +1507,7 @@ never cut below the project's hard limit. Controlled per project in `fusion.toml
 
 A string field owns its text like any string value (see "String Implementation"), so it
 holds any length, is copied with the struct and freed with it (Task 18.3.1).
-`string_max_length` applies both at compile time (string literals going into a field, with a
-warning) and at run time (Task 18.3.4): a string built while the program runs is cut to the
-limit - counted in characters - when it is stored in a field or an element of a string-array
-field. Strings that aren't stored in a struct are never cut. `string_warn_length` stays a
-compile-time guideline.
+`string_warn_length` stays a compile-time guideline.
 
 ---
 
@@ -3528,8 +3531,9 @@ allow_mixed = true   # allow mixed tabs/spaces with a warning instead of an erro
 allow_unicode_identifiers = false   # identifiers ASCII-only by default (homoglyph defense) -
                                     # see "Source Text Rules" under Syntax Overview
 
-[strings]                      # Task 18.3.2b - see "String Implementation"
+[strings]                      # Tasks 18.3.2b / 18.3.4b - see "String Implementation"
 encoding = "utf-8"             # utf-8 (default) | ascii; utf-16 / utf-32 reserved (future)
+max_length = "max"             # "max" (default) = no limit; a number = error when exceeded
 
 [structs]                      # Task 18.2 - see "Structures and Value Types"
 max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct)
@@ -3537,7 +3541,6 @@ warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = neve
 string_storage     = "owned"   # each struct holds its own string value; "pooled" reserved (Task 17)
 string_mutable     = true      # false = string fields can't be changed after construction
 string_warn_length = 64        # guideline: warn when a string field is longer (0 = never warn)
-string_max_length  = 4096      # the one hard cut-off, or "max memory" = no limit (unsafe)
 
 [safety]
 mode = "normal"      # "normal" | "strict" - reserved, not yet enforced by any compiler pass

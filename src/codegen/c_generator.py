@@ -48,18 +48,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         generated_functions: List of generated function signatures
     """
 
-    def __init__(self, encoding: str = 'utf-8', string_max_length=4096):
+    def __init__(self, encoding: str = 'utf-8', max_length=None):
         """Initialize code generator.
 
         Args:
             encoding: The project's [strings] encoding - "utf-8" (default) or "ascii",
                 which makes a char one byte (Task 18.3.2b)
-            string_max_length: The project's [structs] string_max_length - strings built at
-                run time are cut to it when stored in a struct field; None ("max memory")
-                means no limit (Task 18.3.4)
+            max_length: The project's [strings] max_length - None ("max", the default) means
+                no limit; a number makes the runtime check every string it builds and stop
+                with an error on a longer one (18.3.4b)
         """
         self.encoding = encoding
-        self.string_max_length = string_max_length
+        self.max_length = max_length
         self.output: List[str] = []
         self.indent_level: int = 0
         self.includes: Set[str] = set()
@@ -121,6 +121,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self._generate_includes()
         if getattr(self, 'encoding', 'utf-8') == 'ascii':
             self.emit('#define FUSION_ASCII 1  // [strings] encoding = "ascii" (Task 18.3.2b)')
+        if getattr(self, 'max_length', None) is not None:
+            self.emit(f'#define FUSION_MAX_LENGTH {self.max_length}  // [strings] max_length (18.3.4b)')
         self.output.extend(RUNTIME_PRELUDE.splitlines())
         self.emit()
 
@@ -190,6 +192,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         method_name = f'visit_{type(node).__name__}'
         visitor = getattr(self, method_name, self.generic_visit)
         if isinstance(node, self._STATEMENTS) and hasattr(self, 'stmt_temps'):
+            # With a string length limit, the runtime names the statement in its errors
+            if getattr(self, 'max_length', None) is not None and self.cleanup_scopes:
+                self.emit_line(f'fusion_at = {self._where(node)}')
             self.begin_statement()
             try:
                 return visitor(node)
@@ -335,38 +340,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             if value is None:
                 parts.append(self._default_value_code(field.field_type))
             elif id(value) in getattr(self, 'argument_temps', {}):
-                # already owned (see below)
-                parts.append(self._limited(field.field_type, value, self.argument_temps[id(value)]))
+                parts.append(self.argument_temps[id(value)])  # already owned (see below)
             else:
-                # The struct owns its fields: strings are copied in (Task 18.3.1), and cut to
-                # the project's string_max_length (18.3.4)
-                parts.append(self._field_value(field.field_type, value))
+                # The struct owns its fields: strings are copied in (Task 18.3.1)
+                parts.append(self.owned_value(value, field.field_type))
         return f'({self._mangle_function_name(struct.name)}){{{", ".join(parts)}}}'
-
-    def _limited(self, type_node, value, code: str) -> str:
-        """Apply [structs] string_max_length to an owned string going into a struct field
-        (Task 18.3.4). Source text was already cut at compile time; "max memory" = no limit."""
-        is_string = isinstance(type_node, PrimitiveType) and type_node.name == 'string'
-        limit = getattr(self, 'string_max_length', 4096)
-        if not is_string or limit is None or isinstance(value, LiteralExpr):
-            return code
-        return f'fusion_str_limit({code}, {limit})'
-
-    def _field_value(self, field_type, value) -> str:
-        """An owned value for a struct field - string elements of an array field are each
-        limited too."""
-        if isinstance(field_type, ArrayType) and isinstance(value, ArrayLiteralExpr):
-            element = field_type.element_type
-            return '{' + ', '.join(self._limited(element, e, self.owned_value(e, element))
-                                   for e in value.elements) + '}'
-        return self._limited(field_type, value, self.owned_value(value, field_type))
-
-    @staticmethod
-    def _is_field_target(target) -> bool:
-        """A struct field (`b.title`) or an element of an array field (`b.tags[0]`)."""
-        if isinstance(target, IndexExpr):
-            target = target.array
-        return isinstance(target, MemberExpr)
 
     # ========================================================================
     # Default values (Task 18.2.3)
@@ -1064,10 +1042,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # exact same type, so the value's type is the target's
         value_type = getattr(node.value, 'inferred_type', None)
         if self.is_managed(value_type):
-            value_code = self.owned_value(node.value, value_type)
-            if self._is_field_target(node.target):
-                value_code = self._limited(value_type, node.value, value_code)
-            self.emit(self.set_code(value_type, target_code, value_code))
+            self.emit(self.set_code(value_type, target_code,
+                                    self.owned_value(node.value, value_type)))
             return ''
 
         value_code = self.visit(node.value)

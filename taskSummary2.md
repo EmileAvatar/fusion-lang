@@ -125,6 +125,8 @@ Each adds tests, an example program (Rule 4), and spec/EBNF/CLAUDE.md updates.
 
 **18.3.4 - Struct string fields become growable** - COMPLETE, detail archived
 
+**18.3.4b - One length limit for every string** - COMPLETE, detail archived
+
 **18.3.5 - The equality operator family (user decisions 2026-10-07)**
 Decided already: `=` assigns as a statement but compares inside a condition; `==` compares
 value; `===` compares type and value. Open points, with recommendations (decision 4):
@@ -261,4 +263,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.2b COMPLETE (Unicode by default).
 - 18.3.3 COMPLETE (interpolated strings as values, format).
 - 18.3.4 COMPLETE (string_max_length at run time).
+- 18.3.4b COMPLETE (no length limit by default; exceeding a project limit is an error).
 - **Next Action:** implement **18.3.5 (equality operator family)** per the approved 18.3 plan above.

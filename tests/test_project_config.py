@@ -323,23 +323,18 @@ def test_structs_defaults(tmp_path):
     assert structs.string_storage == "owned"
     assert structs.string_mutable is True
     assert structs.string_warn_length == 64
-    assert structs.string_max_length == 4096
 
 
 def test_structs_all_keys(tmp_path):
     structs = _load_with(tmp_path, (
         "[structs]\nmax_nesting_depth = 1\nwarn_nesting_depth = 0\n"
         'string_storage = "pooled"\nstring_mutable = false\n'
-        "string_warn_length = 128\nstring_max_length = 8192\n"
+        "string_warn_length = 128\n"
     )).structs
     assert (structs.max_nesting_depth, structs.warn_nesting_depth) == (1, 0)
     assert structs.string_storage == "pooled"
     assert structs.string_mutable is False
-    assert (structs.string_warn_length, structs.string_max_length) == (128, 8192)
-
-
-def test_structs_max_memory_means_no_limit(tmp_path):
-    assert _load_with(tmp_path, '[structs]\nstring_max_length = "max memory"\n').structs.string_max_length is None
+    assert structs.string_warn_length == 128
 
 
 @pytest.mark.parametrize("toml_text, message", [
@@ -349,9 +344,7 @@ def test_structs_max_memory_means_no_limit(tmp_path):
     ('[structs]\nstring_storage = "inline"\n', "string_storage must be one of"),
     ('[structs]\nstring_mutable = "no"\n', "string_mutable must be a boolean"),
     ("[structs]\nstring_warn_length = 1.5\n", "string_warn_length must be an integer"),
-    ('[structs]\nstring_max_length = "64 * 64"\n', r"write 64 \* 64 as 4096"),
-    ("[structs]\nstring_max_length = 0\n", "string_max_length must be a positive integer"),
-    ("[structs]\nstring_warn_length = 100\nstring_max_length = 50\n", "can't be larger than"),
+    ("[structs]\nstring_max_length = 50\n", r"has moved to \[strings\] max_length"),
     ("[structs]\nstring_max_lenght = 10\n", "unknown setting structs.string_max_lenght"),
     ("structs = 5\n", r"\[structs\] must be a table"),
 ])
@@ -361,8 +354,8 @@ def test_structs_invalid_values_raise(tmp_path, toml_text, message):
 
 
 def test_structs_config_changes_compiler_behaviour(tmp_path):
-    """The [structs] settings reach the compiler through main.py: the same program warns
-    with the defaults and is cut to fit with a lower string_max_length."""
+    """The settings reach the compiler through main.py: the same program warns with the
+    defaults (string_warn_length) and fails with a smaller [strings] max_length."""
     import subprocess
     import sys
     source_file = tmp_path / "book.fusion"
@@ -384,13 +377,11 @@ def test_structs_config_changes_compiler_behaviour(tmp_path):
     assert result.returncode == 0, result.stderr
     assert "has 100 characters (the project's string_warn_length guideline is 64)" in result.stderr
 
-    (tmp_path / "fusion.toml").write_text("[structs]\nstring_warn_length = 10\nstring_max_length = 20\n")
+    (tmp_path / "fusion.toml").write_text(
+        "[structs]\nstring_warn_length = 10\n[strings]\nmax_length = 20\n")
     result = compile_it()
-    assert result.returncode == 0, result.stderr
-    assert "cut to the project's string_max_length of 20" in result.stderr
-    exe = str(source_file).replace(".fusion", ".exe" if sys.platform == "win32" else "")
-    run = subprocess.run([exe], capture_output=True, text=True, timeout=30)
-    assert run.stdout.strip() == "t" * 20
+    assert result.returncode != 0
+    assert "String has 100 characters, more than the project's max_length of 20" in result.stderr
 
 
 def test_nesting_depth_config_changes_compiler_behaviour(tmp_path):
@@ -427,7 +418,14 @@ def test_nesting_depth_config_changes_compiler_behaviour(tmp_path):
 # ============================================================
 
 def test_strings_encoding_default_utf8(tmp_path):
-    assert _load_with(tmp_path, "").strings.encoding == "utf-8"
+    strings = _load_with(tmp_path, "").strings
+    assert strings.encoding == "utf-8"
+    assert strings.max_length is None      # "max" - no limit (Task 18.3.4b)
+
+
+def test_strings_max_length(tmp_path):
+    assert _load_with(tmp_path, '[strings]\nmax_length = 4096\n').strings.max_length == 4096
+    assert _load_with(tmp_path, '[strings]\nmax_length = "max"\n').strings.max_length is None
 
 
 def test_strings_encoding_ascii(tmp_path):
@@ -439,6 +437,11 @@ def test_strings_encoding_ascii(tmp_path):
     ('[strings]\nencoding = "utf-32"\n', "reserved for the future"),
     ('[strings]\nencoding = "latin-1"\n', "strings.encoding must be one of"),
     ('[strings]\nencodng = "ascii"\n', "unknown setting strings.encodng"),
+    ('[strings]\nmax_length = "64 * 64"\n', r"write 64 \* 64 as 4096"),
+    ('[strings]\nmax_length = 0\n', "must be \"max\" \\(no limit\\) or a"),
+    ('[strings]\nmax_length = "max memory"\n', "strings.max_length must be"),
+    ('[strings]\ntoo_long = "warn"\n', "unknown setting strings.too_long"),
+    ('[structs]\nstring_warn_length = 100\n[strings]\nmax_length = 50\n', "can't be larger than strings.max_length"),
 ])
 def test_strings_invalid_values(tmp_path, toml_text, message):
     with pytest.raises(ProjectConfigError, match=message):

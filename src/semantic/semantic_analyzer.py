@@ -8,7 +8,7 @@ import sys
 from typing import List, Optional
 
 from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType
-from ..config.project_config import StructsConfig, StringsConfig, MAX_MEMORY
+from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
 from .symbol_table import SymbolTable
 from .name_resolver import NameResolver
@@ -153,8 +153,6 @@ class SemanticAnalyzer:
 
         - string_storage = "pooled" is accepted in fusion.toml but not built yet (Task 17) -
           an error only when the program actually has a string field it would apply to
-        - string_max_length = "max memory" removes the cut-off - unsafe, so it's flagged on
-          every build that uses it
         """
         location = structs[0].location if structs else None
         has_string_field = any(
@@ -165,12 +163,6 @@ class SemanticAnalyzer:
             self.errors.append(SemanticError(
                 'fusion.toml sets [structs] string_storage = "pooled", which is not '
                 'implemented yet (Task 17) - use "owned"',
-                location
-            ))
-        if self.structs_config.string_max_length is None and structs:
-            self.warnings.append(SemanticError(
-                f'Unsafe setting: fusion.toml sets [structs] string_max_length = '
-                f'"{MAX_MEMORY}", so string fields have no length limit',
                 location
             ))
 

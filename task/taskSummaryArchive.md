@@ -3105,3 +3105,21 @@ testing/preview only - they reach the other PC through Dropbox); `.fusion` files
       or string-array field element; `CCodeGenerator(string_max_length=...)` from fusion.toml.
       Not covered: an array returned by a function copied into an array field (`t.tags =
       names()`) is not limited - noted. 4 new tests incl. a 10,000-character field
+
+---
+
+#### 18.3.4b (archived 2026-10-09)
+
+**18.3.4b - One length limit for every string** (user decisions 2026-10-09 - COMPLETE)
+- [x] No limit by default: `[strings] max_length = "max"`; a number is for memory-constrained
+      devices or apps, set per project. Replaces `[structs] string_max_length` (the old key
+      gives a clear "moved" error) and `"max memory"` with its unsafe-setting warning
+- [x] **Too long is always an error, never a cut** (user decision, revised mid-task - a
+      `too_long = ignore | warn | error` setting was started and dropped): compile error for
+      source text, run-time error with file:line for text built while running
+- [x] Checked where strings are made (`fusion_str_make`, `_concat`, `_format`), so it covers
+      every string - struct fields, variables, and arrays returned by functions (closing the
+      18.3.4 gap). With no limit, no checking code is emitted at all; with a limit, each
+      statement records `fusion_at` for the error message
+- [x] `[structs] string_warn_length = 64` kept as the compile-time guideline
+- [x] Tests rewritten (config, structs, strings); 1509 passed

@@ -63,6 +63,7 @@ class TypeChecker:
         self.warnings: List[SemanticError] = []
         self.structs_config = structs_config or StructsConfig()
         self.strings_config = strings_config or StringsConfig()
+        self.checked_literals = set()  # literals already checked against max_length
 
         # ids of interpolated strings that are print's or format's own text - the only place
         # {@N} placeholders can appear (Task 18.3.3)
@@ -301,28 +302,17 @@ class TypeChecker:
         (Task 18.2.1, [structs] in fusion.toml):
 
         - longer than string_warn_length: kept in full, with a warning (a guideline only)
-        - longer than string_max_length: cut to that length, with a warning - the only
-          place a string is ever cut ("max memory" = no limit)
 
-        Only a string literal's length is known at compile time. Strings can't be built or
-        changed at run time yet (Task 18.3), when the same rules will be checked at run time.
-        The cut is done here, on the literal itself, so codegen emits the shortened text.
+        Only a string literal's length is known at compile time. The hard limit for every
+        string is [strings] max_length (Task 18.3.4b - see visit_LiteralExpr).
         """
         if not (isinstance(field.field_type, PrimitiveType) and field.field_type.name == 'string'):
             return
         if not (isinstance(value, LiteralExpr) and value.type_hint == 'string'):
             return
         length = len(value.value)
-        max_length = self.structs_config.string_max_length
         warn_length = self.structs_config.string_warn_length
-        if max_length is not None and length > max_length:
-            value.value = value.value[:max_length]
-            self.warnings.append(SemanticError(
-                f"String for field '{field.name}' of struct '{struct_name}' has {length} "
-                f"characters - cut to the project's string_max_length of {max_length}",
-                value.location
-            ))
-        elif warn_length and length > warn_length:
+        if warn_length and length > warn_length:
             self.warnings.append(SemanticError(
                 f"String for field '{field.name}' of struct '{struct_name}' has {length} "
                 f"characters (the project's string_warn_length guideline is {warn_length}) - "
@@ -354,6 +344,16 @@ class TypeChecker:
             'null': 'void'  # null is treated as void type
         }
         type_name = type_map.get(node.type_hint, 'void')
+
+        # [strings] max_length applies to source text too (Task 18.3.4b): too long is an error,
+        # never a cut
+        max_length = self.strings_config.max_length
+        if node.type_hint == 'string' and max_length is not None and len(str(node.value)) > max_length \
+                and id(node) not in self.checked_literals:
+            self.checked_literals.add(id(node))
+            self.errors.append(SemanticError(
+                f"String has {len(str(node.value))} characters, more than the project's "
+                f"max_length of {max_length} ([strings] in fusion.toml)", node.location))
 
         # A project using ascii encoding can only hold ASCII text (Task 18.3.2b)
         if self.strings_config.encoding == 'ascii' and node.type_hint in ('string', 'char'):

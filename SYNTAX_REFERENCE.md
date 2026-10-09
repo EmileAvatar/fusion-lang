@@ -222,6 +222,7 @@ allow_unicode_identifiers = false
 
 [strings]
 encoding = "utf-8"               # utf-8 (default) | ascii - also named: utf-16, utf-32 (future)
+max_length = "max"               # no limit (default); a number = longer strings are an error
 
 [structs]
 max_nesting_depth  = 3
@@ -229,7 +230,6 @@ warn_nesting_depth = 3
 string_storage     = "owned"
 string_mutable     = true
 string_warn_length = 64
-string_max_length  = 4096        # or "max memory" (unsafe)
 
 [safety]
 mode = "normal"                  # reserved

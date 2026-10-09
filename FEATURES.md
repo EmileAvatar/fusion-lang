@@ -102,6 +102,9 @@ The single place to see what is done, open, or postponed. One line per item.
 			Unicode character; fast path for ASCII text; isAscii, asciiOnly, charCode, fromCharCode, byteAt
 		[DONE] 18.3.3 Interpolated strings as values anywhere, `format(...)`
 		[DONE] 18.3.4 Struct string fields growable, string_max_length at run time
+		[DONE] 18.3.4b No string length limit by default; `[strings] max_length` (a number) for
+			memory-constrained devices - exceeding it is always an error, never a cut; replaces
+			[structs] string_max_length
 		[ ] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
 		[ ] 18.3.6 Versatile string functions
 			[ ] Inspect: isEmpty, isBlank, isDigits, isLetters, countOf
@@ -179,6 +182,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		JSON/HTML escaping, validating UTF-8 from files and networks
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
+	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use
+	[POSTPONED - after MVP] Per-field string sizes (`string(255) name`) to match database columns
 	[POSTPONED - needs references] Identity operator (same object in memory)
 	[POSTPONED to 18.5] Growable arrays / lists; multi-dimensional arrays
 	[POSTPONED - after MVP] Array bounds checking (strings are checked from 18.3.2)

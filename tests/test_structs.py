@@ -275,20 +275,17 @@ def test_long_string_kept_in_full_with_warning():
     assert f'"{text}"' in generate_c(source)
 
 
-def test_string_over_max_length_is_cut_with_warning():
+def test_no_length_limit_by_default():
+    """Strings have no length limit unless the project sets [strings] max_length (18.3.4b)."""
     source = BOOK + main(f'Book b = Book("{"y" * 5000}")')
-    assert "has 5000 characters - cut to the project's string_max_length of 4096" in warnings_of(source)
-    c_code = generate_c(source)
-    assert f'"{"y" * 4096}"' in c_code and "y" * 4097 not in c_code
+    assert f'"{"y" * 5000}"' in generate_c(source)
 
 
-def test_custom_lengths():
-    config = StructsConfig(string_warn_length=5, string_max_length=8)
-    source = BOOK + main('Book b = Book("123456")\nb.title = "123456789"')
-    warnings = warnings_of(source, config)
-    assert "has 6 characters (the project's string_warn_length guideline is 5)" in warnings
-    assert "has 9 characters - cut to the project's string_max_length of 8" in warnings
-    assert 'fusion_str_set(&b.title, FUSION_STR("12345678"));' in generate_c(source, config)
+def test_custom_warn_length():
+    config = StructsConfig(string_warn_length=5)
+    source = BOOK + main('Book b = Book("123456")')
+    assert "has 6 characters (the project's string_warn_length guideline is 5)" in \
+        warnings_of(source, config)
 
 
 def test_warn_length_zero_never_warns():
@@ -299,14 +296,6 @@ def test_warn_length_zero_never_warns():
 def test_string_default_follows_length_rules():
     source = f'struct Book\n    string title = "{"d" * 100}"\n\n' + main('Book b')
     assert "has 100 characters" in warnings_of(source)
-
-
-def test_max_memory_means_no_cut_and_an_unsafe_warning():
-    config = StructsConfig(string_max_length=None)
-    source = BOOK + main(f'Book b = Book("{"m" * 5000}")')
-    warnings = warnings_of(source, config)
-    assert 'Unsafe setting' in warnings and '"max memory"' in warnings
-    assert f'"{"m" * 5000}"' in generate_c(source, config)
 
 
 def test_immutable_string_fields():

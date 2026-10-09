@@ -191,6 +191,20 @@ static inline fusion_char_buf fusion_char_text(fusion_char c) {
     fusion_char_buf b; int n = fusion_utf8_encode(c, b.bytes); b.bytes[n] = '\0'; return b;
 }
 
+// [strings] max_length (Task 18.3.4b): when a project sets a limit (memory-constrained
+// devices), every string built while the program runs is checked as it is made, and a longer
+// one stops the program with an error - never cut. No limit (the default): nothing to check
+#ifdef FUSION_MAX_LENGTH
+static const char* fusion_at = NULL;   // "file:line" of the statement running now
+static inline void fusion_check_length(fusion_string* r) {
+    if (r->chars > FUSION_MAX_LENGTH)
+        fusion_runtime_error(fusion_at, "a string of %d characters is longer than max_length %d ([strings] in fusion.toml)", r->chars, FUSION_MAX_LENGTH);
+}
+#define FUSION_CHECK_LENGTH(r) fusion_check_length(&(r))
+#else
+#define FUSION_CHECK_LENGTH(r) ((void)0)
+#endif
+
 static inline fusion_string fusion_str_make(const char* data, int len) {
     fusion_string r;
     r.data = (char*)fusion_alloc((size_t)len + 1);
@@ -199,6 +213,7 @@ static inline fusion_string fusion_str_make(const char* data, int len) {
     r.len = len;
     r.chars = fusion_utf8_count(data, len);
     r.owned = 1;
+    FUSION_CHECK_LENGTH(r);
     return r;
 }
 
@@ -211,6 +226,7 @@ static inline fusion_string fusion_str_concat(fusion_string a, fusion_string b) 
     r.len = a.len + b.len;
     r.chars = a.chars + b.chars;
     r.owned = 1;
+    FUSION_CHECK_LENGTH(r);
     return r;
 }
 // A character as a string that is never freed - only for joining (the text is copied)
@@ -254,15 +270,7 @@ static inline fusion_string fusion_str_format(const char* format, ...) {
     r.len = n;
     r.chars = fusion_utf8_count(r.data, n);
     r.owned = 1;
-    return r;
-}
-
-// A string stored into a struct field is cut to the project's [structs] string_max_length,
-// counted in characters (Task 18.3.4). Takes ownership of `s`
-static inline fusion_string fusion_str_limit(fusion_string s, int max) {
-    if (s.chars <= max) return s;
-    fusion_string r = fusion_str_make(s.data, fusion_utf8_offset(s, max));
-    fusion_str_free(&s);
+    FUSION_CHECK_LENGTH(r);
     return r;
 }
 
