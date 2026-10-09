@@ -4915,6 +4915,8 @@ Operator | Description | Example
   different types the answer is known when compiling, so the compiler warns that it is
   always false (both sides still run)
 * `!=` is "not `==`" and `!==` is "not `===`", as in JavaScript
+* A `bool` prints as `true` / `false` - in `print`, `{...}` interpolation and `format()` -
+  while as a value it stays 1 / 0 in the generated C (Task 18.3.5b)
 * Structs compare field by field with the same rules; two different struct types compare
   with `==` when they have the same field names in the same order (`===` needs the same
   struct). Arrays compare element by element and must have the same length

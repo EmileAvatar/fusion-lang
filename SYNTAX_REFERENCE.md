@@ -58,7 +58,7 @@ void function main()
             break
         print("i = {i}")
     if ready and not (price > 5.0)
-        print("count {count}, grade {grade}")
+        print("count {count}, grade {grade}, ready {ready}")   // a bool prints as true / false
 ```
 
 #### Default parameters and named arguments

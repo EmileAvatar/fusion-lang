@@ -19,13 +19,28 @@ from tests.test_strings import run_ok, ECHO
 
 
 def show(*conditions: str) -> str:
-    """Statements printing each condition's result as `true` / `false`, one per line (a
-    bool prints as 1 / 0 today, so through an if)."""
+    """Statements printing each condition's result (`true` / `false`), one per line."""
     lines = []
     for i, condition in enumerate(conditions):
-        lines += [f'bool r{i} = {condition}', f'if r{i}', '    print("true")', 'else',
-                  '    print("false")']
+        lines += [f'bool r{i} = {condition}', f'print("{{r{i}}}")']
     return '\n'.join(lines)
+
+
+def test_bool_prints_as_true_or_false_but_is_still_1_or_0():
+    """Task 18.3.5b: print, interpolation and format() show a bool as true / false; as a
+    value it stays 1 / 0 in C, so conditions and comparisons are unchanged."""
+    out = run_ok(main(
+        'bool yes = 2 > 1\n'
+        'bool no = 2 < 1\n'
+        'print("{yes} {no}")\n'
+        'print("{@1} {@2}", yes, no)\n'
+        'string s = "was {yes}"\n'
+        'print(s)\n'
+        'print(format("{@1}", no))\n'
+        'if yes == true and no == false\n'
+        '    print("ok")'
+    ))
+    assert out == ['true false', 'true false', 'was true', 'false', 'ok']
 
 
 # ============================================================

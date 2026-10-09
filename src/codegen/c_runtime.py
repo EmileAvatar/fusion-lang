@@ -96,7 +96,7 @@ class RuntimeLoweringMixin:
         'double': '%f',
         'string': '%s',
         'char': '%s',   # printed via fusion_char_text - any Unicode character (18.3.2b)
-        'bool': '%d',
+        'bool': '%s',   # printed as true / false; still 1 / 0 as a value (Task 18.3.5b)
     }
 
     def _format_specifier_for_expr(self, expr: ASTNode) -> str:
@@ -140,6 +140,8 @@ class RuntimeLoweringMixin:
             return f'{code}.data'
         if isinstance(inferred, PrimitiveType) and inferred.name == 'char':
             return f'fusion_char_text({code}).bytes'
+        if isinstance(inferred, PrimitiveType) and inferred.name == 'bool':
+            return f'(({code}) ? "true" : "false")'
         return code
 
     def _generate_print_call(self, node: CallExpr) -> str:

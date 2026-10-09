@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Fri Oct  9 21:03:46 SAST 2026
+**Date:** Fri Oct  9 22:39:56 SAST 2026
 **Total Examples:** 11
 
 ## Summary
@@ -652,12 +652,12 @@ static inline void fusion_runtime_error(const char* where, const char* format, .
 ```
 a = apple, b = banana
 original = quiet, loud = LOUD
-a == apple: 1, a < b: 1
+a == apple: true, a < b: true
 Ada 555-0100 / Grace 555-0123
 Grace: found, Alan: missing
 Ada Lovelace! has 13 characters, starts with A
 [Lovelace] [ADA] [spaced]
-contains Love: 1, index of Love: 4
+contains Love: true, index of Love: 4
 42 doubled is 84
 All string tests passed!
 ```
@@ -666,12 +666,12 @@ All string tests passed!
 ```
 a = apple, b = banana
 original = quiet, loud = LOUD
-a == apple: 1, a < b: 1
+a == apple: true, a < b: true
 Ada 555-0100 / Grace 555-0123
 Grace: found, Alan: missing
 Ada Lovelace! has 13 characters, starts with A
 [Lovelace] [ADA] [spaced]
-contains Love: 1, index of Love: 4
+contains Love: true, index of Love: 4
 42 doubled is 84
 All string tests passed!```
 

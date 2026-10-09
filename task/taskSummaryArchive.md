@@ -3157,3 +3157,11 @@ Implementation (2026-10-09):
   `fusion_double_eq_str` / `fusion_float_eq_str` (text that isn't a number is simply
   unequal); char vs one-character string -> `fusion_char_eq_str`; structs and arrays ->
   helpers generated on demand (`fusion_eq_A__B`, `fusion_arr_eq_A__B`, length + elements)
+
+---
+
+#### 18.3.5b (archived 2026-10-09)
+
+**18.3.5b - A bool prints as true / false** (user request 2026-10-09 - COMPLETE)
+- [x] print, `{...}` interpolation and format() show `true` / `false`; as a value a bool stays 1 / 0
+- [x] Expectations in test_strings.py and the strings_demo output updated; new test in test_equality.py

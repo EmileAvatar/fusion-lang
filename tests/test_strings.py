@@ -251,7 +251,7 @@ def test_comparisons():
         'string a = echo("apple")\n'
         'print("{@1} {@2} {@3} {@4}", a == "apple", a != "apple", a < "banana", "b" > "a")\n'
         'print("{@1} {@2}", "abc" < "abd", "ab" < "abc")\n'
-    )) == ["1 0 1 1", "1 1"]
+    )) == ["true false true true", "true true"]
 
 
 def test_named_arguments_and_order_with_strings():
@@ -300,7 +300,7 @@ def test_string_operations_end_to_end():
         'print("[{@1}] {@2} {@3} {@4}", substring(b, 7, 5), contains(b, "World"), indexOf(b, "o"), indexOf(b, "z"))\n'
         'print("{@1} {@2}", startsWith(b, "Hell"), endsWith(echo(b), "!"))\n'
         'print("[{@1}] [{@2}] [{@3}]", toUpper(a), toLower("MiXeD"), trim("  padded \t"))\n'
-    )) == ["Hello, World! 13", "H!!Hello", "[World] 1 4 -1", "1 1", "[HELLO] [mixed] [padded]"]
+    )) == ["Hello, World! 13", "H!!Hello", "[World] true 4 -1", "true true", "[HELLO] [mixed] [padded]"]
 
 
 def test_conversions_end_to_end():
@@ -310,7 +310,7 @@ def test_conversions_end_to_end():
         'float f = toFloat("2.75")\n'
         'print("{@1} {@2}", n + 1, f)\n'
         'print("{@1} {@2} {@3} {@4} {@5}", isInt("12x"), isInt("2147483647"), isInt("2147483648"), isFloat("1e3"), isFloat(""))\n'
-    )) == ["42 2.5 true c s", "-122 2.750000", "0 1 0 1 0"]
+    )) == ["42 2.5 true c s", "-122 2.750000", "false true false true false"]
 
 
 def test_building_a_string_in_a_loop_is_leak_free():
@@ -387,7 +387,7 @@ def test_unicode_chars_join_and_convert():
         'string s = "caf" + e\n'
         'print("{@1} {@2} {@3} {@4}", len(s), lenb(s), charCode(e), s == "caf\u00e9")\n'
         'print("{@1} {@2}", lenb(toString(e)), charCode(fromCharCode(26085)))\n'
-    )) == ["4 5 233 1", "2 26085"]
+    )) == ["4 5 233 true", "2 26085"]
 
 
 def test_encoding_helpers():
@@ -395,7 +395,7 @@ def test_encoding_helpers():
         'print("{@1} {@2}", isAscii("caf\u00e9"), isAscii("plain"))\n'
         'print("[{@1}]", asciiOnly("caf\u00e9 \u65e5", \'?\'))\n'
         'print("{@1} {@2}", byteAt("\u00e9", 0), byteAt("\u00e9", 1))\n'
-    )) == ["0 1", "[caf? ?]", "195 169"]
+    )) == ["false true", "[caf? ?]", "195 169"]
 
 
 def test_printing_unicode():
@@ -465,7 +465,7 @@ def test_interpolation_formats_each_type():
         'int i = 3\nfloat f = 1.5\nbool b = true\nchar c = \'z\'\nstring s = "str"\n'
         'string all = "{i}|{f}|{b}|{c}|{s}|100%"\n'
         'print(all)\n'
-    )) == ["3|1.500000|1|z|str|100%"]
+    )) == ["3|1.500000|true|z|str|100%"]
 
 
 def test_format_returns_what_print_would_print():

@@ -106,6 +106,7 @@ The single place to see what is done, open, or postponed. One line per item.
 			memory-constrained devices - exceeding it is always an error, never a cut; replaces
 			[structs] string_max_length
 		[DONE] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
+		[DONE] 18.3.5b A bool prints as `true` / `false` (print, `{...}`, `format`); still 1 / 0 as a value
 		[ ] 18.3.6 Versatile string functions
 			[ ] Inspect: isEmpty, isBlank, isDigits, isLetters, countOf
 			[ ] Search: lastIndexOf, indexOfFrom, containsAny
