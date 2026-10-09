@@ -3,7 +3,8 @@
 The single place to see what is done, open, or postponed. One line per item.
 
 - `[ ]` open · `[DONE]` finished · `[POSTPONED to X]` waits for X (a task, or a missing feature)
-- Main tasks: `## NN Title [status]`. Sub-tasks: one tab + `[status] NN.N`. Parts: two tabs
+- `##` = major sections only. Tasks: `#### NN Title [status]`. Sub-tasks: one tab +
+  `[status] NN.N`. Parts: two tabs
 - Find things: `grep -n "\[ \]" FEATURES.md` (open), `grep -n "POSTPONED" FEATURES.md`,
   `grep -rn "18\.3\.2" FEATURES.md taskSummary2.md task/` (one item everywhere)
 - Detail: active task -> `taskSummary2.md`; finished -> `task/taskSummaryArchive.md`;
@@ -12,26 +13,28 @@ The single place to see what is done, open, or postponed. One line per item.
 
 ---
 
-## 01-04 MVP compiler: lexer, parser, semantic analysis, C codegen [DONE]
+## Tasks
 
-## 05 Cleanup & organization [DONE]
-## 06 Verification & bug fixes (incl. FizzBuzz) [DONE]
-## 07 Git & GitHub [DONE]
-## 08 const keyword [DONE]
-## 09 Fixed-size arrays v1 [DONE]
+#### 01-04 MVP compiler: lexer, parser, semantic analysis, C codegen [DONE]
 
-## 10 Self-hosting - compiler rewritten in Fusion [ ]
+#### 05 Cleanup & organization [DONE]
+#### 06 Verification & bug fixes (incl. FizzBuzz) [DONE]
+#### 07 Git & GitHub [DONE]
+#### 08 const keyword [DONE]
+#### 09 Fixed-size arrays v1 [DONE]
+
+#### 10 Self-hosting - compiler rewritten in Fusion [ ]
 	[DONE] 10.1 Prerequisites analysis & planning
 	[POSTPONED to 18.5] 10.2 Missing language features (file I/O, collections, string helpers, CLI args)
 	[ ] 10.3-10.12 Port lexer, parser, semantic, codegen, main; bootstrap twice; verify; optimize; docs
 
-## 11 LLVM backend [ ]
+#### 11 LLVM backend [ ]
 	[DONE] 11.1 Research & design
 	[POSTPONED to 15.4] 11.2-11.13 Environment, IR generator, types, functions, codegen, strings, stdlib, optimization, tests, docs (order vs Task 10 undecided)
 
-## 12 Compiler architecture hardening (typed AST, codegen split, block scoping, memory-model ADR, config) [DONE]
+#### 12 Compiler architecture hardening (typed AST, codegen split, block scoping, memory-model ADR, config) [DONE]
 
-## 13 HIDL - hardware interface definition language [ ]
+#### 13 HIDL - hardware interface definition language [ ]
 	[ ] 13.1 Grammar & format decision
 	[ ] 13.2 Scope v1 vs. future layers
 	[ ] 13.3 Memory model reconciliation
@@ -42,7 +45,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 13.8 Simulator & tooling (stretch)
 	[ ] 13.9 Docs & examples
 
-## 14 Nullable arrays & safe navigation (`?.`, `?[`, `.length`) [ ]
+#### 14 Nullable arrays & safe navigation (`?.`, `?[`, `.length`) [ ]
 	[ ] 14.1 Nullability model decision
 	[ ] 14.2 Compile-time null-flow analysis
 	[ ] 14.3 `.` / `?.` / `?[` parser support (the `.` part exists since 18.2.1)
@@ -50,7 +53,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 14.5 Beyond arrays (stretch)
 	[ ] 14.6 Docs & examples
 
-## 15 Deferred decisions & known gaps (each item has its own trigger) [ ]
+#### 15 Deferred decisions & known gaps (each item has its own trigger) [ ]
 	[ ] 15.1 IR layer decision (trigger: Task 11 starts)
 	[ ] 15.2 Stdlib runtime lowering decision (trigger: first real import module)
 	[DONE] 15.3 LambdaExpr scope bug (18.1.3)
@@ -64,7 +67,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[DONE] 15.11 `{@N}` positional placeholders (18.2.2b)
 	[ ] 15.12 Operator operands evaluated in C's order (`next(c) - next(c)`); call arguments are left-to-right already
 
-## 16 Example program coverage [ ]
+#### 16 Example program coverage [ ]
 	[ ] 16.1 Control flow / loops example (buildable now)
 	[POSTPONED - needs classes, no task yet] 16.2 Classes, interfaces & enums example (structs: done in structs_demo)
 	[POSTPONED - needs generics, no task yet] 16.3 Generics example
@@ -73,14 +76,14 @@ The single place to see what is done, open, or postponed. One line per item.
 	[POSTPONED to 15.5] 16.6 Memory model (Unique/Shared/Weak) example
 	[POSTPONED to 18.4] 16.7 Modules / import example
 
-## 17 Mutable vs. fixed strings, templated strings, string pooling [ ]
+#### 17 Mutable vs. fixed strings, templated strings, string pooling [ ]
 	[ ] 17.1 Mutable string literal syntax (in-place editing, `s[0] = 'X'`)
 	[ ] 17.2 Fixed (immutable) string type
 	[ ] 17.3 Templated fixed strings
 	[ ] 17.4 String pooling as a project setting (`[structs] string_storage = "pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 17.5 Secure string storage, constant-time comparison
 
-## 18 Core language foundation ("a simple working language first") [ ]
+#### 18 Core language foundation ("a simple working language first") [ ]
 	[DONE] 18.1 Functions with full parameter types
 		[DONE] 18.1.1 Default parameter values
 		[DONE] 18.1.2 Arrays as function parameters (by reference)
@@ -100,7 +103,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 18.4 `import` and multi-file projects
 	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std
 
-## 19 Library trust, isolation & security [ ]
+#### 19 Library trust, isolation & security [ ]
 	[POSTPONED to 18.4] 19.1 Compiler-verified capability signatures
 	[POSTPONED to 18.4] 19.2 Project restrictions (pragma Restrictions-style)
 	[POSTPONED to 18.4] 19.3 Closed, compiled, licensed libraries
@@ -109,22 +112,26 @@ The single place to see what is done, open, or postponed. One line per item.
 	[DONE] 19.6 Source-level attack defenses (Trojan Source, homoglyphs, ASCII identifiers)
 	[POSTPONED - needs fusionlib.AI] 19.7 AI module input guard
 
-## 20 Config file in any format: fusion.toml / .yaml / .json / .ini [ ]
+#### 20 Config file in any format: fusion.toml / .yaml / .json / .ini [ ]
 	[ ] 20.1 One loader per format, one shared schema
 	[ ] 20.2 Discovery and ambiguity (two config files = error)
 	[ ] 20.3 Tests
 	[ ] 20.4 Docs
 
-## 21 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
+#### 21 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
 	[POSTPONED to 18.3] 21.1 Detailed plan (needs working strings for error messages)
 
-## 22 Project tracking restructure (FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, check.py) [DONE]
+#### 22 Project tracking restructure (FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, check.py) [ ]
 	[DONE] 22.1 FEATURES.md
 	[DONE] 22.2 SYNTAX_REFERENCE.md
 	[DONE] 22.3 Slim CLAUDE.md
 	[DONE] 22.4 Working file / archive / backlog split
 	[DONE] 22.5 Verify nothing lost
 	[DONE] 22.6 check.py - one command for tests, examples, leak check, ASCII, status
+	[ ] 22.7 Reliable markers for files that lack them (see task/automation.md): status lines
+		under each feature heading in the language spec, matching FEATURES.md; README reduced to
+		goals + pointers to FEATURES.md / SYNTAX_REFERENCE.md; task links in FutureFeatures.md
+		only when an item becomes a task
 
 ---
 

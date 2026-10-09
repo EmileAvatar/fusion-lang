@@ -97,7 +97,7 @@ Nearly every real program needs these, and a self-hosted lexer is built entirely
       2026-10-08): owned by the struct, copied in full on struct copy, freed with the struct,
       `[structs] string_max_length` cut-off checked at runtime, `string_warn_length` stays a
       compile-time guideline
-- [ ] Example program per Rule 5 / Task 16
+- [ ] Example program per Rule 4 / Task 16
 
 ### 18.3 Detailed Plan (APPROVED 2026-10-09 - all five parts)
 
@@ -115,7 +115,7 @@ garbage collector and no reference counts: the "stack / value types" row of
 Same model as C++ `std::string` and Rust `String`.
 
 Split into five parts, each shippable and committed on its own (same pattern as 18.1/18.2).
-Each adds tests, an example program (Rule 5), and spec/EBNF/CLAUDE.md updates.
+Each adds tests, an example program (Rule 4), and spec/EBNF/CLAUDE.md updates.
 
 **18.3.2 - String operations**
 - [ ] `a + b` joins two strings (also string + char); numbers are joined with interpolation
@@ -222,7 +222,7 @@ from functions (18.1), structs (18.2), and strings (18.3).
       `FutureFeaturesCaution.md`
 - [ ] Satisfies Task 10.2's self-hosting prerequisites (file I/O, collections, string
       helpers, CLI args)
-- [ ] Example programs per Rule 5 / Task 16
+- [ ] Example programs per Rule 4 / Task 16
 
 **Success Criteria:**
 - A non-trivial multi-file Fusion program (e.g. a word counter that reads a file, builds a

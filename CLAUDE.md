@@ -26,7 +26,7 @@ files and chat; never in `.py`, `.c`, `.h`, `.fusion`, config, JSON or YAML. Use
 ### Rule 3: Tracking - where status and detail go
 - **`FEATURES.md`** - the status of every task and feature, one line each:
   `[ ]` open, `[DONE]`, `[POSTPONED to X]` (waits for task X or a missing feature).
-  Main tasks are `## NN Title [status]`; sub-tasks are one tab + `[status] NN.N`; parts two
+  Tasks are `#### NN Title [status]`; sub-tasks are one tab + `[status] NN.N`; parts two
   tabs. Postponed advanced features are listed there too
 - **`taskSummary2.md`** - a working file only: the active task's detailed plan, the next
   action, the latest session note
@@ -40,7 +40,20 @@ files and chat; never in `.py`, `.c`, `.h`, `.fusion`, config, JSON or YAML. Use
 When a language feature lands: add a runnable program to `examples/` (and its expected
 output to `tests/verify_examples.py`) and a short example to `SYNTAX_REFERENCE.md`.
 
-### Rule 5: Work efficiently (token budget is limited)
+### Rule 5: Headings in tracking and reference files
+In `FEATURES.md`, `SYNTAX_REFERENCE.md` and similar files, `##` is only for **major
+sections**. Tasks and headings inside a major section use `####` - easier to read.
+
+### Rule 6: README.md states goals, not status
+`README.md` says what Fusion is trying to achieve and points to `FEATURES.md` (status) and
+`SYNTAX_REFERENCE.md` (what works now). It never lists what currently works or not. Update it
+only for a major change - e.g. a new feature direction that wasn't accounted for before.
+
+### Rule 7: Commit and push after every completed task
+When a task or sub-task is complete and `python check.py` passes: commit, then push to
+GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
+
+### Rule 8: Work efficiently (token budget is limited)
 - Find before reading: `grep -n` for a heading or task number, then read only that range
 - Don't re-read large files (spec ~5,400 lines, `FutureFeatures.md` ~6,000) - grep them
 - Edit code with the Edit tool or a Python script file - not shell heredocs with escapes

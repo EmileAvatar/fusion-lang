@@ -9,7 +9,7 @@ When a feature ships, add its example here (Auto-Update Policy in `CLAUDE.md`).
 
 ---
 
-## Hello, functions and the three block styles
+#### Hello, functions and the three block styles
 
 ```fusion
 // Return type first. One-line functions use ':'
@@ -36,7 +36,7 @@ void function main()
 End function
 ```
 
-## Variables, constants, control flow
+#### Variables, constants, control flow
 
 ```fusion
 void function main()
@@ -58,7 +58,7 @@ void function main()
         print("count {count}, grade {grade}")
 ```
 
-## Default parameters and named arguments
+#### Default parameters and named arguments
 
 ```fusion
 void function greet(string name = "World", int times = 1)
@@ -74,7 +74,7 @@ void function main()
     print("{@1}", sub(b = 5, a = 3))   // any order, unnamed ones first
 ```
 
-## Interpolation and `{@N}` placeholders
+#### Interpolation and `{@N}` placeholders
 
 ```fusion
 void function main()
@@ -85,7 +85,7 @@ void function main()
     print("100% sure")                              // % is printed as-is
 ```
 
-## Lambdas and function values
+#### Lambdas and function values
 
 ```fusion
 int function apply((int) : int f, int v) : f(v)
@@ -96,7 +96,7 @@ void function main()
     print("{@1} {@2}", apply(twice, 5), apply(triple, 5))   // named functions are values too
 ```
 
-## Arrays
+#### Arrays
 
 ```fusion
 int function sum(int[] values)          // any size, passed by reference
@@ -115,7 +115,7 @@ void function main()
     print("{@1} {@2} {@3} {@4}", sum(scores), len(scores), buffer[0], p[0])
 ```
 
-## Structs (fields only, copied by value)
+#### Structs (fields only, copied by value)
 
 ```fusion
 struct Point
@@ -147,7 +147,7 @@ void function main()
     print("{@1} {@2} {@3} {@4} {@5}", a.x, b.x, ada.health, l.b.y, pts[1].x)
 ```
 
-## Strings (values, freed automatically)
+#### Strings (values, freed automatically)
 
 ```fusion
 string function shout(string word)
@@ -163,7 +163,7 @@ void function main()
     print("{@1} {@2}", a == "apple", a < b)   // compares text; < > alphabetical
 ```
 
-## Project settings - `fusion.toml` (optional, next to the source file)
+#### Project settings - `fusion.toml` (optional, next to the source file)
 
 ```toml
 [indentation]
@@ -188,14 +188,14 @@ mode = "normal"                  # reserved
 target = "c"
 ```
 
-## Running
+#### Running
 
 ```text
 python main.py program.fusion     # -> program.c and program.exe
 python check.py                   # tests, examples, leak check, ASCII, this file
 ```
 
-## Reserved words
+#### Reserved words
 
 ```text
 if else for while loop end break continue return match case

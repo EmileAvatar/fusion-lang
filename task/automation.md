@@ -17,7 +17,7 @@ command is typed more than twice.
 | Compiling each SYNTAX_REFERENCE.md example by hand | after doc changes | **Automated** - `check.py` (it already caught a wrong example) |
 | `gcc -Wall -Wextra -std=c99 -c x.c` to check generated C for warnings | after codegen changes | **Candidate** - add `check.py --warnings` (needs a list of accepted warnings, e.g. unused hidden `fusion_len_*` parameters) |
 | Python edit scripts written to the scratchpad (`patch(old, new)` helper) | many per task | **Partly** - use the Edit tool for small changes; a reusable `tools/patch.py` is possible but low value |
-| Shell heredocs containing `\n` or quotes | (caused repeated breakage) | **Stopped** - the shell mangles escapes; write a script file instead (CLAUDE.md Rule 5) |
+| Shell heredocs containing `\n` or quotes | (caused repeated breakage) | **Stopped** - the shell mangles escapes; write a script file instead (CLAUDE.md Rule 8) |
 | `git status` / `git log --oneline -3` / commit / push | per sub-task | **Keep manual** - commits and pushes need a human decision each time |
 | Writing plans, reading the spec for design context | per task | **Can't automate** - judgement work; grep narrows what gets read |
 
