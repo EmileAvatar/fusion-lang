@@ -64,9 +64,9 @@ class TypeChecker:
         self.structs_config = structs_config or StructsConfig()
         self.strings_config = strings_config or StringsConfig()
 
-        # The interpolated string passed directly to print() - the only place one can be
-        # used until strings can be built at run time (Task 15.10 / 18.3)
-        self.print_interpolation: Optional[InterpolatedStringExpr] = None
+        # ids of interpolated strings that are print's or format's own text - the only place
+        # {@N} placeholders can appear (Task 18.3.3)
+        self.placeholder_texts = set()
 
         # ids of calls whose returned array is used in a supported way (Task 18.2.4) - see
         # visit_CallExpr
@@ -641,9 +641,10 @@ class TypeChecker:
             node.callee_declaration = declaration
             return func_type.return_type
 
-        # print(text, ...) - extra arguments fill {@1}, {@2}, ... placeholders (Task 18.2.2b)
-        if func_name == 'print' and node.arguments:
-            return self._check_print_call(node, func_type)
+        # print(text, ...) - extra arguments fill {@1}, {@2}, ... placeholders (Task 18.2.2b);
+        # format(text, ...) builds the same text as a string (18.3.3)
+        if func_name in ('print', 'format') and node.arguments:
+            return self._check_print_call(node, func_type, func_name)
 
         # Check argument count
         # Special case for range() function: accepts 2 or 3 arguments
@@ -744,7 +745,8 @@ class TypeChecker:
 
         return func_type.return_type
 
-    def _check_print_call(self, node: CallExpr, func_type: FunctionType) -> TypeNode:
+    def _check_print_call(self, node: CallExpr, func_type: FunctionType,
+                          name: str = 'print') -> TypeNode:
         """Check print(text, arg1, arg2, ...) (Task 18.2.2b).
 
         The text's {@N} placeholders refer to the arguments after it, by number from 1 - in
@@ -756,14 +758,14 @@ class TypeChecker:
         """
         text, extras = node.arguments[0], node.arguments[1:]
 
-        # An interpolated string can only be print's own argument (Task 15.10)
+        # {@N} placeholders only mean something in print's or format's own text
         if isinstance(text, InterpolatedStringExpr):
-            self.print_interpolation = text
+            self.placeholder_texts.add(id(text))
         text_type = self.visit(text)
         string_type = func_type.parameter_types[0]
         if not self.types_compatible(string_type, text_type):
             self.errors.append(SemanticError(
-                f"Argument 1 to 'print': expected {self.type_to_string(string_type)}, got "
+                f"Argument 1 to '{name}': expected {self.type_to_string(string_type)}, got "
                 f"{self.type_to_string(text_type)}",
                 text.location
             ))
@@ -774,7 +776,7 @@ class TypeChecker:
 
         if extras and not positions:
             self.errors.append(SemanticError(
-                f"print() was given {len(extras)} argument(s) after its text, but the text has "
+                f"{name}() was given {len(extras)} argument(s) after its text, but the text has "
                 f"no {{@1}}-style placeholders to use them",
                 node.location
             ))
@@ -786,7 +788,7 @@ class TypeChecker:
                 ))
             elif index > len(extras):
                 self.errors.append(SemanticError(
-                    f"{{@{index}}} has no matching argument - print() was given {len(extras)} "
+                    f"{{@{index}}} has no matching argument - {name}() was given {len(extras)} "
                     f"argument(s) after its text",
                     text.location
                 ))
@@ -801,7 +803,7 @@ class TypeChecker:
                 ))
             if positions and number not in positions:
                 self.warnings.append(SemanticError(
-                    f"Argument {number + 1} to print() isn't used - no {{@{number}}} placeholder "
+                    f"Argument {number + 1} to {name}() isn't used - no {{@{number}}} placeholder "
                     f"in the text",
                     extra.location
                 ))
@@ -1233,13 +1235,14 @@ class TypeChecker:
         Returns:
             String type
         """
-        # Until strings can be built at run time (Task 18.3), an interpolated string only
-        # works as print's own argument - anywhere else it used to pass this check and then
-        # produce invalid C (`char* s = "x is %d", x;`) - Task 15.10
-        if node is not self.print_interpolation:
+        # "x is {x}" is an ordinary string value anywhere since Task 18.3.3 (it used to work
+        # only inside print - Task 15.10). {@N} placeholders still need print/format, which
+        # supply the arguments they refer to
+        if id(node) not in self.placeholder_texts and any(
+                isinstance(s, StringPositionalPart) for s in node.segments):
             self.errors.append(SemanticError(
-                "A string with {...} values can only be passed directly to print() for now - "
-                "building strings while the program runs comes with Task 18.3",
+                "{@1}-style placeholders only work in the text given to print(...) or "
+                "format(...) - they refer to the arguments that follow it",
                 node.location
             ))
 

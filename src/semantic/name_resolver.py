@@ -139,6 +139,7 @@ class NameResolver:
             'isInt': ([string_type], bool_type),
             'isFloat': ([string_type], bool_type),
             'toString': ([string_type], string_type),
+            'format': ([string_type], string_type),    # like print, returns the text (18.3.3)
             # Encoding helpers (Task 18.3.2b)
             'lenb': ([string_type], int_type),
             'isAscii': ([string_type], bool_type),

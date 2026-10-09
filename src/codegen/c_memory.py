@@ -30,7 +30,7 @@ from dataclasses import fields as dataclass_fields, is_dataclass
 
 from ..parser.ast_nodes import (
     ASTNode, AssignmentStmt, MemberExpr, IndexExpr, IdentifierExpr, CallExpr, LiteralExpr,
-    BinaryExpr,
+    BinaryExpr, InterpolatedStringExpr,
     ArrayLiteralExpr, LambdaExpr, PrimitiveType, ArrayType, StructType, StructDecl,
 )
 from .c_names import mangle_function_name
@@ -240,6 +240,23 @@ static inline int fusion_str_indexOf(fusion_string s, fusion_string part) {
     return -1;
 }
 
+// Build a string from a printf-style format (Task 18.3.3): "x is {x}" as a value, and format()
+static inline fusion_string fusion_str_format(const char* format, ...) {
+    va_list args, measure;
+    va_start(args, format);
+    va_copy(measure, args);
+    int n = vsnprintf(NULL, 0, format, measure);
+    va_end(measure);
+    fusion_string r;
+    r.data = (char*)fusion_alloc((size_t)n + 1);
+    vsnprintf(r.data, (size_t)n + 1, format, args);
+    va_end(args);
+    r.len = n;
+    r.chars = fusion_utf8_count(r.data, n);
+    r.owned = 1;
+    return r;
+}
+
 // Encoding helpers (Task 18.3.2b)
 static inline bool fusion_str_isAscii(fusion_string s) { return s.chars == s.len; }
 static inline fusion_string fusion_str_asciiOnly(fusion_string s, fusion_char replacement) {
@@ -426,6 +443,8 @@ class MemoryManagementMixin:
         otherwise it's freed at the end of the statement."""
         if isinstance(expr, BinaryExpr):
             return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
+        if isinstance(expr, InterpolatedStringExpr):
+            return True  # "x is {x}" builds a new string (18.3.3)
         return isinstance(expr, CallExpr) and self.is_managed(getattr(expr, 'inferred_type', None))
 
     def owned_value(self, expr, type_node) -> str:

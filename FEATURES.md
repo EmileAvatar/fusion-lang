@@ -63,7 +63,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[DONE] 15.7 Lexer warnings surfaced (19.6.4)
 	[ ] 15.8 Name collisions in C: `fusion_` prefix, and functions named like C library ones (`rename`, `free`, `exit`, `abs`) - fix before 18.4
 	[DONE] 15.9 Printing an array crashed the compiler (18.2.1)
-	[POSTPONED to 18.3.3] 15.10 Interpolated strings only work inside print (clear error elsewhere)
+	[DONE] 15.10 Interpolated strings only worked inside print - real values since 18.3.3
 	[DONE] 15.11 `{@N}` positional placeholders (18.2.2b)
 	[ ] 15.12 Operator operands evaluated in C's order (`next(c) - next(c)`); call arguments are left-to-right already
 
@@ -100,7 +100,7 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.3.2b Unicode by default: `[strings] encoding = "utf-8"` (ascii | utf-8 | utf-16 | utf-32);
 			len counts characters, lenb counts bytes; s[i]/substring by character; char holds any
 			Unicode character; fast path for ASCII text; isAscii, asciiOnly, charCode, fromCharCode, byteAt
-		[ ] 18.3.3 Interpolated strings as values anywhere, `format(...)`
+		[DONE] 18.3.3 Interpolated strings as values anywhere, `format(...)`
 		[ ] 18.3.4 Struct string fields growable, string_max_length at run time
 		[ ] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
 		[ ] 18.3.6 Versatile string functions

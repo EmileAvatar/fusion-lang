@@ -728,6 +728,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return self._generate_print_call(node)
             if func_name == 'len':
                 return self._generate_len_call(node)
+            if func_name == 'format' and node.callee_declaration is None:
+                return self._generate_format_call(node)
             if func_name in self._STRING_BUILTINS and node.callee_declaration is None:
                 return self._string_builtin_call(node)
 

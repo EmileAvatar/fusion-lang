@@ -121,13 +121,7 @@ Each adds tests, an example program (Rule 4), and spec/EBNF/CLAUDE.md updates.
 
 **18.3.2b - Unicode by default** - COMPLETE, detail archived
 
-**18.3.3 - Interpolated strings as values (the real fix for Task 15.10)**
-- [ ] `string s = "x is {x}"`, `return "Hello, {name}"`, `f("{a}-{b}")` - an interpolated
-      string builds a new string anywhere, not only in `print`. Remove the 15.10 guard
-- [ ] `format("{@2} before {@1}", a, b)` returns the text `print` would print - the same
-      placeholder rules as 18.2.2b (any order, repeatable, each argument evaluated once,
-      left to right)
-- [ ] `print` itself is unchanged (still writes directly, no extra copy)
+**18.3.3 - Interpolated strings as values** - COMPLETE, detail archived
 
 **18.3.4 - Struct string fields become growable (user decision 2026-10-08)**
 - [ ] Follows from 18.3.1: a string field owns its text, so it holds any length, is copied
@@ -272,4 +266,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - Not pushed yet: 18.2.3, 18.2.4, 18.3.1, 22 (ask before pushing)
 - 18.3.2 COMPLETE (string operations).
 - 18.3.2b COMPLETE (Unicode by default).
-- **Next Action:** implement **18.3.3 (interpolated strings as values, `format`)** per the approved 18.3 plan above.
+- 18.3.3 COMPLETE (interpolated strings as values, format).
+- **Next Action:** implement **18.3.4 (growable struct string fields, string_max_length at run time)** per the approved 18.3 plan above.

@@ -56,7 +56,7 @@ void function main()
     string input = "42"
     if isInt(input)
         int answer = toInt(input) * 2
-        string message = input + " doubled is " + toString(answer)
+        string message = "{input} doubled is {answer}"   // {...} works anywhere (18.3.3)
         print(message)
     End if
     print("All string tests passed!")

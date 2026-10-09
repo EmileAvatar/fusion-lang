@@ -250,10 +250,10 @@ def test_printing_an_array_is_a_clear_error_not_a_crash():
     assert "Can't print a whole int[3] value" in errors_of(main('int[] a = [1, 2, 3]\nprint("{a}")'))
 
 
-def test_interpolated_string_outside_print_rejected():
-    """Task 15.10 - `string s = "x is {x}"` used to pass, then generate invalid C."""
-    message = errors_of(main('int x = 5\nstring s = "x is {x}"'))
-    assert "can only be passed directly to print()" in message
+def test_interpolated_string_outside_print_now_a_value():
+    """Task 15.10 - `string s = "x is {x}"` used to pass, then generate invalid C; it was
+    guarded with an error in 18.2.1, and works as a real string value since 18.3.3."""
+    assert analyze(main('int x = 5\nstring s = "x is {x}"'))[2]
 
 
 # ============================================================

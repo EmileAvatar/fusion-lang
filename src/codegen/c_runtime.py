@@ -206,22 +206,28 @@ class RuntimeLoweringMixin:
         return str(array_type.size)
 
     def visit_InterpolatedStringExpr(self, node: InterpolatedStringExpr) -> str:
-        """Generate C code for interpolated string expression.
-
-        Args:
-            node: Interpolated string expression node
+        """An interpolated string used as a value - `string s = "x is {x}"` - builds a new
+        string (Task 18.3.3). print() doesn't come here: it writes its text directly.
 
         Returns:
-            C sprintf expression or direct string for printf
+            A fusion_str_format(...) call - a fresh string, freed after the statement unless
+            something takes it over
         """
         format_str, args = self._build_interpolation_format(node)
+        code = f'fusion_str_format("{format_str}"' + ''.join(f', {a}' for a in args) + ')'
+        if id(node) in getattr(self, 'consumed', set()):
+            return code
+        return self.fresh_temporary(code, node.inferred_type)
 
-        # Return just the format string and args (for use in printf)
-        # The caller will wrap this appropriately
-        if args:
-            return f'"{format_str}", ' + ', '.join(args)
-        else:
-            return f'"{format_str}"'
+    def _generate_format_call(self, node: CallExpr) -> str:
+        """format(text, args...) - the text print would write, as a new string (18.3.3)."""
+        text = node.arguments[0]
+        if not isinstance(text, InterpolatedStringExpr):
+            return self.visit(text)  # plain text, nothing to fill in
+        assignments, positional = self._print_argument_codes(text, node.arguments[1:])
+        format_str, args = self._build_interpolation_format(text, positional)
+        call = f'fusion_str_format("{format_str}"' + ''.join(f', {a}' for a in args) + ')'
+        return f'({", ".join(assignments + [call])})' if assignments else call
 
     def _print_argument_codes(self, text: InterpolatedStringExpr, extras) -> tuple:
         """C code for print's extra arguments, which {@N} placeholders refer to (Task

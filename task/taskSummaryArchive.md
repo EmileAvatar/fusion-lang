@@ -3072,3 +3072,18 @@ testing/preview only - they reach the other PC through Dropbox); `.fusion` files
       with `#define FUSION_ASCII`); UTF-8 helpers in `c_memory.py`. Found and fixed: the
       end-to-end test helper wrote sources / read output in Windows' cp1252, which can't hold
       e.g. U+65E5 - now UTF-8. 19 new tests (strings + config); syntax_unicode example
+
+---
+
+#### 18.3.3 (archived 2026-10-09)
+
+**18.3.3 - Interpolated strings as values (the real fix for Task 15.10)**
+- [x] `string s = "x is {x}"`, `return "Hello, {name}"`, `f("{a}-{b}")` - an interpolated
+      string builds a new string anywhere, not only in `print`. Remove the 15.10 guard
+- [x] `format("{@2} before {@1}", a, b)` returns the text `print` would print - the same
+      placeholder rules as 18.2.2b (any order, repeatable, each argument evaluated once,
+      left to right)
+- [x] `print` itself is unchanged (still writes directly, no extra copy)
+- [x] Done 2026-10-09: `fusion_str_format` (vsnprintf, measured first) builds the string; an
+      interpolated value is a fresh temporary like a call result; `format` reuses print's
+      placeholder checks. `{@N}` outside print/format is an error. 15 new tests

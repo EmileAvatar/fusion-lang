@@ -88,6 +88,9 @@ void function main()
     print("{name} is {age}")                       // a name or a field path inside {}
     print("{@2}, {@1}!", "World", "Hello")          // any order, repeatable
     print("100% sure")                              // % is printed as-is
+    string line = "{name} is {age}"                // a {...} string is a value anywhere
+    string greeting = format("{@2}, {@1}!", "World", "Hello")   // format = print's text
+    print(line + " / " + greeting)
 ```
 
 #### Lambdas and function values

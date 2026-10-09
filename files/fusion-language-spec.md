@@ -3856,9 +3856,11 @@ print("Next year: {age + 1}")  // Next year: 31
 
 **Implemented today:** a variable name, or a struct field path such as `{player.name}` or
 `{p.x}` (Task 18.2.1). Full expressions inside `{...}` (like `{age + 1}` above) are not
-implemented yet. A whole array or struct can't be printed - print its elements or fields. An
-interpolated string can only be passed directly to `print()` until strings can be built at
-run time (Task 18.3).
+implemented yet. A whole array or struct can't be printed - print its elements or fields.
+An interpolated string is an ordinary string value anywhere - `string s = "x is {x}"`,
+`return "Hi {name}"`, `f("{a}-{b}")` (Task 18.3.3). `format(text, args...)` returns the text
+`print` would write, with the same `{@N}` rules; `{@N}` placeholders only work in the text
+given to `print` or `format`.
 
 **Syntax 2: Positional Formatting** (`{@1}`, `{@2}`, ...)
 ```fusion

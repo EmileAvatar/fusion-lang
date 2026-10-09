@@ -435,3 +435,68 @@ def test_ascii_encoding_makes_char_one_byte():
     analyzer, ast, ok = analyze(main('string s = "abc"\nchar c = s[0]'))
     c_code = CCodeGenerator(encoding='ascii').generate(ast)
     assert '#define FUSION_ASCII 1' in c_code
+
+
+
+# ============================================================
+# 18.3.3 - Interpolated strings as values, format()
+# ============================================================
+
+def test_interpolated_string_is_a_value_anywhere():
+    assert run_ok(ECHO + BOOK +
+                  'string function label(string name, int n)\n'
+                  '    return "{name} #{n}"\n'
+                  + main(
+                      'int x = 5\n'
+                      'string s = "x is {x}"\n'
+                      'print(s)\n'
+                      'print(echo("echo {x}"))\n'
+                      'print(label("item", 7))\n'
+                      'Book b = Book("title {x}")\n'
+                      'print(b.title)\n'
+                      's = s + " and " + "x again {x}"\n'
+                      'print("{@1} {@2}", s, len("{x}{x}"))\n'
+                  )) == ["x is 5", "echo 5", "item #7", "title 5", "x is 5 and x again 5 2"]
+
+
+def test_interpolation_formats_each_type():
+    assert run_ok(main(
+        'int i = 3\nfloat f = 1.5\nbool b = true\nchar c = \'z\'\nstring s = "str"\n'
+        'string all = "{i}|{f}|{b}|{c}|{s}|100%"\n'
+        'print(all)\n'
+    )) == ["3|1.500000|1|z|str|100%"]
+
+
+def test_format_returns_what_print_would_print():
+    assert run_ok(ECHO + main(
+        'string name = "Ada"\n'
+        'string a = format("{@2}, {@1}!", "World", "Hello")\n'
+        'string b = format("{name} is {@1}", 36)\n'
+        'string c = format("plain")\n'
+        'print("{@1}|{@2}|{@3}", a, b, c)\n'
+        'print(format("{@1}{@1}", echo("twice")))\n'
+    )) == ["Hello, World!|Ada is 36|plain", "twicetwice"]
+
+
+def test_interpolation_in_a_loop_is_leak_free():
+    assert run_ok(main(
+        'string log = ""\n'
+        'for i in range(0, 4)\n'
+        '    log = log + "[{i}]"\n'
+        'print(log)\n'
+    )) == ["[0][1][2][3]"]
+
+
+def test_interpolated_value_codegen():
+    c_code = generate_c(main('int x = 1\nstring s = "x={x}"'))
+    assert 'fusion_string s = fusion_str_format("x=%d", x);' in c_code
+
+
+@pytest.mark.parametrize("body, message", [
+    ('string s = "{@1}"', "{@1}-style placeholders only work in the text given to print(...) or format(...)"),
+    ('string s = format("{@2}", 1)', "{@2} has no matching argument - format() was given 1 argument(s)"),
+    ('string s = format("plain", 1)', "format() was given 1 argument(s) after its text"),
+    ('int[] a = [1]\nstring s = "{a}"', "Can't print a whole int[1] value"),
+])
+def test_interpolation_errors(body, message):
+    assert message in errors_of(main(body))

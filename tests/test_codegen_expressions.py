@@ -392,7 +392,7 @@ class TestStringInterpolation:
             ]
         )
         result = gen.visit_InterpolatedStringExpr(node)
-        assert result == '"Value: %d", x'
+        assert result == 'fusion_str_format("Value: %d", x)'  # builds a string (18.3.3)
 
     def test_multiple_interpolations(self):
         """Test multiple interpolations: "{a} + {b} = {c}" """
@@ -408,7 +408,7 @@ class TestStringInterpolation:
             ]
         )
         result = gen.visit_InterpolatedStringExpr(node)
-        assert result == '"%d + %d = %d", a, b, c'
+        assert result == 'fusion_str_format("%d + %d = %d", a, b, c)'
 
     def test_interpolation_uses_actual_type_not_always_d(self):
         """Format specifier should follow inferred_type, not default to %d for everything."""
@@ -423,7 +423,7 @@ class TestStringInterpolation:
             ]
         )
         result = gen.visit_InterpolatedStringExpr(node)
-        assert result == '"Pi: %f, name: %s", pi, name.data'
+        assert result == 'fusion_str_format("Pi: %f, name: %s", pi, name.data)'
 
     def test_interpolation_missing_inferred_type_raises(self):
         """Codegen must not silently guess when semantic analysis hasn't run."""
