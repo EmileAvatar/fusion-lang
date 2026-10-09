@@ -108,14 +108,17 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
 		[DONE] 18.3.5b A bool prints as `true` / `false` (print, `{...}`, `format`); still 1 / 0 as a value
 		[ ] 18.3.6 Versatile string functions
-			[ ] Inspect: isEmpty, isBlank, isDigits, isLetters, countOf
-			[ ] Search: lastIndexOf, indexOfFrom, containsAny
-			[ ] Extract: left, right
+			[DONE] 18.3.6a Optional arguments for built-ins; a program's own function/struct may reuse a
+				library built-in's name
+			[DONE] Inspect: isEmpty, isBlank, isDigits, isLetters (ASCII + Latin-1), countOf
+			[DONE] Search: lastIndexOf, indexOf(s, part, from), containsAny
+			[DONE] Extract: left, right (clamp; negative count = run-time error)
 			[ ] Change: replace, replaceFirst, insert, remove, repeat, reverse, trimStart, trimEnd, capitalize, toTitle
 			[ ] Padding & alignment: padLeft, padRight, center, truncate (with "...")
 			[ ] Masking: email, phone, number and custom string-number formats - planning overview only;
 				design in detail when this item starts
-			[ ] Number formatting: formatNumber(1234.5, "#,##0.00"), zero padding, toHex / parseInt with base
+			[ ] Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f", zero padding,
+				toHex / toBinary / parseInt with base
 			[ ] Compare: equalsIgnoreCase, compareIgnoreCase, natural order ("file2" before "file10")
 		[ ] 18.3.7 The String class and method syntax - every string function reachable three ways:
 			`String.replace(s, old, new)` (static class, always available), `name.toUpper()` (a string
@@ -177,7 +180,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[POSTPONED to 18.3] Closures (lambdas using outer variables) - need string ownership first
 	[POSTPONED - after MVP] Named lambdas inside functions; multi-line lambda bodies
 	[POSTPONED - after MVP] Lambdas / function types returning arrays; const array set from a call
-	[POSTPONED - after MVP] Unicode-aware case changes (é -> É), normalization (é typed two ways
+	[POSTPONED - after MVP] Full Unicode letters and case changes beyond Latin-1 (Greek, Cyrillic, ...
+		- 18.3.6 covers ASCII + Latin-1), normalization (é typed two ways
 		compares equal), counting what users see as one symbol (emoji families)
 	[POSTPONED - needs IO (18.5) / Data module] Bytes <-> string, Base64, URL encoding,
 		JSON/HTML escaping, validating UTF-8 from files and networks

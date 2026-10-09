@@ -19,6 +19,25 @@ from .errors import SemanticError
 from src.lexer.token import SourceLocation
 
 
+# Optional trailing arguments of built-in functions (Task 18.3.6): name -> the default value
+# of each trailing parameter that may be left out, as (value, type). An omitted argument
+# becomes this literal, just like a user function's default (Task 18.1.1)
+BUILTIN_DEFAULTS = {
+    'indexOf': [(0, 'int')],                 # indexOf(s, part, from = 0)
+}
+
+
+def builtin_defaults(name: str, parameter_count: int) -> list:
+    """The defaults list for a built-in, aligned with its parameters: None for a required
+    parameter, a fresh, already-typed LiteralExpr for an optional one."""
+    optional = BUILTIN_DEFAULTS.get(name, [])
+    location = SourceLocation('<builtin>', 0, 0)
+    literals = [LiteralExpr(location=location, value=value, type_hint=type_name,
+                            inferred_type=PrimitiveType(location=location, name=type_name))
+                for value, type_name in optional]
+    return [None] * (parameter_count - len(literals)) + literals
+
+
 class NameResolver:
     """Resolves names and populates the symbol table.
 
@@ -147,7 +166,21 @@ class NameResolver:
             'charCode': ([char_type], int_type),
             'fromCharCode': ([int_type], char_type),
             'byteAt': ([string_type, int_type], int_type),
+            # Versatile string functions (Task 18.3.6) - optional arguments: BUILTIN_DEFAULTS
+            'isEmpty': ([string_type], bool_type),
+            'isBlank': ([string_type], bool_type),
+            'isDigits': ([string_type], bool_type),
+            'isLetters': ([string_type], bool_type),
+            'countOf': ([string_type, string_type], int_type),
+            'lastIndexOf': ([string_type, string_type], int_type),
+            'containsAny': ([string_type, string_type], bool_type),
+            'left': ([string_type, int_type], string_type),
+            'right': ([string_type, int_type], string_type),
         }
+        string_builtins['indexOf'] = ([string_type, string_type, int_type], int_type)
+        # A program's own function or struct may reuse one of these names (Task 18.3.6 -
+        # left, right, remove, ... are everyday names): it replaces the built-in
+        self.library_builtins = set(string_builtins) - {'format'}
         for name, (params, result) in string_builtins.items():
             try:
                 self.symbol_table.define(Symbol(
@@ -209,6 +242,7 @@ class NameResolver:
             struct: Struct declaration node
         """
         try:
+            self._replace_library_builtin(struct.name)
             self.symbol_table.define(Symbol(
                 name=struct.name,
                 symbol_type='struct',
@@ -374,11 +408,22 @@ class NameResolver:
                 declaration=func
             )
 
-            # Add to global scope
+            # Add to global scope - replacing a library built-in of the same name
+            self._replace_library_builtin(func.name)
             self.symbol_table.define(symbol)
 
         except SemanticError as e:
             self.errors.append(e)
+
+    def _replace_library_builtin(self, name: str) -> None:
+        """Remove a string-library built-in that a program's own top-level function or
+        struct is about to replace (Task 18.3.6). Core built-ins (print, len, range) and
+        format can't be replaced - reusing them stays a duplicate-declaration error."""
+        symbols = self.symbol_table.global_scope.symbols
+        existing = symbols.get(name)
+        if (existing is not None and name in getattr(self, 'library_builtins', ())
+                and existing.location.filename == '<builtin>'):
+            del symbols[name]
 
     def check_parameter_defaults(self, func: FunctionDecl) -> None:
         """Check the rules for parameter default values (Task 18.1.1).

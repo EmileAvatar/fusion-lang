@@ -15,6 +15,7 @@ from src.parser.ast_nodes import (
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
+from .name_resolver import BUILTIN_DEFAULTS, builtin_defaults
 from .symbol import Symbol
 from .errors import SemanticError
 from src.lexer.token import SourceLocation
@@ -778,10 +779,16 @@ class TypeChecker:
             node.resolved_arguments = list(node.arguments)
             return func_type.return_type
 
-        # Trailing parameters with defaults may be omitted (Task 18.1.1)
-        defaults = [p.default_value for p in declaration.parameters] if declaration else []
+        # Trailing parameters with defaults may be omitted (Task 18.1.1) - for a built-in,
+        # its optional arguments (Task 18.3.6)
         expected_count = len(func_type.parameter_types)
-        required_count = sum(1 for d in defaults if d is None) if declaration else expected_count
+        if declaration:
+            defaults = [p.default_value for p in declaration.parameters]
+        elif symbol.declaration is None and func_name in BUILTIN_DEFAULTS:
+            defaults = builtin_defaults(func_name, expected_count)
+        else:
+            defaults = []
+        required_count = sum(1 for d in defaults if d is None) if defaults else expected_count
         actual_count = len(node.arguments)
         if actual_count < required_count or actual_count > expected_count:
             if required_count == expected_count:

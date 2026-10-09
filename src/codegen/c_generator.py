@@ -790,7 +790,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     # run-time errors)
     _STRING_BUILTINS = {
         'substring': ('fusion_str_substring', True), 'contains': ('fusion_str_contains', False),
-        'indexOf': ('fusion_str_indexOf', False), 'startsWith': ('fusion_str_startsWith', False),
+        'indexOf': ('fusion_str_indexOfFrom', False), 'startsWith': ('fusion_str_startsWith', False),
         'endsWith': ('fusion_str_endsWith', False), 'toUpper': ('fusion_str_toUpper', False),
         'toLower': ('fusion_str_toLower', False), 'trim': ('fusion_str_trim', False),
         'toInt': ('fusion_str_toInt', True), 'toFloat': ('fusion_str_toFloat', True),
@@ -800,6 +800,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'lenb': (None, False), 'isAscii': ('fusion_str_isAscii', False),
         'asciiOnly': ('fusion_str_asciiOnly', False), 'charCode': ('fusion_charCode', False),
         'fromCharCode': ('fusion_fromCharCode', True), 'byteAt': ('fusion_str_byteAt', True),
+        # Versatile string functions (Task 18.3.6, c_strings.py)
+        'isEmpty': ('fusion_str_isEmpty', False), 'isBlank': ('fusion_str_isBlank', False),
+        'isDigits': ('fusion_str_isDigits', False), 'isLetters': ('fusion_str_isLetters', False),
+        'countOf': ('fusion_str_countOf', False), 'lastIndexOf': ('fusion_str_lastIndexOf', False),
+        'containsAny': ('fusion_str_containsAny', False), 'left': ('fusion_str_left', True),
+        'right': ('fusion_str_right', True),
     }
     _TO_STRING = {'int': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
@@ -816,7 +822,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         borrowed and evaluated left to right as written."""
         name = node.callee.name
         c_function, needs_where = self._STRING_BUILTINS[name]
-        arguments = list(node.arguments)
+        # With any optional arguments filled in by their defaults (Task 18.3.6)
+        arguments = list(node.resolved_arguments or node.arguments)
         if name == 'toString':
             c_function = self._TO_STRING[arguments[0].inferred_type.name]
         if name == 'lenb':

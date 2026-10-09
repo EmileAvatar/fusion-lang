@@ -175,14 +175,14 @@ void function main()
     print("{@1} {@2}", a == "apple", a < b)   // compares text; < > alphabetical
 ```
 
-## String operations (each returns a new string)
+#### String operations (each returns a new string)
 
 <!-- example: syntax_string_operations | task: 18.3.2 -->
 ```fusion
 void function main()
     string name = "Ada"
     string full = name + " " + "Lovelace" + '!'   // join strings (and chars) with +
-    print("{full}: {@1} bytes, first {@2}", len(full), full[0])   // s[i] is bounds-checked
+    print("{full}: {@1} characters, first {@2}", len(full), full[0])   // s[i] is bounds-checked
     print("[{@1}] [{@2}] [{@3}]", substring(full, 4, 8), toUpper(name), trim("  x  "))
     print("{@1} {@2} {@3} {@4}", contains(full, "Love"), indexOf(full, "Love"), startsWith(full, "Ada"), endsWith(full, "!"))
 
@@ -208,6 +208,19 @@ void function main()
     print("{@1} [{@2}]", isAscii(word), asciiOnly(word, '?'))
     string joined = jp + '!' + e        // a char can be any character
     print(joined)
+```
+
+#### String library: inspect, search, extract
+
+<!-- example: syntax_string_library | task: 18.3.6 -->
+```fusion
+void function main()
+    string s = "caf\u00e9 au lait"
+    print("{@1} {@2} {@3}", isEmpty(s), isBlank("  "), isDigits("2026"))
+    print("{@1} {@2}", isLetters("Caf\u00e9"), countOf(s, "a"))         // letters: ASCII + Latin-1
+    print("{@1} {@2} {@3}", indexOf(s, "a"), indexOf(s, "a", 2), lastIndexOf(s, "a"))
+    print("{@1}", containsAny(s, "xyz!"))
+    print("[{@1}] [{@2}] [{@3}]", left(s, 4), right(s, 4), left(s, 99))   // up to n: clamps
 ```
 
 #### Equality: `=`, `==`, `===`

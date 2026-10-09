@@ -348,9 +348,11 @@ def test_string_operation_errors(body, message):
     assert message in errors_of(main(body))
 
 
-def test_builtin_names_are_reserved():
-    assert "Duplicate declaration of 'trim'" in errors_of(
-        'string function trim(string s) : s\n' + main('int x = 1'))
+def test_own_function_may_replace_a_string_built_in():
+    """Since Task 18.3.6 a program's own function replaces a library built-in of the same
+    name (see tests/test_string_library.py)."""
+    assert run_ok('string function trim(string s) : "[" + s + "]"\n' + main('print(trim(" x "))')) \
+        == ["[ x ]"]
 
 
 # ============================================================

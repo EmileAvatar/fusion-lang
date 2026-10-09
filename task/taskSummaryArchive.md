@@ -3165,3 +3165,18 @@ Implementation (2026-10-09):
 **18.3.5b - A bool prints as true / false** (user request 2026-10-09 - COMPLETE)
 - [x] print, `{...}` interpolation and format() show `true` / `false`; as a value a bool stays 1 / 0
 - [x] Expectations in test_strings.py and the strings_demo output updated; new test in test_equality.py
+
+---
+
+#### 18.3.6a (archived 2026-10-09)
+
+**18.3.6a - Groundwork + inspect / search / extract** (COMPLETE)
+- [x] Built-ins take optional trailing arguments (`BUILTIN_DEFAULTS` in name_resolver.py,
+      filled in through `resolved_arguments` like user defaults): `indexOf(s, part, from = 0)`
+- [x] A program's own top-level function or struct may reuse a library built-in's name
+      (`left`, `right`, `trim`, ...) and replaces it; print / len / range / format stay reserved
+- [x] isEmpty, isBlank, isDigits, isLetters (ASCII + Latin-1), countOf, lastIndexOf,
+      indexOf with from, containsAny, left, right - C in the new `src/codegen/c_strings.py`
+- [x] The whole runtime compiles warning-free under -Wall -Wextra, UTF-8 and ascii mode
+- [x] Fixed on the way: `## String operations` heading -> `####` (Rule 5); its example said
+      "bytes" where len counts characters

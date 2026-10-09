@@ -34,6 +34,7 @@ from ..parser.ast_nodes import (
     ArrayLiteralExpr, LambdaExpr, PrimitiveType, ArrayType, StructType, StructDecl,
 )
 from .c_names import mangle_function_name
+from .c_strings import STRING_LIBRARY
 
 
 RUNTIME_PRELUDE = r'''// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
@@ -376,6 +377,7 @@ static inline bool fusion_float_eq_str(float n, fusion_string s) { double v; ret
 static inline bool fusion_char_eq_str(fusion_char c, fusion_string s) { return s.chars == 1 && fusion_utf8_decode(s.data) == c; }
 // ---- end of runtime ----
 '''
+RUNTIME_PRELUDE += STRING_LIBRARY  # the versatile string functions (Task 18.3.6)
 
 
 class MemoryManagementMixin:

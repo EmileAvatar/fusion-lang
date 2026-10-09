@@ -129,6 +129,62 @@ Each adds tests, an example program (Rule 4), and spec/EBNF/CLAUDE.md updates.
 
 **18.3.5 - The equality operator family** - COMPLETE, detail archived
 
+**18.3.6 - Versatile string functions (PLAN APPROVED 2026-10-09)**
+Same pattern as the 18.3.2 built-ins: a signature in `name_resolver.py`, a C name in
+`_STRING_BUILTINS`, a C function in the runtime (`c_memory.py`). Each returns a new string;
+the input is unchanged; everything counts characters (UTF-8), with the ASCII fast path.
+Indexes start at 0, as `s[i]` and `substring` do. Six parts, each committed on its own:
+
+- **18.3.6a Groundwork + inspect / search / extract** - COMPLETE, detail archived
+  - Groundwork: optional trailing arguments for built-ins (decision 3), e.g.
+    `indexOf(s, part, from = 0)`, `padLeft(s, width, fill = ' ')`
+  - `isEmpty(s)` (no characters), `isBlank(s)` (only spaces/tabs/newlines), `isDigits(s)`
+    (0-9 only, not empty), `isLetters(s)` (letters only, not empty), `countOf(s, part)`
+    (non-overlapping), `lastIndexOf(s, part)`, `indexOf(s, part, from)`,
+    `containsAny(s, chars)` (any one of the characters), `left(s, n)`, `right(s, n)`
+- **18.3.6b Change**: `replace(s, old, new)` (every match), `replaceFirst`,
+  `insert(s, index, part)`, `remove(s, start, count)`, `repeat(s, n)`, `reverse(s)` (by
+  character), `trimStart`, `trimEnd`, `capitalize(s)` ("hello world" -> "Hello world"),
+  `toTitle(s)` ("hello world" -> "Hello World"). An empty `old` in replace returns `s`
+  unchanged; `repeat` with n < 0 is a run-time error
+- **18.3.6c Padding & alignment**: `padLeft(s, width, fill)`, `padRight`, `center` (extra
+  space goes right), `truncate(s, width, ending = "...")` - the result is at most `width`
+  characters including the ending. A string already at or past `width` is returned as is
+  by the pad functions
+- **18.3.6d Number formatting**: `formatNumber(n, pattern)` with Excel/.NET-style patterns
+  (decision 4): `0` = digit always shown, `#` = digit if needed, `,` = thousands
+  separator, `.` = decimal point - `formatNumber(1234.5, "#,##0.00")` -> "1,234.50",
+  `formatNumber(7, "000")` -> "007"; rounds half away from zero. **Both styles** (user
+  decision): a pattern starting with `%` is printf style - `formatNumber(3.14159, "%.2f")`
+  -> "3.14" - checked by Fusion itself (one number conversion: d i f e g x, with flags,
+  width and precision; never %s / %n / %p), so a pattern is never handed raw to C;
+  otherwise Excel/.NET style. The project's developers choose per call. `toHex(255)` -> "ff",
+  `toBinary(5)` -> "101", `parseInt("ff", 16)` -> 255 (bases 2-36; bad text = run-time
+  error, like toInt). Separators fixed to `,` and `.` for now - locales come later
+- **18.3.6e Compare**: `equalsIgnoreCase(a, b)`, `compareIgnoreCase(a, b)` and
+  `compareNatural(a, b)` - negative / 0 / positive like `fusion_str_cmp`; natural order
+  compares digit runs as numbers ("file2" < "file10")
+- **18.3.6f Masking - planning overview only** (user decision): a spec section on
+  `mask(s, pattern)` for email, phone and custom formats ("a***@x.com", "***-***-1234",
+  "(###) ###-####"), with open questions listed. No code
+
+Out-of-range rules (decision 2): `left`, `right`, `truncate` and the pad functions are
+"up to n" functions and clamp quietly (`left("ab", 5)` -> "ab"); `insert` / `remove` with
+a position outside the string stop with a run-time error, like `substring`. A negative
+count or width is always a run-time error.
+
+Letters and case (decision 1): ASCII + Latin-1 letters (a-z plus Western European
+accented letters such as e-acute, u-umlaut, n-tilde, sharp s), for isLetters, capitalize,
+toTitle, the IgnoreCase functions - and `toUpper` / `toLower` are upgraded to match (today
+they only change a-z). Full Unicode case tables are logged for later.
+
+**Decisions (user, 2026-10-09):** 1. ASCII + Latin-1 letters; 2. "up to n" functions clamp
+quietly; 3. optional arguments for built-ins; 4. formatNumber takes both Excel/.NET and
+printf-style patterns.
+
+Each part: tests (unit + run under the leak check), a `SYNTAX_REFERENCE.md` example,
+spec + `FEATURES.md`, `python check.py`, commit and push.
+
 **Out of scope (logged for later):** in-place editing (`s[0] = 'X'`) and mutable vs fixed
 strings (Task 17 - 18.3 strings are replaced, never edited in place, which keeps the
 ownership rules simple); string pooling (Task 17); Unicode-aware functions; full expressions
@@ -249,4 +305,7 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.4 COMPLETE (string_max_length at run time).
 - 18.3.4b COMPLETE (no length limit by default; exceeding a project limit is an error).
 - 18.3.5 COMPLETE (equality operator family; Task 18.3 core done).
-- **Next Action:** plan **18.3.6 (versatile string functions)** and get approval.
+- 18.3.5b COMPLETE (a bool prints as true / false).
+- 18.3.6 plan approved (all four decisions; formatNumber takes both pattern styles).
+- 18.3.6a COMPLETE (optional built-in arguments, inspect / search / extract).
+- **Next Action:** implement **18.3.6b (change functions)** per the approved plan.

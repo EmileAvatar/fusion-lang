@@ -1,0 +1,7 @@
+void function main()
+    string s = "caf\u00e9 au lait"
+    print("{@1} {@2} {@3}", isEmpty(s), isBlank("  "), isDigits("2026"))
+    print("{@1} {@2}", isLetters("Caf\u00e9"), countOf(s, "a"))         // letters: ASCII + Latin-1
+    print("{@1} {@2} {@3}", indexOf(s, "a"), indexOf(s, "a", 2), lastIndexOf(s, "a"))
+    print("{@1}", containsAny(s, "xyz!"))
+    print("[{@1}] [{@2}] [{@3}]", left(s, 4), right(s, 4), left(s, 99))   // up to n: clamps

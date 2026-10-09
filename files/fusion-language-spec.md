@@ -376,17 +376,41 @@ bool same = name == "Enterprise"   // true - compares the text
 
 * **String Operations** (Task 18.3.2, implemented): all return a new string and leave the
   original unchanged. They are built-in functions for now (method syntax such as
-  `name.toUpper()` is a planned advanced feature). Lengths and indexes count bytes
+  `name.toUpper()` is a planned advanced feature). Lengths and indexes count characters
      * `a + b` joins strings (or a string and a char); numbers are joined with interpolation
        (`"{name}{count}"`) - `"a" + 5` is a compile error
      * `len(s)` (characters), `lenb(s)` (bytes); `s[i]` reads one `char` - a bad index stops
        the program with a run-time error naming the file and line
-     * `substring(s, start, count)`, `contains(s, part)`, `indexOf(s, part)` (-1 if absent),
+     * `substring(s, start, count)`, `contains(s, part)`, `indexOf(s, part, from = 0)` (-1 if absent),
        `startsWith`, `endsWith`, `toUpper`, `toLower`, `trim`
      * `toString(x)` for int/float/double/bool/char/string; `toInt(s)`, `toFloat(s)` stop the
        program with a clear error on text that isn't a number - check first with `isInt(s)` /
        `isFloat(s)` (until error handling, Task 21, makes it catchable)
-     * The names are reserved: a user function can't be called `trim`, `toInt`, ...
+     * A program's own top-level function or struct may reuse one of these names (`left`,
+       `right`, `trim`, ...) and then replaces the built-in; a local variable simply hides
+       it inside its block. The core built-ins `print`, `len`, `range` and `format` can't be
+       replaced (Task 18.3.6)
+
+* **Versatile string functions** (Task 18.3.6, user decisions 2026-10-09) - built-in
+  functions, all counting characters and returning a new value:
+     * Inspect (18.3.6a): `isEmpty(s)`, `isBlank(s)` (only spaces / tabs / newlines - an
+       empty string is blank), `isDigits(s)` (0-9, not empty), `isLetters(s)` (not empty),
+       `countOf(s, part)` (non-overlapping: "aaaa" holds "aa" twice)
+     * Search (18.3.6a): `indexOf(s, part, from)`, `lastIndexOf(s, part)`,
+       `containsAny(s, chars)` (any one of the characters)
+     * Extract (18.3.6a): `left(s, n)`, `right(s, n)` - up to n characters
+     * **Letters** are ASCII plus Latin-1 (Western European accented letters such as e-acute,
+       u-umlaut, sharp s); full Unicode letter and case tables come later
+     * **Built-ins take optional arguments** like user functions' defaults:
+       `indexOf(s, "a", 5)` or `indexOf(s, "a")` (from 0)
+     * **Out of range:** "up to n" functions (`left`, `right`, padding, `truncate`) clamp
+       quietly - `left("ab", 5)` is "ab"; a negative count stops the program with a run-time
+       error; positions inside the string (`insert`, `remove`, like `substring`) must be valid
+     * Still to come in 18.3.6: change (`replace`, `insert`, `remove`, `repeat`, `reverse`,
+       `trimStart` / `trimEnd`, `capitalize`, `toTitle`), padding (`padLeft`, `padRight`,
+       `center`, `truncate`), number formatting (`formatNumber` with Excel/.NET or printf
+       patterns, `toHex`, `toBinary`, `parseInt(s, base)`), comparing (`equalsIgnoreCase`,
+       `compareIgnoreCase`, `compareNatural`), and a masking design (`mask`)
 
 ```
 string original = "Hello"
