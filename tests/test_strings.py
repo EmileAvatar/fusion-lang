@@ -44,7 +44,7 @@ def _run_runtime_snippet(body: str) -> int:
         c_file = os.path.join(tmp, 'leak.c')
         exe = os.path.join(tmp, 'leak.exe')
         with open(c_file, 'w', encoding='utf-8') as f:
-            f.write('#include <stdarg.h>\n#include <stdbool.h>\n#include <stdio.h>\n'
+            f.write('#include <stdarg.h>\n#include <stdbool.h>\n#include <stdint.h>\n#include <stdio.h>\n'
                     '#include <stdlib.h>\n#include <string.h>\n' + RUNTIME_PRELUDE
                     + 'int main(void) {\n' + body + '\n    return 0;\n}\n')
         build = subprocess.run(['gcc', '-DFUSION_LEAK_CHECK', c_file, '-o', exe],
@@ -70,7 +70,7 @@ def test_leak_check_catches_a_double_free():
 
 def test_runtime_is_in_every_program():
     c_code = generate_c(main('int x = 1'))
-    assert 'typedef struct { char* data; int len; int owned; } fusion_string;' in c_code
+    assert 'typedef struct { char* data; int len; int chars; int owned; } fusion_string;' in c_code
 
 
 # ============================================================
@@ -350,3 +350,88 @@ def test_string_operation_errors(body, message):
 def test_builtin_names_are_reserved():
     assert "Duplicate declaration of 'trim'" in errors_of(
         'string function trim(string s) : s\n' + main('int x = 1'))
+
+
+# ============================================================
+# 18.3.2b - Unicode by default
+# ============================================================
+
+def run_utf8(source: str) -> list:
+    """Like run_ok, for output containing non-ASCII text."""
+    exit_code, stdout, stderr = compile_and_run(source)
+    assert exit_code == 0, f"exit {exit_code}: {stderr}"
+    return stdout.splitlines()
+
+
+def test_lengths_in_characters_and_bytes():
+    assert run_utf8(main(
+        'print("{@1} {@2}", len("caf\u00e9"), lenb("caf\u00e9"))\n'
+        'print("{@1} {@2}", len("\u65e5\u672c"), lenb("\u65e5\u672c"))\n'
+        'print("{@1} {@2}", len("plain"), lenb("plain"))\n'
+    )) == ["4 5", "2 6", "5 5"]
+
+
+def test_indexing_and_substring_by_character():
+    assert run_utf8(main(
+        'string jp = "\u65e5\u672c\u8a9e"\n'
+        'print("{@1} {@2}", charCode(jp[0]), charCode(jp[2]))\n'
+        'print("{@1}", lenb(substring(jp, 1, 2)))\n'
+        'print("{@1}", indexOf("a\u00f1ob", "o"))\n'
+    )) == ["26085 35486", "6", "2"]
+
+
+def test_unicode_chars_join_and_convert():
+    assert run_utf8(main(
+        'char e = \'\u00e9\'\n'
+        'string s = "caf" + e\n'
+        'print("{@1} {@2} {@3} {@4}", len(s), lenb(s), charCode(e), s == "caf\u00e9")\n'
+        'print("{@1} {@2}", lenb(toString(e)), charCode(fromCharCode(26085)))\n'
+    )) == ["4 5 233 1", "2 26085"]
+
+
+def test_encoding_helpers():
+    assert run_utf8(main(
+        'print("{@1} {@2}", isAscii("caf\u00e9"), isAscii("plain"))\n'
+        'print("[{@1}]", asciiOnly("caf\u00e9 \u65e5", \'?\'))\n'
+        'print("{@1} {@2}", byteAt("\u00e9", 0), byteAt("\u00e9", 1))\n'
+    )) == ["0 1", "[caf? ?]", "195 169"]
+
+
+def test_printing_unicode():
+    exit_code, stdout, _ = compile_and_run(main('char k = \'\u65e5\'\nprint("{@1}-{k}", "\u00e9")'))
+    assert exit_code == 0
+    assert stdout.strip() == '\u00e9-\u65e5'
+
+
+def test_non_ascii_literals_carry_their_character_count():
+    c_code = generate_c(main('string s = "caf\u00e9"\nchar c = \'\u00e9\''))
+    assert 'FUSION_STRU("caf\u00e9", 4)' in c_code
+    assert 'fusion_char c = ((fusion_char)0xE9);' in c_code
+
+
+@pytest.mark.parametrize("statement, message", [
+    ('char c = "ab"[2]', "index 2 is outside the string (length 2)"),
+    ('char c = "\u65e5"[1]', "index 1 is outside the string (length 1)"),
+    ('char c = fromCharCode(55296)', "55296 is not a Unicode character code"),
+    ('int b = byteAt("\u00e9", 2)', "byte 2 is outside the string (2 bytes)"),
+])
+def test_unicode_run_time_errors(statement, message):
+    assert message in run_error(main(f'print("before")\n{statement}'))
+
+
+def test_ascii_encoding_rejects_non_ascii_text():
+    from src.config import StringsConfig
+    ast = parse(main('string s = "caf\u00e9"\nchar c = \'\u00e9\''))
+    analyzer = __import__('src.semantic', fromlist=['SemanticAnalyzer']).SemanticAnalyzer(
+        strings_config=StringsConfig(encoding='ascii'))
+    assert not analyzer.analyze(ast)
+    message = '\n'.join(str(e) for e in analyzer.get_errors())
+    assert 'String literal contains U+00E9, but the project uses ascii encoding' in message
+    assert 'Char literal contains U+00E9' in message
+
+
+def test_ascii_encoding_makes_char_one_byte():
+    from src.codegen import CCodeGenerator
+    analyzer, ast, ok = analyze(main('string s = "abc"\nchar c = s[0]'))
+    c_code = CCodeGenerator(encoding='ascii').generate(ast)
+    assert '#define FUSION_ASCII 1' in c_code

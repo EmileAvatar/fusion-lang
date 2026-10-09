@@ -97,7 +97,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 18.3 Proper strings
 		[DONE] 18.3.1 String values and automatic cleanup, compare by content, leak check
 		[DONE] 18.3.2 String operations: `+`, `len`, `s[i]`, substring/contains/indexOf/..., conversions
-		[ ] 18.3.2b Unicode by default: `[strings] encoding = "utf-8"` (ascii | utf-8 | utf-16 | utf-32);
+		[DONE] 18.3.2b Unicode by default: `[strings] encoding = "utf-8"` (ascii | utf-8 | utf-16 | utf-32);
 			len counts characters, lenb counts bytes; s[i]/substring by character; char holds any
 			Unicode character; fast path for ASCII text; isAscii, asciiOnly, charCode, fromCharCode, byteAt
 		[ ] 18.3.3 Interpolated strings as values anywhere, `format(...)`
@@ -138,14 +138,13 @@ The single place to see what is done, open, or postponed. One line per item.
 #### 21 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
 	[POSTPONED to 18.3] 21.1 Detailed plan (needs working strings for error messages)
 
-#### 23 Examples folder as a showcase [ ]
+#### 23 Examples folder as a showcase [DONE]
 	[DONE] 23.1 One example per SYNTAX_REFERENCE.md section, written and built by `check.py --build-examples`
 	[DONE] 23.2 `examples/#list.csv` (fusion, c, exe, task, date added) - local only, not in git
 	[DONE] 23.3 `examples/#run.bat` runs every .exe with `---- name.exe ----` separators, then pauses - local only
 	[DONE] 23.4 `examples/CLAUDE.md` - the folder's rules
 	[DONE] 23.5 Main CLAUDE.md Rule 4 points to it
-	[ ] 23.6 Remove the stray `examples/New folder` (deleting was blocked by permissions - user to
-		delete it, or allow it); `fusion.yaml` -> `files/fusion-overview.yaml` done
+	[DONE] 23.6 Removed the stray `examples/New folder` (user); `fusion.yaml` -> `files/fusion-overview.yaml`
 
 #### 22 Project tracking restructure (FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, check.py) [ ]
 	[DONE] 22.1 FEATURES.md
@@ -188,4 +187,4 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 ## Known limitations (by design for now)
 	[ ] A string-holding variable can't reuse the name of one in an enclosing block (clear error)
 	[ ] Single-quote comments disabled (clash with char literals) - 8 skipped tests
-	[ ] Identifiers ASCII-only unless fusion.toml opts in; char literals are one byte
+	[ ] Identifiers ASCII-only unless fusion.toml opts in (text and chars are Unicode since 18.3.2b)

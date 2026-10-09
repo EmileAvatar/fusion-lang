@@ -32,7 +32,7 @@ class TypeMapperMixin:
                 'float': 'float',
                 'double': 'double',
                 'bool': 'bool',
-                'char': 'char',
+                'char': 'fusion_char',  # any Unicode character (Task 18.3.2b)
                 'string': 'fusion_string',  # an owned string value (Task 18.3.1)
                 'void': 'void'
             }

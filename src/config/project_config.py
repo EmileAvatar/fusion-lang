@@ -68,6 +68,13 @@ DEFAULT_STRING_WARN_LENGTH = 64
 DEFAULT_STRING_MAX_LENGTH = 4096
 MAX_MEMORY = "max memory"
 
+# [strings] (Task 18.3.2b, user decision 2026-10-09): text is Unicode stored as UTF-8 by
+# default; "ascii" (English only, one byte per character) is for very small or legacy
+# devices. utf-16 / utf-32 are named for the future but not implemented yet.
+VALID_ENCODINGS = ("utf-8", "ascii")
+RESERVED_ENCODINGS = ("utf-16", "utf-32")
+DEFAULT_ENCODING = "utf-8"
+
 
 class ProjectConfigError(Exception):
     """Raised when fusion.toml exists but is malformed or contains an invalid value."""
@@ -110,6 +117,17 @@ class StructsConfig:
 
 
 @dataclass
+class StringsConfig:
+    """How text is stored (Task 18.3.2b).
+
+    Attributes:
+        encoding: "utf-8" (default - any Unicode character; len counts characters, lenb
+            bytes) or "ascii" (English only; non-ASCII text is a compile error)
+    """
+    encoding: str = DEFAULT_ENCODING
+
+
+@dataclass
 class ProjectConfig:
     """Resolved project configuration - either loaded from fusion.toml or all defaults.
 
@@ -127,6 +145,7 @@ class ProjectConfig:
     indentation: IndentationConfig = field(default_factory=IndentationConfig)
     source: SourceConfig = field(default_factory=SourceConfig)
     structs: StructsConfig = field(default_factory=StructsConfig)
+    strings: StringsConfig = field(default_factory=StringsConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     backend: str = DEFAULT_BACKEND
     source_path: Optional[str] = None
@@ -237,6 +256,28 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
     return structs
 
 
+def _load_strings_section(data: dict, config_path: str) -> StringsConfig:
+    """Parse and validate the [strings] section (Task 18.3.2b)."""
+    strings = StringsConfig()
+    section = _require_table(data, "strings", config_path)
+    for key in section:
+        if key != "encoding":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting strings.{key} (known: ['encoding'])")
+    if "encoding" in section:
+        value = section["encoding"]
+        if value in RESERVED_ENCODINGS:
+            raise ProjectConfigError(
+                f"{config_path}: strings.encoding = {value!r} is reserved for the future, not "
+                f"implemented yet - use 'utf-8' or 'ascii'")
+        if value not in VALID_ENCODINGS:
+            raise ProjectConfigError(
+                f"{config_path}: strings.encoding must be one of {list(VALID_ENCODINGS)} "
+                f"(utf-16 / utf-32 reserved), got {value!r}")
+        strings.encoding = value
+    return strings
+
+
 def load_project_config(source_path: str) -> ProjectConfig:
     """Load project configuration for compiling `source_path`.
 
@@ -288,6 +329,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
         source.allow_unicode_identifiers = allow_unicode
 
     structs = _load_structs_section(data, config_path)
+    strings = _load_strings_section(data, config_path)
 
     safety_mode = DEFAULT_SAFETY_MODE
     safety_section = _require_table(data, "safety", config_path)
@@ -315,6 +357,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
         indentation=indentation,
         source=source,
         structs=structs,
+        strings=strings,
         safety_mode=safety_mode,
         backend=backend,
         source_path=config_path,

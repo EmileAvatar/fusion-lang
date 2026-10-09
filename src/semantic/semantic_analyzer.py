@@ -8,7 +8,7 @@ import sys
 from typing import List, Optional
 
 from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType
-from ..config.project_config import StructsConfig, MAX_MEMORY
+from ..config.project_config import StructsConfig, StringsConfig, MAX_MEMORY
 from .errors import SemanticError
 from .symbol_table import SymbolTable
 from .name_resolver import NameResolver
@@ -36,7 +36,8 @@ class SemanticAnalyzer:
         warnings: List of warnings found during analysis
     """
 
-    def __init__(self, structs_config: Optional[StructsConfig] = None):
+    def __init__(self, structs_config: Optional[StructsConfig] = None,
+                 strings_config: Optional[StringsConfig] = None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -46,7 +47,7 @@ class SemanticAnalyzer:
         self.structs_config = structs_config or StructsConfig()
         self.symbol_table = SymbolTable()
         self.name_resolver = NameResolver(self.symbol_table)
-        self.type_checker = TypeChecker(self.symbol_table, self.structs_config)
+        self.type_checker = TypeChecker(self.symbol_table, self.structs_config, strings_config)
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 

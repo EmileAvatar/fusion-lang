@@ -354,12 +354,12 @@ def parse_char(text: str, position: int) -> Optional[Tuple[str, int]]:
         char_value = text[pos]
         pos += 1
 
-    # A Fusion char maps to a single-byte C char, so it can only hold ASCII. A non-ASCII
-    # character needs more than one byte - it belongs in a string.
-    if ord(char_value) > 0x7F:
+    # A char holds any Unicode character (Task 18.3.2b) - but not a lone surrogate, which
+    # isn't a character at all. (A project using ascii encoding rejects non-ASCII later, in
+    # semantic analysis, which knows the project settings.)
+    if 0xD800 <= ord(char_value) <= 0xDFFF:
         raise ValueError(
-            f"Character literal can only hold an ASCII character (U+0000-U+007F); "
-            f"U+{ord(char_value):04X} needs a string instead"
+            f"Character literal U+{ord(char_value):04X} is a surrogate, not a character"
         )
 
     # Expect closing '

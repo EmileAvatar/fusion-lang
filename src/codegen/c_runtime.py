@@ -95,7 +95,7 @@ class RuntimeLoweringMixin:
         'float': '%f',
         'double': '%f',
         'string': '%s',
-        'char': '%c',
+        'char': '%s',   # printed via fusion_char_text - any Unicode character (18.3.2b)
         'bool': '%d',
     }
 
@@ -138,6 +138,8 @@ class RuntimeLoweringMixin:
         inferred = getattr(expr, 'inferred_type', None)
         if isinstance(inferred, PrimitiveType) and inferred.name == 'string':
             return f'{code}.data'
+        if isinstance(inferred, PrimitiveType) and inferred.name == 'char':
+            return f'fusion_char_text({code}).bytes'
         return code
 
     def _generate_print_call(self, node: CallExpr) -> str:
@@ -191,9 +193,9 @@ class RuntimeLoweringMixin:
         """
         arg = node.arguments[0]
         array_type = getattr(arg, 'inferred_type', None)
-        # A string's length in bytes (Task 18.3.2)
+        # A string's length in characters (Task 18.3.2b - lenb gives bytes)
         if isinstance(array_type, PrimitiveType) and array_type.name == 'string':
-            return f'({self.visit(arg)}).len'
+            return f'({self.visit(arg)}).chars'
         if isinstance(array_type, ArrayType) and array_type.size is None and isinstance(arg, IdentifierExpr):
             return array_length_name(arg.name)
         if not isinstance(array_type, ArrayType) or array_type.size is None:

@@ -48,8 +48,14 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         generated_functions: List of generated function signatures
     """
 
-    def __init__(self):
-        """Initialize code generator."""
+    def __init__(self, encoding: str = 'utf-8'):
+        """Initialize code generator.
+
+        Args:
+            encoding: The project's [strings] encoding - "utf-8" (default) or "ascii",
+                which makes a char one byte (Task 18.3.2b)
+        """
+        self.encoding = encoding
         self.output: List[str] = []
         self.indent_level: int = 0
         self.includes: Set[str] = set()
@@ -62,6 +68,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.includes.add('<math.h>')    # For math operations (pow, etc.)
         self.includes.add('<stdlib.h>')  # malloc/free for strings (Task 18.3.1)
         self.includes.add('<stdarg.h>')  # run-time error messages (Task 18.3.1)
+        self.includes.add('<stdint.h>')  # 32-bit characters (Task 18.3.2b)
 
         # String ownership state (Task 18.3.1), also reset by generate() - set here too so
         # statement and expression visitors work when called directly (unit tests do)
@@ -108,6 +115,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         # Generate includes, then the runtime every program shares (Task 18.3.1)
         self._generate_includes()
+        if getattr(self, 'encoding', 'utf-8') == 'ascii':
+            self.emit('#define FUSION_ASCII 1  // [strings] encoding = "ascii" (Task 18.3.2b)')
         self.output.extend(RUNTIME_PRELUDE.splitlines())
         self.emit()
 
@@ -551,13 +560,20 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return 'true' if node.value else 'false'
 
         elif type_hint == 'char':
+            # Any Unicode character (Task 18.3.2b): non-ASCII ones by their code point
+            if ord(str(node.value)) > 0x7F:
+                return f'((fusion_char)0x{ord(str(node.value)):X})'
             escaped = escape_c_text(str(node.value), "'")
             return f"'{escaped}'"
 
         elif type_hint == 'string':
-            # Source text as a string value that is never freed (Task 18.3.1)
-            escaped = escape_c_text(str(node.value), '"')
-            return f'FUSION_STR("{escaped}")'
+            # Source text as a string value that is never freed (Task 18.3.1). Non-ASCII
+            # text carries its character count (Task 18.3.2b)
+            text = str(node.value)
+            escaped = escape_c_text(text, '"')
+            if all(ord(ch) < 0x80 for ch in text):
+                return f'FUSION_STR("{escaped}")'
+            return f'FUSION_STRU("{escaped}", {len(text)})'
 
         elif type_hint == 'null':
             return 'NULL'
@@ -766,6 +782,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'toInt': ('fusion_str_toInt', True), 'toFloat': ('fusion_str_toFloat', True),
         'isInt': ('fusion_str_isInt', False), 'isFloat': ('fusion_str_isFloat', False),
         'toString': (None, False),
+        # Encoding helpers (Task 18.3.2b)
+        'lenb': (None, False), 'isAscii': ('fusion_str_isAscii', False),
+        'asciiOnly': ('fusion_str_asciiOnly', False), 'charCode': ('fusion_charCode', False),
+        'fromCharCode': ('fusion_fromCharCode', True), 'byteAt': ('fusion_str_byteAt', True),
     }
     _TO_STRING = {'int': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
@@ -785,6 +805,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         arguments = list(node.arguments)
         if name == 'toString':
             c_function = self._TO_STRING[arguments[0].inferred_type.name]
+        if name == 'lenb':
+            return f'({self.visit(arguments[0])}).len'   # bytes (Task 18.3.2b)
         codes = [self.visit(arg) for arg in arguments]
         ordered = []
         if self._order_matters(arguments) and self.temp_scopes:
@@ -1290,6 +1312,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.temp_scopes = []
         self.temp_scopes.append([])
         temp_index = len(self.output)
+
+        # The program starts by setting up the runtime (a UTF-8 console on Windows, 18.3.2b)
+        if node.name == 'main':
+            self.emit_line('fusion_init()')
 
         # Parameters borrow the caller's values; one the function assigns to gets its own
         # copy first, so the caller's string is never changed or freed (Task 18.3.1)

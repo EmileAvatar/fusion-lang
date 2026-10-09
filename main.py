@@ -94,7 +94,8 @@ def compile_file(source_path: str) -> int:
 
     # Semantic analysis
     print(f"[3/5] Semantic analysis...", file=sys.stderr)
-    analyzer = SemanticAnalyzer(structs_config=project_config.structs)
+    analyzer = SemanticAnalyzer(structs_config=project_config.structs,
+                                strings_config=project_config.strings)
     success = analyzer.analyze(ast)
 
     if not success:
@@ -109,7 +110,7 @@ def compile_file(source_path: str) -> int:
 
     # Code generation
     print(f"[4/5] Code generation...", file=sys.stderr)
-    generator = CCodeGenerator()
+    generator = CCodeGenerator(encoding=project_config.strings.encoding)
     try:
         c_code = generator.generate(ast)
     except Exception as e:

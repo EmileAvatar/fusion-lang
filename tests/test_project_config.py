@@ -420,3 +420,26 @@ def test_nesting_depth_config_changes_compiler_behaviour(tmp_path):
     result = compile_it()
     assert result.returncode != 0
     assert "Struct 'Line' is nested 2 levels deep (Line -> Point) - the project allows 1" in result.stderr
+
+
+# ============================================================
+# [strings] (Task 18.3.2b)
+# ============================================================
+
+def test_strings_encoding_default_utf8(tmp_path):
+    assert _load_with(tmp_path, "").strings.encoding == "utf-8"
+
+
+def test_strings_encoding_ascii(tmp_path):
+    assert _load_with(tmp_path, '[strings]\nencoding = "ascii"\n').strings.encoding == "ascii"
+
+
+@pytest.mark.parametrize("toml_text, message", [
+    ('[strings]\nencoding = "utf-16"\n', "reserved for the future, not implemented yet"),
+    ('[strings]\nencoding = "utf-32"\n', "reserved for the future"),
+    ('[strings]\nencoding = "latin-1"\n', "strings.encoding must be one of"),
+    ('[strings]\nencodng = "ascii"\n', "unknown setting strings.encodng"),
+])
+def test_strings_invalid_values(tmp_path, toml_text, message):
+    with pytest.raises(ProjectConfigError, match=message):
+        _load_with(tmp_path, toml_text)

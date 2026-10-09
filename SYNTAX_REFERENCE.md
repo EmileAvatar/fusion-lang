@@ -191,6 +191,22 @@ void function main()
     // toInt("12x") would stop the program: Runtime error at file:line: '12x' is not a whole number
 ```
 
+#### Unicode text (characters vs bytes)
+
+<!-- example: syntax_unicode | task: 18.3.2b -->
+```fusion
+void function main()
+    string word = "caf\u00e9"          // the same as writing the accented letter directly
+    string jp = "\u65e5\u672c"           // two Japanese characters
+    print("{word}: {@1} characters, {@2} bytes", len(word), lenb(word))
+    print("{jp}: {@1} characters, {@2} bytes", len(jp), lenb(jp))
+    char e = word[3]                    // indexing counts characters
+    print("{e} has code {@1}; {@2}", charCode(e), fromCharCode(65))
+    print("{@1} [{@2}]", isAscii(word), asciiOnly(word, '?'))
+    string joined = jp + '!' + e        // a char can be any character
+    print(joined)
+```
+
 #### Project settings - `fusion.toml` (optional, next to the source file)
 
 ```toml
@@ -200,6 +216,9 @@ allow_mixed = true
 
 [source]
 allow_unicode_identifiers = false
+
+[strings]
+encoding = "utf-8"               # utf-8 (default) | ascii - also named: utf-16, utf-32 (future)
 
 [structs]
 max_nesting_depth  = 3

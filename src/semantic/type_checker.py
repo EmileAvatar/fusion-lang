@@ -13,7 +13,7 @@ from src.parser.ast_nodes import (
     InterpolatedStringExpr, StringExprPart, StringPositionalPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType
 )
-from src.config.project_config import StructsConfig
+from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
 from .symbol import Symbol
 from .errors import SemanticError
@@ -49,7 +49,8 @@ class TypeChecker:
         structs_config: The project's [structs] settings (fusion.toml)
     """
 
-    def __init__(self, symbol_table: SymbolTable, structs_config: Optional[StructsConfig] = None):
+    def __init__(self, symbol_table: SymbolTable, structs_config: Optional[StructsConfig] = None,
+                 strings_config: Optional[StringsConfig] = None):
         """Initialize type checker.
 
         Args:
@@ -61,6 +62,7 @@ class TypeChecker:
         self.errors: List[SemanticError] = []
         self.warnings: List[SemanticError] = []
         self.structs_config = structs_config or StructsConfig()
+        self.strings_config = strings_config or StringsConfig()
 
         # The interpolated string passed directly to print() - the only place one can be
         # used until strings can be built at run time (Task 15.10 / 18.3)
@@ -352,6 +354,17 @@ class TypeChecker:
             'null': 'void'  # null is treated as void type
         }
         type_name = type_map.get(node.type_hint, 'void')
+
+        # A project using ascii encoding can only hold ASCII text (Task 18.3.2b)
+        if self.strings_config.encoding == 'ascii' and node.type_hint in ('string', 'char'):
+            for ch in str(node.value):
+                if ord(ch) > 0x7F:
+                    self.errors.append(SemanticError(
+                        f"{'String' if node.type_hint == 'string' else 'Char'} literal contains "
+                        f"U+{ord(ch):04X}, but the project uses ascii encoding "
+                        f"([strings] encoding = \"ascii\" in fusion.toml)",
+                        node.location))
+                    break
         return PrimitiveType(location=node.location, name=type_name)
 
     def visit_IdentifierExpr(self, node: IdentifierExpr) -> TypeNode:

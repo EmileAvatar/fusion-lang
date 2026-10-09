@@ -27,7 +27,7 @@ def compile_and_run(fusion_code: str) -> tuple[int, str, str]:
     with tempfile.TemporaryDirectory() as tmpdir:
         # Write Fusion source
         fusion_file = os.path.join(tmpdir, 'test.fusion')
-        with open(fusion_file, 'w') as f:
+        with open(fusion_file, 'w', encoding='utf-8') as f:
             f.write(fusion_code)
 
         # Compile Fusion -> C
@@ -47,7 +47,7 @@ def compile_and_run(fusion_code: str) -> tuple[int, str, str]:
 
         # Write C code
         c_file = os.path.join(tmpdir, 'test.c')
-        with open(c_file, 'w') as f:
+        with open(c_file, 'w', encoding='utf-8') as f:
             f.write(c_code)
 
         # Compile C -> executable
@@ -69,6 +69,8 @@ def compile_and_run(fusion_code: str) -> tuple[int, str, str]:
             [exe_file],
             capture_output=True,
             text=True,
+            encoding='utf-8',      # programs print UTF-8 text (Task 18.3.2b)
+            errors='replace',
             timeout=5
         )
 

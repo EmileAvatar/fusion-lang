@@ -59,7 +59,7 @@ def test_map_bool_type(generator, loc):
 def test_map_char_type(generator, loc):
     """Test mapping char type."""
     fusion_type = PrimitiveType(loc, 'char')
-    assert generator.map_type(fusion_type) == 'char'
+    assert generator.map_type(fusion_type) == 'fusion_char'  # any Unicode character (18.3.2b)
 
 
 def test_map_string_type(generator, loc):
@@ -167,9 +167,10 @@ def test_includes_generated_sorted(generator):
     assert include_lines[0] == '#include <math.h>'
     assert include_lines[1] == '#include <stdarg.h>'
     assert include_lines[2] == '#include <stdbool.h>'
-    assert include_lines[3] == '#include <stdio.h>'
-    assert include_lines[4] == '#include <stdlib.h>'
-    assert include_lines[5] == '#include <string.h>'
+    assert include_lines[3] == '#include <stdint.h>'
+    assert include_lines[4] == '#include <stdio.h>'
+    assert include_lines[5] == '#include <stdlib.h>'
+    assert include_lines[6] == '#include <string.h>'
 
 
 def test_standard_includes_present(generator):
@@ -260,7 +261,8 @@ def test_generator_initialization(generator):
     assert generator.output == []
     assert generator.indent_level == 0
     # stdio.h, stdbool.h, string.h, math.h, plus stdlib.h and stdarg.h for strings (18.3.1)
-    assert len(generator.includes) == 6
+    # and stdint.h for 32-bit characters (18.3.2b)
+    assert len(generator.includes) == 7
     assert '<stdio.h>' in generator.includes
     assert '<stdbool.h>' in generator.includes
     assert '<string.h>' in generator.includes

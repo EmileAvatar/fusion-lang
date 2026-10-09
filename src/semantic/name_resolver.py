@@ -124,6 +124,7 @@ class NameResolver:
         # fields-only structs. toString accepts any single value; TypeChecker special-cases it
         bool_type = PrimitiveType(location=builtin_loc, name='bool')
         float_type = PrimitiveType(location=builtin_loc, name='float')
+        char_type = PrimitiveType(location=builtin_loc, name='char')
         string_builtins = {
             'substring': ([string_type, int_type, int_type], string_type),
             'contains': ([string_type, string_type], bool_type),
@@ -138,6 +139,13 @@ class NameResolver:
             'isInt': ([string_type], bool_type),
             'isFloat': ([string_type], bool_type),
             'toString': ([string_type], string_type),
+            # Encoding helpers (Task 18.3.2b)
+            'lenb': ([string_type], int_type),
+            'isAscii': ([string_type], bool_type),
+            'asciiOnly': ([string_type, char_type], string_type),
+            'charCode': ([char_type], int_type),
+            'fromCharCode': ([int_type], char_type),
+            'byteAt': ([string_type, int_type], int_type),
         }
         for name, (params, result) in string_builtins.items():
             try:

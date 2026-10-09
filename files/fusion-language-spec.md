@@ -319,9 +319,21 @@ team.scores = podium()     // an array field too
 
 Description: Strings are **values**, like structs (decided 2026-10-09, Task 18.3).
 
-**Implementation status:** 18.3.1 (values, automatic cleanup, comparison) and 18.3.2
-(operations below) are implemented; interpolated strings outside `print` are 18.3.3 - see
-`FEATURES.md`.
+**Implementation status:** 18.3.1 (values, automatic cleanup, comparison), 18.3.2
+(operations below) and 18.3.2b (Unicode by default) are implemented; interpolated strings
+outside `print` are 18.3.3 - see `FEATURES.md`.
+
+* **Encoding (Task 18.3.2b, user decision 2026-10-09):** text is Unicode, stored as UTF-8, by
+  default. `len(s)` counts **characters**; `lenb(s)` counts **bytes** (for files, networks,
+  databases). `s[i]`, `substring` and `indexOf` count characters. A `char` holds any Unicode
+  character (`char c = 'é'`). Plain ASCII text keeps a fast path (no scanning).
+  A project can choose `[strings] encoding = "ascii"` in `fusion.toml` for very small or legacy
+  devices: English text only (non-ASCII text is a compile error), and a `char` is one byte.
+  `utf-16` and `utf-32` are named for the future but not implemented yet.
+  Helpers: `isAscii(s)`, `asciiOnly(s, replacement)`, `charCode(c)`, `fromCharCode(n)`,
+  `byteAt(s, i)`. "Character" means a Unicode code point; what a reader sees as one symbol can
+  occasionally be several code points (some emoji, combining accents) - grapheme handling is
+  a later, advanced feature
 
 * **Ownership**
      * Each string variable, struct field and array element owns its own text
@@ -358,8 +370,8 @@ bool same = name == "Enterprise"   // true - compares the text
   `name.toUpper()` is a planned advanced feature). Lengths and indexes count bytes
      * `a + b` joins strings (or a string and a char); numbers are joined with interpolation
        (`"{name}{count}"`) - `"a" + 5` is a compile error
-     * `len(s)`; `s[i]` reads one `char` - a bad index stops the program with a run-time
-       error naming the file and line
+     * `len(s)` (characters), `lenb(s)` (bytes); `s[i]` reads one `char` - a bad index stops
+       the program with a run-time error naming the file and line
      * `substring(s, start, count)`, `contains(s, part)`, `indexOf(s, part)` (-1 if absent),
        `startsWith`, `endsWith`, `toUpper`, `toLower`, `trim`
      * `toString(x)` for int/float/double/bool/char/string; `toInt(s)`, `toFloat(s)` stop the
@@ -3512,6 +3524,9 @@ allow_mixed = true   # allow mixed tabs/spaces with a warning instead of an erro
 [source]
 allow_unicode_identifiers = false   # identifiers ASCII-only by default (homoglyph defense) -
                                     # see "Source Text Rules" under Syntax Overview
+
+[strings]                      # Task 18.3.2b - see "String Implementation"
+encoding = "utf-8"             # utf-8 (default) | ascii; utf-16 / utf-32 reserved (future)
 
 [structs]                      # Task 18.2 - see "Structures and Value Types"
 max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct)

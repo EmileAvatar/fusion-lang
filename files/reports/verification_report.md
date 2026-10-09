@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Fri Oct  9 19:47:09 SAST 2026
+**Date:** Fri Oct  9 20:55:56 SAST 2026
 **Total Examples:** 11
 
 ## Summary
@@ -43,14 +43,25 @@ All array tests passed!```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -64,32 +75,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -115,14 +115,25 @@ Prod: 50```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -136,32 +147,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -206,14 +206,25 @@ All const tests passed!```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -227,32 +238,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -274,14 +274,25 @@ Factorial of 5 is 120```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -295,32 +306,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -375,14 +375,25 @@ FizzBuzz```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -396,32 +407,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -458,14 +458,25 @@ All function tests passed!```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -479,32 +490,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -526,14 +526,25 @@ Hello, World!```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -547,32 +558,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -594,14 +594,25 @@ Maximum of 10, 25, 15 is 25```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -615,32 +626,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -680,14 +680,25 @@ All string tests passed!```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -701,32 +712,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -778,14 +778,25 @@ All struct tests passed!```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -799,32 +810,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 
@@ -846,14 +846,25 @@ Sum of 1 to 10: 55```
 #include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 // ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -867,32 +878,21 @@ static inline void fusion_leak_report(void) {
 }
 #endif
 
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
     fflush(stdout);
     fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-    fputc('\n', stderr);
-#ifdef FUSION_LEAK_CHECK
-    fusion_leak_skip = 1;
-#endif
-    exit(1);
-}
-
-static inline void* fusion_alloc(size_t size) {
-    void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
-#ifdef FUSION_LEAK_CHECK
-    if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
-    if (fusion_live_count == fusion_live_cap) {
-        fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
-        fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
-    }
-    fusion_live[fusion_live_count++] = p;
-#endif
 ... (truncated)
 ```
 

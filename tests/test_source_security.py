@@ -139,14 +139,19 @@ def test_char_literal_unicode_escape_ascii():
     assert any(t.type == TokenType.CHAR_LIT for t in tokens)
 
 
-def test_char_literal_non_ascii_escape_rejected():
-    with pytest.raises(LexerError, match="ASCII"):
-        lex("char c = '\\u00E9'\n")
+def test_char_literal_non_ascii_escape_allowed():
+    """A char holds any Unicode character since Task 18.3.2b (ascii encoding still rejects
+    it - in semantic analysis, see tests/test_strings.py)."""
+    assert any(t.value == "'\\u00E9'" for t in lex("char c = '\\u00E9'\n"))
 
 
-def test_char_literal_raw_non_ascii_rejected():
-    with pytest.raises(LexerError, match="ASCII"):
-        lex(f"char c = '{E_ACUTE}'\n")
+def test_char_literal_raw_non_ascii_allowed():
+    assert any(t.value == f"'{E_ACUTE}'" for t in lex(f"char c = '{E_ACUTE}'\n"))
+
+
+def test_char_literal_surrogate_rejected():
+    with pytest.raises(LexerError, match="surrogate"):
+        lex("char c = '\\uD800'\n")
 
 
 # ============================================================

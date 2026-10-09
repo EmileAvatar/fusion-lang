@@ -37,9 +37,19 @@ from .c_names import mangle_function_name
 
 
 RUNTIME_PRELUDE = r'''// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-typedef struct { char* data; int len; int owned; } fusion_string;
-// Text written in the source: never freed, costs nothing at run time
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), 0})
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -52,6 +62,17 @@ static inline void fusion_leak_report(void) {
     }
 }
 #endif
+
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
 
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     va_list args;
@@ -107,6 +128,7 @@ static inline fusion_string fusion_str_copy(fusion_string s) {
     memcpy(r.data, s.data, (size_t)s.len);
     r.data[s.len] = '\0';
     r.len = s.len;
+    r.chars = s.chars;
     r.owned = 1;
     return r;
 }
@@ -135,46 +157,115 @@ static inline int fusion_str_cmp(fusion_string a, fusion_string b) {
 }
 // ---- String operations (Task 18.3.2) - each returns a new string, the input is unchanged.
 // Lengths and indexes count bytes; `where` is "file:line" for run-time error messages
+// UTF-8 (Task 18.3.2b): a character takes 1-4 bytes; continuation bytes are 10xxxxxx
+static inline int fusion_utf8_count(const char* data, int len) {
+    int n = 0;
+    for (int i = 0; i < len; i++) if ((data[i] & 0xC0) != 0x80) n++;
+    return n;
+}
+// Byte offset of character number `index` (index == chars gives the end)
+static inline int fusion_utf8_offset(fusion_string s, int index) {
+    if (s.chars == s.len) return index;           // ASCII: one byte per character
+    int i = 0;
+    while (index > 0 && i < s.len) { i++; while (i < s.len && (s.data[i] & 0xC0) == 0x80) i++; index--; }
+    return i;
+}
+static inline fusion_char fusion_utf8_decode(const char* p) {
+    unsigned char b = (unsigned char)p[0];
+    if (b < 0x80) return b;
+    if (b < 0xE0) return (fusion_char)(((b & 0x1F) << 6) | (p[1] & 0x3F));
+    if (b < 0xF0) return (fusion_char)(((b & 0x0F) << 12) | ((p[1] & 0x3F) << 6) | (p[2] & 0x3F));
+    return (fusion_char)(((b & 0x07) << 18) | ((p[1] & 0x3F) << 12) | ((p[2] & 0x3F) << 6) | (p[3] & 0x3F));
+}
+static inline int fusion_utf8_encode(fusion_char c, char* out) {
+    unsigned long v = (unsigned long)c;
+    if (v < 0x80) { out[0] = (char)v; return 1; }
+    if (v < 0x800) { out[0] = (char)(0xC0 | (v >> 6)); out[1] = (char)(0x80 | (v & 0x3F)); return 2; }
+    if (v < 0x10000) { out[0] = (char)(0xE0 | (v >> 12)); out[1] = (char)(0x80 | ((v >> 6) & 0x3F)); out[2] = (char)(0x80 | (v & 0x3F)); return 3; }
+    out[0] = (char)(0xF0 | (v >> 18)); out[1] = (char)(0x80 | ((v >> 12) & 0x3F));
+    out[2] = (char)(0x80 | ((v >> 6) & 0x3F)); out[3] = (char)(0x80 | (v & 0x3F)); return 4;
+}
+// A character as printable text, for printf("%s", fusion_char_text(c).bytes)
+typedef struct { char bytes[5]; } fusion_char_buf;
+static inline fusion_char_buf fusion_char_text(fusion_char c) {
+    fusion_char_buf b; int n = fusion_utf8_encode(c, b.bytes); b.bytes[n] = '\0'; return b;
+}
+
 static inline fusion_string fusion_str_make(const char* data, int len) {
     fusion_string r;
     r.data = (char*)fusion_alloc((size_t)len + 1);
     if (len > 0) memcpy(r.data, data, (size_t)len);
     r.data[len] = '\0';
     r.len = len;
+    r.chars = fusion_utf8_count(data, len);
     r.owned = 1;
     return r;
 }
 
-static inline fusion_string fusion_str_join(const char* a, int alen, const char* b, int blen) {
+static inline fusion_string fusion_str_concat(fusion_string a, fusion_string b) {
     fusion_string r;
-    r.data = (char*)fusion_alloc((size_t)alen + (size_t)blen + 1);
-    memcpy(r.data, a, (size_t)alen);
-    memcpy(r.data + alen, b, (size_t)blen);
-    r.data[alen + blen] = '\0';
-    r.len = alen + blen;
+    r.data = (char*)fusion_alloc((size_t)a.len + (size_t)b.len + 1);
+    memcpy(r.data, a.data, (size_t)a.len);
+    memcpy(r.data + a.len, b.data, (size_t)b.len);
+    r.data[a.len + b.len] = '\0';
+    r.len = a.len + b.len;
+    r.chars = a.chars + b.chars;
     r.owned = 1;
     return r;
 }
+// A character as a string that is never freed - only for joining (the text is copied)
+static inline fusion_string fusion_char_view(fusion_char c, char* buf) {
+    fusion_string v; v.len = fusion_utf8_encode(c, buf); v.data = buf; v.chars = 1; v.owned = 0; return v;
+}
+static inline fusion_string fusion_str_concat_char(fusion_string a, fusion_char c) { char buf[4]; return fusion_str_concat(a, fusion_char_view(c, buf)); }
+static inline fusion_string fusion_char_concat_str(fusion_char c, fusion_string b) { char buf[4]; return fusion_str_concat(fusion_char_view(c, buf), b); }
 
-static inline fusion_string fusion_str_concat(fusion_string a, fusion_string b) { return fusion_str_join(a.data, a.len, b.data, b.len); }
-static inline fusion_string fusion_str_concat_char(fusion_string a, char c) { return fusion_str_join(a.data, a.len, &c, 1); }
-static inline fusion_string fusion_char_concat_str(char c, fusion_string b) { return fusion_str_join(&c, 1, b.data, b.len); }
-
-static inline char fusion_str_at(fusion_string s, int i, const char* where) {
-    if (i < 0 || i >= s.len) fusion_runtime_error(where, "index %d is outside the string (length %d)", i, s.len);
-    return s.data[i];
+static inline fusion_char fusion_str_at(fusion_string s, int i, const char* where) {
+    if (i < 0 || i >= s.chars) fusion_runtime_error(where, "index %d is outside the string (length %d)", i, s.chars);
+    return fusion_utf8_decode(s.data + fusion_utf8_offset(s, i));
 }
 
 static inline fusion_string fusion_str_substring(fusion_string s, int start, int count, const char* where) {
-    if (start < 0 || count < 0 || start > s.len || count > s.len - start)
-        fusion_runtime_error(where, "substring(start %d, count %d) is outside the string (length %d)", start, count, s.len);
-    return fusion_str_make(s.data + start, count);
+    if (start < 0 || count < 0 || start > s.chars || count > s.chars - start)
+        fusion_runtime_error(where, "substring(start %d, count %d) is outside the string (length %d)", start, count, s.chars);
+    int from = fusion_utf8_offset(s, start);
+    return fusion_str_make(s.data + from, fusion_utf8_offset(s, start + count) - from);
 }
 
+// Character position of the first match, or -1
 static inline int fusion_str_indexOf(fusion_string s, fusion_string part) {
     for (int i = 0; i + part.len <= s.len; i++)
-        if (memcmp(s.data + i, part.data, (size_t)part.len) == 0) return i;
+        if (memcmp(s.data + i, part.data, (size_t)part.len) == 0)
+            return s.chars == s.len ? i : fusion_utf8_count(s.data, i);
     return -1;
+}
+
+// Encoding helpers (Task 18.3.2b)
+static inline bool fusion_str_isAscii(fusion_string s) { return s.chars == s.len; }
+static inline fusion_string fusion_str_asciiOnly(fusion_string s, fusion_char replacement) {
+    char rep[4]; int replen = fusion_utf8_encode(replacement, rep);
+    fusion_string r; int out = 0;
+    r.data = (char*)fusion_alloc((size_t)s.len * 4 + 1);
+    for (int i = 0; i < s.len; ) {
+        if ((unsigned char)s.data[i] < 0x80) { r.data[out++] = s.data[i++]; continue; }
+        memcpy(r.data + out, rep, (size_t)replen); out += replen;
+        i++; while (i < s.len && (s.data[i] & 0xC0) == 0x80) i++;
+    }
+    r.data[out] = '\0'; r.len = out; r.chars = fusion_utf8_count(r.data, out); r.owned = 1;
+    return r;
+}
+static inline int fusion_charCode(fusion_char c) { return (int)c; }
+static inline fusion_char fusion_fromCharCode(int code, const char* where) {
+#ifdef FUSION_ASCII
+    if (code < 0 || code > 0x7F) fusion_runtime_error(where, "%d is not an ASCII character code (the project uses ascii encoding)", code);
+#else
+    if (code < 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) fusion_runtime_error(where, "%d is not a Unicode character code", code);
+#endif
+    return (fusion_char)code;
+}
+static inline int fusion_str_byteAt(fusion_string s, int i, const char* where) {
+    if (i < 0 || i >= s.len) fusion_runtime_error(where, "byte %d is outside the string (%d bytes)", i, s.len);
+    return (unsigned char)s.data[i];
 }
 static inline bool fusion_str_contains(fusion_string s, fusion_string part) { return fusion_str_indexOf(s, part) >= 0; }
 static inline bool fusion_str_startsWith(fusion_string s, fusion_string part) {
@@ -206,7 +297,7 @@ static inline fusion_string fusion_str_trim(fusion_string s) {
 static inline fusion_string fusion_int_to_str(int value) { char buf[16]; int n = snprintf(buf, sizeof buf, "%d", value); return fusion_str_make(buf, n); }
 static inline fusion_string fusion_double_to_str(double value) { char buf[32]; int n = snprintf(buf, sizeof buf, "%g", value); return fusion_str_make(buf, n); }
 static inline fusion_string fusion_bool_to_str(bool value) { return value ? FUSION_STR("true") : FUSION_STR("false"); }
-static inline fusion_string fusion_char_to_str(char value) { return fusion_str_make(&value, 1); }
+static inline fusion_string fusion_char_to_str(fusion_char value) { char buf[4]; return fusion_str_make(buf, fusion_utf8_encode(value, buf)); }
 
 // Conversions from text: the whole text must be a number, or the program stops with a
 // clear error (user decision 2026-10-09) - check first with isInt / isFloat
