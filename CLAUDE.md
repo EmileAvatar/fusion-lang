@@ -106,7 +106,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Full language design | `files/fusion-language-spec.md` (grep it) |
 | Grammar | `files/fusion.ebnf` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |
-| Compiler source | `src/` (lexer, parser, semantic, codegen, config) - `c_memory.py` = string runtime |
+| Compiler source | `src/` - `src/CLAUDE.md` explains the pipeline; each subfolder's `CLAUDE.md` has one line per file |
 | Tests / examples | `tests/`, `examples/` |
 
 Folders: `taskSummary2.md`, `FEATURES.md`, `SYNTAX_REFERENCE.md` stay in the root; docs in
@@ -124,6 +124,7 @@ When a language feature or spec changes, update every affected file without aski
 | Syntax (lambdas, blocks, types, keywords, operators) | `files/fusion.ebnf`, `files/fusion-language-spec.md`, `SYNTAX_REFERENCE.md` |
 | String interpolation | language spec, `SYNTAX_REFERENCE.md`, examples |
 | Standard library module | language spec |
+| A source file added, renamed or given a new job | that folder's `CLAUDE.md` (one line per file) |
 
 ---
 
