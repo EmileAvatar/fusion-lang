@@ -3204,3 +3204,5 @@ Implementation (2026-10-09):
 - [x] truncate(s, width, ending = "...") - at most `width` characters, ending included; an
       ending wider than `width` is itself cut to fit
 - [x] Negative widths are run-time errors; the first char / string defaults for built-ins
+- [x] Revised (user decision 2026-10-10): truncate adds nothing - `truncate(s, width)` returns
+      only the first `width` characters; the optional "..." ending was removed

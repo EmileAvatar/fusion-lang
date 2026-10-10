@@ -157,12 +157,12 @@ def test_padding_and_center():
     )) == ['[007] [   ab] [abcdef]', '[ab   ] [ab..] [x]', '[  ab  ] [*ab**] [\u00b7caf\u00e9\u00b7]']
 
 
-def test_truncate():
+def test_truncate_adds_nothing():
+    """User decision 2026-10-10: truncate returns only the kept characters - no "..."."""
     assert run_ok(main(
         'print("[{@1}] [{@2}] [{@3}]", truncate("Hello world", 8), truncate("Hello", 8), truncate("Hello", 5))\n'
-        'print("[{@1}] [{@2}] [{@3}]", truncate("Hello world", 6, "~"), truncate("Hello", 2), truncate("Hello", 0))\n'
-        'print("[{@1}]", truncate("caf\u00e9 au lait", 5, "\u2026"))'
-    )) == ['[Hello...] [Hello] [Hello]', '[Hello~] [..] []', '[caf\u00e9\u2026]']
+        'print("[{@1}] [{@2}]", truncate("Hello", 0), truncate("caf\u00e9 au lait", 4))'
+    )) == ['[Hello wo] [Hello] [Hello]', '[] [caf\u00e9]']
 
 
 @pytest.mark.parametrize("call, message", [
@@ -175,5 +175,6 @@ def test_padding_run_time_errors(call, message):
 
 
 def test_padding_argument_types():
-    errors = errors_of(main('string a = padLeft("x", 3, "0")\nstring b = truncate("x", 3, \'.\')'))
-    assert "expected char, got string" in errors and "expected string, got char" in errors
+    errors = errors_of(main('string a = padLeft("x", 3, "0")\nstring b = truncate("x", 3, "...")'))
+    assert "expected char, got string" in errors
+    assert "Function 'truncate' expects 2 argument(s), got 3" in errors

@@ -148,7 +148,8 @@ Indexes start at 0, as `s[i]` and `substring` do. Six parts, each committed on i
   `toTitle(s)` ("hello world" -> "Hello World"). An empty `old` in replace returns `s`
   unchanged; `repeat` with n < 0 is a run-time error
 - **18.3.6c Padding & alignment** - COMPLETE, detail archived: `padLeft(s, width, fill)`, `padRight`, `center` (extra
-  space goes right), `truncate(s, width, ending = "...")` - the result is at most `width`
+  space goes right), `truncate(s, width)` - the first `width` characters, nothing added (user decision
+  2026-10-10, replacing an optional "..." ending) - the result is at most `width`
   characters including the ending. A string already at or past `width` is returned as is
   by the pad functions
 - **18.3.6d Number formatting**: `formatNumber(n, pattern)` with Excel/.NET-style patterns

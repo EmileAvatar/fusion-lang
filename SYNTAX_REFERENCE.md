@@ -227,7 +227,7 @@ void function main()
     print("[{@1}] [{@2}]", trimStart("  x  "), trimEnd("  x  "))
     print("{@1} / {@2} / {@3}", toUpper(s), capitalize("hello world"), toTitle("hello world"))
     print("[{@1}] [{@2}] [{@3}]", padLeft("7", 3, '0'), padRight("ab", 5), center("ab", 6, '*'))
-    print("{@1} {@2}", truncate("Hello world", 8), truncate("Hello world", 6, "~"))
+    print("[{@1}]", truncate("Hello world", 8))       // the first 8 characters, nothing added
 ```
 
 #### Equality: `=`, `==`, `===`

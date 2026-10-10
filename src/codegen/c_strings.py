@@ -218,16 +218,11 @@ static inline fusion_string fusion_str_pad(fusion_string s, int width, fusion_ch
 static inline fusion_string fusion_str_padLeft(fusion_string s, int width, fusion_char fill, const char* where) { return fusion_str_pad(s, width, fill, 0, "padLeft", where); }
 static inline fusion_string fusion_str_padRight(fusion_string s, int width, fusion_char fill, const char* where) { return fusion_str_pad(s, width, fill, 1, "padRight", where); }
 static inline fusion_string fusion_str_center(fusion_string s, int width, fusion_char fill, const char* where) { return fusion_str_pad(s, width, fill, 2, "center", where); }
-// At most `width` characters, the ending included: truncate("Hello world", 8) -> "Hello..."
-// When the ending alone is wider than `width`, as much of the ending as fits
-static inline fusion_string fusion_str_truncate(fusion_string s, int width, fusion_string ending, const char* where) {
+// The first `width` characters - nothing is added (user decision 2026-10-10: an added "..."
+// would surprise developers); a shorter string comes back unchanged
+static inline fusion_string fusion_str_truncate(fusion_string s, int width, const char* where) {
     if (width < 0) fusion_runtime_error(where, "truncate(width %d): the width can't be negative", width);
-    if (s.chars <= width) return fusion_str_make(s.data, s.len);
-    if (ending.chars >= width) return fusion_str_make(ending.data, fusion_utf8_offset(ending, width));
-    int keep = fusion_utf8_offset(s, width - ending.chars);
-    char* out = (char*)fusion_alloc((size_t)(keep + ending.len) + 1);
-    memcpy(out, s.data, (size_t)keep);
-    memcpy(out + keep, ending.data, (size_t)ending.len);
-    return fusion_str_take(out, keep + ending.len);
+    if (width > s.chars) width = s.chars;
+    return fusion_str_make(s.data, fusion_utf8_offset(s, width));
 }
 '''

@@ -27,7 +27,6 @@ BUILTIN_DEFAULTS = {
     'padLeft': [(' ', 'char')],              # padLeft(s, width, fill = ' ')
     'padRight': [(' ', 'char')],
     'center': [(' ', 'char')],
-    'truncate': [('...', 'string')],         # truncate(s, width, ending = "...")
 }
 
 
@@ -193,7 +192,7 @@ class NameResolver:
             'padLeft': ([string_type, int_type, char_type], string_type),
             'padRight': ([string_type, int_type, char_type], string_type),
             'center': ([string_type, int_type, char_type], string_type),
-            'truncate': ([string_type, int_type, string_type], string_type),
+            'truncate': ([string_type, int_type], string_type),
         }
         string_builtins['indexOf'] = ([string_type, string_type, int_type], int_type)
         # A program's own function or struct may reuse one of these names (Task 18.3.6 -

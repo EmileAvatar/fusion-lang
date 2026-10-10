@@ -409,9 +409,9 @@ bool same = name == "Enterprise"   // true - compares the text
        one-letter capital and stays as it is)
      * Padding (18.3.6c): `padLeft(s, width, fill = ' ')`, `padRight`, `center` (an odd extra
        fill goes on the right) - the fill is any character; a string already `width`
-       characters or wider comes back unchanged. `truncate(s, width, ending = "...")` gives at
-       most `width` characters, the ending included ("Hello world", 8 -> "Hello..."); when
-       the ending alone is wider than `width`, as much of the ending as fits
+       characters or wider comes back unchanged. `truncate(s, width)` gives the first `width`
+       characters and **adds nothing** - no "..." (user decision 2026-10-10: an added ending
+       would conflict with what developers expect); a shorter string comes back unchanged
      * **Letters** are ASCII plus Latin-1 (Western European accented letters such as e-acute,
        u-umlaut, sharp s); full Unicode letter and case tables come later
      * **Built-ins take optional arguments** like user functions' defaults:
