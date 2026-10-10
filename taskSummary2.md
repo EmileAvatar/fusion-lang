@@ -269,4 +269,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.6f COMPLETE (masking design overview in the spec, 9 open questions); 18.3.6 done.
 - Masking: all 9 design questions decided (ready to build, listed in FEATURES).
 - 18.3.7 COMPLETE (built-in type classes and method syntax) - Task 18.3 complete.
-- **Next Action:** user to choose: build masking, or plan **18.4 (import and multi-file projects)**.
+- Masking BUILT (formatMask, digitsOnly, mask, maskEmail).
+- **Next Action:** plan **18.4 (import and multi-file projects)** and get approval.

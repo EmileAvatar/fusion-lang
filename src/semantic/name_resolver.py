@@ -33,6 +33,8 @@ BUILTIN_DEFAULTS = {
     'toBase': [(0, 'int')],                  # toBase(x, base, width = 0)
     'isInt': [(10, 'int')],                  # isInt(s, base = 10)
     'compareNatural': [(False, 'bool')],     # compareNatural(a, b, ignoreCase = false)
+    'mask': [('*', 'char')],                 # mask(s, keepStart, keepEnd, with = '*')
+    'maskEmail': [(1, 'int'), ('*', 'char')],  # maskEmail(s, keep = 1, with = '*')
     # Raw bytes (18.3.8) - byte order: little-endian unless bigEndian = true
     'toBytes': [(False, 'bool')],            # toBytes(x, bigEndian = false)
     'newBytes': [(0, 'int')],                # newBytes(n, fill = 0)
@@ -253,6 +255,11 @@ class NameResolver:
             'parseInt': ([string_type, int_type], int_type),
             'bytesToHex': ([string_type], string_type),
             'hexToBytes': ([string_type], string_type),
+            # Masking (spec "Masking", 18.3.6f)
+            'formatMask': ([string_type, string_type], string_type),
+            'digitsOnly': ([string_type], string_type),
+            'mask': ([string_type, int_type, int_type, char_type], string_type),
+            'maskEmail': ([string_type, int_type, char_type], string_type),
             # Compare (18.3.6e) - -1, 0 or 1
             'equalsIgnoreCase': ([string_type, string_type], bool_type),
             'compareIgnoreCase': ([string_type, string_type], int_type),

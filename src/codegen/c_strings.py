@@ -541,4 +541,76 @@ static inline int fusion_str_compareNatural(fusion_string a, fusion_string b, bo
     if ((a.len - i) != (b.len - j)) return (a.len - i) < (b.len - j) ? -1 : 1;
     return zeros;
 }
+// ---- Masking (design and decisions: spec "Masking", Task 18.3.6f) - by character
+// formatMask: '#' a digit, 'A' a letter, '?' any character, '\' makes the next pattern
+// character literal; other pattern characters are copied. Input that doesn't fit a slot is
+// skipped ("555-123-4567" fills "(###) ###-####"); a literal appears only once the slot
+// after it is filled; it stops when the input runs out - filled as far as it fits
+static inline fusion_string fusion_str_formatMask(fusion_string s, fusion_string pattern) {
+    char* out = (char*)fusion_alloc((size_t)pattern.len * 4 + (size_t)s.len + 1);
+    int o = 0, pending = 0, i = 0;
+    bool finished = true;
+    for (int p = 0; p < pattern.len; ) {
+        int n = fusion_utf8_size((unsigned char)pattern.data[p]);
+        char kind = pattern.data[p];
+        if (kind == '\\' && p + 1 < pattern.len) {          // an escaped literal
+            p++;
+            n = fusion_utf8_size((unsigned char)pattern.data[p]);
+            kind = 0;
+        }
+        if (kind != '#' && kind != 'A' && kind != '?') {    // a literal: held until a slot fills
+            memcpy(out + o + pending, pattern.data + p, (size_t)n); pending += n;
+            p += n;
+            continue;
+        }
+        while (i < s.len) {                                  // the next input that fits
+            fusion_char c = fusion_utf8_decode(s.data + i);
+            bool fits = kind == '?' || (kind == '#' && c >= '0' && c <= '9') || (kind == 'A' && fusion_is_letter(c));
+            if (fits) break;
+            i += fusion_utf8_size((unsigned char)s.data[i]);
+        }
+        if (i >= s.len) { finished = false; break; }         // out of input: stop here
+        int m = fusion_utf8_size((unsigned char)s.data[i]);
+        o += pending; pending = 0;
+        memcpy(out + o, s.data + i, (size_t)m); o += m; i += m;
+        p += n;
+    }
+    if (finished) o += pending;                              // the pattern's end was reached
+    return fusion_str_take(out, o);
+}
+static inline fusion_string fusion_str_digitsOnly(fusion_string s) {
+    char* out = (char*)fusion_alloc((size_t)s.len + 1);
+    int o = 0;
+    for (int i = 0; i < s.len; i++) if (s.data[i] >= '0' && s.data[i] <= '9') out[o++] = s.data[i];
+    return fusion_str_take(out, o);
+}
+// mask: keep the first `keepStart` and last `keepEnd` characters, replace the rest with
+// `with` (one for one - the length is kept)
+static inline fusion_string fusion_mask_range(fusion_string s, int from, int to, fusion_char with) {
+    char w[4];
+    int wl = fusion_utf8_encode(with, w), k = 0, o = 0;
+    char* out = (char*)fusion_alloc((size_t)s.len * 4 + 1);
+    for (int i = 0; i < s.len; k++) {
+        int n = fusion_utf8_size((unsigned char)s.data[i]);
+        if (k >= from && k < to) { memcpy(out + o, w, (size_t)wl); o += wl; }
+        else { memcpy(out + o, s.data + i, (size_t)n); o += n; }
+        i += n;
+    }
+    return fusion_str_take(out, o);
+}
+static inline fusion_string fusion_str_mask(fusion_string s, int keepStart, int keepEnd, fusion_char with, const char* where) {
+    if (keepStart < 0 || keepEnd < 0) fusion_runtime_error(where, "mask(%d, %d): the counts can't be negative", keepStart, keepEnd);
+    if ((long long)keepStart + keepEnd >= s.chars) return fusion_str_make(s.data, s.len);
+    return fusion_mask_range(s, keepStart, s.chars - keepEnd, with);
+}
+// maskEmail: the name before the last '@' keeps its first `keep` characters; the domain is
+// kept. Text without an '@' is masked after its first `keep` characters
+static inline fusion_string fusion_str_maskEmail(fusion_string s, int keep, fusion_char with, const char* where) {
+    if (keep < 0) fusion_runtime_error(where, "maskEmail(%d): the count can't be negative", keep);
+    int at = -1;
+    for (int i = 0; i < s.len; i++) if (s.data[i] == '@') at = i;
+    int name_chars = at < 0 ? s.chars : fusion_char_index(s, at);
+    if (keep >= name_chars) return fusion_str_make(s.data, s.len);
+    return fusion_mask_range(s, keep, name_chars, with);
+}
 '''

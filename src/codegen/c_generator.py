@@ -841,6 +841,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'fromOctal': ('fusion_str_fromOctal', True), 'parseInt': ('fusion_str_parseInt', True),
         'bytesToHex': ('fusion_str_bytesToHex', True), 'hexToBytes': ('fusion_str_hexToBytes', True),
         'formatNumber': ('fusion_formatNumber', True),   # 18.3.6d-2
+        'formatMask': ('fusion_str_formatMask', False), 'digitsOnly': ('fusion_str_digitsOnly', False),
+        'mask': ('fusion_str_mask', True), 'maskEmail': ('fusion_str_maskEmail', True),   # masking
         'equalsIgnoreCase': ('fusion_str_equalsIgnoreCase', False),   # 18.3.6e
         'compareIgnoreCase': ('fusion_str_compareIgnoreCase', False),
         'compareNatural': ('fusion_str_compareNatural', False),

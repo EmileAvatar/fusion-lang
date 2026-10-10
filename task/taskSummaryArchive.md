@@ -3448,3 +3448,13 @@ User request (2026-10-09): every string function reachable as `String.replace(s,
       (`Char.fromCharCode`, not `Int.fromCharCode` or `65.fromCharCode()`); toBytes is both
 - [x] Found on the way: gcc -Wformat-truncation in formatNumber, visible only when the
       function is really called - fixed, and a new test compiles the library examples at -O2
+
+---
+
+#### Masking built (archived 2026-10-10)
+
+- [x] formatMask (# A ? and backslash; skips input that doesn't fit; literals appear once
+      the next slot fills; stops when input runs out), digitsOnly, mask (keepStart, keepEnd,
+      optional char; length kept), maskEmail (keep = 1, optional char; domain kept)
+- [x] Implementation choices within the decisions: skipping non-fitting input and lazy
+      literals - both make "fill as far as it fits" read naturally

@@ -524,8 +524,8 @@ print(toString(data))              // kkijk
      * **Out of range:** "up to n" functions (`left`, `right`, padding, `truncate`) clamp
        quietly - `left("ab", 5)` is "ab"; a negative count stops the program with a run-time
        error; positions inside the string (`insert`, `remove`, like `substring`) must be valid
-     * **Masking - design overview only, not built** (Task 18.3.6f, user decision
-       2026-10-09: plan now, design in detail when the work starts). "Masking" covers two
+     * **Masking** (designed in Task 18.3.6f, built 2026-10-10 after the user decided all
+       nine questions below). "Masking" covers two
        different jobs, and the design keeps them apart:
 
        **1. Shaping text into a pattern** (input / display masks) - digits or letters poured
@@ -572,7 +572,14 @@ print(toString(data))              // kkijk
        8. **The name is `mask`** (`mask`, `maskEmail`, `formatMask`) - not `redact`
        9. **No validation** - masking is about display only (no phone or card checksum checks)
 
-       All nine questions are decided - masking is ready to be built.
+       **As built:** `formatMask(s, pattern)` skips input that doesn't fit a slot (so
+       "555-123-4567" fills "(###) ###-####" too), shows a literal only once the slot after
+       it is filled ("555" -> "(555", not "(555) "), and stops when the input runs out;
+       `digitsOnly(s)`; `mask(s, keepStart, keepEnd, with = '*')` returns the text unchanged
+       when the kept parts cover it; `maskEmail(s, keep = 1, with = '*')` masks the name
+       before the last `@` (text without an `@` is masked after its first `keep`
+       characters). Negative counts are run-time errors. All are `String` methods too:
+       `card.mask(0, 4)`
 
 ```
 string original = "Hello"
