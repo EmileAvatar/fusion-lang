@@ -422,9 +422,9 @@ static inline fusion_string fusion_format_excel(double v, fusion_string p, fusio
     unsigned long long r = (unsigned long long)(x + 0.5 + 1e-9 * (x > 1.0 ? x : 1.0));
     unsigned long long whole = r / scale, frac = r % scale;
     char ib[24], fb[24];
-    int il = snprintf(ib, sizeof ib, "%llu", whole), fl = np.max_dec;
+    int il = snprintf(ib, sizeof ib, "%llu", whole), fl = np.max_dec > 15 ? 15 : np.max_dec;
     if (whole == 0 && np.min_int == 0) il = 0;   // "#.00" of 0.5 -> ".50"
-    if (fl > 0) snprintf(fb, sizeof fb, "%0*llu", fl, frac);
+    if (fl > 0) snprintf(fb, sizeof fb, "%0*llu", fl, frac % 1000000000000000ULL);   // at most 15 digits
     while (fl > np.min_dec && fb[fl - 1] == '0') fl--;
     int digits = il > np.min_int ? il : np.min_int;
     int groups = np.group && digits > 3 ? (digits - 1) / 3 : 0;

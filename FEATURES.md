@@ -94,7 +94,7 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.2.2b `{@N}` placeholders, left-to-right argument order
 		[DONE] 18.2.3 Nested structs, array fields, arrays of structs, depth limits
 		[DONE] 18.2.4 Arrays as function return values
-	[ ] 18.3 Proper strings
+	[DONE] 18.3 Proper strings
 		[DONE] 18.3.1 String values and automatic cleanup, compare by content, leak check
 		[DONE] 18.3.2 String operations: `+`, `len`, `s[i]`, substring/contains/indexOf/..., conversions
 		[DONE] 18.3.2b Unicode by default: `[strings] encoding = "utf-8"` (ascii | utf-8 | utf-16 | utf-32);
@@ -132,9 +132,9 @@ The single place to see what is done, open, or postponed. One line per item.
 			strings, chars and ints to bytes and back (toBytes, toString, getInt / setInt, 16-bit
 			versions; little-endian, bigEndian option), hexToRaw / rawToHex, slice, indexOf; prints
 			as plain hex - for raw hex work and self-hosting; file read / write stays in 18.5
-		[ ] 18.3.7 The String class and method syntax - every string function reachable three ways:
-			`String.replace(s, old, new)` (static class, always available), `name.toUpper()` (a string
-			variable), `"Claude".toUpper()` (a string literal)
+		[DONE] 18.3.7 Built-in type classes and method syntax - every built-in function three ways:
+			`toUpper(name)`, `name.toUpper()` / `"Claude".toUpper()` / `255.toHex()` (chainable), and
+			`String.toUpper(name)`; classes String, Bytes, Int, Char, Float, Double, Byte, Bool
 	[ ] 18.4 `import` and multi-file projects
 	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std
 		[ ] 18.5.x String split & join: split(s, ","), join(list, ", "), lines(s), words(s) (need lists)
@@ -188,7 +188,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[POSTPONED to 15.5] Garbage collection as a project-selectable memory strategy
 	[POSTPONED to 15.5] Unique<T> / Shared<T> / Weak<T> (decided in 12.7, not built)
 	[POSTPONED to 17] Copy-on-write string sharing, in-place string editing
-	[POSTPONED to 18.3.7] Method-call syntax on strings (`name.toUpper()`); on structs - after MVP
+	[POSTPONED - after MVP] Methods on structs (`p.move(1, 2)`) - user-defined classes; methods on
+		built-in types are done (18.3.7)
 	[POSTPONED to 18.3] Closures (lambdas using outer variables) - need string ownership first
 	[POSTPONED - after MVP] Named lambdas inside functions; multi-line lambda bodies
 	[POSTPONED - after MVP] Lambdas / function types returning arrays; const array set from a call

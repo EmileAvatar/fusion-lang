@@ -17,6 +17,7 @@ from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
 from .number_patterns import number_pattern_problem
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
+                            TYPE_CLASSES, CLASS_STATICS, NOT_METHODS,
                             builtin_defaults)
 from .symbol import Symbol
 from .errors import SemanticError
@@ -75,6 +76,8 @@ class TypeChecker:
         # ids of calls whose returned array is used in a supported way (Task 18.2.4) - see
         # visit_CallExpr
         self.allowed_array_calls = set()
+        # Receivers of method calls, already checked - id -> type (Task 18.3.7)
+        self.checked_receivers = {}
 
     def check_program(self, program: ProgramNode) -> List[SemanticError]:
         """Type check entire program.
@@ -107,6 +110,8 @@ class TypeChecker:
         Raises:
             NotImplementedError: If no visitor method exists for node type
         """
+        if id(node) in self.checked_receivers:
+            return self.checked_receivers.pop(id(node))   # a method's receiver (18.3.7)
         method_name = f'visit_{node.__class__.__name__}'
         method = getattr(self, method_name, self.generic_visit)
         result = method(node)
@@ -563,6 +568,65 @@ class TypeChecker:
         # Unknown operator - return void for error recovery
         return PrimitiveType(location=node.location, name='void')
 
+    def _rewrite_method_call(self, node: CallExpr) -> Optional[str]:
+        """Turn a method call on a built-in type into the built-in call (Task 18.3.7):
+        `x.f(a)` -> `f(x, a)`, `String.f(a)` -> `f(a)`. Leaves a call through a struct's
+        function-valued field (`p.callback(1)`) alone. Returns an error message, or None."""
+        member, receiver = node.callee.member, node.callee.object
+        builtins = self.symbol_table.builtin_symbols
+        static_class = None
+        if isinstance(receiver, IdentifierExpr) and receiver.name in TYPE_CLASSES \
+                and self.symbol_table.lookup(receiver.name) is None:
+            static_class = receiver.name
+            receiver_type = PrimitiveType(location=receiver.location, name=TYPE_CLASSES[static_class])
+        else:
+            receiver_type = self.visit(receiver)
+            if not isinstance(receiver_type, PrimitiveType) or receiver_type.name == 'void':
+                return None   # a struct field holding a function, or an earlier error
+            self.checked_receivers[id(receiver)] = receiver_type
+        class_name = next((c for c, t in TYPE_CLASSES.items() if t == receiver_type.name), None)
+        if class_name is None or member in NOT_METHODS or member not in builtins \
+                or not self._is_class_member(class_name, receiver_type, member, static_class is not None):
+            self.checked_receivers.pop(id(receiver), None)
+            return f"{class_name or self.type_to_string(receiver_type)} has no method '{member}'"
+        node.callee = IdentifierExpr(location=node.callee.location, name=member)
+        if static_class is None:
+            node.arguments = [receiver] + list(node.arguments)
+        node.is_method = True
+        return None
+
+    def _is_class_member(self, class_name: str, receiver_type: TypeNode, member: str,
+                         static: bool) -> bool:
+        """A built-in belongs to a type's class when it takes that type first (len and
+        toString take any value), or - called through the class - is one of its statics."""
+        # A static that makes a value of its class (Char.fromCharCode, Int.parseInt) belongs to
+        # that class only - not Int.fromCharCode or 65.fromCharCode(). toBytes is both a
+        # Bytes static and a method of the types it converts
+        owner = next((c for c, members in CLASS_STATICS.items()
+                      if member in members and member != 'toBytes'), None)
+        if owner is not None:
+            return static and owner == class_name
+        if static and member in CLASS_STATICS.get(class_name, ()):
+            return True
+        if member == 'toString':
+            return True
+        if member == 'len':
+            return receiver_type.name in ('string', 'bytes')
+        if member in FLEXIBLE_FIRST_ARG:
+            return receiver_type.name in FLEXIBLE_FIRST_ARG[member] or (
+                receiver_type.name == 'byte' and 'int' in FLEXIBLE_FIRST_ARG[member])
+        if member in getattr(self.symbol_table, 'bytes_overloads', {}) and receiver_type.name == 'bytes':
+            return True
+        params = self.symbol_table.builtin_symbols[member].data_type.parameter_types
+        if not params:
+            return False
+        first = params[0]
+        if isinstance(first, PrimitiveType) and first.name == receiver_type.name:
+            return True
+        # A number type's own conversions: Int has formatNumber (it takes a double)
+        return receiver_type.name in ('int', 'byte', 'float') and self.types_compatible(first, receiver_type) \
+            and isinstance(first, PrimitiveType) and first.name in ('double', 'float')
+
     _NUMBER_TYPES = ('int', 'float', 'double', 'byte')
 
     def _check_equality(self, node: BinaryExpr, left_type: TypeNode, right_type: TypeNode) -> None:
@@ -710,6 +774,14 @@ class TypeChecker:
         Returns:
             Return type of the function
         """
+        # name.toUpper(), String.toUpper(name), 255.toHex() (Task 18.3.7) - rewritten to the
+        # built-in call toUpper(name)
+        if isinstance(node.callee, MemberExpr):
+            problem = self._rewrite_method_call(node)
+            if problem:
+                self.errors.append(SemanticError(problem, node.location))
+                return PrimitiveType(location=node.location, name='void')
+
         # Calling the result of an expression, e.g. (func(int x) : x * 2)(5) (Task 18.1.3)
         if not isinstance(node.callee, IdentifierExpr):
             callee_type = self.visit(node.callee)
@@ -720,8 +792,11 @@ class TypeChecker:
 
         func_name = node.callee.name
 
-        # Look up function
-        symbol = self.symbol_table.lookup(func_name)
+        # Look up function - a method always means the built-in (Task 18.3.7)
+        if getattr(node, 'is_method', False):
+            symbol = self.symbol_table.builtin_symbols[func_name]
+        else:
+            symbol = self.symbol_table.lookup(func_name)
         if not symbol:
             self.errors.append(SemanticError(
                 f"Undefined function: '{func_name}'",

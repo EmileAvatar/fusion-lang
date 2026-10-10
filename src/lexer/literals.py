@@ -207,6 +207,9 @@ def parse_float(text: str, position: int) -> Optional[Tuple[str, int]]:
     # Must have decimal point for float
     if pos >= len(text) or text[pos] != '.':
         return None
+    # A '.' followed by a letter starts a method call, not decimals: 255.toHex() (18.3.7)
+    if pos + 1 < len(text) and (text[pos + 1].isalpha() or text[pos + 1] == '_'):
+        return None
 
     pos += 1  # Skip decimal point
 

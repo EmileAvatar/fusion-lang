@@ -262,6 +262,28 @@ void function main()
     print("{@1} {@2}", rawToHex(slice(data, 1, 3)), indexOf(data, toBytes("ij")))
 ```
 
+#### Methods: `name.toUpper()`, `String.toUpper(name)`
+
+<!-- example: syntax_methods | task: 18.3.7 -->
+```fusion
+struct Person
+    string name
+    int age
+
+void function main()
+    string name = "  ada lovelace  "
+    print(toUpper(name))                              // the plain function still works
+    print(name.trim().toTitle())                      // a method - and methods chain
+    print("Claude".toUpper())                         // on text written in the source
+    print(String.replace("a-b-c", "-", "+"))          // through the class
+    Person p = Person("grace", 85)
+    print("{@1} {@2}", p.name.capitalize(), p.age.toString().padLeft(5, '0'))
+    print("{@1} {@2} {@3}", 255.toHex(), Int.parseInt("ff", 16), 'A'.charCode())
+    bytes data = "kkkkk".toBytes()
+    data[2] = 0x69
+    print("{@1} {@2}", data.rawToHex(), data.toString())
+```
+
 #### Equality: `=`, `==`, `===`
 
 <!-- example: syntax_equality | task: 18.3.5 -->

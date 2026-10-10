@@ -762,7 +762,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return self._generate_len_call(node)
             if func_name == 'format' and node.callee_declaration is None:
                 return self._generate_format_call(node)
-            if func_name in self._STRING_BUILTINS and node.callee_declaration is None:
+            if func_name in self._STRING_BUILTINS and (node.callee_declaration is None
+                                                       or getattr(node, 'is_method', False)):
                 return self._string_builtin_call(node)
 
             # Mangle user-defined function names (a variable holding a function keeps its

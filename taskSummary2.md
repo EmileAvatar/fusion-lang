@@ -133,6 +133,8 @@ Each adds tests, an example program (Rule 4), and spec/EBNF/CLAUDE.md updates.
 
 **18.3.8 - Raw bytes** - COMPLETE, detail archived
 
+**18.3.7 - Type classes and method syntax** - COMPLETE, detail archived
+
 **Out of scope (logged for later):** in-place editing (`s[0] = 'X'`) and mutable vs fixed
 strings (Task 17 - 18.3 strings are replaced, never edited in place, which keeps the
 ownership rules simple); string pooling (Task 17); Unicode-aware functions; full expressions
@@ -265,4 +267,6 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.6d-2 COMPLETE (formatNumber, both pattern styles).
 - 18.3.6e COMPLETE (compare functions).
 - 18.3.6f COMPLETE (masking design overview in the spec, 9 open questions); 18.3.6 done.
-- **Next Action:** plan **18.3.7 (the String class and method syntax)** and get approval.
+- Masking: all 9 design questions decided (ready to build, listed in FEATURES).
+- 18.3.7 COMPLETE (built-in type classes and method syntax) - Task 18.3 complete.
+- **Next Action:** user to choose: build masking, or plan **18.4 (import and multi-file projects)**.

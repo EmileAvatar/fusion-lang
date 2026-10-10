@@ -251,7 +251,11 @@ postfix =
         "(" [ argument_list ] ")"          (* Function call - implemented *)
         | "[" expression "]"               (* Array index - implemented (Task 9 v1) *)
         | "?[" expression "]"              (* Safe array index - not yet implemented *)
-        | "." identifier                   (* Member access - implemented for struct fields (Task 18.2.1) *)
+        | "." identifier                   (* Member access - struct fields (Task 18.2.1); followed by
+                                              "(...)" on a built-in type it is a method call:
+                                              name.toUpper(), 255.toHex(), String.toUpper(name)
+                                              (Task 18.3.7). A "." followed by a letter ends a
+                                              number literal *)
         | "?." identifier                  (* Safe navigation - not yet implemented *)
         | "++" | "--"                      (* Post increment/decrement - not yet implemented *)
         | "?" "." "null"                   (* Null check - not yet implemented *)

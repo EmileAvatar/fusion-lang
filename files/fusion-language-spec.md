@@ -362,8 +362,27 @@ outside `print` are 18.3.3 - see `FEATURES.md`.
 * **Planned (advanced, after MVP - user decision 2026-10-09):** these remain part of
   Fusion's design and will be added on top of the simple value model above, which is what
   MVP needs: a **string pool** (shared storage for identical text, Task 17), **garbage
-  collection** as a project-selectable memory strategy, copy-on-write sharing, and
-  **method-call syntax** such as `name.toUpper()` alongside the built-in functions
+  collection** as a project-selectable memory strategy, and copy-on-write sharing.
+  (Method-call syntax, `name.toUpper()`, arrived with Task 18.3.7 - see "Built-in type
+  classes")
+
+* **Built-in type classes** (Task 18.3.7, user decisions 2026-10-10): every built-in
+  function can be called three ways, all compiling to the same C call - no objects, no
+  memory or speed cost:
+     * plain: `toUpper(name)` (kept - nothing breaks)
+     * a method on a value: `name.toUpper()`, `"Claude".toUpper()`, `255.toHex()`,
+       `p.name.trim().toTitle()` (chained); the value becomes the first argument
+     * through the class: `String.toUpper(name)`, `Int.parseInt("ff", 16)`
+  The classes are `String`, `Bytes`, `Int`, `Char`, `Float`, `Double`, `Byte` and `Bool`.
+  A function belongs to the class of its first argument's type (`len` and `toString` to
+  every class they accept). Statics that make a value of their class belong to that class
+  only: `Int.parseInt` / `Int.fromHex` / `Int.fromBinary` / `Int.fromOctal`,
+  `Char.fromCharCode`, `Bytes.newBytes` / `Bytes.hexToRaw` / `Bytes.toBytes`. Methods keep
+  the function names. A method always means the built-in - a program's own function `left`
+  or a variable named `left` can't hide `s.left(3)`. `print`, `range` and `format` stay plain
+  functions. A `.` followed by a letter ends a number literal, so `255.toHex()` works;
+  `255.0` and `2.5` are unchanged. A struct can't be named after a class (a variable can).
+  Methods on structs (`p.move(1, 2)`) are user-defined classes - after MVP
 
 * **Comparison**: `==` and `!=` compare the text; `<`, `>`, `<=`, `>=` compare alphabetically
   (byte order). (Before Task 18.3.1, `==` compared memory addresses - right only by accident)
@@ -376,8 +395,8 @@ bool same = name == "Enterprise"   // true - compares the text
 ```
 
 * **String Operations** (Task 18.3.2, implemented): all return a new string and leave the
-  original unchanged. They are built-in functions for now (method syntax such as
-  `name.toUpper()` is a planned advanced feature). Lengths and indexes count characters
+  original unchanged. Each is also a method (`name.toUpper()`, Task 18.3.7). Lengths and
+  indexes count characters
      * `a + b` joins strings (or a string and a char); numbers are joined with interpolation
        (`"{name}{count}"`) - `"a" + 5` is a compile error
      * `len(s)` (characters), `lenb(s)` (bytes); `s[i]` reads one `char` - a bad index stops

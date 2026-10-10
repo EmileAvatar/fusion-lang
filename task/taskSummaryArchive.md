@@ -3404,3 +3404,47 @@ spec + `FEATURES.md`, `python check.py`, commit and push.
       # A ? and \; emails show the first character (configurable); no country / phone
       formats - the developer supplies the pattern (maskPhone dropped); core string library;
       named mask; no validation
+
+---
+
+#### 18.3.7 (archived 2026-10-10)
+
+**18.3.7 - Type classes and method syntax (PLAN APPROVED 2026-10-10 - all four decisions as recommended: keep every form; all built-in types; 255.toHex(); same names)**
+User request (2026-10-09): every string function reachable as `String.replace(s, a, b)`,
+`name.replace(a, b)` and `"Claude".toUpper()`. Fusion has no classes yet, so these are
+**built-in type classes** the compiler knows: no objects, no memory or speed cost -
+`name.toUpper()` compiles to exactly the same C call as `toUpper(name)` does today.
+
+- **How it works:** `x.f(args)` on a value of a built-in type becomes the built-in `f(x,
+  args)`; `String.f(args)` becomes `f(args)`, checked to belong to that class. Chaining
+  works: `name.trim().toUpper().padLeft(10)`. A method always means the built-in, even
+  when the program has its own function `left` (it can't hide a method)
+- **The classes** (decision 2) - each function goes where its first argument's type is:
+  - `String` - everything taking text first: `s.toUpper()`, `s.indexOf("a")`, `s.len()`,
+    `s.toInt()`, `s.toBytes()`, `s.formatMask(...)` later, ...
+  - `Bytes` - `data.getInt(0)`, `data.slice(1, 3)`, `data.rawToHex()`, `data.setInt(0, 5)`
+    (changes `data`, so it must be a variable, as now); statics `Bytes.newBytes(8)`,
+    `Bytes.hexToRaw("ff")`
+  - `Int` - `n.toHex()`, `n.toBinary(8)`, `n.toBytes()`, `n.toString()`,
+    `n.formatNumber("#,##0")`; statics `Int.parseInt("ff", 16)`, `Int.fromHex("ff")`
+  - `Char` - `c.charCode()`, `c.toString()`, `c.toBytes()`; static `Char.fromCharCode(65)`
+  - `Float` / `Double` / `Byte` / `Bool` - `toString`, `formatNumber`, `toBytes` where they apply
+  - Text-first functions are also on `String` statically: `String.toUpper(name)`
+- **Numbers before a dot** (decision 3): `255.toHex()` - the lexer today reads `255.` as the
+  float 255.0. Change: a `.` followed by a letter ends the number
+- **Names** (decision 4): a method has the same name as its function (`data.rawToHex()`)
+- **The plain functions** (decision 1): what happens to `toUpper(name)`
+- **Reserved:** a struct can't be named `String`, `Bytes`, `Int`, `Char`, `Float`, `Double`,
+  `Byte` or `Bool`
+- **Unchanged:** `print`, `len`, `range` and `format` stay plain functions (`s.len()` also
+  works); properties without brackets (`s.length`) wait for real classes
+- **Out of scope:** methods on structs (`p.move(1, 2)`) - that is user-defined classes, after
+  MVP; extension methods
+- Tests, a `SYNTAX_REFERENCE.md` example, spec + EBNF, every existing example still compiling
+- [x] Built as planned: the checker rewrites `x.f(a)` / `Class.f(a)` into the built-in call
+      (a method uses the built-in symbol table snapshot, so user functions and variables
+      can't hide it); the lexer ends a number at `.` + letter
+- [x] Refinement: statics that make a value of their class are that class's only
+      (`Char.fromCharCode`, not `Int.fromCharCode` or `65.fromCharCode()`); toBytes is both
+- [x] Found on the way: gcc -Wformat-truncation in formatNumber, visible only when the
+      function is really called - fixed, and a new test compiles the library examples at -O2

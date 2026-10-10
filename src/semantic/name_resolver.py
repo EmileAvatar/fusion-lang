@@ -55,6 +55,17 @@ FLEXIBLE_FIRST_ARG = {
 # field / element of one): setInt(b, 0, 42) (18.3.8)
 MUTATING_BUILTINS = {'setInt', 'setInt16'}
 
+# Built-in type classes (Task 18.3.7): `name.toUpper()` and `String.toUpper(name)` both mean
+# the built-in toUpper(name). Class name -> the type its methods are called on
+TYPE_CLASSES = {'String': 'string', 'Bytes': 'bytes', 'Int': 'int', 'Char': 'char',
+                'Float': 'float', 'Double': 'double', 'Byte': 'byte', 'Bool': 'bool'}
+# Static members that don't take the class's own type first: Int.parseInt("ff", 16)
+CLASS_STATICS = {'Int': {'parseInt', 'fromHex', 'fromBinary', 'fromOctal'},
+                 'Char': {'fromCharCode'},
+                 'Bytes': {'newBytes', 'hexToRaw', 'toBytes'}}
+# Plain functions only - never methods
+NOT_METHODS = {'print', 'range', 'format'}
+
 
 def builtin_defaults(name: str, parameter_count: int) -> list:
     """The defaults list for a built-in, aligned with its parameters: None for a required
@@ -96,6 +107,9 @@ class NameResolver:
 
         # Register built-in functions
         self.register_builtins()
+        # Every built-in, kept even when a program's own function replaces one: a method call
+        # (name.left(3)) always means the built-in (Task 18.3.7)
+        self.symbol_table.builtin_symbols = dict(self.symbol_table.global_scope.symbols)
 
     def register_builtins(self) -> None:
         """Register built-in functions like print and range."""
@@ -324,7 +338,7 @@ class NameResolver:
         Args:
             struct: Struct declaration node
         """
-        if struct.name in ('bytes', 'byte'):
+        if struct.name in ('bytes', 'byte') or struct.name in TYPE_CLASSES:
             self.errors.append(SemanticError(
                 f"'{struct.name}' is a built-in type - choose another name for the struct",
                 struct.location))
@@ -853,8 +867,11 @@ class NameResolver:
             self.resolve_expression(expr.value)
         elif isinstance(expr, MemberExpr):
             # Only the object needs resolving - the field name is checked by the type
-            # checker, once the object's struct type is known
-            self.resolve_expression(expr.object)
+            # checker, once the object's struct type is known. `String.toUpper` - a built-in
+            # type class, not a variable (Task 18.3.7)
+            if not (isinstance(expr.object, IdentifierExpr) and expr.object.name in TYPE_CLASSES
+                    and self.symbol_table.lookup(expr.object.name) is None):
+                self.resolve_expression(expr.object)
         # else: unknown expression type, silently ignore
 
     def resolve_identifier(self, expr: IdentifierExpr) -> None:
