@@ -8,7 +8,7 @@ Syntax Tree (AST). Uses precedence climbing for binary operators.
 import json
 from typing import List, Optional
 from src.lexer.token import Token, TokenType, SourceLocation
-from src.lexer.literals import decode_char_literal
+from src.lexer.literals import decode_char_literal, integer_value
 from src.parser.ast_nodes import *
 
 
@@ -414,7 +414,7 @@ class Parser:
             token = self.previous()
             return LiteralExpr(
                 location=token.location,
-                value=int(token.value),
+                value=integer_value(token.value),  # 0xFF, 1_000 (Task 18.3.6d)
                 type_hint="int"
             )
 
@@ -676,7 +676,7 @@ class Parser:
                         TokenType.INTEGER,
                         "Array size must be an integer literal, e.g. int[5]"
                     )
-                    size = int(size_token.value)
+                    size = integer_value(size_token.value)
                 self.consume(TokenType.RBRACKET, "Expected ']' after array size")
 
                 if self.check(TokenType.LBRACKET):

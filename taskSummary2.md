@@ -152,16 +152,55 @@ Indexes start at 0, as `s[i]` and `substring` do. Six parts, each committed on i
   2026-10-10, replacing an optional "..." ending) - the result is at most `width`
   characters including the ending. A string already at or past `width` is returned as is
   by the pad functions
-- **18.3.6d Number formatting**: `formatNumber(n, pattern)` with Excel/.NET-style patterns
-  (decision 4): `0` = digit always shown, `#` = digit if needed, `,` = thousands
-  separator, `.` = decimal point - `formatNumber(1234.5, "#,##0.00")` -> "1,234.50",
-  `formatNumber(7, "000")` -> "007"; rounds half away from zero. **Both styles** (user
-  decision): a pattern starting with `%` is printf style - `formatNumber(3.14159, "%.2f")`
-  -> "3.14" - checked by Fusion itself (one number conversion: d i f e g x, with flags,
-  width and precision; never %s / %n / %p), so a pattern is never handed raw to C;
-  otherwise Excel/.NET style. The project's developers choose per call. `toHex(255)` -> "ff",
-  `toBinary(5)` -> "101", `parseInt("ff", 16)` -> 255 (bases 2-36; bad text = run-time
-  error, like toInt). Separators fixed to `,` and `.` for now - locales come later
+- **18.3.6d Number formatting and bases** (DETAILED PLAN APPROVED 2026-10-10)
+  Two sub-parts, each committed on its own:
+
+  **18.3.6d-1 Hex, binary, octal - both directions** (user request 2026-10-10) - COMPLETE
+  - To text - from an int **or** from text holding a whole number (`"255"`):
+    `toHex(x)` -> "ff", `toBinary(x)` -> "11111111", `toOctal(x)` -> "377", and the general
+    `toBase(x, base)` (2-36). Optional minimum width, zero-padded: `toHex(255, 4)` ->
+    "00ff", `toBinary(5, 8)` -> "00000101". Lowercase letters (use `toUpper` for "FF").
+    Text that isn't a whole number stops with a run-time error, like `toInt`
+  - From text - to an int: `fromHex("ff")` -> 255, `fromBinary("101")` -> 5,
+    `fromOctal("17")` -> 15, and `parseInt(s, base)` (2-36). Upper or lower case; an
+    optional prefix (`0x`, `0b`, `0o`) and a leading `-` are accepted; a value outside int
+    or a wrong digit is a run-time error. Check first with `isInt(s, base)` (isInt gets an
+    optional base, default 10)
+  - Hex text <-> decimal text needs no extra functions: `toString(fromHex("ff"))` -> "255",
+    `toHex("255")` -> "ff"
+  - Negative numbers (decision A, user 2026-10-10 after comparing languages): **two's
+    complement, C# style** - `toHex(-1)` -> "ffffffff", `toBinary(-1)` -> 32 ones,
+    `toOctal(-1)` -> "37777777777"; and reading it back gives the negative number again:
+    `fromHex("ffffffff")` -> -1. For bases 2, 8 and 16, reading accepts both a 32-bit
+    pattern and a leading `-` ("-ff" -> -255); base 10 stays strictly signed (`isInt` /
+    `toInt` unchanged). `toBase(n, base)` writes sign + digits ("-ff"), like Java's
+    `Integer.toString(n, 16)`. The width pads with zeros: `toHex(-1, 4)` stays "ffffffff"
+    (a minimum, never a cut)
+  - Literals in source (decision C, yes): `0xFF`, `0b1010`, `0o17` as int literals, with `_`
+    allowed between digits (`0b1111_0000`, `1_000_000`); up to 32 bits, read as the bit
+    pattern like `fromHex` (`0xFFFFFFFF` is -1)
+  - Bytes as hex (decision B, user: both now): `bytesToHex("Hi")` -> "4869" (the UTF-8
+    bytes, lowercase), `hexToBytes("4869")` -> "Hi"; odd length, a wrong digit, or bytes
+    that aren't valid UTF-8 text (ASCII in an ascii project) are run-time errors
+
+  **18.3.6d-2 formatNumber(n, pattern)** - n is int, float or double; both pattern styles
+  (user decision 2026-10-09), chosen per call:
+  - **Excel/.NET style** (the pattern doesn't start with `%`): `0` = digit always shown,
+    `#` = digit only if needed, `,` in the whole-number part = thousands groups, `.` =
+    decimal point, `%` = multiply by 100 and show `%` (as in Excel); any other characters
+    before or after are printed as they are (`"$#,##0.00"` -> "$1,234.50",
+    `"0.0 kg"`). Rounds half away from zero on the decimal value shown (2.675 with "0.00"
+    -> "2.68", as Excel does, despite binary floating point). A minus sign goes in front
+  - **printf style** (starts with `%`): one number conversion - `d i` (whole numbers; a
+    float is rounded), `f e g` (decimals), `x X o` (hex / octal of a whole number) - with
+    flags `- + space 0 #`, width and precision; `%%` for a percent sign; text around it is
+    kept (`"Total: %8.2f kr"`). `%s`, `%n`, `%p`, `*` widths and a second conversion are
+    rejected: Fusion checks the pattern itself and never hands it raw to C
+  - A bad pattern is a compile error when the pattern is written in the source, and a
+    run-time error when it's built while running
+  - Separators fixed to `,` and `.` for now; locales (`1.234,50`), negative-number
+    sections (`"0.00;(0.00)"`) and scientific notation in Excel style come later
+
 - **18.3.6e Compare**: `equalsIgnoreCase(a, b)`, `compareIgnoreCase(a, b)` and
   `compareNatural(a, b)` - negative / 0 / positive like `fusion_str_cmp`; natural order
   compares digit runs as numbers ("file2" < "file10")
@@ -311,4 +350,7 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.6a COMPLETE (optional built-in arguments, inspect / search / extract).
 - 18.3.6b COMPLETE (change functions; toUpper / toLower cover Latin-1).
 - 18.3.6c COMPLETE (padding & alignment).
-- **Next Action:** implement **18.3.6d (number formatting)** per the approved plan.
+- 18.3.6c revised: truncate adds nothing (user decision).
+- 18.3.6d plan approved (two's complement C# style; bytes as hex now; literals with _).
+- 18.3.6d-1 COMPLETE (number bases, bytes as hex, 0x / 0b / 0o literals).
+- **Next Action:** implement **18.3.6d-2 (formatNumber)** per the approved plan.

@@ -291,10 +291,21 @@ literal =
     | char_literal
     | array_literal ;
 
-integer_literal = digit { digit } [ "L" | "l" ] ;
+(* Task 18.3.6d: "_" may sit between two digits (1_000_000); hex, binary and octal
+   literals hold up to 32 bits and read as the bit pattern (0xFFFFFFFF is -1) *)
+integer_literal =
+    digits [ "L" | "l" ]
+    | "0" ( "x" | "X" ) hex_digit { [ "_" ] hex_digit }
+    | "0" ( "b" | "B" ) binary_digit { [ "_" ] binary_digit }
+    | "0" ( "o" | "O" ) octal_digit { [ "_" ] octal_digit } ;
+
+digits = digit { [ "_" ] digit } ;
+hex_digit = digit | "a" | "b" | "c" | "d" | "e" | "f" | "A" | "B" | "C" | "D" | "E" | "F" ;
+binary_digit = "0" | "1" ;
+octal_digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
 
 float_literal =
-    digit { digit } "." digit { digit } [ ( "f" | "F" | "d" | "D" ) ] ;
+    digits "." digits [ ( "f" | "F" | "d" | "D" ) ] ;
 
 string_literal =
     '"' { string_character | escape_sequence } '"' ;

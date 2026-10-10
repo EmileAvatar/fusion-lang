@@ -562,7 +562,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         type_hint = node.type_hint
 
         if type_hint == 'int':
-            return str(node.value)
+            if node.value == -2147483648:
+                return '(-2147483647 - 1)'
+            return f'({node.value})' if node.value < 0 else str(node.value)
 
         elif type_hint == 'float':
             return f'{node.value}f'  # Add 'f' suffix
@@ -794,7 +796,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'endsWith': ('fusion_str_endsWith', False), 'toUpper': ('fusion_str_toUpper', False),
         'toLower': ('fusion_str_toLower', False), 'trim': ('fusion_str_trim', False),
         'toInt': ('fusion_str_toInt', True), 'toFloat': ('fusion_str_toFloat', True),
-        'isInt': ('fusion_str_isInt', False), 'isFloat': ('fusion_str_isFloat', False),
+        'isInt': ('fusion_str_isIntBase', True), 'isFloat': ('fusion_str_isFloat', False),
         'toString': (None, False),
         # Encoding helpers (Task 18.3.2b)
         'lenb': (None, False), 'isAscii': ('fusion_str_isAscii', False),
@@ -813,6 +815,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'toTitle': ('fusion_str_toTitle', False), 'padLeft': ('fusion_str_padLeft', True),
         'padRight': ('fusion_str_padRight', True), 'center': ('fusion_str_center', True),
         'truncate': ('fusion_str_truncate', True),
+        # Number bases (18.3.6d-1) - fusion_int_* for an int, fusion_str_* for numeric text
+        'toHex': ('fusion_int_toHex', True), 'toBinary': ('fusion_int_toBinary', True),
+        'toOctal': ('fusion_int_toOctal', True), 'toBase': ('fusion_int_toBase', True),
+        'fromHex': ('fusion_str_fromHex', True), 'fromBinary': ('fusion_str_fromBinary', True),
+        'fromOctal': ('fusion_str_fromOctal', True), 'parseInt': ('fusion_str_parseInt', True),
+        'bytesToHex': ('fusion_str_bytesToHex', True), 'hexToBytes': ('fusion_str_hexToBytes', True),
     }
     _TO_STRING = {'int': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
@@ -833,6 +841,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         arguments = list(node.resolved_arguments or node.arguments)
         if name == 'toString':
             c_function = self._TO_STRING[arguments[0].inferred_type.name]
+        if c_function and c_function.startswith('fusion_int_') and self._is_string(arguments[0]):
+            c_function = 'fusion_str_' + c_function[len('fusion_int_'):]   # toHex("255")
         if name == 'lenb':
             return f'({self.visit(arguments[0])}).len'   # bytes (Task 18.3.2b)
         codes = [self.visit(arg) for arg in arguments]

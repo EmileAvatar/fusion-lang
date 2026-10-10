@@ -178,3 +178,89 @@ def test_padding_argument_types():
     errors = errors_of(main('string a = padLeft("x", 3, "0")\nstring b = truncate("x", 3, "...")'))
     assert "expected char, got string" in errors
     assert "Function 'truncate' expects 2 argument(s), got 3" in errors
+
+
+# ============================================================
+# 18.3.6d-1 - Hex, binary, octal (two's complement, C# style)
+# ============================================================
+
+def test_to_hex_binary_octal_from_int_or_text():
+    assert run_ok(ECHO + main(
+        'print("{@1} {@2} {@3} {@4}", toHex(255), toHex("255"), toBinary(5), toOctal(8))\n'
+        'print("{@1} {@2} {@3}", toHex(255, 4), toBinary(5, 8), toHex(echo("4096"), 2))\n'
+        'print("{@1} {@2} {@3}", toHex(-1), toOctal(-1), toHex(-255))\n'
+        'print("{@1}", toBinary(-1))\n'
+        'print("{@1} {@2} {@3} {@4}", toBase(255, 16), toBase(-255, 16), toBase(35, 36), toBase("10", 2, 8))'
+    )) == ['ff ff 101 10', '00ff 00000101 1000', 'ffffffff 37777777777 ffffff01',
+           '1' * 32, 'ff -ff z 00001010']
+
+
+def test_from_hex_binary_octal_and_parse_int():
+    assert run_ok(main(
+        'print("{@1} {@2} {@3} {@4}", fromHex("ff"), fromHex("0xFF"), fromHex("-ff"), fromHex("ffffffff"))\n'
+        'print("{@1} {@2} {@3} {@4}", fromBinary("0b101"), fromOctal("0o17"), fromHex("80000000"), fromHex(toHex(-12345)))\n'
+        'print("{@1} {@2} {@3}", parseInt("z", 36), parseInt("-101", 2), parseInt("42", 10))\n'
+        'print("{@1} {@2} {@3} {@4}", isInt("ff", 16), isInt("fg", 16), isInt("ffffffff", 16), isInt("4294967295"))\n'
+        'print(toString(fromHex("ff")))'
+    )) == ['255 255 -255 -1', '5 15 -2147483648 -12345', '35 -5 42',
+           'true false true false', '255']
+
+
+def test_bytes_as_hex():
+    assert run_ok(main(
+        'print("{@1} {@2} {@3}", bytesToHex("Hi"), bytesToHex("caf\u00e9"), bytesToHex(""))\n'
+        'print("[{@1}] [{@2}]", hexToBytes("4869"), hexToBytes("636166C3A9"))'
+    )) == ['4869 636166c3a9 ', '[Hi] [caf\u00e9]']
+
+
+@pytest.mark.parametrize("call, message", [
+    ('fromHex("fg")', "'fg' is not a base-16 whole number that fits in an int"),
+    ('fromHex("1ffffffff")', "'1ffffffff' is not a base-16 whole number"),
+    ('fromBinary("")', "'' is not a base-2 whole number"),
+    ('parseInt("99999999999", 10)', "is not a base-10 whole number"),
+    ('parseInt("1", 37)', "parseInt: base 37 is not between 2 and 36"),
+    ('toBase(5, 1)', "toBase: base 1 is not between 2 and 36"),
+    ('toHex("12x")', "'12x' is not a whole number"),
+    ('toHex(5, -1)', "toHex(width -1): the width can't be negative"),
+    ('hexToBytes("abc")', "hexToBytes: 'abc' has an odd number of hex digits"),
+    ('hexToBytes("zz")', "hexToBytes: 'zz' is not hex text"),
+    ('hexToBytes("ff")', "hexToBytes: the bytes of 'ff' are not valid text"),
+    ('hexToBytes("eda080")', "the bytes of 'eda080' are not valid text"),   # a surrogate
+])
+def test_base_run_time_errors(call, message):
+    assert message in run_error(main(f'print("{{@1}}", {call})'))
+
+
+def test_to_hex_type_errors():
+    errors = errors_of(main('string a = toHex(2.5)\nstring b = toHex(true)\nint c = fromHex(255)'))
+    assert "Argument 1 to 'toHex': expected int, got float" in errors
+    assert "Argument 1 to 'toHex': expected int, got bool" in errors
+    assert "Argument 1 to 'fromHex': expected string, got int" in errors
+
+
+def test_hex_binary_octal_literals_and_underscores():
+    assert run_ok(main(
+        'int mask = 0xFF\n'
+        'int bits = 0b1111_0000\n'
+        'print("{@1} {@2} {@3} {@4}", mask, bits, 0o17, 1_000_000)\n'
+        'print("{@1} {@2} {@3}", 0xFFFFFFFF, 0x80000000, 2.5_0 + 1_0.0)\n'
+        'print("{@1}", 0xff + 0XA - 0x7FFFFFFF)'
+    )) == ['255 240 15 1000000', '-1 -2147483648 12.500000', str(255 + 10 - 0x7FFFFFFF)]
+
+
+@pytest.mark.parametrize("literal, message", [
+    ('0x', "A hex literal needs digits after '0x'"),
+    ('0b102', "'2' is not a binary digit in this literal"),
+    ('0o78', "'8' is not an octal digit"),
+    ('0x1_0000_0000', "is larger than 32 bits"),
+    ('0xFG', "'G' is not a hex digit"),
+])
+def test_bad_based_literals(literal, message):
+    from src.lexer import Lexer
+    lexer = Lexer(main(f'int x = {literal}'), 'test.fusion')
+    try:
+        lexer.tokenize()
+        found = '\n'.join(str(e) for e in lexer.diagnostics.errors)
+    except Exception as e:  # the lexer may raise on the first error
+        found = str(e)
+    assert message in found

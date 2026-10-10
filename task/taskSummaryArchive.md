@@ -3206,3 +3206,19 @@ Implementation (2026-10-09):
 - [x] Negative widths are run-time errors; the first char / string defaults for built-ins
 - [x] Revised (user decision 2026-10-10): truncate adds nothing - `truncate(s, width)` returns
       only the first `width` characters; the optional "..." ending was removed
+
+---
+
+#### 18.3.6d-1 (archived 2026-10-10)
+
+**18.3.6d-1 - Hex, binary, octal, both directions** (COMPLETE)
+- [x] User decisions 2026-10-10: negatives in two's complement, C# style, after comparing C,
+      C#, Java, Rust (two's complement) with Python, JavaScript, Go (sign + digits);
+      bytes as hex now; 0x / 0b / 0o literals with `_` separators
+- [x] toHex / toBinary / toOctal / toBase take an int or numeric text (the checker's
+      INT_OR_TEXT_BUILTINS; the generator picks fusion_int_* or fusion_str_*), optional width
+- [x] fromHex / fromBinary / fromOctal / parseInt / isInt(s, base): prefix, either case, sign;
+      32-bit patterns read back as negatives for bases 2 / 8 / 16; base 10 strict
+- [x] bytesToHex / hexToBytes with full UTF-8 validation (overlongs, surrogates, > U+10FFFF)
+- [x] Literals: hex / binary / octal up to 32 bits (0xFFFFFFFF is -1), `_` between digits in
+      every number literal; negative int literals are bracketed in C, INT_MIN written safely

@@ -15,7 +15,7 @@ from src.parser.ast_nodes import (
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
-from .name_resolver import BUILTIN_DEFAULTS, builtin_defaults
+from .name_resolver import BUILTIN_DEFAULTS, INT_OR_TEXT_BUILTINS, builtin_defaults
 from .symbol import Symbol
 from .errors import SemanticError
 from src.lexer.token import SourceLocation
@@ -814,6 +814,9 @@ class TypeChecker:
         # Check each argument type
         for i, (arg, expected_type) in enumerate(zip(node.arguments, func_type.parameter_types)):
             actual_type = self.visit(arg)
+            if (i == 0 and func_name in INT_OR_TEXT_BUILTINS and symbol.declaration is None
+                    and self._is_string_type(actual_type)):
+                continue  # toHex("255") - text holding a whole number (Task 18.3.6d)
             if isinstance(expected_type, ArrayType):
                 self._check_array_argument(func_name, i, arg, expected_type, actual_type)
             elif not self.types_compatible(expected_type, actual_type):

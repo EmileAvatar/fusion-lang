@@ -412,6 +412,23 @@ bool same = name == "Enterprise"   // true - compares the text
        characters or wider comes back unchanged. `truncate(s, width)` gives the first `width`
        characters and **adds nothing** - no "..." (user decision 2026-10-10: an added ending
        would conflict with what developers expect); a shorter string comes back unchanged
+     * Number bases (18.3.6d-1, user decisions 2026-10-10): `toHex(x, width = 0)`,
+       `toBinary`, `toOctal` take an int **or** text holding a whole number (`toHex(255)` and
+       `toHex("255")` -> "ff"), lowercase, zero-padded to at least `width` digits
+       (`toHex(255, 4)` -> "00ff"). A negative number is its 32-bit **two's complement**
+       pattern, as in C, C#, Java's toHexString and every debugger: `toHex(-1)` ->
+       "ffffffff". `fromHex(s)`, `fromBinary`, `fromOctal` and `parseInt(s, base)` read
+       text back - either case, an optional `0x` / `0b` / `0o` prefix and a leading `-`; for
+       bases 2, 8 and 16 a 32-bit pattern reads as its two's complement value
+       (`fromHex("ffffffff")` -> -1, a round trip, as in C#'s Convert.ToInt32). Base 10 stays
+       strictly signed. `toBase(x, base, width = 0)` writes sign + digits for any base 2-36
+       (`toBase(-255, 16)` -> "-ff"). `isInt(s, base = 10)` checks first; bad text is a
+       run-time error, like `toInt`. `bytesToHex(s)` shows the text's UTF-8 bytes
+       ("Hi" -> "4869"); `hexToBytes(h)` turns them back into text - an odd length, a
+       non-hex digit or bytes that aren't valid text are run-time errors
+     * **Number literals** (18.3.6d-1): `0xFF`, `0b1010`, `0o17`, with `_` allowed between
+       digits (`0b1111_0000`, `1_000_000`, `2.5_0`). Hex, binary and octal literals hold up
+       to 32 bits and read as the bit pattern, like `fromHex`: `0xFFFFFFFF` is -1
      * **Letters** are ASCII plus Latin-1 (Western European accented letters such as e-acute,
        u-umlaut, sharp s); full Unicode letter and case tables come later
      * **Built-ins take optional arguments** like user functions' defaults:
@@ -420,7 +437,7 @@ bool same = name == "Enterprise"   // true - compares the text
        quietly - `left("ab", 5)` is "ab"; a negative count stops the program with a run-time
        error; positions inside the string (`insert`, `remove`, like `substring`) must be valid
      * Still to come in 18.3.6: number formatting (`formatNumber` with Excel/.NET or printf
-       patterns, `toHex`, `toBinary`, `parseInt(s, base)`), comparing (`equalsIgnoreCase`,
+       patterns), comparing (`equalsIgnoreCase`,
        `compareIgnoreCase`, `compareNatural`), and a masking design (`mask`)
 
 ```

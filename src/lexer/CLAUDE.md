@@ -6,7 +6,7 @@
 | `token.py` | `Token`, `TokenType` and `SourceLocation` (file, line, column) definitions |
 | `keywords.py` | The reserved-word table: maps words like `if`, `struct`, `int` to token types |
 | `operators.py` | Recognises operators and punctuation (`+`, `==`, `->`, `.`, brackets) |
-| `literals.py` | Numbers, strings (incl. `{name}` / `{@N}` interpolation parts, escapes) and char literals |
+| `literals.py` | Numbers (incl. `0xFF` / `0b1010` / `0o17` and `_` separators), strings (incl. `{name}` / `{@N}` interpolation parts, escapes) and char literals |
 | `comments.py` | Skips `//` and `/* */` comments |
 | `indentation.py` | Tracks indentation and emits INDENT / DEDENT tokens (tab width, mixed tabs/spaces) |
 | `block_style.py` | Tracks which of the three block styles (indentation, braces, `End`) is in use |

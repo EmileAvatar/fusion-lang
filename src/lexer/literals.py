@@ -87,6 +87,60 @@ def is_digit(char: str) -> bool:
     return char and len(char) == 1 and '0' <= char <= '9'
 
 
+def _skip_digits(text: str, pos: int, digits: str = '0123456789') -> int:
+    """Position after a run of digits, where a single `_` may sit between two digits
+    (`1_000_000`, Task 18.3.6d). A `_` not followed by a digit ends the run."""
+    while pos < len(text):
+        if text[pos] in digits:
+            pos += 1
+        elif text[pos] == '_' and pos > 0 and text[pos - 1] in digits \
+                and pos + 1 < len(text) and text[pos + 1] in digits:
+            pos += 1
+        else:
+            break
+    return pos
+
+
+_BASE_PREFIXES = {'x': (16, '0123456789abcdefABCDEF', 'a hex'),
+                  'b': (2, '01', 'a binary'),
+                  'o': (8, '01234567', 'an octal')}
+
+
+def parse_based_integer(text: str, position: int) -> Optional[Tuple[str, int]]:
+    """Parse a hex, binary or octal literal: 0xFF, 0b1010_0101, 0o17 (Task 18.3.6d).
+
+    Returns (literal_text, new_position), or None when there's no 0x / 0b / 0o prefix.
+
+    Raises:
+        ValueError: no digits after the prefix, a digit that doesn't belong to the base,
+            or a value larger than 32 bits
+    """
+    if not (text.startswith('0', position) and position + 1 < len(text)
+            and text[position + 1].lower() in _BASE_PREFIXES):
+        return None
+    base, digits, name = _BASE_PREFIXES[text[position + 1].lower()]
+    start = position + 2
+    pos = _skip_digits(text, start, digits)
+    if pos == start:
+        raise ValueError(f"{name.capitalize()} literal needs digits after '{text[position:start]}'")
+    if pos < len(text) and (text[pos].isalnum() or text[pos] == '_'):
+        raise ValueError(f"'{text[pos]}' is not {name} digit in this literal")
+    if int(text[start:pos].replace('_', ''), base) > 0xFFFFFFFF:
+        raise ValueError(f"The {name.split()[1]} literal {text[position:pos]} is larger than 32 bits")
+    return text[position:pos], pos
+
+
+def integer_value(literal: str) -> int:
+    """The int value of an integer literal's text. A hex / binary / octal literal is a
+    32-bit pattern, so 0xFFFFFFFF is -1 - the same rule as fromHex (Task 18.3.6d, C#
+    style two's complement)."""
+    literal = literal.rstrip('Ll')
+    if len(literal) > 1 and literal[0] == '0' and literal[1].lower() in _BASE_PREFIXES:
+        value = int(literal, 0)
+        return value - 0x100000000 if value > 0x7FFFFFFF else value
+    return int(literal.replace('_', ''))
+
+
 def parse_integer(text: str, position: int) -> Optional[Tuple[str, int]]:
     """Parse an integer literal starting at position.
 
@@ -107,9 +161,8 @@ def parse_integer(text: str, position: int) -> Optional[Tuple[str, int]]:
     start = position
     pos = position
 
-    # Read all digits
-    while pos < len(text) and is_digit(text[pos]):
-        pos += 1
+    # Read all digits (a `_` may separate them - Task 18.3.6d)
+    pos = _skip_digits(text, pos)
 
     # Check for long suffix (L or l)
     if pos < len(text) and text[pos] in 'Ll':
@@ -148,10 +201,8 @@ def parse_float(text: str, position: int) -> Optional[Tuple[str, int]]:
     pos = position
 
     # Read integer part (optional if decimal point follows)
-    has_integer_part = False
-    while pos < len(text) and is_digit(text[pos]):
-        has_integer_part = True
-        pos += 1
+    has_integer_part = pos < len(text) and is_digit(text[pos])
+    pos = _skip_digits(text, pos)
 
     # Must have decimal point for float
     if pos >= len(text) or text[pos] != '.':
@@ -160,10 +211,8 @@ def parse_float(text: str, position: int) -> Optional[Tuple[str, int]]:
     pos += 1  # Skip decimal point
 
     # Read fractional part
-    has_fractional_part = False
-    while pos < len(text) and is_digit(text[pos]):
-        has_fractional_part = True
-        pos += 1
+    has_fractional_part = pos < len(text) and is_digit(text[pos])
+    pos = _skip_digits(text, pos)
 
     # Must have at least one digit somewhere
     if not has_integer_part and not has_fractional_part:

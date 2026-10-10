@@ -27,7 +27,15 @@ BUILTIN_DEFAULTS = {
     'padLeft': [(' ', 'char')],              # padLeft(s, width, fill = ' ')
     'padRight': [(' ', 'char')],
     'center': [(' ', 'char')],
+    'toHex': [(0, 'int')],                   # toHex(x, width = 0) - x is an int or numeric text
+    'toBinary': [(0, 'int')],
+    'toOctal': [(0, 'int')],
+    'toBase': [(0, 'int')],                  # toBase(x, base, width = 0)
+    'isInt': [(10, 'int')],                  # isInt(s, base = 10)
 }
+
+# Built-ins whose first argument may be an int or text holding a whole number (18.3.6d)
+INT_OR_TEXT_BUILTINS = {'toHex', 'toBinary', 'toOctal', 'toBase'}
 
 
 def builtin_defaults(name: str, parameter_count: int) -> list:
@@ -193,8 +201,20 @@ class NameResolver:
             'padRight': ([string_type, int_type, char_type], string_type),
             'center': ([string_type, int_type, char_type], string_type),
             'truncate': ([string_type, int_type], string_type),
+            # Number bases (18.3.6d-1)
+            'toHex': ([int_type, int_type], string_type),
+            'toBinary': ([int_type, int_type], string_type),
+            'toOctal': ([int_type, int_type], string_type),
+            'toBase': ([int_type, int_type, int_type], string_type),
+            'fromHex': ([string_type], int_type),
+            'fromBinary': ([string_type], int_type),
+            'fromOctal': ([string_type], int_type),
+            'parseInt': ([string_type, int_type], int_type),
+            'bytesToHex': ([string_type], string_type),
+            'hexToBytes': ([string_type], string_type),
         }
         string_builtins['indexOf'] = ([string_type, string_type, int_type], int_type)
+        string_builtins['isInt'] = ([string_type, int_type], bool_type)
         # A program's own function or struct may reuse one of these names (Task 18.3.6 -
         # left, right, remove, ... are everyday names): it replaces the built-in
         self.library_builtins = set(string_builtins) - {'format'}

@@ -12,7 +12,7 @@ from .block_style import BlockStyleTracker, BlockStyle
 from .keywords import is_keyword, get_keyword_type
 from .operators import match_operator, is_operator_char
 from .literals import (
-    parse_integer, parse_float, parse_string, parse_char,
+    parse_integer, parse_based_integer, parse_float, parse_string, parse_char,
     is_digit, is_literal_start
 )
 from .comments import is_comment_start, skip_comment
@@ -365,6 +365,17 @@ class Lexer:
             LexerError: If number format is invalid
         """
         loc = self.location()
+
+        # Hex, binary and octal literals: 0xFF, 0b1010, 0o17 (Task 18.3.6d)
+        try:
+            based_result = parse_based_integer(self.source, self.pos)
+        except ValueError as e:
+            self.error(str(e))
+        if based_result:
+            value, new_pos = based_result
+            self.pos = new_pos
+            self.column += len(value)
+            return Token(TokenType.INTEGER, value, loc)
 
         # Try float first (includes decimal point)
         float_result = parse_float(self.source, self.pos)

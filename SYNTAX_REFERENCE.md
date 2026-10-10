@@ -210,7 +210,7 @@ void function main()
     print(joined)
 ```
 
-#### String library: inspect, search, extract, change, pad
+#### String library: inspect, search, extract, change, pad, number bases
 
 <!-- example: syntax_string_library | task: 18.3.6 -->
 ```fusion
@@ -228,6 +228,12 @@ void function main()
     print("{@1} / {@2} / {@3}", toUpper(s), capitalize("hello world"), toTitle("hello world"))
     print("[{@1}] [{@2}] [{@3}]", padLeft("7", 3, '0'), padRight("ab", 5), center("ab", 6, '*'))
     print("[{@1}]", truncate("Hello world", 8))       // the first 8 characters, nothing added
+
+    int mask = 0xFF                                    // also 0b1010, 0o17, 1_000_000
+    print("{@1} {@2} {@3}", toHex(mask), toHex("255", 4), toBinary(5, 8))
+    print("{@1} {@2} {@3}", toHex(-1), fromHex("ffffffff"), fromHex("0x1F"))   // two's complement
+    print("{@1} {@2} {@3}", toOctal(8), toBase(-255, 16), parseInt("z", 36))
+    print("{@1} {@2}", bytesToHex("Hi"), hexToBytes("4869"))
 ```
 
 #### Equality: `=`, `==`, `===`

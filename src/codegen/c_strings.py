@@ -225,4 +225,131 @@ static inline fusion_string fusion_str_truncate(fusion_string s, int width, cons
     if (width > s.chars) width = s.chars;
     return fusion_str_make(s.data, fusion_utf8_offset(s, width));
 }
+// ---- Number bases (18.3.6d-1) - hex, binary, octal, any base 2-36. toHex / toBinary /
+// toOctal write a negative number as its 32-bit two's complement pattern (C# style, user
+// decision 2026-10-10): toHex(-1) -> "ffffffff"; reading that text back gives -1 again
+static inline int fusion_digit_value(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    c = (char)(c | 32);
+    return c >= 'a' && c <= 'z' ? c - 'a' + 10 : 99;
+}
+static inline void fusion_check_base(int base, const char* name, const char* where) {
+    if (base < 2 || base > 36) fusion_runtime_error(where, "%s: base %d is not between 2 and 36", name, base);
+}
+// Digits of v in `base`, zero-padded to at least `width` digits, with an optional '-'
+static inline fusion_string fusion_digits_text(uint32_t v, int base, bool negative, int width, const char* name, const char* where) {
+    char digits[33];
+    int n = 0;
+    if (width < 0) fusion_runtime_error(where, "%s(width %d): the width can't be negative", name, width);
+    do { digits[n++] = "0123456789abcdefghijklmnopqrstuvwxyz"[v % (uint32_t)base]; v /= (uint32_t)base; } while (v > 0);
+    int pad = width > n ? width - n : 0;
+    int len = fusion_checked_size((long long)negative + pad + n, name, where), o = 0;
+    char* out = (char*)fusion_alloc((size_t)len + 1);
+    if (negative) out[o++] = '-';
+    while (pad-- > 0) out[o++] = '0';
+    while (n > 0) out[o++] = digits[--n];
+    return fusion_str_take(out, len);
+}
+static inline fusion_string fusion_int_toHex(int x, int width, const char* where) { return fusion_digits_text((uint32_t)x, 16, false, width, "toHex", where); }
+static inline fusion_string fusion_int_toBinary(int x, int width, const char* where) { return fusion_digits_text((uint32_t)x, 2, false, width, "toBinary", where); }
+static inline fusion_string fusion_int_toOctal(int x, int width, const char* where) { return fusion_digits_text((uint32_t)x, 8, false, width, "toOctal", where); }
+// Sign + digits: toBase(-255, 16) -> "-ff" (like Java's Integer.toString(n, 16))
+static inline fusion_string fusion_int_toBase(int x, int base, int width, const char* where) {
+    fusion_check_base(base, "toBase", where);
+    uint32_t magnitude = x < 0 ? 0u - (uint32_t)x : (uint32_t)x;
+    return fusion_digits_text(magnitude, base, x < 0, width, "toBase", where);
+}
+// The same from text holding a whole number: toHex("255") -> "ff"
+static inline fusion_string fusion_str_toHex(fusion_string s, int width, const char* where) { return fusion_int_toHex(fusion_str_toInt(s, where), width, where); }
+static inline fusion_string fusion_str_toBinary(fusion_string s, int width, const char* where) { return fusion_int_toBinary(fusion_str_toInt(s, where), width, where); }
+static inline fusion_string fusion_str_toOctal(fusion_string s, int width, const char* where) { return fusion_int_toOctal(fusion_str_toInt(s, where), width, where); }
+static inline fusion_string fusion_str_toBase(fusion_string s, int base, int width, const char* where) { return fusion_int_toBase(fusion_str_toInt(s, where), base, width, where); }
+
+// Reading: an optional sign, an optional 0x / 0b / 0o prefix matching the base, digits in
+// either case. Base 10 stays strictly signed; for bases 2, 8 and 16 a 32-bit pattern reads
+// as its two's complement value ("ffffffff" -> -1); other bases are signed
+static inline bool fusion_parse_base(fusion_string s, int base, int* out) {
+    if (base == 10) return fusion_parse_int(s, out);
+    int i = 0;
+    bool negative = false;
+    uint64_t v = 0;
+    if (i < s.len && (s.data[i] == '+' || s.data[i] == '-')) negative = s.data[i++] == '-';
+    if (i + 1 < s.len && s.data[i] == '0') {
+        char p = (char)(s.data[i + 1] | 32);
+        if ((p == 'x' && base == 16) || (p == 'b' && base == 2) || (p == 'o' && base == 8)) i += 2;
+    }
+    if (i >= s.len) return false;
+    for (; i < s.len; i++) {
+        int d = fusion_digit_value(s.data[i]);
+        if (d >= base) return false;
+        v = v * (uint64_t)base + (uint64_t)d;
+        if (v > 0xFFFFFFFFull) return false;
+    }
+    if (negative) {
+        if (v > 2147483648ull) return false;
+        *out = (int)(0u - (uint32_t)v);
+    } else if (base == 2 || base == 8 || base == 16) {
+        *out = (int)(uint32_t)v;
+    } else {
+        if (v > 2147483647ull) return false;
+        *out = (int)v;
+    }
+    return true;
+}
+static inline int fusion_str_parseInt(fusion_string s, int base, const char* where) {
+    int v;
+    fusion_check_base(base, "parseInt", where);
+    if (!fusion_parse_base(s, base, &v))
+        fusion_runtime_error(where, "'%.*s' is not a base-%d whole number that fits in an int (check with isInt(s, %d) first)", s.len, s.data, base, base);
+    return v;
+}
+static inline int fusion_str_fromHex(fusion_string s, const char* where) { return fusion_str_parseInt(s, 16, where); }
+static inline int fusion_str_fromBinary(fusion_string s, const char* where) { return fusion_str_parseInt(s, 2, where); }
+static inline int fusion_str_fromOctal(fusion_string s, const char* where) { return fusion_str_parseInt(s, 8, where); }
+static inline bool fusion_str_isIntBase(fusion_string s, int base, const char* where) {
+    int v;
+    fusion_check_base(base, "isInt", where);
+    return fusion_parse_base(s, base, &v);
+}
+
+// Bytes as hex: bytesToHex("Hi") -> "4869" (the UTF-8 bytes, lowercase), and back
+static inline fusion_string fusion_str_bytesToHex(fusion_string s, const char* where) {
+    int len = fusion_checked_size((long long)s.len * 2, "bytesToHex", where);
+    char* out = (char*)fusion_alloc((size_t)len + 1);
+    for (int i = 0; i < s.len; i++) {
+        out[2 * i] = "0123456789abcdef"[(unsigned char)s.data[i] >> 4];
+        out[2 * i + 1] = "0123456789abcdef"[(unsigned char)s.data[i] & 15];
+    }
+    return fusion_str_take(out, len);
+}
+// Valid UTF-8 (or plain ASCII in an ascii project): no overlong forms, surrogates or
+// values past U+10FFFF
+static inline bool fusion_utf8_valid(const char* p, int len) {
+    for (int i = 0; i < len; ) {
+        unsigned char b = (unsigned char)p[i];
+        int n = b < 0x80 ? 1 : (b >= 0xC2 && b < 0xE0) ? 2 : (b >= 0xE0 && b < 0xF0) ? 3 : (b >= 0xF0 && b < 0xF5) ? 4 : 0;
+#ifdef FUSION_ASCII
+        if (n != 1) return false;
+#endif
+        if (n == 0 || i + n > len) return false;
+        for (int k = 1; k < n; k++) if (((unsigned char)p[i + k] & 0xC0) != 0x80) return false;
+        if (n > 1) {
+            uint32_t c = (uint32_t)fusion_utf8_decode(p + i);
+            if ((n == 3 && c < 0x800) || (n == 4 && (c < 0x10000 || c > 0x10FFFF)) || (c >= 0xD800 && c <= 0xDFFF)) return false;
+        }
+        i += n;
+    }
+    return true;
+}
+static inline fusion_string fusion_str_hexToBytes(fusion_string s, const char* where) {
+    if (s.len % 2 != 0) fusion_runtime_error(where, "hexToBytes: '%.*s' has an odd number of hex digits", s.len, s.data);
+    char* out = (char*)fusion_alloc((size_t)s.len / 2 + 1);
+    for (int i = 0; i < s.len; i += 2) {
+        int high = fusion_digit_value(s.data[i]), low = fusion_digit_value(s.data[i + 1]);
+        if (high > 15 || low > 15) { fusion_dealloc(out); fusion_runtime_error(where, "hexToBytes: '%.*s' is not hex text", s.len, s.data); }
+        out[i / 2] = (char)(high * 16 + low);
+    }
+    if (!fusion_utf8_valid(out, s.len / 2)) { fusion_dealloc(out); fusion_runtime_error(where, "hexToBytes: the bytes of '%.*s' are not valid text", s.len, s.data); }
+    return fusion_str_take(out, s.len / 2);
+}
 '''

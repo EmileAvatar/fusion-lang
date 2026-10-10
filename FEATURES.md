@@ -119,8 +119,11 @@ The single place to see what is done, open, or postponed. One line per item.
 				truncate (the first n characters only - adds nothing, user decision 2026-10-10)
 			[ ] Masking: email, phone, number and custom string-number formats - planning overview only;
 				design in detail when this item starts
-			[ ] Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f", zero padding,
-				toHex / toBinary / parseInt with base
+			[DONE] 18.3.6d-1 Number bases: toHex / toBinary / toOctal / toBase (from an int or numeric
+				text, optional width; negatives in two's complement, C# style), fromHex / fromBinary /
+				fromOctal / parseInt(s, base), isInt(s, base), bytesToHex / hexToBytes; literals 0xFF,
+				0b1010, 0o17 and 1_000_000
+			[ ] 18.3.6d-2 Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f"
 			[ ] Compare: equalsIgnoreCase, compareIgnoreCase, natural order ("file2" before "file10")
 		[ ] 18.3.7 The String class and method syntax - every string function reachable three ways:
 			`String.replace(s, old, new)` (static class, always available), `name.toUpper()` (a string
