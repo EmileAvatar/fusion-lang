@@ -24,6 +24,10 @@ from src.lexer.token import SourceLocation
 # becomes this literal, just like a user function's default (Task 18.1.1)
 BUILTIN_DEFAULTS = {
     'indexOf': [(0, 'int')],                 # indexOf(s, part, from = 0)
+    'padLeft': [(' ', 'char')],              # padLeft(s, width, fill = ' ')
+    'padRight': [(' ', 'char')],
+    'center': [(' ', 'char')],
+    'truncate': [('...', 'string')],         # truncate(s, width, ending = "...")
 }
 
 
@@ -186,6 +190,10 @@ class NameResolver:
             'trimEnd': ([string_type], string_type),
             'capitalize': ([string_type], string_type),
             'toTitle': ([string_type], string_type),
+            'padLeft': ([string_type, int_type, char_type], string_type),
+            'padRight': ([string_type, int_type, char_type], string_type),
+            'center': ([string_type, int_type, char_type], string_type),
+            'truncate': ([string_type, int_type, string_type], string_type),
         }
         string_builtins['indexOf'] = ([string_type, string_type, int_type], int_type)
         # A program's own function or struct may reuse one of these names (Task 18.3.6 -

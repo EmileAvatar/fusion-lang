@@ -210,7 +210,7 @@ void function main()
     print(joined)
 ```
 
-#### String library: inspect, search, extract, change
+#### String library: inspect, search, extract, change, pad
 
 <!-- example: syntax_string_library | task: 18.3.6 -->
 ```fusion
@@ -226,6 +226,8 @@ void function main()
     print("{@1} {@2}", repeat("ab", 3), reverse(s))
     print("[{@1}] [{@2}]", trimStart("  x  "), trimEnd("  x  "))
     print("{@1} / {@2} / {@3}", toUpper(s), capitalize("hello world"), toTitle("hello world"))
+    print("[{@1}] [{@2}] [{@3}]", padLeft("7", 3, '0'), padRight("ab", 5), center("ab", 6, '*'))
+    print("{@1} {@2}", truncate("Hello world", 8), truncate("Hello world", 6, "~"))
 ```
 
 #### Equality: `=`, `==`, `===`

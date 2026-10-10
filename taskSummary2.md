@@ -147,7 +147,7 @@ Indexes start at 0, as `s[i]` and `substring` do. Six parts, each committed on i
   character), `trimStart`, `trimEnd`, `capitalize(s)` ("hello world" -> "Hello world"),
   `toTitle(s)` ("hello world" -> "Hello World"). An empty `old` in replace returns `s`
   unchanged; `repeat` with n < 0 is a run-time error
-- **18.3.6c Padding & alignment**: `padLeft(s, width, fill)`, `padRight`, `center` (extra
+- **18.3.6c Padding & alignment** - COMPLETE, detail archived: `padLeft(s, width, fill)`, `padRight`, `center` (extra
   space goes right), `truncate(s, width, ending = "...")` - the result is at most `width`
   characters including the ending. A string already at or past `width` is returned as is
   by the pad functions
@@ -309,4 +309,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.6 plan approved (all four decisions; formatNumber takes both pattern styles).
 - 18.3.6a COMPLETE (optional built-in arguments, inspect / search / extract).
 - 18.3.6b COMPLETE (change functions; toUpper / toLower cover Latin-1).
-- **Next Action:** implement **18.3.6c (padding & alignment)** per the approved plan.
+- 18.3.6c COMPLETE (padding & alignment).
+- **Next Action:** implement **18.3.6d (number formatting)** per the approved plan.

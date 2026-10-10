@@ -407,6 +407,11 @@ bool same = name == "Enterprise"   // true - compares the text
        `toTitle(toLower(s))` for "Hello World" from "HELLO WORLD". `toUpper` / `toLower`
        change ASCII and Latin-1 letters ("cafe-acute" -> "CAFE-ACUTE"; sharp s has no
        one-letter capital and stays as it is)
+     * Padding (18.3.6c): `padLeft(s, width, fill = ' ')`, `padRight`, `center` (an odd extra
+       fill goes on the right) - the fill is any character; a string already `width`
+       characters or wider comes back unchanged. `truncate(s, width, ending = "...")` gives at
+       most `width` characters, the ending included ("Hello world", 8 -> "Hello..."); when
+       the ending alone is wider than `width`, as much of the ending as fits
      * **Letters** are ASCII plus Latin-1 (Western European accented letters such as e-acute,
        u-umlaut, sharp s); full Unicode letter and case tables come later
      * **Built-ins take optional arguments** like user functions' defaults:
@@ -414,8 +419,7 @@ bool same = name == "Enterprise"   // true - compares the text
      * **Out of range:** "up to n" functions (`left`, `right`, padding, `truncate`) clamp
        quietly - `left("ab", 5)` is "ab"; a negative count stops the program with a run-time
        error; positions inside the string (`insert`, `remove`, like `substring`) must be valid
-     * Still to come in 18.3.6: padding (`padLeft`, `padRight`,
-       `center`, `truncate`), number formatting (`formatNumber` with Excel/.NET or printf
+     * Still to come in 18.3.6: number formatting (`formatNumber` with Excel/.NET or printf
        patterns, `toHex`, `toBinary`, `parseInt(s, base)`), comparing (`equalsIgnoreCase`,
        `compareIgnoreCase`, `compareNatural`), and a masking design (`mask`)
 

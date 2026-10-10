@@ -197,4 +197,37 @@ static inline fusion_string fusion_str_trimEnd(fusion_string s) {
     while (end > 0 && fusion_is_space(s.data[end - 1])) end--;
     return fusion_str_make(s.data, end);
 }
+
+// ---- Padding & alignment (18.3.6c) - widths count characters; a string already that wide
+// or wider comes back unchanged
+// mode 0: fill on the left (padLeft), 1: on the right (padRight), 2: both sides (center -
+// an odd extra fill goes on the right)
+static inline fusion_string fusion_str_pad(fusion_string s, int width, fusion_char fill, int mode, const char* name, const char* where) {
+    if (width < 0) fusion_runtime_error(where, "%s(width %d): the width can't be negative", name, width);
+    if (s.chars >= width) return fusion_str_make(s.data, s.len);
+    char f[4];
+    int fill_len = fusion_utf8_encode(fill, f), add = width - s.chars;
+    int before = mode == 0 ? add : mode == 1 ? 0 : add / 2, after = add - before;
+    int len = fusion_checked_size((long long)s.len + (long long)add * fill_len, name, where), o = 0;
+    char* out = (char*)fusion_alloc((size_t)len + 1);
+    for (int k = 0; k < before; k++) { memcpy(out + o, f, (size_t)fill_len); o += fill_len; }
+    memcpy(out + o, s.data, (size_t)s.len); o += s.len;
+    for (int k = 0; k < after; k++) { memcpy(out + o, f, (size_t)fill_len); o += fill_len; }
+    return fusion_str_take(out, len);
+}
+static inline fusion_string fusion_str_padLeft(fusion_string s, int width, fusion_char fill, const char* where) { return fusion_str_pad(s, width, fill, 0, "padLeft", where); }
+static inline fusion_string fusion_str_padRight(fusion_string s, int width, fusion_char fill, const char* where) { return fusion_str_pad(s, width, fill, 1, "padRight", where); }
+static inline fusion_string fusion_str_center(fusion_string s, int width, fusion_char fill, const char* where) { return fusion_str_pad(s, width, fill, 2, "center", where); }
+// At most `width` characters, the ending included: truncate("Hello world", 8) -> "Hello..."
+// When the ending alone is wider than `width`, as much of the ending as fits
+static inline fusion_string fusion_str_truncate(fusion_string s, int width, fusion_string ending, const char* where) {
+    if (width < 0) fusion_runtime_error(where, "truncate(width %d): the width can't be negative", width);
+    if (s.chars <= width) return fusion_str_make(s.data, s.len);
+    if (ending.chars >= width) return fusion_str_make(ending.data, fusion_utf8_offset(ending, width));
+    int keep = fusion_utf8_offset(s, width - ending.chars);
+    char* out = (char*)fusion_alloc((size_t)(keep + ending.len) + 1);
+    memcpy(out, s.data, (size_t)keep);
+    memcpy(out + keep, ending.data, (size_t)ending.len);
+    return fusion_str_take(out, keep + ending.len);
+}
 '''

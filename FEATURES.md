@@ -115,7 +115,8 @@ The single place to see what is done, open, or postponed. One line per item.
 			[DONE] Extract: left, right (clamp; negative count = run-time error)
 			[DONE] 18.3.6b Change: replace, replaceFirst, insert, remove, repeat, reverse, trimStart,
 				trimEnd, capitalize, toTitle; toUpper / toLower now cover Latin-1 too
-			[ ] Padding & alignment: padLeft, padRight, center, truncate (with "...")
+			[DONE] 18.3.6c Padding & alignment: padLeft, padRight, center (optional fill char),
+				truncate (optional ending, default "...")
 			[ ] Masking: email, phone, number and custom string-number formats - planning overview only;
 				design in detail when this item starts
 			[ ] Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f", zero padding,

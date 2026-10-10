@@ -143,3 +143,37 @@ def test_case_covers_latin_1():
 ])
 def test_change_run_time_errors(call, message):
     assert message in run_error(main(f'print({call})'))
+
+
+# ============================================================
+# 18.3.6c - Padding & alignment
+# ============================================================
+
+def test_padding_and_center():
+    assert run_ok(ECHO + main(
+        'print("[{@1}] [{@2}] [{@3}]", padLeft("7", 3, \'0\'), padLeft("ab", 5), padLeft("abcdef", 3))\n'
+        'print("[{@1}] [{@2}] [{@3}]", padRight("ab", 5), padRight("ab", 4, \'.\'), padRight(echo("x"), 0))\n'
+        'print("[{@1}] [{@2}] [{@3}]", center("ab", 6), center("ab", 5, \'*\'), center("caf\u00e9", 6, \'\u00b7\'))'
+    )) == ['[007] [   ab] [abcdef]', '[ab   ] [ab..] [x]', '[  ab  ] [*ab**] [\u00b7caf\u00e9\u00b7]']
+
+
+def test_truncate():
+    assert run_ok(main(
+        'print("[{@1}] [{@2}] [{@3}]", truncate("Hello world", 8), truncate("Hello", 8), truncate("Hello", 5))\n'
+        'print("[{@1}] [{@2}] [{@3}]", truncate("Hello world", 6, "~"), truncate("Hello", 2), truncate("Hello", 0))\n'
+        'print("[{@1}]", truncate("caf\u00e9 au lait", 5, "\u2026"))'
+    )) == ['[Hello...] [Hello] [Hello]', '[Hello~] [..] []', '[caf\u00e9\u2026]']
+
+
+@pytest.mark.parametrize("call, message", [
+    ('padLeft("ab", -1)', "padLeft(width -1): the width can't be negative"),
+    ('center("ab", -3, \'*\')', "center(width -3): the width can't be negative"),
+    ('truncate("ab", -1)', "truncate(width -1): the width can't be negative"),
+])
+def test_padding_run_time_errors(call, message):
+    assert message in run_error(main(f'print({call})'))
+
+
+def test_padding_argument_types():
+    errors = errors_of(main('string a = padLeft("x", 3, "0")\nstring b = truncate("x", 3, \'.\')'))
+    assert "expected char, got string" in errors and "expected string, got char" in errors

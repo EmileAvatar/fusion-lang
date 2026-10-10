@@ -3193,3 +3193,14 @@ Implementation (2026-10-09):
       from c_memory.py and upgraded; capitalize / toTitle change only first letters (acronyms
       survive), words split on whitespace; y-umlaut <-> U+0178; sharp s stays
 - [x] Every growing result goes through `fusion_str_take`, so `[strings] max_length` applies
+
+---
+
+#### 18.3.6c (archived 2026-10-10)
+
+**18.3.6c - Padding & alignment** (COMPLETE)
+- [x] padLeft / padRight / center with an optional fill char (default ' ', any Unicode
+      character); center puts an odd extra fill on the right; wide strings come back unchanged
+- [x] truncate(s, width, ending = "...") - at most `width` characters, ending included; an
+      ending wider than `width` is itself cut to fit
+- [x] Negative widths are run-time errors; the first char / string defaults for built-ins
