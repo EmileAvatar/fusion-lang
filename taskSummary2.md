@@ -225,6 +225,8 @@ printf-style patterns.
 Each part: tests (unit + run under the leak check), a `SYNTAX_REFERENCE.md` example,
 spec + `FEATURES.md`, `python check.py`, commit and push.
 
+**18.3.8 - Raw bytes** - COMPLETE, detail archived
+
 **Out of scope (logged for later):** in-place editing (`s[0] = 'X'`) and mutable vs fixed
 strings (Task 17 - 18.3 strings are replaced, never edited in place, which keeps the
 ownership rules simple); string pooling (Task 17); Unicode-aware functions; full expressions
@@ -353,4 +355,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.6c revised: truncate adds nothing (user decision).
 - 18.3.6d plan approved (two's complement C# style; bytes as hex now; literals with _).
 - 18.3.6d-1 COMPLETE (number bases, bytes as hex, 0x / 0b / 0o literals).
+- 18.3.8 COMPLETE (raw bytes: byte / bytes, added at the user's request).
 - **Next Action:** implement **18.3.6d-2 (formatNumber)** per the approved plan.

@@ -35,6 +35,8 @@ from ..parser.ast_nodes import (
 )
 from .c_names import mangle_function_name
 from .c_strings import STRING_LIBRARY
+from .c_bytes import BYTES_LIBRARY
+from ..semantic.name_resolver import MUTATING_BUILTINS
 
 
 RUNTIME_PRELUDE = r'''// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
@@ -369,6 +371,7 @@ static inline bool fusion_char_eq_str(fusion_char c, fusion_string s) { return s
 // ---- end of runtime ----
 '''
 RUNTIME_PRELUDE += STRING_LIBRARY  # the versatile string functions (Task 18.3.6)
+RUNTIME_PRELUDE += BYTES_LIBRARY   # raw bytes (Task 18.3.8)
 
 
 class MemoryManagementMixin:
@@ -379,7 +382,7 @@ class MemoryManagementMixin:
     def is_managed(self, type_node) -> bool:
         """True if values of this type own heap memory (a string anywhere inside them)."""
         if isinstance(type_node, PrimitiveType):
-            return type_node.name == 'string'
+            return type_node.name in ('string', 'bytes')   # bytes: the same struct (18.3.8)
         if isinstance(type_node, ArrayType):
             return self.is_managed(type_node.element_type)
         if isinstance(type_node, StructType):
@@ -392,7 +395,7 @@ class MemoryManagementMixin:
 
     def copy_code(self, type_node, code: str) -> str:
         """C expression giving an independent copy of a (non-array) managed value."""
-        if isinstance(type_node, PrimitiveType) and type_node.name == 'string':
+        if isinstance(type_node, PrimitiveType) and type_node.name in ('string', 'bytes'):
             return f'fusion_str_copy({code})'
         if isinstance(type_node, StructType) and self.is_managed(type_node):
             return f'fusion_copy_{self._struct_c_name(type_node)}({code})'
@@ -460,6 +463,8 @@ class MemoryManagementMixin:
             return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, InterpolatedStringExpr):
             return True  # "x is {x}" builds a new string (18.3.3)
+        if isinstance(expr, ArrayLiteralExpr):
+            return self._is_bytes(expr)  # [0x6B, 0x69] stored as bytes is built (18.3.8)
         return isinstance(expr, CallExpr) and self.is_managed(getattr(expr, 'inferred_type', None))
 
     def owned_value(self, expr, type_node) -> str:
@@ -468,7 +473,7 @@ class MemoryManagementMixin:
             return self.visit(expr)
         if isinstance(expr, LiteralExpr):
             return self.visit(expr)  # source text - never freed, safe to store
-        if isinstance(expr, ArrayLiteralExpr):
+        if isinstance(expr, ArrayLiteralExpr) and isinstance(type_node, ArrayType):
             element = type_node.element_type
             return '{' + ', '.join(self.owned_value(e, element) for e in expr.elements) + '}'
         if self.is_fresh(expr):
@@ -585,8 +590,15 @@ class MemoryManagementMixin:
                 return
             if isinstance(node, LambdaExpr) or not (is_dataclass(node) and isinstance(node, ASTNode)):
                 return
+            changed = None
             if isinstance(node, AssignmentStmt):
-                root = node.target
+                changed = node.target
+            elif isinstance(node, CallExpr) and isinstance(node.callee, IdentifierExpr) \
+                    and node.callee.name in MUTATING_BUILTINS and node.callee_declaration is None \
+                    and node.arguments:
+                changed = node.arguments[0]   # setInt(b, ...) changes b (Task 18.3.8)
+            if changed is not None:
+                root = changed
                 while isinstance(root, (MemberExpr, IndexExpr)):
                     root = root.object if isinstance(root, MemberExpr) else root.array
                 if isinstance(root, IdentifierExpr):

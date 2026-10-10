@@ -29,6 +29,7 @@ from .c_names import mangle_function_name, array_length_name
 from .c_runtime import RuntimeLoweringMixin, escape_c_text
 from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
 from .c_equality import EqualityMixin, EQUALITY_OPERATORS
+from ..semantic.name_resolver import FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS
 
 
 class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin):
@@ -260,7 +261,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     # empty string rather than NULL, so printing a never-set string field is safe
     _ZERO_VALUES = {
         'int': '0', 'float': '0.0f', 'double': '0.0', 'bool': 'false', 'char': "'\\0'",
-        'string': 'FUSION_STR("")',
+        'string': 'FUSION_STR("")', 'byte': '0', 'bytes': 'FUSION_STR("")',
     }
 
     # Arrays up to this size whose default isn't all-zero get their defaults spelled out in
@@ -363,7 +364,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         string (zero would be a NULL pointer - Fusion's default is ""), or a struct with a
         field default or a string anywhere inside it."""
         if isinstance(type_node, PrimitiveType):
-            return type_node.name != 'string'
+            return type_node.name not in ('string', 'bytes')
         if isinstance(type_node, ArrayType):
             return self._is_zero_safe(type_node.element_type)
         if isinstance(type_node, StructType):
@@ -629,6 +630,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         right = self.visit(node.right)
         op = node.operator
 
+        # Joining bytes makes new bytes (Task 18.3.8) - a fresh value, like a joined string
+        if op == '+' and self._is_bytes(node):
+            if self._is_bytes(node.left) and self._is_bytes(node.right):
+                code = f'fusion_bytes_concat({left}, {right})'
+            elif self._is_bytes(node.left):
+                code = f'fusion_bytes_append({left}, {right})'
+            else:
+                code = f'fusion_byte_prepend({left}, {right})'
+            if id(node) in self.consumed:
+                return code
+            return self.fresh_temporary(code, node.inferred_type)
+
         # Joining strings makes a new string (Task 18.3.2) - held in a temporary unless
         # something takes it over
         if op == '+' and self._is_string(node):
@@ -705,6 +718,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     def _is_string(expr) -> bool:
         inferred = getattr(expr, 'inferred_type', None)
         return isinstance(inferred, PrimitiveType) and inferred.name == 'string'
+
+    @staticmethod
+    def _is_bytes(expr) -> bool:
+        inferred = getattr(expr, 'inferred_type', None)
+        return isinstance(inferred, PrimitiveType) and inferred.name == 'bytes'
 
     def visit_CallExpr(self, node: CallExpr) -> str:
         """A call - whose fresh string (or string-holding) result is held in a temporary
@@ -821,8 +839,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'fromHex': ('fusion_str_fromHex', True), 'fromBinary': ('fusion_str_fromBinary', True),
         'fromOctal': ('fusion_str_fromOctal', True), 'parseInt': ('fusion_str_parseInt', True),
         'bytesToHex': ('fusion_str_bytesToHex', True), 'hexToBytes': ('fusion_str_hexToBytes', True),
+        # Raw bytes (18.3.8, c_bytes.py) - toBytes picks fusion_<str|char|int|byte>_toBytes
+        'toBytes': ('fusion_str_toBytes', False), 'toByte': ('fusion_toByte', True),
+        'newBytes': ('fusion_newBytes', True), 'slice': ('fusion_bytes_slice', True),
+        'getInt': ('fusion_bytes_getInt', True), 'getInt16': ('fusion_bytes_getInt16', True),
+        'getUInt16': ('fusion_bytes_getUInt16', True), 'setInt': ('fusion_bytes_setInt', True),
+        'setInt16': ('fusion_bytes_setInt16', True), 'isText': ('fusion_bytes_isText', False),
+        'rawToHex': ('fusion_bytes_rawToHex', True), 'hexToRaw': ('fusion_str_hexToRaw', True),
     }
-    _TO_STRING = {'int': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
+    # C name prefix per type, for built-ins whose first argument may have several types
+    _TYPE_PREFIX = {'int': 'int', 'string': 'str', 'char': 'char', 'byte': 'byte', 'bytes': 'bytes'}
+    _BYTES_OVERLOADS = ('indexOf',)
+    _TO_STRING = {'int': 'fusion_int_to_str', 'byte': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
                   'char': 'fusion_char_to_str', 'string': 'fusion_str_copy'}
 
@@ -840,14 +868,24 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # With any optional arguments filled in by their defaults (Task 18.3.6)
         arguments = list(node.resolved_arguments or node.arguments)
         if name == 'toString':
-            c_function = self._TO_STRING[arguments[0].inferred_type.name]
-        if c_function and c_function.startswith('fusion_int_') and self._is_string(arguments[0]):
-            c_function = 'fusion_str_' + c_function[len('fusion_int_'):]   # toHex("255")
+            if self._is_bytes(arguments[0]):
+                c_function, needs_where = 'fusion_bytes_toString', True   # must be text (18.3.8)
+            else:
+                c_function = self._TO_STRING[arguments[0].inferred_type.name]
+        # toHex("255"), toBytes('k') - the C function for the first argument's type
+        if name in FLEXIBLE_FIRST_ARG:
+            allowed = FLEXIBLE_FIRST_ARG[name]
+            first = getattr(arguments[0].inferred_type, 'name', allowed[0])
+            c_function = f'fusion_{self._TYPE_PREFIX[first if first in allowed else allowed[0]]}_{name}'
+        if name in getattr(self, '_BYTES_OVERLOADS', ()) and self._is_bytes(arguments[0]):
+            c_function = f'fusion_bytes_{name}'   # indexOf(bytes, pattern)
         if name == 'lenb':
             return f'({self.visit(arguments[0])}).len'   # bytes (Task 18.3.2b)
         codes = [self.visit(arg) for arg in arguments]
         ordered = []
-        if self._order_matters(arguments) and self.temp_scopes:
+        if name in MUTATING_BUILTINS:
+            codes[0] = f'&{codes[0]}'   # setInt(b, ...) changes b in place (18.3.8)
+        elif self._order_matters(arguments) and self.temp_scopes:
             for i, (arg, code) in enumerate(zip(arguments, codes)):
                 temp = self._new_temp(self.map_type(arg.inferred_type))
                 ordered.append(f'{temp} = {code}')
@@ -901,6 +939,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             C brace-initializer list
         """
         elements_code = ', '.join(self.visit(el) for el in node.elements)
+        # [0x6B, 0x69] stored as bytes builds a bytes value (Task 18.3.8)
+        if self._is_bytes(node):
+            if not node.elements:
+                code = 'fusion_bytes_make(NULL, 0)'
+            else:
+                code = f'fusion_bytes_make((const uint8_t[]){{{elements_code}}}, {len(node.elements)})'
+            return code if id(node) in self.consumed else self.fresh_temporary(code, node.inferred_type)
         return '{' + elements_code + '}'
 
     def visit_IndexExpr(self, node: IndexExpr) -> str:
@@ -917,6 +962,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # s[i] - one character, bounds-checked (Task 18.3.2)
         if self._is_string(node.array):
             return f'fusion_str_at({array_code}, {index_code}, {self._where(node)})'
+        # b[i] - one raw byte, bounds-checked (Task 18.3.8)
+        if self._is_bytes(node.array):
+            return f'fusion_bytes_at({array_code}, {index_code}, {self._where(node)})'
         # make()[0] - the returned array is inside its wrapper struct (Task 18.2.4)
         if self._returns_array(node.array):
             return f'{array_code}.data[{index_code}]'
@@ -1053,6 +1101,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        # b[i] = v - edits the bytes in place, bounds-checked (Task 18.3.8)
+        if isinstance(node.target, IndexExpr) and self._is_bytes(node.target.array):
+            self.emit_line(f'fusion_bytes_put(&{self.visit(node.target.array)}, '
+                           f'{self.visit(node.target.index)}, {self.visit(node.value)}, '
+                           f'{self._where(node)})')
+            return ''
+
         # target is an lvalue-producing expression - IdentifierExpr ("x") or IndexExpr
         # ("arr[i]") - both generate valid C lvalue syntax via their own visitor
         target_code = self.visit(node.target)

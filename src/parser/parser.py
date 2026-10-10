@@ -656,7 +656,7 @@ class Parser:
         # Otherwise a primitive type or a struct name (optionally as an array)
         if self.match(TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                       TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
-                      TokenType.VOID):
+                      TokenType.VOID, TokenType.BYTE):
             token = self.previous()
             base_type = PrimitiveType(
                 location=token.location,
@@ -664,7 +664,11 @@ class Parser:
             )
         elif self.match(TokenType.IDENTIFIER):
             token = self.previous()
-            base_type = StructType(location=token.location, name=token.value)
+            if token.value == 'bytes':
+                # Raw bytes (Task 18.3.8) - a built-in type, not a keyword
+                base_type = PrimitiveType(location=token.location, name='bytes')
+            else:
+                base_type = StructType(location=token.location, name=token.value)
         else:
             base_type = None
 
@@ -1195,7 +1199,7 @@ class Parser:
         return self.check_any(
             TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
             TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
-            TokenType.VOID
+            TokenType.VOID, TokenType.BYTE
         )
 
     def check_any(self, *token_types: TokenType) -> bool:

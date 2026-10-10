@@ -32,10 +32,27 @@ BUILTIN_DEFAULTS = {
     'toOctal': [(0, 'int')],
     'toBase': [(0, 'int')],                  # toBase(x, base, width = 0)
     'isInt': [(10, 'int')],                  # isInt(s, base = 10)
+    # Raw bytes (18.3.8) - byte order: little-endian unless bigEndian = true
+    'toBytes': [(False, 'bool')],            # toBytes(x, bigEndian = false)
+    'newBytes': [(0, 'int')],                # newBytes(n, fill = 0)
+    'getInt': [(False, 'bool')],             # getInt(b, at, bigEndian = false)
+    'getInt16': [(False, 'bool')],
+    'getUInt16': [(False, 'bool')],
+    'setInt': [(False, 'bool')],             # setInt(b, at, value, bigEndian = false)
+    'setInt16': [(False, 'bool')],
 }
 
-# Built-ins whose first argument may be an int or text holding a whole number (18.3.6d)
-INT_OR_TEXT_BUILTINS = {'toHex', 'toBinary', 'toOctal', 'toBase'}
+# Built-ins whose first argument may have more than one type: name -> the type names
+# allowed, the first being the declared one (18.3.6d, 18.3.8). The generator calls
+# fusion_<int|str|char|byte>_<name> by the argument's type
+FLEXIBLE_FIRST_ARG = {
+    'toHex': ('int', 'string'), 'toBinary': ('int', 'string'), 'toOctal': ('int', 'string'),
+    'toBase': ('int', 'string'), 'toBytes': ('string', 'char', 'int', 'byte'),
+}
+
+# Built-ins that change their first argument in place, which must be a variable (or a
+# field / element of one): setInt(b, 0, 42) (18.3.8)
+MUTATING_BUILTINS = {'setInt', 'setInt16'}
 
 
 def builtin_defaults(name: str, parameter_count: int) -> list:
@@ -155,6 +172,14 @@ class NameResolver:
         bool_type = PrimitiveType(location=builtin_loc, name='bool')
         float_type = PrimitiveType(location=builtin_loc, name='float')
         char_type = PrimitiveType(location=builtin_loc, name='char')
+        byte_type = PrimitiveType(location=builtin_loc, name='byte')
+        bytes_type = PrimitiveType(location=builtin_loc, name='bytes')
+        void_type = PrimitiveType(location=builtin_loc, name='void')
+        # indexOf on bytes (18.3.8): the same name, chosen by the first argument's type
+        self.symbol_table.bytes_overloads = {
+            'indexOf': FunctionType(parameter_types=[bytes_type, bytes_type, int_type],
+                                    return_type=int_type, location=builtin_loc),
+        }
         string_builtins = {
             'substring': ([string_type, int_type, int_type], string_type),
             'contains': ([string_type, string_type], bool_type),
@@ -212,6 +237,19 @@ class NameResolver:
             'parseInt': ([string_type, int_type], int_type),
             'bytesToHex': ([string_type], string_type),
             'hexToBytes': ([string_type], string_type),
+            # Raw bytes (18.3.8)
+            'toBytes': ([string_type, bool_type], bytes_type),
+            'toByte': ([int_type], byte_type),
+            'newBytes': ([int_type, byte_type], bytes_type),
+            'slice': ([bytes_type, int_type, int_type], bytes_type),
+            'getInt': ([bytes_type, int_type, bool_type], int_type),
+            'getInt16': ([bytes_type, int_type, bool_type], int_type),
+            'getUInt16': ([bytes_type, int_type, bool_type], int_type),
+            'setInt': ([bytes_type, int_type, int_type, bool_type], void_type),
+            'setInt16': ([bytes_type, int_type, int_type, bool_type], void_type),
+            'isText': ([bytes_type], bool_type),
+            'rawToHex': ([bytes_type], string_type),
+            'hexToRaw': ([string_type], bytes_type),
         }
         string_builtins['indexOf'] = ([string_type, string_type, int_type], int_type)
         string_builtins['isInt'] = ([string_type, int_type], bool_type)
@@ -278,6 +316,11 @@ class NameResolver:
         Args:
             struct: Struct declaration node
         """
+        if struct.name in ('bytes', 'byte'):
+            self.errors.append(SemanticError(
+                f"'{struct.name}' is a built-in type - choose another name for the struct",
+                struct.location))
+            return
         try:
             self._replace_library_builtin(struct.name)
             self.symbol_table.define(Symbol(

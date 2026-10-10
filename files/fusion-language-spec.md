@@ -130,8 +130,9 @@ Description: All built-in types with their properties and capabilities.
 
 Type | Default | Min | Max | Autobox Class | Safe Cast To
 ---|---|---|---|---|---
-byte | 0 | -128 | 127 | Byte | short, int, long, float, double
-ubyte | 0 | 0 | 255 | UByte | ushort, uint, ulong, float, double
+byte | 0 | 0 | 255 | Byte | short, int, long, float, double
+sbyte | 0 | -128 | 127 | SByte | short, int, long, float, double
+bytes | empty | - | - | - | - (raw byte array, see "Raw bytes")
 short | 0 | -32,768 | 32,767 | Short | int, long, float, double
 ushort | 0 | 0 | 65,535 | UShort | uint, ulong, float, double
 int | 0 | -2,147,483,648 | 2,147,483,647 | Int | long, float, double
@@ -391,6 +392,47 @@ bool same = name == "Enterprise"   // true - compares the text
        it inside its block. The core built-ins `print`, `len`, `range` and `format` can't be
        replaced (Task 18.3.6)
 
+* **Raw bytes** (Task 18.3.8, user request and decisions 2026-10-10) - for raw / hex work
+  now and for self-hosting later (reading and writing files is Task 18.5):
+     * `byte` is one raw byte, **unsigned 0-255** (as C#, Go, Rust and Python - `sbyte` for
+       -128 to 127 is for later). An int literal 0-255 can be stored in a byte (`0x6B`,
+       `105`); any other int needs `toByte(n)`, which stops with a run-time error when the
+       value doesn't fit - never a silent cut. A byte widens to int automatically, and
+       arithmetic on bytes gives an int (as in C#): `byte b = d[0] + 1` is an error
+     * `bytes` is a growable array of bytes. Like a string it is a value - a copy is
+       independent, it's freed automatically, it works in struct fields and arrays - but it
+       holds **any** bytes (no text rules, no `[strings] max_length`) and is **edited in
+       place**: `b[2] = 0x69`. A function that edits a `bytes` parameter edits its own copy
+     * Making: `bytes b` (empty), `bytes b = [0x6B, 0x69]` (an array literal becomes bytes
+       when it is stored straight into a bytes variable), `newBytes(n, fill = 0)`,
+       `toBytes(x, bigEndian = false)` - from a string (its UTF-8 bytes), a char, a byte, or
+       an int (4 bytes), `hexToRaw("6b69")`
+     * Reading: `b[i]` (bounds-checked), `len(b)`, `b == c` (byte by byte), `slice(b, start,
+       count)`, `indexOf(b, pattern, from = 0)`, `getInt(b, at)` (4 bytes), `getInt16` /
+       `getUInt16` (2 bytes)
+     * Changing: `b[i] = x`, `b + c`, `b + 0x0A` (append a byte), `0x01 + b` (prepend),
+       `setInt(b, at, value)`, `setInt16(b, at, value)` - these two change `b` itself, so
+       `b` must be a variable (or a field / element of one) that isn't const
+     * Back to text: `toString(b)` - the bytes must be valid text (UTF-8, or ASCII in an
+       ascii project), else a run-time error; check first with `isText(b)`
+     * **Byte order:** little-endian by default (258 -> `02 01 00 00` - x86 / ARM, Windows,
+       ZIP and most file formats); pass `bigEndian = true` (the last argument) for network
+       order. A 16-bit `setInt16` accepts -32768 to 65535
+     * Hex: `rawToHex(b)` -> "6b6b69"; `hexToRaw(h)` -> bytes (any bytes). The text versions
+       `bytesToHex` / `hexToBytes` (18.3.6d-1) stay as they are
+     * **Printing** `"{b}"` shows plain lowercase hex with nothing added - "6b6b696a6b". No
+       spaces or brackets are added without the developer asking (user decision): display
+       formatting belongs to downstream modules or the developer's own code
+     * Outside the bytes - an index, a slice, a 4-byte read too close to the end - is a
+       run-time error naming the file and line
+
+```
+bytes data = toBytes("kkkkk")      // 6b6b6b6b6b
+data[2] = 0x69                     // kkikk - one byte edited in place
+data[3] = toByte(fromHex("6A"))    // kkijk
+print(toString(data))              // kkijk
+```
+
 * **Versatile string functions** (Task 18.3.6, user decisions 2026-10-09) - built-in
   functions, all counting characters and returning a new value:
      * Inspect (18.3.6a): `isEmpty(s)`, `isBlank(s)` (only spaces / tabs / newlines - an
@@ -426,6 +468,7 @@ bool same = name == "Enterprise"   // true - compares the text
        run-time error, like `toInt`. `bytesToHex(s)` shows the text's UTF-8 bytes
        ("Hi" -> "4869"); `hexToBytes(h)` turns them back into text - an odd length, a
        non-hex digit or bytes that aren't valid text are run-time errors
+     * **Raw bytes** (Task 18.3.8, user decisions 2026-10-10) - see "Raw bytes" below
      * **Number literals** (18.3.6d-1): `0xFF`, `0b1010`, `0o17`, with `_` allowed between
        digits (`0b1111_0000`, `1_000_000`, `2.5_0`). Hex, binary and octal literals hold up
        to 32 bits and read as the bit pattern, like `fromHex`: `0xFFFFFFFF` is -1

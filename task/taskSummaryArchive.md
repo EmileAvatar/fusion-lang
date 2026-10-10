@@ -3222,3 +3222,49 @@ Implementation (2026-10-09):
 - [x] bytesToHex / hexToBytes with full UTF-8 validation (overlongs, surrogates, > U+10FFFF)
 - [x] Literals: hex / binary / octal up to 32 bits (0xFFFFFFFF is -1), `_` between digits in
       every number literal; negative int literals are bracketed in C, INT_MIN written safely
+
+---
+
+#### 18.3.8 (archived 2026-10-10)
+
+**18.3.8 - Raw bytes: `byte` and `bytes` (PLAN APPROVED 2026-10-10)**
+User request: strings and ints convert to an array of raw bytes and back, so raw bytes can
+be written and transformed by the time Fusion self-hosts. No file reading / writing yet
+(Task 18.5). Scheduled now, before 18.3.6d-2.
+
+- **Types:** `byte` - one raw byte, **unsigned 0-255** (decision 1, as C#, Go, Rust, Python;
+  the spec's signed Java-style byte changes, a signed `sbyte` is for later); `bytes` - a growable array of
+  bytes. `bytes` is a value like `string`: copying gives an independent copy, it's freed
+  automatically, it works in struct fields and arrays. Unlike a string it is **edited in
+  place**: `b[2] = 0x69`. It holds any bytes at all - no UTF-8 rule
+- **Never a silent cut** (user rule): putting 300 into a byte is a compile error for a
+  literal and a run-time error otherwise; a byte widens to int automatically
+- **Making bytes:** `bytes b` (empty), `bytes b = [0x6B, 0x6B, 0x69]`, `newBytes(n, fill = 0)`,
+  `toBytes("kkkkk")` (the UTF-8 bytes), `toBytes('k')`, `toBytes(258)` (4 bytes),
+  `hexToRaw("6b6b")`
+- **Byte order (decision 2):** little-endian by default (258 -> 02 01 00 00 - x86 / ARM,
+  Windows, ZIP and most file formats), with an optional last argument `bigEndian = true` for
+  network order: `toBytes(n, bigEndian)`, `getInt(b, at, bigEndian)`, `setInt(b, at, v,
+  bigEndian)`, and the same for the 16-bit versions
+- **Hex (decision 3, keep both):** `hexToBytes` / `bytesToHex` stay as shipped (text);
+  new `hexToRaw(h)` -> bytes (any bytes, no text check) and `rawToHex(b)` -> "6b6b..."
+- **Reading:** `b[i]` (bounds-checked), `len(b)`, `b == c` (byte by byte), `slice(b, start,
+  count)`, `indexOf(b, pattern, from = 0)`, `getInt(b, at)` (4 bytes), `getInt16` /
+  `getUInt16` (2 bytes) - decision 2 for byte order
+- **Changing:** `b[i] = x`, `b + c` (join), `b + 0x0A` (append one byte), `setInt(b, at, v)`,
+  `setInt16(b, at, v)` - positions outside the bytes are run-time errors
+- **Back to text / numbers:** `toString(b)` - the bytes must be valid text (UTF-8, or ASCII
+  in an ascii project), else a run-time error; check first with `isText(b)`. `getInt(b, 0)`
+  for an int. `rawToHex(b)` -> "6b6b696a6b"
+- **Printing (decision 4):** `print("{b}")` shows plain lowercase hex with nothing added -
+  "6b6b696a6b" - the raw value only (user: never add characters without the developer's
+  consent; display formatting is for downstream modules or the developer's code)
+- **In C:** the same struct as a string (data, length, owned), so all of 18.3.1's copy /
+  free / move rules apply unchanged - only the Fusion type differs
+- Example: the kkkkk -> kkijk edit from the user's question, done on bytes in memory
+- [x] Built as planned; `bytes` reuses the string struct in C (c_bytes.py), so 18.3.1's
+      ownership rules apply unchanged; setInt / setInt16 count as assignments to their
+      first argument (a parameter is copied on entry)
+- [x] Found and fixed on the way: unary minus and arithmetic returned the operand's own type
+      object, so a literal's "fits in a byte" mark leaked (`byte b = 100 + 200` compiled) -
+      both now return a fresh type

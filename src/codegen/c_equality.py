@@ -57,8 +57,8 @@ class EqualityMixin:
         right_name = getattr(right_type, 'name', None)
         if isinstance(left_type, StructType):
             helper = self._struct_equality_helper(left_type, right_type)
-        elif left_name == 'string' and right_name == 'string':
-            helper = 'fusion_str_eq'
+        elif left_name == right_name and left_name in ('string', 'bytes'):
+            helper = 'fusion_str_eq'   # bytes: the same struct, byte by byte (18.3.8)
         elif 'string' in (left_name, right_name):
             if left_name == 'string':  # keep the text on the right
                 left, left_name, right, right_name = right, right_name, left, left_name

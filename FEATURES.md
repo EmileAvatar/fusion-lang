@@ -125,6 +125,10 @@ The single place to see what is done, open, or postponed. One line per item.
 				0b1010, 0o17 and 1_000_000
 			[ ] 18.3.6d-2 Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f"
 			[ ] Compare: equalsIgnoreCase, compareIgnoreCase, natural order ("file2" before "file10")
+		[DONE] 18.3.8 Raw bytes: `byte` (unsigned 0-255) and `bytes` (growable, edited in place);
+			strings, chars and ints to bytes and back (toBytes, toString, getInt / setInt, 16-bit
+			versions; little-endian, bigEndian option), hexToRaw / rawToHex, slice, indexOf; prints
+			as plain hex - for raw hex work and self-hosting; file read / write stays in 18.5
 		[ ] 18.3.7 The String class and method syntax - every string function reachable three ways:
 			`String.replace(s, old, new)` (static class, always available), `name.toUpper()` (a string
 			variable), `"Claude".toUpper()` (a string literal)

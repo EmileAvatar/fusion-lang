@@ -85,9 +85,11 @@ type_name =
     | pointer_type
     | function_type ;
 
+(* Task 18.3.8: byte is one raw byte, 0-255; "bytes" (a growable byte array) is a built-in
+   type name rather than a keyword *)
 primitive_type =
     "int" | "float" | "double" | "string" | "bool" | "char"
-    | "byte" | "short" | "long" | "void" ;
+    | "byte" | "bytes" | "short" | "long" | "void" ;
 
 class_type = identifier ;
     (* Implemented for structs (Task 18.2.1): a plain identifier in a type position names a

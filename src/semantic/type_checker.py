@@ -15,7 +15,8 @@ from src.parser.ast_nodes import (
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
-from .name_resolver import BUILTIN_DEFAULTS, INT_OR_TEXT_BUILTINS, builtin_defaults
+from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
+                            builtin_defaults)
 from .symbol import Symbol
 from .errors import SemanticError
 from src.lexer.token import SourceLocation
@@ -141,8 +142,14 @@ class TypeChecker:
         if self.types_equal(expected, actual):
             return True
 
-        # Numeric promotions (int -> float -> double)
+        # Numeric promotions (byte -> int -> float -> double)
         if self.is_numeric_promotion(expected, actual):
+            return True
+
+        # A byte takes an int literal 0-255 (0x6B, 105); any other int needs toByte(n),
+        # which checks the range - a value is never cut silently (Task 18.3.8)
+        if isinstance(expected, PrimitiveType) and expected.name == 'byte' \
+                and getattr(actual, 'fits_byte', False):
             return True
 
         # Arrays: element types compatible (allowing numeric promotion), and sizes match
@@ -208,9 +215,10 @@ class TypeChecker:
 
         # Promotion hierarchy: int -> float -> double
         promotions = {
-            'double': ['int', 'float', 'double'],
-            'float': ['int', 'float'],
-            'int': ['int']
+            'double': ['byte', 'int', 'float', 'double'],
+            'float': ['byte', 'int', 'float'],
+            'int': ['byte', 'int'],
+            'byte': ['byte'],
         }
 
         return source.name in promotions.get(target.name, [])
@@ -228,14 +236,16 @@ class TypeChecker:
         if not isinstance(type1, PrimitiveType) or not isinstance(type2, PrimitiveType):
             return PrimitiveType(location=type1.location, name='void')
 
-        # Width hierarchy: double > float > int
-        widths = {'double': 3, 'float': 2, 'int': 1}
+        # Width hierarchy: double > float > int > byte. Arithmetic on bytes gives an int,
+        # as in C# (Task 18.3.8)
+        widths = {'double': 3, 'float': 2, 'int': 1, 'byte': 0}
         width1 = widths.get(type1.name, 0)
         width2 = widths.get(type2.name, 0)
 
-        if width1 >= width2:
-            return type1
-        return type2
+        wider = type1 if width1 >= width2 else type2
+        # A fresh type, so a literal's "fits in a byte" mark never reaches the result:
+        # 100 + 200 is not a byte literal
+        return PrimitiveType(location=wider.location, name='int' if wider.name == 'byte' else wider.name)
 
     def is_numeric_type(self, type_node: TypeNode) -> bool:
         """Check if type is numeric (int, float, double).
@@ -248,11 +258,36 @@ class TypeChecker:
         """
         if not isinstance(type_node, PrimitiveType):
             return False
-        return type_node.name in ['int', 'float', 'double']
+        return type_node.name in ['int', 'float', 'double', 'byte']
 
     @staticmethod
     def _is_string_type(type_node: TypeNode) -> bool:
         return isinstance(type_node, PrimitiveType) and type_node.name == 'string'
+
+    @staticmethod
+    def _is_bytes_type(type_node: TypeNode) -> bool:
+        return isinstance(type_node, PrimitiveType) and type_node.name == 'bytes'
+
+    def _check_bytes_literal(self, node: ArrayLiteralExpr) -> TypeNode:
+        """`bytes b = [0x6B, 0x6B, 0x69]` (Task 18.3.8): every element a byte or an int
+        literal 0-255. Marks the literal as a bytes value for the generator."""
+        for element in node.elements:
+            element_type = self.visit(element)
+            if not self.types_compatible(PrimitiveType(location=element.location, name='byte'),
+                                         element_type):
+                self.errors.append(SemanticError(
+                    f"A bytes element must be a byte (0-255), got "
+                    f"{self.type_to_string(element_type)} - use toByte(n) to convert an int "
+                    f"with a check", element.location))
+        node.inferred_type = PrimitiveType(location=node.location, name='bytes')
+        return node.inferred_type
+
+    def _visit_value_for(self, expected: TypeNode, value: ASTNode) -> TypeNode:
+        """Visit a value about to be stored as `expected` - an array literal stored as
+        bytes is a bytes literal (Task 18.3.8)."""
+        if self._is_bytes_type(expected) and isinstance(value, ArrayLiteralExpr):
+            return self._check_bytes_literal(value)
+        return self.visit(value)
 
     def is_bool_type(self, type_node: TypeNode) -> bool:
         """Check if type is bool.
@@ -345,6 +380,10 @@ class TypeChecker:
             'null': 'void'  # null is treated as void type
         }
         type_name = type_map.get(node.type_hint, 'void')
+        if type_name == 'int' and isinstance(node.value, int) and 0 <= node.value <= 255:
+            literal_type = PrimitiveType(location=node.location, name='int')
+            literal_type.fits_byte = True   # may be stored as a byte (Task 18.3.8)
+            return literal_type
 
         # [strings] max_length applies to source text too (Task 18.3.4b): too long is an error,
         # never a cut
@@ -457,6 +496,17 @@ class TypeChecker:
                     ))
             return PrimitiveType(location=node.location, name='string')
 
+        # Joining bytes (Task 18.3.8): bytes + bytes, bytes + byte (append), byte + bytes
+        if node.operator == '+' and (self._is_bytes_type(left_type) or self._is_bytes_type(right_type)):
+            byte = PrimitiveType(location=node.location, name='byte')
+            for operand, operand_type in ((node.left, left_type), (node.right, right_type)):
+                if not (self._is_bytes_type(operand_type) or self.types_compatible(byte, operand_type)):
+                    self.errors.append(SemanticError(
+                        f"Can't join bytes and {self.type_to_string(operand_type)} with '+' - "
+                        f"use toBytes(...) first, or toByte(n) for a single byte",
+                        operand.location))
+            return PrimitiveType(location=node.location, name='bytes')
+
         # Arithmetic operators: int/float/double + int/float/double
         if node.operator in ['+', '-', '*', '/', '%']:
             if not self.is_numeric_type(left_type):
@@ -512,7 +562,7 @@ class TypeChecker:
         # Unknown operator - return void for error recovery
         return PrimitiveType(location=node.location, name='void')
 
-    _NUMBER_TYPES = ('int', 'float', 'double')
+    _NUMBER_TYPES = ('int', 'float', 'double', 'byte')
 
     def _check_equality(self, node: BinaryExpr, left_type: TypeNode, right_type: TypeNode) -> None:
         """The equality operators (Task 18.3.5, user decisions 2026-10-07):
@@ -563,7 +613,7 @@ class TypeChecker:
             names = (left.name, right.name)
             if all(n in self._NUMBER_TYPES for n in names):
                 return None
-            if left.name == right.name and left.name in ('string', 'char', 'bool'):
+            if left.name == right.name and left.name in ('string', 'char', 'bool', 'bytes'):
                 return None
             if set(names) == {'string', 'char'}:
                 return None
@@ -610,6 +660,10 @@ class TypeChecker:
                     f"Unary minus requires numeric type, got {self.type_to_string(operand_type)}",
                     node.operand.location
                 ))
+            if isinstance(operand_type, PrimitiveType):
+                # A fresh type: -1 is not a byte literal (Task 18.3.8), and -byte is an int
+                name = 'int' if operand_type.name == 'byte' else operand_type.name
+                return PrimitiveType(location=node.location, name=name)
             return operand_type
 
         if node.operator in ['not', '!']:
@@ -755,9 +809,10 @@ class TypeChecker:
                 ))
                 return func_type.return_type
             arg_type = self.visit(node.arguments[0])
-            if not isinstance(arg_type, ArrayType) and not self._is_string_type(arg_type):
+            if not isinstance(arg_type, ArrayType) and not self._is_string_type(arg_type) \
+                    and not self._is_bytes_type(arg_type):
                 self.errors.append(SemanticError(
-                    f"Function 'len' expects an array or a string, got "
+                    f"Function 'len' expects an array, a string or bytes, got "
                     f"{self.type_to_string(arg_type)}",
                     node.arguments[0].location
                 ))
@@ -778,6 +833,14 @@ class TypeChecker:
                     node.arguments[0].location))
             node.resolved_arguments = list(node.arguments)
             return func_type.return_type
+
+        # indexOf(bytes, pattern) - a built-in chosen by its first argument (Task 18.3.8)
+        first_type = None
+        is_builtin = symbol.declaration is None
+        if is_builtin and node.arguments and func_name in getattr(self.symbol_table, 'bytes_overloads', {}):
+            first_type = self.visit(node.arguments[0])
+            if self._is_bytes_type(first_type):
+                func_type = self.symbol_table.bytes_overloads[func_name]
 
         # Trailing parameters with defaults may be omitted (Task 18.1.1) - for a built-in,
         # its optional arguments (Task 18.3.6)
@@ -813,10 +876,13 @@ class TypeChecker:
 
         # Check each argument type
         for i, (arg, expected_type) in enumerate(zip(node.arguments, func_type.parameter_types)):
-            actual_type = self.visit(arg)
-            if (i == 0 and func_name in INT_OR_TEXT_BUILTINS and symbol.declaration is None
-                    and self._is_string_type(actual_type)):
-                continue  # toHex("255") - text holding a whole number (Task 18.3.6d)
+            actual_type = first_type if (i == 0 and first_type is not None) else self.visit(arg)
+            if (i == 0 and is_builtin and func_name in FLEXIBLE_FIRST_ARG
+                    and isinstance(actual_type, PrimitiveType)
+                    and actual_type.name in FLEXIBLE_FIRST_ARG[func_name]):
+                continue  # toHex("255"), toBytes('k') (Tasks 18.3.6d, 18.3.8)
+            if i == 0 and is_builtin and func_name in MUTATING_BUILTINS:
+                self._check_changeable(arg, func_name)
             if isinstance(expected_type, ArrayType):
                 self._check_array_argument(func_name, i, arg, expected_type, actual_type)
             elif not self.types_compatible(expected_type, actual_type):
@@ -827,6 +893,20 @@ class TypeChecker:
                 ))
 
         return func_type.return_type
+
+    def _check_changeable(self, arg: ASTNode, func_name: str) -> None:
+        """A built-in that changes its first argument in place (setInt, Task 18.3.8) needs a
+        variable - or a field or element of one - that isn't const."""
+        root = self._root_variable(arg) if isinstance(arg, (IdentifierExpr, MemberExpr, IndexExpr)) else None
+        if root is None:
+            self.errors.append(SemanticError(
+                f"'{func_name}' changes its first argument, so it must be a variable (or a "
+                f"field or element of one)", arg.location))
+            return
+        symbol = self.symbol_table.lookup(root.name)
+        if symbol is not None and symbol.is_constant:
+            self.errors.append(SemanticError(
+                f"'{func_name}' can't change constant '{root.name}'", arg.location))
 
     def _check_print_call(self, node: CallExpr, func_type: FunctionType,
                           name: str = 'print') -> TypeNode:
@@ -1407,6 +1487,14 @@ class TypeChecker:
                     node.index.location))
             return PrimitiveType(location=node.location, name='char')
 
+        # b[i] reads (or, as a target, writes) one byte - bounds-checked (Task 18.3.8)
+        if self._is_bytes_type(array_type):
+            if not (isinstance(index_type, PrimitiveType) and index_type.name == 'int'):
+                self.errors.append(SemanticError(
+                    f"Bytes index must be int, got {self.type_to_string(index_type)}",
+                    node.index.location))
+            return PrimitiveType(location=node.location, name='byte')
+
         if not isinstance(array_type, ArrayType):
             self.errors.append(SemanticError(
                 f"Cannot index non-array type '{self.type_to_string(array_type)}'",
@@ -1483,7 +1571,7 @@ class TypeChecker:
                 return
 
         if node.initializer:
-            init_type = self.visit(node.initializer)
+            init_type = self._visit_value_for(node.var_type, node.initializer)
             if not self.types_compatible(node.var_type, init_type):
                 self.errors.append(SemanticError(
                     f"Cannot assign {self.type_to_string(init_type)} to variable of type {self.type_to_string(node.var_type)}",
@@ -1627,7 +1715,7 @@ class TypeChecker:
                 node.location
             ))
 
-        value_type = self.visit(node.value)
+        value_type = self._visit_value_for(symbol.data_type, node.value)
         if not self.types_compatible(symbol.data_type, value_type):
             self.errors.append(SemanticError(
                 f"Cannot assign {self.type_to_string(value_type)} to variable of type {self.type_to_string(symbol.data_type)}",
@@ -1662,9 +1750,12 @@ class TypeChecker:
 
         value_type = self.visit(node.value)
         if not self.types_compatible(element_type, value_type):
+            hint = ''
+            if isinstance(element_type, PrimitiveType) and element_type.name == 'byte':
+                hint = " - a byte holds 0-255; use toByte(n) to convert an int with a check"
             self.errors.append(SemanticError(
                 f"Cannot assign {self.type_to_string(value_type)} to array element of type "
-                f"{self.type_to_string(element_type)}",
+                f"{self.type_to_string(element_type)}{hint}",
                 node.location
             ))
 

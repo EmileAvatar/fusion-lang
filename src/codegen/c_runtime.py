@@ -96,6 +96,8 @@ class RuntimeLoweringMixin:
         'double': '%f',
         'string': '%s',
         'char': '%s',   # printed via fusion_char_text - any Unicode character (18.3.2b)
+        'byte': '%d',
+        'bytes': '%s',  # plain lowercase hex, nothing added (Task 18.3.8)
         'bool': '%s',   # printed as true / false; still 1 / 0 as a value (Task 18.3.5b)
     }
 
@@ -140,6 +142,11 @@ class RuntimeLoweringMixin:
             return f'{code}.data'
         if isinstance(inferred, PrimitiveType) and inferred.name == 'char':
             return f'fusion_char_text({code}).bytes'
+        if isinstance(inferred, PrimitiveType) and inferred.name == 'bytes':
+            # The raw value as hex - "6b6b69" - held in a temporary freed after the statement
+            hex_text = self.fresh_temporary(f'fusion_bytes_rawToHex({code}, {self._where(expr)})',
+                                            PrimitiveType(location=expr.location, name='string'))
+            return f'{hex_text}.data'
         if isinstance(inferred, PrimitiveType) and inferred.name == 'bool':
             return f'(({code}) ? "true" : "false")'
         return code
@@ -198,6 +205,8 @@ class RuntimeLoweringMixin:
         # A string's length in characters (Task 18.3.2b - lenb gives bytes)
         if isinstance(array_type, PrimitiveType) and array_type.name == 'string':
             return f'({self.visit(arg)}).chars'
+        if isinstance(array_type, PrimitiveType) and array_type.name == 'bytes':
+            return f'({self.visit(arg)}).len'   # Task 18.3.8
         if isinstance(array_type, ArrayType) and array_type.size is None and isinstance(arg, IdentifierExpr):
             return array_length_name(arg.name)
         if not isinstance(array_type, ArrayType) or array_type.size is None:

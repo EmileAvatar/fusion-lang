@@ -34,6 +34,8 @@ class TypeMapperMixin:
                 'bool': 'bool',
                 'char': 'fusion_char',  # any Unicode character (Task 18.3.2b)
                 'string': 'fusion_string',  # an owned string value (Task 18.3.1)
+                'byte': 'uint8_t',          # one raw byte, 0-255 (Task 18.3.8)
+                'bytes': 'fusion_bytes',    # raw bytes - the string struct, any bytes (18.3.8)
                 'void': 'void'
             }
             return type_map.get(fusion_type.name, 'void')

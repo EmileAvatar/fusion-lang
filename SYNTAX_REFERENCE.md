@@ -236,6 +236,25 @@ void function main()
     print("{@1} {@2}", bytesToHex("Hi"), hexToBytes("4869"))
 ```
 
+#### Raw bytes: `byte` and `bytes`
+
+<!-- example: syntax_bytes | task: 18.3.8 -->
+```fusion
+void function main()
+    bytes data = toBytes("kkkkk")                 // a string's raw (UTF-8) bytes
+    data[2] = 0x69                                // edit one byte in place: kkikk
+    data[3] = toByte(fromHex("6A"))               // toByte checks 0-255: kkijk
+    print("{data} = {@1}, {@2} bytes", toString(data), len(data))   // plain hex, nothing added
+
+    bytes n = toBytes(258)                        // an int's 4 bytes, little-endian
+    print("{n} {@1} {@2}", getInt(n, 0), rawToHex(toBytes(258, true)))   // true = big-endian
+    bytes raw = [0x00, 0xFF]                      // a literal stored as bytes
+    raw = raw + 0x41                              // append one byte
+    setInt16(raw, 0, 513)                         // write a number inside the bytes
+    print("{raw} {@1} {@2}", getUInt16(raw, 0), isText(raw))
+    print("{@1} {@2}", rawToHex(slice(data, 1, 3)), indexOf(data, toBytes("ij")))
+```
+
 #### Equality: `=`, `==`, `===`
 
 <!-- example: syntax_equality | task: 18.3.5 -->
