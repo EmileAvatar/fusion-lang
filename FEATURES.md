@@ -107,7 +107,7 @@ The single place to see what is done, open, or postponed. One line per item.
 			[structs] string_max_length
 		[DONE] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
 		[DONE] 18.3.5b A bool prints as `true` / `false` (print, `{...}`, `format`); still 1 / 0 as a value
-		[ ] 18.3.6 Versatile string functions
+		[DONE] 18.3.6 Versatile string functions
 			[DONE] 18.3.6a Optional arguments for built-ins; a program's own function/struct may reuse a
 				library built-in's name
 			[DONE] Inspect: isEmpty, isBlank, isDigits, isLetters (ASCII + Latin-1), countOf
@@ -117,8 +117,9 @@ The single place to see what is done, open, or postponed. One line per item.
 				trimEnd, capitalize, toTitle; toUpper / toLower now cover Latin-1 too
 			[DONE] 18.3.6c Padding & alignment: padLeft, padRight, center (optional fill char),
 				truncate (the first n characters only - adds nothing, user decision 2026-10-10)
-			[ ] Masking: email, phone, number and custom string-number formats - planning overview only;
-				design in detail when this item starts
+			[DONE] 18.3.6f Masking - planning overview (spec "Masking - design overview only"): shaping
+				text into a pattern (formatMask) and hiding part of a value (mask, maskEmail, maskPhone),
+				with 9 open questions; building it is listed under Later
 			[DONE] 18.3.6d-1 Number bases: toHex / toBinary / toOctal / toBase (from an int or numeric
 				text, optional width; negatives in two's complement, C# style), fromHex / fromBinary /
 				fromOctal / parseInt(s, base), isInt(s, base), bytesToHex / hexToBytes; literals 0xFF,
@@ -196,6 +197,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		compares equal), counting what users see as one symbol (emoji families)
 	[POSTPONED - needs IO (18.5) / Data module] Bytes <-> string, Base64, URL encoding,
 		JSON/HTML escaping, validating UTF-8 from files and networks
+	[POSTPONED - needs the open questions decided (spec "Masking")] Masking functions: formatMask,
+		digitsOnly, mask, maskEmail, maskPhone (design: Task 18.3.6f)
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
 	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use

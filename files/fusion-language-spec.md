@@ -505,7 +505,59 @@ print(toString(data))              // kkijk
      * **Out of range:** "up to n" functions (`left`, `right`, padding, `truncate`) clamp
        quietly - `left("ab", 5)` is "ab"; a negative count stops the program with a run-time
        error; positions inside the string (`insert`, `remove`, like `substring`) must be valid
-     * Still to come in 18.3.6: a masking design (`mask`)
+     * **Masking - design overview only, not built** (Task 18.3.6f, user decision
+       2026-10-09: plan now, design in detail when the work starts). "Masking" covers two
+       different jobs, and the design keeps them apart:
+
+       **1. Shaping text into a pattern** (input / display masks) - digits or letters poured
+       into a template:
+       ```
+       formatMask("5551234567", "(###) ###-####")     // "(555) 123-4567"
+       formatMask("8001015009087", "######-####-###") // an ID number in groups
+       formatMask("ab12", "AA-##")                    // "ab-12"
+       digitsOnly("(555) 123-4567")                   // "5551234567" - the way back
+       ```
+       Proposed placeholders: `#` a digit, `A` a letter, `?` any character, `\` makes the
+       next character literal; everything else is copied. (`#` matches formatNumber's digit
+       placeholder. .NET's MaskedTextProvider uses `0 9 L ? A &` - more choices, harder to
+       remember.)
+
+       **2. Hiding part of a value** (redaction - privacy, logs, receipts):
+       ```
+       mask("4111111111111111", 0, 4)          // "************1111"  keep first 0, last 4
+       mask("4111111111111111", 6, 4, '#')     // "411111######1111"  optional mask character
+       maskEmail("alice.smith@example.com")    // "a**********@example.com"
+       maskPhone("+27 82 555 1234")            // "+** ** *** 1234"  separators kept, last 4 shown
+       ```
+       Card numbers: PCI DSS allows at most the first 6 and last 4 digits to be shown -
+       `mask(card, 6, 4)` is exactly that rule.
+
+       Masking only changes what is shown: it is not encryption, and the original value is
+       still in memory. Wiping secrets from memory belongs to Task 17.5 (secure strings).
+
+       **Open questions** - to decide when this is built:
+       1. **Hide the length?** `a**********@x.com` reveals that the name has 11 letters. A
+          fixed run (`a***@x.com`) hides it, but the result no longer lines up with the
+          original. Default length-preserving with a `fixed` option, or the other way round?
+       2. **Mask character** - `*` (ASCII, safe everywhere) by default; allow any character
+          (`'#'`, a bullet) as an optional argument? An ascii project can only use ASCII
+       3. **formatMask with the wrong amount of input** - too few or too many characters, or
+          a letter where `#` wants a digit: a run-time error (like `substring`), or fill in
+          what fits and leave the rest? The no-silent-cut rule suggests an error, with an
+          `isMaskMatch(s, pattern)` check
+       4. **Placeholder set** - `#` / `A` / `?` as proposed, or .NET's `0 9 L ? A &`
+          (optional digits and letters too)?
+       5. **Emails** - keep the first letter of the name and the whole domain (proposed), or
+          also mask the domain (`a***@e******.com`)? What about names of 1-2 letters?
+       6. **Phone numbers** - "keep the separators and the last 4 digits" works across
+          countries without knowing their formats; per-country formats need locale data
+          (later, with locales for formatNumber)
+       7. **Where it lives** - in the core string library (as listed here), or a later
+          `Privacy` / `Data` module next to Base64, URL encoding and JSON escaping?
+       8. **Names** - `mask` / `maskEmail` / `maskPhone` / `formatMask`, or `redact` for
+          hiding (clearer that it's about privacy) and `mask` only for shaping?
+       9. **Validation** - should `maskPhone` / card masking check that the input really is
+          a phone number / passes the card checksum (Luhn), or stay purely about display?
 
 ```
 string original = "Hello"
