@@ -581,9 +581,9 @@ class TypeChecker:
             receiver_type = PrimitiveType(location=receiver.location, name=TYPE_CLASSES[static_class])
         else:
             receiver_type = self.visit(receiver)
+            self.checked_receivers[id(receiver)] = receiver_type   # checked once, not again
             if not isinstance(receiver_type, PrimitiveType) or receiver_type.name == 'void':
                 return None   # a struct field holding a function, or an earlier error
-            self.checked_receivers[id(receiver)] = receiver_type
         class_name = next((c for c, t in TYPE_CLASSES.items() if t == receiver_type.name), None)
         if class_name is None or member in NOT_METHODS or member not in builtins \
                 or not self._is_class_member(class_name, receiver_type, member, static_class is not None):

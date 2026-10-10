@@ -5,6 +5,8 @@ A `.fusion` file goes through these stages, in order (driven by `main.py` in the
 1. `config/` - load the optional `fusion.toml` project settings
 2. `lexer/` - turn source text into tokens
 3. `parser/` - turn tokens into an AST (abstract syntax tree)
+   - `modules/` - for a program with `import` lines: load each imported module folder once
+     and merge everything into one AST (Task 18.4)
 4. `semantic/` - check names, types and control flow; annotate the AST with types
 5. `codegen/` - turn the checked AST into C code, which GCC compiles to an `.exe`
 
@@ -13,6 +15,7 @@ A `.fusion` file goes through these stages, in order (driven by `main.py` in the
 | `config/` | Project settings from `fusion.toml` (indentation, source rules, structs, strings) |
 | `lexer/` | Tokenizer: keywords, operators, literals, comments, indentation, source security |
 | `parser/` | AST node classes and the recursive-descent parser |
+| `modules/` | `import`: module folders, loading each once, merging into one program |
 | `semantic/` | Symbol table, name resolution, type checking, control-flow and entry-point checks |
 | `codegen/` | C code generation, the C runtime for strings, type and name mapping |
 | `utils/` | Shared error/diagnostic classes |

@@ -3282,6 +3282,40 @@ parallel for i in range(1000):
 
 Description: Organized code structure with clear dependencies.
 
+**As built (Task 18.4.2, user decisions 2026-10-10)** - Fusion has structs and functions
+(no classes yet), so modules hold those; the class-based design below stays the long-term
+direction:
+
+* **A module is a folder** next to the program's main file: every `.fusion` file in
+  `money/` belongs to module `money`, and they share each other's names freely.
+  `geometry/shapes/` is module `geometry.shapes` (folders nest; modules don't contain each
+  other). The program itself is just its main file, so a folder of separate programs (like
+  `examples/`) still works
+* **Imports come first in a file, and each file imports what it uses** (as in Go, Java and
+  Python):
+  ```
+  import money                    // money.round(x), money.Price, money.make(5)
+  import money.Price              // Price - one name, no prefix
+  import money.*                  // every name, no prefix
+  import geometry.shapes          // used by the last part of its path: shapes.area(2)
+  import lib.utils as libutils    // an alias: libutils.trim(s)
+  money.Price p = money.make(100) // a struct from another module in a type
+  ```
+* **Each module is loaded once**, from one list of loaded modules: imports may criss-cross
+  (`money` imports `tax`, `tax` imports `money`) without looping
+* **Name rules:** a file's own names win over a `.*` import; the same name from two `.*`
+  imports is an error where it's used ("'f' is ambiguous: a.f or b.f - use the module
+  prefix"); `import money.Price` next to a declared `Price` is an error; **two different
+  modules with the same name** in one file (`shop/utils`, `lib/utils`) are an error - give
+  one an alias with `as`. A local variable may share a name with an imported one; inside
+  its block the variable wins
+* Only the main file may have `main`. A module can't be named after a built-in type class
+  (`String`, `Int`, ...) or contain `__`
+* All modules compile into one C file; `money.round` is `fu_money__round` there, and two
+  Fusion names that would share a C name are reported
+* Coming in Task 18.4.3: `public` (private by default) - until then every name of a module
+  can be imported
+
 ---
 
 ### File Organization

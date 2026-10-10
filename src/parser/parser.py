@@ -664,11 +664,16 @@ class Parser:
             )
         elif self.match(TokenType.IDENTIFIER):
             token = self.previous()
-            if token.value == 'bytes':
+            name = token.value
+            # A struct from another module: money.Price (Task 18.4.2)
+            while self.check(TokenType.DOT) and self.peek(1).type == TokenType.IDENTIFIER:
+                self.advance()
+                name += '.' + self.advance().value
+            if name == 'bytes':
                 # Raw bytes (Task 18.3.8) - a built-in type, not a keyword
                 base_type = PrimitiveType(location=token.location, name='bytes')
             else:
-                base_type = StructType(location=token.location, name=token.value)
+                base_type = StructType(location=token.location, name=name)
         else:
             base_type = None
 
@@ -740,6 +745,9 @@ class Parser:
         if not self.check(TokenType.IDENTIFIER):
             return False
         offset = 1
+        # money.Price p - a struct from another module (Task 18.4.2)
+        while self.peek(offset).type == TokenType.DOT and self.peek(offset + 1).type == TokenType.IDENTIFIER:
+            offset += 2
         if self.peek(offset).type == TokenType.LBRACKET:
             offset += 1
             if self.peek(offset).type == TokenType.INTEGER:
@@ -1233,7 +1241,17 @@ class Parser:
         while self.match(TokenType.NEWLINE):
             pass
 
+        # Imports come first (Task 18.4.2)
+        imports = []
+        while self.match(TokenType.IMPORT):
+            imports.append(self.parse_import())
+            while self.match(TokenType.NEWLINE):
+                pass
+
         while not self.is_at_end():
+            if self.check(TokenType.IMPORT):
+                raise ParserError(self.peek(), "'import' lines must come before everything else "
+                                               "in the file")
             decl = self.parse_declaration()
             if decl:
                 declarations.append(decl)
@@ -1244,8 +1262,31 @@ class Parser:
 
         return ProgramNode(
             location=start_loc,
-            declarations=declarations
+            declarations=declarations,
+            imports=imports
         )
+
+    def parse_import(self) -> ImportDecl:
+        """Parse an import line, the IMPORT token already consumed (Task 18.4.2):
+        `import money`, `import money.Price`, `import money.*`, `import lib.utils as u`."""
+        import_token = self.previous()
+        path = [self.consume(TokenType.IDENTIFIER, "Expected a module name after 'import'").value]
+        star = False
+        while self.match(TokenType.DOT):
+            if self.match(TokenType.MULTIPLY):
+                star = True
+                break
+            path.append(self.consume(TokenType.IDENTIFIER,
+                                     "Expected a name or '*' after '.' in an import").value)
+        alias = None
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'as':
+            self.advance()
+            if star:
+                raise ParserError(self.previous(), "'import ...*' can't have an 'as' name")
+            alias = self.consume(TokenType.IDENTIFIER, "Expected a name after 'as'").value
+        if not (self.check(TokenType.NEWLINE) or self.is_at_end()):
+            raise ParserError(self.peek(), "Expected the end of the line after the import")
+        return ImportDecl(location=import_token.location, path=path, star=star, alias=alias)
 
     def parse_declaration(self) -> Optional[ASTNode]:
         """Parse top-level declaration (function, var, etc.).

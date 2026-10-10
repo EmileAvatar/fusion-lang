@@ -20,9 +20,15 @@ program = {
     | import_statement
 } ;
 
-import_statement = "import" module_path newline ;
+(* Task 18.4.2: imports come first in a file. import money / import money.Price /
+   import money.* / import lib.utils as libutils. A module is a folder next to the main
+   file; it is used by the last part of its path (shapes.area for geometry.shapes) *)
+import_statement = "import" module_path [ "." "*" | "as" identifier ] newline ;
 
 module_path = identifier { "." identifier } ;
+
+(* A struct from another module in a type: money.Price p *)
+qualified_type = identifier { "." identifier } ;
 
 (* ========== Functions ========== *)
 

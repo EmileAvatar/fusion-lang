@@ -138,8 +138,9 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 18.4 `import` and multi-file projects (plan approved 2026-10-10: folder modules, `public`,
 		one combined C file, each module loaded once, same-name modules need an alias)
 		[DONE] 18.4.1 C names: functions and structs get `fu_` in C; clashing locals too (closes 15.8)
-		[ ] 18.4.2 `import`, module folders, prefixed use, `import M.Name`, `import M.*`, dotted types
-		[ ] 18.4.3 `public` visibility, name rules, `import ... as` aliases, same-name module error
+		[DONE] 18.4.2 `import`, module folders, prefixed use, `import M.Name`, `import M.*`, dotted
+			types, `as` aliases, the same-module-name error, each module loaded once
+		[ ] 18.4.3 `public` visibility (private by default)
 		[ ] 18.4.4 Module interfaces (`--interface`), a multi-file example project, docs
 	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std
 		[ ] 18.5.x String split & join: split(s, ","), join(list, ", "), lines(s), words(s) (need lists)

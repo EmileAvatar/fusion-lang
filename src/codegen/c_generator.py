@@ -116,6 +116,15 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         }
         # Locals that would break the C get the fu_ prefix (Task 18.4.1)
         self._rename_clashing_locals(program)
+        # Two Fusion names must never become the same C name (modules, Task 18.4.2)
+        c_names = {}
+        for decl in program.declarations:
+            if isinstance(decl, (FunctionDecl, StructDecl)):
+                c_name = mangle_function_name(decl.name)
+                other = c_names.setdefault(c_name, decl.name)
+                if other != decl.name:
+                    raise NotImplementedError(
+                        f"'{other}' and '{decl.name}' would both be '{c_name}' in C - rename one")
 
         # Struct declarations by name - default values of struct-typed fields and arrays
         # need them (Task 18.2.3)

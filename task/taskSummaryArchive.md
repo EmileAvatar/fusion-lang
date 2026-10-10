@@ -3471,3 +3471,21 @@ User request (2026-10-09): every string function reachable as `String.replace(s,
       `{name}` inside interpolated strings (StringExprPart is a plain dataclass)
 - [x] Fields: only C keywords change (c_member_name)
 - [x] ~80 exact-C test expectations updated mechanically (function / struct names)
+
+---
+
+#### 18.4.2 (archived 2026-10-10)
+
+**18.4.2 - `import` and module folders** (COMPLETE)
+- [x] Parser: `import` lines first (path, `.*`, `as`), dotted struct types (`money.Price`)
+- [x] src/modules/loader.py: module = folder next to the main file; each loaded once
+      (registered before its own imports, so cycles can't loop); module files may not have
+      `main`; module names can't be type classes or contain `__`
+- [x] Names rewritten before semantic analysis, scope-aware (a local `square` is left
+      alone): own names -> `money.round`; `money.round` / `import M.Name` / `import M.*` /
+      aliases -> the internal name; everything merged into one ProgramNode
+- [x] Name rules done here (planned for 18.4.3): aliases, the same-module-name error,
+      ambiguous `.*` names, an imported name also declared locally
+- [x] Imports are per file (as Go / Java / Python) - a file uses only what it imports
+- [x] C: `money.round` -> `fu_money__round`; codegen reports two Fusion names sharing a C name
+- [x] Fixed on the way: a method call on an undefined receiver reported the error 3 times

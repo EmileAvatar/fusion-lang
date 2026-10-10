@@ -41,7 +41,8 @@ def mangle_function_name(name: str) -> str:
     """
     if name == 'main':
         return name
-    return f'fu_{name}'
+    # A module's name: money.round -> fu_money__round (Task 18.4.2)
+    return 'fu_' + name.replace('.', '__')
 
 
 def c_member_name(name: str) -> str:

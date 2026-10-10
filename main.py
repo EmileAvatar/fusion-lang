@@ -15,6 +15,7 @@ Usage:
 import sys
 import os
 import subprocess
+from src.modules import load_program
 from src.lexer import Lexer
 from src.parser.parser import Parser, ParserError
 from src.semantic import SemanticAnalyzer
@@ -91,6 +92,28 @@ def compile_file(source_path: str) -> int:
         return 1
 
     print(f"  [OK] Parsed {len(ast.declarations)} declarations", file=sys.stderr)
+
+    # Modules (Task 18.4): load every imported module folder once and merge them in
+    def parse_module_file(module_source: str, path: str):
+        module_lexer = Lexer(
+            module_source, path,
+            tab_width=project_config.indentation.tab_width,
+            allow_mixed=project_config.indentation.allow_mixed,
+            allow_unicode_identifiers=project_config.source.allow_unicode_identifiers,
+        )
+        module_tokens = module_lexer.tokenize()
+        if module_lexer.diagnostics.errors:
+            raise ValueError('; '.join(str(e) for e in module_lexer.diagnostics.errors))
+        return Parser(module_tokens).parse_program()
+
+    if ast.imports:
+        ast, import_errors = load_program(source_path, ast, parse_module_file)
+        if import_errors:
+            for error in import_errors:
+                print(f"Error: {error}", file=sys.stderr)
+            print(f"\n{len(import_errors)} error(s) found", file=sys.stderr)
+            return 1
+        print(f"  [OK] Loaded the imported modules", file=sys.stderr)
 
     # Semantic analysis
     print(f"[3/5] Semantic analysis...", file=sys.stderr)

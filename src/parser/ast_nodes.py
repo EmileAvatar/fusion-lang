@@ -7,7 +7,7 @@ the structure of Fusion programs during parsing and compilation.
 All nodes inherit from ASTNode and support the visitor pattern for tree traversal.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Any, Union
 from src.lexer.token import SourceLocation
 
@@ -481,8 +481,25 @@ class ProgramNode(ASTNode):
 
     Attributes:
         declarations: List of top-level declarations (functions, structs, etc.)
+        imports: The file's `import` lines (Task 18.4.2) - resolved by src/modules/loader.py
     """
     declarations: List[ASTNode]  # FunctionDecl, StructDecl, etc.
+    imports: List['ImportDecl'] = field(default_factory=list)
+
+
+@dataclass
+class ImportDecl(ASTNode):
+    """An import line (Task 18.4.2): `import money`, `import money.Price`,
+    `import money.*`, `import lib.utils as libutils`.
+
+    Attributes:
+        path: The dotted path, without a trailing `*` (["money", "Price"])
+        star: True for `import money.*`
+        alias: The name given with `as`, or None
+    """
+    path: List[str]
+    star: bool = False
+    alias: Optional[str] = None
 
 
 # ============================================================================

@@ -287,6 +287,28 @@ void function main()
     print("{@1} {@2}", data.rawToHex(), data.toString())
 ```
 
+#### Modules and `import` (several files - not built as a single example)
+
+```text
+shop/
+  main.fusion          <- the program
+  money/price.fusion   <- module money: every .fusion file in the folder
+  money/format.fusion
+  geometry/shapes/area.fusion   <- module geometry.shapes
+```
+```fusion
+import money                    // money.make(5), money.Price
+import money.Price              // Price, without a prefix
+import geometry.shapes          // the last part of the path: shapes.square(4)
+import lib.utils as libutils    // an alias
+
+void function main()
+    money.Price p = money.make(1999)
+    print("{@1} {@2}", money.show(p), shapes.square(4))
+```
+Each file imports what it uses; files of one module share their names; each module is
+loaded once, so modules may import each other.
+
 #### Equality: `=`, `==`, `===`
 
 <!-- example: syntax_equality | task: 18.3.5 -->
