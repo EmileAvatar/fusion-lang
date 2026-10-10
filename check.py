@@ -107,6 +107,8 @@ def compile_and_run_leak_checked(source: str, source_path: str):
 
 
 def reference_programs():
+    """Every ```fusion block - a single-file example program. A block fenced as
+    ```fusion multi-file (part of a project of several files) is documentation only."""
     text = (ROOT / 'SYNTAX_REFERENCE.md').read_text(encoding='utf-8')
     return re.findall(r'```fusion\n(.*?)```', text, re.S)
 

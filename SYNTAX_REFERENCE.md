@@ -296,7 +296,7 @@ shop/
   money/format.fusion
   geometry/shapes/area.fusion   <- module geometry.shapes
 ```
-```fusion
+```fusion multi-file
 import money                    // money.make(5), money.Price
 import money.Price              // Price, without a prefix
 import geometry.shapes          // the last part of the path: shapes.square(4)
