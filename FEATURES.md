@@ -197,8 +197,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		compares equal), counting what users see as one symbol (emoji families)
 	[POSTPONED - needs IO (18.5) / Data module] Bytes <-> string, Base64, URL encoding,
 		JSON/HTML escaping, validating UTF-8 from files and networks
-	[POSTPONED - needs the open questions decided (spec "Masking")] Masking functions: formatMask,
-		digitsOnly, mask, maskEmail, maskPhone (design: Task 18.3.6f)
+	[ ] Masking functions in the core string library: formatMask, digitsOnly, mask, maskEmail
+		(design and all 9 decisions: spec "Masking", Task 18.3.6f, 2026-10-10) - ready to build
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
 	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use

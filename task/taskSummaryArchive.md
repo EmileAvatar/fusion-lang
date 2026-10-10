@@ -3399,3 +3399,8 @@ spec + `FEATURES.md`, `python check.py`, commit and push.
 - [x] 18.3.6f: masking design overview written into the spec (two jobs - shaping into a
       pattern and hiding part of a value; proposed API; PCI DSS first-6 / last-4 rule;
       9 open questions). Building it is postponed until the questions are decided
+- [x] Masking decisions (user, 2026-10-10): keep the length (crypto handles secrets);
+      optional mask character, default *; formatMask fills as far as it fits; placeholders
+      # A ? and \; emails show the first character (configurable); no country / phone
+      formats - the developer supplies the pattern (maskPhone dropped); core string library;
+      named mask; no validation

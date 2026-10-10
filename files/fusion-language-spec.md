@@ -517,7 +517,7 @@ print(toString(data))              // kkijk
        formatMask("ab12", "AA-##")                    // "ab-12"
        digitsOnly("(555) 123-4567")                   // "5551234567" - the way back
        ```
-       Proposed placeholders: `#` a digit, `A` a letter, `?` any character, `\` makes the
+       Placeholders (decided): `#` a digit, `A` a letter, `?` any character, `\` makes the
        next character literal; everything else is copied. (`#` matches formatNumber's digit
        placeholder. .NET's MaskedTextProvider uses `0 9 L ? A &` - more choices, harder to
        remember.)
@@ -527,7 +527,6 @@ print(toString(data))              // kkijk
        mask("4111111111111111", 0, 4)          // "************1111"  keep first 0, last 4
        mask("4111111111111111", 6, 4, '#')     // "411111######1111"  optional mask character
        maskEmail("alice.smith@example.com")    // "a**********@example.com"
-       maskPhone("+27 82 555 1234")            // "+** ** *** 1234"  separators kept, last 4 shown
        ```
        Card numbers: PCI DSS allows at most the first 6 and last 4 digits to be shown -
        `mask(card, 6, 4)` is exactly that rule.
@@ -535,29 +534,26 @@ print(toString(data))              // kkijk
        Masking only changes what is shown: it is not encryption, and the original value is
        still in memory. Wiping secrets from memory belongs to Task 17.5 (secure strings).
 
-       **Open questions** - to decide when this is built:
-       1. **Hide the length?** `a**********@x.com` reveals that the name has 11 letters. A
-          fixed run (`a***@x.com`) hides it, but the result no longer lines up with the
-          original. Default length-preserving with a `fixed` option, or the other way round?
-       2. **Mask character** - `*` (ASCII, safe everywhere) by default; allow any character
-          (`'#'`, a bullet) as an optional argument? An ascii project can only use ASCII
-       3. **formatMask with the wrong amount of input** - too few or too many characters, or
-          a letter where `#` wants a digit: a run-time error (like `substring`), or fill in
-          what fits and leave the rest? The no-silent-cut rule suggests an error, with an
-          `isMaskMatch(s, pattern)` check
-       4. **Placeholder set** - `#` / `A` / `?` as proposed, or .NET's `0 9 L ? A &`
-          (optional digits and letters too)?
-       5. **Emails** - keep the first letter of the name and the whole domain (proposed), or
-          also mask the domain (`a***@e******.com`)? What about names of 1-2 letters?
-       6. **Phone numbers** - "keep the separators and the last 4 digits" works across
-          countries without knowing their formats; per-country formats need locale data
-          (later, with locales for formatNumber)
-       7. **Where it lives** - in the core string library (as listed here), or a later
-          `Privacy` / `Data` module next to Base64, URL encoding and JSON escaping?
-       8. **Names** - `mask` / `maskEmail` / `maskPhone` / `formatMask`, or `redact` for
-          hiding (clearer that it's about privacy) and `mask` only for shaping?
-       9. **Validation** - should `maskPhone` / card masking check that the input really is
-          a phone number / passes the card checksum (Luhn), or stay purely about display?
+       **Decisions** (user, 2026-10-10):
+       1. **Length is kept** - the masked text lines up with the original
+          (`a**********@x.com`). Secrets and encryption are the job of a Crypto module, not
+          masking
+       2. **The mask character is optional, `*` by default** - `mask(card, 6, 4, 'X')`; any
+          character (an ascii project: any ASCII character)
+       3. **formatMask fills in as far as it fits** - too little input leaves the rest of the
+          pattern out; extra input is ignored; no error
+       4. **Placeholders: `#` a digit, `A` a letter, `?` any character, `\` for a literal**
+          (the simple set - fill-as-far-as-it-fits already covers optional parts, so .NET's
+          optional-slot symbols aren't needed)
+       5. **Emails** - only the first character of the name is shown by default; how many are
+          shown can be configured (an optional argument)
+       6. **No built-in country or phone formats** - masking is format-agnostic: the developer
+          supplies the pattern (`maskPhone` is dropped; `formatMask` / `mask` cover it)
+       7. **Lives in the core string library**; encryption only in Crypto
+       8. **The name is `mask`** (`mask`, `maskEmail`, `formatMask`) - not `redact`
+       9. **No validation** - masking is about display only (no phone or card checksum checks)
+
+       All nine questions are decided - masking is ready to be built.
 
 ```
 string original = "Hello"
