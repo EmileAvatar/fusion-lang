@@ -164,18 +164,92 @@ suite green; 11/11 examples.
 
 #### 18.4: `import` and Multi-File Projects
 **Why fourth:** the single biggest unblocker - everything in the stdlib, every proposed
-module, and every program larger than a few hundred lines needs it. Placed after 18.1-18.3
-because there needs to be something worth importing (functions, structs, string utilities).
-- [ ] `import` parsing (lexer keyword only today) and module resolution (how a module name
-      maps to a file path)
-- [ ] Visibility (`public`/`private` - already reserved keywords) across module boundaries
-- [ ] Multi-file compilation: generate one C file per module plus headers, or one combined
-      C file - a real decision, with implications for build speed and the future Symbol-ID
-      system
-- [ ] Record each module's interface signature (exported symbols, plus what capabilities
-      it uses) - the groundwork for the ecosystem-fragmentation answer in
-      `FutureFeaturesCaution.md`. Cheap to capture now, very expensive to retrofit later
-- [ ] Example: a small multi-file project
+module, and every program larger than a few hundred lines needs it (and self-hosting:
+the compiler is ~40 files). Placed after 18.1-18.3 because there needs to be something
+worth importing (functions, structs, string utilities).
+
+### 18.4 Detailed Plan (APPROVED 2026-10-10)
+
+**Decisions (user, 2026-10-10):** 1. a module is a folder; 2. `public` keyword, private by
+default; 3. one combined C file; 4. import cycles are fine - each module is loaded once
+(one global list of loaded modules, so cycles can't loop); the error is two different
+modules with the same name, resolved with an alias (`import lib.utils as libutils`).
+
+**Starting point:** `import` and `public` / `private` are reserved keywords with no
+meaning yet. The spec's "Module System" section already designs modules around classes
+(one class per file, `module.fusion` with an `export` list, `import M`, `import M.Name`,
+`import M.*`). Fusion has structs and functions, not classes, so the plan keeps that
+shape and fills in what's undecided.
+
+**The model (decision 1: the spec's directory modules, Go-style):**
+```
+shop/                         <- the project: the folder holding main.fusion
+  main.fusion                 <- the program (has main)
+  money/                      <- module "money" = every .fusion file in this folder
+    module.fusion             <- optional: the module's description
+    currency.fusion
+    format.fusion
+  geometry/shapes/            <- module "geometry.shapes" (folders nest; modules don't
+    area.fusion                  contain each other - "geometry" is just a folder)
+```
+```fusion
+import money                       // use with the prefix: money.Price, money.round(x)
+import money.Price                 // one name, used without a prefix: Price
+import money.*                     // every public name, without a prefix
+import geometry.shapes             // used by the last part of its path: shapes.area(...)
+import lib.utils as libutils       // an alias: libutils.trim(...)
+```
+- Files of one module see each other's names (public or not) with no import
+- Module names are lowercase folder paths; a module can't be named after a type class
+  (`String`, `Int`, ...) or a built-in function
+- `import` lines go at the top of a file; the project root is the main file's folder
+
+**Visibility (decision 2: `public` on declarations, private by default):**
+```fusion
+public struct Price
+    int cents
+public string function show(Price p) : "{p.cents}"
+int function helper(int x) : x * 2          // private: only this module's files see it
+```
+(The spec's `export` list in `module.fusion` is replaced by this.)
+
+**Name rules:**
+- Two `import ...*` bringing the same name: an error only where the name is used,
+  naming both modules ("ambiguous: money.round or maths.round - use the prefix")
+- A program's own name wins over a `.*` import; `import money.Price` next to a local
+  `Price` is an error
+- Using a private name from another module: "round is private to module money"
+- Struct types across modules: `money.Price p = money.Price(100)` (dotted type names)
+- Only the program's main file may have `main`
+
+**Compiling (decision 3: one combined C file for now):**
+- All modules compile into one C file with one gcc call. Every user name is mangled in C:
+  `money.round` -> `fu_money_round`, the main file's `round` -> `fu_round`. This also fixes
+  **Task 15.8** (a user function named `free`, `exit`, `abs` or `fusion_x` clashing with C)
+- One C file per module with headers (faster rebuilds of big projects) comes later; the
+  mangled names already fit it
+- Each module's **interface** - its public names and their types - is recorded and can be
+  printed (`python main.py --interface money`): the groundwork for library signatures and
+  capability checks (Task 19), cheap now and expensive to add later
+
+**Imports load each module once (decision 4, user):** one global list of loaded modules -
+however the imports criss-cross (`money` imports `tax` imports `money`), each module is
+loaded and compiled exactly once, so cycles are allowed and can't loop. **Two different
+modules with the same name** (`shop/utils` and `lib/utils`, both used as `utils.`) are an
+error naming both paths - give one an alias: `import lib.utils as libutils`.
+
+**Sub-parts** (each committed on its own):
+- 18.4.1 Name mangling in C for every user name (closes 15.8) - no language change
+- 18.4.2 `import` parsing; finding module folders; compiling every module into one C file;
+  prefixed use (`money.round`), `import M.Name`, `import M.*`; dotted struct types
+- 18.4.3 Visibility (`public`), the name rules above, `import ... as` aliases and the
+  same-module-name error
+- 18.4.4 Module interfaces (`--interface`), an example multi-file project in `examples/`
+  (with its own folder - check.py and verify_examples learn to build it), docs (spec,
+  EBNF, SYNTAX_REFERENCE)
+
+**Out of scope:** the standard library itself (18.5), packages / versions / a package
+manager, one C file per module, re-exporting another module's names, conditional imports.
 
 #### 18.5: Minimal Standard Library (IO and Collections)
 **Why last:** needs everything above - it's the first real importable module (18.4), built
@@ -270,4 +344,7 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - Masking: all 9 design questions decided (ready to build, listed in FEATURES).
 - 18.3.7 COMPLETE (built-in type classes and method syntax) - Task 18.3 complete.
 - Masking BUILT (formatMask, digitsOnly, mask, maskEmail).
-- **Next Action:** plan **18.4 (import and multi-file projects)** and get approval.
+- 18.4 plan approved (folder modules; public; one combined C file; each module loaded once,
+  same-name modules need an alias).
+- 18.4.1 COMPLETE (C names: fu_ prefix; closes 15.8).
+- **Next Action:** implement **18.4.2 (import and module folders)** per the approved plan.

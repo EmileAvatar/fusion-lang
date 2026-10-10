@@ -3458,3 +3458,16 @@ User request (2026-10-09): every string function reachable as `String.replace(s,
       optional char; length kept), maskEmail (keep = 1, optional char; domain kept)
 - [x] Implementation choices within the decisions: skipping non-fitting input and lazy
       literals - both make "fill as far as it fits" read naturally
+
+---
+
+#### 18.4.1 (archived 2026-10-10)
+
+**18.4.1 - Names in the generated C** (COMPLETE, closes 15.8)
+- [x] Functions and struct types: `fu_` prefix in C (main unchanged) - c_names.mangle_function_name
+- [x] Locals / parameters renamed only when they'd break the C (C keywords, printf, pow, C
+      type and macro names, `fusion_` / `fu_` / `__` prefixes) - a pass over each function's
+      AST after semantic analysis, so messages keep the Fusion names; it also reaches
+      `{name}` inside interpolated strings (StringExprPart is a plain dataclass)
+- [x] Fields: only C keywords change (c_member_name)
+- [x] ~80 exact-C test expectations updated mechanically (function / struct names)

@@ -191,7 +191,7 @@ class TestReturnStatements:
         call = CallExpr(location=loc(), callee=callee, arguments=[])
         node = ReturnStmt(location=loc(), value=call)
         gen.visit_ReturnStmt(node)
-        assert 'return foo();' in '\n'.join(gen.output)
+        assert 'return fu_foo();' in '\n'.join(gen.output)
 
 
 class TestIfStatements:

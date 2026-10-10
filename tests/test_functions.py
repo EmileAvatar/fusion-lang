@@ -47,13 +47,13 @@ GREET = (
 
 def test_omitted_default_is_filled_at_call_site():
     c_code = generate_c(GREET + 'void function main()\n    greet()\n    greet("Fusion")\n')
-    assert 'greet(FUSION_STR("World"), 1);' in c_code
-    assert 'greet(FUSION_STR("Fusion"), 1);' in c_code
+    assert 'fu_greet(FUSION_STR("World"), 1);' in c_code
+    assert 'fu_greet(FUSION_STR("Fusion"), 1);' in c_code
 
 
 def test_all_arguments_given_uses_none_of_the_defaults():
     c_code = generate_c(GREET + 'void function main()\n    greet("x", 3)\n')
-    assert 'greet(FUSION_STR("x"), 3);' in c_code
+    assert 'fu_greet(FUSION_STR("x"), 3);' in c_code
 
 
 def test_negative_number_default():
@@ -61,7 +61,7 @@ def test_negative_number_default():
         'int function offset(int x, int by = -5) : x + by\n'
         'void function main()\n    int a = offset(10)\n'
     )
-    assert 'offset(10, (-5))' in c_code
+    assert 'fu_offset(10, (-5))' in c_code
 
 
 @pytest.mark.parametrize("default", ['2.5', '"text"', "'c'", 'true', 'false', '-1.5'])
@@ -124,7 +124,7 @@ def test_default_type_mismatch_still_rejected():
 def test_call_before_definition_gets_defaults():
     # main calls greet before greet is declared - registration happens in an earlier pass
     c_code = generate_c('void function main()\n    greet()\n' + GREET)
-    assert 'greet(FUSION_STR("World"), 1);' in c_code
+    assert 'fu_greet(FUSION_STR("World"), 1);' in c_code
 
 
 def test_defaults_end_to_end():
@@ -157,9 +157,9 @@ SUM = (
 
 def test_unsized_array_parameter_gets_hidden_length():
     c_code = generate_c(SUM + 'void function main()\n    int[] a = [1, 2, 3]\n    int s = sum(a)\n')
-    assert 'int sum(int* values, int fusion_len_values);' in c_code   # forward declaration
-    assert 'int sum(int* values, int fusion_len_values) {' in c_code  # definition
-    assert 'sum(a, 3)' in c_code
+    assert 'int fu_sum(int* values, int fusion_len_values);' in c_code   # forward declaration
+    assert 'int fu_sum(int* values, int fusion_len_values) {' in c_code  # definition
+    assert 'fu_sum(a, 3)' in c_code
     assert 'i < fusion_len_values' in c_code                            # len(values)
 
 
@@ -168,21 +168,21 @@ def test_sized_array_parameter_stays_c_array():
         'int function first(int[3] trio) : trio[0] + len(trio)\n'
         'void function main()\n    int[] a = [1, 2, 3]\n    int f = first(a)\n'
     )
-    assert 'int first(int trio[3])' in c_code
+    assert 'int fu_first(int trio[3])' in c_code
     assert '(trio[0] + 3)' in c_code      # len of a sized parameter is still a constant
-    assert 'first(a)' in c_code
+    assert 'fu_first(a)' in c_code
 
 
 def test_unsized_parameter_forwarded_with_its_length():
     c_code = generate_c(
         SUM + 'int function again(int[] v) : sum(v)\nvoid function main()\n    return\n'
     )
-    assert 'sum(v, fusion_len_v)' in c_code
+    assert 'fu_sum(v, fusion_len_v)' in c_code
 
 
 def test_array_literal_argument_becomes_compound_literal():
     c_code = generate_c(SUM + 'void function main()\n    int s = sum([7, 8])\n')
-    assert 'sum((int[]){7, 8}, 2)' in c_code
+    assert 'fu_sum((int[]){7, 8}, 2)' in c_code
 
 
 def test_string_array_parameter():
@@ -191,7 +191,7 @@ def test_string_array_parameter():
         'void function main()\n    string[] n = ["a", "b"]\n    string p = pick(n)\n'
     )
     assert 'fusion_string* names, int fusion_len_names' in c_code
-    assert 'pick(n, 2)' in c_code
+    assert 'fu_pick(n, 2)' in c_code
 
 
 def test_sized_parameter_rejects_wrong_size():
@@ -311,7 +311,7 @@ def test_named_function_as_value_and_call_through_variable():
         'int function tripler(int x) : x * 3\n'
         'void function main()\n    (int) : int op = tripler\n    int a = op(5)\n'
     )
-    assert 'fusion_fn_1 op = tripler;' in c_code
+    assert 'fusion_fn_1 op = fu_tripler;' in c_code
     assert 'int a = op(5);' in c_code
 
 
@@ -320,7 +320,7 @@ def test_function_named_after_c_keyword_used_as_value_is_mangled():
         'int function double(int x) : x * 2\n'
         'void function main()\n    (int) : int op = double\n'
     )
-    assert 'fusion_fn_1 op = fusion_double;' in c_code
+    assert 'fusion_fn_1 op = fu_double;' in c_code
 
 
 def test_function_returning_a_function():
@@ -329,7 +329,7 @@ def test_function_returning_a_function():
         '(int) : int function pick() : tripler\n'
         'void function main()\n    (int) : int f = pick()\n'
     )
-    assert 'fusion_fn_1 pick(void);' in c_code
+    assert 'fusion_fn_1 fu_pick(void);' in c_code
 
 
 def test_void_lambda():

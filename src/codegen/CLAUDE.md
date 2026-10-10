@@ -9,5 +9,5 @@
 | `c_bytes.py` | C for raw bytes (Task 18.3.8): `byte` / `bytes`, appended to the runtime prelude |
 | `c_runtime.py` | Lowers built-ins: `print`, `len`, `format` and string interpolation into `printf` / string building |
 | `c_types.py` | Maps Fusion types to C types; function-pointer typedefs; wrappers for returned arrays |
-| `c_names.py` | Renames identifiers that clash with C keywords (`double` -> `fusion_double`); hidden array-length names |
+| `c_names.py` | Fusion names -> C names: functions / structs get `fu_` (`add` -> `fu_add`), clashing locals too (`auto` -> `fu_auto`), fields only for C keywords; hidden array-length names |
 | `__init__.py` | Exports `CCodeGenerator` |

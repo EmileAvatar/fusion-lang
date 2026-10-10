@@ -61,7 +61,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 15.5 Memory model implementation (Unique/Shared/Weak, GC) not tracked yet - needs scoping
 	[ ] 15.6 fusion.toml [safety]/[backend] not enforced (trigger: strict mode or 2nd backend)
 	[DONE] 15.7 Lexer warnings surfaced (19.6.4)
-	[ ] 15.8 Name collisions in C: `fusion_` prefix, and functions named like C library ones (`rename`, `free`, `exit`, `abs`) - fix before 18.4
+	[DONE] 15.8 Name collisions in C: `fusion_` prefix, and functions named like C library ones (`rename`, `free`, `exit`, `abs`) - fixed by 18.4.1
 	[DONE] 15.9 Printing an array crashed the compiler (18.2.1)
 	[DONE] 15.10 Interpolated strings only worked inside print - real values since 18.3.3
 	[DONE] 15.11 `{@N}` positional placeholders (18.2.2b)
@@ -135,7 +135,12 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.3.7 Built-in type classes and method syntax - every built-in function three ways:
 			`toUpper(name)`, `name.toUpper()` / `"Claude".toUpper()` / `255.toHex()` (chainable), and
 			`String.toUpper(name)`; classes String, Bytes, Int, Char, Float, Double, Byte, Bool
-	[ ] 18.4 `import` and multi-file projects
+	[ ] 18.4 `import` and multi-file projects (plan approved 2026-10-10: folder modules, `public`,
+		one combined C file, each module loaded once, same-name modules need an alias)
+		[DONE] 18.4.1 C names: functions and structs get `fu_` in C; clashing locals too (closes 15.8)
+		[ ] 18.4.2 `import`, module folders, prefixed use, `import M.Name`, `import M.*`, dotted types
+		[ ] 18.4.3 `public` visibility, name rules, `import ... as` aliases, same-name module error
+		[ ] 18.4.4 Module interfaces (`--interface`), a multi-file example project, docs
 	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std
 		[ ] 18.5.x String split & join: split(s, ","), join(list, ", "), lines(s), words(s) (need lists)
 

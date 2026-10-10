@@ -171,9 +171,9 @@ def test_array_equality_element_by_element():
 def test_struct_helpers_are_generated_once():
     c_code = generate_c(STRUCTS + main(
         'Point a\nPoint b\nbool r = a == b\nbool r2 = a != b\nSpot s\nbool r3 = a == s'))
-    assert c_code.count('static inline bool fusion_eq_Point(') == 1
-    assert 'static inline bool fusion_eq_Point__Spot(' in c_code
-    assert '!fusion_eq_Point(a, b)' in c_code
+    assert c_code.count('static inline bool fusion_eq_fu_Point(') == 1
+    assert 'static inline bool fusion_eq_fu_Point__fu_Spot(' in c_code
+    assert '!fusion_eq_fu_Point(a, b)' in c_code
 
 
 # ============================================================

@@ -289,7 +289,7 @@ class TestFunctionCalls:
         arg2 = LiteralExpr(location=loc(), value=2, type_hint='int')
         node = CallExpr(location=loc(), callee=callee, arguments=[arg1, arg2])
         result = gen.visit_CallExpr(node)
-        assert result == 'add(1, 2)'
+        assert result == 'fu_add(1, 2)'
 
     def test_no_args(self):
         """Test no args: foo() -> foo()"""
@@ -297,7 +297,7 @@ class TestFunctionCalls:
         callee = IdentifierExpr(location=loc(), name='foo')
         node = CallExpr(location=loc(), callee=callee, arguments=[])
         result = gen.visit_CallExpr(node)
-        assert result == 'foo()'
+        assert result == 'fu_foo()'
 
     def test_nested_call(self):
         """Test nested call: add(mul(2, 3), 4) -> add(mul(2, 3), 4)"""
@@ -315,7 +315,7 @@ class TestFunctionCalls:
         node = CallExpr(location=loc(), callee=add_callee, arguments=[mul_call, add_arg2])
 
         result = gen.visit_CallExpr(node)
-        assert result == 'add(mul(2, 3), 4)'
+        assert result == 'fu_add(fu_mul(2, 3), 4)'
 
     def test_print_string(self):
         """Test print string: print("hello") -> printf("hello\\n")"""
@@ -493,7 +493,7 @@ class TestComplexExpressions:
         binary = BinaryExpr(location=loc(), left=call, operator='+', right=three)
 
         result = gen.visit_BinaryExpr(binary)
-        assert result == '(add(1, 2) + 3)'
+        assert result == '(fu_add(1, 2) + 3)'
 
 
 if __name__ == '__main__':

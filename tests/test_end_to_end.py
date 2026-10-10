@@ -558,7 +558,7 @@ End function
     c_code = generator.generate(ast)
 
     # Should have forward declaration (C style with void for no params)
-    assert 'int foo(void);' in c_code or 'int foo();' in c_code
+    assert 'int fu_foo(void);' in c_code or 'int foo();' in c_code
 
 
 def test_generated_c_compiles_without_warnings():

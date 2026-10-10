@@ -113,12 +113,12 @@ def test_struct_variable_declaration_parses():
 
 def test_struct_typedef_emitted_before_functions():
     c_code = generate_c(POINT + main('Point p = Point(3, 4)'))
-    assert 'typedef struct Point {\n    int x;\n    int y;\n} Point;' in c_code
-    assert c_code.index('typedef struct Point') < c_code.index('// Forward declarations')
+    assert 'typedef struct fu_Point {\n    int x;\n    int y;\n} fu_Point;' in c_code
+    assert c_code.index('typedef struct fu_Point') < c_code.index('// Forward declarations')
 
 
 def test_constructor_becomes_compound_literal():
-    assert 'Point p = (Point){3, 4};' in generate_c(POINT + main('Point p = Point(3, 4)'))
+    assert 'fu_Point p = (fu_Point){3, 4};' in generate_c(POINT + main('Point p = Point(3, 4)'))
 
 
 def test_uninitialized_struct_gets_zero_and_defaults():
@@ -126,14 +126,14 @@ def test_uninitialized_struct_gets_zero_and_defaults():
         'struct Player\n    string name\n    float health = 100.0\n    bool alive\n    char tag\n\n'
         + main('Player p')
     )
-    assert "Player p = (Player){FUSION_STR(\"\"), 100.0f, false, '\\0'};" in c_code
+    assert "fu_Player p = (fu_Player){FUSION_STR(\"\"), 100.0f, false, '\\0'};" in c_code
 
 
 def test_omitted_trailing_defaults_filled_in():
     c_code = generate_c(
         'struct Book\n    string title\n    bool available = true\n\n' + main('Book b = Book("Dune")')
     )
-    assert 'Book b = (Book){FUSION_STR("Dune"), true};' in c_code
+    assert 'fu_Book b = (fu_Book){FUSION_STR("Dune"), true};' in c_code
 
 
 def test_field_access_and_assignment():
@@ -147,18 +147,18 @@ def test_struct_parameters_and_return_values():
         POINT + 'Point function add(Point a, Point b)\n    return Point(a.x + b.x, a.y + b.y)\n'
         + main('Point c = add(Point(1, 2), Point(3, 4))')
     )
-    assert 'Point add(Point a, Point b);' in c_code
-    assert 'return (Point){(a.x + b.x), (a.y + b.y)};' in c_code
+    assert 'fu_Point fu_add(fu_Point a, fu_Point b);' in c_code
+    assert 'return (fu_Point){(a.x + b.x), (a.y + b.y)};' in c_code
 
 
 def test_const_struct():
-    assert 'const Point ORIGIN = (Point){0, 0};' in generate_c(
+    assert 'const fu_Point ORIGIN = (fu_Point){0, 0};' in generate_c(
         POINT + main('const Point ORIGIN = Point(0, 0)\nint x = ORIGIN.x'))
 
 
 def test_c_keyword_struct_and_field_names_mangled():
     c_code = generate_c('struct union\n    int register\n\n' + main('union u\nu.register = 1'))
-    assert 'typedef struct fusion_union {' in c_code
+    assert 'typedef struct fu_union {' in c_code
     assert 'int fusion_register;' in c_code
     assert 'u.fusion_register = 1;' in c_code
 
@@ -330,27 +330,27 @@ def test_named_arguments_parse():
 
 
 def test_named_arguments_reordered_to_parameter_order():
-    assert 'int r = sub(3, 5);' in generate_c(SUB + main('int r = sub(b = 5, a = 3)'))
+    assert 'int r = fu_sub(3, 5);' in generate_c(SUB + main('int r = sub(b = 5, a = 3)'))
 
 
 def test_named_argument_skips_any_defaulted_parameter():
     c_code = generate_c(SHIP + main('createShip(crew = 200)'))
-    assert 'createShip(FUSION_STR("Unnamed"), 100.0f, 200);' in c_code
+    assert 'fu_createShip(FUSION_STR("Unnamed"), 100.0f, 200);' in c_code
 
 
 def test_positional_then_named():
     c_code = generate_c(SHIP + main('createShip("Discovery", crew = 80, speed = 150.0)'))
-    assert 'createShip(FUSION_STR("Discovery"), 150.0f, 80);' in c_code
+    assert 'fu_createShip(FUSION_STR("Discovery"), 150.0f, 80);' in c_code
 
 
 def test_named_struct_construction():
-    assert 'Point p = (Point){3, 4};' in generate_c(POINT + main('Point p = Point(y = 4, x = 3)'))
+    assert 'fu_Point p = (fu_Point){3, 4};' in generate_c(POINT + main('Point p = Point(y = 4, x = 3)'))
 
 
 def test_named_struct_construction_with_defaults():
     source = ('struct Ship\n    string name = "Unnamed"\n    float speed = 100.0\n    int crew = 50\n\n'
               + main('Ship s = Ship(crew = 7)'))
-    assert 'Ship s = (Ship){FUSION_STR("Unnamed"), 100.0f, 7};' in generate_c(source)
+    assert 'fu_Ship s = (fu_Ship){FUSION_STR("Unnamed"), 100.0f, 7};' in generate_c(source)
 
 
 def test_named_struct_field_string_rules_apply():
@@ -365,8 +365,8 @@ def test_named_arguments_without_calls_need_no_temporaries():
 def test_reordered_calls_use_temporaries_in_written_order():
     c_code = generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(b = next(c), a = next(c))'))
     assert 'int fusion_arg_1;' in c_code and 'int fusion_arg_2;' in c_code
-    assert ('int d = (fusion_arg_1 = next(c, 1), fusion_arg_2 = next(c, 1), '
-            'sub(fusion_arg_2, fusion_arg_1));') in c_code
+    assert ('int d = (fusion_arg_1 = fu_next(c, 1), fusion_arg_2 = fu_next(c, 1), '
+            'fu_sub(fusion_arg_2, fusion_arg_1));') in c_code
 
 
 def test_temporaries_in_a_lambda_are_declared_in_the_lambda():
@@ -455,8 +455,8 @@ SCORES = 'struct Player\n    string name\n    int[3] scores\n    string[2] tags\
 def test_nested_struct_typedefs_in_dependency_order():
     # Line is declared before Point in the source, but C needs Point first
     c_code = generate_c(LINE + POINT + main('Line l'))
-    assert c_code.index('typedef struct Point') < c_code.index('typedef struct Line')
-    assert '    Point a;' in c_code
+    assert c_code.index('typedef struct fu_Point') < c_code.index('typedef struct fu_Line')
+    assert '    fu_Point a;' in c_code
 
 
 def test_array_fields_are_c_arrays():
@@ -474,46 +474,46 @@ def test_nested_field_access_and_assignment():
 def test_nested_defaults_and_empty_strings():
     c_code = generate_c(POINT + 'struct Box\n    Point corner\n    string label = "box"\n\n'
                         + SCORES + main('Box b\nPlayer p'))
-    assert 'Box b = (Box){(Point){0, 0}, FUSION_STR("box")};' in c_code
-    assert 'Player p = (Player){FUSION_STR(""), {0}, {FUSION_STR(""), FUSION_STR("")}};' in c_code
+    assert 'fu_Box b = (fu_Box){(fu_Point){0, 0}, FUSION_STR("box")};' in c_code
+    assert 'fu_Player p = (fu_Player){FUSION_STR(""), {0}, {FUSION_STR(""), FUSION_STR("")}};' in c_code
 
 
 def test_array_and_struct_fields_can_be_left_out_of_constructor():
     c_code = generate_c(SCORES + main('Player p = Player("Ada")'))
-    assert 'Player p = (Player){FUSION_STR("Ada"), {0}, {FUSION_STR(""), FUSION_STR("")}};' in c_code
+    assert 'fu_Player p = (fu_Player){FUSION_STR("Ada"), {0}, {FUSION_STR(""), FUSION_STR("")}};' in c_code
 
 
 def test_array_field_from_literal():
     c_code = generate_c(SCORES + main('Player p = Player("Ada", [1, 2, 3])'))
-    assert '(Player){FUSION_STR("Ada"), {1, 2, 3}, {FUSION_STR(""), FUSION_STR("")}}' in c_code
+    assert '(fu_Player){FUSION_STR("Ada"), {1, 2, 3}, {FUSION_STR(""), FUSION_STR("")}}' in c_code
 
 
 def test_named_construction_with_nested_struct():
     c_code = generate_c(POINT + LINE + main('Line l = Line(b = Point(5, 5))'))
-    assert 'Line l = (Line){(Point){0, 0}, (Point){5, 5}};' in c_code
+    assert 'fu_Line l = (fu_Line){(fu_Point){0, 0}, (fu_Point){5, 5}};' in c_code
 
 
 def test_array_of_structs_zeroed_with_nested_braces():
-    assert 'Point pts[3] = {{0}};' in generate_c(POINT + main('Point[3] pts'))
+    assert 'fu_Point pts[3] = {{0}};' in generate_c(POINT + main('Point[3] pts'))
 
 
 def test_array_of_structs_from_literal_and_element_access():
     c_code = generate_c(POINT + main('Point[] pts = [Point(1, 2), Point(3, 4)]\npts[0].x = 7'))
-    assert 'Point pts[2] = {(Point){1, 2}, (Point){3, 4}};' in c_code
+    assert 'fu_Point pts[2] = {(fu_Point){1, 2}, (fu_Point){3, 4}};' in c_code
     assert 'pts[0].x = 7;' in c_code
 
 
 def test_array_of_structs_parameter():
     c_code = generate_c(POINT + 'void function shift(Point[] pts)\n    pts[0].x = 1\n'
                         + main('Point[2] ps\nshift(ps)'))
-    assert 'void shift(Point* pts, int fusion_len_pts);' in c_code
-    assert 'shift(ps, 2);' in c_code
+    assert 'void fu_shift(fu_Point* pts, int fusion_len_pts);' in c_code
+    assert 'fu_shift(ps, 2);' in c_code
 
 
 def test_array_field_passed_to_array_parameter():
     c_code = generate_c(SCORES + 'int function first(int[] v) : v[0]\n'
                         + main('Player p\nint f = first(p.scores)\nint n = len(p.scores)'))
-    assert 'first(p.scores, 3)' in c_code
+    assert 'fu_first(p.scores, 3)' in c_code
     assert 'int n = 3;' in c_code
 
 
@@ -658,20 +658,20 @@ MAKE = 'int[3] function make() : [1, 2, 3]\n'
 def test_returned_array_uses_a_wrapper_struct():
     c_code = generate_c(MAKE + main('int[3] a = make()'))
     assert 'typedef struct { int data[3]; } fusion_arr_int_3;' in c_code
-    assert 'fusion_arr_int_3 make(void);' in c_code
+    assert 'fusion_arr_int_3 fu_make(void);' in c_code
     assert 'return (fusion_arr_int_3){{1, 2, 3}};' in c_code
 
 
 def test_wrappers_come_after_the_structs_they_hold():
     c_code = generate_c(POINT + 'Point[2] function corners() : [Point(0, 0), Point(1, 1)]\n'
                         + main('Point[2] c = corners()'))
-    assert c_code.index('typedef struct Point') < c_code.index('fusion_arr_Point_2;')
+    assert c_code.index('typedef struct fu_Point') < c_code.index('fusion_arr_fu_Point_2;')
 
 
 def test_array_variable_initialized_from_call():
     c_code = generate_c(MAKE + main('int[3] a = make()'))
     assert 'int a[3];' in c_code
-    assert 'fusion_arr_int_3_copy(a, make());' in c_code
+    assert 'fusion_arr_int_3_copy(a, fu_make());' in c_code
 
 
 def test_unsized_variable_takes_the_returned_size():
@@ -680,16 +680,16 @@ def test_unsized_variable_takes_the_returned_size():
 
 def test_whole_array_assignment_from_call():
     c_code = generate_c(MAKE + main('int[3] a\na = make()'))
-    assert 'fusion_arr_int_3_copy(a, make());' in c_code
+    assert 'fusion_arr_int_3_copy(a, fu_make());' in c_code
 
 
 def test_array_field_assignment_from_call():
     c_code = generate_c(MAKE + 'struct Team\n    int[3] scores\n\n' + main('Team t\nt.scores = make()'))
-    assert 'fusion_arr_int_3_copy(t.scores, make());' in c_code
+    assert 'fusion_arr_int_3_copy(t.scores, fu_make());' in c_code
 
 
 def test_indexing_a_returned_array():
-    assert 'int v = make().data[1];' in generate_c(MAKE + main('int v = make()[1]'))
+    assert 'int v = fu_make().data[1];' in generate_c(MAKE + main('int v = make()[1]'))
 
 
 def test_returning_an_array_variable_copies_it():
@@ -700,7 +700,7 @@ def test_returning_an_array_variable_copies_it():
 
 def test_returning_another_call_passes_the_wrapper_through():
     c_code = generate_c(MAKE + 'int[3] function again() : make()\n' + main('int[3] b = again()'))
-    assert 'return make();' in c_code
+    assert 'return fu_make();' in c_code
 
 
 def test_returned_literal_may_promote_numbers():
@@ -709,7 +709,7 @@ def test_returned_literal_may_promote_numbers():
 
 
 def test_calling_and_ignoring_the_result_is_allowed():
-    assert '    make();' in generate_c(MAKE + main('make()'))
+    assert '    fu_make();' in generate_c(MAKE + main('make()'))
 
 
 ARRAY_CALL_HINT = "The array returned by 'make' can't be used here"

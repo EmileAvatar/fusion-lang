@@ -540,7 +540,7 @@ trigger has arrived, rather than re-discovering them by reading old commit messa
 - [ ] Wire `backend.target` to actually select a backend once Task 11 (LLVM) exists as a
       second option
 
-#### 15.8: Reserve the `fusion_` Identifier Prefix (trigger: before `import`, Task 18.4)
+#### 15.8: Reserve the `fusion_` Identifier Prefix - DONE (fixed by Task 18.4.1, 2026-10-10: `fu_` prefix in C)
 - [ ] Generated C uses `fusion_` names the user never wrote: `fusion_double` (a function
       named after a C keyword, Task 12.5) and `fusion_len_values` (the hidden length of an
       `int[] values` parameter, Task 18.1.2). A user identifier spelled the same way would

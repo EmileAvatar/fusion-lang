@@ -366,6 +366,13 @@ outside `print` are 18.3.3 - see `FEATURES.md`.
   (Method-call syntax, `name.toUpper()`, arrived with Task 18.3.7 - see "Built-in type
   classes")
 
+* **Names in the generated C** (Task 18.4.1, closes 15.8): a Fusion name never collides
+  with C or with the runtime - functions and struct types get a `fu_` prefix in C (`add` ->
+  `fu_add`, `Point` -> `fu_Point`; `main` stays `main`), and a local or parameter whose name
+  would break the C (`auto`, `register`, `printf`, `uint8_t`, `NULL`, or starting with
+  `fusion_` / `fu_`) gets one too. So a program may name a function `free`, `exit` or `abs`,
+  or a variable `auto`. Struct fields keep their names (only C keywords change)
+
 * **Built-in type classes** (Task 18.3.7, user decisions 2026-10-10): every built-in
   function can be called three ways, all compiling to the same C call - no objects, no
   memory or speed cost:

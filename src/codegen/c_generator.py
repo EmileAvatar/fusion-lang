@@ -25,7 +25,7 @@ from ..parser.ast_nodes import (
     BlockStmt
 )
 from .c_types import TypeMapperMixin
-from .c_names import mangle_function_name, array_length_name
+from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
 from .c_runtime import RuntimeLoweringMixin, escape_c_text
 from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
 from .c_equality import EqualityMixin, EQUALITY_OPERATORS
@@ -114,6 +114,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.function_decls = {
             decl.name: decl for decl in program.declarations if isinstance(decl, FunctionDecl)
         }
+        # Locals that would break the C get the fu_ prefix (Task 18.4.1)
+        self._rename_clashing_locals(program)
+
         # Struct declarations by name - default values of struct-typed fields and arrays
         # need them (Task 18.2.3)
         self.struct_decls = {
@@ -328,8 +331,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.output.extend(['// Struct copy and cleanup'] + helpers + [''])
 
     def _field_name(self, name: str) -> str:
-        """C name of a struct field - mangled like a function name if it's a C keyword."""
-        return self._mangle_function_name(name)
+        return c_member_name(name)   # fields: only C keywords change (Task 18.4.1)
 
     def _struct_initializer(self, struct: StructDecl, values) -> str:
         """C99 compound literal building a struct: `(Point){3, 4}` (Task 18.2.1).
@@ -533,6 +535,52 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             else:
                 c_params.append(f'{self.map_type(p.param_type)} {p.name}')
         return ', '.join(c_params)
+
+    @staticmethod
+    def _rename_clashing_locals(program: ProgramNode) -> None:
+        """Rename, in the AST, each function's locals and parameters whose names would
+        break the generated C (`auto`, `printf`, `fusion_x`) to `fu_` + the name (Task
+        18.4.1). Runs after semantic analysis, so error messages keep the Fusion names."""
+        skip = ('location', 'inferred_type', 'scope', 'declaration', 'callee_declaration',
+                'resolved_arguments')
+
+        def declared(node, names):
+            if isinstance(node, list):
+                for item in node:
+                    declared(item, names)
+                return
+            if not is_dataclass(node) or isinstance(node, type):
+                return   # (also StringExprPart - {name} inside a string)
+            if isinstance(node, (VarDeclStmt, ParameterDecl)) and local_needs_renaming(node.name):
+                names.add(node.name)
+            if isinstance(node, ForStmt) and local_needs_renaming(node.variable):
+                names.add(node.variable)
+            for f in dataclass_fields(node):
+                if f.name not in skip:
+                    declared(getattr(node, f.name), names)
+
+        def rename(node, names):
+            if isinstance(node, list):
+                for item in node:
+                    rename(item, names)
+                return
+            if not is_dataclass(node) or isinstance(node, type):
+                return   # (also StringExprPart - {name} inside a string)
+            if isinstance(node, (VarDeclStmt, ParameterDecl, IdentifierExpr)) and node.name in names:
+                node.name = f'fu_{node.name}'
+            if isinstance(node, ForStmt) and node.variable in names:
+                node.variable = f'fu_{node.variable}'
+            for f in dataclass_fields(node):
+                if f.name not in skip:
+                    rename(getattr(node, f.name), names)
+
+        for decl in program.declarations:
+            if isinstance(decl, FunctionDecl):
+                names = set()
+                declared(decl, names)
+                if names:
+                    rename(decl.parameters, names)
+                    rename(decl.body, names)
 
     def _mangle_function_name(self, name: str) -> str:
         """Mangle function names that conflict with C keywords.

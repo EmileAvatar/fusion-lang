@@ -199,7 +199,7 @@ def test_forward_declaration_single_function(generator, loc):
     # Find the forward declaration line
     decl_lines = [line for line in generator.output if 'add' in line]
     assert len(decl_lines) == 1
-    assert decl_lines[0] == 'int add(int a, int b);'
+    assert decl_lines[0] == 'int fu_add(int a, int b);'
 
 
 def test_forward_declaration_multiple_functions(generator, loc):
@@ -229,8 +229,8 @@ def test_forward_declaration_multiple_functions(generator, loc):
 
     # Find declaration lines
     output_str = '\n'.join(generator.output)
-    assert 'int add(int a, int b);' in output_str
-    assert 'void greet(fusion_string name);' in output_str
+    assert 'int fu_add(int a, int b);' in output_str
+    assert 'void fu_greet(fusion_string name);' in output_str
 
 
 def test_forward_declaration_no_parameters(generator, loc):

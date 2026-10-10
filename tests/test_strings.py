@@ -95,7 +95,7 @@ def test_copy_on_store_from_a_variable():
 
 def test_fresh_result_is_moved_not_copied():
     c_code = generate_c(ECHO + main('string b = echo("x")'))
-    assert 'fusion_string b = echo(FUSION_STR("x"));' in c_code
+    assert 'fusion_string b = fu_echo(FUSION_STR("x"));' in c_code
 
 
 def test_assignment_frees_the_old_value():
@@ -118,17 +118,17 @@ def test_temporaries_start_empty():
 def test_parameter_borrowed_unless_assigned():
     c_code = generate_c(ECHO + 'string function change(string s)\n    s = "new"\n    return s\n'
                         + main('string x = change("a")'))
-    echo_body = c_code[c_code.index('fusion_string echo(fusion_string s) {'):]
+    echo_body = c_code[c_code.index('fusion_string fu_echo(fusion_string s) {'):]
     assert 's = fusion_str_copy(s);' not in echo_body[:echo_body.index('}')]
-    change_body = c_code[c_code.index('fusion_string change(fusion_string s) {'):]
+    change_body = c_code[c_code.index('fusion_string fu_change(fusion_string s) {'):]
     assert 's = fusion_str_copy(s);' in change_body[:change_body.index('}')]
 
 
 def test_struct_helpers_generated_for_string_structs_only():
     c_code = generate_c(BOOK + 'struct Point\n    int x\n\n' + main('Book b\nPoint p'))
-    assert 'static inline Book fusion_copy_Book(Book v) {' in c_code
-    assert 'static inline void fusion_free_Book(Book* v) {' in c_code
-    assert 'fusion_copy_Point' not in c_code
+    assert 'static inline fu_Book fusion_copy_fu_Book(fu_Book v) {' in c_code
+    assert 'static inline void fusion_free_fu_Book(fu_Book* v) {' in c_code
+    assert 'fusion_copy_fu_Point' not in c_code
 
 
 def test_string_comparison_by_content():

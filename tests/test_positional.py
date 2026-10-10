@@ -31,7 +31,7 @@ NEXT = ('int function next(int[] counter)\n'
 
 def test_plain_arguments_need_no_temporaries():
     c_code = generate_c(SUB + main('int x = 1\nint r = sub(x, 2)'))
-    assert 'int r = sub(x, 2);' in c_code
+    assert 'int r = fu_sub(x, 2);' in c_code
     assert 'fusion_arg' not in c_code
 
 
@@ -39,24 +39,24 @@ def test_one_call_beside_plain_values_needs_no_temporaries():
     # A call can't change a plain variable or literal, so evaluation order isn't visible
     c_code = generate_c(SUB + 'int function twice(int v) : v * 2\n'
                         + main('int x = 1\nint r = sub(twice(x), x)'))
-    assert 'int r = sub(twice(x), x);' in c_code
+    assert 'int r = fu_sub(fu_twice(x), x);' in c_code
 
 
 def test_two_calls_are_sequenced_left_to_right():
     c_code = generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(next(c), next(c))'))
-    assert 'int d = (fusion_arg_1 = next(c, 1), fusion_arg_2 = next(c, 1), ' \
-           'sub(fusion_arg_1, fusion_arg_2));' in c_code
+    assert 'int d = (fusion_arg_1 = fu_next(c, 1), fusion_arg_2 = fu_next(c, 1), ' \
+           'fu_sub(fusion_arg_1, fusion_arg_2));' in c_code
 
 
 def test_call_beside_array_read_is_sequenced():
     # next(c) changes c[0], so reading c[0] before or after it gives different values
     c_code = generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(c[0], next(c))'))
-    assert 'fusion_arg_1 = c[0], fusion_arg_2 = next(c, 1)' in c_code
+    assert 'fusion_arg_1 = c[0], fusion_arg_2 = fu_next(c, 1)' in c_code
 
 
 def test_struct_constructor_is_sequenced():
     c_code = generate_c(POINT + NEXT + main('int[] c = [0]\nPoint p = Point(next(c), next(c))'))
-    assert '(Point){fusion_arg_1, fusion_arg_2}' in c_code
+    assert '(fu_Point){fusion_arg_1, fusion_arg_2}' in c_code
 
 
 def test_function_value_call_is_sequenced():
@@ -121,18 +121,18 @@ def test_placeholders_mix_with_named_values():
 
 def test_repeated_call_argument_is_evaluated_once():
     c_code = generate_c(NEXT + main('int[] c = [0]\nprint("{@1} {@1}", next(c))'))
-    assert '(fusion_arg_1 = next(c, 1), printf("%d %d\\n", fusion_arg_1, fusion_arg_1));' in c_code
+    assert '(fusion_arg_1 = fu_next(c, 1), printf("%d %d\\n", fusion_arg_1, fusion_arg_1));' in c_code
 
 
 def test_arguments_evaluated_in_written_order_not_placeholder_order():
     c_code = generate_c(NEXT + main('int[] c = [0]\nprint("{@2} {@1}", next(c), next(c))'))
-    assert ('(fusion_arg_1 = next(c, 1), fusion_arg_2 = next(c, 1), '
+    assert ('(fusion_arg_1 = fu_next(c, 1), fusion_arg_2 = fu_next(c, 1), '
             'printf("%d %d\\n", fusion_arg_2, fusion_arg_1));') in c_code
 
 
 def test_unused_call_argument_still_runs():
     c_code = generate_c(NEXT + main('int[] c = [0]\nprint("{@1}", 5, next(c))'))
-    assert 'fusion_arg_1 = next(c, 1)' in c_code
+    assert 'fusion_arg_1 = fu_next(c, 1)' in c_code
 
 
 def test_percent_still_escaped_with_placeholders():

@@ -45,7 +45,7 @@ class TestFunctionDeclarations:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'void foo(void) {' in output
+        assert 'void fu_foo(void) {' in output
         assert '}' in output
 
     def test_function_with_return_type(self):
@@ -65,7 +65,7 @@ class TestFunctionDeclarations:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'int getNumber(void) {' in output
+        assert 'int fu_getNumber(void) {' in output
         assert 'return 42;' in output
 
     def test_function_with_single_parameter(self):
@@ -89,7 +89,7 @@ class TestFunctionDeclarations:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'int identity(int x) {' in output
+        assert 'int fu_identity(int x) {' in output
         assert 'return x;' in output
 
     def test_function_with_multiple_parameters(self):
@@ -128,7 +128,7 @@ class TestFunctionDeclarations:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'int add(int a, int b) {' in output
+        assert 'int fu_add(int a, int b) {' in output
         assert 'return (a + b);' in output
 
     def test_function_with_local_variables(self):
@@ -160,7 +160,7 @@ class TestFunctionDeclarations:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'int test(void) {' in output
+        assert 'int fu_test(void) {' in output
         assert 'int x = 5;' in output
         assert 'return x;' in output
 
@@ -200,7 +200,7 @@ class TestFunctionDeclarations:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'int test(int x) {' in output
+        assert 'int fu_test(int x) {' in output
         assert 'if ((x > 0)) {' in output
         assert 'return 1;' in output
 
@@ -261,9 +261,9 @@ class TestFunctionDeclarations:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'int factorial(int n) {' in output
+        assert 'int fu_factorial(int n) {' in output
         assert 'if ((n <= 1)) {' in output
-        assert 'return (n * factorial((n - 1)));' in output
+        assert 'return (n * fu_factorial((n - 1)));' in output
 
 
 class TestLambdaFunctions:
@@ -303,7 +303,7 @@ class TestLambdaFunctions:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'int add(int a, int b) {' in output
+        assert 'int fu_add(int a, int b) {' in output
         assert 'return (a + b);' in output
 
     def test_lambda_with_single_return(self):
@@ -326,7 +326,7 @@ class TestLambdaFunctions:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'int getNumber(void) {' in output
+        assert 'int fu_getNumber(void) {' in output
         assert 'return 42;' in output
 
     def test_lambda_void_with_expression(self):
@@ -352,7 +352,7 @@ class TestLambdaFunctions:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'void greet(void) {' in output
+        assert 'void fu_greet(void) {' in output
         assert 'printf("hello\\n");' in output
 
 
@@ -429,11 +429,11 @@ class TestProgramStructure:
         result = gen.generate(program)
 
         # Check forward declarations
-        assert 'int add(int a, int b);' in result
+        assert 'int fu_add(int a, int b);' in result
         assert 'int main(void);' in result
 
         # Check add function comes before main
-        add_pos = result.index('int add(int a, int b) {')
+        add_pos = result.index('int fu_add(int a, int b) {')
         main_pos = result.index('int main(void) {')
         assert add_pos < main_pos
 
@@ -467,7 +467,7 @@ class TestProgramStructure:
         result = gen.generate(program)
 
         # Main should come after helper in generated code
-        helper_pos = result.index('int helper(void) {')
+        helper_pos = result.index('int fu_helper(void) {')
         main_pos = result.index('int main(void) {')
         assert helper_pos < main_pos
 
@@ -564,12 +564,12 @@ class TestProgramStructure:
 
         # Check structure
         assert '#include <stdio.h>' in result
-        assert 'int add(int a, int b);' in result
+        assert 'int fu_add(int a, int b);' in result
         assert 'int main(void);' in result
-        assert 'int add(int a, int b) {' in result
+        assert 'int fu_add(int a, int b) {' in result
         assert 'return (a + b);' in result
         assert 'int main(void) {' in result
-        assert 'int result = add(5, 3);' in result
+        assert 'int result = fu_add(5, 3);' in result
 
 
 class TestParameters:
@@ -590,7 +590,7 @@ class TestParameters:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'void test(void) {' in output
+        assert 'void fu_test(void) {' in output
 
     def test_multiple_parameter_types(self):
         """Test different parameter types"""
@@ -634,7 +634,7 @@ class TestParameters:
 
         gen.visit_FunctionDecl(func)
         output = '\n'.join(gen.output)
-        assert 'void test(int x, float y, fusion_string s, bool flag) {' in output
+        assert 'void fu_test(int x, float y, fusion_string s, bool flag) {' in output
 
     def test_visit_parameter_decl_directly(self):
         """Test visiting ParameterDecl directly"""
