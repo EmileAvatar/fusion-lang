@@ -468,6 +468,25 @@ print(toString(data))              // kkijk
        run-time error, like `toInt`. `bytesToHex(s)` shows the text's UTF-8 bytes
        ("Hi" -> "4869"); `hexToBytes(h)` turns them back into text - an odd length, a
        non-hex digit or bytes that aren't valid text are run-time errors
+     * Number formatting (18.3.6d-2, user decision 2026-10-09: both styles, chosen per
+       call): `formatNumber(n, pattern)` for an int, byte, float or double.
+       **Excel/.NET style** - `0` a digit always shown, `#` a digit only if needed, `,` in
+       the whole-number part for thousands groups, `.` the decimal point; text before and
+       after is printed as it is, and a `%` there multiplies by 100:
+       `formatNumber(1234.5, "$#,##0.00")` -> "$1,234.50", `"000"` -> "007",
+       `"0.0%"` of 0.256 -> "25.6%", `"0.0##"` keeps up to 3 decimals. Rounds half away
+       from zero on the number as written (2.675 -> "2.68", as Excel does - a float is
+       read at its 7 significant digits, a double at 15). The decimal point is left out
+       when no decimals are shown. **printf style** - a pattern that starts with `%`: one
+       conversion `d i` (rounded to a whole number), `f e E g G`, `x X o` (a whole number's
+       32-bit pattern, like `toHex`), up to 5 flags `- + space 0 #`, width and precision up
+       to 1000, `%%` for a percent sign, and text after it: `"%.2f"`, `"%05d"`,
+       `"%8.2f kg"`. Never `%s`, `%n`, `%p` or `*`: Fusion checks every pattern itself and
+       never hands one raw to C. Text *before* a number is what Excel style is for
+       (`"$0.00"`). A bad pattern is a compile error when it's written in the source and a
+       run-time error when it's built while running. Separators are fixed to `,` and `.`
+       for now; locales, negative-number sections (`"0.00;(0.00)"`) and Excel's scientific
+       notation come later
      * **Raw bytes** (Task 18.3.8, user decisions 2026-10-10) - see "Raw bytes" below
      * **Number literals** (18.3.6d-1): `0xFF`, `0b1010`, `0o17`, with `_` allowed between
        digits (`0b1111_0000`, `1_000_000`, `2.5_0`). Hex, binary and octal literals hold up
@@ -479,8 +498,7 @@ print(toString(data))              // kkijk
      * **Out of range:** "up to n" functions (`left`, `right`, padding, `truncate`) clamp
        quietly - `left("ab", 5)` is "ab"; a negative count stops the program with a run-time
        error; positions inside the string (`insert`, `remove`, like `substring`) must be valid
-     * Still to come in 18.3.6: number formatting (`formatNumber` with Excel/.NET or printf
-       patterns), comparing (`equalsIgnoreCase`,
+     * Still to come in 18.3.6: comparing (`equalsIgnoreCase`,
        `compareIgnoreCase`, `compareNatural`), and a masking design (`mask`)
 
 ```

@@ -123,7 +123,8 @@ The single place to see what is done, open, or postponed. One line per item.
 				text, optional width; negatives in two's complement, C# style), fromHex / fromBinary /
 				fromOctal / parseInt(s, base), isInt(s, base), bytesToHex / hexToBytes; literals 0xFF,
 				0b1010, 0o17 and 1_000_000
-			[ ] 18.3.6d-2 Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f"
+			[DONE] 18.3.6d-2 Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f" -
+				patterns checked by Fusion (compile time when written in the source)
 			[ ] Compare: equalsIgnoreCase, compareIgnoreCase, natural order ("file2" before "file10")
 		[DONE] 18.3.8 Raw bytes: `byte` (unsigned 0-255) and `bytes` (growable, edited in place);
 			strings, chars and ints to bytes and back (toBytes, toString, getInt / setInt, 16-bit

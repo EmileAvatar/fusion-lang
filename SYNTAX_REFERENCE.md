@@ -210,7 +210,7 @@ void function main()
     print(joined)
 ```
 
-#### String library: inspect, search, extract, change, pad, number bases
+#### String library: inspect, search, extract, change, pad, number bases, formatting
 
 <!-- example: syntax_string_library | task: 18.3.6 -->
 ```fusion
@@ -234,6 +234,10 @@ void function main()
     print("{@1} {@2} {@3}", toHex(-1), fromHex("ffffffff"), fromHex("0x1F"))   // two's complement
     print("{@1} {@2} {@3}", toOctal(8), toBase(-255, 16), parseInt("z", 36))
     print("{@1} {@2}", bytesToHex("Hi"), hexToBytes("4869"))
+
+    // formatNumber: Excel/.NET style, or printf style when the pattern starts with %
+    print("{@1} {@2} {@3}", formatNumber(1234.5, "$#,##0.00"), formatNumber(7, "000"), formatNumber(0.256, "0.0%"))
+    print("{@1} {@2} {@3}", formatNumber(3.14159, "%.2f"), formatNumber(42, "%05d"), formatNumber(3.5, "%.1f kg"))
 ```
 
 #### Raw bytes: `byte` and `bytes`

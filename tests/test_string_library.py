@@ -264,3 +264,62 @@ def test_bad_based_literals(literal, message):
     except Exception as e:  # the lexer may raise on the first error
         found = str(e)
     assert message in found
+
+
+# ============================================================
+# 18.3.6d-2 - formatNumber: Excel/.NET style and printf style
+# ============================================================
+
+def test_format_number_excel_style():
+    assert run_ok(main(
+        'print("{@1} | {@2} | {@3}", formatNumber(1234.5, "#,##0.00"), formatNumber(7, "000"), formatNumber(1234567, "#,##0"))\n'
+        'print("{@1} | {@2} | {@3}", formatNumber(2.675, "0.00"), formatNumber(-2.5, "0"), formatNumber(-0.004, "0.00"))\n'
+        'print("{@1} | {@2} | {@3}", formatNumber(1234.5, "$#,##0.00"), formatNumber(72.25, "0.0 kg"), formatNumber(0.256, "0.0%"))\n'
+        'print("{@1} | {@2} | {@3}", formatNumber(0.5, "#.00"), formatNumber(3.1, "0.0##"), formatNumber(3.14159, "0.0##"))\n'
+        'print("{@1} | {@2} | [{@3}]", formatNumber(100, "#,###"), formatNumber(999.996, "#,##0.00"), formatNumber(0, "#"))'
+    )) == ['1,234.50 | 007 | 1,234,567', '2.68 | -3 | 0.00', '$1,234.50 | 72.3 kg | 25.6%',
+           '.50 | 3.1 | 3.142', '100 | 1,000.00 | []']
+
+
+def test_format_number_printf_style():
+    assert run_ok(main(
+        'print("{@1} | {@2} | {@3}", formatNumber(3.14159, "%.2f"), formatNumber(42, "%05d"), formatNumber(2.5, "%d"))\n'
+        'print("[{@1}] | [{@2}] | {@3}", formatNumber(3.5, "%8.2f kg"), formatNumber(7, "%-4d|"), formatNumber(255, "%x"))\n'
+        'print("{@1} | {@2} | {@3}", formatNumber(-1, "%X"), formatNumber(8, "%#o"), formatNumber(12345.678, "%.3e"))\n'
+        'print("{@1} | {@2}", formatNumber(50, "%d%% done"), formatNumber(1, "%+d"))'
+    )) == ['3.14 | 00042 | 3', '[    3.50 kg] | [7   |] | ff', 'FFFFFFFF | 010 | 1.235e+04',
+           '50% done | +1']
+
+
+@pytest.mark.parametrize("pattern, problem", [
+    ('"%s"', "only the conversions d i f e E g G x X o are allowed"),
+    ('"%n"', "only the conversions"),
+    ('"%d and %d"', "more than one number conversion"),
+    ('"%*d"', "'*' widths aren't allowed"),
+    ('"%5000d"', "a width over 1000"),
+    ('"%ld"', "only the conversions"),
+    ('"%"', "a '%' at the end has no conversion letter"),
+    ('"%% only"', "no number conversion such as %d or %.2f"),
+    ('"abc"', "no 0 or # digit placeholder"),
+    ('"0.0.0"', "more than one decimal point"),
+    ('"0.0,0"', "a ',' after the decimal point"),
+    ('"0x0"', "a character other than 0 # , . inside the number part"),
+    ('"0.0000000000000000"', "more than 15 decimal places"),
+])
+def test_bad_patterns_are_compile_errors(pattern, problem):
+    errors = errors_of(main(f'string s = formatNumber(1, {pattern})'))
+    assert f'Invalid number pattern {pattern}: {problem}' in errors
+
+
+def test_bad_pattern_built_at_run_time():
+    assert 'invalid number pattern "%s": only the conversions' in run_error(main(
+        'string p = "%" + "s"\nprint(formatNumber(1, p))'))
+
+
+@pytest.mark.parametrize("call, message", [
+    ('formatNumber(1.0 / 0.0, "0")', "formatNumber: the number isn't finite"),
+    ('formatNumber(1000000000.0 * 1000000000.0 * 1000.0, "0.00")', "is too large for this pattern"),
+    ('formatNumber(1000000.0 * 1000000.0, "%x")', "doesn't fit in an int for %x"),
+])
+def test_format_number_run_time_errors(call, message):
+    assert message in run_error(main(f'print({call})'))

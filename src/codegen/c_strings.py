@@ -352,4 +352,149 @@ static inline fusion_string fusion_str_hexToBytes(fusion_string s, const char* w
     if (!fusion_utf8_valid(out, s.len / 2)) { fusion_dealloc(out); fusion_runtime_error(where, "hexToBytes: the bytes of '%.*s' are not valid text", s.len, s.data); }
     return fusion_str_take(out, s.len / 2);
 }
+// ---- Number formatting (18.3.6d-2): formatNumber(n, pattern). A pattern starting with '%'
+// is printf style ("%.2f", "%08.3f kg"); any other is Excel/.NET style ("#,##0.00",
+// "$0.0", "0.0%"). Fusion checks the pattern itself and never hands it raw to C's printf -
+// the same rules as src/semantic/number_patterns.py, which checks patterns written in
+// the source when compiling
+typedef struct { int start, end, min_int, min_dec, max_dec; bool group, percent; } fusion_number_pattern;
+
+static inline const char* fusion_printf_pattern_problem(fusion_string p, int* at, int* end) {
+    int found = 0;
+    for (int i = 0; i < p.len; i++) {
+        if (p.data[i] != '%') continue;
+        if (i + 1 < p.len && p.data[i + 1] == '%') { i++; continue; }
+        int j = i + 1, flags = 0, width = 0, precision = 0;
+        while (j < p.len && p.data[j] != '\0' && strchr("-+ 0#", p.data[j])) { j++; if (++flags > 5) return "more than 5 flags"; }
+        while (j < p.len && p.data[j] >= '0' && p.data[j] <= '9') { width = width * 10 + (p.data[j++] - '0'); if (width > 1000) return "a width over 1000"; }
+        if (j < p.len && p.data[j] == '.') {
+            j++;
+            while (j < p.len && p.data[j] >= '0' && p.data[j] <= '9') { precision = precision * 10 + (p.data[j++] - '0'); if (precision > 1000) return "a precision over 1000"; }
+        }
+        if (j >= p.len) return "a '%' at the end has no conversion letter";
+        if (p.data[j] == '*') return "'*' widths aren't allowed - write the number";
+        if (p.data[j] == '\0' || !strchr("difeEgGxXo", p.data[j])) return "only the conversions d i f e E g G x X o are allowed";
+        if (found) return "more than one number conversion";
+        found = 1; *at = i; *end = j + 1; i = j;
+    }
+    return found ? NULL : "no number conversion such as %d or %.2f";
+}
+
+static inline const char* fusion_excel_pattern_problem(fusion_string p, fusion_number_pattern* np) {
+    int first = -1, last = -1;
+    bool dot = false;
+    memset(np, 0, sizeof *np);
+    for (int i = 0; i < p.len; i++)
+        if (p.data[i] == '0' || p.data[i] == '#') { if (first < 0) first = i; last = i; }
+    if (first < 0) return "no 0 or # digit placeholder";
+    if (first > 0 && p.data[first - 1] == '.') first--;   // ".00" - the point belongs to the number
+    for (int i = first; i <= last; i++) {
+        char c = p.data[i];
+        if (c == '0' || c == '#') {
+            if (dot) { np->max_dec++; if (c == '0') np->min_dec = np->max_dec; }
+            else if (c == '0') np->min_int++;
+        } else if (c == '.') {
+            if (dot) return "more than one decimal point";
+            dot = true;
+        } else if (c == ',') {
+            if (dot) return "a ',' after the decimal point";
+            np->group = true;
+        } else {
+            return "a character other than 0 # , . inside the number part";
+        }
+    }
+    if (np->max_dec > 15) return "more than 15 decimal places";
+    for (int i = 0; i < p.len; i++) if ((i < first || i > last) && p.data[i] == '%') np->percent = true;
+    np->start = first; np->end = last + 1;
+    return NULL;
+}
+
+// Excel/.NET style: rounds half away from zero on the decimal value shown (2.675 with "0.00"
+// -> "2.68", as Excel does despite binary floating point)
+static inline fusion_string fusion_format_excel(double v, fusion_string p, fusion_number_pattern np, const char* where) {
+    if (np.percent) v *= 100.0;
+    bool negative = v < 0;
+    double x = negative ? -v : v;
+    unsigned long long scale = 1;
+    for (int k = 0; k < np.max_dec; k++) scale *= 10;
+    x *= (double)scale;
+    if (x >= 1e18) fusion_runtime_error(where, "formatNumber: %g is too large for this pattern", v);
+    unsigned long long r = (unsigned long long)(x + 0.5 + 1e-9 * (x > 1.0 ? x : 1.0));
+    unsigned long long whole = r / scale, frac = r % scale;
+    char ib[24], fb[24];
+    int il = snprintf(ib, sizeof ib, "%llu", whole), fl = np.max_dec;
+    if (whole == 0 && np.min_int == 0) il = 0;   // "#.00" of 0.5 -> ".50"
+    if (fl > 0) snprintf(fb, sizeof fb, "%0*llu", fl, frac);
+    while (fl > np.min_dec && fb[fl - 1] == '0') fl--;
+    int digits = il > np.min_int ? il : np.min_int;
+    int groups = np.group && digits > 3 ? (digits - 1) / 3 : 0;
+    bool minus = negative && r != 0;
+    int len = minus + np.start + digits + groups + (fl > 0 ? fl + 1 : 0) + (p.len - np.end), o = 0;
+    char* out = (char*)fusion_alloc((size_t)len + 1);
+    if (minus) out[o++] = '-';
+    memcpy(out + o, p.data, (size_t)np.start); o += np.start;
+    for (int k = 0; k < digits; k++) {
+        if (groups && k > 0 && (digits - k) % 3 == 0) out[o++] = ',';
+        out[o++] = k < digits - il ? '0' : ib[k - (digits - il)];
+    }
+    if (fl > 0) { out[o++] = '.'; memcpy(out + o, fb, (size_t)fl); o += fl; }
+    memcpy(out + o, p.data + np.end, (size_t)(p.len - np.end));
+    return fusion_str_take(out, len);
+}
+
+// Copies pattern text, turning %% into %
+static inline int fusion_copy_literal(char* out, const char* text, int len) {
+    int o = 0;
+    for (int i = 0; i < len; i++) { if (text[i] == '%' && i + 1 < len && text[i + 1] == '%') i++; if (out) out[o] = text[i]; o++; }
+    return o;
+}
+// printf style: d i round half away from zero to a whole number; x X o show a whole number
+// as its 32-bit pattern (like toHex); f e E g G as C prints them
+static inline fusion_string fusion_format_printf(double v, fusion_string p, int at, int end, const char* where) {
+    char spec[48], piece[1100];
+    char conv = p.data[end - 1];
+    int n = end - at - 1, piece_len;
+    memcpy(spec, p.data + at, (size_t)n);
+    double rounded = v < 0 ? v - 0.5 : v + 0.5;
+    if (conv == 'd' || conv == 'i') {
+        if (rounded >= 9.2e18 || rounded <= -9.2e18) fusion_runtime_error(where, "formatNumber: %g is too large for %%d", v);
+        memcpy(spec + n, "lld", 4);
+        piece_len = snprintf(piece, sizeof piece, spec, (long long)rounded);
+    } else if (conv == 'x' || conv == 'X' || conv == 'o') {
+        if (rounded >= 2147483648.0 || rounded <= -2147483649.0) fusion_runtime_error(where, "formatNumber: %g doesn't fit in an int for %%%c", v, conv);
+        spec[n] = conv; spec[n + 1] = '\0';
+        piece_len = snprintf(piece, sizeof piece, spec, (unsigned int)(int)(long long)rounded);
+    } else {
+        spec[n] = conv; spec[n + 1] = '\0';
+        piece_len = snprintf(piece, sizeof piece, spec, v);
+    }
+    if (piece_len < 0 || piece_len >= (int)sizeof piece) fusion_runtime_error(where, "formatNumber: the result is too long");
+    int before = fusion_copy_literal(NULL, p.data, at), after = fusion_copy_literal(NULL, p.data + end, p.len - end);
+    char* out = (char*)fusion_alloc((size_t)(before + piece_len + after) + 1);
+    fusion_copy_literal(out, p.data, at);
+    memcpy(out + before, piece, (size_t)piece_len);
+    fusion_copy_literal(out + before + piece_len, p.data + end, p.len - end);
+    return fusion_str_take(out, before + piece_len + after);
+}
+
+// `digits` - the significant digits the number really has: 7 for a float, 15 for a double or
+// an int. Excel style reads the number at that precision first, so a float 2.675 (stored as
+// 2.67499995...) rounds as the 2.675 that was written
+static inline fusion_string fusion_formatNumber(double v, int digits, fusion_string p, const char* where) {
+    if (v != v || v - v != 0) fusion_runtime_error(where, "formatNumber: the number isn't finite (infinity or not-a-number)");
+    const char* problem;
+    if (p.len > 0 && p.data[0] == '%') {
+        int at = 0, end = 0;
+        problem = fusion_printf_pattern_problem(p, &at, &end);
+        if (!problem) return fusion_format_printf(v, p, at, end, where);
+    } else {
+        fusion_number_pattern np;
+        char decimal[40];
+        problem = fusion_excel_pattern_problem(p, &np);
+        snprintf(decimal, sizeof decimal, "%.*g", digits, v);
+        if (!problem) return fusion_format_excel(strtod(decimal, NULL), p, np, where);
+    }
+    fusion_runtime_error(where, "invalid number pattern \"%.*s\": %s", p.len, p.data, problem);
+    return p;
+}
 '''

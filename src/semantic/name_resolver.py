@@ -173,6 +173,7 @@ class NameResolver:
         float_type = PrimitiveType(location=builtin_loc, name='float')
         char_type = PrimitiveType(location=builtin_loc, name='char')
         byte_type = PrimitiveType(location=builtin_loc, name='byte')
+        double_type = PrimitiveType(location=builtin_loc, name='double')
         bytes_type = PrimitiveType(location=builtin_loc, name='bytes')
         void_type = PrimitiveType(location=builtin_loc, name='void')
         # indexOf on bytes (18.3.8): the same name, chosen by the first argument's type
@@ -237,6 +238,8 @@ class NameResolver:
             'parseInt': ([string_type, int_type], int_type),
             'bytesToHex': ([string_type], string_type),
             'hexToBytes': ([string_type], string_type),
+            # Number formatting (18.3.6d-2) - n is any number (int, byte and float widen)
+            'formatNumber': ([double_type, string_type], string_type),
             # Raw bytes (18.3.8)
             'toBytes': ([string_type, bool_type], bytes_type),
             'toByte': ([int_type], byte_type),

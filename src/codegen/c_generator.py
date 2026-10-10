@@ -839,6 +839,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'fromHex': ('fusion_str_fromHex', True), 'fromBinary': ('fusion_str_fromBinary', True),
         'fromOctal': ('fusion_str_fromOctal', True), 'parseInt': ('fusion_str_parseInt', True),
         'bytesToHex': ('fusion_str_bytesToHex', True), 'hexToBytes': ('fusion_str_hexToBytes', True),
+        'formatNumber': ('fusion_formatNumber', True),   # 18.3.6d-2
         # Raw bytes (18.3.8, c_bytes.py) - toBytes picks fusion_<str|char|int|byte>_toBytes
         'toBytes': ('fusion_str_toBytes', False), 'toByte': ('fusion_toByte', True),
         'newBytes': ('fusion_newBytes', True), 'slice': ('fusion_bytes_slice', True),
@@ -890,6 +891,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 temp = self._new_temp(self.map_type(arg.inferred_type))
                 ordered.append(f'{temp} = {code}')
                 codes[i] = temp
+        if name == 'formatNumber':
+            # The number's real precision: 7 significant digits for a float, else 15 (18.3.6d-2)
+            float_arg = getattr(arguments[0].inferred_type, 'name', '') == 'float'
+            codes.insert(1, '7' if float_arg else '15')
         if needs_where:
             codes.append(self._where(node))
         call = f'{c_function}({", ".join(codes)})'

@@ -152,7 +152,7 @@ Indexes start at 0, as `s[i]` and `substring` do. Six parts, each committed on i
   2026-10-10, replacing an optional "..." ending) - the result is at most `width`
   characters including the ending. A string already at or past `width` is returned as is
   by the pad functions
-- **18.3.6d Number formatting and bases** (DETAILED PLAN APPROVED 2026-10-10)
+- **18.3.6d Number formatting and bases** (DETAILED PLAN APPROVED 2026-10-10) - COMPLETE
   Two sub-parts, each committed on its own:
 
   **18.3.6d-1 Hex, binary, octal - both directions** (user request 2026-10-10) - COMPLETE
@@ -194,7 +194,8 @@ Indexes start at 0, as `s[i]` and `substring` do. Six parts, each committed on i
   - **printf style** (starts with `%`): one number conversion - `d i` (whole numbers; a
     float is rounded), `f e g` (decimals), `x X o` (hex / octal of a whole number) - with
     flags `- + space 0 #`, width and precision; `%%` for a percent sign; text around it is
-    kept (`"Total: %8.2f kr"`). `%s`, `%n`, `%p`, `*` widths and a second conversion are
+    kept after the conversion (`"%8.2f kr"` - text before a number is Excel style's job,
+    since the style is chosen by the leading `%`). `%s`, `%n`, `%p`, `*` widths and a second conversion are
     rejected: Fusion checks the pattern itself and never hands it raw to C
   - A bad pattern is a compile error when the pattern is written in the source, and a
     run-time error when it's built while running
@@ -356,4 +357,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.6d plan approved (two's complement C# style; bytes as hex now; literals with _).
 - 18.3.6d-1 COMPLETE (number bases, bytes as hex, 0x / 0b / 0o literals).
 - 18.3.8 COMPLETE (raw bytes: byte / bytes, added at the user's request).
-- **Next Action:** implement **18.3.6d-2 (formatNumber)** per the approved plan.
+- 18.3.6d-2 COMPLETE (formatNumber, both pattern styles).
+- **Next Action:** implement **18.3.6e (compare)** per the approved plan.

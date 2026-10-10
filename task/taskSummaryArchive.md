@@ -3268,3 +3268,19 @@ be written and transformed by the time Fusion self-hosts. No file reading / writ
 - [x] Found and fixed on the way: unary minus and arithmetic returned the operand's own type
       object, so a literal's "fits in a byte" mark leaked (`byte b = 100 + 200` compiled) -
       both now return a fresh type
+
+---
+
+#### 18.3.6d-2 (archived 2026-10-10)
+
+**18.3.6d-2 - formatNumber** (COMPLETE)
+- [x] Excel/.NET style (0 # , . and text around; % multiplies by 100) and printf style
+      (a pattern starting with %: one conversion d i f e E g G x X o, flags, width,
+      precision, %% and text after) - per the approved plan
+- [x] Plan correction: its example "Total: %8.2f kr" didn't start with %, which the rule
+      requires; text before a number is Excel style's job ("$0.00")
+- [x] Patterns checked by Fusion itself: in src/semantic/number_patterns.py when written in
+      the source (compile errors), in the C runtime when built while running; never handed
+      raw to printf; %s %n %p * and second conversions rejected
+- [x] Rounding half away from zero on the number as written: a float is read at 7
+      significant digits, a double / int at 15 (a float 2.675 is 2.67499995 in binary)

@@ -15,6 +15,7 @@ from src.parser.ast_nodes import (
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
+from .number_patterns import number_pattern_problem
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
                             builtin_defaults)
 from .symbol import Symbol
@@ -891,6 +892,17 @@ class TypeChecker:
                     f"got {self.type_to_string(actual_type)}",
                     arg.location
                 ))
+
+        # formatNumber(n, "#,##0.00") - a pattern written in the source is checked now; one
+        # built while running is checked then (Task 18.3.6d-2)
+        if is_builtin and func_name == 'formatNumber' and len(node.arguments) == 2:
+            pattern = node.arguments[1]
+            if isinstance(pattern, LiteralExpr) and pattern.type_hint == 'string':
+                problem = number_pattern_problem(str(pattern.value))
+                if problem:
+                    self.errors.append(SemanticError(
+                        f"Invalid number pattern \"{pattern.value}\": {problem}",
+                        pattern.location))
 
         return func_type.return_type
 
