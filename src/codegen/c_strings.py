@@ -497,4 +497,48 @@ static inline fusion_string fusion_formatNumber(double v, int digits, fusion_str
     fusion_runtime_error(where, "invalid number pattern \"%.*s\": %s", p.len, p.data, problem);
     return p;
 }
+// ---- Compare (18.3.6e) - by character (code point); -1, 0 or 1. Ignoring case uses the
+// ASCII + Latin-1 rules of toLower
+static inline int fusion_sign(long long d) { return d < 0 ? -1 : d > 0; }
+static inline int fusion_compare_chars(fusion_string a, fusion_string b, bool ignore_case) {
+    int i = 0, j = 0;
+    while (i < a.len && j < b.len) {
+        uint32_t x = (uint32_t)fusion_utf8_decode(a.data + i), y = (uint32_t)fusion_utf8_decode(b.data + j);
+        if (ignore_case) { x = fusion_lower(x); y = fusion_lower(y); }
+        if (x != y) return x < y ? -1 : 1;
+        i += fusion_utf8_size((unsigned char)a.data[i]);
+        j += fusion_utf8_size((unsigned char)b.data[j]);
+    }
+    return fusion_sign((long long)(a.len - i) - (b.len - j));
+}
+static inline bool fusion_str_equalsIgnoreCase(fusion_string a, fusion_string b) { return fusion_compare_chars(a, b, true) == 0; }
+static inline int fusion_str_compareIgnoreCase(fusion_string a, fusion_string b) { return fusion_compare_chars(a, b, true); }
+// Natural order: runs of digits compare by value, so "file2" comes before "file10". When two
+// strings differ only in leading zeros, the shorter run comes first ("2" before "02")
+static inline int fusion_str_compareNatural(fusion_string a, fusion_string b, bool ignore_case) {
+    int i = 0, j = 0, zeros = 0;
+    while (i < a.len && j < b.len) {
+        bool da = a.data[i] >= '0' && a.data[i] <= '9', db = b.data[j] >= '0' && b.data[j] <= '9';
+        if (da && db) {
+            int si = i, sj = j;
+            while (i < a.len && a.data[i] == '0') i++;
+            while (j < b.len && b.data[j] == '0') j++;
+            int vi = i, vj = j;
+            while (i < a.len && a.data[i] >= '0' && a.data[i] <= '9') i++;
+            while (j < b.len && b.data[j] >= '0' && b.data[j] <= '9') j++;
+            if (i - vi != j - vj) return i - vi < j - vj ? -1 : 1;       // more digits = bigger
+            int c = memcmp(a.data + vi, b.data + vj, (size_t)(i - vi));
+            if (c != 0) return c < 0 ? -1 : 1;
+            if (zeros == 0 && i - si != j - sj) zeros = i - si < j - sj ? -1 : 1;
+            continue;
+        }
+        uint32_t x = (uint32_t)fusion_utf8_decode(a.data + i), y = (uint32_t)fusion_utf8_decode(b.data + j);
+        if (ignore_case) { x = fusion_lower(x); y = fusion_lower(y); }
+        if (x != y) return x < y ? -1 : 1;
+        i += fusion_utf8_size((unsigned char)a.data[i]);
+        j += fusion_utf8_size((unsigned char)b.data[j]);
+    }
+    if ((a.len - i) != (b.len - j)) return (a.len - i) < (b.len - j) ? -1 : 1;
+    return zeros;
+}
 '''

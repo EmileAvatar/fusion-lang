@@ -840,6 +840,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'fromOctal': ('fusion_str_fromOctal', True), 'parseInt': ('fusion_str_parseInt', True),
         'bytesToHex': ('fusion_str_bytesToHex', True), 'hexToBytes': ('fusion_str_hexToBytes', True),
         'formatNumber': ('fusion_formatNumber', True),   # 18.3.6d-2
+        'equalsIgnoreCase': ('fusion_str_equalsIgnoreCase', False),   # 18.3.6e
+        'compareIgnoreCase': ('fusion_str_compareIgnoreCase', False),
+        'compareNatural': ('fusion_str_compareNatural', False),
         # Raw bytes (18.3.8, c_bytes.py) - toBytes picks fusion_<str|char|int|byte>_toBytes
         'toBytes': ('fusion_str_toBytes', False), 'toByte': ('fusion_toByte', True),
         'newBytes': ('fusion_newBytes', True), 'slice': ('fusion_bytes_slice', True),

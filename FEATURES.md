@@ -125,7 +125,8 @@ The single place to see what is done, open, or postponed. One line per item.
 				0b1010, 0o17 and 1_000_000
 			[DONE] 18.3.6d-2 Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f" -
 				patterns checked by Fusion (compile time when written in the source)
-			[ ] Compare: equalsIgnoreCase, compareIgnoreCase, natural order ("file2" before "file10")
+			[DONE] 18.3.6e Compare: equalsIgnoreCase, compareIgnoreCase, compareNatural ("file2" before
+				"file10", optional ignoreCase) - -1 / 0 / 1, Latin-1 case rules
 		[DONE] 18.3.8 Raw bytes: `byte` (unsigned 0-255) and `bytes` (growable, edited in place);
 			strings, chars and ints to bytes and back (toBytes, toString, getInt / setInt, 16-bit
 			versions; little-endian, bigEndian option), hexToRaw / rawToHex, slice, indexOf; prints

@@ -32,6 +32,7 @@ BUILTIN_DEFAULTS = {
     'toOctal': [(0, 'int')],
     'toBase': [(0, 'int')],                  # toBase(x, base, width = 0)
     'isInt': [(10, 'int')],                  # isInt(s, base = 10)
+    'compareNatural': [(False, 'bool')],     # compareNatural(a, b, ignoreCase = false)
     # Raw bytes (18.3.8) - byte order: little-endian unless bigEndian = true
     'toBytes': [(False, 'bool')],            # toBytes(x, bigEndian = false)
     'newBytes': [(0, 'int')],                # newBytes(n, fill = 0)
@@ -238,6 +239,10 @@ class NameResolver:
             'parseInt': ([string_type, int_type], int_type),
             'bytesToHex': ([string_type], string_type),
             'hexToBytes': ([string_type], string_type),
+            # Compare (18.3.6e) - -1, 0 or 1
+            'equalsIgnoreCase': ([string_type, string_type], bool_type),
+            'compareIgnoreCase': ([string_type, string_type], int_type),
+            'compareNatural': ([string_type, string_type, bool_type], int_type),
             # Number formatting (18.3.6d-2) - n is any number (int, byte and float widen)
             'formatNumber': ([double_type, string_type], string_type),
             # Raw bytes (18.3.8)

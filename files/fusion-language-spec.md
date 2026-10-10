@@ -487,6 +487,13 @@ print(toString(data))              // kkijk
        run-time error when it's built while running. Separators are fixed to `,` and `.`
        for now; locales, negative-number sections (`"0.00;(0.00)"`) and Excel's scientific
        notation come later
+     * Compare (18.3.6e): `equalsIgnoreCase(a, b)`, `compareIgnoreCase(a, b)` and
+       `compareNatural(a, b, ignoreCase = false)` return -1, 0 or 1 (`<` / `>` on strings
+       stay case-sensitive byte order). Ignoring case uses the ASCII + Latin-1 rules of
+       `toLower` ("CAFE-ACUTE" equals "cafe-acute"). Natural order compares runs of digits
+       by value - "file2" before "file10", "v1.9" before "v1.10"; when two strings differ
+       only in leading zeros, the shorter run comes first ("x7" before "x007"), so the
+       order is always the same
      * **Raw bytes** (Task 18.3.8, user decisions 2026-10-10) - see "Raw bytes" below
      * **Number literals** (18.3.6d-1): `0xFF`, `0b1010`, `0o17`, with `_` allowed between
        digits (`0b1111_0000`, `1_000_000`, `2.5_0`). Hex, binary and octal literals hold up
@@ -498,8 +505,7 @@ print(toString(data))              // kkijk
      * **Out of range:** "up to n" functions (`left`, `right`, padding, `truncate`) clamp
        quietly - `left("ab", 5)` is "ab"; a negative count stops the program with a run-time
        error; positions inside the string (`insert`, `remove`, like `substring`) must be valid
-     * Still to come in 18.3.6: comparing (`equalsIgnoreCase`,
-       `compareIgnoreCase`, `compareNatural`), and a masking design (`mask`)
+     * Still to come in 18.3.6: a masking design (`mask`)
 
 ```
 string original = "Hello"

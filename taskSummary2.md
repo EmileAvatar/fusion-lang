@@ -202,7 +202,7 @@ Indexes start at 0, as `s[i]` and `substring` do. Six parts, each committed on i
   - Separators fixed to `,` and `.` for now; locales (`1.234,50`), negative-number
     sections (`"0.00;(0.00)"`) and scientific notation in Excel style come later
 
-- **18.3.6e Compare**: `equalsIgnoreCase(a, b)`, `compareIgnoreCase(a, b)` and
+- **18.3.6e Compare** - COMPLETE, detail archived: `equalsIgnoreCase(a, b)`, `compareIgnoreCase(a, b)` and
   `compareNatural(a, b)` - negative / 0 / positive like `fusion_str_cmp`; natural order
   compares digit runs as numbers ("file2" < "file10")
 - **18.3.6f Masking - planning overview only** (user decision): a spec section on
@@ -358,4 +358,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.3.6d-1 COMPLETE (number bases, bytes as hex, 0x / 0b / 0o literals).
 - 18.3.8 COMPLETE (raw bytes: byte / bytes, added at the user's request).
 - 18.3.6d-2 COMPLETE (formatNumber, both pattern styles).
-- **Next Action:** implement **18.3.6e (compare)** per the approved plan.
+- 18.3.6e COMPLETE (compare functions).
+- **Next Action:** write **18.3.6f (masking - planning overview only)** per the approved plan.

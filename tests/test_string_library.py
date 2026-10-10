@@ -323,3 +323,24 @@ def test_bad_pattern_built_at_run_time():
 ])
 def test_format_number_run_time_errors(call, message):
     assert message in run_error(main(f'print({call})'))
+
+
+# ============================================================
+# 18.3.6e - Compare
+# ============================================================
+
+def test_ignore_case():
+    assert run_ok(main(
+        'print("{@1} {@2} {@3}", equalsIgnoreCase("Hello", "hELLO"), equalsIgnoreCase("CAF\u00c9", "caf\u00e9"), equalsIgnoreCase("a", "ab"))\n'
+        'print("{@1} {@2} {@3} {@4}", compareIgnoreCase("apple", "BANANA"), compareIgnoreCase("B", "a"), compareIgnoreCase("x", "X"), compareIgnoreCase("ab", "a"))\n'
+        'print("{@1}", "apple" < "BANANA")'
+    )) == ['true true false', '-1 1 0 1', 'false']
+
+
+def test_compare_natural():
+    assert run_ok(main(
+        'print("{@1} {@2} {@3}", compareNatural("file2", "file10"), compareNatural("file10", "file2"), compareNatural("file10", "file10"))\n'
+        'print("{@1} {@2} {@3}", compareNatural("a2b10", "a2b9"), compareNatural("x007", "x7"), compareNatural("x7", "x007"))\n'
+        'print("{@1} {@2} {@3}", compareNatural("v1.10", "v1.9"), compareNatural("File2", "file10"), compareNatural("File2", "file10", true))\n'
+        'print("{@1} {@2}", compareNatural("10", "9z"), compareNatural("abc", "ab"))'
+    )) == ['-1 1 0', '1 1 -1', '1 -1 -1', '1 1']

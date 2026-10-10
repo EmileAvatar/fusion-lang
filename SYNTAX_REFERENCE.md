@@ -210,7 +210,7 @@ void function main()
     print(joined)
 ```
 
-#### String library: inspect, search, extract, change, pad, number bases, formatting
+#### String library: inspect, search, extract, change, pad, number bases, formatting, compare
 
 <!-- example: syntax_string_library | task: 18.3.6 -->
 ```fusion
@@ -238,6 +238,9 @@ void function main()
     // formatNumber: Excel/.NET style, or printf style when the pattern starts with %
     print("{@1} {@2} {@3}", formatNumber(1234.5, "$#,##0.00"), formatNumber(7, "000"), formatNumber(0.256, "0.0%"))
     print("{@1} {@2} {@3}", formatNumber(3.14159, "%.2f"), formatNumber(42, "%05d"), formatNumber(3.5, "%.1f kg"))
+
+    print("{@1} {@2}", equalsIgnoreCase("Hello", "hELLO"), compareIgnoreCase("apple", "BANANA"))
+    print("{@1} {@2}", compareNatural("file2", "file10"), "file2" < "file10")   // -1 false
 ```
 
 #### Raw bytes: `byte` and `bytes`

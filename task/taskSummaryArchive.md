@@ -3284,3 +3284,14 @@ be written and transformed by the time Fusion self-hosts. No file reading / writ
       raw to printf; %s %n %p * and second conversions rejected
 - [x] Rounding half away from zero on the number as written: a float is read at 7
       significant digits, a double / int at 15 (a float 2.675 is 2.67499995 in binary)
+
+---
+
+#### 18.3.6e (archived 2026-10-10)
+
+**18.3.6e - Compare** (COMPLETE)
+- [x] equalsIgnoreCase, compareIgnoreCase, compareNatural(a, b, ignoreCase = false); -1 / 0 / 1
+      (chosen over "any negative" - easier to test against)
+- [x] Case-insensitive by code point with the toLower rules (ASCII + Latin-1)
+- [x] Natural order: digit runs by value; leading zeros only break a tie (shorter first), so
+      the order is total and deterministic
