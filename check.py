@@ -324,7 +324,7 @@ def show_status():
     done = [line for line in features if '[DONE]' in line]
     print(f'FEATURES.md: {len(done)} done, {len(open_items)} open, {len(postponed)} postponed')
     active = [line.strip() for line in features
-              if line.strip().startswith('[ ]') and re.match(r'\[ \] (18|22)\.', line.strip())]
+              if line.strip().startswith('[ ]') and re.match(r'\[ \] (22|25|26|27|28)\.', line.strip())]
     for line in active:
         print('  ' + line)
     summary = (ROOT / 'taskSummary2.md').read_text(encoding='utf-8').splitlines()

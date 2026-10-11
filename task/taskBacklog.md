@@ -4,10 +4,14 @@ Write-ups for tasks that are **not started yet** (or not yet active), moved
 verbatim from `taskSummary2.md` on 2026-10-09 (Task 22). Status lives in
 `FEATURES.md`; when a task becomes active, its section moves back to
 `taskSummary2.md` with a detailed plan (Rule 1). Find a task with
-`grep -n "^## TASK 13" task/taskBacklog.md`.
+`grep -n "^## TASK 41" task/taskBacklog.md`.
+
+**Renumbered 2026-10-11:** each heading shows the new number first and the old one in
+brackets; the sub-task numbers inside a write-up are still the old ones (map:
+FEATURES.md "Old task numbers").
 
 ---
-## TASK 10: Self-Hosting - Rewrite Compiler in Fusion
+## TASK 28 / 35 (was 10): Self-Hosting - Rewrite Compiler in Fusion
 
 **Goal:** Rewrite the Fusion compiler in Fusion itself
 **Status:** Planning Complete
@@ -119,7 +123,7 @@ Verification: v2 and v3 must produce identical output.
 
 ---
 
-## TASK 11: LLVM Backend Integration
+## TASK 40 (was 11): LLVM Backend Integration
 
 **Goal:** Replace C code generator with LLVM IR backend
 **Status:** Planning Complete
@@ -240,7 +244,7 @@ Verification: v2 and v3 must produce identical output.
 
 ---
 
-## TASK 13: HIDL Module (Hardware Interface Definition Language integration)
+## TASK 41 (was 13): HIDL Module (Hardware Interface Definition Language integration)
 
 **Important scope correction (2026-09-13):** HIDL itself is **not a Fusion feature**. It is a
 standalone, language-agnostic hardware-description framework - independent of Fusion, useful to
@@ -369,7 +373,7 @@ should begin until the user re-opens this task for scoping approval.
 
 ---
 
-## TASK 14: Nullable Arrays & Safe Navigation
+## TASK 30 (was 14): Nullable Arrays & Safe Navigation
 
 **Goal:** Let arrays (and eventually other reference-like types) be nullable, with
 `arr.length`/`arr?.length` and `arr?[i]` behaving safely instead of crashing unpredictably -
@@ -461,7 +465,7 @@ until the user re-opens this task for scoping approval - same convention as Task
 
 ---
 
-## TASK 15: Deferred Decisions Revisit List
+## TASK 37 (was 15): Deferred Decisions Revisit List
 
 **Goal:** Track every decision or known gap that Task 12's work deliberately deferred
 (rather than fixed or resolved) as an actual checklist, each with its own trigger
@@ -575,7 +579,7 @@ deliverables (a decision, a bug fix, a new task) at that time.
 
 ---
 
-## TASK 16: Example Program Coverage
+## TASK 34 (was 16): Example Program Coverage
 
 **Goal:** Give users a runnable example for every language feature - both features that
 already exist but currently have no dedicated example, and features that don't exist yet
@@ -660,7 +664,7 @@ error handling) to pick up once those land. This task is that checklist.
 
 ---
 
-## TASK 17: Mutable vs. Fixed Strings, Templated Fixed Strings & String Pooling
+## TASK 29 (was 17): Mutable vs. Fixed Strings, Templated Fixed Strings & String Pooling
 
 **Goal:** Add an explicit mutable/immutable distinction to Fusion's string type
 (`m"..."`/plain = mutable, `f"..."` = fixed/immutable), including fixed strings that hold
@@ -758,7 +762,7 @@ same convention as Tasks 13/14/16.
 
 ---
 
-## TASK 19: Library Trust, Isolation & Security
+## TASK 39 (was 19): Library Trust, Isolation & Security
 
 **Goal:** Make Fusion safe to build on other people's code. Every imported library's use of
 memory, hardware, network, and unsafe operations is explicit and verified; untrusted or
@@ -870,7 +874,7 @@ reasoning: `FutureFeaturesCaution.md` sections 3-5.
 **Scheduling:** 19.6 done (2026-10-07). 19.1-19.5 need Task 18.4 (`import`) first; 19.7 needs
 `fusionlib.AI`.
 
-## TASK 20: Multi-Format Project Configuration
+## TASK 31 (was 20): Multi-Format Project Configuration
 
 **Goal:** Accept the project configuration file in any of four interchangeable formats -
 `fusion.toml`, `fusion.yaml`, `fusion.json`, or `fusion.ini` - so older applications and
@@ -923,7 +927,7 @@ TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
 
 ---
 
-## TASK 21: Error Handling (Go-style error returns + try/catch)
+## TASK 26 (was 21): Error Handling (Go-style error returns + try/catch)
 
 **Goal:** Let Fusion programs report and handle errors - both ways the spec describes,
 as **complementary** tools, not competing ones.
@@ -964,7 +968,7 @@ Starting points for that plan (not yet decided):
 
 ---
 
-## TASK 24: Editor Support - Syntax Highlighting (after self-hosting)
+## TASK 36 (was 24): Editor Support - Syntax Highlighting (after self-hosting)
 
 **Requested:** user, 2026-10-11 - syntax highlighters for Sublime Text, VS Code and future IDEs.
 **Scheduled:** after Task 10 (self-hosting), when the syntax has settled - a grammar written

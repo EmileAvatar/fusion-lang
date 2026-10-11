@@ -16,89 +16,11 @@ FEATURES.md detail are in `task/taskSummaryArchive.md`). Task 10.2 is met.
 
 ---
 
-## PLAN (awaiting approval): reorganize and renumber FEATURES.md
+## Current plan: the roadmap (FEATURES.md, renumbered 2026-10-11)
 
-**User direction (2026-10-11):** Enums first. HIDL moves after self-hosting. Self-hosting
-comes in phases: phase 1 is a *test run* - a compiler written in Fusion, covering only the
-simple part of the language, whose exe can compile the programs in `examples/` by itself.
-The Python compiler stays the real compiler until the self-hosted one is fully
-independent. Then features keep being added, and the complex parts come last.
-
-#### Numbering scheme (recommended)
-- **Done tasks keep their numbers** (01-09, 12, 18, 23): commits, the archive, code comments
-  and example tags (`task: 18.3.2`) refer to them
-- **Open tasks get new numbers in the order they will be done, starting at 25**, so an old
-  number never means something new (old notes saying "Task 21" stay unambiguous)
-- Old open tasks are retired; a table at the end of FEATURES.md maps old -> new. Their done
-  sub-items (10.1, 10.2, 11.1, 15.3, 15.7-15.11, 16.7, 19.6, 22.1-22.6) move to the archive
-- Task 15 (deferred decisions) is dissolved: each item moves into the task it belongs to.
-  15.4 (order of Task 10 vs 11) is decided by this plan: self-hosting first, LLVM later
-- Every reference is updated by a script with the old -> new map (FEATURES.md, backlog,
-  spec, SYNTAX_REFERENCE.md, CLAUDE.md files, code comments) and checked by hand - about
-  300 places; the archive is history and stays as written
-
-#### New layout of FEATURES.md
-```text
-## Done                         01-04 .. 09, 12, 18, 23 (one line each)
-## Phase 1 - up to the self-hosting test run
-  25 Enums and tagged unions (NEW)
-       enum Color { Red, Green }; enums with data (tagged unions), e.g.
-       Token = Number(int) | Word(string); `match` with a check that every case is
-       handled; printing, ==, use in List / Map. A compiler needs it for its node kinds
-  26 Error handling (was 21): Go-style error returns + try/catch, switchable in config;
-       file errors become catchable instead of stopping the program
-  27 Housekeeping (was 22.7, 16.1, 15.12): spec status markers, control-flow example,
-       left-to-right operand order; tools: check.py --ship, --fix-ascii, --example
-  28 Self-hosting phase 1 - the test run (was 10.3-10.8)
-       28.1 The subset: exactly what the programs in examples/ need
-       28.2-28.6 Lexer, parser, checker, C code generator, driver - written in Fusion
-       28.7 Verify: the Fusion-built compiler.exe compiles every example; the output
-            programs print the same as the Python-built ones
-       28.8 Report: what was missing or awkward -> feeds Phase 2
-       The Python compiler stays the real compiler
-## Phase 2 - growing the language, then a fully independent compiler
-  29 Strings: mutable / fixed / templated / pooled (was 17)
-  30 Nullable values and safe navigation ?. ?[ (was 14)
-  31 Config file in any format + enforcing [safety] / [backend] (was 20, 15.6)
-  32 Example coverage: classes, generics, threading, errors, memory (rest of 16)
-  33 Self-hosting phase 2 - fully independent (was 10.9-10.12): the compiler compiles
-       itself (bootstrap twice), runs the whole test suite, Python compiler retired
-## Phase 3 - the advanced parts
-  34 Editor support: TextMate grammar, VS Code, Sublime, then an LSP (was 24)
-  35 Memory model: Unique / Shared / Weak, GC as an option (was 15.5)
-  36 Library trust, isolation and security (was 19)
-  37 LLVM backend (was 11, 15.1)
-  38 HIDL - hardware interface definition language (was 13)
-## Later / advanced            unchanged (classes, generics, threading, ...)
-## Known limitations           unchanged
-## Old task numbers            10->28/33, 11->37, 13->38, 14->30, 15->dissolved, 16->32,
-                               17->29, 19->36, 20->31, 21->26, 22->27, 24->34
-```
-
-#### Open questions for the user
-1. Numbering: keep done numbers and start the open ones at 25 (recommended), or renumber
-   everything from 01 (cleaner list, but every old reference in commits, the archive and
-   code comments would point at the wrong task)?
-2. Classes / methods on structs and generics are in "Later" with no task. Phase 2 is the
-   natural place (the self-hosted compiler will want them). Add them as tasks now, or leave
-   them in Later until the phase 1 report?
-
-#### User notes on this plan (2026-10-11) - plan kept as is for now
-- Housekeeping goes first, the ASCII fix first of all (see the plan below)
-- Task 15's remaining items are advanced: they go **after** self-hosting; some become their
-  own sub-tasks (so 15.12 leaves the housekeeping task)
-- The first major goal is a **simple working self-host** to do a test run on. Guidance:
-  `Notes/04/notes.md` section 5 "A practical development order" (minimal compiler first,
-  then semantics tests, types, modules, symbol index, feature policies, memory safety,
-  more backends, tooling)
-
-#### Steps once approved
-1. Script: build the new FEATURES.md from the current one + the map; archive the retired
-   done sub-items verbatim
-2. Script: update references elsewhere with the map; review each change
-3. task/taskBacklog.md: renumber the write-ups (10 split into 28 / 33), add Task 25's
-4. `python check.py`, commit, push
-5. Then plan Task 25 (enums) in detail here, for approval
+Done tasks keep their numbers; open tasks were renumbered from 25 into three phases (the
+approved plan is archived). Phase 1 = 25 enums, 26 error handling, 27 semantic contract and
+safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
@@ -126,5 +48,9 @@ Kept under Task 22 until the renumbering is approved.
 - 22.8-22.11 done: check.py --fix-ascii / --ship / --example, tools/patch.py
 - 16.1 done: examples/control_flow; map literals noticed missing (FEATURES.md Later)
 - 22.7a done: README is goals + pointers (554 -> 321 lines); 22.7b waits for the renumbering
-- **Next Action:** user to answer the reorganization plan's 2 questions; then renumber,
-  then 22.7b spec status lines, then plan Task 25 (enums)
+- User answered: numbers from 25, classes / generics in Phase 2. ChatGPT review read:
+  fixed arrays are not bounds-checked (segfault) -> new Task 27 "semantic contract and safety"
+- FEATURES.md reorganized into phases and renumbered (22.12); the user asked for 27.1
+  (bounds checks for fixed arrays) and 27.4 (one app in 3 block styles -> identical C)
+- **Next Action:** 22.7b (spec status lines), then plan Task 25 (enums) for approval -
+  or 27.1 bounds checks first if the user prefers (it is a crash today)
