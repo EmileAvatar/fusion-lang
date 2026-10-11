@@ -5,7 +5,7 @@ behavior-preserving refactor: CCodeGenerator now includes TypeMapperMixin instea
 defining map_type() itself. No logic changed.
 """
 
-from ..parser.ast_nodes import PrimitiveType, FunctionType, ArrayType, StructType, TypeNode, ListType
+from ..parser.ast_nodes import PrimitiveType, FunctionType, ArrayType, StructType, TypeNode, ListType, MapType
 from .c_names import mangle_function_name
 
 
@@ -49,6 +49,9 @@ class TypeMapperMixin:
 
         elif isinstance(fusion_type, ListType):
             return self.list_c_name(fusion_type)   # Task 18.5.1 (c_collections.py)
+
+        elif isinstance(fusion_type, MapType):
+            return self.map_c_name(fusion_type)    # Task 18.5.2
 
         elif isinstance(fusion_type, ArrayType):
             # Just the element's C type - the array declaration itself needs the size

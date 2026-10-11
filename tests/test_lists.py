@@ -178,9 +178,8 @@ def test_run_time_errors(statement, message):
     ('List<int> xs\nxs.add()', "List method 'add' takes 1 argument(s), got 0"),
     ('List<int> xs\nList<int> ys = xs.filter((int x) : x * 2)', "'filter' needs a function (int) -> bool"),
     ('const List<int> xs = [1]\nxs.add(2)', "'add' can't change constant 'xs'"),
-    ('for x in 5\n    print("x")', "'for ... in' needs range(...), a List or an array, got int"),
+    ('for x in 5\n    print("x")', "'for ... in' needs range(...), a List, a Map or an array, got int"),
     ('List<int> xs\nprint("{xs}")', "Can't print a whole List<int> value"),
-    ('Map<string, int> m = Map<string, int>()', "Map / Dictionary comes with Task 18.5.2"),
     ('List<void> xs', "A List can't hold void"),
     ('List<int> xs\nList<string> ys = xs', "Cannot assign List<int> to variable of type List<string>"),
 ])

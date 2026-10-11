@@ -3634,3 +3634,20 @@ manager, one C file per module, re-exporting another module's names, conditional
 - [x] for-each: managed elements copied per pass (the body may change the list); the loop
       variable is in an inner scope so break / continue free it (found by the leak check)
 - [x] Map types parse but report "comes with 18.5.2"
+
+---
+
+#### 18.5.2 (archived 2026-10-11)
+
+**18.5.2 - `Map<K, V>`** (COMPLETE)
+- [x] Keys string / int / char; values any value type; `Dictionary` is the same type
+- [x] Insertion-ordered open-addressing hash map per (K, V) in c_collections.py: keys[] /
+      vals[] entries + slots[] index (entry + 1, 0 = empty); grows at half full; remove
+      shifts entries and rebuilds the index
+- [x] m[k] read (missing key = run-time error naming it), m[k] = v adds or replaces (only the
+      final step adds - `m["a"][0] = 5` needs "a"), has / get(k, default) / remove / keys /
+      values / len / clear, == in any order, for k in m (keys), map values in lists / maps /
+      structs
+- [x] m.get(k, d) lends the stored value (not "fresh") - storing it copies
+- [x] Parser: any word after `.` (m.get - `get` is a reserved keyword)
+- [x] for x in [literal array] fixed (a bare {...} wasn't valid C there)

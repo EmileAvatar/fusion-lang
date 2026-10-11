@@ -712,6 +712,12 @@ class TypeChecker(CollectionRulesMixin):
             if 'bool' in names:
                 return "a bool only equals a bool (no truthiness)"
             return "these types never compare equal - convert one first"
+        if isinstance(left, MapType) and isinstance(right, MapType):
+            # Maps: the same keys with equal values, in any order (Task 18.5.2)
+            if not self.types_equal(left.key_type, right.key_type):
+                return "their keys are different types"
+            problem = self._equality_problem(left.value_type, right.value_type)
+            return f"their values can't be compared ({problem})" if problem else None
         if isinstance(left, ListType) and isinstance(right, ListType):
             # Lists: element by element, same length (Task 18.5.1)
             problem = self._equality_problem(left.element_type, right.element_type)
@@ -920,7 +926,7 @@ class TypeChecker(CollectionRulesMixin):
                 ))
                 return func_type.return_type
             arg_type = self.visit(node.arguments[0])
-            if not isinstance(arg_type, (ArrayType, ListType)) and not self._is_string_type(arg_type) \
+            if not isinstance(arg_type, (ArrayType, ListType, MapType)) and not self._is_string_type(arg_type) \
                     and not self._is_bytes_type(arg_type):
                 self.errors.append(SemanticError(
                     f"Function 'len' expects an array, a string or bytes, got "
@@ -1609,6 +1615,14 @@ class TypeChecker(CollectionRulesMixin):
                     f"String index must be int, got {self.type_to_string(index_type)}",
                     node.index.location))
             return PrimitiveType(location=node.location, name='char')
+
+        # m[k] - the value for a key (Task 18.5.2); reading a missing key is a run-time error
+        if isinstance(array_type, MapType):
+            if not self.types_compatible(array_type.key_type, index_type):
+                self.errors.append(SemanticError(
+                    f"Map key must be {self.type_to_string(array_type.key_type)}, got "
+                    f"{self.type_to_string(index_type)}", node.index.location))
+            return array_type.value_type
 
         # xs[i] - one element of a List, bounds-checked (Task 18.5.1)
         if isinstance(array_type, ListType):

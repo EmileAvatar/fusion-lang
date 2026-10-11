@@ -367,7 +367,12 @@ class Parser:
                     index=index
                 )
             elif self.match(TokenType.DOT):
-                member = self.consume(TokenType.IDENTIFIER, "Expected field name after '.'")
+                # Any word may follow '.', a keyword too - m.get(k), x.set(...) (Task 18.5.2):
+                # after a dot it can only be a field or method name
+                if self.peek().type != TokenType.IDENTIFIER and str(self.peek().value).isidentifier():
+                    member = self.advance()
+                else:
+                    member = self.consume(TokenType.IDENTIFIER, "Expected field name after '.'")
                 expr = MemberExpr(
                     location=expr.location,
                     object=expr,

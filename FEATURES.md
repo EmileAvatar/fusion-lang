@@ -149,7 +149,8 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.5.1 `List<T>`: literals, add / insert / removeAt / remove / clear / contains / indexOf /
 			slice / sort / sortBy / filter / map / reduce, xs[i], ==, `for x in` lists and arrays (the
 			old silent 0..9 loop for other iterables is now an error)
-		[ ] 18.5.2 `Map<K, V>` (alias `Dictionary`)
+		[DONE] 18.5.2 `Map<K, V>` (alias `Dictionary`): keys string / int / char, insertion order, m[k],
+			has / get(k, default) / remove / keys / values / len / clear, == in any order, for k in m
 		[ ] 18.5.3 Text helpers needing lists: split(s, ","), join(list, ", "), lines(s), words(s)
 		[ ] 18.5.4 Console input, program arguments (`main(string... args)`), exit
 		[ ] 18.5.5 Files: readText / readLines / writeText / appendText / readBytes / writeBytes / fileExists

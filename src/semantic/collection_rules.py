@@ -1,4 +1,4 @@
-"""Type rules for the built-in collections (Task 18.5): List<T> now; Map<K, V> in 18.5.2.
+"""Type rules for the built-in collections (Task 18.5): List<T> (18.5.1), Map<K, V> (18.5.2).
 
 A mixin for TypeChecker. Lists are values like strings: a copy is independent, and they
 are freed automatically (user decision 2026-10-11). The element type is known from the
@@ -17,6 +17,8 @@ from .errors import SemanticError
 # Methods that change the list they are called on - its variable must not be const, and a
 # parameter the function changes this way gets its own copy (as with assignment)
 MUTATING_LIST_METHODS = {'add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy'}
+MUTATING_MAP_METHODS = {'remove', 'clear'}
+MAP_KEY_TYPES = ('string', 'int', 'char')
 _SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
 
 
@@ -29,20 +31,27 @@ class CollectionRulesMixin:
         return PrimitiveType(location=node.location, name='void')
 
     def _check_collection_type(self, type_node, location) -> None:
-        """A list can hold any value type; Map waits for Task 18.5.2."""
+        """A list holds any value type; a map's keys are string, int or char (18.5.2)."""
         if isinstance(type_node, MapType):
-            self.errors.append(SemanticError(
-                "Map / Dictionary comes with Task 18.5.2 - not available yet", location))
-        elif isinstance(type_node, ListType):
-            element = type_node.element_type
-            if isinstance(element, PrimitiveType) and element.name == 'void':
-                self.errors.append(SemanticError("A List can't hold void", location))
-            elif isinstance(element, (ArrayType, FunctionType)):
+            key = type_node.key_type
+            if not (isinstance(key, PrimitiveType) and key.name in MAP_KEY_TYPES):
                 self.errors.append(SemanticError(
-                    f"A List can't hold {self.type_to_string(element)} yet - use a List of "
-                    f"Lists, or a struct", location))
-            else:
-                self._check_collection_type(element, location)
+                    f"Map keys can be string, int or char, got {self.type_to_string(key)}",
+                    location))
+            self._check_held_type(type_node.value_type, 'A Map', location)
+        elif isinstance(type_node, ListType):
+            self._check_held_type(type_node.element_type, 'A List', location)
+
+    def _check_held_type(self, element, holder: str, location) -> None:
+        """What a list or a map's values can be: any value type but void, arrays and functions."""
+        if isinstance(element, PrimitiveType) and element.name == 'void':
+            self.errors.append(SemanticError(f"{holder} can't hold void", location))
+        elif isinstance(element, (ArrayType, FunctionType)):
+            self.errors.append(SemanticError(
+                f"{holder} can't hold {self.type_to_string(element)} yet - use a List of "
+                f"Lists, or a struct", location))
+        else:
+            self._check_collection_type(element, location)
 
     def _check_list_literal(self, node: ArrayLiteralExpr, list_type: ListType) -> ListType:
         """[1, 2, 3] stored as a List<int>: every element must fit the element type."""
@@ -72,6 +81,9 @@ class CollectionRulesMixin:
             return None   # String.toUpper - a type class, not a value
         receiver_type = self.visit(receiver)
         self.checked_receivers[id(receiver)] = receiver_type   # checked once
+        if isinstance(receiver_type, MapType):
+            self.checked_receivers.pop(id(receiver), None)
+            return self._map_method_call(node, receiver, receiver_type)
         if not isinstance(receiver_type, ListType):
             return None
         self.checked_receivers.pop(id(receiver), None)
@@ -172,6 +184,38 @@ class CollectionRulesMixin:
             f"{self.type_to_string(receiver_type)} has no method '{method}'", node.location))
         return void
 
+    def _map_method_call(self, node: CallExpr, receiver, map_type: MapType):
+        """`ages.has("Bob")` on a Map (Task 18.5.2)."""
+        method = node.callee.member
+        key, value = map_type.key_type, map_type.value_type
+        node.map_method = method
+        node.map_type = map_type
+        if method in MUTATING_MAP_METHODS:
+            self._check_changeable(receiver, method)
+        args = node.arguments
+        int_type = PrimitiveType(location=node.location, name='int')
+        bool_type = PrimitiveType(location=node.location, name='bool')
+        expected = {'has': [key], 'get': [key, value], 'remove': [key], 'keys': [],
+                    'values': [], 'len': [], 'clear': []}.get(method)
+        if expected is None:
+            self.errors.append(SemanticError(
+                f"{self.type_to_string(map_type)} has no method '{method}'", node.location))
+            return self._void(node)
+        if len(args) != len(expected):
+            self.errors.append(SemanticError(
+                f"Map method '{method}' takes {len(expected)} argument(s), got {len(args)}",
+                node.location))
+        for arg, want in zip(args, expected):
+            actual = self._visit_value_for(want, arg)
+            if not self.types_compatible(want, actual):
+                self.errors.append(SemanticError(
+                    f"Argument of '{method}': expected {self.type_to_string(want)}, got "
+                    f"{self.type_to_string(actual)}", arg.location))
+        return {'has': bool_type, 'get': value, 'remove': bool_type,
+                'keys': ListType(location=node.location, element_type=key),
+                'values': ListType(location=node.location, element_type=value),
+                'len': int_type, 'clear': self._void(node)}[method]
+
     # ------------------------------------------------------------------ for ... in
 
     def _check_for_iterable(self, node) -> None:
@@ -185,12 +229,14 @@ class CollectionRulesMixin:
         iterable_type = self.visit(iterable)
         if isinstance(iterable_type, ListType):
             element = iterable_type.element_type
+        elif isinstance(iterable_type, MapType):
+            element = iterable_type.key_type      # a map's keys, in the order they were added
         elif isinstance(iterable_type, ArrayType):
             element = iterable_type.element_type
         else:
             if not (isinstance(iterable_type, PrimitiveType) and iterable_type.name == 'void'):
                 self.errors.append(SemanticError(
-                    f"'for ... in' needs range(...), a List or an array, got "
+                    f"'for ... in' needs range(...), a List, a Map or an array, got "
                     f"{self.type_to_string(iterable_type)}", iterable.location))
             return
         node.element_type = element

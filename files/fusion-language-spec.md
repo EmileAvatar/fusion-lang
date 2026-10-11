@@ -3317,9 +3317,30 @@ bool same = xs == [7, 1, 2, 10] // element by element
   such a loop silently ran 0..9)
 * Mutating methods (`add`, `insert`, `removeAt`, `remove`, `clear`, `sort`, `sortBy`) need a
   variable (or a field / element of one) that isn't const
-* Coming in 18.5: `Map<K, V>` (also written `Dictionary<K, V>`), `split` / `join` /
-  `lines` / `words`, console input, program arguments (`main(string... args)`), files, and
-  the core / alloc / std layers
+**`Map<K, V>`** (Task 18.5.2; also written `Dictionary<K, V>` - the same type, user decision
+2026-10-11: "Map is easier to type"). Keys are `string`, `int` or `char`; values any value
+type (lists and maps too). A map remembers the order its keys were added - `keys()`,
+`values()` and `for k in m` follow it (as in Python and C#). A value like a list: copies are
+independent, freed automatically. In C an open-addressing hash table over the entries.
+
+```
+Map<string, int> ages = Map<string, int>()   // `Map<string, int> ages` starts empty too
+ages["Alice"] = 30              // adds the key, or replaces its value
+int a = ages["Alice"]           // reading a missing key is a run-time error naming the key
+bool known = ages.has("Bob")
+int b = ages.get("Bob", 0)      // the value, or the default when the key is missing
+bool gone = ages.remove("Bob")  // false when it wasn't there
+List<string> names = ages.keys()        // also values(), len(), clear()
+for name in ages                // the keys
+    print(name)
+bool same = ages == other       // the same keys with equal values, in any order
+```
+
+* `m["a"][0] = 5` needs `"a"` to be there already; only the final `m[k] = v` adds a key
+* A name after `.` may be a word Fusion reserves for later (`m.get`, `x.set`) - after a dot
+  it can only be a field or method name
+* Coming in 18.5: `split` / `join` / `lines` / `words`, console input, program arguments
+  (`main(string... args)`), files, and the core / alloc / std layers
 
 ---
 

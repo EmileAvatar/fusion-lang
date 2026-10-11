@@ -1,4 +1,4 @@
-"""C code for the built-in collections (Task 18.5): List<T> now; Map<K, V> in 18.5.2.
+"""C code for the built-in collections (Task 18.5): List<T> (18.5.1), Map<K, V> (18.5.2).
 
 Each element type gets its own list type and functions, made only when a program uses them
 - `List<int>` is `fusion_list_int { int* data; int len; int cap; }` with fusion_list_int_add,
@@ -13,7 +13,7 @@ everything else that is generated on demand.
 
 from ..parser.ast_nodes import (
     ArrayLiteralExpr, IdentifierExpr, MemberExpr, IndexExpr, PrimitiveType, StructType,
-    ListType, FunctionType,
+    ListType, MapType, FunctionType,
 )
 
 _SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
@@ -31,14 +31,16 @@ class CollectionsMixin:
             return self._struct_c_name(element)
         if isinstance(element, ListType):
             return 'list_' + self._list_key(element.element_type)
+        if isinstance(element, MapType):
+            return f'map_{self._list_key(element.key_type)}__{self._list_key(element.value_type)}'
         raise NotImplementedError(f"Internal compiler error: a List of {type(element).__name__}")
 
     def list_c_name(self, list_type: ListType) -> str:
         """The C type of a List<T>; makes its code the first time."""
         name = 'fusion_list_' + self._list_key(list_type.element_type)
         if name not in self.list_types:
-            if isinstance(list_type.element_type, ListType):
-                self.list_c_name(list_type.element_type)   # the inner list's typedef first
+            if isinstance(list_type.element_type, (ListType, MapType)):
+                self.map_type(list_type.element_type)      # the inner collection's typedef first
             self.list_types[name] = list_type
             self._make_list_code(name, list_type.element_type)
         return name
@@ -52,9 +54,14 @@ class CollectionsMixin:
             c = self._struct_c_name(StructType(location=struct.location, name=struct.name,
                                                declaration=struct))
             lines.append(f'typedef struct {c} {c};')
-        for name, list_type in self.list_types.items():
-            element_c = self.map_type(list_type.element_type)
-            lines.append(f'typedef struct {{ {element_c}* data; int len; int cap; }} {name};')
+        for name, kind in self.list_types.items():
+            if isinstance(kind, MapType):
+                lines.append(f'typedef struct {{ {self.map_type(kind.key_type)}* keys; '
+                             f'{self.map_type(kind.value_type)}* vals; int len; int cap; '
+                             f'int* slots; int nslots; }} {name};')
+            else:
+                element_c = self.map_type(kind.element_type)
+                lines.append(f'typedef struct {{ {element_c}* data; int len; int cap; }} {name};')
         lines += self.list_protos + ['']
         return lines
 
@@ -225,24 +232,34 @@ class CollectionsMixin:
         items = ', '.join(self.owned_value(e, element) for e in node.elements)
         return f'{name}_from(({self.map_type(element)}[]){{{items}}}, {len(node.elements)})'
 
-    def list_lvalue(self, expr) -> str:
-        """A C lvalue for a target that goes through a list element: xs[1] = 5,
-        grid[1][0] = 9, people[0].name = "x"."""
-        if isinstance(expr, IndexExpr) and isinstance(getattr(expr.array, 'inferred_type', None), ListType):
-            name = self.list_c_name(expr.array.inferred_type)
-            return (f'(*{name}_ptr(&{self.list_lvalue(expr.array)}, {self.visit(expr.index)}, '
+    def list_lvalue(self, expr, final: bool = True) -> str:
+        """A C lvalue for a target that goes through a list element or a map value: xs[1] = 5,
+        grid[1][0] = 9, people[0].name = "x", ages["Ada"] = 36. Only the final `m[k] = v`
+        adds a missing key; a key on the way (`m["a"][0] = 5`) must already be there."""
+        inner_type = getattr(getattr(expr, 'array', None), 'inferred_type', None)
+        if isinstance(expr, IndexExpr) and isinstance(inner_type, ListType):
+            name = self.list_c_name(inner_type)
+            return (f'(*{name}_ptr(&{self.list_lvalue(expr.array, False)}, {self.visit(expr.index)}, '
                     f'{self._where(expr)}))')
+        if isinstance(expr, IndexExpr) and isinstance(inner_type, MapType):
+            name = self.map_c_name(inner_type)
+            base = self.list_lvalue(expr.array, False)
+            if final:
+                return f'(*{name}_put(&{base}, {self.visit(expr.index)}))'
+            return f'(*{name}_ptr(&{base}, {self.visit(expr.index)}, {self._where(expr)}))'
         if isinstance(expr, IndexExpr):
-            return f'{self.list_lvalue(expr.array)}[{self.visit(expr.index)}]'
+            return f'{self.list_lvalue(expr.array, False)}[{self.visit(expr.index)}]'
         if isinstance(expr, MemberExpr):
-            return f'{self.list_lvalue(expr.object)}.{self._field_name(expr.member)}'
+            return f'{self.list_lvalue(expr.object, False)}.{self._field_name(expr.member)}'
         return self.visit(expr)
 
     @staticmethod
     def goes_through_list(expr) -> bool:
+        """True for a target through a list element or a map value."""
         while isinstance(expr, (IndexExpr, MemberExpr)):
             inner = expr.array if isinstance(expr, IndexExpr) else expr.object
-            if isinstance(expr, IndexExpr) and isinstance(getattr(inner, 'inferred_type', None), ListType):
+            if isinstance(expr, IndexExpr) and isinstance(getattr(inner, 'inferred_type', None),
+                                                          (ListType, MapType)):
                 return True
             expr = inner
         return False
@@ -256,7 +273,7 @@ class CollectionsMixin:
         args = node.arguments
         where = self._where(node)
         if method in ('add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy'):
-            target = f'&{self.list_lvalue(receiver)}'
+            target = f'&{self.list_lvalue(receiver, final=False)}'
         else:
             target = self.visit(receiver)
         if method == 'add':
@@ -284,3 +301,170 @@ class CollectionsMixin:
             helper = self.list_reduce_helper(list_type, node.inferred_type)
             return f'{helper}({target}, {self.visit(args[0])}, {self.visit(args[1])})'
         raise NotImplementedError(f"Internal compiler error: List method '{method}'")
+
+    # ------------------------------------------------------------------ Map<K, V> (18.5.2)
+
+    def map_c_name(self, map_type) -> str:
+        """The C type of a Map<K, V>; makes its code the first time."""
+        name = 'fusion_' + self._list_key(map_type)
+        if name not in self.list_types:
+            for part in (map_type.key_type, map_type.value_type):
+                if isinstance(part, (ListType, MapType)):
+                    self.map_type(part)            # inner collection types first
+            self.list_types[name] = map_type
+            self._make_map_code(name, map_type.key_type, map_type.value_type)
+        return name
+
+    def _make_map_code(self, name: str, key, value) -> None:
+        """An insertion-ordered hash map: entries in keys[] / vals[] (the order they were
+        added), and an open-addressing index slots[] holding entry number + 1 (0 = empty)."""
+        K, V = self.map_type(key), self.map_type(value)
+        key_managed, value_managed = self.is_managed(key), self.is_managed(value)
+        keys_list = self.list_c_name(ListType(location=None, element_type=key))
+        values_list = self.list_c_name(ListType(location=None, element_type=value))
+
+        def kcopy(code):
+            return self.copy_code(key, code) if key_managed else code
+
+        def vcopy(code):
+            return self.copy_code(value, code) if value_managed else code
+
+        def free_entry(i):
+            parts = []
+            if key_managed:
+                parts += self.free_lines(key, f'm->keys[{i}]')
+            if value_managed:
+                parts += self.free_lines(value, f'm->vals[{i}]')
+            return ' '.join(parts)
+
+        if key.name == 'string':
+            hash_body = ['uint32_t h = 2166136261u;',
+                         'for (int i = 0; i < k.len; i++) { h ^= (unsigned char)k.data[i]; h *= 16777619u; }',
+                         'return h;']
+            missing = ('fusion_runtime_error(where, "key \\"%.*s\\" is not in the map", k.len, k.data);')
+        else:
+            hash_body = ['return (uint32_t)k * 2654435761u;']
+            missing = ('fusion_runtime_error(where, "key %d is not in the map", (int)k);' if key.name == 'int'
+                       else 'fusion_runtime_error(where, "key \'%s\' is not in the map", fusion_char_text(k).bytes);')
+        key_eq = self.value_equality('m.keys[e - 1]', key, 'k', key)
+        value_eq = self.value_equality('a.vals[i]', value, 'b.vals[j]', value)
+        functions = {
+            f'uint32_t {name}_hash({K} k)': hash_body,
+            f'int {name}_find({name} m, {K} k)': [
+                'if (m.nslots == 0) return -1;',
+                'uint32_t mask = (uint32_t)m.nslots - 1;',
+                f'for (uint32_t s = {name}_hash(k) & mask;; s = (s + 1) & mask) {{',
+                '    int e = m.slots[s];',
+                '    if (e == 0) return -1;',
+                f'    if ({key_eq}) return e - 1;',
+                '}'],
+            f'void {name}_index({name}* m, int nslots)': [
+                'if (m->slots) fusion_dealloc(m->slots);',
+                'm->slots = (int*)fusion_alloc(sizeof(int) * (size_t)nslots);',
+                'memset(m->slots, 0, sizeof(int) * (size_t)nslots);',
+                'm->nslots = nslots;',
+                'uint32_t mask = (uint32_t)nslots - 1;',
+                f'for (int i = 0; i < m->len; i++) {{ uint32_t s = {name}_hash(m->keys[i]) & mask; '
+                'while (m->slots[s]) s = (s + 1) & mask; m->slots[s] = i + 1; }'],
+            f'{V}* {name}_put({name}* m, {K} k)': [
+                f'int i = {name}_find(*m, k);',
+                'if (i >= 0) return &m->vals[i];',
+                'if (m->len == m->cap) {',
+                '    int cap = m->cap < 8 ? 8 : m->cap * 2;',
+                f'    {K}* keys = ({K}*)fusion_alloc(sizeof({K}) * (size_t)cap);',
+                f'    {V}* vals = ({V}*)fusion_alloc(sizeof({V}) * (size_t)cap);',
+                f'    if (m->len > 0) {{ memcpy(keys, m->keys, sizeof({K}) * (size_t)m->len); '
+                f'memcpy(vals, m->vals, sizeof({V}) * (size_t)m->len); }}',
+                '    if (m->keys) { fusion_dealloc(m->keys); fusion_dealloc(m->vals); }',
+                '    m->keys = keys; m->vals = vals; m->cap = cap;',
+                '}',
+                f'm->keys[m->len] = {kcopy("k")};',
+                f'm->vals[m->len] = {self._default_value_code(value)};',
+                'm->len++;',
+                f'if (m->len * 2 > m->nslots) {name}_index(m, m->nslots < 16 ? 16 : m->nslots * 2);',
+                'else {',
+                '    uint32_t mask = (uint32_t)m->nslots - 1;',
+                f'    uint32_t s = {name}_hash(k) & mask;',
+                '    while (m->slots[s]) s = (s + 1) & mask;',
+                '    m->slots[s] = m->len;',
+                '}',
+                'return &m->vals[m->len - 1];'],
+            f'{V}* {name}_ptr({name}* m, {K} k, const char* where)': [
+                f'int i = {name}_find(*m, k);',
+                f'if (i < 0) {missing}',
+                'return &m->vals[i];'],
+            f'{V} {name}_get({name} m, {K} k, const char* where)': [
+                f'int i = {name}_find(m, k);',
+                f'if (i < 0) {missing}',
+                'return m.vals[i];'],
+            f'{V} {name}_getOr({name} m, {K} k, {V} otherwise)': [
+                f'int i = {name}_find(m, k);',
+                'return i < 0 ? otherwise : m.vals[i];'],
+            f'bool {name}_has({name} m, {K} k)': [f'return {name}_find(m, k) >= 0;'],
+            f'bool {name}_remove({name}* m, {K} k)': [
+                f'int i = {name}_find(*m, k);',
+                'if (i < 0) return false;',
+                free_entry('i'),
+                f'memmove(m->keys + i, m->keys + i + 1, sizeof({K}) * (size_t)(m->len - i - 1));',
+                f'memmove(m->vals + i, m->vals + i + 1, sizeof({V}) * (size_t)(m->len - i - 1));',
+                'm->len--;',
+                f'{name}_index(m, m->nslots);',
+                'return true;'],
+            f'void {name}_clear({name}* m)': [
+                f'for (int i = 0; i < m->len; i++) {{ {free_entry("i")} }}' if (key_managed or value_managed) else '',
+                'm->len = 0;',
+                'if (m->slots) memset(m->slots, 0, sizeof(int) * (size_t)m->nslots);'],
+            f'{name} {name}_copy({name} v)': [
+                f'{name} r = {{0}};',
+                'if (v.len == 0) return r;',
+                f'r.keys = ({K}*)fusion_alloc(sizeof({K}) * (size_t)v.len);',
+                f'r.vals = ({V}*)fusion_alloc(sizeof({V}) * (size_t)v.len);',
+                f'for (int i = 0; i < v.len; i++) {{ r.keys[i] = {kcopy("v.keys[i]")}; r.vals[i] = {vcopy("v.vals[i]")}; }}',
+                'r.len = r.cap = v.len;',
+                f'{name}_index(&r, v.nslots);',
+                'return r;'],
+            f'void {name}_free({name}* m)': [
+                f'for (int i = 0; i < m->len; i++) {{ {free_entry("i")} }}' if (key_managed or value_managed) else '',
+                'if (m->keys) { fusion_dealloc(m->keys); fusion_dealloc(m->vals); }',
+                'if (m->slots) fusion_dealloc(m->slots);',
+                f'*m = ({name}){{0}};'],
+            f'void {name}_set({name}* dst, {name} value)': [f'{name}_free(dst);', '*dst = value;'],
+            f'{keys_list} {name}_keys({name} m)': [
+                f'{keys_list} r = {{0}};',
+                f'for (int i = 0; i < m.len; i++) {keys_list}_add(&r, {kcopy("m.keys[i]")});',
+                'return r;'],
+            f'{values_list} {name}_values({name} m)': [
+                f'{values_list} r = {{0}};',
+                f'for (int i = 0; i < m.len; i++) {values_list}_add(&r, {vcopy("m.vals[i]")});',
+                'return r;'],
+            f'bool {name}_eq({name} a, {name} b)': [
+                'if (a.len != b.len) return false;',
+                'for (int i = 0; i < a.len; i++) {',
+                f'    int j = {name}_find(b, a.keys[i]);',
+                f'    if (j < 0 || !{value_eq}) return false;',
+                '}',
+                'return true;'],
+        }
+        for signature, body in functions.items():
+            self.list_protos.append(f'static inline {signature};')
+            self.list_bodies += [f'static inline {signature} {{'] + \
+                [f'    {line}' for line in body if line] + ['}']
+
+    def map_method_code(self, node) -> str:
+        """C for `m.method(args)` (Task 18.5.2)."""
+        method, map_type = node.map_method, node.map_type
+        name = self.map_c_name(map_type)
+        receiver, args = node.callee.object, node.arguments
+        if method in ('remove', 'clear'):
+            target = f'&{self.list_lvalue(receiver, final=False)}'
+        else:
+            target = self.visit(receiver)
+        if method == 'len':
+            return f'({target}).len'
+        if method == 'clear':
+            return f'{name}_clear({target})'
+        if method == 'get':
+            return f'{name}_getOr({target}, {self.visit(args[0])}, {self.visit(args[1])})'
+        if method in ('keys', 'values'):
+            return f'{name}_{method}({target})'
+        return f'{name}_{method}({target}, {self.visit(args[0])})'   # has, remove

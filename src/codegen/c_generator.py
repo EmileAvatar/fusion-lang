@@ -22,7 +22,7 @@ from ..parser.ast_nodes import (
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
-    BlockStmt, ListType,
+    BlockStmt, ListType, MapType,
 )
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
@@ -388,8 +388,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """True if C's all-zero value is also the Fusion default for this type. Not for a
         string (zero would be a NULL pointer - Fusion's default is ""), or a struct with a
         field default or a string anywhere inside it."""
-        if isinstance(type_node, ListType):
-            return True   # all-zero is the empty list (Task 18.5.1)
+        if isinstance(type_node, (ListType, MapType)):
+            return True   # all-zero is the empty list / map (Task 18.5)
         if isinstance(type_node, PrimitiveType):
             return type_node.name not in ('string', 'bytes')
         if isinstance(type_node, ArrayType):
@@ -422,8 +422,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return self._zero_initializer(type_node)
             element = self._default_value_code(type_node.element_type)
             return '{' + ', '.join([element] * type_node.size) + '}'
-        if isinstance(type_node, ListType):
-            return f'(({self.list_c_name(type_node)}){{0}})'   # an empty list (18.5.1)
+        if isinstance(type_node, (ListType, MapType)):
+            return f'(({self.map_type(type_node)}){{0}})'   # an empty list / map (18.5)
         return '0'
 
     # ========================================================================
@@ -822,9 +822,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C function call
         """
-        # xs.add(5) - a List method (Task 18.5.1)
+        # xs.add(5) - a List method (Task 18.5.1); m.has(k) - a Map method (18.5.2)
         if getattr(node, 'list_method', None):
             return self.list_method_code(node)
+        if getattr(node, 'map_method', None):
+            return self.map_method_code(node)
 
         # A struct constructor, Point(3, 4) (Task 18.2.1) - resolved_arguments has every
         # field, with omitted ones filled in from their defaults by the type checker
@@ -1062,6 +1064,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # s[i] - one character, bounds-checked (Task 18.3.2)
         if self._is_string(node.array):
             return f'fusion_str_at({array_code}, {index_code}, {self._where(node)})'
+        # m[k] - a map's value; a missing key is a run-time error (Task 18.5.2)
+        if isinstance(getattr(node.array, 'inferred_type', None), MapType):
+            name = self.map_c_name(node.array.inferred_type)
+            return f'{name}_get({array_code}, {index_code}, {self._where(node)})'
         # xs[i] - one list element, bounds-checked (Task 18.5.1)
         if isinstance(getattr(node.array, 'inferred_type', None), ListType):
             name = self.list_c_name(node.array.inferred_type)
@@ -1433,18 +1439,21 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.emit('{')
         self.indent()
         self.push_scope('block')
-        if isinstance(iterable_type, ListType):
-            list_c = self.list_c_name(iterable_type)
+        if isinstance(iterable_type, (ListType, MapType)):
+            list_c = self.map_type(iterable_type)
             if isinstance(iterable, (IdentifierExpr, MemberExpr, IndexExpr)):
-                self.emit_line(f'{list_c}* fusion_iter_{n} = &{self.list_lvalue(iterable)}')
+                self.emit_line(f'{list_c}* fusion_iter_{n} = &{self.list_lvalue(iterable, final=False)}')
                 source = f'fusion_iter_{n}->'
             else:
                 self.emit_line(f'{list_c} fusion_iter_{n} = {self.owned_value(iterable, iterable_type)}')
                 self.register_owned(f'fusion_iter_{n}', iterable_type)
                 source = f'fusion_iter_{n}.'
-            length, item = f'{source}len', f'{source}data[{index}]'
+            items = 'keys' if isinstance(iterable_type, MapType) else 'data'   # a map: its keys
+            length, item = f'{source}len', f'{source}{items}[{index}]'
         else:
             array_code = self.visit(iterable)
+            if isinstance(iterable, ArrayLiteralExpr):   # for x in [1, 2, 3]
+                array_code = f'(({self.map_type(element)}[]){array_code})'
             if iterable_type.size is None and isinstance(iterable, IdentifierExpr):
                 length = array_length_name(iterable.name)
             else:

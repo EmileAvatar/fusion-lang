@@ -31,7 +31,7 @@ from dataclasses import fields as dataclass_fields, is_dataclass
 from ..parser.ast_nodes import (
     ASTNode, AssignmentStmt, MemberExpr, IndexExpr, IdentifierExpr, CallExpr, LiteralExpr,
     BinaryExpr, InterpolatedStringExpr,
-    ArrayLiteralExpr, LambdaExpr, PrimitiveType, ArrayType, StructType, StructDecl, ListType, NewCollectionExpr,
+    ArrayLiteralExpr, LambdaExpr, PrimitiveType, ArrayType, StructType, StructDecl, ListType, MapType, NewCollectionExpr,
 )
 from .c_names import mangle_function_name
 from .c_strings import STRING_LIBRARY
@@ -408,8 +408,8 @@ class MemoryManagementMixin:
 
     def is_managed(self, type_node) -> bool:
         """True if values of this type own heap memory (a string anywhere inside them)."""
-        if isinstance(type_node, ListType):
-            return True   # a list owns its element buffer (Task 18.5.1)
+        if isinstance(type_node, (ListType, MapType)):
+            return True   # a list / map owns its buffers (Tasks 18.5.1, 18.5.2)
         if isinstance(type_node, PrimitiveType):
             return type_node.name in ('string', 'bytes')   # bytes: the same struct (18.3.8)
         if isinstance(type_node, ArrayType):
@@ -426,8 +426,8 @@ class MemoryManagementMixin:
         """C expression giving an independent copy of a (non-array) managed value."""
         if isinstance(type_node, PrimitiveType) and type_node.name in ('string', 'bytes'):
             return f'fusion_str_copy({code})'
-        if isinstance(type_node, ListType):
-            return f'{self.list_c_name(type_node)}_copy({code})'
+        if isinstance(type_node, (ListType, MapType)):
+            return f'{self.map_type(type_node)}_copy({code})'
         if isinstance(type_node, StructType) and self.is_managed(type_node):
             return f'fusion_copy_{self._struct_c_name(type_node)}({code})'
         return code
@@ -436,8 +436,8 @@ class MemoryManagementMixin:
         """C statements freeing a managed value stored at `lvalue`."""
         if not self.is_managed(type_node):
             return []
-        if isinstance(type_node, ListType):
-            return [f'{self.list_c_name(type_node)}_free(&{lvalue});']
+        if isinstance(type_node, (ListType, MapType)):
+            return [f'{self.map_type(type_node)}_free(&{lvalue});']
         if isinstance(type_node, PrimitiveType):
             return [f'fusion_str_free(&{lvalue});']
         if isinstance(type_node, StructType):
@@ -448,8 +448,8 @@ class MemoryManagementMixin:
 
     def set_code(self, type_node, lvalue: str, value_code: str) -> str:
         """C statement replacing a stored managed value, freeing the old one."""
-        if isinstance(type_node, ListType):
-            return f'{self.list_c_name(type_node)}_set(&{lvalue}, {value_code});'
+        if isinstance(type_node, (ListType, MapType)):
+            return f'{self.map_type(type_node)}_set(&{lvalue}, {value_code});'
         if isinstance(type_node, PrimitiveType):
             return f'fusion_str_set(&{lvalue}, {value_code});'
         return f'fusion_set_{self._struct_c_name(type_node)}(&{lvalue}, {value_code});'
@@ -505,6 +505,9 @@ class MemoryManagementMixin:
             return True   # List<int>() - an empty list (Task 18.5.1)
         if isinstance(expr, CallExpr) and getattr(expr, 'list_method', None) in ('filter', 'map', 'slice', 'reduce'):
             return self.is_managed(getattr(expr, 'inferred_type', None))
+        if isinstance(expr, CallExpr) and getattr(expr, 'map_method', None):
+            # m.keys() / m.values() make new lists; m.get(k, d) only lends a stored value
+            return expr.map_method in ('keys', 'values')
         return isinstance(expr, CallExpr) and self.is_managed(getattr(expr, 'inferred_type', None))
 
     def owned_value(self, expr, type_node) -> str:
@@ -639,6 +642,8 @@ class MemoryManagementMixin:
                 changed = node.arguments[0]   # setInt(b, ...) changes b (Task 18.3.8)
             elif isinstance(node, CallExpr) and getattr(node, 'list_method', None) in MUTATING_LIST_METHODS:
                 changed = node.callee.object   # xs.add(5) changes xs (Task 18.5.1)
+            elif isinstance(node, CallExpr) and getattr(node, 'map_method', None) in ('remove', 'clear'):
+                changed = node.callee.object   # m.remove(k) changes m (Task 18.5.2)
             if changed is not None:
                 root = changed
                 while isinstance(root, (MemberExpr, IndexExpr)):

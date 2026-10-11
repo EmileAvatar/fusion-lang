@@ -280,6 +280,32 @@ void function main()
     print("{@1}", grid == [[1, 2], [9, 4]])
 ```
 
+#### Maps: `Map<K, V>` (also written `Dictionary<K, V>`)
+
+<!-- example: syntax_maps | task: 18.5.2 -->
+```fusion
+void function main()
+    Map<string, int> ages = Map<string, int>()   // or just: Map<string, int> ages
+    ages["Alice"] = 30                            // adds the key
+    ages["Bob"] = 25
+    ages["Alice"] = 31                            // replaces the value
+    print("{@1} {@2} {@3}", ages["Alice"], ages.len(), ages.has("Bob"))
+    print("{@1}", ages.get("Zed", 0))             // a default instead of an error
+    for name in ages                              // the keys, in the order they were added
+        print(name)
+
+    Map<char, int> counts
+    string text = "banana"
+    for i in range(0, len(text))
+        counts[text[i]] = counts.get(text[i], 0) + 1
+    print("a: {@1}, n: {@2}", counts['a'], counts['n'])
+
+    Dictionary<string, List<string>> groups       // the same type as Map
+    groups["admins"] = ["ann"]
+    groups["admins"].add("ben")
+    print("{@1} {@2}", groups["admins"].len(), groups.keys()[0])
+```
+
 #### Raw bytes: `byte` and `bytes`
 
 <!-- example: syntax_bytes | task: 18.3.8 -->

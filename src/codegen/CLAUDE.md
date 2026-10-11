@@ -7,7 +7,7 @@
 | `c_equality.py` | Lowers `==` `!=` `===` `!==` per type; generates struct / array comparison helpers on demand |
 | `c_strings.py` | C for the versatile string functions (Task 18.3.6), appended to the runtime prelude |
 | `c_bytes.py` | C for raw bytes (Task 18.3.8): `byte` / `bytes`, appended to the runtime prelude |
-| `c_collections.py` | C for `List<T>` (Task 18.5.1): one list type and its functions per element type, made on demand; for-each loops over lists |
+| `c_collections.py` | C for `List<T>` and `Map<K, V>` (Tasks 18.5.1-2): one type and its functions per element / key-value type, made on demand; lvalues through elements and map values |
 | `c_runtime.py` | Lowers built-ins: `print`, `len`, `format` and string interpolation into `printf` / string building |
 | `c_types.py` | Maps Fusion types to C types; function-pointer typedefs; wrappers for returned arrays |
 | `c_names.py` | Fusion names -> C names: functions / structs get `fu_` (`add` -> `fu_add`), clashing locals too (`auto` -> `fu_auto`), fields only for C keywords; hidden array-length names |
