@@ -3392,6 +3392,9 @@ before it:
 * Every built-in is tagged with its layer (src/semantic/name_resolver.py) - the groundwork
   for capability checks (Task 19): a library will declare the layer it needs
 
+Example program using all of it: `examples/wordcount/` - modules, a file, `List`, `Map`,
+`sortBy` and the text helpers (Task 18.5.7).
+
 ---
 
 ## Module System

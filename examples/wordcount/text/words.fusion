@@ -1,0 +1,14 @@
+// Module text: turns raw text into clean words (Task 18.5.7)
+public List<string> function cleanWords(string text)
+    List<string> result
+    for word in words(text)
+        string clean = stripPunctuation(word.toLower())
+        if not clean.isEmpty()
+            result.add(clean)
+    return result
+
+string function stripPunctuation(string word)
+    string clean = word
+    for mark in [".", ",", ";", ":", "!", "?", "\"", "(", ")"]
+        clean = clean.replace(mark, "")
+    return clean

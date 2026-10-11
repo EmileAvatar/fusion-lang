@@ -25,7 +25,7 @@ The single place to see what is done, open, or postponed. One line per item.
 
 #### 10 Self-hosting - compiler rewritten in Fusion [ ]
 	[DONE] 10.1 Prerequisites analysis & planning
-	[POSTPONED to 18.5] 10.2 Missing language features (file I/O, collections, string helpers, CLI args)
+	[DONE] 10.2 Missing language features (file I/O, collections, string helpers, CLI args) - by Task 18
 	[ ] 10.3-10.12 Port lexer, parser, semantic, codegen, main; bootstrap twice; verify; optimize; docs
 
 #### 11 LLVM backend [ ]
@@ -83,7 +83,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 17.4 String pooling as a project setting (`[structs] string_storage = "pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 17.5 Secure string storage, constant-time comparison
 
-#### 18 Core language foundation ("a simple working language first") [ ]
+#### 18 Core language foundation ("a simple working language first") [DONE]
 	[DONE] 18.1 Functions with full parameter types
 		[DONE] 18.1.1 Default parameter values
 		[DONE] 18.1.2 Arrays as function parameters (by reference)
@@ -144,7 +144,7 @@ The single place to see what is done, open, or postponed. One line per item.
 			declaration can't expose a private struct
 		[DONE] 18.4.4 Module interfaces (`--interface`), the multi-file example project examples/shop,
 			check.py / verify_examples build projects, docs
-	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std (plan approved
+	[DONE] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std (plan approved
 		2026-10-11: Map with Dictionary alias; lists are values; main(string... args); layers enforced)
 		[DONE] 18.5.1 `List<T>`: literals, add / insert / removeAt / remove / clear / contains / indexOf /
 			slice / sort / sortBy / filter / map / reduce, xs[i], ==, `for x in` lists and arrays (the
@@ -159,7 +159,7 @@ The single place to see what is done, open, or postponed. One line per item.
 			fileExists / deleteFile - byte for byte, UTF-8 paths on Windows
 		[DONE] 18.5.6 Layers: `[stdlib] layer = "core" | "alloc" | "std"` - every built-in tagged; using
 			one above the project's layer (or, in core, any heap type) is a compile error
-		[ ] 18.5.7 The word-counter example + docs
+		[DONE] 18.5.7 The word-counter example (examples/wordcount: modules, files, List, Map, sortBy) + docs
 
 #### 19 Library trust, isolation & security [ ]
 	[POSTPONED to 18.4] 19.1 Compiler-verified capability signatures

@@ -14,7 +14,9 @@ the generated `.c`, and the working `.exe`. (Once Fusion is self-hosted: `.fusio
   fuller programs; each has its expected output in `tests/verify_examples.py`. Start the
   first line with `// ... (Task N)` so `#list.csv` gets its task number
 - **Example projects** of several files (Task 18.4.4): a folder `examples/<name>/` with a
-  `main.fusion` and its module folders - `shop/` (modules `money` and `cart`). Its `.c` /
+  `main.fusion` and its module folders - `shop/` (modules `money` and `cart`) and
+  `wordcount/` (modules `text` and `counting`; counts a file given as an argument, or a
+  sample it writes and deletes). Its `.c` /
   `.exe` are `examples/<name>/main.c` / `main.exe`; its expected output is keyed by the
   folder name; check.py, verify_examples and `#run.bat` include it
 - **`#list.csv`** - generated: `fusion, c, exe, task, added` for every example (a row keeps

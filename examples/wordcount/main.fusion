@@ -1,0 +1,23 @@
+// Word counter: modules, files, lists, maps and sorting together (Task 18.5.7)
+import text
+import counting
+import counting.WordCount
+
+void function main(string... args)
+    string path = "wordcount_sample.txt"
+    bool sample = len(args) == 0
+    if sample        // no file given: count a sample text, written to a file and read back
+        writeText(path, "The quick brown fox jumps over the lazy dog. The dog sleeps;\nthe fox (quick, brown) runs!\n")
+    else
+        path = args[0]
+    if not fileExists(path)
+        print("No such file: {path}")
+        exit(1)
+
+    List<string> words = text.cleanWords(readText(path))
+    Map<string, int> counts = counting.countWords(words)
+    print("{@1} words, {@2} different", words.len(), counts.len())
+    for entry in counting.topWords(counts, 5)
+        print("{@1} {@2}", entry.word.padRight(8, '.'), formatNumber(entry.count, "#,##0").padLeft(3))
+    if sample
+        deleteFile(path)

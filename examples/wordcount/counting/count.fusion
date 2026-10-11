@@ -1,0 +1,28 @@
+// Module counting: counts words and ranks them (Task 18.5.7)
+public struct WordCount
+    string word
+    int count
+
+public Map<string, int> function countWords(List<string> words)
+    Map<string, int> counts
+    for word in words
+        counts[word] = counts.get(word, 0) + 1
+    return counts
+
+// The `limit` most frequent words - most first, ties in alphabetical order
+public List<WordCount> function topWords(Map<string, int> counts, int limit)
+    List<WordCount> ranked
+    for word in counts
+        ranked.add(WordCount(word, counts[word]))
+    ranked.sortBy(byCountThenWord)
+    return ranked.slice(0, min(limit, ranked.len()))
+
+int function byCountThenWord(WordCount a, WordCount b)
+    if a.count != b.count
+        return b.count - a.count
+    return compareNatural(a.word, b.word)
+
+int function min(int a, int b)
+    if a < b
+        return a
+    return b
