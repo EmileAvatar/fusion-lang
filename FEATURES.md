@@ -157,7 +157,8 @@ The single place to see what is done, open, or postponed. One line per item.
 			readLine / isEndOfInput, exit(code)
 		[DONE] 18.5.5 Files: readText / readLines / writeText / appendText / readBytes / writeBytes /
 			fileExists / deleteFile - byte for byte, UTF-8 paths on Windows
-		[ ] 18.5.6 Layers: `[stdlib] layer = "core" | "alloc" | "std"`
+		[DONE] 18.5.6 Layers: `[stdlib] layer = "core" | "alloc" | "std"` - every built-in tagged; using
+			one above the project's layer (or, in core, any heap type) is a compile error
 		[ ] 18.5.7 The word-counter example + docs
 
 #### 19 Library trust, isolation & security [ ]

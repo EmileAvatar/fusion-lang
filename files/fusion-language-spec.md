@@ -3375,7 +3375,22 @@ bool same = ages == other       // the same keys with equal values, in any order
   handling (Task 21) will make these catchable. File access will be a declared capability
   (Task 19)
 
-* Coming in 18.5: the core / alloc / std layers
+**Standard-library layers** (Task 18.5.6 - "layer the stdlib from day one", the lesson from D,
+whose library assumed a garbage collector and split the ecosystem when GC became optional).
+`fusion.toml` `[stdlib] layer` says how much a project may use; each layer adds to the one
+before it:
+* **core** - no heap: numbers, chars, bools, fixed arrays, structs of those, `range`, `len`
+  of an array, `toByte`, `charCode` / `fromCharCode`. For the smallest embedded devices
+* **alloc** - adds memory: text, `bytes`, `List`, `Map` and every function on them
+* **std** (the default) - adds the operating system: `print`, `readLine` / `isEndOfInput`,
+  files, `exit`, and main's arguments (`string... args`)
+* Using something above the project's layer is a compile error, once per place:
+  "'print' needs the std layer, but this project uses alloc ([stdlib] layer in fusion.toml)";
+  in a core project any text, bytes, List or Map - a value or a declared type - is refused
+* `print` is std, as console output is an operating-system service (Rust's `core` / `alloc`
+  can't print either); an embedded program reports through its own device
+* Every built-in is tagged with its layer (src/semantic/name_resolver.py) - the groundwork
+  for capability checks (Task 19): a library will declare the layer it needs
 
 ---
 
@@ -3892,6 +3907,9 @@ allow_unicode_identifiers = false   # identifiers ASCII-only by default (homogly
 [strings]                      # Tasks 18.3.2b / 18.3.4b - see "String Implementation"
 encoding = "utf-8"             # utf-8 (default) | ascii; utf-16 / utf-32 reserved (future)
 max_length = "max"             # "max" (default) = no limit; a number = error when exceeded
+
+[stdlib]                       # Task 18.5.6 - see "Collections (as built)" / layers
+layer = "std"                  # std (default) | alloc | core
 
 [structs]                      # Task 18.2 - see "Structures and Value Types"
 max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct)

@@ -3688,3 +3688,16 @@ manager, one C file per module, re-exporting another module's names, conditional
       deleteFile; readLines made on demand with the List code
 - [x] Windows: UTF-8 paths through _wfopen / GetFileAttributesW / _wremove (accented names)
 - [x] Failures are run-time errors naming the file and strerror's reason
+
+---
+
+#### 18.5.6 (archived 2026-10-11)
+
+**18.5.6 - Standard-library layers** (COMPLETE)
+- [x] fusion.toml `[stdlib] layer = "std" | "alloc" | "core"` (StdlibConfig; unknown keys and
+      values are errors); passed to the analyzer by main.py and check.py
+- [x] Built-ins tagged (name_resolver.builtin_layer): core = range, len, charCode,
+      fromCharCode, toByte; std = print, console input, files, exit; everything else alloc
+- [x] Checks: built-in calls (methods too, they become built-in calls); in core, every value
+      and declared type needing the heap (text, bytes, List, Map, arrays of them); main's
+      arguments need std; each place reported once

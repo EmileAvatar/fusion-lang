@@ -131,6 +131,22 @@ class StringsConfig:
     max_length: Optional[int] = None
 
 
+# Standard-library layers (Task 18.5.6): each adds to the one before it
+STDLIB_LAYERS = ('core', 'alloc', 'std')
+
+
+@dataclass
+class StdlibConfig:
+    """How much of the standard library a project may use (Task 18.5.6).
+
+    Attributes:
+        layer: "std" (default - everything: console, files, arguments), "alloc" (no operating
+            system: text, bytes, lists, maps, but no print or files) or "core" (no heap:
+            numbers, chars, bools, arrays) - for embedded devices
+    """
+    layer: str = 'std'
+
+
 @dataclass
 class ProjectConfig:
     """Resolved project configuration - either loaded from fusion.toml or all defaults.
@@ -150,6 +166,7 @@ class ProjectConfig:
     source: SourceConfig = field(default_factory=SourceConfig)
     structs: StructsConfig = field(default_factory=StructsConfig)
     strings: StringsConfig = field(default_factory=StringsConfig)
+    stdlib: StdlibConfig = field(default_factory=StdlibConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     backend: str = DEFAULT_BACKEND
     source_path: Optional[str] = None
@@ -282,6 +299,23 @@ def _load_strings_section(data: dict, config_path: str) -> StringsConfig:
     return strings
 
 
+def _load_stdlib_section(data: dict, config_path: str) -> StdlibConfig:
+    """Parse and validate the [stdlib] section (Task 18.5.6)."""
+    stdlib = StdlibConfig()
+    section = _require_table(data, "stdlib", config_path)
+    for key in section:
+        if key != "layer":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting stdlib.{key} (known: ['layer'])")
+    if "layer" in section:
+        if section["layer"] not in STDLIB_LAYERS:
+            raise ProjectConfigError(
+                f"{config_path}: stdlib.layer must be one of {list(STDLIB_LAYERS)}, "
+                f"got {section['layer']!r}")
+        stdlib.layer = section["layer"]
+    return stdlib
+
+
 def load_project_config(source_path: str) -> ProjectConfig:
     """Load project configuration for compiling `source_path`.
 
@@ -366,6 +400,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
         source=source,
         structs=structs,
         strings=strings,
+        stdlib=_load_stdlib_section(data, config_path),
         safety_mode=safety_mode,
         backend=backend,
         source_path=config_path,

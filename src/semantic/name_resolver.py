@@ -58,6 +58,22 @@ FLEXIBLE_FIRST_ARG = {
 # field / element of one): setInt(b, 0, 42) (18.3.8)
 MUTATING_BUILTINS = {'setInt', 'setInt16'}
 
+# Standard-library layers (Task 18.5.6, the D lesson - layer the stdlib from day one): a
+# built-in's layer is the lowest a project must allow to use it. Every built-in not listed
+# here is "alloc" (it takes or makes text, bytes, lists or maps)
+CORE_BUILTINS = {'range', 'len', 'charCode', 'fromCharCode', 'toByte'}
+STD_BUILTINS = {'print', 'readLine', 'isEndOfInput', 'exit', 'readText', 'readLines',
+                'writeText', 'appendText', 'readBytes', 'writeBytes', 'fileExists',
+                'deleteFile'}
+
+
+def builtin_layer(name: str) -> str:
+    """The standard-library layer a built-in belongs to: core, alloc or std."""
+    if name in CORE_BUILTINS:
+        return 'core'
+    return 'std' if name in STD_BUILTINS else 'alloc'
+
+
 # Built-in type classes (Task 18.3.7): `name.toUpper()` and `String.toUpper(name)` both mean
 # the built-in toUpper(name). Class name -> the type its methods are called on
 TYPE_CLASSES = {'String': 'string', 'Bytes': 'bytes', 'Int': 'int', 'Char': 'char',

@@ -17,6 +17,7 @@ from src.parser.ast_nodes import (
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
 from .number_patterns import number_pattern_problem
+from .name_resolver import builtin_layer
 from .collection_rules import CollectionRulesMixin
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
                             TYPE_CLASSES, CLASS_STATICS, NOT_METHODS,
@@ -56,7 +57,7 @@ class TypeChecker(CollectionRulesMixin):
     """
 
     def __init__(self, symbol_table: SymbolTable, structs_config: Optional[StructsConfig] = None,
-                 strings_config: Optional[StringsConfig] = None):
+                 strings_config: Optional[StringsConfig] = None, stdlib_config=None):
         """Initialize type checker.
 
         Args:
@@ -64,6 +65,9 @@ class TypeChecker(CollectionRulesMixin):
             structs_config: The project's [structs] settings - defaults if not given
         """
         self.symbol_table = symbol_table
+        # The project's standard-library layer: core < alloc < std (Task 18.5.6)
+        self.stdlib_layer = getattr(stdlib_config, 'layer', 'std')
+        self.layer_errors_at = set()
         self.current_function_return_type: Optional[TypeNode] = None
         self.errors: List[SemanticError] = []
         self.warnings: List[SemanticError] = []
@@ -117,6 +121,8 @@ class TypeChecker(CollectionRulesMixin):
         method_name = f'visit_{node.__class__.__name__}'
         method = getattr(self, method_name, self.generic_visit)
         result = method(node)
+        if isinstance(result, TypeNode) and self.stdlib_layer == 'core':
+            self.require_type_layer(result, getattr(node, 'location', None))   # Task 18.5.6
         if isinstance(result, TypeNode) and hasattr(node, 'inferred_type'):
             node.inferred_type = result
         return result
@@ -873,6 +879,10 @@ class TypeChecker(CollectionRulesMixin):
         if not isinstance(func_type, FunctionType):
             return PrimitiveType(location=node.location, name='void')
 
+        # A built-in belongs to a standard-library layer (Task 18.5.6)
+        if symbol.declaration is None and symbol.symbol_type == 'function':
+            self.require_layer(builtin_layer(func_name), f"'{func_name}'", node.location)
+
         # Named arguments (Task 18.2.2) need the declared parameter names - builtins have none
         declaration = symbol.declaration if isinstance(symbol.declaration, FunctionDecl) else None
         if self._has_named_arguments(node):
@@ -1022,6 +1032,30 @@ class TypeChecker(CollectionRulesMixin):
                         pattern.location))
 
         return func_type.return_type
+
+    _LAYER_ORDER = {'core': 0, 'alloc': 1, 'std': 2}
+
+    def require_layer(self, layer: str, what: str, location) -> None:
+        """Report `what` when it needs a higher standard-library layer than the project's
+        [stdlib] layer (Task 18.5.6) - once per place in the source."""
+        if self._LAYER_ORDER[layer] <= self._LAYER_ORDER[self.stdlib_layer]:
+            return
+        key = (what, str(location))
+        if key in self.layer_errors_at:
+            return
+        self.layer_errors_at.add(key)
+        self.errors.append(SemanticError(
+            f"{what} needs the {layer} layer, but this project uses {self.stdlib_layer} "
+            f"([stdlib] layer in fusion.toml)", location))
+
+    def require_type_layer(self, type_node, location) -> None:
+        """Text, bytes, lists and maps live on the heap - the alloc layer."""
+        if isinstance(type_node, PrimitiveType) and type_node.name in ('string', 'bytes'):
+            self.require_layer('alloc', 'text' if type_node.name == 'string' else 'bytes', location)
+        elif isinstance(type_node, (ListType, MapType)):
+            self.require_layer('alloc', 'a List' if isinstance(type_node, ListType) else 'a Map', location)
+        elif isinstance(type_node, ArrayType):
+            self.require_type_layer(type_node.element_type, location)
 
     def _check_changeable(self, arg: ASTNode, func_name: str) -> None:
         """A built-in that changes its first argument in place (setInt, Task 18.3.8) needs a

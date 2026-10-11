@@ -31,7 +31,9 @@ class CollectionRulesMixin:
         return PrimitiveType(location=node.location, name='void')
 
     def _check_collection_type(self, type_node, location) -> None:
-        """A list holds any value type; a map's keys are string, int or char (18.5.2)."""
+        """A list holds any value type; a map's keys are string, int or char (18.5.2).
+        Also: a declared type needing the heap needs the alloc layer (18.5.6)."""
+        self.require_type_layer(type_node, location)
         if isinstance(type_node, MapType):
             key = type_node.key_type
             if not (isinstance(key, PrimitiveType) and key.name in MAP_KEY_TYPES):

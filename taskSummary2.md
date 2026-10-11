@@ -342,4 +342,5 @@ folders), networking, dates and times, random numbers, threads.
 - 18.5.3 COMPLETE (split / join / lines / words).
 - 18.5.4 COMPLETE (program arguments, readLine / isEndOfInput, exit).
 - 18.5.5 COMPLETE (files).
-- **Next Action:** implement **18.5.6 (layers: [stdlib] layer)** per the approved plan.
+- 18.5.6 COMPLETE (core / alloc / std layers).
+- **Next Action:** implement **18.5.7 (the word-counter example + docs)** - closes Task 18.

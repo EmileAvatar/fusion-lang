@@ -37,7 +37,7 @@ class SemanticAnalyzer:
     """
 
     def __init__(self, structs_config: Optional[StructsConfig] = None,
-                 strings_config: Optional[StringsConfig] = None):
+                 strings_config: Optional[StringsConfig] = None, stdlib_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -47,7 +47,8 @@ class SemanticAnalyzer:
         self.structs_config = structs_config or StructsConfig()
         self.symbol_table = SymbolTable()
         self.name_resolver = NameResolver(self.symbol_table)
-        self.type_checker = TypeChecker(self.symbol_table, self.structs_config, strings_config)
+        self.type_checker = TypeChecker(self.symbol_table, self.structs_config, strings_config,
+                                        stdlib_config)
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
@@ -124,6 +125,9 @@ class SemanticAnalyzer:
                     self.type_checker._check_collection_type(decl.return_type, decl.location)
 
                     self.type_checker.current_function_name = decl.name
+                    if decl.name == 'main' and decl.parameters:
+                        self.type_checker.require_layer('std', "main's arguments (string... args)",
+                                                        decl.location)
                     for param in decl.parameters:
                         self.type_checker.visit(param)
 

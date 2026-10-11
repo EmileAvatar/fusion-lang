@@ -88,7 +88,8 @@ def compile_and_run_leak_checked(source: str, source_path: str):
         ast, import_errors = load_program(source_path, parse(source, source_path), parse)
         if import_errors:
             return None, '\n'.join(str(e) for e in import_errors)
-        analyzer = SemanticAnalyzer(structs_config=config.structs, strings_config=config.strings)
+        analyzer = SemanticAnalyzer(structs_config=config.structs, strings_config=config.strings,
+                                    stdlib_config=config.stdlib)
         if not analyzer.analyze(ast):
             return None, '\n'.join(str(e) for e in analyzer.get_errors())
         c_code = CCodeGenerator(encoding=config.strings.encoding,

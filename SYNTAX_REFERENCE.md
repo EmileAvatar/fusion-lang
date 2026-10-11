@@ -458,6 +458,9 @@ allow_unicode_identifiers = false
 encoding = "utf-8"               # utf-8 (default) | ascii - also named: utf-16, utf-32 (future)
 max_length = "max"               # no limit (default); a number = longer strings are an error
 
+[stdlib]
+layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)
+
 [structs]
 max_nesting_depth  = 3
 warn_nesting_depth = 3
