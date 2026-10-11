@@ -629,6 +629,10 @@ class Parser:
         """
         # Parse type (for now, just expect identifier for type name)
         param_type = self.parse_type()
+        # `string... args` - any number of values, as an array (Task 18.5.4)
+        variadic = self.match(TokenType.RANGE)
+        if variadic:
+            param_type = ArrayType(location=param_type.location, element_type=param_type, size=None)
 
         # Parse parameter name (allow keywords as parameter names)
         # This allows parameters named "end", "double", "string", etc.
@@ -645,6 +649,7 @@ class Parser:
 
         return ParameterDecl(
             location=param_type.location,
+            is_variadic=variadic,
             param_type=param_type,
             name=name,
             default_value=default_value

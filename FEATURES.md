@@ -153,7 +153,8 @@ The single place to see what is done, open, or postponed. One line per item.
 			has / get(k, default) / remove / keys / values / len / clear, == in any order, for k in m
 		[DONE] 18.5.3 Text helpers needing lists: split(s, ","), join(list, ", ") / parts.join(", "),
 			lines(s), words(s)
-		[ ] 18.5.4 Console input, program arguments (`main(string... args)`), exit
+		[DONE] 18.5.4 Program arguments (`main(string... args)`, UTF-8 on Windows, no --headless),
+			readLine / isEndOfInput, exit(code)
 		[ ] 18.5.5 Files: readText / readLines / writeText / appendText / readBytes / writeBytes / fileExists
 		[ ] 18.5.6 Layers: `[stdlib] layer = "core" | "alloc" | "std"`
 		[ ] 18.5.7 The word-counter example + docs

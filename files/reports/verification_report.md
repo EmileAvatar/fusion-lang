@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Sun Oct 11 16:26:29 SAST 2026
+**Date:** Sun Oct 11 18:51:54 SAST 2026
 **Total Examples:** 12
 
 ## Summary
@@ -79,6 +79,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -89,7 +90,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -151,6 +151,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -161,7 +162,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -242,6 +242,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -252,7 +253,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -310,6 +310,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -320,7 +321,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -411,6 +411,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -421,7 +422,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -494,6 +494,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -504,7 +505,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -562,6 +562,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -572,7 +573,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -630,6 +630,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -640,7 +641,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -712,6 +712,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -722,7 +723,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -798,6 +798,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -808,7 +809,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -896,6 +896,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -906,7 +907,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 
@@ -964,6 +964,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -974,7 +975,6 @@ __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #include <io.h>
 #define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
 #else
-#include <unistd.h>
 ... (truncated)
 ```
 

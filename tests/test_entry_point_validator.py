@@ -200,62 +200,38 @@ def test_main_with_no_parameters():
     assert len(warnings) == 0
 
 
-def test_main_with_one_parameter():
-    """main with one parameter is WARNING (MVP doesn't support)."""
-    param = make_parameter("int", "argc")
-    main_func = make_function_decl("main", "void", [param])
-    program = make_program([main_func])
-
-    validator = EntryPointValidator()
-    errors, warnings = validator.validate_program(program)
-
-    assert len(errors) == 0
-    assert len(warnings) == 1
-    assert "parameters are not supported in MVP" in warnings[0].message
+MAIN_PARAMS_ERROR = "main takes no parameters, or the program's arguments"
 
 
-def test_main_with_string_array_parameter():
-    """main with string[] args is WARNING (future feature)."""
-    # Note: In MVP, we don't have array types, so we just use string as placeholder
-    param = make_parameter("string", "args")
-    main_func = make_function_decl("main", "void", [param])
-    program = make_program([main_func])
-
-    validator = EntryPointValidator()
-    errors, warnings = validator.validate_program(program)
-
-    assert len(errors) == 0
-    assert len(warnings) == 1
-    assert "parameters are not supported in MVP" in warnings[0].message
+def string_args(name: str = "args") -> ParameterDecl:
+    """`string... args` - an unsized string array (Task 18.5.4)."""
+    return ParameterDecl(location=make_location(), name=name, default_value=None,
+                         param_type=ArrayType(location=make_location(),
+                                              element_type=make_primitive_type("string"), size=None),
+                         is_variadic=True)
 
 
-def test_main_with_int_parameter():
-    """main with int parameter is WARNING."""
-    param = make_parameter("int", "value")
-    main_func = make_function_decl("main", "int", [param])
-    program = make_program([main_func])
-
-    validator = EntryPointValidator()
-    errors, warnings = validator.validate_program(program)
-
-    assert len(errors) == 0
-    assert len(warnings) == 1
-    assert "parameters are not supported in MVP" in warnings[0].message
+def test_main_with_program_arguments():
+    """main(string... args) is valid (Task 18.5.4)."""
+    for return_type in ("void", "int"):
+        program = make_program([make_function_decl("main", return_type, [string_args()])])
+        errors, warnings = EntryPointValidator().validate_program(program)
+        assert (len(errors), len(warnings)) == (0, 0)
 
 
-def test_main_with_multiple_parameters():
-    """main with multiple parameters is WARNING."""
-    param1 = make_parameter("int", "argc")
-    param2 = make_parameter("string", "argv")
-    main_func = make_function_decl("main", "void", [param1, param2])
-    program = make_program([main_func])
-
-    validator = EntryPointValidator()
-    errors, warnings = validator.validate_program(program)
-
-    assert len(errors) == 0
-    assert len(warnings) == 1
-    assert "parameters are not supported in MVP" in warnings[0].message
+@pytest.mark.parametrize("params", [
+    [make_parameter("int", "argc")],
+    [make_parameter("string", "args")],                       # one string, not string...
+    [make_parameter("int", "argc"), make_parameter("string", "argv")],
+    [string_args(), make_parameter("int", "x")],
+])
+def test_other_main_parameters_are_errors(params):
+    """Before Task 18.5.4 main's parameters were accepted with a warning and silently
+    ignored; now main takes nothing or string... args, and anything else is an error."""
+    program = make_program([make_function_decl("main", "void", params)])
+    errors, warnings = EntryPointValidator().validate_program(program)
+    assert len(errors) == 1 and MAIN_PARAMS_ERROR in errors[0].message
+    assert len(warnings) == 0
 
 
 # ============================================================================
@@ -263,7 +239,7 @@ def test_main_with_multiple_parameters():
 # ============================================================================
 
 def test_main_with_wrong_return_type_and_parameters():
-    """main with wrong return type AND parameters has both error and warning."""
+    """main with a wrong return type AND wrong parameters reports both."""
     param = make_parameter("int", "x")
     main_func = make_function_decl("main", "string", [param])
     program = make_program([main_func])
@@ -271,11 +247,9 @@ def test_main_with_wrong_return_type_and_parameters():
     validator = EntryPointValidator()
     errors, warnings = validator.validate_program(program)
 
-    # Should have 1 error (wrong return type) and 1 warning (has parameters)
-    assert len(errors) == 1
+    assert len(errors) == 2
     assert "must return 'void' or 'int'" in errors[0].message
-    assert len(warnings) == 1
-    assert "parameters are not supported in MVP" in warnings[0].message
+    assert MAIN_PARAMS_ERROR in errors[1].message
 
 
 def test_multiple_main_stops_signature_validation():

@@ -2205,6 +2205,10 @@ class TypeChecker(CollectionRulesMixin):
         """
         self._check_function_type_supported(node.param_type, node.location)
         self._check_collection_type(node.param_type, node.location)   # Task 18.5
+        if node.is_variadic and getattr(self, 'current_function_name', 'main') != 'main':
+            self.errors.append(SemanticError(
+                "'...' is only for main's arguments for now (main(string... args)) - "
+                "functions taking any number of values come later", node.location))
 
         # Check default value type if present
         if node.default_value:

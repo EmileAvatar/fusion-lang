@@ -3662,3 +3662,18 @@ manager, one C file per module, re-exporting another module's names, conditional
 - [x] split keeps empty pieces ("" -> one empty piece, as Python), "" separator = characters;
       lines drops "\r" and doesn't add an empty last line; words never gives empty words
 - [x] join both a built-in and a List<string> method (parts.join(", "))
+
+---
+
+#### 18.5.4 (archived 2026-10-11)
+
+**18.5.4 - Program arguments, console input, exit** (COMPLETE)
+- [x] Parser: `type... name` parameters (ParameterDecl.is_variadic, an unsized array);
+      only main may use it for now
+- [x] Entry point: main takes nothing or `string... args` - other parameters are now an
+      error (they were silently ignored with a warning); validator tests rewritten
+- [x] fusion_program_args: Windows reads GetCommandLineW / CommandLineToArgvW and converts
+      to UTF-8 (argv's code page garbles accents); --headless and the program name left out;
+      the strings live for the whole program (not tracked by the leak check)
+- [x] readLine (any length, drops \r), isEndOfInput (peeks), exit(code) (skips the leak
+      report, like a run-time error); console input switched to UTF-8 on Windows

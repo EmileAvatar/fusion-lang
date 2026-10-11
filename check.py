@@ -44,8 +44,10 @@ DEMO_TASKS = {'arrays_demo': '09', 'const_demo': '08'}
 
 
 def run(cmd, **kwargs):
+    # Empty input: a program that reads input (readLine, Task 18.5.4) sees its end at once
+    # instead of waiting for the console
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, encoding='utf-8',
-                          errors='replace', **kwargs)
+                          errors='replace', stdin=subprocess.DEVNULL, **kwargs)
 
 
 # ---------------------------------------------------------------- individual checks
@@ -199,9 +201,10 @@ def build_examples():
              'cd /d "%~dp0"']
     for path in sources:
         exe = example_name(path).replace('/', '\\') + '.exe'
-        # --headless: each program closes by itself - the script pauses once at the end
+        # --headless: each program closes by itself - the script pauses once at the end;
+        # < nul: a program reading input (readLine) gets none instead of stopping the script
         lines += ['echo.', 'echo.', f'echo ---- {exe} ----', 'echo.', 'echo.',
-                  f'".\\{exe}" --headless']
+                  f'".\\{exe}" --headless < nul']
     lines += ['echo.', 'pause']
     (EXAMPLES / '#run.bat').write_text('\r\n'.join(lines) + '\r\n', encoding='ascii')
 

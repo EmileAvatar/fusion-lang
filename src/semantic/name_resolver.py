@@ -262,6 +262,10 @@ class NameResolver:
             'digitsOnly': ([string_type], string_type),
             'mask': ([string_type, int_type, int_type, char_type], string_type),
             'maskEmail': ([string_type, int_type, char_type], string_type),
+            # Console input, exit (18.5.4)
+            'readLine': ([], string_type),
+            'isEndOfInput': ([], bool_type),
+            'exit': ([int_type], void_type),
             # Text and lists (18.5.3)
             'split': ([string_type, string_type], string_list),
             'join': ([string_list, string_type], string_type),

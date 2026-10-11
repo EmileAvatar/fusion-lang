@@ -123,6 +123,7 @@ class SemanticAnalyzer:
                     self.type_checker.current_function_return_type = decl.return_type
                     self.type_checker._check_collection_type(decl.return_type, decl.location)
 
+                    self.type_checker.current_function_name = decl.name
                     for param in decl.parameters:
                         self.type_checker.visit(param)
 

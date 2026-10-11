@@ -128,4 +128,73 @@ static inline fusion_bytes fusion_str_hexToRaw(fusion_string s, const char* wher
     }
     return fusion_bytes_take(out, s.len / 2);
 }
+// ---- The program's arguments, console input, exit (Task 18.5.4)
+// main(string... args): the arguments without the program's name and --headless. On
+// Windows they are read as UTF-16 and turned into UTF-8 (argv uses the old code page and
+// would garble accented text). They live as long as the program - never freed
+#ifdef _WIN32
+#include <wchar.h>
+__declspec(dllimport) wchar_t* __stdcall GetCommandLineW(void);
+__declspec(dllimport) wchar_t** __stdcall CommandLineToArgvW(const wchar_t* line, int* count);
+__declspec(dllimport) int __stdcall WideCharToMultiByte(unsigned int page, unsigned long flags, const wchar_t* text, int len, char* out, int size, const char* fallback, int* used);
+#endif
+static inline fusion_string* fusion_program_args(int argc, char** argv, int* count) {
+    fusion_string* args = (fusion_string*)malloc(sizeof(fusion_string) * (size_t)(argc > 0 ? argc : 1));
+    int n = 0;
+#ifdef _WIN32
+    int wide_count = 0;
+    wchar_t** wide = CommandLineToArgvW(GetCommandLineW(), &wide_count);
+    (void)argv;
+    for (int i = 1; wide && i < wide_count && i < argc; i++) {
+        int size = WideCharToMultiByte(65001, 0, wide[i], -1, NULL, 0, NULL, NULL);
+        char* text = (char*)malloc((size_t)size);
+        WideCharToMultiByte(65001, 0, wide[i], -1, text, size, NULL, NULL);
+        if (strcmp(text, "--headless") == 0) { free(text); continue; }
+        args[n].data = text; args[n].len = size - 1;
+        args[n].chars = fusion_utf8_count(text, size - 1); args[n].owned = 0; n++;
+    }
+#else
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--headless") == 0) continue;
+        int size = 0;
+        while (argv[i][size]) size++;
+        args[n].data = argv[i]; args[n].len = size;
+        args[n].chars = fusion_utf8_count(argv[i], args[n].len); args[n].owned = 0; n++;
+    }
+#endif
+    *count = n;
+    return args;
+}
+// readLine(): the next line typed (or piped) in, without "\n" / "\r\n"; "" at the end of input
+static inline fusion_string fusion_readLine(void) {
+    int cap = 64, len = 0, c;
+    char* text = (char*)fusion_alloc((size_t)cap + 1);
+    fflush(stdout);
+    while ((c = getchar()) != EOF && c != '\n') {
+        if (len == cap) {
+            char* bigger = (char*)fusion_alloc((size_t)cap * 2 + 1);
+            memcpy(bigger, text, (size_t)len);
+            fusion_dealloc(text);
+            text = bigger; cap *= 2;
+        }
+        text[len++] = (char)c;
+    }
+    if (len > 0 && text[len - 1] == '\r') len--;
+    return fusion_str_take(text, len);
+}
+// isEndOfInput(): true when there is nothing left to read
+static inline bool fusion_isEndOfInput(void) {
+    int c = getchar();
+    if (c == EOF) return true;
+    ungetc(c, stdin);
+    return false;
+}
+// exit(code): end the program now with an exit code (values still alive aren't leaks)
+static inline void fusion_exit(int code) {
+    fflush(stdout);
+#ifdef FUSION_LEAK_CHECK
+    fusion_leak_skip = 1;
+#endif
+    exit(code);
+}
 '''

@@ -928,6 +928,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'fromOctal': ('fusion_str_fromOctal', True), 'parseInt': ('fusion_str_parseInt', True),
         'bytesToHex': ('fusion_str_bytesToHex', True), 'hexToBytes': ('fusion_str_hexToBytes', True),
         'formatNumber': ('fusion_formatNumber', True),   # 18.3.6d-2
+        'readLine': ('fusion_readLine', False), 'isEndOfInput': ('fusion_isEndOfInput', False),
+        'exit': ('fusion_exit', False),   # 18.5.4
         'split': ('fusion_str_split', False), 'join': ('fusion_str_join', True),   # 18.5.3
         'lines': ('fusion_str_lines', False), 'words': ('fusion_str_words', False),
         'formatMask': ('fusion_str_formatMask', False), 'digitsOnly': ('fusion_str_digitsOnly', False),
@@ -1585,6 +1587,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # and waiting for a key at the end unless run with --headless
         if node.name == 'main':
             self.emit_line('fusion_init(argc, argv)')
+            # main(string... args) - the program's arguments (Task 18.5.4)
+            if node.parameters:
+                name = node.parameters[0].name
+                self.emit_line(f'int {array_length_name(name)} = 0')
+                self.emit_line(f'fusion_string* {name} = fusion_program_args(argc, argv, &{array_length_name(name)})')
+                self.emit_line(f'(void){name}; (void){array_length_name(name)}')
 
         # Parameters borrow the caller's values; one the function assigns to gets its own
         # copy first, so the caller's string is never changed or freed (Task 18.3.1)

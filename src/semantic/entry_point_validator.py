@@ -103,13 +103,19 @@ class EntryPointValidator:
                 func.location
             ))
 
-        # Check parameters (MVP: must be empty)
-        if len(func.parameters) > 0:
-            self.warnings.append(SemanticError(
-                "main function parameters are not supported in MVP (ignored)",
+        # main takes nothing, or the program's arguments: `string... args` (Task 18.5.4)
+        params = func.parameters
+        ok = len(params) == 0 or (
+            len(params) == 1 and params[0].default_value is None
+            and type(params[0].param_type).__name__ == 'ArrayType'
+            and params[0].param_type.size is None
+            and getattr(params[0].param_type.element_type, 'name', None) == 'string')
+        if not ok:
+            self.errors.append(SemanticError(
+                "main takes no parameters, or the program's arguments: "
+                "void function main(string... args)",
                 func.location
             ))
-            # Note: This is a warning for now; future versions will support args
 
     # ========================================================================
     # Additional Validations (Optional/Future)

@@ -1,0 +1,12 @@
+void function main(string... args)                // or main() with no parameters
+    print("{@1} argument(s)", len(args))          // the program's name and --headless aren't in it
+    for a in args
+        print("[{a}]")
+    print("Type lines, then end the input (Ctrl+Z, Enter on Windows):")
+    int count = 0
+    while not isEndOfInput()
+        string line = readLine()                  // without its line ending
+        count = count + 1
+    print("{count} line(s)")
+    if len(args) > 0 and args[0] == "stop"
+        exit(2)                                   // end now, with an exit code

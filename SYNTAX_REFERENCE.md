@@ -246,6 +246,24 @@ void function main()
     print("{@1} {@2}", mask("4111111111111111", 6, 4), maskEmail("alice@example.com"))
 ```
 
+#### Program arguments, console input, exit
+
+<!-- example: syntax_program_io | task: 18.5.4 -->
+```fusion
+void function main(string... args)                // or main() with no parameters
+    print("{@1} argument(s)", len(args))          // the program's name and --headless aren't in it
+    for a in args
+        print("[{a}]")
+    print("Type lines, then end the input (Ctrl+Z, Enter on Windows):")
+    int count = 0
+    while not isEndOfInput()
+        string line = readLine()                  // without its line ending
+        count = count + 1
+    print("{count} line(s)")
+    if len(args) > 0 and args[0] == "stop"
+        exit(2)                                   // end now, with an exit code
+```
+
 #### Lists: `List<T>`
 
 <!-- example: syntax_lists | task: 18.5.1 -->

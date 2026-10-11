@@ -71,6 +71,7 @@ static inline void fusion_leak_report(void) {
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
@@ -98,6 +99,7 @@ static inline void fusion_init(int argc, char** argv) {
     bool headless = false;
 #ifdef _WIN32
     SetConsoleOutputCP(65001);
+    SetConsoleCP(65001);   // typed input as UTF-8 too (readLine, Task 18.5.4)
 #endif
     for (int i = 1; i < argc; i++) if (strcmp(argv[i], "--headless") == 0) headless = true;
     if (!headless && FUSION_IS_CONSOLE(stdin) && FUSION_IS_CONSOLE(stdout))

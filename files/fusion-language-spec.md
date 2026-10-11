@@ -3347,8 +3347,21 @@ bool same = ages == other       // the same keys with equal values, in any order
   newline doesn't make an empty last line
 * `words(s)` - the pieces between runs of spaces, tabs and newlines; never an empty word
 
-* Coming in 18.5: console input, program arguments (`main(string... args)`), files, and the
-  core / alloc / std layers
+**Program arguments, console input, exit** (Task 18.5.4):
+* `void function main(string... args)` (user decision 2026-10-11 - "List<string> args seems a
+  bit too wordy") - `args` is a `string[]` of any length (`len(args)`, `args[0]`,
+  `for a in args`); main may also take nothing. The program's name and `--headless` are not
+  in it. On Windows the arguments are read as UTF-16 and turned into UTF-8, so accented
+  ones arrive intact. `...` is only for main for now - functions taking any number of
+  values come later. Before Task 18.5.4 other main parameters were accepted with a warning
+  and silently ignored; now they are an error
+* `readLine()` - the next line of input without `\n` / `\r\n`, of any length; `""` at the
+  end of input. `isEndOfInput()` - true when nothing is left to read. On Windows the console
+  reads UTF-8
+* `exit(code)` - ends the program at once with that exit code (the "Press any key" wait
+  still happens when someone is at the console)
+
+* Coming in 18.5: files, and the core / alloc / std layers
 
 ---
 
