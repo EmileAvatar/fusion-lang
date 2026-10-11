@@ -107,8 +107,7 @@ independent. Then features keep being added, and the complex parts come last.
 Kept under Task 22 until the renumbering is approved.
 
 - 22.8-22.11 DONE (tools; detail archived)
-- **16.1 Control-flow example** - check what syntax_variables_and_control_flow / fizzbuzz
-  already cover; add only what is missing (while, break / continue, nested loops, ranges)
+- 16.1 DONE - examples/control_flow
 - **22.7 Reliable markers** - status lines under feature headings in the language spec
   (matching FEATURES.md), README reduced to goals + pointers, FutureFeatures.md links only
   when an item becomes a task
@@ -126,5 +125,6 @@ Kept under Task 22 until the renumbering is approved.
   silently
 - Task 18 archived (FEATURES.md detail too); 3 automation candidates added
 - 22.8-22.11 done: check.py --fix-ascii / --ship / --example, tools/patch.py
-- **Next Action:** housekeeping continues - 16.1 control-flow example, then 22.7 markers;
+- 16.1 done: examples/control_flow; map literals noticed missing (FEATURES.md Later)
+- **Next Action:** housekeeping continues - 22.7 markers;
   the reorganization plan waits (its 2 questions are still open)

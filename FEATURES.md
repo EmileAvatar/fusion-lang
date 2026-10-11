@@ -68,7 +68,8 @@ The single place to see what is done, open, or postponed. One line per item.
 	[ ] 15.12 Operator operands evaluated in C's order (`next(c) - next(c)`); call arguments are left-to-right already
 
 #### 16 Example program coverage [ ]
-	[ ] 16.1 Control flow / loops example (buildable now)
+	[DONE] 16.1 Control flow / loops example - examples/control_flow (else if, while, nested loops,
+		break / continue, early return, arrays, lists, maps)
 	[POSTPONED - needs classes, no task yet] 16.2 Classes, interfaces & enums example (structs: done in structs_demo)
 	[POSTPONED - needs generics, no task yet] 16.3 Generics example
 	[POSTPONED - needs threading, no task yet] 16.4 Multithreading / async example
@@ -174,6 +175,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		(design and all 9 decisions: spec "Masking", Task 18.3.6f; built 2026-10-10)
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
+	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
+		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use
 	[POSTPONED - after MVP] Per-field string sizes (`string(255) name`) to match database columns
 	[POSTPONED - needs references] Identity operator (same object in memory)

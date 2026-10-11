@@ -1,0 +1,78 @@
+// Control flow: if / else if / else, while, for, nested loops, break, continue,
+// early return, looping over arrays, lists and maps (Task 16.1)
+
+string function grade(int score)
+    if score >= 90
+        return "A"
+    else if score >= 75
+        return "B"
+    else if score >= 50
+        return "C"
+    else
+        return "F"
+
+// Early return from inside a loop: the first index holding `wanted`, or -1
+int function find(int[] values, int wanted)
+    for i in range(0, len(values))
+        if values[i] = wanted          // `=` compares inside a condition
+            return i
+    return -1
+
+bool function isPrime(int n)
+    if n < 2
+        return false
+    int d = 2
+    while d * d <= n
+        if n % d == 0
+            return false
+        d = d + 1
+    return true
+
+void function main()
+    // else if chain
+    for score in [95, 80, 50, 12]
+        print("{score} -> {@1}", grade(score))
+
+    // while with a countdown
+    int left = 3
+    string countdown = ""
+    while left > 0
+        countdown = countdown + "{left} "
+        left = left - 1
+    print("countdown: {countdown}go")
+
+    // continue skips, break stops
+    List<string> primes
+    for n in range(1, 100)
+        if not isPrime(n)
+            continue
+        primes.add("{n}")
+        if primes.len() == 8
+            break
+    print("first primes: {@1}", primes.join(", "))
+
+    // nested loops: break leaves only the inner loop
+    for row in range(1, 4)
+        string line = ""
+        for col in range(1, 10)
+            if col > row * 2
+                break
+            line = line + toString(row * col) + " "
+        print("row {row}: {@1}", line.trimEnd())
+
+    // early return
+    int[] values = [4, 8, 15, 16, 23, 42]
+    print("15 is at {@1}, 99 is at {@2}", find(values, 15), find(values, 99))
+
+    // looping over a map: keys in the order they were added
+    Map<string, int> stock
+    stock["apples"] = 3
+    stock["pears"] = 0
+    stock["plums"] = 7
+    int total = 0
+    for fruit in stock
+        if stock[fruit] == 0
+            print("{fruit}: sold out")
+            continue
+        total = total + stock[fruit]
+    print("in stock: {total}")
