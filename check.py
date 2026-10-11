@@ -10,6 +10,14 @@ summary - full output only for what failed:
     python check.py --build-examples  write SYNTAX_REFERENCE.md programs to examples/, build
                                       every example (.c + .exe), regenerate #list.csv and
                                       #run.bat (Task 23 - see examples/CLAUDE.md)
+    python check.py --fix-ascii       non-ASCII characters -> \\uXXXX escapes, only where the
+                                      meaning stays the same; the rest is listed (Task 22.8)
+    python check.py --ship "message" [--claude]
+                                      every check; only if all pass: commit everything (with
+                                      the Claude co-author line if --claude) and push (22.9)
+    python check.py --example NAME [args]
+                                      build and run one example (a file or a project folder),
+                                      compare with its expected output (22.10)
 
 Checks:
     tests     pytest (every end-to-end test already runs under the string leak check)
@@ -234,15 +242,77 @@ def check_leaks():
     return not failures, f'{clean}/{len(programs)} clean', '\n\n'.join(failures)
 
 
-def check_ascii():
-    files = list((ROOT / 'src').rglob('*.py')) + list((ROOT / 'tests').glob('*.py')) + \
+def ascii_checked_files():
+    return list((ROOT / 'src').rglob('*.py')) + list((ROOT / 'tests').glob('*.py')) + \
+        list((ROOT / 'tools').rglob('*.py')) + \
         list((ROOT / 'examples').rglob('*.fusion')) + [ROOT / 'main.py', ROOT / 'check.py']
+
+
+def check_ascii():
     bad = []
-    for path in files:
+    for path in ascii_checked_files():
         for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
             if any(ord(ch) > 127 for ch in line):
                 bad.append(f'{path.relative_to(ROOT)}:{number}')
     return not bad, 'ok' if not bad else f'{len(bad)} line(s)', '\n'.join(bad[:20])
+
+
+def escape_non_ascii(text: str) -> str:
+    return ''.join(ch if ord(ch) < 128 else
+                   ('\\u%04x' % ord(ch) if ord(ch) <= 0xFFFF else '\\U%08x' % ord(ch))
+                   for ch in text)
+
+
+def python_meaning(text: str, path: Path):
+    import ast
+    return ast.dump(ast.parse(text, str(path)))
+
+
+def fusion_meaning(text: str, path: Path):
+    """The token list without positions - string and char literals decoded, so `\\u00e9`
+    and the character itself compare equal. Comments are not tokens."""
+    from src.lexer.lexer import Lexer
+    from src.lexer.token import TokenType
+    from src.lexer.literals import decode_char_literal
+    tokens = Lexer(text, str(path)).tokenize()
+    return [(t.type, decode_char_literal(t.value) if t.type == TokenType.CHAR_LIT else t.value)
+            for t in tokens]
+
+
+def fix_ascii():
+    """Task 22.8: turn non-ASCII characters into \\uXXXX escapes in the files the ascii check
+    covers - but only where that changes nothing: a .py file must parse to the same AST, a
+    .fusion file must lex to the same tokens. Anything else is listed for a manual fix."""
+    fixed, manual = fix_ascii_files(ascii_checked_files())
+    for line in fixed + manual:
+        print(line)
+    if not fixed and not manual:
+        print('ascii     nothing to fix')
+    return 0 if not manual else 1
+
+
+def fix_ascii_files(paths):
+    """Returns (fixed, manual) report lines."""
+    fixed, manual = [], []
+    for path in paths:
+        text = path.read_text(encoding='utf-8')
+        if text.isascii():
+            continue
+        new_text = escape_non_ascii(text)
+        meaning = python_meaning if path.suffix == '.py' else fusion_meaning
+        try:
+            same = meaning(text, path) == meaning(new_text, path)
+        except Exception:  # the escaped text no longer parses / lexes
+            same = False
+        name = path.relative_to(ROOT) if path.is_relative_to(ROOT) else path
+        if same:
+            path.write_text(new_text, encoding='utf-8', newline='')
+            fixed.append(f'fixed     {name}')
+        else:
+            lines = [n for n, line in enumerate(text.splitlines(), 1) if not line.isascii()]
+            manual.append(f'by hand   {name}: line(s) {", ".join(map(str, lines[:10]))} - '
+                          'escaping would change the meaning (raw string, identifier, ...)')
+    return fixed, manual
 
 
 # ---------------------------------------------------------------- status
@@ -264,7 +334,87 @@ def show_status():
             break
 
 
+# ---------------------------------------------------------------- one example
+
+def find_example(name: str):
+    """examples/NAME.fusion, or the project examples/NAME/main.fusion."""
+    for path in (EXAMPLES / f'{name}.fusion', EXAMPLES / name / 'main.fusion'):
+        if path.exists():
+            return path
+    return None
+
+
+def run_example(name: str, program_args):
+    """Task 22.10: build one example, run it (headless, no input, with any arguments given
+    after its name) and compare with its expected output in tests/verify_examples.py."""
+    path = find_example(name)
+    if path is None:
+        names = ', '.join(example_name(p).replace('/main', '') for p in example_sources())
+        print(f'No example called {name!r}. Examples: {names}')
+        return 1
+    build = run([sys.executable, 'main.py', str(path.relative_to(ROOT))])
+    if build.returncode != 0:
+        print(f'build     [FAIL]\n{(build.stdout + build.stderr).strip()[-2000:]}')
+        return 1
+    program = run([str(path.with_suffix('.exe')), '--headless', *program_args], timeout=60)
+    print(program.stdout + program.stderr, end='')
+    sys.path.insert(0, str(ROOT / 'tests'))
+    from verify_examples import EXPECTED_OUTPUTS
+    expected = EXPECTED_OUTPUTS.get(path.parent.name if path.name == 'main.fusion' else path.stem)
+    if program.returncode != 0:
+        print(f'example   [FAIL] exit code {program.returncode}')
+        return 1
+    if expected is None or program_args:
+        print('example   [OK]   ran (no expected output to compare)')
+        return 0
+    missing = [line for line in expected.split('\n')
+               if line.strip() and line not in program.stdout]
+    print('example   ' + ('[OK]   output matches' if not missing else
+                          '[FAIL] expected but missing:\n  ' + '\n  '.join(missing)))
+    return 0 if not missing else 1
+
+
+# ---------------------------------------------------------------- ship
+
+CO_AUTHOR = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
+
+
+def ship(message: str, claude: bool):
+    """Task 22.9: every check, then - only if all pass - commit everything and push."""
+    if not message or message.startswith('--'):
+        print('usage: python check.py --ship "commit message" [--claude]')
+        return 2
+    if not run_checks(quick=False):
+        print('\nnot shipped - a check failed')
+        return 1
+
+    def git(*args):
+        return run(['git', *args])
+
+    git('add', '-A')
+    if git('diff', '--cached', '--quiet').returncode == 0:
+        print('\nnothing to commit')
+        return 0
+    full_message = message + (f'\n\n{CO_AUTHOR}' if claude else '')
+    commit = git('commit', '-q', '-m', full_message)
+    if commit.returncode != 0:
+        print(f'\ncommit failed:\n{commit.stdout}{commit.stderr}')
+        return 1
+    print('\ncommitted ' + git('log', '--oneline', '-1').stdout.strip())
+    push = git('push', '-q')
+    if push.returncode != 0:
+        print(f'push failed:\n{push.stderr.strip()}')
+        return 1
+    print('pushed')
+    return 0
+
+
 # ---------------------------------------------------------------- main
+
+def option_value(argv, option):
+    index = argv.index(option)
+    return argv[index + 1] if index + 1 < len(argv) else ''
+
 
 def main(argv):
     if '--status' in argv:
@@ -272,8 +422,19 @@ def main(argv):
         return 0
     if '--build-examples' in argv:
         return build_examples()
+    if '--fix-ascii' in argv:
+        return fix_ascii()
+    if '--example' in argv:
+        index = argv.index('--example')
+        return run_example(option_value(argv, '--example'), argv[index + 2:])
+    if '--ship' in argv:
+        return ship(option_value(argv, '--ship'), '--claude' in argv)
+    return 0 if run_checks(quick='--quick' in argv) else 1
+
+
+def run_checks(quick: bool) -> bool:
     checks = [('tests', check_tests)]
-    if '--quick' not in argv:
+    if not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
                    ('reference', check_reference_sync), ('ascii', check_ascii)]
     all_ok = True
@@ -286,7 +447,7 @@ def main(argv):
             details.append(f'--- {name} ---\n{detail}')
     for block in details:
         print('\n' + block)
-    return 0 if all_ok else 1
+    return all_ok
 
 
 if __name__ == '__main__':

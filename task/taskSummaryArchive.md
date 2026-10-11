@@ -4128,3 +4128,21 @@ The status lines of every Task 18 part, verbatim, as they stood in FEATURES.md:
 			one above the project's layer (or, in core, any heap type) is a compile error
 		[DONE] 18.5.7 The word-counter example (examples/wordcount: modules, files, List, Map, sortBy) + docs
 ```
+
+---
+
+#### Task 22.8-22.11 - check.py tools (COMPLETE 2026-10-11)
+
+- **22.8 `python check.py --fix-ascii`** - turn non-ASCII characters into `\uXXXX` escapes in
+  the files the ascii check covers. Safe by construction: a file is rewritten only if its
+  meaning is unchanged - .py: `ast.dump` before == after (comments are not in the AST,
+  string constants decode to the same text); .fusion: the lexer's token list before ==
+  after. Anything else (a raw string, an identifier, a character above U+FFFF in Fusion,
+  which only has 4-digit `\u`) is reported with file:line for a manual fix
+- **22.9 `python check.py --ship "message"`** - runs every check; only if all pass: `git add
+  -A`, commit with the message + the attribution line, `git push`. Prints what it did
+- **22.10 `python check.py --example NAME`** - build one example (a file or a project
+  folder), run it headless with no input, compare with its expected output in
+  tests/verify_examples.py (or just print the output if it has none)
+- **22.11 `tools/patch.py`** - apply a list of (file, old, new) edits from a small Python
+  file; each `old` must occur exactly once or nothing is written

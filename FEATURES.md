@@ -133,6 +133,10 @@ The single place to see what is done, open, or postponed. One line per item.
 		under each feature heading in the language spec, matching FEATURES.md; README reduced to
 		goals + pointers to FEATURES.md / SYNTAX_REFERENCE.md; task links in FutureFeatures.md
 		only when an item becomes a task
+	[DONE] 22.8 `check.py --fix-ascii`: non-ASCII characters -> \uXXXX escapes, only where meaning is unchanged
+	[DONE] 22.9 `check.py --ship "message"`: every check, then commit + push only if all pass
+	[DONE] 22.10 `check.py --example NAME`: build, run and compare one example
+	[DONE] 22.11 `tools/patch.py`: apply a list of exact edits, all or nothing
 
 
 #### 24 Editor support: syntax highlighting for code editors and IDEs [POSTPONED to 10]

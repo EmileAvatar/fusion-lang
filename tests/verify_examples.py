@@ -346,26 +346,30 @@ def generate_report(results: list[VerificationResult], report_file: Path):
         out.write(content)
 
 
+# Expected output of each hand-written example (check.py --example uses it too); each
+# line must appear in the program's output
+EXPECTED_OUTPUTS = {
+    'hello_world': 'Hello, World!',
+    'factorial': 'Factorial of 5 is 120',
+    'fizzbuzz': '1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz',  # First 15 lines
+    'calculator': 'Sum: 15\nDiff: 5\nProd: 50',
+    'sum_array': 'Sum of 1 to 10: 55',
+    'max_three': 'Maximum of 10, 25, 15 is 25',
+    'const_demo': 'MAX_ITERATIONS = 1000\nBASE (100) * MULTIPLIER (2) = 200\nScreen size: 80x24 = 1920 pixels\nAll const tests passed!',
+    'arrays_demo': 'First score: 10\nUpdated first score: 99\nNumber of scores: 5\nSum of [10, 20, 30, 40, 50] = 150\nAll array tests passed!',
+    'functions_demo': 'Hello, World!\nHello, Fusion!\nWelcome, Fusion!\noffset(10) = 5, offset(10, 2) = 12\nsum: 6, 150, 15\nAfter doubleAll, middle of small = 4\ntripled = 15, added = 105, squared = 49, viaName = 21\nAll function tests passed!',
+    'strings_demo': 'a = apple, b = banana\noriginal = quiet, loud = LOUD\na == apple: true, a < b: true\nAda 555-0100 / Grace 555-0123\nGrace: found, Alan: missing\nAda Lovelace! has 13 characters, starts with A\n[Lovelace] [ADA] [spaced]\ncontains Love: true, index of Love: 4\n42 doubled is 84\nAll string tests passed!',
+    'shop': 'Receipt\n-------\nCoffee beans.. R 12.99\nMug........... R 8.50\nFilters....... R 3.99\n-------\nSubtotal...... R 25.48\nTotal + VAT... R 29.30',
+    'wordcount': '17 words, 10 different\nthe.....   4\nbrown...   2\ndog.....   2\nfox.....   2\nquick...   2',
+    'structs_demo':'a = (3, 4), b = (10, 4)\na + b = (13, 8)\nInside moveRight: x = 103\nAfter moveRight: a.x = 3\nAda: health 75.000000, score 15\nNewcomer score: 0, health 100.000000\nDune Messiah is available\nOrigin: (0, 0)\nNamed point: (7, 8)\nLinus: health 100.000000, score 42\nShifted: (8, 9)\nLinus (42) beat Ada (15)\nbox: max.x = 4, bigger max.x = 40\nBlue total 22, first position x = 1\nDiagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4\nAll struct tests passed!',
+}
+
+
 def main():
     """Main verification function."""
     print_header("FUSION COMPILER VERIFICATION")
 
-    # Expected outputs for each example
-    expected_outputs = {
-        'hello_world': 'Hello, World!',
-        'factorial': 'Factorial of 5 is 120',
-        'fizzbuzz': '1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz',  # First 15 lines
-        'calculator': 'Sum: 15\nDiff: 5\nProd: 50',
-        'sum_array': 'Sum of 1 to 10: 55',
-        'max_three': 'Maximum of 10, 25, 15 is 25',
-        'const_demo': 'MAX_ITERATIONS = 1000\nBASE (100) * MULTIPLIER (2) = 200\nScreen size: 80x24 = 1920 pixels\nAll const tests passed!',
-        'arrays_demo': 'First score: 10\nUpdated first score: 99\nNumber of scores: 5\nSum of [10, 20, 30, 40, 50] = 150\nAll array tests passed!',
-        'functions_demo': 'Hello, World!\nHello, Fusion!\nWelcome, Fusion!\noffset(10) = 5, offset(10, 2) = 12\nsum: 6, 150, 15\nAfter doubleAll, middle of small = 4\ntripled = 15, added = 105, squared = 49, viaName = 21\nAll function tests passed!',
-        'strings_demo': 'a = apple, b = banana\noriginal = quiet, loud = LOUD\na == apple: true, a < b: true\nAda 555-0100 / Grace 555-0123\nGrace: found, Alan: missing\nAda Lovelace! has 13 characters, starts with A\n[Lovelace] [ADA] [spaced]\ncontains Love: true, index of Love: 4\n42 doubled is 84\nAll string tests passed!',
-        'shop': 'Receipt\n-------\nCoffee beans.. R 12.99\nMug........... R 8.50\nFilters....... R 3.99\n-------\nSubtotal...... R 25.48\nTotal + VAT... R 29.30',
-        'wordcount': '17 words, 10 different\nthe.....   4\nbrown...   2\ndog.....   2\nfox.....   2\nquick...   2',
-        'structs_demo':'a = (3, 4), b = (10, 4)\na + b = (13, 8)\nInside moveRight: x = 103\nAfter moveRight: a.x = 3\nAda: health 75.000000, score 15\nNewcomer score: 0, health 100.000000\nDune Messiah is available\nOrigin: (0, 0)\nNamed point: (7, 8)\nLinus: health 100.000000, score 42\nShifted: (8, 9)\nLinus (42) beat Ada (15)\nbox: max.x = 4, bigger max.x = 40\nBlue total 22, first position x = 1\nDiagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4\nAll struct tests passed!',
-    }
+    expected_outputs = EXPECTED_OUTPUTS
 
     # Find all .fusion files in examples/
     examples_dir = Path('examples')

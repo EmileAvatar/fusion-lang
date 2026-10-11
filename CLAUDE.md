@@ -56,6 +56,7 @@ only for a major change - e.g. a new feature direction that wasn't accounted for
 ### Rule 7: Commit and push after every completed task
 When a task or sub-task is complete and `python check.py` passes: commit, then push to
 GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
+`python check.py --ship "message" --claude` does both, only if every check passes.
 
 ### Rule 8: Work efficiently (token budget is limited)
 - Find before reading: `grep -n` for a heading or task number, then read only that range
@@ -74,6 +75,10 @@ python main.py main.fusion --interface [module]   # public interface of the modu
 python check.py                      # all checks, short summary (about 25 s)
 python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build
+python check.py --ship "msg" --claude # all checks; commit + push only if all pass (Rule 7)
+python check.py --example wordcount  # build, run, compare one example
+python check.py --fix-ascii          # non-ASCII -> \uXXXX where the meaning is unchanged
+python tools/patch.py edits.py       # exact (file, old, new) edits, all or nothing
 python -m pytest tests/ -q           # tests directly
 python tests/verify_examples.py      # examples directly
 ```

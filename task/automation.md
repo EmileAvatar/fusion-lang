@@ -17,14 +17,13 @@ command is typed more than twice.
 | Compiling each SYNTAX_REFERENCE.md example by hand | after doc changes | **Automated** - `check.py` (it already caught a wrong example) |
 | Copying reference examples into `examples/`, building every example, keeping a list and a runner | per feature | **Automated** - `python check.py --build-examples` (Task 23) |
 | `gcc -Wall -Wextra -std=c99 -c x.c` to check generated C for warnings | after codegen changes | **Candidate** - add `check.py --warnings` (needs a list of accepted warnings, e.g. unused hidden `fusion_len_*` parameters) |
-| Python edit scripts written to the scratchpad (`patch(old, new)` helper) | many per task | **Partly** - use the Edit tool for small changes; a reusable `tools/patch.py` is possible but low value |
+| Python edit scripts written to the scratchpad (`patch(old, new)` helper) | many per task | **Automated** - `python tools/patch.py edits.py` (Task 22.11) |
 | Shell heredocs containing `\n` or quotes | (caused repeated breakage) | **Stopped** - the shell mangles escapes; write a script file instead (CLAUDE.md Rule 8) |
 | commit + `git push` | per completed task | **Automatic by rule** - CLAUDE.md Rule 7 (user decision 2026-10-09): commit and push after every completed task once `check.py` passes |
 | Writing plans, reading the spec for design context | per task | **Can't automate** - judgement work; grep narrows what gets read |
-| Turning non-ASCII characters in a test file into `\uXXXX` escapes (the editor tool sometimes stores `\u00e9` as the real character, which fails the ascii check) | most string / Unicode tasks | A small script: `''.join(c if ord(c) < 128 else '\\u%04x' % ord(c) for c in text)` over the file - run it before `check.py`. Candidate for a `check.py --fix-ascii` flag |
-| Gated commit: run `check.py`, count the `[OK]` lines, commit + push only when all 5 pass (`if [ "$(grep -c '\[OK\]' chk.txt)" = "5" ]`) | every completed task (Rule 7) | **Candidate** - `python check.py --ship "message"`: runs every check, commits with the attribution line and pushes only if all pass (found 2026-10-11; one ungated push in 18.4.2 went out with a failing check) |
-| Scratchpad `patch(file, [(old, new), ...])` scripts that assert each `old` occurs once | several per task (multi-file tracking updates) | **Candidate** - `tools/patch.py` taking a small JSON / Python list of edits (found 2026-10-11) |
-| Building and running one example by hand (`python main.py x.fusion`, run the exe with `--headless < nul`, compare with the expected output) | per example change | **Candidate** - `python check.py --example wordcount` (found 2026-10-11) |
+| Turning non-ASCII characters into `\uXXXX` escapes (the editor tool sometimes stores `\u00e9` as the real character, which fails the ascii check) | most string / Unicode tasks | **Automated** - `python check.py --fix-ascii` (Task 22.8): only where the meaning is unchanged, the rest is listed |
+| Gated commit: run `check.py`, commit + push only when every check passes | every completed task (Rule 7) | **Automated** - `python check.py --ship "message" --claude` (Task 22.9; one ungated push in 18.4.2 went out with a failing check) |
+| Building and running one example by hand (`python main.py x.fusion`, run the exe with `--headless < nul`, compare with the expected output) | per example change | **Automated** - `python check.py --example NAME [args]` (Task 22.10) |
 
 ## Files without reliable markers
 

@@ -83,6 +83,15 @@ independent. Then features keep being added, and the complex parts come last.
    natural place (the self-hosted compiler will want them). Add them as tasks now, or leave
    them in Later until the phase 1 report?
 
+#### User notes on this plan (2026-10-11) - plan kept as is for now
+- Housekeeping goes first, the ASCII fix first of all (see the plan below)
+- Task 15's remaining items are advanced: they go **after** self-hosting; some become their
+  own sub-tasks (so 15.12 leaves the housekeeping task)
+- The first major goal is a **simple working self-host** to do a test run on. Guidance:
+  `Notes/04/notes.md` section 5 "A practical development order" (minimal compiler first,
+  then semantics tests, types, modules, symbol index, feature policies, memory safety,
+  more backends, tooling)
+
 #### Steps once approved
 1. Script: build the new FEATURES.md from the current one + the map; archive the retired
    done sub-items verbatim
@@ -90,6 +99,20 @@ independent. Then features keep being added, and the complex parts come last.
 3. task/taskBacklog.md: renumber the write-ups (10 split into 28 / 33), add Task 25's
 4. `python check.py`, commit, push
 5. Then plan Task 25 (enums) in detail here, for approval
+
+---
+
+## TASK 22 (housekeeping) - ACTIVE (user: "do the housekeeping first and the ascii issue first")
+
+Kept under Task 22 until the renumbering is approved.
+
+- 22.8-22.11 DONE (tools; detail archived)
+- **16.1 Control-flow example** - check what syntax_variables_and_control_flow / fizzbuzz
+  already cover; add only what is missing (while, break / continue, nested loops, ranges)
+- **22.7 Reliable markers** - status lines under feature headings in the language spec
+  (matching FEATURES.md), README reduced to goals + pointers, FutureFeatures.md links only
+  when an item becomes a task
+- Each one: FEATURES.md line, `task/automation.md` row marked Automated, check, commit
 
 ---
 
@@ -102,5 +125,6 @@ independent. Then features keep being added, and the complex parts come last.
 - User preferences saved to memory: as little typing as possible; never change values
   silently
 - Task 18 archived (FEATURES.md detail too); 3 automation candidates added
-- **Next Action:** user to approve the FEATURES.md reorganization plan above (2 questions),
-  then plan Task 25 (enums)
+- 22.8-22.11 done: check.py --fix-ascii / --ship / --example, tools/patch.py
+- **Next Action:** housekeeping continues - 16.1 control-flow example, then 22.7 markers;
+  the reorganization plan waits (its 2 questions are still open)
