@@ -445,6 +445,7 @@ class FunctionDecl(ASTNode):
     parameters: List[ParameterDecl]
     body: ASTNode  # BlockStmt or single expression (for lambdas)
     is_lambda: bool = False  # True for inline lambdas with ":"
+    is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
 
 
 @dataclass
@@ -473,6 +474,7 @@ class StructDecl(ASTNode):
     """
     name: str
     fields: List[StructField]
+    is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
 
 
 @dataclass

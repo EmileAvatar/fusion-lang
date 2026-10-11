@@ -10,6 +10,9 @@ The model (user decisions 2026-10-10):
 - Each module is loaded once, from one list of loaded modules - imports that criss-cross
   (money -> tax -> money) can't loop. Two different modules with the same name in one file
   are an error: give one an alias
+- Only `public` structs and functions can be used by other modules (Task 18.4.3); files of
+  one module see all of each other's names. A public function can't take or return a
+  private struct of its module
 
 How: every declaration of module `money` gets the internal name `money.round`; each file's
 names are rewritten (scope-aware - a local variable `round` is left alone) to those
@@ -48,6 +51,9 @@ class Module:
 
     def qualify(self, name: str) -> str:
         return f'{self.id}.{name}' if self.id else name
+
+    def is_public(self, name: str) -> bool:
+        return getattr(self.names.get(name), 'is_public', False)
 
 
 class ModuleLoader:
@@ -132,7 +138,36 @@ class ModuleLoader:
         if 'main' in module.names:
             self._error(f"Module '{module_id}' can't have a main function - only the program's "
                         f"main file can", module.names['main'])
+        self._check_public_types(module)
         self._load_imports(module)
+
+    def _check_public_types(self, module: Module) -> None:
+        """A public function or struct can't expose a private struct of its own module:
+        other modules would get values of a type they can't name (Task 18.4.3)."""
+        def private_structs(type_node):
+            if isinstance(type_node, StructType):
+                decl = module.names.get(type_node.name)
+                if isinstance(decl, StructDecl) and not decl.is_public:
+                    yield type_node.name
+            elif is_dataclass(type_node) and not isinstance(type_node, type):
+                for f in dataclass_fields(type_node):
+                    if f.name not in _SKIP_FIELDS:
+                        value = getattr(type_node, f.name)
+                        for item in (value if isinstance(value, list) else [value]):
+                            yield from private_structs(item)
+
+        for decl in module.names.values():
+            if not decl.is_public:
+                continue
+            if isinstance(decl, FunctionDecl):
+                used = [decl.return_type] + [p.param_type for p in decl.parameters]
+                what = f"public function '{decl.name}'"
+            else:
+                used = [f.field_type for f in decl.fields]
+                what = f"public struct '{decl.name}'"
+            for name in sorted({n for t in used for n in private_structs(t)}):
+                self._error(f"The {what} uses the private struct '{name}' - make '{name}' "
+                            f"public too", decl)
 
     # ------------------------------------------------------------------ name rewriting
 
@@ -163,6 +198,10 @@ class ModuleLoader:
                 if name not in imported.names:
                     self._error(f"Module '{module_id}' has no '{name}'", imp)
                     continue
+                if not imported.is_public(name):
+                    self._error(f"'{name}' is private to module '{module_id}' - only names "
+                                f"marked public can be imported", imp)
+                    continue
                 local = imp.alias or name
                 if local in module.names:
                     self._error(f"'{local}' is imported from {module_id} and also declared here",
@@ -172,7 +211,7 @@ class ModuleLoader:
                 explicit.add(local)
             else:
                 for name in imported.names:
-                    if name != 'main':
+                    if imported.is_public(name):   # .* brings the public names only
                         direct.setdefault(name, set()).add(imported.qualify(name))
 
         def lookup(name: str, node: ASTNode) -> str:
@@ -195,6 +234,8 @@ class ModuleLoader:
                 target = self.modules[aliases[prefix]]
                 if rest not in target.names:
                     self._error(f"Module '{target.id}' has no '{rest}'", node)
+                elif not target.is_public(rest) and target is not module:
+                    self._error(f"'{rest}' is private to module '{target.id}'", node)
                 return target.qualify(rest)
             return lookup(name, node)
 
@@ -221,6 +262,8 @@ class ModuleLoader:
                 target = self.modules[aliases[node.object.name]]
                 if node.member not in target.names:
                     self._error(f"Module '{target.id}' has no '{node.member}'", node)
+                elif not target.is_public(node.member) and target is not module:
+                    self._error(f"'{node.member}' is private to module '{target.id}'", node)
                 # money.round -> the identifier money.round (a call, a value or a struct)
                 replacement = IdentifierExpr(location=node.location, name=target.qualify(node.member))
                 node.__class__ = IdentifierExpr

@@ -3489,3 +3489,16 @@ User request (2026-10-09): every string function reachable as `String.replace(s,
 - [x] Imports are per file (as Go / Java / Python) - a file uses only what it imports
 - [x] C: `money.round` -> `fu_money__round`; codegen reports two Fusion names sharing a C name
 - [x] Fixed on the way: a method call on an undefined receiver reported the error 3 times
+
+---
+
+#### 18.4.3 (archived 2026-10-11)
+
+**18.4.3 - `public`** (COMPLETE)
+- [x] `public` / `private` before a top-level struct or function (parser; FunctionDecl /
+      StructDecl.is_public); private by default
+- [x] Other modules see public names only - prefix use, `import M.Name`, dotted types; `.*`
+      brings public names only; a module's own files see everything
+- [x] A public function / struct can't use a private struct of its module (parameters,
+      result, fields - also inside arrays and function types)
+- [x] Existing module tests updated to mark the shared names public

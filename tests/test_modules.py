@@ -67,17 +67,17 @@ def run_project(root, files: dict) -> list:
 
 SHOP = {
     'money/price.fusion': ('import tax\n\n'
-                           'struct Price\n    int cents\n    string currency\n\n'
-                           'Price function make(int cents) : Price(cents, "EUR")\n\n'
-                           'int function round(int cents)\n    return (cents + 50) / 100 * 100\n'),
+                           'public struct Price\n    int cents\n    string currency\n\n'
+                           'public Price function make(int cents) : Price(cents, "EUR")\n\n'
+                           'public int function round(int cents)\n    return (cents + 50) / 100 * 100\n'),
     'money/format.fusion': ('import tax\n\n'
-                            'string function show(Price p)\n'
+                            'public string function show(Price p)\n'
                             '    int total = tax.withVat(p.cents)\n'
                             '    return format("{@1} {@2}", formatNumber(total / 100.0, "0.00"), p.currency)\n'),
     'tax/vat.fusion': ('import money\n\n'
-                       'int function withVat(int cents) : cents + cents / 5\n\n'
-                       'money.Price function free() : money.make(0)\n'),
-    'geometry/shapes/area.fusion': 'int function square(int side) : side * side\n',
+                       'public int function withVat(int cents) : cents + cents / 5\n\n'
+                       'public money.Price function free() : money.make(0)\n'),
+    'geometry/shapes/area.fusion': 'public int function square(int side) : side * side\n',
 }
 
 
@@ -85,7 +85,7 @@ def test_a_multi_module_program(tmp_path):
     files = dict(SHOP)
     files['main.fusion'] = (
         'import money\nimport money.Price\nimport tax.*\nimport geometry.shapes\n\n'
-        'int function round(int x) : x + 1\n\n'
+        'public int function round(int x) : x + 1\n\n'
         'void function main()\n'
         '    Price p = money.make(1999)\n'
         '    money.Price q = Price(500, "USD")\n'
@@ -101,8 +101,8 @@ def test_a_multi_module_program(tmp_path):
 
 def test_alias_and_module_names_in_c(tmp_path):
     files = {
-        'shop/utils/a.fusion': 'string function tag() : "shop"\n',
-        'lib/utils/b.fusion': 'string function tag() : "lib"\n',
+        'shop/utils/a.fusion': 'public string function tag() : "shop"\n',
+        'lib/utils/b.fusion': 'public string function tag() : "lib"\n',
         'main.fusion': ('import shop.utils\nimport lib.utils as libutils\n\n'
                         'void function main()\n    print(utils.tag() + " " + libutils.tag())\n'),
     }
@@ -115,9 +115,9 @@ def test_alias_and_module_names_in_c(tmp_path):
 
 def test_each_module_is_loaded_once(tmp_path):
     files = {
-        'base/b.fusion': 'int function one() : 1\n',
-        'left/l.fusion': 'import base\nint function two() : base.one() + 1\n',
-        'right/r.fusion': 'import base\nimport left\nint function three() : left.two() + base.one()\n',
+        'base/b.fusion': 'public int function one() : 1\n',
+        'left/l.fusion': 'import base\npublic int function two() : base.one() + 1\n',
+        'right/r.fusion': 'import base\nimport left\npublic int function three() : left.two() + base.one()\n',
         'main.fusion': ('import base\nimport left\nimport right\n\n'
                         'void function main()\n    print("{@1} {@2} {@3}", base.one(), left.two(), right.three())\n'),
     }
@@ -134,28 +134,28 @@ def test_program_without_imports_is_unchanged(tmp_path):
 @pytest.mark.parametrize("files, message", [
     ({'main.fusion': 'import nowhere\nvoid function main()\n    print("x")\n'},
      "No module 'nowhere' - expected a folder nowhere/"),
-    ({'m/a.fusion': 'int function f() : 1\n',
+    ({'m/a.fusion': 'public int function f() : 1\n',
       'main.fusion': 'import m.g\nvoid function main()\n    print("x")\n'},
      "Module 'm' has no 'g'"),
-    ({'m/a.fusion': 'int function f() : 1\n',
+    ({'m/a.fusion': 'public int function f() : 1\n',
       'main.fusion': 'import m\nvoid function main()\n    int x = m.g()\n'},
      "Module 'm' has no 'g'"),
-    ({'shop/utils/a.fusion': 'int function f() : 1\n', 'lib/utils/b.fusion': 'int function f() : 2\n',
+    ({'shop/utils/a.fusion': 'public int function f() : 1\n', 'lib/utils/b.fusion': 'public int function f() : 2\n',
       'main.fusion': 'import shop.utils\nimport lib.utils\nvoid function main()\n    print("x")\n'},
      "Two modules are both named 'utils' here: shop.utils and lib.utils - give one another name with 'as'"),
-    ({'a/a.fusion': 'int function f() : 1\n', 'b/b.fusion': 'int function f() : 2\n',
+    ({'a/a.fusion': 'public int function f() : 1\n', 'b/b.fusion': 'public int function f() : 2\n',
       'main.fusion': 'import a.*\nimport b.*\nvoid function main()\n    int x = f()\n'},
      "'f' is ambiguous: a.f or b.f - use the module prefix"),
     ({'m/a.fusion': 'void function main()\n    print("x")\n',
       'main.fusion': 'import m\nvoid function main()\n    print("x")\n'},
      "Module 'm' can't have a main function"),
-    ({'m/a.fusion': 'int function f() : 1\n',
+    ({'m/a.fusion': 'public int function f() : 1\n',
       'main.fusion': 'import m.f\nint function f() : 2\nvoid function main()\n    print("x")\n'},
      "'f' is imported from m and also declared here"),
-    ({'m/a.fusion': 'struct P\n    int x\n',
+    ({'m/a.fusion': 'public struct P\n    int x\n',
       'main.fusion': 'import m\nvoid function main()\n    q.P p\n'},
      "No module 'q' is imported here (for the type 'q.P')"),
-    ({'String/a.fusion': 'int function f() : 1\n',
+    ({'String/a.fusion': 'public int function f() : 1\n',
       'main.fusion': 'import String\nvoid function main()\n    print("x")\n'},
      "'String' can't be a module name"),
 ])
@@ -167,8 +167,8 @@ def test_a_module_needs_its_own_imports(tmp_path):
     """Imports are per file: a file uses only what it imports itself."""
     files = {
         'a/one.fusion': 'import b\nint function f() : b.g()\n',
-        'a/two.fusion': 'int function h() : b.g()\n',
-        'b/b.fusion': 'int function g() : 1\n',
+        'a/two.fusion': 'public int function h() : b.g()\n',
+        'b/b.fusion': 'public int function g() : 1\n',
         'main.fusion': 'import a\nvoid function main()\n    print("x")\n',
     }
     assert "Undefined variable: 'b'" in errors(str(tmp_path), files)
@@ -182,11 +182,87 @@ def test_imports_must_come_first(tmp_path):
 
 def test_two_fusion_names_never_share_a_c_name(tmp_path):
     files = {
-        'a/a.fusion': 'int function b__c() : 1\n',
-        'a/b/b.fusion': 'int function c() : 2\n',
+        'a/a.fusion': 'public int function b__c() : 1\n',
+        'a/b/b.fusion': 'public int function c() : 2\n',
         'main.fusion': 'import a\nimport a.b\nvoid function main()\n    print("{@1} {@2}", a.b__c(), b.c())\n',
     }
     program, import_errors, semantic_errors = load(str(tmp_path), files)
     assert not import_errors and not semantic_errors
     with pytest.raises(NotImplementedError, match="would both be 'fu_a__b__c' in C"):
         CCodeGenerator().generate(program)
+
+
+# ============================================================
+# 18.4.3 - public (private by default)
+# ============================================================
+
+BANK = {
+    'bank/core.fusion': ('public struct Account\n    int cents\n\n'
+                         'struct Ledger\n    int entries\n\n'
+                         'public Account function open(int cents) : Account(cents + bonus())\n\n'
+                         'int function bonus() : 100\n'),
+    'bank/report.fusion': ('public string function show(Account a)\n'
+                           '    Ledger l = Ledger(1)\n'
+                           '    return format("{@1} ({@2} entry, bonus {@3})", a.cents, l.entries, bonus())\n'),
+}
+
+
+def test_public_names_are_usable_private_ones_stay_inside(tmp_path):
+    """Files of one module see each other's private names; other modules see public ones."""
+    files = dict(BANK)
+    files['main.fusion'] = ('import bank\nimport bank.*\n\n'
+                            'void function main()\n'
+                            '    bank.Account a = bank.open(500)\n'
+                            '    Account b = open(1)\n'
+                            '    print(bank.show(a))\n'
+                            '    print(show(b))\n')
+    assert run_project(str(tmp_path), files) == ['600 (1 entry, bonus 100)', '101 (1 entry, bonus 100)']
+
+
+def test_star_import_brings_public_names_only(tmp_path):
+    files = dict(BANK)
+    files['main.fusion'] = 'import bank.*\n\nvoid function main()\n    int x = bonus()\n'
+    assert "Undefined function: 'bonus'" in errors(str(tmp_path), files)
+
+
+@pytest.mark.parametrize("main_text, message", [
+    ('import bank\nvoid function main()\n    int x = bank.bonus()\n',
+     "'bonus' is private to module 'bank'"),
+    ('import bank.bonus\nvoid function main()\n    print("x")\n',
+     "'bonus' is private to module 'bank' - only names marked public can be imported"),
+    ('import bank\nvoid function main()\n    bank.Ledger l\n',
+     "'Ledger' is private to module 'bank'"),
+])
+def test_private_names_from_another_module_are_errors(tmp_path, main_text, message):
+    files = dict(BANK)
+    files['main.fusion'] = main_text
+    assert message in errors(str(tmp_path), files)
+
+
+@pytest.mark.parametrize("module_text, message", [
+    ('struct Secret\n    int x\n\npublic Secret function make() : Secret(1)\n',
+     "The public function 'make' uses the private struct 'Secret' - make 'Secret' public too"),
+    ('struct Secret\n    int x\n\npublic int function peek(Secret s) : s.x\n',
+     "The public function 'peek' uses the private struct 'Secret'"),
+    ('struct Secret\n    int x\n\npublic struct Box\n    Secret[2] inside\n',
+     "The public struct 'Box' uses the private struct 'Secret'"),
+])
+def test_public_declarations_cannot_expose_private_structs(tmp_path, module_text, message):
+    files = {'m/m.fusion': module_text, 'main.fusion': 'import m\nvoid function main()\n    print("x")\n'}
+    assert message in errors(str(tmp_path), files)
+
+
+@pytest.mark.parametrize("source, message", [
+    ('public public int function f() : 1\n', "Only one of 'public' / 'private' may be given"),
+    ('public import m\n', "'public' can only come before a struct or a function"),
+])
+def test_public_syntax_errors(source, message):
+    from src.parser.parser import ParserError
+    with pytest.raises(ParserError, match=message):
+        parse_file(source, 'main.fusion')
+
+
+def test_private_is_the_default_and_may_be_written(tmp_path):
+    files = {'m/m.fusion': 'private int function hidden() : 1\npublic int function shown() : hidden() + 1\n',
+             'main.fusion': 'import m\nvoid function main()\n    print("{@1}", m.shown())\n'}
+    assert run_project(str(tmp_path), files) == ['2']

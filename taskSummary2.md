@@ -348,4 +348,5 @@ from functions (18.1), structs (18.2), and strings (18.3).
   same-name modules need an alias).
 - 18.4.1 COMPLETE (C names: fu_ prefix; closes 15.8).
 - 18.4.2 COMPLETE (import, module folders, aliases, name rules; each module loaded once).
-- **Next Action:** implement **18.4.3 (public visibility)** per the approved plan.
+- 18.4.3 COMPLETE (public visibility).
+- **Next Action:** implement **18.4.4 (module interfaces, a multi-file example project, docs)**.

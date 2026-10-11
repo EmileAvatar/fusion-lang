@@ -306,7 +306,14 @@ void function main()
     money.Price p = money.make(1999)
     print("{@1} {@2}", money.show(p), shapes.square(4))
 ```
-Each file imports what it uses; files of one module share their names; each module is
+```fusion multi-file
+// money/price.fusion - only `public` names can be used by other modules
+public struct Price
+    int cents
+public Price function make(int cents) : Price(cents + fee())
+int function fee() : 50          // private: only the files of module money see it
+```
+Each file imports what it uses; files of one module share all their names; each module is
 loaded once, so modules may import each other.
 
 #### Equality: `=`, `==`, `===`

@@ -140,7 +140,8 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.4.1 C names: functions and structs get `fu_` in C; clashing locals too (closes 15.8)
 		[DONE] 18.4.2 `import`, module folders, prefixed use, `import M.Name`, `import M.*`, dotted
 			types, `as` aliases, the same-module-name error, each module loaded once
-		[ ] 18.4.3 `public` visibility (private by default)
+		[DONE] 18.4.3 `public` visibility (private by default; `private` may be written); a public
+			declaration can't expose a private struct
 		[ ] 18.4.4 Module interfaces (`--interface`), a multi-file example project, docs
 	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std
 		[ ] 18.5.x String split & join: split(s, ","), join(list, ", "), lines(s), words(s) (need lists)

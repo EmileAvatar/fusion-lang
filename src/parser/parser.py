@@ -1297,6 +1297,26 @@ class Parser:
         Raises:
             ParserError: If declaration is malformed
         """
+        # `public` / `private` before a struct or function (Task 18.4.3) - private is the
+        # default, so `private` only says so explicitly
+        if self.match(TokenType.PUBLIC, TokenType.PRIVATE):
+            modifier = self.previous()
+            while self.match(TokenType.NEWLINE):
+                pass
+            if self.check(TokenType.PUBLIC) or self.check(TokenType.PRIVATE):
+                raise ParserError(self.peek(), "Only one of 'public' / 'private' may be given")
+            if not (self.check(TokenType.STRUCT) or self.is_type_start()
+                    or self.is_function_type_declaration_start()
+                    or self.is_struct_type_declaration_start()):
+                raise ParserError(modifier, f"'{modifier.value}' can only come before a struct "
+                                            f"or a function")
+            decl = self.parse_declaration()
+            if not isinstance(decl, (FunctionDecl, StructDecl)):
+                raise ParserError(modifier, f"'{modifier.value}' can only come before a struct "
+                                            f"or a function")
+            decl.is_public = modifier.type == TokenType.PUBLIC
+            return decl
+
         # Struct declaration (Task 18.2.1)
         if self.match(TokenType.STRUCT):
             return self.parse_struct_declaration()

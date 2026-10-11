@@ -3313,8 +3313,19 @@ direction:
   (`String`, `Int`, ...) or contain `__`
 * All modules compile into one C file; `money.round` is `fu_money__round` there, and two
   Fusion names that would share a C name are reported
-* Coming in Task 18.4.3: `public` (private by default) - until then every name of a module
-  can be imported
+* **`public`** (Task 18.4.3, user decision 2026-10-10): only structs and functions marked
+  `public` can be used by other modules - through `money.round`, `import money.round` or
+  `import money.*` (which brings the public names only). Everything else is private to its
+  module, while the module's own files see all of each other's names. `private` may be
+  written to say the default explicitly. A public function or struct can't use a private
+  struct of its module in its parameters, result or fields ("make 'Secret' public too") -
+  otherwise other modules would get values of a type they can't name
+  ```
+  public struct Price          // other modules may use it
+      int cents
+  public Price function make(int cents) : Price(cents + fee())
+  int function fee() : 50      // private: only module money's files see it
+  ```
 
 ---
 

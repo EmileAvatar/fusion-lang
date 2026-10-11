@@ -367,6 +367,8 @@ property_declaration =
         [ "set" "(" identifier ")" block ]
     DEDENT ;
 
+(* Task 18.4.3: "public" / "private" before a top-level struct or function; private is the
+   default; "protected" is reserved for classes *)
 access_modifier = "public" | "private" | "protected" ;
 
 interface_declaration =
