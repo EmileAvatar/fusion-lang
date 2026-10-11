@@ -962,3 +962,20 @@ Starting points for that plan (not yet decided):
 
 ---
 
+---
+
+## TASK 24: Editor Support - Syntax Highlighting (after self-hosting)
+
+**Requested:** user, 2026-10-11 - syntax highlighters for Sublime Text, VS Code and future IDEs.
+**Scheduled:** after Task 10 (self-hosting), when the syntax has settled - a grammar written
+earlier would need rework with every syntax change.
+
+**Approach:** write one TextMate grammar (`fusion.tmLanguage.json`) - the format VS Code,
+Sublime Text, JetBrains IDEs and GitHub's highlighter all read - then package it per editor:
+a VS Code extension (grammar, file icon, comment / bracket / indentation rules), a Sublime
+Text package, and others on request (Notepad++, Vim / Neovim, a tree-sitter grammar).
+**Later:** a language server (LSP) built on the self-hosted compiler, giving every editor
+live errors, go to definition and completion from one implementation.
+**Until then:** `tools/windows/fusion-file-preview.reg` shows `.fusion` files as plain text
+in Explorer's preview pane.
+

@@ -188,6 +188,17 @@ The single place to see what is done, open, or postponed. One line per item.
 		goals + pointers to FEATURES.md / SYNTAX_REFERENCE.md; task links in FutureFeatures.md
 		only when an item becomes a task
 
+
+#### 24 Editor support: syntax highlighting for code editors and IDEs [POSTPONED to 10]
+	(user request 2026-10-11 - after self-hosting, when the syntax has settled)
+	[ ] 24.1 One shared TextMate grammar (fusion.tmLanguage) - VS Code, Sublime Text, JetBrains
+		IDEs (TextMate bundles), Atom-family editors and GitHub all read this format
+	[ ] 24.2 VS Code extension: the grammar, `.fusion` file icon, comment / bracket / indent rules
+	[ ] 24.3 Sublime Text package
+	[ ] 24.4 Others as needed: Notepad++ (user-defined language), Vim / Neovim, tree-sitter grammar
+	[ ] 24.5 Later: a language server (LSP) - errors as you type, go to definition, completion -
+		built on the self-hosted compiler, one server for every editor
+
 ---
 
 ## Later / advanced (after MVP)
