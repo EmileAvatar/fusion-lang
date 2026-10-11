@@ -36,4 +36,4 @@ that range. These files don't have reliable markers, so finding something in the
 | `FutureFeatures.md` | ~6,000 lines | 213 headings, almost no status or task links | Leave as a menu; link items to task numbers only when they become tasks |
 | `task/taskSummaryArchive.md` | ~3,000 lines | Mixed heading styles across years (`####`, bold `**18.2.1 -`, `### Session`) | Fine - only searched, never read whole |
 | `taskSummary2.md` (before Task 22) | was 2,738 lines | Status words varied (COMPLETE, RESOLVED, GUARDED, `[x]`); sub-task plans used bold lines, not headings | Fixed by Task 22 - now a small working file |
-| `README.md` | 52 headings | Feature claims can drift from reality | Point it at FEATURES.md / SYNTAX_REFERENCE.md at the next README pass |
+| `README.md` | 21 headings | Feature claims could drift from reality | **Fixed** (22.7a): goals + pointers to FEATURES.md / SYNTAX_REFERENCE.md, no status lists |

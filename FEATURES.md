@@ -130,10 +130,13 @@ The single place to see what is done, open, or postponed. One line per item.
 	[DONE] 22.4 Working file / archive / backlog split
 	[DONE] 22.5 Verify nothing lost
 	[DONE] 22.6 check.py - one command for tests, examples, leak check, ASCII, status
-	[ ] 22.7 Reliable markers for files that lack them (see task/automation.md): status lines
-		under each feature heading in the language spec, matching FEATURES.md; README reduced to
-		goals + pointers to FEATURES.md / SYNTAX_REFERENCE.md; task links in FutureFeatures.md
-		only when an item becomes a task
+	[ ] 22.7 Reliable markers for files that lack them (see task/automation.md)
+		[DONE] 22.7a README reduced to goals + pointers to FEATURES.md / SYNTAX_REFERENCE.md
+			(Current Status, Features, Development Status, test counts, syntax quick reference
+			removed - 554 -> 321 lines)
+		[ ] 22.7b Status lines under each feature heading in the language spec, matching
+			FEATURES.md - after the renumbering (the lines name task numbers)
+		(FutureFeatures.md: a task link is added only when an item becomes a task - a standing rule)
 	[DONE] 22.8 `check.py --fix-ascii`: non-ASCII characters -> \uXXXX escapes, only where meaning is unchanged
 	[DONE] 22.9 `check.py --ship "message"`: every check, then commit + push only if all pass
 	[DONE] 22.10 `check.py --example NAME`: build, run and compare one example

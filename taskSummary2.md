@@ -108,9 +108,8 @@ Kept under Task 22 until the renumbering is approved.
 
 - 22.8-22.11 DONE (tools; detail archived)
 - 16.1 DONE - examples/control_flow
-- **22.7 Reliable markers** - status lines under feature headings in the language spec
-  (matching FEATURES.md), README reduced to goals + pointers, FutureFeatures.md links only
-  when an item becomes a task
+- 22.7a DONE - README reduced to goals + pointers
+- **22.7b** - spec status lines: waits for the renumbering (they name task numbers)
 - Each one: FEATURES.md line, `task/automation.md` row marked Automated, check, commit
 
 ---
@@ -126,5 +125,6 @@ Kept under Task 22 until the renumbering is approved.
 - Task 18 archived (FEATURES.md detail too); 3 automation candidates added
 - 22.8-22.11 done: check.py --fix-ascii / --ship / --example, tools/patch.py
 - 16.1 done: examples/control_flow; map literals noticed missing (FEATURES.md Later)
-- **Next Action:** housekeeping continues - 22.7 markers;
-  the reorganization plan waits (its 2 questions are still open)
+- 22.7a done: README is goals + pointers (554 -> 321 lines); 22.7b waits for the renumbering
+- **Next Action:** user to answer the reorganization plan's 2 questions; then renumber,
+  then 22.7b spec status lines, then plan Task 25 (enums)
