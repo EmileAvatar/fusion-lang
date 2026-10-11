@@ -520,6 +520,12 @@ class CollectionsMixin:
                 '    from = i + 1;',
                 '}',
                 'return r;'],
+            # readLines(path): the file's text split into lines (Task 18.5.5)
+            f'{lst} fusion_readLines(fusion_string path, const char* where)': [
+                'fusion_string text = fusion_readText(path, where);',
+                f'{lst} r = fusion_str_lines(text);',
+                'fusion_str_free(&text);',
+                'return r;'],
             # Words between runs of spaces, tabs and newlines - never an empty word
             f'{lst} fusion_str_words(fusion_string s)': [
                 f'{lst} r = {{0}};',

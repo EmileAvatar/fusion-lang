@@ -341,4 +341,5 @@ folders), networking, dates and times, random numbers, threads.
 - 18.5.2 COMPLETE (Map<K, V>, alias Dictionary).
 - 18.5.3 COMPLETE (split / join / lines / words).
 - 18.5.4 COMPLETE (program arguments, readLine / isEndOfInput, exit).
-- **Next Action:** implement **18.5.5 (files)** per the approved plan.
+- 18.5.5 COMPLETE (files).
+- **Next Action:** implement **18.5.6 (layers: [stdlib] layer)** per the approved plan.

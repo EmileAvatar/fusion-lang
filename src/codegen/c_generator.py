@@ -928,6 +928,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'fromOctal': ('fusion_str_fromOctal', True), 'parseInt': ('fusion_str_parseInt', True),
         'bytesToHex': ('fusion_str_bytesToHex', True), 'hexToBytes': ('fusion_str_hexToBytes', True),
         'formatNumber': ('fusion_formatNumber', True),   # 18.3.6d-2
+        'readText': ('fusion_readText', True), 'readLines': ('fusion_readLines', True),   # 18.5.5
+        'writeText': ('fusion_writeText', True), 'appendText': ('fusion_appendText', True),
+        'readBytes': ('fusion_readBytes', True), 'writeBytes': ('fusion_writeBytes', True),
+        'fileExists': ('fusion_fileExists', False), 'deleteFile': ('fusion_deleteFile', True),
         'readLine': ('fusion_readLine', False), 'isEndOfInput': ('fusion_isEndOfInput', False),
         'exit': ('fusion_exit', False),   # 18.5.4
         'split': ('fusion_str_split', False), 'join': ('fusion_str_join', True),   # 18.5.3
@@ -963,7 +967,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         borrowed and evaluated left to right as written."""
         name = node.callee.name
         c_function, needs_where = self._STRING_BUILTINS[name]
-        if name in ('split', 'join', 'lines', 'words'):
+        if name in ('split', 'join', 'lines', 'words', 'readLines'):
             self.text_list_helpers()   # made on demand, after List<string> (Task 18.5.3)
         # With any optional arguments filled in by their defaults (Task 18.3.6)
         arguments = list(node.resolved_arguments or node.arguments)

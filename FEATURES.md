@@ -155,7 +155,8 @@ The single place to see what is done, open, or postponed. One line per item.
 			lines(s), words(s)
 		[DONE] 18.5.4 Program arguments (`main(string... args)`, UTF-8 on Windows, no --headless),
 			readLine / isEndOfInput, exit(code)
-		[ ] 18.5.5 Files: readText / readLines / writeText / appendText / readBytes / writeBytes / fileExists
+		[DONE] 18.5.5 Files: readText / readLines / writeText / appendText / readBytes / writeBytes /
+			fileExists / deleteFile - byte for byte, UTF-8 paths on Windows
 		[ ] 18.5.6 Layers: `[stdlib] layer = "core" | "alloc" | "std"`
 		[ ] 18.5.7 The word-counter example + docs
 

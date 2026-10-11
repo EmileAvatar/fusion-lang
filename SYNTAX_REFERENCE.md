@@ -246,6 +246,27 @@ void function main()
     print("{@1} {@2}", mask("4111111111111111", 6, 4), maskEmail("alice@example.com"))
 ```
 
+#### Files
+
+<!-- example: syntax_files | task: 18.5.5 -->
+```fusion
+void function main()
+    string path = "fusion_example.txt"             // relative to the folder the program runs in
+    writeText(path, "first line\n")               // creates or replaces the file
+    appendText(path, "second line\n")
+    print("{@1} line(s)", readLines(path).len())
+    print(readText(path).trim())
+
+    bytes raw = [0x00, 0xFF, 0x41]
+    writeBytes("fusion_example.bin", raw)          // any bytes - for binary files
+    print("{@1}", readBytes("fusion_example.bin").rawToHex())
+
+    if fileExists(path)                            // a missing file is a run-time error,
+        deleteFile(path)                           // so check first
+    deleteFile("fusion_example.bin")
+    print("{@1}", fileExists(path))
+```
+
 #### Program arguments, console input, exit
 
 <!-- example: syntax_program_io | task: 18.5.4 -->

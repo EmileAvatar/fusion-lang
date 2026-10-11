@@ -3677,3 +3677,14 @@ manager, one C file per module, re-exporting another module's names, conditional
       the strings live for the whole program (not tracked by the leak check)
 - [x] readLine (any length, drops \r), isEndOfInput (peeks), exit(code) (skips the leak
       report, like a run-time error); console input switched to UTF-8 on Windows
+
+---
+
+#### 18.5.5 (archived 2026-10-11)
+
+**18.5.5 - Files** (COMPLETE)
+- [x] src/codegen/c_files.py: readText (valid UTF-8 required, BOM dropped), readBytes,
+      writeText / appendText / writeBytes (byte for byte), fileExists (files, not folders),
+      deleteFile; readLines made on demand with the List code
+- [x] Windows: UTF-8 paths through _wfopen / GetFileAttributesW / _wremove (accented names)
+- [x] Failures are run-time errors naming the file and strerror's reason

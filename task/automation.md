@@ -21,6 +21,7 @@ command is typed more than twice.
 | Shell heredocs containing `\n` or quotes | (caused repeated breakage) | **Stopped** - the shell mangles escapes; write a script file instead (CLAUDE.md Rule 8) |
 | commit + `git push` | per completed task | **Automatic by rule** - CLAUDE.md Rule 7 (user decision 2026-10-09): commit and push after every completed task once `check.py` passes |
 | Writing plans, reading the spec for design context | per task | **Can't automate** - judgement work; grep narrows what gets read |
+| Turning non-ASCII characters in a test file into `\uXXXX` escapes (the editor tool sometimes stores `\u00e9` as the real character, which fails the ascii check) | most string / Unicode tasks | A small script: `''.join(c if ord(c) < 128 else '\\u%04x' % ord(c) for c in text)` over the file - run it before `check.py`. Candidate for a `check.py --fix-ascii` flag |
 
 ## Files without reliable markers
 

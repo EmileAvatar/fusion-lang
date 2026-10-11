@@ -3361,7 +3361,21 @@ bool same = ages == other       // the same keys with equal values, in any order
 * `exit(code)` - ends the program at once with that exit code (the "Press any key" wait
   still happens when someone is at the console)
 
-* Coming in 18.5: files, and the core / alloc / std layers
+**Files** (Task 18.5.5):
+* `readText(path)` (the whole file - it must be valid UTF-8 text; a UTF-8 byte-order mark at
+  the start is dropped, as C# does), `readLines(path)` -> `List<string>` (as `lines`),
+  `writeText(path, s)` (creates or replaces), `appendText(path, s)`, `readBytes(path)` ->
+  `bytes` and `writeBytes(path, b)` for binary files, `fileExists(path)` (a file, not a
+  folder), `deleteFile(path)`
+* Files are read and written byte for byte - no newline translation
+* Paths are relative to the folder the program runs in, `/` or `\\` between folders; names
+  with accents work on Windows (the wide-character file functions)
+* A failure - a missing file, no permission, a missing folder - stops the program with a
+  run-time error naming the file and the reason; check first with `fileExists`. Error
+  handling (Task 21) will make these catchable. File access will be a declared capability
+  (Task 19)
+
+* Coming in 18.5: the core / alloc / std layers
 
 ---
 

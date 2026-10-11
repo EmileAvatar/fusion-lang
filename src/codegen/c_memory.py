@@ -36,6 +36,7 @@ from ..parser.ast_nodes import (
 from .c_names import mangle_function_name
 from .c_strings import STRING_LIBRARY
 from .c_bytes import BYTES_LIBRARY
+from .c_files import FILES_LIBRARY
 from ..semantic.collection_rules import MUTATING_LIST_METHODS
 from ..semantic.name_resolver import MUTATING_BUILTINS
 
@@ -401,6 +402,7 @@ static inline bool fusion_char_eq_str(fusion_char c, fusion_string s) { return s
 '''
 RUNTIME_PRELUDE += STRING_LIBRARY  # the versatile string functions (Task 18.3.6)
 RUNTIME_PRELUDE += BYTES_LIBRARY   # raw bytes (Task 18.3.8)
+RUNTIME_PRELUDE += FILES_LIBRARY   # files (Task 18.5.5)
 
 
 class MemoryManagementMixin:

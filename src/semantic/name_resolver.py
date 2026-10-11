@@ -262,6 +262,15 @@ class NameResolver:
             'digitsOnly': ([string_type], string_type),
             'mask': ([string_type, int_type, int_type, char_type], string_type),
             'maskEmail': ([string_type, int_type, char_type], string_type),
+            # Files (18.5.5)
+            'readText': ([string_type], string_type),
+            'readLines': ([string_type], string_list),
+            'writeText': ([string_type, string_type], void_type),
+            'appendText': ([string_type, string_type], void_type),
+            'readBytes': ([string_type], bytes_type),
+            'writeBytes': ([string_type, bytes_type], void_type),
+            'fileExists': ([string_type], bool_type),
+            'deleteFile': ([string_type], void_type),
             # Console input, exit (18.5.4)
             'readLine': ([], string_type),
             'isEndOfInput': ([], bool_type),
