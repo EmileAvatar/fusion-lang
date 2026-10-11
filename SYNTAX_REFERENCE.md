@@ -314,7 +314,8 @@ public Price function make(int cents) : Price(cents + fee())
 int function fee() : 50          // private: only the files of module money see it
 ```
 Each file imports what it uses; files of one module share all their names; each module is
-loaded once, so modules may import each other.
+loaded once, so modules may import each other. A whole project to try: `examples/shop/`.
+`python main.py main.fusion --interface` prints the public names of every module it imports.
 
 #### Equality: `=`, `==`, `===`
 

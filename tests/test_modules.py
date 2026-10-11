@@ -266,3 +266,77 @@ def test_private_is_the_default_and_may_be_written(tmp_path):
     files = {'m/m.fusion': 'private int function hidden() : 1\npublic int function shown() : hidden() + 1\n',
              'main.fusion': 'import m\nvoid function main()\n    print("{@1}", m.shown())\n'}
     assert run_project(str(tmp_path), files) == ['2']
+
+
+# ============================================================
+# 18.4.4 - Module interfaces, loading a program file
+# ============================================================
+
+INTERFACE_PROJECT = {
+    'money/m.fusion': ('public struct Price\n    int cents\n    string currency = "EUR"\n\n'
+                       'public Price function make(int cents, string currency = "EUR") : Price(cents, currency)\n\n'
+                       'public int[3] function parts(Price p) : [p.cents, 0, 0]\n\n'
+                       'int function hidden() : 1\n'),
+    'cart/c.fusion': ('import money\n\npublic struct Item\n    money.Price price\n    bool taxed\n\n'
+                      'public (int) : int function scaler(bool up = true) : (int x) : x * 2\n'),
+    'main.fusion': 'import money\nimport cart\nvoid function main()\n    print("x")\n',
+}
+
+
+def test_module_interfaces(tmp_path):
+    from src.modules import program_interfaces
+    main_file = write_project(str(tmp_path), INTERFACE_PROJECT)
+    lines, problems = program_interfaces(main_file)
+    assert not problems
+    assert lines == [
+        'module cart',
+        '    public struct Item',
+        '        money.Price price',
+        '        bool taxed',
+        '    public (int) : int function scaler(bool up = true)',
+        '',
+        'module money',
+        '    public struct Price',
+        '        int cents',
+        '        string currency',
+        '    public Price function make(int cents, string currency = "EUR")',
+        '    public int[3] function parts(Price p)',
+        '',
+    ]
+    only, _ = program_interfaces(main_file, 'cart')
+    assert only[0] == 'module cart' and 'module money' not in only
+    _, problems = program_interfaces(main_file, 'nowhere')
+    assert problems == ["The program doesn't import a module named 'nowhere' (it imports: cart, money)"]
+
+
+def test_interface_on_the_command_line(tmp_path):
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    main_file = write_project(str(tmp_path), INTERFACE_PROJECT)
+    result = subprocess.run([os.sys.executable, os.path.join(root, 'main.py'), main_file,
+                             '--interface', 'money'], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[:2] == ['module money', '    public struct Price']
+    assert 'hidden' not in result.stdout
+
+
+def test_load_program_file_handles_single_files_and_projects(tmp_path):
+    from src.modules import load_program_file
+    main_file = write_project(str(tmp_path), INTERFACE_PROJECT)
+    program, problems = load_program_file(main_file)
+    assert not problems
+    assert {d.name for d in program.declarations} >= {'money.make', 'cart.Item', 'main'}
+    single = os.path.join(str(tmp_path), 'single.fusion')
+    with open(single, 'w', encoding='utf-8') as f:
+        f.write('void function main()\n    print("x")\n')
+    program, problems = load_program_file(single)
+    assert not problems and [d.name for d in program.declarations] == ['main']
+
+
+def test_the_shop_example_project_builds(tmp_path):
+    """examples/shop - the example program of several files (Task 18.4.4)."""
+    from src.modules import load_program_file
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    program, problems = load_program_file(os.path.join(root, 'examples', 'shop', 'main.fusion'))
+    assert not problems
+    analyzer = SemanticAnalyzer()
+    assert analyzer.analyze(program), analyzer.get_errors()

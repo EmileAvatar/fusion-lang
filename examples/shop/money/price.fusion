@@ -1,0 +1,11 @@
+// Module money: amounts in cents - this file and format.fusion share their names
+public struct Price
+    int cents
+
+public Price function make(int cents) : Price(cents)
+
+public Price function withVat(Price p) : Price(p.cents + vat(p.cents))
+
+int function vat(int cents) : (cents * vatPercent() + 50) / 100   // private to money
+
+int function vatPercent() : 15

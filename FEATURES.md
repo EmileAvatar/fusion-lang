@@ -74,7 +74,7 @@ The single place to see what is done, open, or postponed. One line per item.
 	[POSTPONED - needs threading, no task yet] 16.4 Multithreading / async example
 	[POSTPONED to 21] 16.5 Error handling (try/catch) example
 	[POSTPONED to 15.5] 16.6 Memory model (Unique/Shared/Weak) example
-	[POSTPONED to 18.4] 16.7 Modules / import example
+	[DONE] 16.7 Modules / import example - examples/shop (18.4.4)
 
 #### 17 Mutable vs. fixed strings, templated strings, string pooling [ ]
 	[ ] 17.1 Mutable string literal syntax (in-place editing, `s[0] = 'X'`)
@@ -135,14 +135,15 @@ The single place to see what is done, open, or postponed. One line per item.
 		[DONE] 18.3.7 Built-in type classes and method syntax - every built-in function three ways:
 			`toUpper(name)`, `name.toUpper()` / `"Claude".toUpper()` / `255.toHex()` (chainable), and
 			`String.toUpper(name)`; classes String, Bytes, Int, Char, Float, Double, Byte, Bool
-	[ ] 18.4 `import` and multi-file projects (plan approved 2026-10-10: folder modules, `public`,
+	[DONE] 18.4 `import` and multi-file projects (plan approved 2026-10-10: folder modules, `public`,
 		one combined C file, each module loaded once, same-name modules need an alias)
 		[DONE] 18.4.1 C names: functions and structs get `fu_` in C; clashing locals too (closes 15.8)
 		[DONE] 18.4.2 `import`, module folders, prefixed use, `import M.Name`, `import M.*`, dotted
 			types, `as` aliases, the same-module-name error, each module loaded once
 		[DONE] 18.4.3 `public` visibility (private by default; `private` may be written); a public
 			declaration can't expose a private struct
-		[ ] 18.4.4 Module interfaces (`--interface`), a multi-file example project, docs
+		[DONE] 18.4.4 Module interfaces (`--interface`), the multi-file example project examples/shop,
+			check.py / verify_examples build projects, docs
 	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std
 		[ ] 18.5.x String split & join: split(s, ","), join(list, ", "), lines(s), words(s) (need lists)
 

@@ -26,6 +26,7 @@ from src.lexer import Lexer
 from src.parser.parser import Parser
 from src.semantic import SemanticAnalyzer
 from src.codegen import CCodeGenerator
+from src.modules import load_program_file
 
 
 class Colors:
@@ -92,16 +93,13 @@ def compile_fusion_to_c(fusion_file: Path) -> tuple[bool, str, list[str]]:
         with open(fusion_file, 'r') as f:
             fusion_code = f.read()
 
-        # Lexical analysis
-        lexer = Lexer(fusion_code, str(fusion_file))
-        tokens = lexer.tokenize()
-
-        if lexer.diagnostics.errors:
-            return False, "", [str(e) for e in lexer.diagnostics.errors]
-
-        # Parsing
-        parser = Parser(tokens)
-        ast = parser.parse_program()
+        # Lexing and parsing - plus, for a project, every module it imports (Task 18.4.4)
+        try:
+            ast, import_errors = load_program_file(str(fusion_file))
+        except ValueError as e:   # lexer errors
+            return False, "", [str(e)]
+        if import_errors:
+            return False, "", import_errors
 
         # Semantic analysis
         analyzer = SemanticAnalyzer()
@@ -193,7 +191,10 @@ def verify_example(fusion_file: Path, expected_outputs: dict) -> VerificationRes
     Returns:
         VerificationResult object
     """
-    result = VerificationResult(fusion_file.stem)
+    # A project (examples/<name>/main.fusion, Task 18.4.4) is named after its folder
+    name = fusion_file.parent.name if fusion_file.name == 'main.fusion' and \
+        fusion_file.parent.name != 'examples' else fusion_file.stem
+    result = VerificationResult(name)
 
     print(f"\n{Colors.BOLD}Verifying: {fusion_file.name}{Colors.RESET}")
     print("-" * 80)
@@ -253,7 +254,7 @@ def verify_example(fusion_file: Path, expected_outputs: dict) -> VerificationRes
     # Step 4: Verify output
     print("  [4/4] Verifying output...", end=" ")
 
-    expected = expected_outputs.get(fusion_file.stem, "")
+    expected = expected_outputs.get(result.name, "")
     result.expected_output = expected
 
     if expected:
@@ -361,6 +362,7 @@ def main():
         'arrays_demo': 'First score: 10\nUpdated first score: 99\nNumber of scores: 5\nSum of [10, 20, 30, 40, 50] = 150\nAll array tests passed!',
         'functions_demo': 'Hello, World!\nHello, Fusion!\nWelcome, Fusion!\noffset(10) = 5, offset(10, 2) = 12\nsum: 6, 150, 15\nAfter doubleAll, middle of small = 4\ntripled = 15, added = 105, squared = 49, viaName = 21\nAll function tests passed!',
         'strings_demo': 'a = apple, b = banana\noriginal = quiet, loud = LOUD\na == apple: true, a < b: true\nAda 555-0100 / Grace 555-0123\nGrace: found, Alan: missing\nAda Lovelace! has 13 characters, starts with A\n[Lovelace] [ADA] [spaced]\ncontains Love: true, index of Love: 4\n42 doubled is 84\nAll string tests passed!',
+        'shop': 'Receipt\n-------\nCoffee beans.. R 12.99\nMug........... R 8.50\nFilters....... R 3.99\n-------\nSubtotal...... R 25.48\nTotal + VAT... R 29.30',
         'structs_demo':'a = (3, 4), b = (10, 4)\na + b = (13, 8)\nInside moveRight: x = 103\nAfter moveRight: a.x = 3\nAda: health 75.000000, score 15\nNewcomer score: 0, health 100.000000\nDune Messiah is available\nOrigin: (0, 0)\nNamed point: (7, 8)\nLinus: health 100.000000, score 42\nShifted: (8, 9)\nLinus (42) beat Ada (15)\nbox: max.x = 4, bigger max.x = 40\nBlue total 22, first position x = 1\nDiagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4\nAll struct tests passed!',
     }
 
@@ -373,6 +375,8 @@ def main():
     # syntax_*.fusion are generated from SYNTAX_REFERENCE.md (Task 23) - check.py builds and
     # runs those under the leak check; this script covers the hand-written demos
     fusion_files = [f for f in examples_dir.glob('*.fusion') if not f.name.startswith('syntax_')]
+    # Example projects of several files: examples/<name>/main.fusion (Task 18.4.4)
+    fusion_files += list(examples_dir.glob('*/main.fusion'))
 
     if not fusion_files:
         print_warning("No .fusion files found in examples/")

@@ -1,0 +1,17 @@
+// A multi-file program: modules and import (Task 18.4)
+import money
+import money.Price
+import cart.*
+
+void function main()
+    Item[3] items = [Item("Coffee beans", money.make(1299)), Item("Mug", money.make(850)), Item("Filters", money.make(399))]
+    print("Receipt")
+    print("-------")
+    int subtotal = 0
+    for i in range(0, 3)
+        print(line(items[i]))
+        subtotal = subtotal + items[i].price.cents
+    Price total = money.withVat(money.make(subtotal))
+    print("-------")
+    print(format("{@1} {@2}", "Subtotal".padRight(14, '.'), money.show(money.make(subtotal))))
+    print(format("{@1} {@2}", "Total + VAT".padRight(14, '.'), money.show(total)))

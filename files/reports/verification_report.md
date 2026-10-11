@@ -1,13 +1,13 @@
 # Fusion Compiler Verification Report
 
-**Date:** Fri Oct  9 22:39:56 SAST 2026
-**Total Examples:** 11
+**Date:** Sun Oct 11 16:15:35 SAST 2026
+**Total Examples:** 12
 
 ## Summary
 
-- **Compilation Success:** 11/11
-- **Execution Success:** 11/11
-- **Output Matches:** 11/11
+- **Compilation Success:** 12/12
+- **Execution Success:** 12/12
+- **Output Matches:** 12/12
 
 ## Detailed Results
 
@@ -588,6 +588,88 @@ Maximum of 10, 25, 15 is 25
 **Expected:**
 ```
 Maximum of 10, 25, 15 is 25```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+#endif
+static inline void fusion_init(void) {
+#ifdef _WIN32
+    SetConsoleOutputCP(65001);
+#endif
+}
+
+static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    va_list args;
+    fflush(stdout);
+    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+... (truncated)
+```
+
+### shop
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+Receipt
+-------
+Coffee beans.. R 12.99
+Mug........... R 8.50
+Filters....... R 3.99
+-------
+Subtotal...... R 25.48
+Total + VAT... R 29.30
+```
+
+**Expected:**
+```
+Receipt
+-------
+Coffee beans.. R 12.99
+Mug........... R 8.50
+Filters....... R 3.99
+-------
+Subtotal...... R 25.48
+Total + VAT... R 29.30```
 
 **Generated C Code (first 50 lines):**
 ```c

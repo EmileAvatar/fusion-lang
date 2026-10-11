@@ -1,0 +1,2 @@
+// Module money, second file: uses Price from price.fusion without importing it
+public string function show(Price p) : "R " + formatNumber(p.cents / 100.0, "#,##0.00")

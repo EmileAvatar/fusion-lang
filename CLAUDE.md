@@ -70,6 +70,7 @@ GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
 
 ```text
 python main.py program.fusion        # compile -> program.c and program.exe (fusion.toml optional)
+python main.py main.fusion --interface [module]   # public interface of the modules it imports
 python check.py                      # all checks, short summary (about 25 s)
 python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build

@@ -26,7 +26,8 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from src.parser.ast_nodes import (
     ASTNode, ProgramNode, ImportDecl, FunctionDecl, StructDecl, VarDeclStmt, BlockStmt,
-    ForStmt, LambdaExpr, IdentifierExpr, MemberExpr, StructType,
+    ForStmt, LambdaExpr, IdentifierExpr, MemberExpr, StructType, PrimitiveType, ArrayType,
+    FunctionType, LiteralExpr,
 )
 from src.semantic.errors import SemanticError
 from src.semantic.name_resolver import TYPE_CLASSES
@@ -318,3 +319,104 @@ def load_program(main_file: str, main_program: ProgramNode,
     loader = ModuleLoader(main_file, parse_file)
     program = loader.load(main_program)
     return program, loader.errors
+
+
+# ---------------------------------------------------------------------- shared entry points
+
+def make_file_parser(config=None) -> ParseFile:
+    """A function parsing one Fusion file the way main.py does - with the project's lexer
+    settings when a ProjectConfig is given. Lexer errors are raised as ValueError."""
+    from src.lexer import Lexer
+    from src.parser.parser import Parser
+
+    def parse(source: str, path: str) -> ProgramNode:
+        options = {}
+        if config is not None:
+            options = dict(tab_width=config.indentation.tab_width,
+                           allow_mixed=config.indentation.allow_mixed,
+                           allow_unicode_identifiers=config.source.allow_unicode_identifiers)
+        lexer = Lexer(source, path, **options)
+        tokens = lexer.tokenize()
+        if lexer.diagnostics.errors:
+            raise ValueError('; '.join(str(e) for e in lexer.diagnostics.errors))
+        return Parser(tokens).parse_program()
+    return parse
+
+
+def load_program_file(main_file: str, config=None) -> Tuple[ProgramNode, List[str]]:
+    """Read, parse and load a program file and every module it imports (Task 18.4.4):
+    (the whole program, error messages). Used by check.py and tests/verify_examples.py."""
+    parse = make_file_parser(config)
+    with open(main_file, encoding='utf-8') as f:
+        program = parse(f.read(), main_file)
+    program, errors = load_program(main_file, program, parse)
+    return program, [str(e) for e in errors]
+
+
+# ---------------------------------------------------------------------- module interfaces
+
+def type_text(type_node, own_module: str = '') -> str:
+    """A type as Fusion source (`money.Price` is written `Price` inside module money)."""
+    if isinstance(type_node, PrimitiveType):
+        return type_node.name
+    if isinstance(type_node, StructType):
+        prefix = own_module + '.'
+        return type_node.name[len(prefix):] if own_module and type_node.name.startswith(prefix) \
+            else type_node.name
+    if isinstance(type_node, ArrayType):
+        size = '' if type_node.size is None else str(type_node.size)
+        return f'{type_text(type_node.element_type, own_module)}[{size}]'
+    if isinstance(type_node, FunctionType):
+        params = ', '.join(type_text(p, own_module) for p in type_node.parameter_types)
+        return f'({params}) : {type_text(type_node.return_type, own_module)}'
+    return '?'
+
+
+def module_interface(module: Module) -> List[str]:
+    """A module's public interface (Task 18.4.4): its public structs and functions with
+    their types - what other modules may rely on. The groundwork for library signatures
+    and capability checks (Task 19)."""
+    lines = [f'module {module.id}']
+    for name in sorted(module.names):
+        decl = module.names[name]
+        if not decl.is_public:
+            continue
+        if isinstance(decl, StructDecl):
+            lines.append(f'    public struct {name}')
+            for f in decl.fields:
+                lines.append(f'        {type_text(f.field_type, module.id)} {f.name}')
+        else:
+            params = []
+            for p in decl.parameters:
+                text = f'{type_text(p.param_type, module.id)} {p.name}'
+                if isinstance(p.default_value, LiteralExpr):
+                    value = p.default_value.value
+                    shown = {'string': f'"{value}"', 'char': f"'{value}'"}.get(
+                        p.default_value.type_hint, str(value).lower() if isinstance(value, bool) else str(value))
+                    text += f' = {shown}'
+                elif p.default_value is not None:
+                    text += ' = ...'
+                params.append(text)
+            lines.append(f'    public {type_text(decl.return_type, module.id)} function '
+                         f'{name}({", ".join(params)})')
+    return lines
+
+
+def program_interfaces(main_file: str, only: Optional[str] = None,
+                       config=None) -> Tuple[List[str], List[str]]:
+    """(interface lines of every module the program imports - or just `only`, errors)."""
+    parse = make_file_parser(config)
+    with open(main_file, encoding='utf-8') as f:
+        program = parse(f.read(), main_file)
+    loader = ModuleLoader(main_file, parse)
+    loader.load(program)
+    if loader.errors:
+        return [], [str(e) for e in loader.errors]
+    if only is not None and only not in loader.modules:
+        return [], [f"The program doesn't import a module named '{only}' "
+                    f"(it imports: {', '.join(sorted(loader.modules)) or 'none'})"]
+    lines = []
+    for module_id in sorted(loader.modules):
+        if only is None or module_id == only:
+            lines += module_interface(loader.modules[module_id]) + ['']
+    return lines, []

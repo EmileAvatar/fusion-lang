@@ -1,0 +1,8 @@
+// Module cart: imports money, as every file imports what it uses
+import money
+
+public struct Item
+    string name
+    money.Price price
+
+public string function line(Item item) : item.name.padRight(14, '.') + " " + money.show(item.price)

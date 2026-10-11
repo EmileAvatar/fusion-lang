@@ -3313,6 +3313,18 @@ direction:
   (`String`, `Int`, ...) or contain `__`
 * All modules compile into one C file; `money.round` is `fu_money__round` there, and two
   Fusion names that would share a C name are reported
+* **Module interfaces** (Task 18.4.4): `fusion main.fusion --interface [module]` prints the
+  public structs and functions of the modules a program imports, with their types and
+  defaults - what other modules may rely on. The groundwork for library signatures and
+  capability checks (Task 19):
+  ```
+  module money
+      public struct Price
+          int cents
+      public Price function make(int cents)
+      public string function show(Price p)
+  ```
+* Example: `examples/shop/` - a program of three files in two modules
 * **`public`** (Task 18.4.3, user decision 2026-10-10): only structs and functions marked
   `public` can be used by other modules - through `money.round`, `import money.round` or
   `import money.*` (which brings the public names only). Everything else is private to its

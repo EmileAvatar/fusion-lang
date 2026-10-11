@@ -15,7 +15,7 @@ Usage:
 import sys
 import os
 import subprocess
-from src.modules import load_program
+from src.modules import load_program, make_file_parser, program_interfaces
 from src.lexer import Lexer
 from src.parser.parser import Parser, ParserError
 from src.semantic import SemanticAnalyzer
@@ -94,20 +94,8 @@ def compile_file(source_path: str) -> int:
     print(f"  [OK] Parsed {len(ast.declarations)} declarations", file=sys.stderr)
 
     # Modules (Task 18.4): load every imported module folder once and merge them in
-    def parse_module_file(module_source: str, path: str):
-        module_lexer = Lexer(
-            module_source, path,
-            tab_width=project_config.indentation.tab_width,
-            allow_mixed=project_config.indentation.allow_mixed,
-            allow_unicode_identifiers=project_config.source.allow_unicode_identifiers,
-        )
-        module_tokens = module_lexer.tokenize()
-        if module_lexer.diagnostics.errors:
-            raise ValueError('; '.join(str(e) for e in module_lexer.diagnostics.errors))
-        return Parser(module_tokens).parse_program()
-
     if ast.imports:
-        ast, import_errors = load_program(source_path, ast, parse_module_file)
+        ast, import_errors = load_program(source_path, ast, make_file_parser(project_config))
         if import_errors:
             for error in import_errors:
                 print(f"Error: {error}", file=sys.stderr)
@@ -211,10 +199,32 @@ def main():
     if len(sys.argv) < 2:
         print("Fusion Compiler v1.0", file=sys.stderr)
         print("Usage: fusion <source.fusion>", file=sys.stderr)
+        print("       fusion <source.fusion> --interface [module]   "
+              "(the public interface of the modules it imports)", file=sys.stderr)
         return 1
 
     source_path = sys.argv[1]
+    if '--interface' in sys.argv[2:]:
+        return print_interfaces(source_path, sys.argv[2:])
     return compile_file(source_path)
+
+
+def print_interfaces(source_path: str, args: list) -> int:
+    """`fusion main.fusion --interface [module]` (Task 18.4.4): print the public structs
+    and functions of every module the program imports, or of one of them."""
+    rest = [a for a in args if a != '--interface']
+    try:
+        project_config = load_project_config(source_path)
+        lines, errors = program_interfaces(source_path, rest[0] if rest else None, project_config)
+    except (OSError, ValueError, ParserError, ProjectConfigError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    for error in errors:
+        print(f"Error: {error}", file=sys.stderr)
+    if errors:
+        return 1
+    print('\n'.join(lines).rstrip() if lines else 'The program imports no modules')
+    return 0
 
 
 if __name__ == '__main__':
