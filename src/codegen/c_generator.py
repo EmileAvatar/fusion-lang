@@ -928,6 +928,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'fromOctal': ('fusion_str_fromOctal', True), 'parseInt': ('fusion_str_parseInt', True),
         'bytesToHex': ('fusion_str_bytesToHex', True), 'hexToBytes': ('fusion_str_hexToBytes', True),
         'formatNumber': ('fusion_formatNumber', True),   # 18.3.6d-2
+        'split': ('fusion_str_split', False), 'join': ('fusion_str_join', True),   # 18.5.3
+        'lines': ('fusion_str_lines', False), 'words': ('fusion_str_words', False),
         'formatMask': ('fusion_str_formatMask', False), 'digitsOnly': ('fusion_str_digitsOnly', False),
         'mask': ('fusion_str_mask', True), 'maskEmail': ('fusion_str_maskEmail', True),   # masking
         'equalsIgnoreCase': ('fusion_str_equalsIgnoreCase', False),   # 18.3.6e
@@ -959,6 +961,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         borrowed and evaluated left to right as written."""
         name = node.callee.name
         c_function, needs_where = self._STRING_BUILTINS[name]
+        if name in ('split', 'join', 'lines', 'words'):
+            self.text_list_helpers()   # made on demand, after List<string> (Task 18.5.3)
         # With any optional arguments filled in by their defaults (Task 18.3.6)
         arguments = list(node.resolved_arguments or node.arguments)
         if name == 'toString':

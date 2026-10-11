@@ -131,6 +131,15 @@ class CollectionRulesMixin:
         if method in ('clear', 'len'):
             want(0)
             return void if method == 'clear' else int_type
+        if method == 'join':
+            # parts.join(", ") - a List<string> joined into one string (Task 18.5.3)
+            if not (isinstance(element, PrimitiveType) and element.name == 'string'):
+                self.errors.append(SemanticError(
+                    f"join() needs a List<string>, got {self.type_to_string(receiver_type)}",
+                    node.location))
+            if want(1):
+                check(args[0], PrimitiveType(location=node.location, name='string'), 'The separator')
+            return PrimitiveType(location=node.location, name='string')
         if method == 'slice':
             if want(2):
                 check(args[0], int_type, 'The start')

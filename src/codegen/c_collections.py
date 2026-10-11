@@ -294,6 +294,9 @@ class CollectionsMixin:
             return f'{name}_slice({target}, {self.visit(args[0])}, {self.visit(args[1])}, {where})'
         if method == 'filter':
             return f'{name}_filter({target}, {self.visit(args[0])})'
+        if method == 'join':
+            self.text_list_helpers()
+            return f'fusion_str_join({target}, {self.visit(args[0])}, {where})'
         if method == 'map':
             helper = self.list_map_helper(list_type, node.inferred_type)
             return f'{helper}({target}, {self.visit(args[0])})'
@@ -468,3 +471,67 @@ class CollectionsMixin:
         if method in ('keys', 'values'):
             return f'{name}_{method}({target})'
         return f'{name}_{method}({target}, {self.visit(args[0])})'   # has, remove
+
+    # ------------------------------------------------------------------ text <-> lists (18.5.3)
+
+    def text_list_helpers(self) -> None:
+        """split / join / lines / words - made the first time a program uses one, after
+        List<string>'s own functions (they return or take a List<string>)."""
+        if 'text_lists' in self.list_extras:
+            return
+        self.list_extras.add('text_lists')
+        lst = self.list_c_name(ListType(location=None, element_type=PrimitiveType(location=None, name='string')))
+        functions = {
+            # Every piece between separators ("a,,b" -> a, "", b); "" splits into characters
+            f'{lst} fusion_str_split(fusion_string s, fusion_string sep)': [
+                f'{lst} r = {{0}};',
+                'if (sep.len == 0) {',
+                '    for (int i = 0; i < s.len; ) { int n = fusion_utf8_size((unsigned char)s.data[i]); '
+                f'{lst}_add(&r, fusion_str_make(s.data + i, n)); i += n; }}',
+                '    return r;',
+                '}',
+                'int from = 0;',
+                'for (int i = fusion_find(s, 0, sep.data, sep.len); i >= 0; i = fusion_find(s, from, sep.data, sep.len)) {',
+                f'    {lst}_add(&r, fusion_str_make(s.data + from, i - from));',
+                '    from = i + sep.len;',
+                '}',
+                f'{lst}_add(&r, fusion_str_make(s.data + from, s.len - from));',
+                'return r;'],
+            f'fusion_string fusion_str_join({lst} parts, fusion_string sep, const char* where)': [
+                'long long len = 0;',
+                'for (int i = 0; i < parts.len; i++) len += parts.data[i].len + (i > 0 ? sep.len : 0);',
+                'int total = fusion_checked_size(len, "join", where), o = 0;',
+                'char* out = (char*)fusion_alloc((size_t)total + 1);',
+                'for (int i = 0; i < parts.len; i++) {',
+                '    if (i > 0) { memcpy(out + o, sep.data, (size_t)sep.len); o += sep.len; }',
+                '    memcpy(out + o, parts.data[i].data, (size_t)parts.data[i].len); o += parts.data[i].len;',
+                '}',
+                'return fusion_str_take(out, total);'],
+            # Lines without their "\n" (or "\r\n"); a last newline doesn't make an empty line
+            f'{lst} fusion_str_lines(fusion_string s)': [
+                f'{lst} r = {{0}};',
+                'int from = 0;',
+                'for (int i = 0; i <= s.len; i++) {',
+                '    if (i < s.len && s.data[i] != \'\\n\') continue;',
+                '    if (i == s.len && from == s.len) break;',
+                '    int end = i;',
+                '    if (end > from && s.data[end - 1] == \'\\r\') end--;',
+                f'    {lst}_add(&r, fusion_str_make(s.data + from, end - from));',
+                '    from = i + 1;',
+                '}',
+                'return r;'],
+            # Words between runs of spaces, tabs and newlines - never an empty word
+            f'{lst} fusion_str_words(fusion_string s)': [
+                f'{lst} r = {{0}};',
+                'int i = 0;',
+                'while (i < s.len) {',
+                '    while (i < s.len && fusion_is_space(s.data[i])) i++;',
+                '    int start = i;',
+                '    while (i < s.len && !fusion_is_space(s.data[i])) i++;',
+                f'    if (i > start) {lst}_add(&r, fusion_str_make(s.data + start, i - start));',
+                '}',
+                'return r;'],
+        }
+        for signature, body in functions.items():
+            self.list_protos.append(f'static inline {signature};')
+            self.list_bodies += [f'static inline {signature} {{'] + [f'    {line}' for line in body] + ['}']

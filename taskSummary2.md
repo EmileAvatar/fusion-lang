@@ -339,4 +339,5 @@ folders), networking, dates and times, random numbers, threads.
 - 18.5 plan approved (Map + Dictionary alias; lists are values; main(string... args); layers).
 - 18.5.1 COMPLETE (List<T>).
 - 18.5.2 COMPLETE (Map<K, V>, alias Dictionary).
-- **Next Action:** implement **18.5.3 (split / join / lines / words)** per the approved plan.
+- 18.5.3 COMPLETE (split / join / lines / words).
+- **Next Action:** implement **18.5.4 (console input, program arguments, exit)** per the approved plan.

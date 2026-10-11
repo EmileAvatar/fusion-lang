@@ -3339,8 +3339,16 @@ bool same = ages == other       // the same keys with equal values, in any order
 * `m["a"][0] = 5` needs `"a"` to be there already; only the final `m[k] = v` adds a key
 * A name after `.` may be a word Fusion reserves for later (`m.get`, `x.set`) - after a dot
   it can only be a field or method name
-* Coming in 18.5: `split` / `join` / `lines` / `words`, console input, program arguments
-  (`main(string... args)`), files, and the core / alloc / std layers
+**Text and lists** (Task 18.5.3) - each also a method (`s.split(",")`, `parts.join(", ")`):
+* `split(s, sep)` - every piece between separators, empty ones too (`"a,,b"` -> `a`, `""`,
+  `b`; `""` -> one empty piece, as Python); an empty separator splits into characters
+* `join(parts, sep)` - a `List<string>` into one string
+* `lines(s)` - the lines without their `\n` (a `\r` before it is dropped too); a final
+  newline doesn't make an empty last line
+* `words(s)` - the pieces between runs of spaces, tabs and newlines; never an empty word
+
+* Coming in 18.5: console input, program arguments (`main(string... args)`), files, and the
+  core / alloc / std layers
 
 ---
 

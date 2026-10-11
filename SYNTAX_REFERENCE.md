@@ -278,6 +278,10 @@ void function main()
     List<List<int>> grid = [[1, 2], [3, 4]]
     grid[1][0] = 9
     print("{@1}", grid == [[1, 2], [9, 4]])
+
+    List<string> parts = "a,b,,c".split(",")      // every piece, empty ones too
+    print("{@1} {@2}", parts.len(), parts.join(" + "))   // also join(parts, " + ")
+    print("{@1} {@2}", lines("one\ntwo\n").len(), words("  the quick  fox ").join("|"))
 ```
 
 #### Maps: `Map<K, V>` (also written `Dictionary<K, V>`)

@@ -503,7 +503,7 @@ class MemoryManagementMixin:
             return self._is_bytes(expr) or isinstance(getattr(expr, 'inferred_type', None), ListType)
         if isinstance(expr, NewCollectionExpr):
             return True   # List<int>() - an empty list (Task 18.5.1)
-        if isinstance(expr, CallExpr) and getattr(expr, 'list_method', None) in ('filter', 'map', 'slice', 'reduce'):
+        if isinstance(expr, CallExpr) and getattr(expr, 'list_method', None) in ('filter', 'map', 'slice', 'reduce', 'join'):
             return self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, CallExpr) and getattr(expr, 'map_method', None):
             # m.keys() / m.values() make new lists; m.get(k, d) only lends a stored value

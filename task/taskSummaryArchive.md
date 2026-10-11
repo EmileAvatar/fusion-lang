@@ -3651,3 +3651,14 @@ manager, one C file per module, re-exporting another module's names, conditional
 - [x] m.get(k, d) lends the stored value (not "fresh") - storing it copies
 - [x] Parser: any word after `.` (m.get - `get` is a reserved keyword)
 - [x] for x in [literal array] fixed (a bare {...} wasn't valid C there)
+
+---
+
+#### 18.5.3 (archived 2026-10-11)
+
+**18.5.3 - split / join / lines / words** (COMPLETE)
+- [x] Built-ins with List<string> in their signatures; their C (c_collections.text_list_helpers)
+      is made on demand after List<string>'s own functions
+- [x] split keeps empty pieces ("" -> one empty piece, as Python), "" separator = characters;
+      lines drops "\r" and doesn't add an empty last line; words never gives empty words
+- [x] join both a built-in and a List<string> method (parts.join(", "))

@@ -192,6 +192,7 @@ class NameResolver:
         char_type = PrimitiveType(location=builtin_loc, name='char')
         byte_type = PrimitiveType(location=builtin_loc, name='byte')
         double_type = PrimitiveType(location=builtin_loc, name='double')
+        string_list = ListType(location=builtin_loc, element_type=string_type)   # Task 18.5.3
         bytes_type = PrimitiveType(location=builtin_loc, name='bytes')
         void_type = PrimitiveType(location=builtin_loc, name='void')
         # indexOf on bytes (18.3.8): the same name, chosen by the first argument's type
@@ -261,6 +262,11 @@ class NameResolver:
             'digitsOnly': ([string_type], string_type),
             'mask': ([string_type, int_type, int_type, char_type], string_type),
             'maskEmail': ([string_type, int_type, char_type], string_type),
+            # Text and lists (18.5.3)
+            'split': ([string_type, string_type], string_list),
+            'join': ([string_list, string_type], string_type),
+            'lines': ([string_type], string_list),
+            'words': ([string_type], string_list),
             # Compare (18.3.6e) - -1, 0 or 1
             'equalsIgnoreCase': ([string_type, string_type], bool_type),
             'compareIgnoreCase': ([string_type, string_type], int_type),
