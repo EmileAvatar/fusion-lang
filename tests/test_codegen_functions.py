@@ -379,8 +379,8 @@ class TestProgramStructure:
         assert '#include <stdio.h>' in result
         assert '#include <stdbool.h>' in result
         assert '// Forward declarations' in result
-        assert 'int main(void);' in result
-        assert 'int main(void) {' in result
+        assert 'int main(int argc, char** argv);' in result
+        assert 'int main(int argc, char** argv) {' in result
         assert 'return 0;' in result  # Auto-added for void main
 
     def test_two_function_program(self):
@@ -430,11 +430,11 @@ class TestProgramStructure:
 
         # Check forward declarations
         assert 'int fu_add(int a, int b);' in result
-        assert 'int main(void);' in result
+        assert 'int main(int argc, char** argv);' in result
 
         # Check add function comes before main
         add_pos = result.index('int fu_add(int a, int b) {')
-        main_pos = result.index('int main(void) {')
+        main_pos = result.index('int main(int argc, char** argv) {')
         assert add_pos < main_pos
 
     def test_main_function_last(self):
@@ -468,7 +468,7 @@ class TestProgramStructure:
 
         # Main should come after helper in generated code
         helper_pos = result.index('int fu_helper(void) {')
-        main_pos = result.index('int main(void) {')
+        main_pos = result.index('int main(int argc, char** argv) {')
         assert helper_pos < main_pos
 
     def test_complete_hello_world(self):
@@ -497,7 +497,7 @@ class TestProgramStructure:
         result = gen.generate(program)
 
         assert '#include <stdio.h>' in result
-        assert 'int main(void) {' in result
+        assert 'int main(int argc, char** argv) {' in result
         assert 'printf("Hello, World!\\n");' in result
         assert 'return 0;' in result  # Auto-added for void main
 
@@ -565,10 +565,10 @@ class TestProgramStructure:
         # Check structure
         assert '#include <stdio.h>' in result
         assert 'int fu_add(int a, int b);' in result
-        assert 'int main(void);' in result
+        assert 'int main(int argc, char** argv);' in result
         assert 'int fu_add(int a, int b) {' in result
         assert 'return (a + b);' in result
-        assert 'int main(void) {' in result
+        assert 'int main(int argc, char** argv) {' in result
         assert 'int result = fu_add(5, 3);' in result
 
 

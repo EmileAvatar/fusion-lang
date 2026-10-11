@@ -19,8 +19,9 @@ the generated `.c`, and the working `.exe`. (Once Fusion is self-hosted: `.fusio
   folder name; check.py, verify_examples and `#run.bat` include it
 - **`#list.csv`** - generated: `fusion, c, exe, task, added` for every example (a row keeps
   the date it was first added)
-- **`#run.bat`** - generated: runs every `.exe`, each under a `---- name.exe ----` header,
-  then pauses so the console stays open. Double-click it to see everything run
+- **`#run.bat`** - generated: runs every `.exe` with `--headless`, each under a
+  `---- name.exe ----` header, then pauses once so the console stays open. Double-click it
+  to see everything run. (Run on its own, a program waits for a key before it closes)
 - **`project_config_demo/`** - a manual demo of `fusion.toml` changing compiler behaviour
 
 ## Rules

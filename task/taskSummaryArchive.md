@@ -3605,3 +3605,13 @@ manager, one C file per module, re-exporting another module's names, conditional
       (build, leak check, ascii, #list.csv, #run.bat) and verify_examples learned
       examples/<name>/main.fusion
 - [x] Closes 16.7 (modules / import example)
+
+---
+
+#### 23.7 / 23.8 (archived 2026-10-11, user requests)
+
+- [x] 23.7 Programs wait for a key at exit (atexit in fusion_init, so runtime errors too);
+      `--headless` skips it; skipped when stdin or stdout isn't a console; main gets
+      argc / argv; #run.bat passes --headless. Note for 18.5: CLI arguments must not show
+      `--headless` to the program
+- [x] 23.8 tools/windows/fusion-file-preview.reg (+ undo): PerceivedType=text for .fusion

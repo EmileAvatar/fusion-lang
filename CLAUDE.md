@@ -87,6 +87,8 @@ string never freed, 4 = freed twice), and the ASCII rule.
    `winget install BrechtSanders.WinLibs.POSIX.UCRT`, then restart the editor)
 2. `pip install -r requirements.txt`
 3. `python check.py` - every line should say `[OK]`
+4. Optional (Windows): double-click `tools/windows/fusion-file-preview.reg` so Explorer's
+   preview pane shows `.fusion` files (undo: `fusion-file-preview-undo.reg`)
 
 On a Dropbox copy of the repo, git may need `git config windows.appendAtomically false`
 (already set locally). Use one PC at a time and let Dropbox finish syncing before switching.

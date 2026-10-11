@@ -21,7 +21,7 @@ def test_functions_named_like_the_c_library():
                      'exit("done")'))
     assert run_ok(source) == ['5 2 a! 8', 'exit: done']
     c_code = generate_c(source)
-    assert 'int fu_abs(int x)' in c_code and 'int main(void)' in c_code
+    assert 'int fu_abs(int x)' in c_code and 'int main(int argc, char** argv)' in c_code
 
 
 def test_locals_that_would_break_the_c():

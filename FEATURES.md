@@ -172,6 +172,9 @@ The single place to see what is done, open, or postponed. One line per item.
 	[DONE] 23.4 `examples/CLAUDE.md` - the folder's rules
 	[DONE] 23.5 Main CLAUDE.md Rule 4 points to it
 	[DONE] 23.6 Removed the stray `examples/New folder` (user); `fusion.yaml` -> `files/fusion-overview.yaml`
+	[DONE] 23.7 A compiled program waits for a key before its window closes; `--headless` closes it at
+		once; no wait when output is redirected (user request 2026-10-11) - #run.bat passes --headless
+	[DONE] 23.8 Windows Explorer preview of .fusion files: tools/windows/fusion-file-preview.reg (user request)
 
 #### 22 Project tracking restructure (FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, check.py) [ ]
 	[DONE] 22.1 FEATURES.md

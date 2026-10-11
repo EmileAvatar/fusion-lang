@@ -1,0 +1,9 @@
+REGEDIT4
+
+; Lets Windows Explorer's preview pane show .fusion files as text (current user only).
+; Double-click this file and confirm, then restart Explorer (or sign out and in).
+; To undo: run fusion-file-preview-undo.reg
+
+[HKEY_CURRENT_USER\Software\Classes\.fusion]
+"PerceivedType"="text"
+"Content Type"="text/plain"

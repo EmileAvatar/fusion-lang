@@ -366,6 +366,12 @@ outside `print` are 18.3.3 - see `FEATURES.md`.
   (Method-call syntax, `name.toUpper()`, arrived with Task 18.3.7 - see "Built-in type
   classes")
 
+* **When a program ends** (user request 2026-10-11): a compiled program waits for a key
+  ("Press any key to close...", on stderr) before its window closes - so a program started
+  by double-clicking it doesn't vanish before its output, or a run-time error, can be read.
+  Run it with `--headless` to close at once (scripts, servers, `examples/#run.bat`). It
+  never waits when its input or output is redirected (pipes, files, tests)
+
 * **Names in the generated C** (Task 18.4.1, closes 15.8): a Fusion name never collides
   with C or with the runtime - functions and struct types get a `fu_` prefix in C (`add` ->
   `fu_add`, `Point` -> `fu_Point`; `main` stays `main`), and a local or parameter whose name

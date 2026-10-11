@@ -1,0 +1,5 @@
+REGEDIT4
+
+; Removes what fusion-file-preview.reg added.
+
+[-HKEY_CURRENT_USER\Software\Classes\.fusion]

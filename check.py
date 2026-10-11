@@ -199,7 +199,9 @@ def build_examples():
              'cd /d "%~dp0"']
     for path in sources:
         exe = example_name(path).replace('/', '\\') + '.exe'
-        lines += ['echo.', 'echo.', f'echo ---- {exe} ----', 'echo.', 'echo.', f'".\\{exe}"']
+        # --headless: each program closes by itself - the script pauses once at the end
+        lines += ['echo.', 'echo.', f'echo ---- {exe} ----', 'echo.', 'echo.',
+                  f'".\\{exe}" --headless']
     lines += ['echo.', 'pause']
     (EXAMPLES / '#run.bat').write_text('\r\n'.join(lines) + '\r\n', encoding='ascii')
 

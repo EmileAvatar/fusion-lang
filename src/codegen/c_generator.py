@@ -514,6 +514,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                     return_type = 'int'
                 func_name = self._mangle_function_name(decl.name)
                 params = self._c_parameter_list(decl.parameters)
+                if decl.name == 'main':
+                    params = 'int argc, char** argv'   # for --headless (fusion_init)
                 self.emit(f'{return_type} {func_name}({params});')
         self.emit()  # Blank line
 
@@ -1462,6 +1464,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return_type = 'int'
 
         params = self._c_parameter_list(node.parameters)
+        if node.name == 'main':
+            params = 'int argc, char** argv'   # the program's arguments: --headless
 
         # Emit function header
         self.emit(f'{return_type} {func_name}({params}) {{')
@@ -1474,9 +1478,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.temp_scopes.append([])
         temp_index = len(self.output)
 
-        # The program starts by setting up the runtime (a UTF-8 console on Windows, 18.3.2b)
+        # The program starts by setting up the runtime: a UTF-8 console on Windows (18.3.2b),
+        # and waiting for a key at the end unless run with --headless
         if node.name == 'main':
-            self.emit_line('fusion_init()')
+            self.emit_line('fusion_init(argc, argv)')
 
         # Parameters borrow the caller's values; one the function assigns to gets its own
         # copy first, so the caller's string is never changed or freed (Task 18.3.1)

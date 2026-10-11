@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Sun Oct 11 16:15:35 SAST 2026
+**Date:** Sun Oct 11 16:26:29 SAST 2026
 **Total Examples:** 12
 
 ## Summary
@@ -80,16 +80,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -152,16 +152,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -243,16 +243,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -311,16 +311,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -412,16 +412,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -495,16 +495,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -563,16 +563,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -631,16 +631,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -713,16 +713,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -799,16 +799,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -897,16 +897,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 
@@ -965,16 +965,16 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
 #ifdef _WIN32
-    SetConsoleOutputCP(65001);
-#endif
-}
-
-static inline void fusion_runtime_error(const char* where, const char* format, ...) {
-    va_list args;
-    fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
 ... (truncated)
 ```
 

@@ -249,7 +249,7 @@ def test_forward_declaration_no_parameters(generator, loc):
     # Find the forward declaration line
     decl_lines = [line for line in generator.output if 'main' in line]
     assert len(decl_lines) == 1
-    assert decl_lines[0] == 'int main(void);'  # void main -> int main conversion
+    assert decl_lines[0] == 'int main(int argc, char** argv);'  # void main -> int main conversion
 
 
 # ==============================================================================

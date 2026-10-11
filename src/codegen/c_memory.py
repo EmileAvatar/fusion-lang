@@ -71,10 +71,36 @@ static inline void fusion_leak_report(void) {
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
 #endif
-static inline void fusion_init(void) {
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
+#ifdef _WIN32
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+#include <unistd.h>
+#define FUSION_IS_CONSOLE(f) isatty(fileno(f))
+#endif
+static void fusion_wait_for_key(void) {
+    fflush(stdout);
+    fprintf(stderr, "\nPress any key to close...");
+    fflush(stderr);
+#ifdef _WIN32
+    _getch();
+#else
+    getchar();
+#endif
+}
+static inline void fusion_init(int argc, char** argv) {
+    bool headless = false;
 #ifdef _WIN32
     SetConsoleOutputCP(65001);
 #endif
+    for (int i = 1; i < argc; i++) if (strcmp(argv[i], "--headless") == 0) headless = true;
+    if (!headless && FUSION_IS_CONSOLE(stdin) && FUSION_IS_CONSOLE(stdout))
+        atexit(fusion_wait_for_key);
 }
 
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
