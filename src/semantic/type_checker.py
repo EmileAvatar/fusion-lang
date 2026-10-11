@@ -11,11 +11,13 @@ from src.parser.ast_nodes import (
     BreakStmt, ContinueStmt, ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, StringPositionalPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
-    StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType
+    StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
+    ListType, MapType, NewCollectionExpr
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
 from .number_patterns import number_pattern_problem
+from .collection_rules import CollectionRulesMixin
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
                             TYPE_CLASSES, CLASS_STATICS, NOT_METHODS,
                             builtin_defaults)
@@ -39,7 +41,7 @@ def field_default(field: StructField):
     return None
 
 
-class TypeChecker:
+class TypeChecker(CollectionRulesMixin):
     """Type checks the AST using visitor pattern.
 
     Validates type compatibility in expressions, assignments, function calls,
@@ -204,6 +206,13 @@ class TypeChecker:
         if isinstance(type1, StructType) and isinstance(type2, StructType):
             return type1.name == type2.name
 
+        # Collections (Task 18.5): the same element (key, value) types
+        if isinstance(type1, ListType) and isinstance(type2, ListType):
+            return self.types_equal(type1.element_type, type2.element_type)
+        if isinstance(type1, MapType) and isinstance(type2, MapType):
+            return self.types_equal(type1.key_type, type2.key_type) and \
+                self.types_equal(type1.value_type, type2.value_type)
+
         return False
 
     def is_numeric_promotion(self, target: TypeNode, source: TypeNode) -> bool:
@@ -293,6 +302,8 @@ class TypeChecker:
         bytes is a bytes literal (Task 18.3.8)."""
         if self._is_bytes_type(expected) and isinstance(value, ArrayLiteralExpr):
             return self._check_bytes_literal(value)
+        if isinstance(expected, ListType) and isinstance(value, ArrayLiteralExpr):
+            return self._check_list_literal(value, expected)
         return self.visit(value)
 
     def is_bool_type(self, type_node: TypeNode) -> bool:
@@ -326,6 +337,11 @@ class TypeChecker:
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
         if isinstance(type_node, StructType):
             return type_node.name
+        if isinstance(type_node, ListType):
+            return f"List<{self.type_to_string(type_node.element_type)}>"
+        if isinstance(type_node, MapType):
+            return (f"Map<{self.type_to_string(type_node.key_type)}, "
+                    f"{self.type_to_string(type_node.value_type)}>")
         return "unknown"
 
     def struct_declaration(self, type_node: TypeNode) -> Optional[StructDecl]:
@@ -486,8 +502,17 @@ class TypeChecker:
         Returns:
             Result type of the binary operation
         """
-        left_type = self.visit(node.left)
-        right_type = self.visit(node.right)
+        # In a comparison a literal takes the other side's type: xs == [1, 2] (Task 18.5.1)
+        if node.operator in ('==', '!=', '===', '!==') and isinstance(node.left, ArrayLiteralExpr) \
+                and not isinstance(node.right, ArrayLiteralExpr):
+            right_type = self.visit(node.right)
+            left_type = self._visit_value_for(right_type, node.left)
+        elif node.operator in ('==', '!=', '===', '!=='):
+            left_type = self.visit(node.left)
+            right_type = self._visit_value_for(left_type, node.right)
+        else:
+            left_type = self.visit(node.left)
+            right_type = self.visit(node.right)
 
         # Joining strings (Task 18.3.2): string + string, string + char, char + string.
         # Numbers are joined with interpolation instead ("{a}{b}") - never `"1" + 1`
@@ -687,6 +712,10 @@ class TypeChecker:
             if 'bool' in names:
                 return "a bool only equals a bool (no truthiness)"
             return "these types never compare equal - convert one first"
+        if isinstance(left, ListType) and isinstance(right, ListType):
+            # Lists: element by element, same length (Task 18.5.1)
+            problem = self._equality_problem(left.element_type, right.element_type)
+            return f"their elements can't be compared ({problem})" if problem else None
         if isinstance(left, ArrayType) and isinstance(right, ArrayType):
             if isinstance(left.element_type, ArrayType) or isinstance(right.element_type, ArrayType):
                 return "arrays of arrays can't be compared yet"
@@ -774,6 +803,12 @@ class TypeChecker:
         Returns:
             Return type of the function
         """
+        # xs.add(5) - a List method (Task 18.5.1)
+        if isinstance(node.callee, MemberExpr):
+            result = self._collection_method_call(node)
+            if result is not None:
+                return result
+
         # name.toUpper(), String.toUpper(name), 255.toHex() (Task 18.3.7) - rewritten to the
         # built-in call toUpper(name)
         if isinstance(node.callee, MemberExpr):
@@ -885,7 +920,7 @@ class TypeChecker:
                 ))
                 return func_type.return_type
             arg_type = self.visit(node.arguments[0])
-            if not isinstance(arg_type, ArrayType) and not self._is_string_type(arg_type) \
+            if not isinstance(arg_type, (ArrayType, ListType)) and not self._is_string_type(arg_type) \
                     and not self._is_bytes_type(arg_type):
                 self.errors.append(SemanticError(
                     f"Function 'len' expects an array, a string or bytes, got "
@@ -952,7 +987,8 @@ class TypeChecker:
 
         # Check each argument type
         for i, (arg, expected_type) in enumerate(zip(node.arguments, func_type.parameter_types)):
-            actual_type = first_type if (i == 0 and first_type is not None) else self.visit(arg)
+            actual_type = first_type if (i == 0 and first_type is not None) \
+                else self._visit_value_for(expected_type, arg)
             if (i == 0 and is_builtin and func_name in FLEXIBLE_FIRST_ARG
                     and isinstance(actual_type, PrimitiveType)
                     and actual_type.name in FLEXIBLE_FIRST_ARG[func_name]):
@@ -1207,7 +1243,7 @@ class TypeChecker:
             return struct_type
 
         for i, (arg, field) in enumerate(zip(node.arguments, fields)):
-            actual_type = self.visit(arg)
+            actual_type = self._visit_value_for(field.field_type, arg)
             if isinstance(field.field_type, ArrayType):
                 self._check_array_field_value(struct, field, arg, actual_type)
             elif not self.types_compatible(field.field_type, actual_type):
@@ -1574,6 +1610,14 @@ class TypeChecker:
                     node.index.location))
             return PrimitiveType(location=node.location, name='char')
 
+        # xs[i] - one element of a List, bounds-checked (Task 18.5.1)
+        if isinstance(array_type, ListType):
+            if not (isinstance(index_type, PrimitiveType) and index_type.name == 'int'):
+                self.errors.append(SemanticError(
+                    f"List index must be int, got {self.type_to_string(index_type)}",
+                    node.index.location))
+            return array_type.element_type
+
         # b[i] reads (or, as a target, writes) one byte - bounds-checked (Task 18.3.8)
         if self._is_bytes_type(array_type):
             if not (isinstance(index_type, PrimitiveType) and index_type.name == 'int'):
@@ -1643,6 +1687,7 @@ class TypeChecker:
         Args:
             node: Variable declaration statement node
         """
+        self._check_collection_type(node.var_type, node.location)   # Task 18.5
         if isinstance(node.var_type, ArrayType):
             self._check_array_var_decl(node)
             return
@@ -1835,7 +1880,7 @@ class TypeChecker:
                     message = f"Cannot assign to an element of an array inside constant '{root.name}'"
                 self.errors.append(SemanticError(message, node.location))
 
-        value_type = self.visit(node.value)
+        value_type = self._visit_value_for(element_type, node.value)
         if not self.types_compatible(element_type, value_type):
             hint = ''
             if isinstance(element_type, PrimitiveType) and element_type.name == 'byte':
@@ -1989,7 +2034,7 @@ class TypeChecker:
         if node.value and isinstance(self.current_function_return_type, ArrayType):
             self._check_array_return(node)
         elif node.value:
-            return_type = self.visit(node.value)
+            return_type = self._visit_value_for(self.current_function_return_type, node.value)
             if not self.types_compatible(self.current_function_return_type, return_type):
                 self.errors.append(SemanticError(
                     f"Return type {self.type_to_string(return_type)} does not match function return type {self.type_to_string(self.current_function_return_type)}",
@@ -2044,8 +2089,8 @@ class TypeChecker:
         Args:
             node: For statement node
         """
-        # Type check iterable expression
-        self.visit(node.iterable)
+        # range(...), a List or an array - the loop variable gets the element type (18.5.1)
+        self._check_for_iterable(node)
 
         # Note: the loop variable lives in its own scope (node.scope, populated by
         # NameResolver - see Task 12.6), one level above the body's own block scope. No
@@ -2145,6 +2190,7 @@ class TypeChecker:
             node: Parameter declaration node
         """
         self._check_function_type_supported(node.param_type, node.location)
+        self._check_collection_type(node.param_type, node.location)   # Task 18.5
 
         # Check default value type if present
         if node.default_value:

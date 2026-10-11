@@ -166,18 +166,89 @@ suite green; 11/11 examples.
 
 #### 18.5: Minimal Standard Library (IO and Collections)
 **Why last:** needs everything above - it's the first real importable module (18.4), built
-from functions (18.1), structs (18.2), and strings (18.3).
-- [ ] Console input, and file read/write
-- [ ] A growable list (and probably a map/dictionary)
-- [ ] Command-line arguments
-- [ ] **Layer the stdlib from day one** (core / alloc / std, Rust-style): the core layer
-      works with no heap, no GC, no exceptions; higher layers add allocation and OS
-      services. This is the specific thing D got wrong - its standard library was built
-      assuming a garbage collector, so making GC optional later split the ecosystem. See
-      `FutureFeaturesCaution.md`
-- [ ] Satisfies Task 10.2's self-hosting prerequisites (file I/O, collections, string
-      helpers, CLI args)
-- [ ] Example programs per Rule 4 / Task 16
+from functions (18.1), structs (18.2), and strings (18.3). Satisfies Task 10.2's
+self-hosting prerequisites (file I/O, collections, string helpers, CLI args).
+
+### 18.5 Detailed Plan (APPROVED 2026-10-11)
+
+**Decisions (user, 2026-10-11):** 1. the map is `Map<K, V>` ("easier to type"), with
+`Dictionary` an alias - the same type; 2. a copy of a list is independent (like every
+Fusion value); 3. program arguments: `void function main(string... args)` - main takes
+nothing or `string... args` (`List<string> args` "seems a bit too wordy"); 4. layers
+enforced with `[stdlib] layer`. Standing preference: as little typing as possible, unless
+really needed.
+
+**Starting point:** fixed-size arrays only; no generics; the spec already sketches
+`List<int>`, `Dictionary<string, int>`, `numbers.add(1)`, `ages["Alice"] = 30`,
+`filter` / `reduce` with lambdas, and `main(string... args)`.
+
+**Collections (decisions 1-3):** built-in generic types the compiler knows - like `bytes`,
+no user-written generics yet (those come with classes). In C each element type gets its own
+small set of helpers, made only when used (as returned arrays already do), so there is no
+boxing and no speed cost.
+```fusion
+List<int> numbers = [3, 1, 2]           // or List<int>() for an empty one
+numbers.add(4)
+numbers[0] = 10                          // bounds-checked
+numbers.sort()
+for n in numbers                         // loops over the elements
+    print("{n}")
+List<int> big = numbers.filter((int x) : x > 2)
+int total = numbers.reduce(0, (int sum, int x) : sum + x)
+
+Map<string, int> ages = Map<string, int>()     // Dictionary<string, int> is the same type
+ages["Alice"] = 30
+if ages.has("Bob")
+    print("{@1}", ages["Bob"])          // a missing key is a run-time error; ages.get("Bob", 0)
+for name in ages.keys()                  // insertion order
+    print(name)
+```
+- List: `add`, `insert`, `removeAt`, `remove`, `clear`, `contains`, `indexOf`, `len`,
+  `sort` (numbers, text), `sortBy(compare)`, `filter`, `map`, `reduce`, `slice`, `==`;
+  elements of any type (numbers, text, structs, bytes, lists)
+- Map (alias Dictionary): keys `string`, `int` or `char`; `d[k]`, `d[k] = v`, `has`, `get(k, default)`,
+  `remove`, `keys()`, `values()`, `len`; remembers insertion order (as Python, C# do)
+- Like every Fusion value (decision 3): a copy is independent, it's freed automatically,
+  works in struct fields - functions borrow it, moves avoid copies of new values
+
+**Console and program arguments (decision 4):**
+- `readLine()` -> the next line of input without its newline; `isEndOfInput()` to check
+- Program arguments: `void function main(string... args)` - `args` is an array of strings
+  of any length (`len(args)`, `args[0]`); main may also take nothing; `--headless` is never
+  in it. (`string...` is only for main for now - variadic functions in general come later.)
+  `exit(code)` ends the program with an exit code
+
+**Files** (errors are run-time errors until error handling, Task 21, makes them catchable;
+check first with `fileExists`):
+- `readText(path)`, `readLines(path)` -> `List<string>`, `writeText(path, s)`,
+  `appendText(path, s)`, `readBytes(path)` -> `bytes`, `writeBytes(path, b)`,
+  `fileExists(path)`, `deleteFile(path)`; text is UTF-8 (invalid text is an error - use
+  readBytes for binary files)
+
+**Text helpers that need lists:** `split(s, sep)`, `join(list, sep)`, `lines(s)`,
+`words(s)` (and as methods: `s.split(",")`).
+
+**Layers (decision 5 - "layer the stdlib from day one", the D lesson):**
+- **core** - no heap: numbers, chars, bool, fixed arrays, comparisons, bases
+- **alloc** - adds memory: strings, bytes, List, Dictionary, text helpers
+- **std** - adds the operating system: console input, files, arguments, exit
+- Every built-in is tagged with its layer; `fusion.toml` `[stdlib] layer = "std"` (default)
+  / "alloc" / "core" - using something above the project's layer is a compile error
+  ("readText needs layer std; this project is alloc"). For embedded devices and the future
+  capability checks (Task 19)
+
+**Sub-parts** (each committed on its own):
+- 18.5.1 `List<T>` - type syntax `List<int>`, literals, methods, indexing, `for ... in`, values
+- 18.5.2 `Map<K, V>` (alias `Dictionary`)
+- 18.5.3 Text helpers needing lists (split, join, lines, words)
+- 18.5.4 Console input, program arguments, exit
+- 18.5.5 Files
+- 18.5.6 Layers (`[stdlib] layer`)
+- 18.5.7 The word-counter example (the 18.x success criteria) + docs
+
+**Out of scope:** user-written generics (with classes), Set / Queue / Stack / LinkedList
+(after MVP, or quickly once List exists), directories and paths (list a folder, make
+folders), networking, dates and times, random numbers, threads.
 
 **Success Criteria:**
 - A non-trivial multi-file Fusion program (e.g. a word counter that reads a file, builds a
@@ -263,4 +334,8 @@ from functions (18.1), structs (18.2), and strings (18.3).
 - 18.4.2 COMPLETE (import, module folders, aliases, name rules; each module loaded once).
 - 18.4.3 COMPLETE (public visibility).
 - 18.4.4 COMPLETE (interfaces, examples/shop, tools build projects) - Task 18.4 complete.
-- **Next Action:** plan **18.5 (minimal standard library)** and get approval.
+- Task 24 added (editor support, after self-hosting); 23.7 / 23.8 (wait at exit, --headless,
+  .fusion preview on Windows).
+- 18.5 plan approved (Map + Dictionary alias; lists are values; main(string... args); layers).
+- 18.5.1 COMPLETE (List<T>).
+- **Next Action:** implement **18.5.2 (Map<K, V>)** per the approved plan.

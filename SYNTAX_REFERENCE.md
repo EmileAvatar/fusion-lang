@@ -246,6 +246,40 @@ void function main()
     print("{@1} {@2}", mask("4111111111111111", 6, 4), maskEmail("alice@example.com"))
 ```
 
+#### Lists: `List<T>`
+
+<!-- example: syntax_lists | task: 18.5.1 -->
+```fusion
+struct Team
+    string name
+    List<string> members
+
+void function main()
+    List<int> numbers = [3, 1, 2]                 // or List<int>() for an empty one
+    numbers.add(10)
+    numbers.insert(0, 7)
+    numbers[1] = 5                                // bounds-checked
+    numbers.sort()
+    for n in numbers                              // each element in turn
+        print("{n}")
+    print("{@1} {@2} {@3}", numbers.len(), numbers.contains(5), numbers.indexOf(10))
+
+    List<int> big = numbers.filter((int x) : x > 2)
+    int total = numbers.reduce(0, (int sum, int x) : sum + x)
+    print("{@1} {@2}", big.len(), total)
+
+    List<string> names = ["Ada", "Grace"]
+    List<string> copy = names                     // an independent copy
+    copy.add("Linus")
+    Team t = Team("core", names)
+    t.members.add("Ken")
+    print("{@1} {@2} {@3}", names.len(), copy.len(), t.members[2])
+
+    List<List<int>> grid = [[1, 2], [3, 4]]
+    grid[1][0] = 9
+    print("{@1}", grid == [[1, 2], [9, 4]])
+```
+
 #### Raw bytes: `byte` and `bytes`
 
 <!-- example: syntax_bytes | task: 18.3.8 -->

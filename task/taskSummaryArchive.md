@@ -3615,3 +3615,22 @@ manager, one C file per module, re-exporting another module's names, conditional
       argc / argv; #run.bat passes --headless. Note for 18.5: CLI arguments must not show
       `--headless` to the program
 - [x] 23.8 tools/windows/fusion-file-preview.reg (+ undo): PerceivedType=text for .fusion
+
+---
+
+#### 18.5.1 (archived 2026-10-11)
+
+**18.5.1 - `List<T>`** (COMPLETE)
+- [x] Parser: `List<T>` / `Map<K, V>` / `Dictionary<K, V>` types (nested too), `List<int>()`,
+      declarations starting with `List<`; ListType / MapType / NewCollectionExpr nodes
+- [x] Checker (collection_rules.py mixin): literals take the declared type (also in calls,
+      returns, struct fields, comparisons); xs[i]; len; methods with argument checks;
+      lambdas for sortBy / filter / map / reduce; `for x in` lists and arrays gives x the
+      element type; other iterables are an error (the old silent 0..9 loop)
+- [x] C (c_collections.py): per element type `fusion_list_K` + functions made on demand;
+      types and prototypes before the structs (structs and lists can hold each other),
+      bodies last; values via copy / free / set; xs[i] = v and grid[1][0] = v through
+      element pointers; stable merge sort
+- [x] for-each: managed elements copied per pass (the body may change the list); the loop
+      variable is in an inner scope so break / continue free it (found by the leak check)
+- [x] Map types parse but report "comes with 18.5.2"

@@ -144,8 +144,17 @@ The single place to see what is done, open, or postponed. One line per item.
 			declaration can't expose a private struct
 		[DONE] 18.4.4 Module interfaces (`--interface`), the multi-file example project examples/shop,
 			check.py / verify_examples build projects, docs
-	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std
-		[ ] 18.5.x String split & join: split(s, ","), join(list, ", "), lines(s), words(s) (need lists)
+	[ ] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std (plan approved
+		2026-10-11: Map with Dictionary alias; lists are values; main(string... args); layers enforced)
+		[DONE] 18.5.1 `List<T>`: literals, add / insert / removeAt / remove / clear / contains / indexOf /
+			slice / sort / sortBy / filter / map / reduce, xs[i], ==, `for x in` lists and arrays (the
+			old silent 0..9 loop for other iterables is now an error)
+		[ ] 18.5.2 `Map<K, V>` (alias `Dictionary`)
+		[ ] 18.5.3 Text helpers needing lists: split(s, ","), join(list, ", "), lines(s), words(s)
+		[ ] 18.5.4 Console input, program arguments (`main(string... args)`), exit
+		[ ] 18.5.5 Files: readText / readLines / writeText / appendText / readBytes / writeBytes / fileExists
+		[ ] 18.5.6 Layers: `[stdlib] layer = "core" | "alloc" | "std"`
+		[ ] 18.5.7 The word-counter example + docs
 
 #### 19 Library trust, isolation & security [ ]
 	[POSTPONED to 18.4] 19.1 Compiler-verified capability signatures

@@ -22,17 +22,19 @@ from ..parser.ast_nodes import (
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
-    BlockStmt
+    BlockStmt, ListType,
 )
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
 from .c_runtime import RuntimeLoweringMixin, escape_c_text
 from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
 from .c_equality import EqualityMixin, EQUALITY_OPERATORS
+from .c_collections import CollectionsMixin
 from ..semantic.name_resolver import FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS
 
 
-class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin):
+class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin,
+                     CollectionsMixin):
     """Generates C code from Fusion AST.
 
     Uses visitor pattern to traverse the AST and generate equivalent C code.
@@ -101,6 +103,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.lambda_count = 0
         self.array_wrappers = {}         # returned-array wrapper structs (Task 18.2.4)
         self.equality_helpers = {}       # struct / array comparison helpers (Task 18.3.5)
+        self.list_types = {}             # List<T> C types made so far (Task 18.5.1)
+        self.list_protos, self.list_bodies, self.list_extras = [], [], set()
         self.temp_scopes = []            # per-function temporary declarations (Task 18.2.2)
         self.temp_count = 0
         self.argument_temps = {}         # id(argument expression) -> its temporary's name
@@ -141,6 +145,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.output.extend(RUNTIME_PRELUDE.splitlines())
         self.emit()
 
+        # Lists' types and prototypes go here, before the structs (they may hold each
+        # other) - inserted at the end, once every list type is known (Task 18.5.1)
+        collection_types_index = len(self.output)
+
         # Struct typedefs come first (Task 18.2.1) - function types, forward declarations
         # and function bodies may all use them
         self._generate_struct_definitions(program)
@@ -176,6 +184,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # later position first so the earlier index stays valid
         if self.lambda_definitions:
             self.output[lambda_index:lambda_index] = self.lambda_definitions
+        # List function bodies (Task 18.5.1) go last of everything inserted here - they
+        # call struct, equality and wrapper helpers
+        self.output[typedef_index:typedef_index] = self.collection_body_lines()
         # Equality helpers (Task 18.3.5) - inserted first, so they end up after the
         # typedefs and wrappers inserted at the same position below
         self.output[typedef_index:typedef_index] = self.equality_helper_lines()
@@ -190,6 +201,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.output[typedef_index:typedef_index] = (
                 ['// Returned arrays'] + wrapper_lines + ['']
             )
+        # List types and prototypes (Task 18.5.1) - before the structs; inserted last since
+        # this position is earlier than every one above
+        self.output[collection_types_index:collection_types_index] = self.collection_section_lines()
 
         # Return complete C code
         return '\n'.join(self.output)
@@ -374,6 +388,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """True if C's all-zero value is also the Fusion default for this type. Not for a
         string (zero would be a NULL pointer - Fusion's default is ""), or a struct with a
         field default or a string anywhere inside it."""
+        if isinstance(type_node, ListType):
+            return True   # all-zero is the empty list (Task 18.5.1)
         if isinstance(type_node, PrimitiveType):
             return type_node.name not in ('string', 'bytes')
         if isinstance(type_node, ArrayType):
@@ -406,6 +422,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return self._zero_initializer(type_node)
             element = self._default_value_code(type_node.element_type)
             return '{' + ', '.join([element] * type_node.size) + '}'
+        if isinstance(type_node, ListType):
+            return f'(({self.list_c_name(type_node)}){{0}})'   # an empty list (18.5.1)
         return '0'
 
     # ========================================================================
@@ -791,6 +809,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self.fresh_temporary(code, node.inferred_type)
         return code
 
+    def visit_NewCollectionExpr(self, node) -> str:
+        """List<int>() - an empty list (Task 18.5.1)."""
+        return self._default_value_code(node.collection_type)
+
     def _call_code(self, node: CallExpr) -> str:
         """Generate C code for function call expression.
 
@@ -800,6 +822,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C function call
         """
+        # xs.add(5) - a List method (Task 18.5.1)
+        if getattr(node, 'list_method', None):
+            return self.list_method_code(node)
+
         # A struct constructor, Point(3, 4) (Task 18.2.1) - resolved_arguments has every
         # field, with omitted ones filled in from their defaults by the type checker
         if isinstance(node.callee_declaration, StructDecl):
@@ -1008,6 +1034,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C brace-initializer list
         """
+        # [1, 2, 3] stored as a List (Task 18.5.1)
+        if isinstance(node.inferred_type, ListType):
+            code = self.list_literal_code(node)
+            return code if id(node) in self.consumed else self.fresh_temporary(code, node.inferred_type)
         elements_code = ', '.join(self.visit(el) for el in node.elements)
         # [0x6B, 0x69] stored as bytes builds a bytes value (Task 18.3.8)
         if self._is_bytes(node):
@@ -1032,6 +1062,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # s[i] - one character, bounds-checked (Task 18.3.2)
         if self._is_string(node.array):
             return f'fusion_str_at({array_code}, {index_code}, {self._where(node)})'
+        # xs[i] - one list element, bounds-checked (Task 18.5.1)
+        if isinstance(getattr(node.array, 'inferred_type', None), ListType):
+            name = self.list_c_name(node.array.inferred_type)
+            return f'{name}_at({array_code}, {index_code}, {self._where(node)})'
         # b[i] - one raw byte, bounds-checked (Task 18.3.8)
         if self._is_bytes(node.array):
             return f'fusion_bytes_at({array_code}, {index_code}, {self._where(node)})'
@@ -1179,8 +1213,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return ''
 
         # target is an lvalue-producing expression - IdentifierExpr ("x") or IndexExpr
-        # ("arr[i]") - both generate valid C lvalue syntax via their own visitor
-        target_code = self.visit(node.target)
+        # ("arr[i]") - both generate valid C lvalue syntax via their own visitor; through a
+        # list element (xs[1] = 5, grid[1][0] = 9) it is a pointer to the element (18.5.1)
+        if self.goes_through_list(node.target):
+            target_code = self.list_lvalue(node.target)
+        else:
+            target_code = self.visit(node.target)
 
         # A whole array replaced by one a function returned: moved in (Task 18.2.4)
         if self._returns_array(node.value):
@@ -1320,6 +1358,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        # for x in xs - a List or an array (Task 18.5.1)
+        if getattr(node, 'element_type', None) is not None:
+            return self._for_each(node)
+
         # Note: The parser creates ForStmt with variable as a string
         # and iterable as a CallExpr to 'range'
 
@@ -1377,6 +1419,54 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.dedent()
         self.emit('}')
 
+        return ''
+
+    def _for_each(self, node: ForStmt) -> str:
+        """`for x in xs` over a List or an array (Task 18.5.1): x is each element in turn - a
+        copy for strings and other managed values, freed at the end of each pass, so the
+        body may change the list safely. A list made just for the loop is freed after it."""
+        iterable, element = node.iterable, node.element_type
+        iterable_type = iterable.inferred_type
+        self.temp_count = getattr(self, 'temp_count', 0) + 1
+        n = self.temp_count
+        index = f'fusion_i_{n}'
+        self.emit('{')
+        self.indent()
+        self.push_scope('block')
+        if isinstance(iterable_type, ListType):
+            list_c = self.list_c_name(iterable_type)
+            if isinstance(iterable, (IdentifierExpr, MemberExpr, IndexExpr)):
+                self.emit_line(f'{list_c}* fusion_iter_{n} = &{self.list_lvalue(iterable)}')
+                source = f'fusion_iter_{n}->'
+            else:
+                self.emit_line(f'{list_c} fusion_iter_{n} = {self.owned_value(iterable, iterable_type)}')
+                self.register_owned(f'fusion_iter_{n}', iterable_type)
+                source = f'fusion_iter_{n}.'
+            length, item = f'{source}len', f'{source}data[{index}]'
+        else:
+            array_code = self.visit(iterable)
+            if iterable_type.size is None and isinstance(iterable, IdentifierExpr):
+                length = array_length_name(iterable.name)
+            else:
+                length = str(iterable_type.size)
+            item = f'{array_code}[{index}]'
+        self.emit(f'for (int {index} = 0; {index} < {length}; {index}++) {{')
+        self.indent()
+        self.push_scope('loop')
+        # The loop variable lives in a scope inside the loop's, so break and continue free
+        # it too (they free everything inside the loop scope)
+        self.push_scope('block')
+        value = self.copy_code(element, item) if self.is_managed(element) else item
+        self.emit_line(f'{self.map_type(element)} {node.variable} = {value}')
+        self.register_owned(node.variable, element, node.location)
+        self.visit(node.body)
+        self.pop_scope()
+        self.pop_scope()
+        self.dedent()
+        self.emit('}')
+        self.pop_scope()
+        self.dedent()
+        self.emit('}')
         return ''
 
     def visit_BreakStmt(self, node: BreakStmt) -> str:

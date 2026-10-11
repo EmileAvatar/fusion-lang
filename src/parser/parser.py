@@ -510,6 +510,16 @@ class Parser:
 
         # Identifier (allow type keywords and END as identifiers in expression context)
         # This allows calling functions/variables named "double", "string", "end", etc.
+        # An empty collection: List<int>(), Map<string, int>() (Task 18.5)
+        if self.check(TokenType.IDENTIFIER) and self.peek().value in COLLECTION_TYPE_NAMES \
+                and self.peek(1).type == TokenType.LESS:
+            token = self.advance()
+            collection_type = self.parse_collection_type(token)
+            self.consume(TokenType.LPAREN, f"Expected '()' after {token.value}<...> to make an empty one")
+            self.consume(TokenType.RPAREN, "Expected ')' - an empty collection takes no arguments "
+                                           "(use [1, 2, 3] for a list with values)")
+            return NewCollectionExpr(location=token.location, collection_type=collection_type)
+
         if self.check(TokenType.IDENTIFIER) or self.is_type_start() or self.check(TokenType.END):
             # Only consume if it's actually a valid identifier context
             # (not followed by another type keyword or invalid syntax)
@@ -669,7 +679,9 @@ class Parser:
             while self.check(TokenType.DOT) and self.peek(1).type == TokenType.IDENTIFIER:
                 self.advance()
                 name += '.' + self.advance().value
-            if name == 'bytes':
+            if name in COLLECTION_TYPE_NAMES and self.check(TokenType.LESS):
+                base_type = self.parse_collection_type(token)
+            elif name == 'bytes':
                 # Raw bytes (Task 18.3.8) - a built-in type, not a keyword
                 base_type = PrimitiveType(location=token.location, name='bytes')
             else:
@@ -745,6 +757,11 @@ class Parser:
         if not self.check(TokenType.IDENTIFIER):
             return False
         offset = 1
+        # List<int> xs, Map<string, int> ages (Task 18.5)
+        if self.peek().value in COLLECTION_TYPE_NAMES and self.peek(1).type == TokenType.LESS:
+            offset = self._skip_type_arguments(1)
+            if offset < 0:
+                return False
         # money.Price p - a struct from another module (Task 18.4.2)
         while self.peek(offset).type == TokenType.DOT and self.peek(offset + 1).type == TokenType.IDENTIFIER:
             offset += 2
@@ -756,6 +773,37 @@ class Parser:
                 return False
             offset += 1
         return self.peek(offset).type in (TokenType.IDENTIFIER, TokenType.FUNCTION)
+
+    def parse_collection_type(self, name_token) -> TypeNode:
+        """The type arguments of a built-in collection, after its name (Task 18.5):
+        List<int>, Map<string, int> - Dictionary is another name for Map."""
+        self.consume(TokenType.LESS, f"Expected '<' after '{name_token.value}'")
+        arguments = [self.parse_type()]
+        while self.match(TokenType.COMMA):
+            arguments.append(self.parse_type())
+        self.consume(TokenType.GREATER, f"Expected '>' to close {name_token.value}<...>")
+        expected = 1 if name_token.value == 'List' else 2
+        if len(arguments) != expected:
+            raise ParserError(name_token, f"{name_token.value} takes {expected} type"
+                                          f"{'s' if expected > 1 else ''} in <...>, got {len(arguments)}")
+        if name_token.value == 'List':
+            return ListType(location=name_token.location, element_type=arguments[0])
+        return MapType(location=name_token.location, key_type=arguments[0], value_type=arguments[1])
+
+    def _skip_type_arguments(self, offset: int) -> int:
+        """The offset just past `<...>` starting at `offset` (nested ones too), or -1."""
+        depth = 0
+        while True:
+            kind = self.peek(offset).type
+            if kind == TokenType.LESS:
+                depth += 1
+            elif kind == TokenType.GREATER:
+                depth -= 1
+                if depth == 0:
+                    return offset + 1
+            elif kind in (TokenType.NEWLINE, TokenType.EOF, TokenType.ASSIGN, TokenType.LPAREN):
+                return -1
+            offset += 1
 
     def is_function_type_declaration_start(self) -> bool:
         """Check whether a declaration with a function type starts here - e.g.

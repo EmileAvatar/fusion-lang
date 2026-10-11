@@ -88,6 +88,8 @@ class SemanticAnalyzer:
         structs = [d for d in ast.declarations if isinstance(d, StructDecl)]
         for struct in structs:
             self.type_checker.visit(struct)
+            for field in struct.fields:   # List<...> fields (Task 18.5)
+                self.type_checker._check_collection_type(field.field_type, field.location)
         self.type_checker.check_struct_nesting(structs)
         self.check_structs_settings(structs)
         for decl in ast.declarations:
@@ -119,6 +121,7 @@ class SemanticAnalyzer:
                     # Type check function (already in scope)
                     old_return_type = self.type_checker.current_function_return_type
                     self.type_checker.current_function_return_type = decl.return_type
+                    self.type_checker._check_collection_type(decl.return_type, decl.location)
 
                     for param in decl.parameters:
                         self.type_checker.visit(param)

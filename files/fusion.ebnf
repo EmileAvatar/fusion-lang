@@ -83,6 +83,9 @@ function_type =
 
 (* ========== Types ========== *)
 
+(* Task 18.5: the built-in collections are the generic types for now -
+   List<T>, Map<K, V> (Dictionary<K, V> is the same type); user-written generics come later.
+   An empty one in an expression: List<int>() *)
 type_name =
     primitive_type
     | class_type

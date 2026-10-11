@@ -11,7 +11,8 @@ from src.parser.ast_nodes import (
     ExpressionStmt, BlockStmt,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
-    StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType
+    StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
+    ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES
 )
 from .symbol_table import SymbolTable
 from .symbol import Symbol
@@ -345,7 +346,8 @@ class NameResolver:
         Args:
             struct: Struct declaration node
         """
-        if struct.name in ('bytes', 'byte') or struct.name in TYPE_CLASSES:
+        if struct.name in ('bytes', 'byte') or struct.name in TYPE_CLASSES \
+                or struct.name in COLLECTION_TYPE_NAMES:
             self.errors.append(SemanticError(
                 f"'{struct.name}' is a built-in type - choose another name for the struct",
                 struct.location))
@@ -452,6 +454,11 @@ class NameResolver:
                 ))
         elif isinstance(type_node, ArrayType):
             self.resolve_type(type_node.element_type)
+        elif isinstance(type_node, ListType):
+            self.resolve_type(type_node.element_type)       # Task 18.5
+        elif isinstance(type_node, MapType):
+            self.resolve_type(type_node.key_type)
+            self.resolve_type(type_node.value_type)
         elif isinstance(type_node, FunctionType):
             for param_type in type_node.parameter_types:
                 self.resolve_type(param_type)

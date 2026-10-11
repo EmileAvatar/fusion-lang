@@ -55,7 +55,9 @@ class EqualityMixin:
         equal, with `negate`)"""
         left_name = getattr(left_type, 'name', None)
         right_name = getattr(right_type, 'name', None)
-        if isinstance(left_type, StructType):
+        if type(left_type).__name__ == 'ListType':
+            helper = f'{self.list_c_name(left_type)}_eq'   # element by element (18.5.1)
+        elif isinstance(left_type, StructType):
             helper = self._struct_equality_helper(left_type, right_type)
         elif left_name == right_name and left_name in ('string', 'bytes'):
             helper = 'fusion_str_eq'   # bytes: the same struct, byte by byte (18.3.8)
@@ -87,6 +89,8 @@ class EqualityMixin:
             return self._struct_c_name(type_node)
         if isinstance(type_node, ArrayType):
             return 'arr_' + self._equality_key(type_node.element_type)
+        if type(type_node).__name__ == 'ListType':
+            return 'list_' + self._equality_key(type_node.element_type)
         return type_node.name
 
     def _helper_name(self, prefix: str, left_type, right_type) -> str:

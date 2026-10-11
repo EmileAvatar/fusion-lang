@@ -3284,6 +3284,45 @@ parallel for i in range(1000):
 
 ---
 
+## Collections (as built)
+
+**`List<T>`** (Task 18.5.1, user decisions 2026-10-11) - a growable list of any value type:
+numbers, chars, bools, text, bytes, structs, and lists (`List<List<int>>`). It is a **value**
+like a string: `b = a` gives an independent copy, it is freed automatically, it works in
+struct fields; functions borrow it, and a function that changes a list parameter gets its
+own copy. A new list (a literal, a call's result) is moved, not copied. Built-in generic
+types - user-written generics come later, with classes. In C each element type has its own
+small set of functions, made only when used, so there is no boxing and no speed cost.
+
+```
+List<int> xs = [3, 1, 2]        // a literal takes the declared type; List<int>() is empty
+xs.add(10)                      // add(v), insert(i, v), removeAt(i), remove(v) -> bool, clear()
+xs[0] = 7                       // reading or writing outside the list is a run-time error
+int n = xs.len()                // also len(xs)
+bool has = xs.contains(2)       // contains(v), indexOf(v) -> -1 when missing
+xs.sort()                       // numbers, chars, bools, text; sortBy((a, b) : ...) for any type
+List<int> part = xs.slice(1, 2) // start, count
+List<int> big = xs.filter((int x) : x > 2)
+List<string> labels = xs.map(label)          // a function (int) : string
+int total = xs.reduce(0, (int sum, int x) : sum + x)
+for x in xs                     // each element; a list or an array
+    print("{x}")
+bool same = xs == [7, 1, 2, 10] // element by element
+```
+
+* `sortBy` is stable - equal elements keep their order
+* `for x in xs` gives `x` the element type; strings and other managed elements are copied
+  into `x` for each pass, so the body may change the list safely. `for` loops over
+  `range(...)`, a List or an array - anything else is a compile error (before Task 18.5.1
+  such a loop silently ran 0..9)
+* Mutating methods (`add`, `insert`, `removeAt`, `remove`, `clear`, `sort`, `sortBy`) need a
+  variable (or a field / element of one) that isn't const
+* Coming in 18.5: `Map<K, V>` (also written `Dictionary<K, V>`), `split` / `join` /
+  `lines` / `words`, console input, program arguments (`main(string... args)`), files, and
+  the core / alloc / std layers
+
+---
+
 ## Module System
 
 Description: Organized code structure with clear dependencies.

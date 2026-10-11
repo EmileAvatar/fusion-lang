@@ -558,6 +558,30 @@ class ArrayType(TypeNode):
 
 
 @dataclass
+class ListType(TypeNode):
+    """A growable list: List<int> (Task 18.5.1) - a value; copies are independent."""
+    element_type: TypeNode
+
+
+@dataclass
+class MapType(TypeNode):
+    """A key -> value map: Map<string, int>, also written Dictionary<...> (Task 18.5.2)."""
+    key_type: TypeNode
+    value_type: TypeNode
+
+
+# Built-in generic collection types, by the name used in source (Task 18.5)
+COLLECTION_TYPE_NAMES = ('List', 'Map', 'Dictionary')
+
+
+@dataclass
+class NewCollectionExpr(ASTNode):
+    """An empty collection: List<int>(), Map<string, int>() (Task 18.5)."""
+    collection_type: TypeNode
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class StructType(TypeNode):
     """A struct used as a type: Point p (Task 18.2.1)
 
