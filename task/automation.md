@@ -22,6 +22,9 @@ command is typed more than twice.
 | commit + `git push` | per completed task | **Automatic by rule** - CLAUDE.md Rule 7 (user decision 2026-10-09): commit and push after every completed task once `check.py` passes |
 | Writing plans, reading the spec for design context | per task | **Can't automate** - judgement work; grep narrows what gets read |
 | Turning non-ASCII characters in a test file into `\uXXXX` escapes (the editor tool sometimes stores `\u00e9` as the real character, which fails the ascii check) | most string / Unicode tasks | A small script: `''.join(c if ord(c) < 128 else '\\u%04x' % ord(c) for c in text)` over the file - run it before `check.py`. Candidate for a `check.py --fix-ascii` flag |
+| Gated commit: run `check.py`, count the `[OK]` lines, commit + push only when all 5 pass (`if [ "$(grep -c '\[OK\]' chk.txt)" = "5" ]`) | every completed task (Rule 7) | **Candidate** - `python check.py --ship "message"`: runs every check, commits with the attribution line and pushes only if all pass (found 2026-10-11; one ungated push in 18.4.2 went out with a failing check) |
+| Scratchpad `patch(file, [(old, new), ...])` scripts that assert each `old` occurs once | several per task (multi-file tracking updates) | **Candidate** - `tools/patch.py` taking a small JSON / Python list of edits (found 2026-10-11) |
+| Building and running one example by hand (`python main.py x.fusion`, run the exe with `--headless < nul`, compare with the expected output) | per example change | **Candidate** - `python check.py --example wordcount` (found 2026-10-11) |
 
 ## Files without reliable markers
 

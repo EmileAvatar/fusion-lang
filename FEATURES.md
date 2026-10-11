@@ -84,82 +84,14 @@ The single place to see what is done, open, or postponed. One line per item.
 	[POSTPONED - needs fusionlib.Crypto] 17.5 Secure string storage, constant-time comparison
 
 #### 18 Core language foundation ("a simple working language first") [DONE]
-	[DONE] 18.1 Functions with full parameter types
-		[DONE] 18.1.1 Default parameter values
-		[DONE] 18.1.2 Arrays as function parameters (by reference)
-		[DONE] 18.1.3 Lambdas v1 and function types (no closures)
-	[DONE] 18.2 Structs (fields only, value types)
-		[DONE] 18.2.1 Core structs + [structs] settings
-		[DONE] 18.2.2 Named arguments (calls and constructors)
-		[DONE] 18.2.2b `{@N}` placeholders, left-to-right argument order
-		[DONE] 18.2.3 Nested structs, array fields, arrays of structs, depth limits
-		[DONE] 18.2.4 Arrays as function return values
-	[DONE] 18.3 Proper strings
-		[DONE] 18.3.1 String values and automatic cleanup, compare by content, leak check
-		[DONE] 18.3.2 String operations: `+`, `len`, `s[i]`, substring/contains/indexOf/..., conversions
-		[DONE] 18.3.2b Unicode by default: `[strings] encoding = "utf-8"` (ascii | utf-8 | utf-16 | utf-32);
-			len counts characters, lenb counts bytes; s[i]/substring by character; char holds any
-			Unicode character; fast path for ASCII text; isAscii, asciiOnly, charCode, fromCharCode, byteAt
-		[DONE] 18.3.3 Interpolated strings as values anywhere, `format(...)`
-		[DONE] 18.3.4 Struct string fields growable, string_max_length at run time
-		[DONE] 18.3.4b No string length limit by default; `[strings] max_length` (a number) for
-			memory-constrained devices - exceeding it is always an error, never a cut; replaces
-			[structs] string_max_length
-		[DONE] 18.3.5 Equality operator family (`=` in conditions, `==`, `===`, `!==`, struct/array equality)
-		[DONE] 18.3.5b A bool prints as `true` / `false` (print, `{...}`, `format`); still 1 / 0 as a value
-		[DONE] 18.3.6 Versatile string functions
-			[DONE] 18.3.6a Optional arguments for built-ins; a program's own function/struct may reuse a
-				library built-in's name
-			[DONE] Inspect: isEmpty, isBlank, isDigits, isLetters (ASCII + Latin-1), countOf
-			[DONE] Search: lastIndexOf, indexOf(s, part, from), containsAny
-			[DONE] Extract: left, right (clamp; negative count = run-time error)
-			[DONE] 18.3.6b Change: replace, replaceFirst, insert, remove, repeat, reverse, trimStart,
-				trimEnd, capitalize, toTitle; toUpper / toLower now cover Latin-1 too
-			[DONE] 18.3.6c Padding & alignment: padLeft, padRight, center (optional fill char),
-				truncate (the first n characters only - adds nothing, user decision 2026-10-10)
-			[DONE] 18.3.6f Masking - planning overview (spec "Masking - design overview only"): shaping
-				text into a pattern (formatMask) and hiding part of a value (mask, maskEmail, maskPhone),
-				with 9 open questions; building it is listed under Later
-			[DONE] 18.3.6d-1 Number bases: toHex / toBinary / toOctal / toBase (from an int or numeric
-				text, optional width; negatives in two's complement, C# style), fromHex / fromBinary /
-				fromOctal / parseInt(s, base), isInt(s, base), bytesToHex / hexToBytes; literals 0xFF,
-				0b1010, 0o17 and 1_000_000
-			[DONE] 18.3.6d-2 Number formatting: formatNumber(1234.5, "#,##0.00") or printf style "%.2f" -
-				patterns checked by Fusion (compile time when written in the source)
-			[DONE] 18.3.6e Compare: equalsIgnoreCase, compareIgnoreCase, compareNatural ("file2" before
-				"file10", optional ignoreCase) - -1 / 0 / 1, Latin-1 case rules
-		[DONE] 18.3.8 Raw bytes: `byte` (unsigned 0-255) and `bytes` (growable, edited in place);
-			strings, chars and ints to bytes and back (toBytes, toString, getInt / setInt, 16-bit
-			versions; little-endian, bigEndian option), hexToRaw / rawToHex, slice, indexOf; prints
-			as plain hex - for raw hex work and self-hosting; file read / write stays in 18.5
-		[DONE] 18.3.7 Built-in type classes and method syntax - every built-in function three ways:
-			`toUpper(name)`, `name.toUpper()` / `"Claude".toUpper()` / `255.toHex()` (chainable), and
-			`String.toUpper(name)`; classes String, Bytes, Int, Char, Float, Double, Byte, Bool
-	[DONE] 18.4 `import` and multi-file projects (plan approved 2026-10-10: folder modules, `public`,
-		one combined C file, each module loaded once, same-name modules need an alias)
-		[DONE] 18.4.1 C names: functions and structs get `fu_` in C; clashing locals too (closes 15.8)
-		[DONE] 18.4.2 `import`, module folders, prefixed use, `import M.Name`, `import M.*`, dotted
-			types, `as` aliases, the same-module-name error, each module loaded once
-		[DONE] 18.4.3 `public` visibility (private by default; `private` may be written); a public
-			declaration can't expose a private struct
-		[DONE] 18.4.4 Module interfaces (`--interface`), the multi-file example project examples/shop,
-			check.py / verify_examples build projects, docs
-	[DONE] 18.5 Minimal standard library (IO, collections, CLI args), layered core/alloc/std (plan approved
-		2026-10-11: Map with Dictionary alias; lists are values; main(string... args); layers enforced)
-		[DONE] 18.5.1 `List<T>`: literals, add / insert / removeAt / remove / clear / contains / indexOf /
-			slice / sort / sortBy / filter / map / reduce, xs[i], ==, `for x in` lists and arrays (the
-			old silent 0..9 loop for other iterables is now an error)
-		[DONE] 18.5.2 `Map<K, V>` (alias `Dictionary`): keys string / int / char, insertion order, m[k],
-			has / get(k, default) / remove / keys / values / len / clear, == in any order, for k in m
-		[DONE] 18.5.3 Text helpers needing lists: split(s, ","), join(list, ", ") / parts.join(", "),
-			lines(s), words(s)
-		[DONE] 18.5.4 Program arguments (`main(string... args)`, UTF-8 on Windows, no --headless),
-			readLine / isEndOfInput, exit(code)
-		[DONE] 18.5.5 Files: readText / readLines / writeText / appendText / readBytes / writeBytes /
-			fileExists / deleteFile - byte for byte, UTF-8 paths on Windows
-		[DONE] 18.5.6 Layers: `[stdlib] layer = "core" | "alloc" | "std"` - every built-in tagged; using
-			one above the project's layer (or, in core, any heap type) is a compile error
-		[DONE] 18.5.7 The word-counter example (examples/wordcount: modules, files, List, Map, sortBy) + docs
+	(every part's detail: task/taskSummaryArchive.md, "Task 18 - FEATURES.md detail")
+	[DONE] 18.1 Functions: default values, array parameters, lambdas v1 and function types
+	[DONE] 18.2 Structs: fields, named arguments, nesting, arrays of structs, arrays as return values
+	[DONE] 18.3 Proper strings: values with cleanup, Unicode, interpolation, equality, the string
+		library, raw bytes, type classes and method syntax
+	[DONE] 18.4 `import` and multi-file projects: modules, `public`, aliases, `--interface`
+	[DONE] 18.5 Minimal standard library: List, Map, text helpers, program arguments, console input,
+		files, layers core / alloc / std, the word-counter example
 
 #### 19 Library trust, isolation & security [ ]
 	[POSTPONED to 18.4] 19.1 Compiler-verified capability signatures
