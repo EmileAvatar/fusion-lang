@@ -6,7 +6,13 @@ Description: A modern programming language combining the performance of C, struc
 
 ---
 
+**Status lines (Task 22.7b):** each major section below starts with a `**Status:**` line matching `FEATURES.md` - `[DONE n]` built (task n), `[PARTLY]` some of it built, `[PLANNED n]` scheduled as task n, `[DESIGN]` the intended design with no task yet. What works today, with examples: `SYNTAX_REFERENCE.md`.
+
+---
+
 ## Language Philosophy
+
+**Status:** [DESIGN] the principles every task follows
 
 Description: Core principles guiding Fusion's design decisions.
 
@@ -40,6 +46,8 @@ Description: Core principles guiding Fusion's design decisions.
 ---
 
 ## Syntax Overview
+
+**Status:** [DONE 01-04, 19.6] the three block styles (indentation, braces, `End` keywords) and the source text rules
 
 Description: Core syntax elements borrowed from each parent language.
 
@@ -101,6 +109,8 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
 ---
 
 ## Data Types and Variables
+
+**Status:** [PARTLY] int, float, double, bool, char, string, byte / bytes, const and fixed-size arrays are built (01-04, 08, 09, 18.3); bounds checks for fixed arrays [PLANNED 27.1]; nullability [PLANNED 30]; type-inferred const, `long` and other sized types: no task yet
 
 Description: Type system combining static typing with clear null safety rules.
 
@@ -357,11 +367,11 @@ outside `print` are 18.3.3 - see `FEATURES.md`.
      * Function parameters borrow the caller's string (no copy); a function that assigns
        to a parameter works on its own copy, so the caller's string never changes
      * Strings are replaced, never edited in place (`s[0] = 'X'` and mutable/fixed strings
-       are Task 17)
+       are Task 29)
 
 * **Planned (advanced, after MVP - user decision 2026-10-09):** these remain part of
   Fusion's design and will be added on top of the simple value model above, which is what
-  MVP needs: a **string pool** (shared storage for identical text, Task 17), **garbage
+  MVP needs: a **string pool** (shared storage for identical text, Task 29), **garbage
   collection** as a project-selectable memory strategy, and copy-on-write sharing.
   (Method-call syntax, `name.toUpper()`, arrived with Task 18.3.7 - see "Built-in type
   classes")
@@ -418,7 +428,7 @@ bool same = name == "Enterprise"   // true - compares the text
        `startsWith`, `endsWith`, `toUpper`, `toLower`, `trim`
      * `toString(x)` for int/float/double/bool/char/string; `toInt(s)`, `toFloat(s)` stop the
        program with a clear error on text that isn't a number - check first with `isInt(s)` /
-       `isFloat(s)` (until error handling, Task 21, makes it catchable)
+       `isFloat(s)` (until error handling, Task 26, makes it catchable)
      * A program's own top-level function or struct may reuse one of these names (`left`,
        `right`, `trim`, ...) and then replaces the built-in; a local variable simply hides
        it inside its block. The core built-ins `print`, `len`, `range` and `format` can't be
@@ -564,7 +574,7 @@ print(toString(data))              // kkijk
        `mask(card, 6, 4)` is exactly that rule.
 
        Masking only changes what is shown: it is not encryption, and the original value is
-       still in memory. Wiping secrets from memory belongs to Task 17.5 (secure strings).
+       still in memory. Wiping secrets from memory belongs to Task 29.5 (secure strings).
 
        **Decisions** (user, 2026-10-10):
        1. **Length is kept** - the masked text lines up with the original
@@ -605,6 +615,8 @@ int n = toInt("42")                       // 42; toInt("12x") stops with a run-t
 ---
 
 ### Type Casting
+
+**Status:** [PARTLY] int widens to float / double automatically; conversions are functions - toInt, toFloat, toString, toByte, parseInt (18.3); cast syntax and sized types: no task yet
 
 Description: Converting between types with safety rules.
 
@@ -656,6 +668,8 @@ int result = int.tryParse(invalid) // Returns option type (may be none)
 ---
 
 ## Functions and Methods
+
+**Status:** [PARTLY] declarations, main, the block styles, calls, default values, named arguments, lambdas v1 and function types are built (18.1, 18.2.2); closures: Later; methods on the program's own structs [PLANNED 32]
 
 Description: Function definition with return-type-first syntax and flexible parameters.
 
@@ -880,7 +894,7 @@ evaluated **left to right as written** - positional or named, for functions, str
 constructors and function values: `sub(next(c), next(c))` runs the first `next` first. (C
 itself leaves argument order unspecified; the compiler only adds sequencing where the order
 could change the result.) Operators such as `next(c) - next(c)` don't have this guarantee
-yet - Task 15.12.
+yet - Task 37.2.
 
 * **Named Arguments**: Explicit parameter names
 
@@ -1119,6 +1133,8 @@ int product = calculator(5, 3)  // product = 15
 
 ### Error Handling with Multiple Returns
 
+**Status:** [PLANNED 26]
+
 Description: Go-style multiple return values for explicit error handling.
 
 * **Function with Error Return**
@@ -1189,6 +1205,8 @@ Spaceship, Error function loadAndValidateShip(string filename)
 ---
 
 ## Classes and Objects
+
+**Status:** [PLANNED 32] (methods on structs first, then classes)
 
 Description: Object-oriented programming with modern features and clear syntax.
 
@@ -1521,6 +1539,8 @@ int maxConn = Config.MAX_CONNECTIONS
 
 ## Interfaces and Contracts
 
+**Status:** [PLANNED 32]
+
 Description: Java-style interfaces with modern enhancements.
 
 ---
@@ -1575,6 +1595,8 @@ class GameObject implements IMovable, IDamageable
 ---
 
 ## Structures and Value Types
+
+**Status:** [DONE 18.2] fields, value semantics, nesting, string / list fields; methods on structs [PLANNED 32]
 
 Description: Lightweight value types for copying data around an application and reading or
 changing it conveniently.
@@ -1708,7 +1730,7 @@ Implementation"). Controlled per project in `fusion.toml`'s `[structs]` section 
   and the compiler warns
 * `string_mutable` (default `true`) - `false` makes a string field unchangeable after the
   struct is created
-* `string_storage` (default `"owned"`) - `"pooled"` is reserved for Task 17 and is a compile
+* `string_storage` (default `"owned"`) - `"pooled"` is reserved for Task 29 and is a compile
   error until then
 
 A string field owns its text like any string value (see "String Implementation"), so it
@@ -1740,6 +1762,8 @@ Arrays are different: they are passed **by reference** (see "Array parameters").
 ---
 
 ## Enumerations
+
+**Status:** [PLANNED 25] plain enums, enums with data (tagged unions), `match`
 
 Description: Named constant values for type-safe selections.
 
@@ -1888,6 +1912,8 @@ Direction d2 = Direction.fromValue(0)
 ---
 
 ## Control Flow
+
+**Status:** [PARTLY] if / else if / else, while, for over ranges, arrays, lists and maps, break, continue, return are built (01-04, 18.5.1); `=` compares inside a condition (18.3.5); `match` [PLANNED 25]; loop labels and loop safety limits: no task yet
 
 Description: Natural language constructs for program flow with safety features.
 
@@ -2211,6 +2237,8 @@ end loop
 
 ## Null Handling
 
+**Status:** [PLANNED 30]
+
 Description: Type-based null safety preventing null reference errors.
 
 ---
@@ -2296,6 +2324,8 @@ void function processShip(Spaceship ship)
 ---
 
 ## Autoboxing
+
+**Status:** [PARTLY] the built-in type classes (String, Int, ...) and method syntax on built-in values are built (18.3.7); autoboxing itself: no task yet
 
 Description: Automatic primitive-to-object conversion for method calls.
 
@@ -2413,6 +2443,8 @@ byte | Byte | toString(), toHexString()
 
 ## Memory Management
 
+**Status:** [PARTLY] strings, bytes, lists, maps and structs holding them are values, copied deeply and freed automatically (18.3, 18.5) with a leak check; Unique / Shared / Weak and GC are decided (12.7) and [PLANNED 38]
+
 Description: Three-tier memory management strategy for different use cases.
 
 **Design status (Task 12.7, decided 2026-09-13):** the `Unique<T>`/`Shared<T>`/`Weak<T>`
@@ -2421,7 +2453,7 @@ ADR that Task 12.7 exists to produce. **Not yet implemented in the compiler**: `
 `Shared`, and `Weak` are currently reserved keywords only (tokenized, nothing else) - there
 is no parser, semantic-analysis, or codegen support yet. Building that is separate future
 work, unblocked by this decision but not scoped or scheduled here (see taskSummary2.md
-Task 14, which depends on this section's Weak/nullability decisions).
+Task 30, which depends on this section's Weak/nullability decisions).
 
 ---
 
@@ -2459,7 +2491,7 @@ Description: Explicit lifetime control without garbage collection pauses.
        at the call site, matching Rust's explicit-move-by-default model.
      * **Use-after-move is a compile-time error where provable, a runtime crash with a
        clear message otherwise** - structurally the same hybrid analysis already decided
-       for Task 14's nullable arrays (definite/maybe/unknown state tracked through
+       for Task 30's nullable arrays (definite/maybe/unknown state tracked through
        straight-line code), so moved-from tracking and null-flow tracking should share one
        analysis pass when both are eventually implemented, not two parallel ones.
      * Zero overhead
@@ -2518,8 +2550,8 @@ Shared<Texture> copy2 = texture  // Ref count: 3
        (shown below) always returns a nullable `Shared<T>?` - `null` if the owner was
        already destroyed. The caller must null-check before use; there is no "just crash
        if the owner is gone" mode. Chosen for consistency with the same nullable-safe-
-       navigation direction Task 14 defines for arrays, so Fusion has one null-handling
-       story across features rather than a different rule per type. Once Task 14's
+       navigation direction Task 30 defines for arrays, so Fusion has one null-handling
+       story across features rather than a different rule per type. Once Task 30's
        `?.`/`?[` syntax exists, this should read as `child.parent.lock()?.doSomething()`
        instead of the explicit if/else shown below.
      * Breaks circular references
@@ -2581,6 +2613,8 @@ Raw Pointers | Embedded/FFI only | High | Maximum
 ---
 
 ## Threading and Concurrency Model
+
+**Status:** [DESIGN] no task yet
 
 Description: Hybrid concurrency model supporting both message passing and shared memory.
 
@@ -2886,6 +2920,8 @@ Async/Await | Clean syntax, efficient I/O | Not for CPU-bound | I/O operations
 
 ## Generics and Templates
 
+**Status:** [PARTLY] the built-in `List<T>` and `Map<K, V>` (18.5); generic functions and types of your own [PLANNED 33]
+
 Description: Type-safe generic programming.
 
 ---
@@ -2967,6 +3003,8 @@ int age = ages.get("Alice")
 ---
 
 ## Error Handling
+
+**Status:** [PLANNED 26] Go-style error returns + try/catch, both on by default, switchable in config
 
 Description: Explicit error handling with multiple return values.
 
@@ -3102,6 +3140,8 @@ void function riskyOperation()
 ---
 
 ## Comments and Code Organization
+
+**Status:** [PARTLY] `//` and `/* */` comments are built (01-04); region blocks and documentation comments: no task yet
 
 Description: Code documentation and organizational features.
 
@@ -3241,6 +3281,8 @@ float function calculateDistance(float x1, float y1, float x2, float y2)
 
 ## Async and Concurrency
 
+**Status:** [DESIGN] no task yet
+
 Description: Built-in support for asynchronous programming.
 
 * Async/Await: Modern asynchronous pattern
@@ -3285,6 +3327,8 @@ parallel for i in range(1000):
 ---
 
 ## Collections (as built)
+
+**Status:** [DONE 18.5] List, Map (alias Dictionary), text helpers, program arguments, console input, files, standard-library layers
 
 **`List<T>`** (Task 18.5.1, user decisions 2026-10-11) - a growable list of any value type:
 numbers, chars, bools, text, bytes, structs, and lists (`List<List<int>>`). It is a **value**
@@ -3372,8 +3416,8 @@ bool same = ages == other       // the same keys with equal values, in any order
   with accents work on Windows (the wide-character file functions)
 * A failure - a missing file, no permission, a missing folder - stops the program with a
   run-time error naming the file and the reason; check first with `fileExists`. Error
-  handling (Task 21) will make these catchable. File access will be a declared capability
-  (Task 19)
+  handling (Task 26) will make these catchable. File access will be a declared capability
+  (Task 39)
 
 **Standard-library layers** (Task 18.5.6 - "layer the stdlib from day one", the lesson from D,
 whose library assumed a garbage collector and split the ecosystem when GC became optional).
@@ -3390,7 +3434,7 @@ before it:
 * `print` is std, as console output is an operating-system service (Rust's `core` / `alloc`
   can't print either); an embedded program reports through its own device
 * Every built-in is tagged with its layer (src/semantic/name_resolver.py) - the groundwork
-  for capability checks (Task 19): a library will declare the layer it needs
+  for capability checks (Task 39): a library will declare the layer it needs
 
 Example program using all of it: `examples/wordcount/` - modules, a file, `List`, `Map`,
 `sortBy` and the text helpers (Task 18.5.7).
@@ -3398,6 +3442,8 @@ Example program using all of it: `examples/wordcount/` - modules, a file, `List`
 ---
 
 ## Module System
+
+**Status:** [DONE 18.4] module folders, `import`, aliases, `public` / `private`, `--interface`; class files [PLANNED 32]
 
 Description: Organized code structure with clear dependencies.
 
@@ -3435,7 +3481,7 @@ direction:
 * **Module interfaces** (Task 18.4.4): `fusion main.fusion --interface [module]` prints the
   public structs and functions of the modules a program imports, with their types and
   defaults - what other modules may rely on. The groundwork for library signatures and
-  capability checks (Task 19):
+  capability checks (Task 39):
   ```
   module money
       public struct Price
@@ -3582,6 +3628,8 @@ void function internalHelper()  // Not exported - module-private
 ---
 
 ## Complete Game Example
+
+**Status:** [DESIGN] shows the full intended language - most of it is not built yet
 
 Description: Putting it all together in a simple space game using Fusion v2 syntax.
 
@@ -3810,6 +3858,8 @@ void function main()
 
 ## Build and Compilation
 
+**Status:** [PARTLY] `fusion.toml` with [indentation], [source], [structs], [strings] and [stdlib] is built (12.12, 19.6, 18.2, 18.3, 18.5.6); other config formats [PLANNED 31]; enforcing [safety] / [backend] [PLANNED 31.5]; build modes and commands: no task yet
+
 Description: Flexible compilation options for different targets and use cases.
 
 ---
@@ -3878,7 +3928,7 @@ or INI can still configure a project. TOML stays the documented default. All fou
 through one shared validation path, so they always mean the same thing; finding more than
 one config file in the same place is planned to be an error rather than a silent choice.
 YAML is the only format that adds a dependency (PyYAML), loaded only when a project uses it.
-Tracked as Task 20 in `taskSummary2.md`. **Until Task 20 ships, only `fusion.toml` works.**
+Tracked as Task 31 in `FEATURES.md`. **Until Task 31 ships, only `fusion.toml` works.**
 
 **Lookup decision:** the compiler looks for `fusion.toml` next to the source file being
 compiled first, then in the current working directory. A missing file is not an error - every
@@ -3917,7 +3967,7 @@ layer = "std"                  # std (default) | alloc | core
 [structs]                      # Task 18.2 - see "Structures and Value Types"
 max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct)
 warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = never)
-string_storage     = "owned"   # each struct holds its own string value; "pooled" reserved (Task 17)
+string_storage     = "owned"   # each struct holds its own string value; "pooled" reserved (Task 29)
 string_mutable     = true      # false = string fields can't be changed after construction
 string_warn_length = 64        # guideline: warn when a string field is longer (0 = never warn)
 
@@ -3925,7 +3975,7 @@ string_warn_length = 64        # guideline: warn when a string field is longer (
 mode = "normal"      # "normal" | "strict" - reserved, not yet enforced by any compiler pass
 
 [backend]
-target = "c"         # "c" only for now - "llvm" is reserved for the Task 11 backend, not implemented yet
+target = "c"         # "c" only for now - "llvm" is reserved for the Task 40 backend, not implemented yet
 ```
 
 Every key is optional and defaults to the value shown above. An unknown key in `[structs]`
@@ -4031,6 +4081,8 @@ Spaceship ship = SpaceshipEngine.createShip("Enterprise")
 ---
 
 ## Standard Library
+
+**Status:** [PARTLY] strings, bytes, collections, files and console are built (18.3, 18.5); math, text formats and the rest: no task yet
 
 Description: Comprehensive built-in library for common tasks and formats.
 
@@ -4180,6 +4232,8 @@ Description: Support for complex document and archive formats (see fusionlib.Dat
 ---
 
 ## Fusion Standard Library (fusionlib)
+
+**Status:** [DESIGN] the planned library modules - no task yet
 
 Description: Complete standard library with 21 modules organized in three tiers for clarity and ease of learning.
 
@@ -4930,6 +4984,8 @@ See **fusion_specs.md** for complete API documentation of each module.
 
 ## Callbacks and Events
 
+**Status:** [DESIGN] no task yet (function values exist since 18.1.3)
+
 Description: Function pointers and event-driven programming.
 
 **Note**: Callbacks are not allowed in strict mode when performance is more important, as they can introduce overhead and unpredictability in execution.
@@ -4962,6 +5018,8 @@ btn.onClick += lambda b: print("Clicked!")
 ---
 
 ## External Interoperability
+
+**Status:** [DESIGN] no task yet
 
 Description: Integration with external code and systems.
 
@@ -5021,6 +5079,8 @@ CompileResult result = msvc.compile("code.fusion")
 ---
 
 ## Auto-Documentation
+
+**Status:** [DESIGN] no task yet
 
 Description: Generate documentation from source comments.
 
@@ -5173,11 +5233,7 @@ string message = Locale.format("welcome_user", userName)
 
 ## Reserved Words and Operators
 
-Description: Keywords and symbols reserved by the Fusion language.
-
----
-
-## Reserved Words and Operators
+**Status:** [PARTLY] every operator listed is built except where its section says otherwise; several reserved keywords belong to planned features (match: 25, class / interface: 32)
 
 Description: Complete list of language keywords and operators.
 
@@ -5391,6 +5447,8 @@ Priority | Operators | Associativity
 ---
 
 ## Language Features Summary
+
+**Status:** [DESIGN] a summary of the whole design, built and not built
 
 Description: Comprehensive overview of Fusion's capabilities and design decisions.
 
@@ -5621,6 +5679,8 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 ---
 
 ## Language Comparison
+
+**Status:** [DESIGN] how the design compares with other languages
 
 Description: How Fusion compares to its parent languages across key features.
 

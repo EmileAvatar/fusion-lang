@@ -42,13 +42,14 @@ Their detail is in `task/taskSummaryArchive.md`.
 		once; no wait when output is redirected (user request 2026-10-11) - #run.bat passes --headless
 	[DONE] 23.8 Windows Explorer preview of .fusion files: tools/windows/fusion-file-preview.reg (user request)
 
-#### 22 Project tracking restructure (FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, check.py) [ ]
+#### 22 Project tracking restructure (FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, check.py) [DONE]
 	[DONE] 22.1-22.6 FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, working file / archive /
 		backlog split, nothing lost, check.py
-	[ ] 22.7 Reliable markers for files that lack them (see task/automation.md)
+	[DONE] 22.7 Reliable markers for files that lack them (see task/automation.md)
 		[DONE] 22.7a README reduced to goals + pointers to FEATURES.md / SYNTAX_REFERENCE.md
-		[ ] 22.7b Status lines under each feature heading in the language spec, matching
-			FEATURES.md (with the new task numbers)
+		[DONE] 22.7b A `**Status:**` line under each major section of the language spec (31),
+			matching FEATURES.md; the spec's old task numbers changed to the new ones; a duplicate
+			"Reserved Words and Operators" heading removed
 		(FutureFeatures.md: a task link is added only when an item becomes a task - a standing rule)
 	[DONE] 22.8 `check.py --fix-ascii`: non-ASCII characters -> \uXXXX escapes, only where meaning is unchanged
 	[DONE] 22.9 `check.py --ship "message"`: every check, then commit + push only if all pass

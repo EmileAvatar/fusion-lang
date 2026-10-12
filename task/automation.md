@@ -32,7 +32,7 @@ that range. These files don't have reliable markers, so finding something in the
 
 | File | Size | Problem | Suggestion |
 |---|---|---|---|
-| `files/fusion-language-spec.md` | ~5,400 lines | Implementation status is prose ("implemented", "not yet", "planned") in 28 different places; headings carry no task numbers | Add `**Status:** [DONE 18.2]` / `[PLANNED 17.4]` lines under feature headings, matching FEATURES.md |
+| `files/fusion-language-spec.md` | ~5,800 lines | Status was prose in many places; headings carried no task numbers | **Fixed** (22.7b): a `**Status:** [DONE n] / [PARTLY] / [PLANNED n] / [DESIGN]` line under every major section - `grep -n "^\*\*Status" files/fusion-language-spec.md` lists them all |
 | `FutureFeatures.md` | ~6,000 lines | 213 headings, almost no status or task links | Leave as a menu; link items to task numbers only when they become tasks |
 | `task/taskSummaryArchive.md` | ~3,000 lines | Mixed heading styles across years (`####`, bold `**18.2.1 -`, `### Session`) | Fine - only searched, never read whole |
 | `taskSummary2.md` (before Task 22) | was 2,738 lines | Status words varied (COMPLETE, RESOLVED, GUARDED, `[x]`); sub-task plans used bold lines, not headings | Fixed by Task 22 - now a small working file |

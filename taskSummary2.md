@@ -31,7 +31,7 @@ Kept under Task 22 until the renumbering is approved.
 - 22.8-22.11 DONE (tools; detail archived)
 - 16.1 DONE - examples/control_flow
 - 22.7a DONE - README reduced to goals + pointers
-- **22.7b** - spec status lines: waits for the renumbering (they name task numbers)
+- 22.7b DONE - spec status lines (Task 22 complete)
 - Each one: FEATURES.md line, `task/automation.md` row marked Automated, check, commit
 
 ---
@@ -52,5 +52,7 @@ Kept under Task 22 until the renumbering is approved.
   fixed arrays are not bounds-checked (segfault) -> new Task 27 "semantic contract and safety"
 - FEATURES.md reorganized into phases and renumbered (22.12); the user asked for 27.1
   (bounds checks for fixed arrays) and 27.4 (one app in 3 block styles -> identical C)
-- **Next Action:** 22.7b (spec status lines), then plan Task 25 (enums) for approval -
-  or 27.1 bounds checks first if the user prefers (it is a crash today)
+- 2026-10-12: 22.7b done - a status line under each of the spec's 31 major sections; Task 22
+  complete
+- **Next Action:** plan Task 25 (enums) for approval - or 27.1 bounds checks first if the
+  user prefers (it is a crash today)
