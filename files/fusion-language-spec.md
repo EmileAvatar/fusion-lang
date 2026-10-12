@@ -1774,6 +1774,10 @@ is freed automatically. Two rules: the **first** value can't hold the enum (a va
 given no value starts as the first one), and a value can't hold itself through other types
 (enum A holds struct S holds A) - hold it in a List instead
 
+Example program using all of it: `examples/expressions/` - a `Token` enum with data, a
+tokenizer using `match` on chars, a parser building an `Expr` tree (`Binary(char op, Expr
+left, Expr right)`) and an evaluator matching on it (Task 25.6).
+
 **Enums with data as built (Task 25.4, user decisions 2026-10-12):** a value may carry
 fields - `Number(int value)`, `Pair(string a, int b)` - any type a struct field can have
 except a fixed array (use a List), with no defaults. Made with `Token.Number(42)` or named

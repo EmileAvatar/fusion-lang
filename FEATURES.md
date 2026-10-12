@@ -66,7 +66,7 @@ Fusion, covering only the simple part of the language, whose exe compiles the pr
 `examples/` by itself. A test run: the Python compiler stays the real compiler until the
 self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` section 5.
 
-#### 25 Enums and tagged unions [ ]
+#### 25 Enums and tagged unions [DONE]
 	[DONE] 25.1 Detailed plan - approved 2026-10-12 (data inside enum; Color.Red, bare names in match cases; else; data only through match)
 	[DONE] 25.2 Plain enums: one line / block / braces / End enum, commas optional, explicit values;
 		Color.Red, ==, printing, toString / toInt, values(), fromString; as fields, elements, Map
@@ -78,7 +78,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		`case Number(n)` (copies; `_` skips), ==, copies and cleanup like structs; prints the name
 	[DONE] 25.5 Enums holding themselves: Add(Expr left, Expr right) on the heap, or List<Expr>;
 		deep copies, ==, cleanup; first value can't hold itself; loops through other types are errors
-	[ ] 25.6 Example + docs (a compiler needs this for its many node kinds)
+	[DONE] 25.6 Example examples/expressions (tokenize -> parse into an Expr tree -> evaluate) + docs
 
 #### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
 	[ ] 26.1 Detailed plan (for approval) - strings are ready for error messages

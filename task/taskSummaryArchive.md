@@ -4451,3 +4451,90 @@ A direct self-field is a BoxType in code generation (a heap pointer with make / 
 - **25.5 Recursive enums** - a variant may hold its own enum type (`Add(Expr left, Expr
   right)`) or a List of it: such fields are stored on the heap but still behave as
   values (a copy is a deep copy). What an expression tree / AST needs
+
+---
+
+#### Task 25 - complete (archived 2026-10-12)
+
+**25.6 - the example** (COMPLETE): examples/expressions (modules lexing and parsing: tokens, an Expr tree, evaluation); expected output in tests/verify_examples.py.
+
+## TASK 25: Enums and tagged unions - ACTIVE (plan approved 2026-10-12)
+
+**Why now:** the self-hosting test run (Task 28) needs a clean way to say "this is one of
+these" - token kinds, node kinds, a value that is a number *or* a word. Enums carry that; a
+compiler written without them is a pile of int constants and string compares.
+
+**Starting point:** `enum`, `Enum`, `match` and `case` are already reserved keywords. The
+spec ("Enumerations") designs plain enums: three block styles + a one-line form, explicit
+values (`OK = 200`), `Color.Red`, `match`, toInt, values(), fromString, and the user's note
+"commas can be dropped regardless of preference as it's redundant". Nothing designs enums
+with data - that part is new.
+
+#### What it looks like (proposal - details depend on the questions below)
+```text
+enum Color: Red Green Blue                 // one line; commas optional
+
+enum Status                                // indentation (braces and End enum work too)
+    OK = 200
+    NotFound = 404
+
+enum Token                                 // enum with data (a tagged union)
+    Number(int value)
+    Word(string text)
+    Plus
+    End                                    // a variant without data
+
+enum Expr                                  // recursive: an expression tree
+    Num(int value)
+    Add(Expr left, Expr right)
+
+Color c = Color.Red
+print(c)                                   // Red
+print(c.toInt(), Status.NotFound.toInt())  // 0 404
+for x in Color.values()                    // Red, Green, Blue
+
+match t                                    // t is a Token
+    case Number(n)
+        print("number {n}")
+    case Word(w)
+        print("word {w}")
+    case Plus, End
+        print("symbol")
+                                           // every case covered - no else needed
+
+match ch                                   // on int / char / string: else required
+    case '+', '-'
+        print("operator")
+    else
+        print("other")
+
+int function eval(Expr e)
+    match e
+        case Num(v)
+            return v
+        case Add(a, b)
+            return eval(a) + eval(b)
+```
+
+#### Sub-tasks
+- 25.2 DONE (plain enums), 25.3 DONE (`match`) - detail archived
+- 25.4 DONE (enums with data) - detail archived
+- 25.5 DONE (enums holding themselves) - detail archived
+- **25.6 Example + docs** - SYNTAX_REFERENCE.md section; a demo `examples/calculator2`
+  (or similar): tokenize "2 + 3 * 4" into a List<Token>, parse into an Expr tree,
+  evaluate - a small rehearsal of the self-hosted compiler; spec "Enumerations" updated
+  (status line, data enums, match); fusion.ebnf
+- Every part: tests (parser, checker, codegen, end-to-end under the leak check)
+
+#### Not in this task (stay in the spec as design)
+`next()` / `previous()`, `fromValue`, `.ordinal`, `match` as an expression (a value),
+ranges in cases (`case 1..9`), guards (`case n if n > 0`), methods on enums (Task 32)
+
+#### Decisions (user, 2026-10-12) - plan approved
+1. Enums with data live inside `enum` (one concept)
+2. `Color.Red` everywhere; bare names only in `match` cases
+3. The fallback case is `else`
+4. The data is read only through `match`
+
+---
+

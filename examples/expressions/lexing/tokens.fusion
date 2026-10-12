@@ -1,0 +1,33 @@
+// Module lexing: text -> tokens (Task 25.6)
+public enum Token
+    Number(int value)
+    Op(char symbol)
+    Open
+    Close
+
+public List<Token> function tokenize(string text)
+    List<Token> tokens
+    int i = 0
+    while i < len(text)
+        char c = text[i]
+        match c
+            case ' ': i = i + 1
+            case '('
+                tokens.add(Token.Open)
+                i = i + 1
+            case ')'
+                tokens.add(Token.Close)
+                i = i + 1
+            case '+', '-', '*', '/'
+                tokens.add(Token.Op(c))
+                i = i + 1
+            else
+                int value = 0
+                while i < len(text) and isDigit(text[i])
+                    value = value * 10 + charCode(text[i]) - charCode('0')
+                    i = i + 1
+                tokens.add(Token.Number(value))
+    return tokens
+
+bool function isDigit(char c)
+    return charCode(c) >= charCode('0') and charCode(c) <= charCode('9')

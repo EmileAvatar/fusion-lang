@@ -1,0 +1,54 @@
+// Module parsing: tokens -> an expression tree, * and / before + and - (Task 25.6)
+import lexing.Token
+
+public enum Expr
+    Num(int value)
+    Binary(char op, Expr left, Expr right)    // an Expr holding Exprs
+
+// A parsed piece and the position of the token after it
+struct Parsed
+    Expr expr
+    int next
+
+public Expr function parse(List<Token> tokens)
+    Parsed whole = parseSum(tokens, 0)
+    return whole.expr
+
+// sum := product (('+' | '-') product)*
+Parsed function parseSum(List<Token> tokens, int at)
+    Parsed left = parseProduct(tokens, at)
+    while left.next < tokens.len()
+        char op = opAt(tokens, left.next)
+        if op != '+' and op != '-'
+            break
+        Parsed right = parseProduct(tokens, left.next + 1)
+        left = Parsed(Expr.Binary(op, left.expr, right.expr), right.next)
+    return left
+
+// product := atom (('*' | '/') atom)*
+Parsed function parseProduct(List<Token> tokens, int at)
+    Parsed left = parseAtom(tokens, at)
+    while left.next < tokens.len()
+        char op = opAt(tokens, left.next)
+        if op != '*' and op != '/'
+            break
+        Parsed right = parseAtom(tokens, left.next + 1)
+        left = Parsed(Expr.Binary(op, left.expr, right.expr), right.next)
+    return left
+
+// atom := number | '(' sum ')'
+Parsed function parseAtom(List<Token> tokens, int at)
+    match tokens[at]
+        case Number(v): return Parsed(Expr.Num(v), at + 1)
+        case Open
+            Parsed inner = parseSum(tokens, at + 1)
+            return Parsed(inner.expr, inner.next + 1)    // past the ')'
+        else
+            print("Expected a number or '(' at token {@1}", at + 1)
+            exit(1)
+            return Parsed(Expr.Num(0), at + 1)
+
+char function opAt(List<Token> tokens, int at)
+    match tokens[at]
+        case Op(symbol): return symbol
+        else: return ' '

@@ -1,0 +1,27 @@
+// Expressions: text -> tokens -> a tree -> a value, with enums and match (Task 25.6) -
+// a small rehearsal of what the self-hosted compiler will do
+import lexing
+import parsing
+import parsing.Expr
+
+int function eval(Expr e)
+    match e
+        case Num(v): return v
+        case Binary(op, a, b)
+            int x = eval(a)
+            int y = eval(b)
+            match op
+                case '+': return x + y
+                case '-': return x - y
+                case '*': return x * y
+                else: return x / y
+
+string function show(Expr e)
+    match e
+        case Num(v): return toString(v)
+        case Binary(op, a, b): return "(" + show(a) + " " + toString(op) + " " + show(b) + ")"
+
+void function main()
+    for text in ["2 + 3 * 4", "(2 + 3) * 4", "100 / 5 / 2 - 1", "7"]
+        Expr tree = parsing.parse(lexing.tokenize(text))
+        print("{text} = {@1}   {@2}", eval(tree), show(tree))
