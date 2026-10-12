@@ -10,7 +10,7 @@ from typing import Optional
 
 from src.parser.ast_nodes import (
     ASTNode, ArrayLiteralExpr, CallExpr, MemberExpr, IdentifierExpr, IndexExpr, LambdaExpr,
-    PrimitiveType, ArrayType, FunctionType, ListType, MapType, NewCollectionExpr,
+    PrimitiveType, ArrayType, FunctionType, ListType, MapType, NewCollectionExpr, EnumType,
 )
 from .errors import SemanticError
 
@@ -36,9 +36,10 @@ class CollectionRulesMixin:
         self.require_type_layer(type_node, location)
         if isinstance(type_node, MapType):
             key = type_node.key_type
-            if not (isinstance(key, PrimitiveType) and key.name in MAP_KEY_TYPES):
+            if not ((isinstance(key, PrimitiveType) and key.name in MAP_KEY_TYPES)
+                    or isinstance(key, EnumType)):
                 self.errors.append(SemanticError(
-                    f"Map keys can be string, int or char, got {self.type_to_string(key)}",
+                    f"Map keys can be string, int, char or an enum, got {self.type_to_string(key)}",
                     location))
             self._check_held_type(type_node.value_type, 'A Map', location)
         elif isinstance(type_node, ListType):

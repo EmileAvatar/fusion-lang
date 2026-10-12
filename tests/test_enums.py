@@ -1,0 +1,209 @@
+"""Tests for Task 25.2 - plain enums.
+
+`enum Color: Red Green Blue` (or an indented / braced / End-keyword block; commas
+optional), explicit values (`OK = 200`), `Color.Red`, == / != within one enum, printing the
+name, toString / toInt, Color.values(), Color.fromString(text), and enums as variables,
+parameters, return values, struct fields, array / List elements and Map keys, across
+modules too. Every program runs under the leak check.
+"""
+
+import pytest
+
+from src.lexer import Lexer
+from src.parser.parser import Parser
+from src.parser.ast_nodes import EnumDecl
+from tests.test_structs import errors_of, generate_c, main
+from tests.test_strings import run_ok, run_error
+from tests.test_modules import errors as module_errors, run_project
+
+
+def parse(source: str):
+    return Parser(Lexer(source, 'test').tokenize()).parse_program()
+
+
+def enum_of(source: str) -> EnumDecl:
+    return next(d for d in parse(source).declarations if isinstance(d, EnumDecl))
+
+
+# ---------------------------------------------------------------- parsing
+
+@pytest.mark.parametrize("source", [
+    'enum Color: Red Green Blue\n',
+    'enum Color: Red, Green, Blue\n',
+    'enum Color\n    Red\n    Green\n    Blue\n',
+    'enum Color\n    Red, Green\n    Blue\n',
+    'enum Color {\n    Red,\n    Green,\n    Blue\n}\n',
+    'enum Color { Red Green Blue }\n',
+    'enum Color\n    Red\n    Green\n    Blue\nEnd enum\n',
+    'Enum Color: Red Green Blue\n',
+])
+def test_every_form_parses_to_the_same_enum(source):
+    enum = enum_of(source + 'void function main()\n    print("x")\n')
+    assert enum.name == 'Color'
+    assert [(v.name, v.value) for v in enum.variants] == [('Red', 0), ('Green', 1), ('Blue', 2)]
+
+
+def test_values_count_on_from_the_last_given_one():
+    enum = enum_of('enum Status\n    OK = 200\n    Created\n    NotFound = 404\n    Low = -1\n    Next\n')
+    assert [(v.name, v.value, v.explicit_value) for v in enum.variants] == [
+        ('OK', 200, True), ('Created', 201, False), ('NotFound', 404, True),
+        ('Low', -1, True), ('Next', 0, False)]
+
+
+def test_public_enum():
+    assert enum_of('public enum Color: Red\n').is_public
+
+
+@pytest.mark.parametrize("source, message", [
+    ('enum Color:\n', "has no values"),
+    ('enum Color\nvoid function main()\n    print("x")\n', "Expected the values of enum"),
+    ('enum Status\n    OK = "x"\n', "must be a whole number"),
+])
+def test_parse_errors(source, message):
+    with pytest.raises(Exception, match=message):
+        parse(source)
+
+
+# ---------------------------------------------------------------- running
+
+def test_values_print_compare_convert():
+    assert run_ok(
+        'enum Color: Red Green Blue\n'
+        'enum Status\n    OK = 200\n    NotFound = 404\n'
+        + main(
+            'Color c = Color.Green\n'
+            'print("{c} {@1} {@2} {@3}", c.toInt(), toInt(Status.NotFound), Status.OK)\n'
+            'print(toString(c) + "!" + c.toString())\n'
+            'print("{@1} {@2} {@3}", c == Color.Green, c != Color.Red, c === Color.Green)\n'
+            'string text = "{c}"\n'
+            'print(text)')
+    ) == ['Green 1 404 OK', 'Green!Green', 'true true true', 'Green']
+
+
+def test_parameters_return_values_and_defaults():
+    assert run_ok(
+        'enum Light: Red Yellow Green\n'
+        'enum Status\n    OK = 200\n    Fail = 500\n'
+        'struct Lamp\n    string name\n    Status status\n    Light light = Light.Yellow\n'
+        'Light function next(Light l)\n'
+        '    if l == Light.Red\n'
+        '        return Light.Green\n'
+        '    if l == Light.Green\n'
+        '        return Light.Yellow\n'
+        '    return Light.Red\n'
+        + main(
+            'Light l\n'                                    # no value given: the first one
+            'Status s\n'
+            'Lamp lamp = Lamp("hall", Status.Fail)\n'
+            'Status[2] codes\n'
+            'print("{l} {s} {@1} {@2} {@3} {@4}", lamp.light, lamp.status, codes[1], next(next(l)))\n'
+            'lamp.light = next(lamp.light)\n'
+            'print("{@1}", lamp.light)')
+    ) == ['Red OK Yellow Fail OK Yellow', 'Red']
+
+
+def test_values_from_string_lists_and_maps():
+    assert run_ok(
+        'enum Color: Red Green Blue\n'
+        + main(
+            'for c in Color.values()\n'
+            '    print("{c}")\n'
+            'List<Color> picked = [Color.Blue, Color.Red]\n'
+            'picked.add(Color.fromString("Green"))\n'
+            'Map<Color, int> counts\n'
+            'for c in picked\n'
+            '    counts[c] = counts.get(c, 0) + 1\n'
+            'counts[Color.Red] = counts[Color.Red] + 5\n'
+            'print("{@1} {@2} {@3} {@4}", picked.len(), picked[2], counts[Color.Red], picked == [Color.Blue, Color.Red, Color.Green])\n'
+            'for c in counts\n'
+            '    print("{c}={@1}", counts[c])')
+    ) == ['Red', 'Green', 'Blue', '3 Green 6 true', 'Blue=1', 'Red=6', 'Green=1']
+
+
+def test_a_stored_values_list_is_freed_once():
+    assert run_ok(
+        'enum Color: Red Green Blue\n'
+        + main(
+            'List<Color> all = Color.values()\n'
+            'all = Color.values()\n'
+            'all.removeAt(0)\n'
+            'print("{@1} {@2}", all.len(), Color.values().len())')
+    ) == ['2 3']
+
+
+def test_from_string_of_an_unknown_name_stops_the_program():
+    stderr = run_error('enum Color: Red Green\n' + main('Color c = Color.fromString("Pink")\nprint("{c}")'))
+    assert '"Pink" is not a value of enum Color' in stderr
+
+
+def test_missing_map_key_names_the_value():
+    stderr = run_error('enum Color: Red Green\n' + main('Map<Color, int> m\nprint("{@1}", m[Color.Green])'))
+    assert 'key Green is not in the map' in stderr
+
+
+def test_c_code_is_an_int_with_helpers():
+    c_code = generate_c('enum Color: Red Green\n' + main('Color c = Color.Green\nprint("{c}")'))
+    assert 'typedef int fu_Color;' in c_code
+    assert 'fu_Color c = 1;' in c_code
+    assert 'fu_Color__text(c).data' in c_code
+
+
+# ---------------------------------------------------------------- errors
+
+@pytest.mark.parametrize("body, message", [
+    ('Color c = Color.Pink', "Enum 'Color' has no value 'Pink' (its values: Red, Green)"),
+    ('Color c = 1', "Cannot assign int to variable of type Color"),
+    ('int n = Color.Red', "Cannot assign Color to variable of type int"),
+    ('bool b = Color.Red == 0', "an enum value only equals a value of the same enum"),
+    ('bool b = Color.Red == Size.Big', "an enum value only equals a value of the same enum"),
+    ('int n = Color.Red + 1', "Color"),
+    ('Color c = Color.Red()', "'Color.Red' is a value, not a function"),
+    ('Color c = Color.first()', "Enum 'Color' has no function 'first'"),
+    ('List<Color> cs = Color.values(1)', "Color.values() takes 0 argument(s), got 1"),
+    ('Color c = Color.fromString(1)', "Color.fromString() needs string, got int"),
+    ('string s = Color.Red.toUpper()', "An enum value has no method 'toUpper'"),
+    ('int Color = 1', "'Color' is an enum - choose another name for the variable"),
+])
+def test_type_errors(body, message):
+    assert message in errors_of('enum Color: Red Green\nenum Size: Big Small\n' + main(body))
+
+
+@pytest.mark.parametrize("source, message", [
+    ('enum Color: Red Red\n', "Enum 'Color' has two values named 'Red'"),
+    ('enum Status\n    OK = 1\n    Fine = 1\n', "'Fine' and 'OK' in enum 'Status' both have the value 1"),
+    ('enum Color: Red values\n', "'values' can't be a value of enum 'Color'"),
+    ('enum List: A B\n', "'List' is a built-in type"),
+    ('enum Color: Red\nstruct Color\n    int x\n', "Color"),
+    ('enum Token\n    Number(int value)\n', "enums with data are not built yet (Task 25.4)"),
+])
+def test_declaration_errors(source, message):
+    assert message in errors_of(source + main('print("x")'))
+
+
+# ---------------------------------------------------------------- modules
+
+def test_enums_across_modules(tmp_path):
+    assert run_project(tmp_path, {
+        'paint/colors.fusion': (
+            'public enum Color: Red Green Blue\n'
+            'public Color function warm()\n'
+            '    return Color.Red\n'),
+        'main.fusion': (
+            'import paint\n'
+            'import paint.Color\n'
+            'void function main()\n'
+            '    paint.Color a = paint.warm()\n'
+            '    Color b = Color.Blue\n'
+            '    print("{a} {b} {@1}", paint.Color.Green)\n'),
+    }) == ['Red Blue Green']
+
+
+def test_a_private_enum_stays_in_its_module(tmp_path):
+    message = module_errors(tmp_path, {
+        'paint/colors.fusion': (
+            'enum Secret: A B\n'
+            'public Secret function hidden()\n'
+            '    return Secret.A\n'),
+        'main.fusion': 'import paint\nvoid function main()\n    print("x")\n',
+    })
+    assert "The public function 'hidden' uses the private enum 'Secret'" in message

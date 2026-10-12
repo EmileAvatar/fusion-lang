@@ -10,9 +10,9 @@ The model (user decisions 2026-10-10):
 - Each module is loaded once, from one list of loaded modules - imports that criss-cross
   (money -> tax -> money) can't loop. Two different modules with the same name in one file
   are an error: give one an alias
-- Only `public` structs and functions can be used by other modules (Task 18.4.3); files of
-  one module see all of each other's names. A public function can't take or return a
-  private struct of its module
+- Only `public` structs, enums and functions can be used by other modules (Task 18.4.3);
+  files of one module see all of each other's names. A public function can't take or
+  return a private struct or enum of its module
 
 How: every declaration of module `money` gets the internal name `money.round`; each file's
 names are rewritten (scope-aware - a local variable `round` is left alone) to those
@@ -25,7 +25,7 @@ from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from src.parser.ast_nodes import (
-    ASTNode, ProgramNode, ImportDecl, FunctionDecl, StructDecl, VarDeclStmt, BlockStmt,
+    ASTNode, ProgramNode, ImportDecl, FunctionDecl, StructDecl, EnumDecl, VarDeclStmt, BlockStmt,
     ForStmt, LambdaExpr, IdentifierExpr, MemberExpr, StructType, PrimitiveType, ArrayType,
     FunctionType, LiteralExpr,
 )
@@ -47,7 +47,7 @@ class Module:
         self.names: Dict[str, ASTNode] = {}   # top-level name -> its declaration
         for _, program in files:
             for decl in program.declarations:
-                if isinstance(decl, (FunctionDecl, StructDecl)):
+                if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):
                     self.names.setdefault(decl.name, decl)
 
     def qualify(self, name: str) -> str:
@@ -143,12 +143,12 @@ class ModuleLoader:
         self._load_imports(module)
 
     def _check_public_types(self, module: Module) -> None:
-        """A public function or struct can't expose a private struct of its own module:
-        other modules would get values of a type they can't name (Task 18.4.3)."""
+        """A public function, struct or enum can't expose a private struct or enum of its own
+        module: other modules would get values of a type they can't name (Task 18.4.3)."""
         def private_structs(type_node):
             if isinstance(type_node, StructType):
                 decl = module.names.get(type_node.name)
-                if isinstance(decl, StructDecl) and not decl.is_public:
+                if isinstance(decl, (StructDecl, EnumDecl)) and not decl.is_public:
                     yield type_node.name
             elif is_dataclass(type_node) and not isinstance(type_node, type):
                 for f in dataclass_fields(type_node):
@@ -163,11 +163,15 @@ class ModuleLoader:
             if isinstance(decl, FunctionDecl):
                 used = [decl.return_type] + [p.param_type for p in decl.parameters]
                 what = f"public function '{decl.name}'"
+            elif isinstance(decl, EnumDecl):
+                used = [f.field_type for v in decl.variants for f in v.fields]
+                what = f"public enum '{decl.name}'"
             else:
                 used = [f.field_type for f in decl.fields]
                 what = f"public struct '{decl.name}'"
             for name in sorted({n for t in used for n in private_structs(t)}):
-                self._error(f"The {what} uses the private struct '{name}' - make '{name}' "
+                kind = 'enum' if isinstance(module.names.get(name), EnumDecl) else 'struct'
+                self._error(f"The {what} uses the private {kind} '{name}' - make '{name}' "
                             f"public too", decl)
 
     # ------------------------------------------------------------------ name rewriting
@@ -301,7 +305,7 @@ class ModuleLoader:
                 scopes[-1].add(node.name)       # visible from the next statement on
 
         for decl in program.declarations:
-            if module.id and isinstance(decl, (FunctionDecl, StructDecl)):
+            if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):
                 decl.name = module.qualify(decl.name)
             walk(decl, [])
 
@@ -385,6 +389,12 @@ def module_interface(module: Module) -> List[str]:
             lines.append(f'    public struct {name}')
             for f in decl.fields:
                 lines.append(f'        {type_text(f.field_type, module.id)} {f.name}')
+        elif isinstance(decl, EnumDecl):
+            lines.append(f'    public enum {name}')         # Task 25
+            for v in decl.variants:
+                data = ', '.join(f'{type_text(f.field_type, module.id)} {f.name}' for f in v.fields)
+                value = f' = {v.value}' if v.explicit_value else ''
+                lines.append(f'        {v.name}{f"({data})" if v.fields else ""}{value}')
         else:
             params = []
             for p in decl.parameters:

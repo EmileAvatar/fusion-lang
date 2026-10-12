@@ -12,11 +12,13 @@ from src.parser.ast_nodes import (
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
+    EnumDecl, EnumType, EnumStaticCall, EnumValueExpr,
     ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES
 )
 from .symbol_table import SymbolTable
 from .symbol import Symbol
 from .errors import SemanticError
+from .enums import check_enum_declaration
 from src.lexer.token import SourceLocation
 
 
@@ -371,6 +373,26 @@ class NameResolver:
         for struct in structs:
             self.check_struct(struct)
 
+    def register_enums(self, program: ProgramNode) -> None:
+        """Register every enum's name (Task 25) - before the structs, so a struct field
+        can hold an enum - and check its values."""
+        for enum in (d for d in program.declarations if isinstance(d, EnumDecl)):
+            self.errors.extend(check_enum_declaration(enum))
+            if enum.name in ('bytes', 'byte') or enum.name in TYPE_CLASSES \
+                    or enum.name in COLLECTION_TYPE_NAMES:
+                self.errors.append(SemanticError(
+                    f"'{enum.name}' is a built-in type - choose another name for the enum",
+                    enum.location))
+                continue
+            try:
+                self._replace_library_builtin(enum.name)
+                self.symbol_table.define(Symbol(
+                    name=enum.name, symbol_type='enum',
+                    data_type=EnumType(location=enum.location, name=enum.name, declaration=enum),
+                    location=enum.location, declaration=enum))
+            except SemanticError as e:
+                self.errors.append(e)
+
     def register_struct(self, struct: StructDecl) -> None:
         """Register a struct's name in the global scope.
 
@@ -620,6 +642,8 @@ class NameResolver:
         null), or a negated int/float literal such as -1."""
         if isinstance(expr, LiteralExpr):
             return expr.type_hint != 'null'
+        if isinstance(expr, EnumValueExpr):        # Color.Red (Task 25)
+            return True
         if isinstance(expr, UnaryExpr) and expr.operator == '-':
             operand = expr.operand
             return isinstance(operand, LiteralExpr) and operand.type_hint in ('int', 'float', 'double')
@@ -914,6 +938,9 @@ class NameResolver:
             self.resolve_expression(expr.index)
         elif isinstance(expr, NamedArgument):
             self.resolve_expression(expr.value)
+        elif isinstance(expr, EnumStaticCall):          # Color.fromString(text) (Task 25)
+            for argument in expr.arguments:
+                self.resolve_expression(argument)
         elif isinstance(expr, MemberExpr):
             # Only the object needs resolving - the field name is checked by the type
             # checker, once the object's struct type is known. `String.toUpper` - a built-in

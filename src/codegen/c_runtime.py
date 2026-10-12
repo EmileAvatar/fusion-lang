@@ -21,7 +21,8 @@ import unicodedata
 
 from ..parser.ast_nodes import (
     ASTNode, CallExpr, LiteralExpr, InterpolatedStringExpr,
-    StringTextPart, StringExprPart, StringPositionalPart, PrimitiveType, ArrayType, IdentifierExpr
+    StringTextPart, StringExprPart, StringPositionalPart, PrimitiveType, ArrayType, IdentifierExpr,
+    EnumType,
 )
 from .c_names import array_length_name
 
@@ -127,6 +128,8 @@ class RuntimeLoweringMixin:
                 "inferred_type - semantic analysis must run and resolve every expression's "
                 "type before code generation."
             )
+        if isinstance(inferred_type, EnumType):
+            return '%s'   # its name (Task 25.2)
         if not isinstance(inferred_type, PrimitiveType) or inferred_type.name not in self._FORMAT_SPECIFIERS:
             type_name = inferred_type.name if isinstance(inferred_type, PrimitiveType) else type(inferred_type).__name__
             raise NotImplementedError(
@@ -149,6 +152,8 @@ class RuntimeLoweringMixin:
             return f'{hex_text}.data'
         if isinstance(inferred, PrimitiveType) and inferred.name == 'bool':
             return f'(({code}) ? "true" : "false")'
+        if isinstance(inferred, EnumType):
+            return f'{self.enum_text_code(inferred, code)}.data'   # its name (Task 25.2)
         return code
 
     def _generate_print_call(self, node: CallExpr) -> str:

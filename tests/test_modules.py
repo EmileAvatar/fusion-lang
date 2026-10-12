@@ -254,7 +254,7 @@ def test_public_declarations_cannot_expose_private_structs(tmp_path, module_text
 
 @pytest.mark.parametrize("source, message", [
     ('public public int function f() : 1\n', "Only one of 'public' / 'private' may be given"),
-    ('public import m\n', "'public' can only come before a struct or a function"),
+    ('public import m\n', "'public' can only come before a struct, an enum or a function"),
 ])
 def test_public_syntax_errors(source, message):
     from src.parser.parser import ParserError

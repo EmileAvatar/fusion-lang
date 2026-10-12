@@ -13,7 +13,7 @@ everything else that is generated on demand.
 
 from ..parser.ast_nodes import (
     ArrayLiteralExpr, IdentifierExpr, MemberExpr, IndexExpr, PrimitiveType, StructType,
-    ListType, MapType, FunctionType,
+    ListType, MapType, FunctionType, EnumType,
 )
 
 _SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
@@ -29,6 +29,8 @@ class CollectionsMixin:
             return element.name
         if isinstance(element, StructType):
             return self._struct_c_name(element)
+        if isinstance(element, EnumType):
+            return self.map_type(element)                   # Task 25.2
         if isinstance(element, ListType):
             return 'list_' + self._list_key(element.element_type)
         if isinstance(element, MapType):
@@ -340,7 +342,11 @@ class CollectionsMixin:
                 parts += self.free_lines(value, f'm->vals[{i}]')
             return ' '.join(parts)
 
-        if key.name == 'string':
+        if isinstance(key, EnumType):                       # Task 25.2
+            hash_body = ['return (uint32_t)k * 2654435761u;']
+            missing = (f'fusion_runtime_error(where, "key %s is not in the map", '
+                       f'{self.enum_text_code(key, "k")}.data);')
+        elif key.name == 'string':
             hash_body = ['uint32_t h = 2166136261u;',
                          'for (int i = 0; i < k.len; i++) { h ^= (unsigned char)k.data[i]; h *= 16777619u; }',
                          'return h;']

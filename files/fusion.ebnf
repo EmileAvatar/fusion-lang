@@ -405,14 +405,24 @@ struct_field =
 (* ========== Enums ========== *)
 
 enum_declaration =
-    "Enum" identifier enum_body ;
+    ( "enum" | "Enum" ) identifier enum_body ;
+    (* Implemented (Task 25.2). Top level only; `public enum` for other modules *)
 
 enum_body =
-    "{" enum_value { "," enum_value } "}"           (* Braces style *)
-    | INDENT enum_value { enum_value } DEDENT       (* Indentation style *)
-    | "{" enum_value { "," enum_value } "}" ;       (* Single-line style *)
+    ":" enum_values NEWLINE                                        (* one line *)
+    | { NEWLINE } INDENT enum_values DEDENT [ "End" "enum" ]       (* indentation / End *)
+    | { NEWLINE } "{" enum_values "}" ;                            (* braces *)
 
-enum_value = identifier [ "=" integer_literal ] ;
+enum_values = enum_value { [ "," | NEWLINE ] enum_value } ;
+    (* Commas are optional (user decision: they are redundant) *)
+
+enum_value = identifier [ "(" struct_field { "," struct_field } ")" ]
+             [ "=" [ "-" ] integer_literal ] ;
+    (* A value's number defaults to the previous one + 1, from 0. Two values can't share a
+       name or a number. The data in ( ) - an enum with data - is Task 25.4.
+       Use: Color.Red; Color.values() (a List); Color.fromString(text); c.toString() /
+       toString(c) gives the name, c.toInt() / toInt(c) the number. == / != only between
+       values of the same enum *)
 
 (* ========== Annotations ========== *)
 

@@ -22,7 +22,7 @@ from ..parser.ast_nodes import (
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
-    BlockStmt, ListType, MapType,
+    BlockStmt, ListType, MapType, EnumDecl, EnumType,
 )
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
@@ -30,11 +30,12 @@ from .c_runtime import RuntimeLoweringMixin, escape_c_text
 from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
 from .c_equality import EqualityMixin, EQUALITY_OPERATORS
 from .c_collections import CollectionsMixin
+from .c_enums import EnumsMixin
 from ..semantic.name_resolver import FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS
 
 
 class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin,
-                     CollectionsMixin):
+                     CollectionsMixin, EnumsMixin):
     """Generates C code from Fusion AST.
 
     Uses visitor pattern to traverse the AST and generate equivalent C code.
@@ -123,7 +124,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # Two Fusion names must never become the same C name (modules, Task 18.4.2)
         c_names = {}
         for decl in program.declarations:
-            if isinstance(decl, (FunctionDecl, StructDecl)):
+            if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):
                 c_name = mangle_function_name(decl.name)
                 other = c_names.setdefault(c_name, decl.name)
                 if other != decl.name:
@@ -144,6 +145,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.emit(f'#define FUSION_MAX_LENGTH {self.max_length}  // [strings] max_length (18.3.4b)')
         self.output.extend(RUNTIME_PRELUDE.splitlines())
         self.emit()
+
+        # Enums (Task 25) - plain ints with name helpers, before anything that holds one
+        self.output.extend(self.enum_section_lines(
+            [d for d in program.declarations if isinstance(d, EnumDecl)]))
 
         # Lists' types and prototypes go here, before the structs (they may hold each
         # other) - inserted at the end, once every list type is known (Task 18.5.1)
@@ -392,6 +397,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return True   # all-zero is the empty list / map (Task 18.5)
         if isinstance(type_node, PrimitiveType):
             return type_node.name not in ('string', 'bytes')
+        if isinstance(type_node, EnumType):
+            return self.enum_default_value(type_node) == 0   # the first value (Task 25.2)
         if isinstance(type_node, ArrayType):
             return self._is_zero_safe(type_node.element_type)
         if isinstance(type_node, StructType):
@@ -414,6 +421,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         string, a struct's own field defaults, and an array of default elements."""
         if isinstance(type_node, PrimitiveType):
             return self._ZERO_VALUES.get(type_node.name, '0')
+        if isinstance(type_node, EnumType):
+            return self.enum_number(self.enum_default_value(type_node))   # its first value
         if isinstance(type_node, StructType):
             struct = self._struct_decl(type_node)
             return self._struct_initializer(struct, [None] * len(struct.fields))
@@ -971,6 +980,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.text_list_helpers()   # made on demand, after List<string> (Task 18.5.3)
         # With any optional arguments filled in by their defaults (Task 18.3.6)
         arguments = list(node.resolved_arguments or node.arguments)
+        first_type = getattr(arguments[0], 'inferred_type', None) if arguments else None
+        if isinstance(first_type, EnumType) and name in ('toString', 'toInt'):
+            code = self.visit(arguments[0])
+            # Its name (static text, never freed) or its number (Task 25.2)
+            return self.enum_text_code(first_type, code) if name == 'toString' else f'((int)({code}))'
         if name == 'toString':
             if self._is_bytes(arguments[0]):
                 c_function, needs_where = 'fusion_bytes_toString', True   # must be text (18.3.8)
@@ -1203,9 +1217,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if node.initializer:
             init_code = self.owned_value(node.initializer, node.var_type)
             self.emit_line(f'{const_keyword}{c_type} {name} = {init_code}')
-        elif managed:
+        elif managed or isinstance(node.var_type, EnumType):
             # A string declared without a value is "" (it used to be an uninitialized
-            # pointer)
+            # pointer); an enum is its first value (Task 25.2)
             self.emit_line(f'{c_type} {name} = {self._default_value_code(node.var_type)}')
         else:
             self.emit_line(f'{const_keyword}{c_type} {name}')

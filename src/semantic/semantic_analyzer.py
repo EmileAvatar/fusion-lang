@@ -8,6 +8,7 @@ import sys
 from typing import List, Optional
 
 from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType
+from .enums import normalize_enums
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
 from .symbol_table import SymbolTable
@@ -76,6 +77,10 @@ class SemanticAnalyzer:
         self.errors.clear()
         self.warnings.clear()
 
+        # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
+        # nothing after this mistakes an enum for a struct
+        self.errors.extend(normalize_enums(ast))
+
         # Pass 1: Validate entry point
         ep_errors, ep_warnings = self.entry_point_validator.validate_program(ast)
         self.errors.extend(ep_errors)
@@ -85,6 +90,7 @@ class SemanticAnalyzer:
         # function declarations (global scope only) - structs first, so any signature can
         # use any struct (Task 18.2.1)
         from src.parser.ast_nodes import FunctionDecl
+        self.name_resolver.register_enums(ast)
         self.name_resolver.register_structs(ast)
         structs = [d for d in ast.declarations if isinstance(d, StructDecl)]
         for struct in structs:

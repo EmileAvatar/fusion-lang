@@ -158,6 +158,33 @@ void function main()
     print("{@1} {@2} {@3} {@4} {@5}", a.x, b.x, ada.health, l.b.y, pts[1].x)
 ```
 
+#### Enums
+
+<!-- example: syntax_enums | task: 25.2 -->
+```fusion
+enum Color: Red Green Blue                // one line - commas are optional
+
+enum Status                               // a block (braces and End enum work too)
+    OK = 200                              // values count up from 0 unless given
+    NotFound = 404
+
+struct Pixel
+    int x
+    Color color = Color.Blue              // an enum field, with a default
+
+void function main()
+    Color c = Color.Green
+    Status s                              // no value given: its first one, OK
+    print("{c} {s} {@1} {@2}", c.toInt(), Status.NotFound.toInt())
+    if c == Color.Green and c != Color.Red    // only values of the same enum compare
+        print("green, " + c.toString())
+    for each in Color.values()            // every value, in order
+        print("{each}")
+    Map<Color, int> votes                 // an enum as a Map key, a List element, ...
+    votes[Color.fromString("Red")] = 3    // text to value - an unknown name stops the program
+    print("{@1} {@2}", votes[Color.Red], Pixel(1).color)
+```
+
 #### Strings (values, freed automatically)
 
 <!-- example: syntax_strings | task: 18.3.1 -->

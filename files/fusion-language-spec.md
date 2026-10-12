@@ -1763,7 +1763,26 @@ Arrays are different: they are passed **by reference** (see "Array parameters").
 
 ## Enumerations
 
-**Status:** [PLANNED 25] plain enums, enums with data (tagged unions), `match`
+**Status:** [PARTLY] plain enums are built (25.2); enums with data (tagged unions)
+[PLANNED 25.4], `match` [PLANNED 25.3]
+
+**As built (Task 25.2, user decisions 2026-10-12):**
+* `enum` (or `Enum`) at top level, `public enum` for other modules. Forms: one line after
+  `:`, an indented block (optionally closed by `End enum`), or braces. Commas are optional
+* A value's number is written (`OK = 200`, `Low = -1`) or the previous one + 1, from 0. Two
+  values can't share a name or a number; `values` / `fromString` can't be value names
+* A value is always written `Color.Red` (bare names only in `match` cases - Task 25.3)
+* In C an enum is an int; a variable, field or array element given no value starts at the
+  enum's **first** value
+* `==` / `!=` / `===` only between values of the same enum - never with a number (use
+  `toInt()`); no arithmetic
+* Printing (`print`, `{c}`, `format`) and `toString` give the name; `toInt` the number;
+  `Color.values()` a `List<Color>` in declaration order; `Color.fromString("Red")` the value
+  - an unknown name stops the program with a clear error until error handling (Task 26)
+* An enum works as a variable, parameter, return value, struct field, array / List element
+  and Map key; a variable can't have an enum's name
+* Not built (stay design below): `.name` / `.value` / `.ordinal` properties (use the
+  methods), `next()` / `previous()`, `fromValue`
 
 Description: Named constant values for type-safe selections.
 

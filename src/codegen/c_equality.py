@@ -87,6 +87,8 @@ class EqualityMixin:
     def _equality_key(self, type_node) -> str:
         if isinstance(type_node, StructType):
             return self._struct_c_name(type_node)
+        if type(type_node).__name__ == 'EnumType':
+            return self.map_type(type_node)
         if isinstance(type_node, ArrayType):
             return 'arr_' + self._equality_key(type_node.element_type)
         if type(type_node).__name__ in ('ListType', 'MapType'):

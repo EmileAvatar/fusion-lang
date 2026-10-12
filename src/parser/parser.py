@@ -1363,21 +1363,25 @@ class Parser:
                 pass
             if self.check(TokenType.PUBLIC) or self.check(TokenType.PRIVATE):
                 raise ParserError(self.peek(), "Only one of 'public' / 'private' may be given")
-            if not (self.check(TokenType.STRUCT) or self.is_type_start()
+            if not (self.check(TokenType.STRUCT) or self.check(TokenType.ENUM) or self.is_type_start()
                     or self.is_function_type_declaration_start()
                     or self.is_struct_type_declaration_start()):
-                raise ParserError(modifier, f"'{modifier.value}' can only come before a struct "
-                                            f"or a function")
+                raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
+                                            f"an enum or a function")
             decl = self.parse_declaration()
-            if not isinstance(decl, (FunctionDecl, StructDecl)):
-                raise ParserError(modifier, f"'{modifier.value}' can only come before a struct "
-                                            f"or a function")
+            if not isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):
+                raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
+                                            f"an enum or a function")
             decl.is_public = modifier.type == TokenType.PUBLIC
             return decl
 
         # Struct declaration (Task 18.2.1)
         if self.match(TokenType.STRUCT):
             return self.parse_struct_declaration()
+
+        # Enum declaration (Task 25)
+        if self.match(TokenType.ENUM):
+            return self.parse_enum_declaration()
 
         # Function declaration: <return_type> function <name>(<params>) { body }
         if (self.is_type_start() or self.is_function_type_declaration_start()
@@ -1455,6 +1459,87 @@ class Parser:
             self.consume(TokenType.STRUCT, "Expected 'struct' after 'End'")
 
         return StructDecl(location=struct_token.location, name=name_token.value, fields=fields)
+
+    def parse_enum_declaration(self) -> EnumDecl:
+        """Parse an enum (Task 25), on one line or in any of the three block styles:
+
+            enum Color: Red Green Blue      enum Status          enum Token {
+                                                OK = 200             Number(int value)
+                                                NotFound = 404       Plus
+                                                                 }
+
+        Commas between values are optional (user decision: they are redundant). A value is
+        a name, optionally `= <integer>` (default: the previous value + 1, starting at 0),
+        or a name with the data it carries in parentheses. `End enum` may close a block.
+        The ENUM token has already been consumed.
+        """
+        enum_token = self.previous()
+        name_token = self.consume(TokenType.IDENTIFIER, "Expected the enum's name after 'enum'")
+        name = name_token.value
+
+        if self.match(TokenType.COLON):
+            closing = TokenType.NEWLINE          # one line: enum Color: Red Green Blue
+        else:
+            while self.match(TokenType.NEWLINE):
+                pass
+            if self.match(TokenType.LBRACE):
+                closing = TokenType.RBRACE
+            elif self.match(TokenType.INDENT):
+                closing = TokenType.DEDENT
+            else:
+                raise ParserError(
+                    self.peek(),
+                    f"Expected the values of enum '{name}' - after ':' on the same line, an "
+                    f"indented block, or '{{' ... '}}'")
+
+        variants = []
+        next_value = 0
+        while True:
+            if closing != TokenType.NEWLINE:
+                while self.match(TokenType.NEWLINE):
+                    pass
+            if self.check(closing) or self.is_at_end():
+                break
+            if self.match(TokenType.COMMA):
+                continue
+            variant = self.parse_enum_variant(name, next_value)
+            next_value = variant.value + 1
+            variants.append(variant)
+
+        if not self.is_at_end():
+            self.consume(closing, f"Expected end of enum '{name}'")
+        while self.match(TokenType.NEWLINE):
+            pass
+        # Optional `End enum` (End keyword style)
+        if closing != TokenType.NEWLINE and self.check(TokenType.END) \
+                and self.peek(1).type == TokenType.ENUM:
+            self.advance()
+            self.advance()
+        if not variants:
+            raise ParserError(name_token, f"Enum '{name}' has no values - it needs at least one")
+        return EnumDecl(location=enum_token.location, name=name, variants=variants)
+
+    def parse_enum_variant(self, enum_name: str, default_value: int) -> EnumVariant:
+        """One enum value: `Red`, `OK = 200`, `Low = -1`, or `Number(int value)` (Task 25)."""
+        if not self.check(TokenType.IDENTIFIER):
+            raise ParserError(self.peek(), f"Expected a value name in enum '{enum_name}'")
+        name_token = self.advance()
+        variant = EnumVariant(location=name_token.location, name=name_token.value,
+                              value=default_value)
+        if self.match(TokenType.LPAREN):
+            while not self.check(TokenType.RPAREN) and not self.is_at_end():
+                variant.fields.append(self.parse_struct_field())
+                if not self.match(TokenType.COMMA):
+                    break
+            self.consume(TokenType.RPAREN, f"Expected ')' after the data of '{name_token.value}'")
+        if self.match(TokenType.ASSIGN):
+            negative = self.match(TokenType.MINUS)
+            value_token = self.consume(
+                TokenType.INTEGER,
+                f"The value of '{name_token.value}' must be a whole number, e.g. {name_token.value} = 200")
+            variant.value = -integer_value(value_token.value) if negative else integer_value(value_token.value)
+            variant.explicit_value = True
+        return variant
 
     def parse_struct_field(self) -> StructField:
         """Parse one struct field: `int x` or `int hp = 100` (Task 18.2.1)."""

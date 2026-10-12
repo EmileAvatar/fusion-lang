@@ -220,6 +220,40 @@ class MemberExpr(ASTNode):
 
 
 @dataclass
+class EnumValueExpr(ASTNode):
+    """One value of an enum: Color.Red (Task 25.2). The parser reads it as a MemberExpr;
+    src/semantic/enums.py turns it into this node once it knows Color is an enum.
+
+    Attributes:
+        enum_name: The enum's (internal) name, e.g. "Color" or "paint.Color"
+        member: The value's name, e.g. "Red"
+        declaration: The EnumDecl (set when the node is made)
+    """
+    enum_name: str
+    member: str
+    declaration: Optional[Any] = None
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
+class EnumStaticCall(ASTNode):
+    """A call on the enum itself: Color.values(), Color.fromString("Red") (Task 25.2) -
+    made from a CallExpr by src/semantic/enums.py.
+
+    Attributes:
+        enum_name: The enum's (internal) name
+        method: "values" or "fromString"
+        arguments: The call's arguments
+        declaration: The EnumDecl
+    """
+    enum_name: str
+    method: str
+    arguments: List[ASTNode]
+    declaration: Optional[Any] = None
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class StringTextPart:
     """A literal text segment within an interpolated string.
 
@@ -479,6 +513,43 @@ class StructDecl(ASTNode):
 
 
 @dataclass
+class EnumVariant(ASTNode):
+    """One value of an enum (Task 25): `Red`, `OK = 200`, or with data `Number(int value)`.
+
+    Attributes:
+        name: The value's name
+        value: Its integer value - written (`= 200`), or the previous one + 1 (from 0);
+            filled in by the parser
+        explicit_value: True when the source wrote `= n`
+        fields: The data it carries (Task 25.4) - empty for a plain value
+    """
+    name: str
+    value: int = 0
+    explicit_value: bool = False
+    fields: List[StructField] = field(default_factory=list)
+
+
+@dataclass
+class EnumDecl(ASTNode):
+    """An enum declaration (Task 25), in any block style or on one line:
+
+        enum Color: Red Green Blue          enum Status
+                                                OK = 200
+                                                NotFound = 404
+
+    Attributes:
+        name: The enum's name, which is also the type name
+        variants: Its values, in declaration order
+    """
+    name: str
+    variants: List[EnumVariant]
+    is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
+
+    def variant(self, name: str) -> Optional[EnumVariant]:
+        return next((v for v in self.variants if v.name == name), None)
+
+
+@dataclass
 class ProgramNode(ASTNode):
     """Root node of the AST representing the entire program.
 
@@ -592,6 +663,19 @@ class StructType(TypeNode):
     Attributes:
         name: The struct's name
         declaration: The StructDecl, set by the name resolver (None until then)
+    """
+    name: str
+    declaration: Optional[Any] = None
+
+
+@dataclass
+class EnumType(TypeNode):
+    """An enum used as a type: Color c (Task 25.2). The parser can't tell an enum name from
+    a struct name, so it makes a StructType; src/semantic/enums.py replaces it with this.
+
+    Attributes:
+        name: The enum's (internal) name
+        declaration: The EnumDecl
     """
     name: str
     declaration: Optional[Any] = None

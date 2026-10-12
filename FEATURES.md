@@ -67,8 +67,10 @@ Fusion, covering only the simple part of the language, whose exe compiles the pr
 self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` section 5.
 
 #### 25 Enums and tagged unions [ ]
-	[ ] 25.1 Detailed plan (for approval)
-	[ ] 25.2 Plain enums: `enum Color { Red, Green }` - printing, ==, use in List / Map, as keys
+	[DONE] 25.1 Detailed plan - approved 2026-10-12 (data inside enum; Color.Red, bare names in match cases; else; data only through match)
+	[DONE] 25.2 Plain enums: one line / block / braces / End enum, commas optional, explicit values;
+		Color.Red, ==, printing, toString / toInt, values(), fromString; as fields, elements, Map
+		keys; across modules and in --interface
 	[ ] 25.3 Enums with data (tagged unions), e.g. Token = Number(int) | Word(string)
 	[ ] 25.4 `match` with a check that every case is handled
 	[ ] 25.5 Example + docs (a compiler needs this for its many node kinds)

@@ -121,7 +121,7 @@ def test_run_time_errors(statement, message):
 
 
 @pytest.mark.parametrize("body, message", [
-    ('Map<float, int> m', "Map keys can be string, int or char, got float"),
+    ('Map<float, int> m', "Map keys can be string, int, char or an enum, got float"),
     ('Map<string, void> m', "A Map can't hold void"),
     ('Map<string, int> m\nm[1] = 2', "Map key must be string, got int"),
     ('Map<string, int> m\nm["a"] = "b"', "Cannot assign string to array element of type int"),

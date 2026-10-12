@@ -4,6 +4,7 @@
 |---|---|
 | `semantic_analyzer.py` | Runs the passes below in order and collects errors and warnings (entry point of this folder) |
 | `number_patterns.py` | Checks `formatNumber` patterns written in the source (the same rules as the C runtime) |
+| `enums.py` | Enums (Task 25): turns enum types / `Color.Red` / `Color.values()` into enum nodes before checking (`normalize_enums`), checks declarations, and the type rules (a mixin of the type checker) |
 | `collection_rules.py` | Type rules for `List<T>` and `Map<K, V>` (Tasks 18.5.1-2): literals, methods, `for x in` - a mixin of the type checker |
 | `name_resolver.py` | Registers built-ins (and their optional arguments, `BUILTIN_DEFAULTS`), structs, functions and variables; reports undefined/duplicate names and unknown types |
 | `type_checker.py` | Checks every expression and statement's types; struct, string, array and call rules; writes `inferred_type` |

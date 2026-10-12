@@ -12,13 +12,15 @@ from src.parser.ast_nodes import (
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, StringPositionalPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
-    ListType, MapType, NewCollectionExpr
+    ListType, MapType, NewCollectionExpr,
+    EnumType, EnumValueExpr, EnumStaticCall,
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
 from .number_patterns import number_pattern_problem
 from .name_resolver import builtin_layer
 from .collection_rules import CollectionRulesMixin
+from .enums import EnumRulesMixin, ENUM_METHODS
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
                             TYPE_CLASSES, CLASS_STATICS, NOT_METHODS,
                             builtin_defaults)
@@ -42,7 +44,7 @@ def field_default(field: StructField):
     return None
 
 
-class TypeChecker(CollectionRulesMixin):
+class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
     """Type checks the AST using visitor pattern.
 
     Validates type compatibility in expressions, assignments, function calls,
@@ -208,6 +210,10 @@ class TypeChecker(CollectionRulesMixin):
             return self.types_equal(type1.element_type, type2.element_type) and \
                 type1.size == type2.size
 
+        # Enums: the same enum, by name (Task 25.2)
+        if isinstance(type1, EnumType) and isinstance(type2, EnumType):
+            return type1.name == type2.name
+
         # Structs: same struct, by name (Task 18.2.1)
         if isinstance(type1, StructType) and isinstance(type2, StructType):
             return type1.name == type2.name
@@ -341,7 +347,7 @@ class TypeChecker(CollectionRulesMixin):
         if isinstance(type_node, ArrayType):
             size_str = str(type_node.size) if type_node.size is not None else ''
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
-        if isinstance(type_node, StructType):
+        if isinstance(type_node, (StructType, EnumType)):
             return type_node.name
         if isinstance(type_node, ListType):
             return f"List<{self.type_to_string(type_node.element_type)}>"
@@ -613,6 +619,16 @@ class TypeChecker(CollectionRulesMixin):
         else:
             receiver_type = self.visit(receiver)
             self.checked_receivers[id(receiver)] = receiver_type   # checked once, not again
+            if isinstance(receiver_type, EnumType):
+                # An enum value's methods: c.toString(), c.toInt() (Task 25.2)
+                if member not in ENUM_METHODS:
+                    self.checked_receivers.pop(id(receiver), None)
+                    return (f"An enum value has no method '{member}' (it has "
+                            f"{', '.join(ENUM_METHODS)})")
+                node.callee = IdentifierExpr(location=node.callee.location, name=member)
+                node.arguments = [receiver] + list(node.arguments)
+                node.is_method = True
+                return None
             if not isinstance(receiver_type, PrimitiveType) or receiver_type.name == 'void':
                 return None   # a struct field holding a function, or an earlier error
         class_name = next((c for c, t in TYPE_CLASSES.items() if t == receiver_type.name), None)
@@ -745,6 +761,11 @@ class TypeChecker(CollectionRulesMixin):
                 if problem:
                     return f"field '{left_field.name}' can't be compared ({problem})"
             return None
+        if isinstance(left, EnumType) or isinstance(right, EnumType):
+            # Enums: only values of the same enum (Task 25.2) - toInt() for the number
+            if isinstance(left, EnumType) and isinstance(right, EnumType) and left.name == right.name:
+                return None
+            return "an enum value only equals a value of the same enum (use toInt() for its number)"
         if isinstance(left, FunctionType) or isinstance(right, FunctionType):
             return "functions can't be compared"
         return "these types never compare equal"
@@ -953,10 +974,11 @@ class TypeChecker(CollectionRulesMixin):
                     node.location))
                 return func_type.return_type
             arg_type = self.visit(node.arguments[0])
-            if not isinstance(arg_type, PrimitiveType) or arg_type.name == 'void':
+            if (not isinstance(arg_type, (PrimitiveType, EnumType))
+                    or getattr(arg_type, 'name', '') == 'void'):
                 self.errors.append(SemanticError(
                     f"Function 'toString' expects a single value (int, float, double, bool, "
-                    f"char or string), got {self.type_to_string(arg_type)}",
+                    f"char, string or an enum value), got {self.type_to_string(arg_type)}",
                     node.arguments[0].location))
             node.resolved_arguments = list(node.arguments)
             return func_type.return_type
@@ -1009,6 +1031,8 @@ class TypeChecker(CollectionRulesMixin):
                     and isinstance(actual_type, PrimitiveType)
                     and actual_type.name in FLEXIBLE_FIRST_ARG[func_name]):
                 continue  # toHex("255"), toBytes('k') (Tasks 18.3.6d, 18.3.8)
+            if i == 0 and is_builtin and func_name in ENUM_METHODS and isinstance(actual_type, EnumType):
+                continue  # toString(c) gives its name, toInt(c) its number (Task 25.2)
             if i == 0 and is_builtin and func_name in MUTATING_BUILTINS:
                 self._check_changeable(arg, func_name)
             if isinstance(expected_type, ArrayType):
@@ -1121,7 +1145,7 @@ class TypeChecker(CollectionRulesMixin):
 
         for number, extra in enumerate(extras, start=1):
             extra_type = self.visit(extra)
-            if not isinstance(extra_type, PrimitiveType):
+            if not isinstance(extra_type, (PrimitiveType, EnumType)):
                 self.errors.append(SemanticError(
                     f"Can't print a whole {self.type_to_string(extra_type)} value - print its "
                     f"elements or fields one at a time",
@@ -1578,6 +1602,8 @@ class TypeChecker(CollectionRulesMixin):
         for segment in node.segments:
             if isinstance(segment, StringExprPart):
                 expr_type = self.visit(segment.expression)
+                if isinstance(expr_type, EnumType):
+                    continue   # an enum value prints its name (Task 25.2)
                 # Only single values can be printed - a whole array (Task 15.9, used to crash
                 # codegen), struct, or function has no printf format. (void is the error-
                 # recovery type - its own error, e.g. an undefined variable, is already
