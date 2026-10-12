@@ -174,7 +174,6 @@ def test_type_errors(body, message):
     ('enum Color: Red values\n', "'values' can't be a value of enum 'Color'"),
     ('enum List: A B\n', "'List' is a built-in type"),
     ('enum Color: Red\nstruct Color\n    int x\n', "Color"),
-    ('enum Token\n    Number(int value)\n', "enums with data are not built yet (Task 25.4)"),
 ])
 def test_declaration_errors(source, message):
     assert message in errors_of(source + main('print("x")'))
@@ -336,3 +335,103 @@ def test_a_match_without_every_case_returning_needs_a_return():
 def test_match_parse_errors(source, message):
     with pytest.raises(Exception, match=message):
         parse(LIGHT + main(source))
+
+
+# ---------------------------------------------------------------- enums with data (Task 25.4)
+
+TOKEN = ('enum Token\n'
+         '    Number(int value)\n'
+         '    Word(string text)\n'
+         '    Pair(string a, int b)\n'
+         '    Plus\n')
+
+
+def test_data_values_are_made_and_read_through_match():
+    assert run_ok(
+        TOKEN
+        + 'string function show(Token t)\n'
+        '    match t\n'
+        '        case Number(n): return "number " + toString(n)\n'
+        '        case Word(w): return "word " + w\n'
+        '        case Pair(x, _): return "pair " + x\n'
+        '        case Plus: return "plus"\n'
+        + main(
+            'List<Token> tokens = [Token.Number(42), Token.Word("hi"), Token.Plus]\n'
+            'tokens.add(Token.Pair(b = 7, a = "k"))\n'
+            'for t in tokens\n'
+            '    print("{t} {@1} {@2}", toInt(t), show(t))')
+    ) == ['Number 0 number 42', 'Word 1 word hi', 'Plus 3 plus', 'Pair 2 pair k']
+
+
+def test_data_values_are_copied_compared_and_freed():
+    assert run_ok(
+        TOKEN + 'struct Slot\n    Token token\n    int n\n'
+        + 'Token function word(string s)\n    return Token.Word(s + "!")\n'
+        + main(
+            'Token a = word("x")\n'
+            'Token b = a\n'
+            'a = Token.Number(1)\n'
+            'Slot slot = Slot(b, 2)\n'
+            'Token none\n'                          # no value given: the first value, Number(0)
+            'print("{@1} {@2} {@3}", b == Token.Word("x!"), a == b, a != Token.Number(2))\n'
+            'print("{@1} {@2} {none}", slot.token == b, none == Token.Number(0))\n'
+            'match word("y")\n'
+            '    case Word(w): print(w)\n'
+            '    else: print("?")')
+    ) == ['true false true', 'true true Number', 'y!']
+
+
+def test_a_return_inside_a_case_frees_the_matched_value():
+    assert run_ok(
+        TOKEN + 'string function first(List<Token> ts)\n'
+        '    for t in ts\n'
+        '        match t\n'
+        '            case Word(w)\n'
+        '                if w == "stop"\n'
+        '                    return w\n'
+        '            else: continue\n'
+        '    return "none"\n'
+        + 'Token function make(string s)\n    return Token.Word(s)\n'
+        + 'string function direct(string s)\n'
+        '    match make(s)\n'
+        '        case Word(w): return w + "?"\n'
+        '        else: return "-"\n'
+        + main('print(first([Token.Plus, Token.Word("go"), Token.Word("stop")]) + " " + direct("q"))')
+    ) == ['stop q?']
+
+
+def test_binding_names_that_clash_with_c_are_renamed():
+    assert run_ok(TOKEN + main(
+        'Token t = Token.Number(5)\n'
+        'match t\n'
+        '    case Number(auto): print("{auto}")\n'
+        '    else: print("x")'
+    )) == ['5']
+
+
+@pytest.mark.parametrize("body, message", [
+    ('Token t = Token.Number()', "'Token.Number' takes 1 value(s) (value), got 0"),
+    ('Token t = Token.Number("x")', "'Token.Number' field 'value': expected int, got string"),
+    ('Token t = Token.Number', "'Token.Number' carries data - give it: Token.Number(value)"),
+    ('Token t = Token.Plus()', "'Token.Plus' is a value, not a function"),
+    ('Token t = Token.Pair(c = 1)', "has no field named 'c'"),
+    ('List<Token> ts = Token.values()', "Token.values() only works on an enum whose values carry no data"),
+    ('Map<Token, int> m', "Map keys can be string, int, char or an enum without data"),
+    ('Token t = Token.Plus\nmatch t\n    case Number(a, b): print("x")\n    else: print("y")',
+     "'Number' carries 1 value(s) (value) - name each, or write just case Number"),
+    ('Token t = Token.Plus\nmatch t\n    case Number(a), Word(b): print("x")\n    else: print("y")',
+     "A case with several values can't name their data"),
+    ('Token t = Token.Plus\nmatch t\n    case Number(n): n = "x"\n    else: print("y")', "Cannot assign"),
+])
+def test_data_errors(body, message):
+    assert message in errors_of(TOKEN + main(body))
+
+
+@pytest.mark.parametrize("source, message", [
+    ('enum E\n    A(int x, int x)\n', "'A' of enum 'E' has two fields named 'x'"),
+    ('enum E\n    A(int x = 1)\n', "can't have a default value"),
+    ('enum E\n    A(int[3] x)\n', "can't be an array - use a List"),
+    ('enum E\n    A(E inner)\n', "enums that hold themselves come in Task 25.5"),
+])
+def test_data_declaration_errors(source, message):
+    assert message in errors_of(source + main('print("x")'))

@@ -118,12 +118,42 @@ def check_enum_declaration(enum: EnumDecl) -> List[SemanticError]:
             errors.append(SemanticError(
                 f"'{variant.name}' and '{numbers[variant.value]}' in enum '{enum.name}' both "
                 f"have the value {variant.value} - each value needs its own number", where))
-        if variant.fields:
-            errors.append(SemanticError(
-                f"'{variant.name}' carries data - enums with data are not built yet "
-                f"(Task 25.4)", where))
+        errors.extend(_check_variant_fields(enum, variant))
         names.setdefault(variant.name, variant)
         numbers.setdefault(variant.value, variant.name)
+    return errors
+
+
+def has_data(enum: EnumDecl) -> bool:
+    """True for an enum with at least one value carrying data (Task 25.4)."""
+    return any(v.fields for v in enum.variants)
+
+
+def _check_variant_fields(enum: EnumDecl, variant) -> List[SemanticError]:
+    errors, seen = [], set()
+    for f in variant.fields:
+        if f.name in seen:
+            errors.append(SemanticError(
+                f"'{variant.name}' of enum '{enum.name}' has two fields named '{f.name}'",
+                f.location))
+        seen.add(f.name)
+        if f.default_value is not None:
+            errors.append(SemanticError(
+                f"The data of '{variant.name}' can't have a default value - it is given when "
+                f"the value is made", f.location))
+        kind = f.field_type
+        if isinstance(kind, PrimitiveType) and kind.name == 'void' or type(kind).__name__ == 'FunctionType':
+            errors.append(SemanticError(
+                f"Field '{f.name}' of '{variant.name}' can't be "
+                f"{'void' if isinstance(kind, PrimitiveType) else 'a function'}", f.location))
+        if type(kind).__name__ == 'ArrayType':
+            errors.append(SemanticError(
+                f"Field '{f.name}' of '{variant.name}' can't be an array - use a List",
+                f.location))
+        if getattr(kind, 'name', None) == enum.name and type(kind).__name__ in ('EnumType', 'StructType'):
+            errors.append(SemanticError(
+                f"'{variant.name}' holds a {enum.name} inside a {enum.name} - enums that hold "
+                f"themselves come in Task 25.5", f.location))
     return errors
 
 
@@ -135,22 +165,36 @@ class EnumRulesMixin:
 
     def visit_EnumValueExpr(self, node: EnumValueExpr) -> TypeNode:
         decl = node.declaration
-        if decl.variant(node.member) is None:
+        variant = decl.variant(node.member)
+        if variant is None:
             self.errors.append(SemanticError(
                 f"Enum '{decl.name}' has no value '{node.member}' (its values: "
                 f"{', '.join(v.name for v in decl.variants)})", node.location))
+        elif variant.fields:
+            self.errors.append(SemanticError(
+                f"'{decl.name}.{node.member}' carries data - give it: {decl.name}.{node.member}("
+                f"{', '.join(f.name for f in variant.fields)})", node.location))
         return self.enum_type(decl, node.location)
 
     def visit_EnumStaticCall(self, node: EnumStaticCall) -> TypeNode:
         decl = node.declaration
         string = PrimitiveType(location=node.location, name='string')
+        if node.method in ENUM_STATICS and has_data(decl):
+            self.errors.append(SemanticError(
+                f"{decl.name}.{node.method}() only works on an enum whose values carry no data",
+                node.location))
+            return self.enum_type(decl, node.location)
         if node.method == 'values':
             self._expect_enum_arguments(node, [])
             return ListType(location=node.location, element_type=self.enum_type(decl, node.location))
         if node.method == 'fromString':
             self._expect_enum_arguments(node, [string])
             return self.enum_type(decl, node.location)
-        if decl.variant(node.method) is not None:
+        variant = decl.variant(node.method)
+        if variant is not None and variant.fields:
+            self._check_enum_construction(node, decl, variant)
+            return self.enum_type(decl, node.location)
+        if variant is not None:
             self.errors.append(SemanticError(
                 f"'{decl.name}.{node.method}' is a value, not a function - write it "
                 f"without ( )", node.location))
@@ -206,6 +250,8 @@ class EnumRulesMixin:
                     self.errors.append(SemanticError(
                         f"'{pattern.name}' carries no data - write just case {pattern.name}",
                         pattern.location))
+                elif pattern.bindings:
+                    self._type_bindings(case, pattern, variant)
         missing = [v.name for v in decl.variants if v.name not in handled]
         if node.else_body is None and missing:
             self.errors.append(SemanticError(
@@ -216,6 +262,25 @@ class EnumRulesMixin:
                 f"The else of this match never runs - every value of {decl.name} has its own "
                 f"case", node.else_body.location))
         node.exhaustive = True if not missing else node.exhaustive
+
+    def _type_bindings(self, case, pattern, variant) -> None:
+        """`case Number(n)`: n gets the field's type, in the case's own scope (Task 25.4)."""
+        if len(case.patterns) > 1:
+            self.errors.append(SemanticError(
+                "A case with several values can't name their data - give it its own case",
+                pattern.location))
+            return
+        if len(pattern.bindings) != len(variant.fields):
+            self.errors.append(SemanticError(
+                f"'{variant.name}' carries {len(variant.fields)} value(s) ("
+                f"{', '.join(f.name for f in variant.fields)}) - name each, or write just "
+                f"case {variant.name}", pattern.location))
+            return
+        scope = getattr(case.body, 'scope', None)
+        for name, f in zip(pattern.bindings, variant.fields):
+            symbol = scope.lookup(name) if scope is not None and name != '_' else None
+            if symbol is not None:
+                symbol.data_type = f.field_type
 
     def _check_constant_cases(self, node: MatchStmt, subject_type: PrimitiveType) -> None:
         seen = set()
@@ -246,6 +311,29 @@ class EnumRulesMixin:
             self.errors.append(SemanticError(
                 f"A match on {subject_type.name} needs an else - its values can't all be "
                 f"listed", node.location))
+
+    def _check_enum_construction(self, node: EnumStaticCall, decl: EnumDecl, variant) -> None:
+        """Token.Number(42) or Token.Number(value = 42) - one argument per field (Task 25.4)."""
+        owner = f"'{decl.name}.{variant.name}'"
+        if any(type(a).__name__ == 'NamedArgument' for a in node.arguments):
+            self._check_named_call(node, owner, 'field',
+                                   [(f.name, f.field_type, None) for f in variant.fields])
+            return
+        if len(node.arguments) != len(variant.fields):
+            self.errors.append(SemanticError(
+                f"{owner} takes {len(variant.fields)} value(s) ("
+                f"{', '.join(f.name for f in variant.fields)}), got {len(node.arguments)}",
+                node.location))
+            for argument in node.arguments:
+                self.visit(argument)
+            return
+        for f, argument in zip(variant.fields, node.arguments):
+            got = self._visit_value_for(f.field_type, argument)
+            if not self.types_compatible(f.field_type, got):
+                self.errors.append(SemanticError(
+                    f"{owner} field '{f.name}': expected {self.type_to_string(f.field_type)}, "
+                    f"got {self.type_to_string(got)}", argument.location))
+        node.resolved_arguments = list(node.arguments)
 
     def _expect_enum_arguments(self, node: EnumStaticCall, expected: List[TypeNode]) -> None:
         call = f"{node.declaration.name}.{node.method}"

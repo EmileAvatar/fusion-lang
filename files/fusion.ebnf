@@ -208,7 +208,8 @@ pattern =
     | [ "-" ] literal ;                                    (* int, byte, char, string *)
     (* On an enum every value needs a case unless there is an else (missing ones are named
        in the error); on an int / byte / char / string an else is required. A value can't
-       be handled twice. The ( names ) bind an enum value's data - Task 25.4 *)
+       be handled twice. The ( names ) get copies of an enum value's data, in field order;
+       _ skips one (Task 25.4) *)
 
 (* ========== Loops ========== *)
 
@@ -429,7 +430,8 @@ enum_values = enum_value { [ "," | NEWLINE ] enum_value } ;
 enum_value = identifier [ "(" struct_field { "," struct_field } ")" ]
              [ "=" [ "-" ] integer_literal ] ;
     (* A value's number defaults to the previous one + 1, from 0. Two values can't share a
-       name or a number. The data in ( ) - an enum with data - is Task 25.4.
+       name or a number. The data in ( ) - an enum with data (Task 25.4) - is made with
+       Token.Number(42) or named arguments, and read only through match.
        Use: Color.Red; Color.values() (a List); Color.fromString(text); c.toString() /
        toString(c) gives the name, c.toInt() / toInt(c) the number. == / != only between
        values of the same enum *)

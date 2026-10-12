@@ -74,7 +74,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 25.3 `match` on enums (bare names, every value covered or an else) and on int / byte /
 		char / string (constants, else required); several values per case; three block styles;
 		break / continue act on the loop
-	[ ] 25.4 Enums with data (tagged unions): Token.Number(42), read through `case Number(n)`
+	[DONE] 25.4 Enums with data (tagged unions): Token.Number(42) / named arguments, read through
+		`case Number(n)` (copies; `_` skips), ==, copies and cleanup like structs; prints the name
 	[ ] 25.5 Recursive enums: a value holding its own enum (an expression tree / AST)
 	[ ] 25.6 Example + docs (a compiler needs this for its many node kinds)
 

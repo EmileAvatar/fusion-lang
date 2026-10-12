@@ -4428,3 +4428,16 @@ As planned (decisions: data inside enum; Color.Red, bare names in match cases; e
   error); on int / char / string: constant cases, `else` required; several values per
   case (`case '+', '-'`); a duplicate case is an error; no fall-through; all three block
   styles; `break` / `continue` / `return` inside cases work as usual
+
+---
+
+#### Task 25.4 - enums with data (COMPLETE 2026-10-12)
+
+In C a data enum is a struct (tag + every value's fields), made by lower_data_enums() in src/codegen/c_enums.py so the struct code copies / frees / compares it; printing gives the value's name only.
+
+- **25.4 Enums with data** - variants with named fields, built like a struct
+  (`Token.Number(42)`, named arguments too); the data is read by `match` binding names
+  by position (`case Number(n)`); value semantics like structs: copied deeply, freed
+  automatically (strings, lists inside), == compares variant + fields, print shows
+  `Number(42)`. C: a tag + a C union of per-variant structs, with copy / free / equality
+  helpers

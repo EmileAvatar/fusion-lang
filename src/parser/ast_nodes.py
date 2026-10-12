@@ -237,8 +237,9 @@ class EnumValueExpr(ASTNode):
 
 @dataclass
 class EnumStaticCall(ASTNode):
-    """A call on the enum itself: Color.values(), Color.fromString("Red") (Task 25.2) -
-    made from a CallExpr by src/semantic/enums.py.
+    """A call on the enum itself: Color.values(), Color.fromString("Red") (Task 25.2), or
+    a value with data, Token.Number(42) (Task 25.4) - made from a CallExpr by
+    src/semantic/enums.py.
 
     Attributes:
         enum_name: The enum's (internal) name
@@ -251,6 +252,7 @@ class EnumStaticCall(ASTNode):
     arguments: List[ASTNode]
     declaration: Optional[Any] = None
     inferred_type: Optional['TypeNode'] = None
+    resolved_arguments: Optional[List[ASTNode]] = None   # Token.Number(...): one per field
 
 
 @dataclass

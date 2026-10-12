@@ -508,7 +508,9 @@ class MemoryManagementMixin:
         if isinstance(expr, NewCollectionExpr):
             return True   # List<int>() - an empty list (Task 18.5.1)
         if type(expr).__name__ == 'EnumStaticCall':
-            return expr.method == 'values'   # Color.values() builds a list (Task 25.2)
+            # Color.values() builds a list (25.2); Token.Word("x") a value holding a string (25.4)
+            return expr.method == 'values' or (expr.method != 'fromString'
+                                               and self.is_managed(getattr(expr, 'inferred_type', None)))
         if isinstance(expr, CallExpr) and getattr(expr, 'list_method', None) in ('filter', 'map', 'slice', 'reduce', 'join'):
             return self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, CallExpr) and getattr(expr, 'map_method', None):

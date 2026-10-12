@@ -7,7 +7,7 @@ all semantic analysis passes over the AST.
 import sys
 from typing import List, Optional
 
-from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType
+from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl
 from .enums import normalize_enums
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -98,6 +98,12 @@ class SemanticAnalyzer:
             for field in struct.fields:   # List<...> fields (Task 18.5)
                 self.type_checker._check_collection_type(field.field_type, field.location)
         self.type_checker.check_struct_nesting(structs)
+        # The data an enum's values carry (Task 25.4) - any type a struct field may have
+        for enum in (d for d in ast.declarations if isinstance(d, EnumDecl)):
+            for variant in enum.variants:
+                for field in variant.fields:
+                    self.name_resolver.resolve_type(field.field_type)
+                    self.type_checker._check_collection_type(field.field_type, field.location)
         self.check_structs_settings(structs)
         for decl in ast.declarations:
             if isinstance(decl, FunctionDecl):

@@ -185,6 +185,28 @@ void function main()
     print("{@1} {@2}", votes[Color.Red], Pixel(1).color)
 ```
 
+#### Enums with data
+
+<!-- example: syntax_enum_data | task: 25.4 -->
+```fusion
+enum Shape                                // a value may carry data
+    Circle(double radius)
+    Rect(double width, double height)
+    Empty
+
+double function area(Shape s)
+    match s                               // the data is read only through match
+        case Circle(r): return 3.14159 * r * r
+        case Rect(w, h): return w * h
+        case Empty: return 0.0
+
+void function main()
+    List<Shape> shapes = [Shape.Circle(1.0), Shape.Rect(height = 3.0, width = 2.0), Shape.Empty]
+    for s in shapes
+        print("{s}: {@1}", formatNumber(area(s), "0.00"))   // prints the value's name
+    print("{@1}", Shape.Rect(2.0, 3.0) == shapes[1])        // compares the value and its data
+```
+
 #### `match`
 
 <!-- example: syntax_match | task: 25.3 -->

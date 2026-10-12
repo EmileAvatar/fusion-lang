@@ -738,7 +738,10 @@ class NameResolver:
         elif isinstance(stmt, MatchStmt):             # Task 25.3
             self.resolve_expression(stmt.subject)
             for case in stmt.cases:
-                self.resolve_block(case.body)
+                # case Number(n): n is a variable of the case's block (Task 25.4) - its type
+                # is set by the type checker, which knows the matched enum
+                names = [n for p in case.patterns for n in p.bindings if n != '_']
+                self.resolve_block(case.body, bindings=names)
             if stmt.else_body is not None:
                 self.resolve_block(stmt.else_body)
         # else: unknown statement type, silently ignore
@@ -867,7 +870,7 @@ class NameResolver:
         finally:
             self.symbol_table.exit_scope()
 
-    def resolve_block(self, stmt: BlockStmt, new_scope: bool = True) -> None:
+    def resolve_block(self, stmt: BlockStmt, new_scope: bool = True, bindings=()) -> None:
         """Resolve block statement.
 
         Block scoping (Task 12.6): each block gets its own scope, so a variable declared
@@ -903,6 +906,15 @@ class NameResolver:
         stmt.scope = self.symbol_table.current_scope
 
         try:
+            for name in bindings:                      # case Number(n) (Task 25.4)
+                self.check_not_struct_name(name, "Variable", stmt.location)
+                try:
+                    self.symbol_table.define(Symbol(
+                        name=name, symbol_type='variable',
+                        data_type=PrimitiveType(location=stmt.location, name='void'),
+                        location=stmt.location))
+                except SemanticError as e:
+                    self.errors.append(e)
             for statement in stmt.statements:
                 self.resolve_statement(statement)
         finally:

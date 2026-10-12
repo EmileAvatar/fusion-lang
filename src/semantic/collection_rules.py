@@ -37,9 +37,10 @@ class CollectionRulesMixin:
         if isinstance(type_node, MapType):
             key = type_node.key_type
             if not ((isinstance(key, PrimitiveType) and key.name in MAP_KEY_TYPES)
-                    or isinstance(key, EnumType)):
+                    or (isinstance(key, EnumType)
+                        and not any(v.fields for v in key.declaration.variants))):
                 self.errors.append(SemanticError(
-                    f"Map keys can be string, int, char or an enum, got {self.type_to_string(key)}",
+                    f"Map keys can be string, int, char or an enum without data, got {self.type_to_string(key)}",
                     location))
             self._check_held_type(type_node.value_type, 'A Map', location)
         elif isinstance(type_node, ListType):

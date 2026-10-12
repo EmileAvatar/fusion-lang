@@ -22,7 +22,7 @@ from ..parser.ast_nodes import (
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
-    BlockStmt, ListType, MapType, EnumDecl, EnumType, MatchStmt,
+    BlockStmt, ListType, MapType, EnumDecl, EnumType, MatchStmt, MatchPattern,
 )
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
@@ -130,6 +130,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 if other != decl.name:
                     raise NotImplementedError(
                         f"'{other}' and '{decl.name}' would both be '{c_name}' in C - rename one")
+
+        # Enums with data become structs (Task 25.4) - before the struct table below
+        self.lower_data_enums(program)
 
         # Struct declarations by name - default values of struct-typed fields and arrays
         # need them (Task 18.2.3)
@@ -593,6 +596,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 names.add(node.name)
             if isinstance(node, ForStmt) and local_needs_renaming(node.variable):
                 names.add(node.variable)
+            if isinstance(node, MatchPattern):          # case Number(n) (Task 25.4)
+                names.update(b for b in node.bindings if local_needs_renaming(b))
             for f in dataclass_fields(node):
                 if f.name not in skip:
                     declared(getattr(node, f.name), names)
@@ -608,6 +613,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 node.name = f'fu_{node.name}'
             if isinstance(node, ForStmt) and node.variable in names:
                 node.variable = f'fu_{node.variable}'
+            if isinstance(node, MatchPattern):
+                node.bindings = [f'fu_{b}' if b in names else b for b in node.bindings]
             for f in dataclass_fields(node):
                 if f.name not in skip:
                     rename(getattr(node, f.name), names)
@@ -981,10 +988,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # With any optional arguments filled in by their defaults (Task 18.3.6)
         arguments = list(node.resolved_arguments or node.arguments)
         first_type = getattr(arguments[0], 'inferred_type', None) if arguments else None
-        if isinstance(first_type, EnumType) and name in ('toString', 'toInt'):
+        if (isinstance(first_type, EnumType) or self.data_struct(first_type) is not None)                 and name in ('toString', 'toInt'):
             code = self.visit(arguments[0])
-            # Its name (static text, never freed) or its number (Task 25.2)
-            return self.enum_text_code(first_type, code) if name == 'toString' else f'((int)({code}))'
+            # Its name (static text, never freed) or its number (Tasks 25.2, 25.4)
+            if name == 'toString':
+                return self.enum_text_code(first_type, code)
+            return f'(({code}).tag)' if self.data_struct(first_type) is not None else f'((int)({code}))'
         if name == 'toString':
             if self._is_bytes(arguments[0]):
                 c_function, needs_where = 'fusion_bytes_toString', True   # must be text (18.3.8)

@@ -1763,8 +1763,19 @@ Arrays are different: they are passed **by reference** (see "Array parameters").
 
 ## Enumerations
 
-**Status:** [PARTLY] plain enums (25.2) and `match` (25.3) are built; enums with data
-(tagged unions) [PLANNED 25.4]
+**Status:** [PARTLY] plain enums (25.2), `match` (25.3) and enums with data (25.4) are
+built; enums that hold themselves (an expression tree) [PLANNED 25.5]
+
+**Enums with data as built (Task 25.4, user decisions 2026-10-12):** a value may carry
+fields - `Number(int value)`, `Pair(string a, int b)` - any type a struct field can have
+except a fixed array (use a List), with no defaults. Made with `Token.Number(42)` or named
+arguments `Token.Pair(b = 7, a = "k")`; a value without data is still `Token.Plus`. The
+data is read **only** through `match`: `case Number(n)` gives `n` a copy of the field (`_`
+skips one; a case listing several values can't name data). A value is a value: copied
+deeply, freed automatically, `==` compares the value and its data. Printing and `toString`
+give the value's name only; `toInt` its number. `values()` / `fromString` and use as a Map
+key are for enums without data. A variable given no value starts as the first value with
+its data at the defaults. In C it is a struct: a `tag` and every value's fields
 
 **`match` as built (Task 25.3, user decisions 2026-10-12):** `match value` then `case`
 lines, indented, in braces, or closed by `End match`. A case lists one or more values

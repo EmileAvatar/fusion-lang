@@ -84,12 +84,7 @@ int function eval(Expr e)
 
 #### Sub-tasks
 - 25.2 DONE (plain enums), 25.3 DONE (`match`) - detail archived
-- **25.4 Enums with data** - variants with named fields, built like a struct
-  (`Token.Number(42)`, named arguments too); the data is read by `match` binding names
-  by position (`case Number(n)`); value semantics like structs: copied deeply, freed
-  automatically (strings, lists inside), == compares variant + fields, print shows
-  `Number(42)`. C: a tag + a C union of per-variant structs, with copy / free / equality
-  helpers
+- 25.4 DONE (enums with data) - detail archived
 - **25.5 Recursive enums** - a variant may hold its own enum type (`Add(Expr left, Expr
   right)`) or a List of it: such fields are stored on the heap but still behave as
   values (a copy is a deep copy). What an expression tree / AST needs
@@ -143,4 +138,5 @@ Kept under Task 22 until the renumbering is approved.
   complete
 - Task 25 plan approved (all 4 recommended answers)
 - 25.2 plain enums and 25.3 `match` done
-- **Next Action:** 25.4 enums with data
+- 25.4 enums with data done
+- **Next Action:** 25.5 recursive enums (a value holding its own enum)
