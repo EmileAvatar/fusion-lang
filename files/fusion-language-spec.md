@@ -1763,8 +1763,16 @@ Arrays are different: they are passed **by reference** (see "Array parameters").
 
 ## Enumerations
 
-**Status:** [PARTLY] plain enums (25.2), `match` (25.3) and enums with data (25.4) are
-built; enums that hold themselves (an expression tree) [PLANNED 25.5]
+**Status:** [DONE 25] plain enums (25.2), `match` (25.3), enums with data (25.4) and enums
+that hold themselves (25.5); the properties / next() / fromValue below stay design
+
+**Enums that hold themselves (Task 25.5):** a value's data may be the enum itself -
+`Add(Expr left, Expr right)` - or a List of it - `Call(string name, List<Expr> args)`. That
+is what an expression tree or a compiler's syntax tree needs. Such a field is stored on the
+heap but is still a value: a copy is a deep copy, `==` compares the whole tree, everything
+is freed automatically. Two rules: the **first** value can't hold the enum (a variable
+given no value starts as the first one), and a value can't hold itself through other types
+(enum A holds struct S holds A) - hold it in a List instead
 
 **Enums with data as built (Task 25.4, user decisions 2026-10-12):** a value may carry
 fields - `Number(int value)`, `Pair(string a, int b)` - any type a struct field can have

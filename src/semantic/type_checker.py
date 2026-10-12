@@ -764,11 +764,19 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
         if isinstance(left, EnumType) or isinstance(right, EnumType):
             # Enums: only values of the same enum (Task 25.2) - toInt() for the number
             if isinstance(left, EnumType) and isinstance(right, EnumType) and left.name == right.name:
-                for variant in left.declaration.variants:      # the data too (Task 25.4)
-                    for f in variant.fields:
-                        problem = self._equality_problem(f.field_type, f.field_type)
-                        if problem:
-                            return f"field '{f.name}' of '{variant.name}' can't be compared ({problem})"
+                # The data too (Task 25.4) - an enum inside itself (25.5) is checked once
+                checking = self.__dict__.setdefault('_enums_being_compared', set())
+                if left.name in checking:
+                    return None
+                checking.add(left.name)
+                try:
+                    for variant in left.declaration.variants:
+                        for f in variant.fields:
+                            problem = self._equality_problem(f.field_type, f.field_type)
+                            if problem:
+                                return f"field '{f.name}' of '{variant.name}' can't be compared ({problem})"
+                finally:
+                    checking.discard(left.name)
                 return None
             return "an enum value only equals a value of the same enum (use toInt() for its number)"
         if isinstance(left, FunctionType) or isinstance(right, FunctionType):

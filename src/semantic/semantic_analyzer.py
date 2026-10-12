@@ -8,7 +8,7 @@ import sys
 from typing import List, Optional
 
 from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl
-from .enums import normalize_enums
+from .enums import normalize_enums, check_holding_loops
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
 from .symbol_table import SymbolTable
@@ -80,6 +80,7 @@ class SemanticAnalyzer:
         # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
         # nothing after this mistakes an enum for a struct
         self.errors.extend(normalize_enums(ast))
+        self.errors.extend(check_holding_loops(ast))
 
         # Pass 1: Validate entry point
         ep_errors, ep_warnings = self.entry_point_validator.validate_program(ast)

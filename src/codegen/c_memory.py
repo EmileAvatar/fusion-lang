@@ -412,6 +412,8 @@ class MemoryManagementMixin:
 
     def is_managed(self, type_node) -> bool:
         """True if values of this type own heap memory (a string anywhere inside them)."""
+        if type(type_node).__name__ == 'BoxType':
+            return True   # an enum holding itself, on the heap (Task 25.5)
         if isinstance(type_node, (ListType, MapType)):
             return True   # a list / map owns its buffers (Tasks 18.5.1, 18.5.2)
         if isinstance(type_node, PrimitiveType):
@@ -428,6 +430,8 @@ class MemoryManagementMixin:
 
     def copy_code(self, type_node, code: str) -> str:
         """C expression giving an independent copy of a (non-array) managed value."""
+        if type(type_node).__name__ == 'BoxType':
+            return f'fusion_box_copy_{self.map_type(type_node.inner)}({code})'   # Task 25.5
         if isinstance(type_node, PrimitiveType) and type_node.name in ('string', 'bytes'):
             return f'fusion_str_copy({code})'
         if isinstance(type_node, (ListType, MapType)):
@@ -440,6 +444,8 @@ class MemoryManagementMixin:
         """C statements freeing a managed value stored at `lvalue`."""
         if not self.is_managed(type_node):
             return []
+        if type(type_node).__name__ == 'BoxType':
+            return [f'fusion_box_free_{self.map_type(type_node.inner)}(&{lvalue});']   # Task 25.5
         if isinstance(type_node, (ListType, MapType)):
             return [f'{self.map_type(type_node)}_free(&{lvalue});']
         if isinstance(type_node, PrimitiveType):
@@ -520,6 +526,10 @@ class MemoryManagementMixin:
 
     def owned_value(self, expr, type_node) -> str:
         """C code for a value that's about to be stored somewhere that owns it."""
+        if type(type_node).__name__ == 'BoxType':
+            # Expr.Add(a, b): each part goes into its own heap copy (Task 25.5)
+            inner = self.owned_value(expr, type_node.inner)
+            return f'fusion_box_make_{self.map_type(type_node.inner)}({inner})'
         if not self.is_managed(type_node):
             return self.visit(expr)
         if isinstance(expr, LiteralExpr):

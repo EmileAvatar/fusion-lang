@@ -85,9 +85,7 @@ int function eval(Expr e)
 #### Sub-tasks
 - 25.2 DONE (plain enums), 25.3 DONE (`match`) - detail archived
 - 25.4 DONE (enums with data) - detail archived
-- **25.5 Recursive enums** - a variant may hold its own enum type (`Add(Expr left, Expr
-  right)`) or a List of it: such fields are stored on the heap but still behave as
-  values (a copy is a deep copy). What an expression tree / AST needs
+- 25.5 DONE (enums holding themselves) - detail archived
 - **25.6 Example + docs** - SYNTAX_REFERENCE.md section; a demo `examples/calculator2`
   (or similar): tokenize "2 + 3 * 4" into a List<Token>, parse into an Expr tree,
   evaluate - a small rehearsal of the self-hosted compiler; spec "Enumerations" updated
@@ -139,4 +137,5 @@ Kept under Task 22 until the renumbering is approved.
 - Task 25 plan approved (all 4 recommended answers)
 - 25.2 plain enums and 25.3 `match` done
 - 25.4 enums with data done
-- **Next Action:** 25.5 recursive enums (a value holding its own enum)
+- 25.5 enums holding themselves done
+- **Next Action:** 25.6 the example (tokenize, parse into an Expr tree, evaluate) + docs

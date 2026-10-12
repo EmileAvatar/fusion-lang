@@ -431,8 +431,9 @@ enum_value = identifier [ "(" struct_field { "," struct_field } ")" ]
              [ "=" [ "-" ] integer_literal ] ;
     (* A value's number defaults to the previous one + 1, from 0. Two values can't share a
        name or a number. The data in ( ) - an enum with data (Task 25.4) - is made with
-       Token.Number(42) or named arguments, and read only through match.
-       Use: Color.Red; Color.values() (a List); Color.fromString(text); c.toString() /
+       Token.Number(42) or named arguments, and read only through match. A value may hold
+       the enum itself (Task 25.5, Add(Expr left, Expr right)), except the first value *)
+    (* Use: Color.Red; Color.values() (a List); Color.fromString(text); c.toString() /
        toString(c) gives the name, c.toInt() / toInt(c) the number. == / != only between
        values of the same enum *)
 

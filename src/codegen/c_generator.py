@@ -190,8 +190,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # but C needs them declared first: lifted lambdas go after the forward declarations
         # (they may call any function), and typedefs right after the includes. Insert the
         # later position first so the earlier index stays valid
-        if self.lambda_definitions:
-            self.output[lambda_index:lambda_index] = self.lambda_definitions
+        if self.lambda_definitions or getattr(self, 'boxed_enums', None):
+            self.output[lambda_index:lambda_index] = self.lambda_definitions + self.box_equality_lines()
         # List function bodies (Task 18.5.1) go last of everything inserted here - they
         # call struct, equality and wrapper helpers
         self.output[typedef_index:typedef_index] = self.collection_body_lines()
@@ -356,10 +356,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.emit(f'}} {c_name};')
         self.emit()
 
-        # Copy/free helpers for structs holding strings (Task 18.3.1)
+        # Copy/free helpers for structs holding strings (Task 18.3.1); an enum holding
+        # itself (Task 25.5) has box helpers around them
+        self.output.extend(self.box_prototype_lines())
         helpers = self.struct_helper_lines(ordered)
         if helpers:
-            self.output.extend(['// Struct copy and cleanup'] + helpers + [''])
+            self.output.extend(['// Struct copy and cleanup'] + helpers + self.box_body_lines() + [''])
 
     def _field_name(self, name: str) -> str:
         return c_member_name(name)   # fields: only C keywords change (Task 18.4.1)
@@ -402,6 +404,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return type_node.name not in ('string', 'bytes')
         if isinstance(type_node, EnumType):
             return self.enum_default_value(type_node) == 0   # the first value (Task 25.2)
+        if type(type_node).__name__ == 'BoxType':
+            return True   # NULL: not in use (Task 25.5)
         if isinstance(type_node, ArrayType):
             return self._is_zero_safe(type_node.element_type)
         if isinstance(type_node, StructType):
@@ -426,6 +430,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self._ZERO_VALUES.get(type_node.name, '0')
         if isinstance(type_node, EnumType):
             return self.enum_number(self.enum_default_value(type_node))   # its first value
+        if type(type_node).__name__ == 'BoxType':
+            return 'NULL'   # an enum holding itself, not in use (Task 25.5)
         if isinstance(type_node, StructType):
             struct = self._struct_decl(type_node)
             return self._struct_initializer(struct, [None] * len(struct.fields))

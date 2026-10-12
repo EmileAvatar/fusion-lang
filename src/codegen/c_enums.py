@@ -24,13 +24,22 @@ A match (Task 25.3) becomes an if / else-if chain, not a C switch - so `break` a
     if (fusion_val_2 == 1) { ... } else if ... else { ... }
 """
 
-from dataclasses import fields as dataclass_fields, is_dataclass
+from dataclasses import dataclass, fields as dataclass_fields, is_dataclass
 
 from src.parser.ast_nodes import (EnumDecl, EnumStaticCall, EnumType, EnumValueExpr, ListType,
                                   LiteralExpr, MatchStmt, PrimitiveType, StructDecl, StructField,
-                                  StructType)
+                                  StructType, TypeNode)
 from .c_names import mangle_function_name, local_c_name
 from .c_runtime import escape_c_text
+
+
+@dataclass
+class BoxType(TypeNode):
+    """Code generation only (Task 25.5): a field of an enum that holds the enum itself,
+    `Add(Expr left, Expr right)` - in C a pointer to a copy on the heap, still a value:
+    copying copies what it points to, freeing frees it. NULL while that value isn't the
+    one in use."""
+    inner: TypeNode = None
 
 
 class EnumsMixin:
@@ -39,6 +48,7 @@ class EnumsMixin:
     def lower_data_enums(self, program) -> None:
         """Give each enum with data a struct, and use it for every value of the enum."""
         structs = {}
+        self.boxed_enums = {}
         for enum in [d for d in program.declarations if isinstance(d, EnumDecl)]:
             if not any(v.fields for v in enum.variants):
                 continue
@@ -89,7 +99,47 @@ class EnumsMixin:
 
         walk(program.declarations)
         walk([s.fields for s in structs.values()])
+        # A field holding its own enum is boxed (Task 25.5)
+        for struct in structs.values():
+            for field in struct.fields:
+                if isinstance(field.field_type, StructType) and field.field_type.name == struct.name:
+                    field.field_type = BoxType(location=field.location, inner=field.field_type)
+                    self.boxed_enums[struct.name] = field.field_type.inner
         program.declarations.extend(structs.values())
+
+    def box_prototype_lines(self) -> list:
+        lines = []
+        for inner in getattr(self, 'boxed_enums', {}).values():
+            c = self.map_type(inner)
+            lines += [f'static inline struct {c}* fusion_box_make_{c}({c} v);',
+                      f'static inline struct {c}* fusion_box_copy_{c}(struct {c}* p);',
+                      f'static inline void fusion_box_free_{c}(struct {c}** p);',
+                      f'static int fusion_box_eq_{c}(struct {c}* a, struct {c}* b);']
+        return ['// Enums holding themselves (Task 25.5)'] + lines + [''] if lines else []
+
+    def box_body_lines(self) -> list:
+        """make / copy / free - after the struct's own copy and free helpers."""
+        lines = []
+        for inner in getattr(self, 'boxed_enums', {}).values():
+            c = self.map_type(inner)
+            lines += [
+                f'static inline struct {c}* fusion_box_make_{c}({c} v) {{ {c}* p = ({c}*)'
+                f'fusion_alloc(sizeof({c})); *p = v; return p; }}',
+                f'static inline struct {c}* fusion_box_copy_{c}(struct {c}* p) {{ return p ? '
+                f'fusion_box_make_{c}(fusion_copy_{c}(*p)) : NULL; }}',
+                f'static inline void fusion_box_free_{c}(struct {c}** p) {{ if (*p) {{ '
+                f'fusion_free_{c}(*p); fusion_dealloc(*p); *p = NULL; }} }}']
+        return lines
+
+    def box_equality_lines(self) -> list:
+        """== on what two boxes point to - after the equality helpers it may call."""
+        lines = []
+        for inner in getattr(self, 'boxed_enums', {}).values():
+            c = self.map_type(inner)
+            same = self.value_equality('(*a)', inner, '(*b)', inner)
+            lines.append(f'static int fusion_box_eq_{c}(struct {c}* a, struct {c}* b) {{ '
+                         f'if (!a || !b) return a == b; return {same}; }}')
+        return lines
 
     @staticmethod
     def data_struct(type_node):
@@ -192,8 +242,14 @@ class EnumsMixin:
         self.emit_line(f'{chosen} = {choice}')
         self.flush_temps()          # a temporary subject is no longer needed
         keyword = 'if'
+        # Every value has a case: the last one runs whenever the others don't - so C
+        # (and GCC's "end of non-void function" check) sees that one always runs
+        covers_all = node.else_body is None and getattr(node, 'exhaustive', False)
         for number, case in enumerate(node.cases, 1):
-            self.emit(f'{keyword} ({chosen} == {number}) {{')
+            if covers_all and number == len(node.cases):
+                self.emit('{' if number == 1 else '} else {')
+            else:
+                self.emit(f'{keyword} ({chosen} == {number}) {{')
             self.indent()
             self._case_body(case, subject, subject_type)
             self.dedent()
@@ -220,11 +276,17 @@ class EnumsMixin:
             if name == '_':
                 continue
             field = f'{subject}.{self._field_name(f"{pattern.name}__{f.name}")}'
+            if isinstance(self._stored_field_type(struct, f"{pattern.name}__{f.name}"), BoxType):
+                field = f'(*{field})'               # an enum holding itself (Task 25.5)
             value = self.copy_code(f.field_type, field) if self.is_managed(f.field_type) else field
             self.emit_line(f'{self.map_type(f.field_type)} {name} = {value}')
             self.register_owned(name, f.field_type, case.location)
         self.visit(case.body)
         self.pop_scope()
+
+    @staticmethod
+    def _stored_field_type(struct, name: str):
+        return next(f.field_type for f in struct.fields if f.name == name)
 
     def _pattern_test(self, subject: str, subject_type, pattern) -> str:
         if pattern.name is not None:

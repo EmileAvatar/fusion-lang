@@ -76,7 +76,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		break / continue act on the loop
 	[DONE] 25.4 Enums with data (tagged unions): Token.Number(42) / named arguments, read through
 		`case Number(n)` (copies; `_` skips), ==, copies and cleanup like structs; prints the name
-	[ ] 25.5 Recursive enums: a value holding its own enum (an expression tree / AST)
+	[DONE] 25.5 Enums holding themselves: Add(Expr left, Expr right) on the heap, or List<Expr>;
+		deep copies, ==, cleanup; first value can't hold itself; loops through other types are errors
 	[ ] 25.6 Example + docs (a compiler needs this for its many node kinds)
 
 #### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]

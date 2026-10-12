@@ -4441,3 +4441,13 @@ In C a data enum is a struct (tag + every value's fields), made by lower_data_en
   automatically (strings, lists inside), == compares variant + fields, print shows
   `Number(42)`. C: a tag + a C union of per-variant structs, with copy / free / equality
   helpers
+
+---
+
+#### Task 25.5 - enums holding themselves (COMPLETE 2026-10-12)
+
+A direct self-field is a BoxType in code generation (a heap pointer with make / copy / free / eq helpers); List<Expr> needed nothing new. check_holding_loops() rejects loops through other types. An exhaustive match ends in a plain else (no GCC return warnings).
+
+- **25.5 Recursive enums** - a variant may hold its own enum type (`Add(Expr left, Expr
+  right)`) or a List of it: such fields are stored on the heap but still behave as
+  values (a copy is a deep copy). What an expression tree / AST needs

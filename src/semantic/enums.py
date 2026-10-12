@@ -150,10 +150,51 @@ def _check_variant_fields(enum: EnumDecl, variant) -> List[SemanticError]:
             errors.append(SemanticError(
                 f"Field '{f.name}' of '{variant.name}' can't be an array - use a List",
                 f.location))
-        if getattr(kind, 'name', None) == enum.name and type(kind).__name__ in ('EnumType', 'StructType'):
+        if getattr(kind, 'name', None) == enum.name and type(kind).__name__ in ('EnumType', 'StructType') \
+                and variant is enum.variants[0]:
             errors.append(SemanticError(
-                f"'{variant.name}' holds a {enum.name} inside a {enum.name} - enums that hold "
-                f"themselves come in Task 25.5", f.location))
+                f"The first value of enum '{enum.name}' can't hold a {enum.name} - a {enum.name} "
+                f"given no value starts as the first one; put a value without it first",
+                f.location))
+    return errors
+
+
+def check_holding_loops(program: ProgramNode) -> List[SemanticError]:
+    """A value can't hold itself through other types (Task 25.5): enum E holds struct S
+    which holds E again would never end. An enum holding itself directly is fine - that
+    field is stored on the heap; anything else in the loop must go through a List."""
+    from src.parser.ast_nodes import StructDecl, ArrayType
+    decls = {d.name: d for d in program.declarations if isinstance(d, (EnumDecl, StructDecl))}
+
+    def held(decl):
+        fields = ([f for v in decl.variants for f in v.fields] if isinstance(decl, EnumDecl)
+                  else decl.fields)
+        for f in fields:
+            kind = f.field_type
+            while isinstance(kind, ArrayType):
+                kind = kind.element_type
+            name = getattr(kind, 'name', None)
+            if type(kind).__name__ in ('EnumType', 'StructType') and name in decls \
+                    and not (isinstance(decl, EnumDecl) and name == decl.name):
+                yield name, f
+
+    errors, reported = [], set()
+
+    def visit(name, path):
+        if name in path:
+            loop = path[path.index(name):]
+            if frozenset(loop) not in reported:
+                reported.add(frozenset(loop))
+                errors.append(SemanticError(
+                    f"{' holds '.join(loop + [name])} - a value can't hold itself this way; "
+                    f"hold it in a List instead (List<{name}>)", decls[name].location))
+            return
+        for inner, _ in held(decls[name]):
+            visit(inner, path + [name])
+
+    for name, decl in decls.items():
+        if isinstance(decl, EnumDecl):
+            visit(name, [])
     return errors
 
 

@@ -62,6 +62,11 @@ class TypeMapperMixin:
         elif isinstance(fusion_type, EnumType):
             return mangle_function_name(fusion_type.name)   # typedef int (Task 25.2)
 
+        elif type(fusion_type).__name__ == 'BoxType':
+            # An enum holding itself: a pointer, written with `struct` so it works inside
+            # the struct's own definition (Task 25.5)
+            return f'struct {self.map_type(fusion_type.inner)}*'
+
         elif isinstance(fusion_type, StructType):
             # A typedef'd C struct of the same name (Task 18.2.1), mangled like a function
             # name if it collides with a C keyword

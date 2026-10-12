@@ -431,7 +431,81 @@ def test_data_errors(body, message):
     ('enum E\n    A(int x, int x)\n', "'A' of enum 'E' has two fields named 'x'"),
     ('enum E\n    A(int x = 1)\n', "can't have a default value"),
     ('enum E\n    A(int[3] x)\n', "can't be an array - use a List"),
-    ('enum E\n    A(E inner)\n', "enums that hold themselves come in Task 25.5"),
+    ('enum E\n    A(E inner)\n    B\n', "The first value of enum 'E' can't hold a E"),
 ])
 def test_data_declaration_errors(source, message):
     assert message in errors_of(source + main('print("x")'))
+
+
+# ---------------------------------------------------------------- enums holding themselves (Task 25.5)
+
+EXPR = ('enum Expr\n'
+        '    Num(int value)\n'
+        '    Add(Expr left, Expr right)\n'
+        '    Neg(Expr inner)\n'
+        '    Call(string name, List<Expr> args)\n')
+
+EVAL = ('int function eval(Expr e)\n'
+        '    match e\n'
+        '        case Num(v): return v\n'
+        '        case Add(a, b): return eval(a) + eval(b)\n'
+        '        case Neg(x): return 0 - eval(x)\n'
+        '        case Call(name, args)\n'
+        '            int total = 0\n'
+        '            for a in args\n'
+        '                total = total + eval(a)\n'
+        '            return total\n')
+
+
+def test_an_expression_tree_is_built_evaluated_copied_and_freed():
+    assert run_ok(EXPR + EVAL + main(
+        'Expr e = Expr.Add(Expr.Num(2), Expr.Neg(Expr.Call("sum", [Expr.Num(3), Expr.Num(4)])))\n'
+        'Expr copy = e\n'
+        'e = Expr.Num(1)\n'
+        'print("{@1} {@2} {@3}", eval(copy), eval(e), copy == e)\n'
+        'Expr again = Expr.Add(Expr.Num(2), Expr.Neg(Expr.Call("sum", [Expr.Num(3), Expr.Num(4)])))\n'
+        'print("{@1} {@2}", copy == again, copy != Expr.Add(Expr.Num(2), Expr.Num(2)))\n'
+        'List<Expr> trees = [copy, again, e]\n'
+        'trees.removeAt(0)\n'
+        'print("{@1} {@2}", trees.len(), eval(trees[0]))'
+    )) == ['-5 1 false', 'true true', '2 -5']
+
+
+def test_a_deep_tree_built_in_a_loop():
+    assert run_ok(EXPR + EVAL + main(
+        'Expr e = Expr.Num(0)\n'
+        'for i in range(1, 101)\n'
+        '    e = Expr.Add(e, Expr.Num(i))\n'
+        'print("{@1}", eval(e))'
+    )) == ['5050']
+
+
+def test_an_exhaustive_match_compiles_without_c_warnings():
+    c_code = generate_c(EXPR + EVAL + main('print("{@1}", eval(Expr.Num(1)))'))
+    assert 'struct fu_Expr* Add__left;' in c_code
+    assert '} else {' in c_code
+
+
+@pytest.mark.parametrize("source, message", [
+    ('enum A\n    One(int x)\n    Two(B b)\nenum B\n    One(int x)\n    Two(A a)\n',
+     "A holds B holds A - a value can't hold itself this way; hold it in a List instead"),
+    ('enum A\n    One(int x)\n    Two(S s)\nstruct S\n    A a\n',
+     "A holds S holds A"),
+])
+def test_holding_loops_through_other_types_are_errors(source, message):
+    assert message in errors_of(source + main('print("x")'))
+
+
+def test_a_loop_through_a_list_is_fine():
+    assert run_ok(
+        'enum Node\n    Leaf(int v)\n    Group(List<Node> children)\n'
+        'int function count(Node n)\n'
+        '    match n\n'
+        '        case Leaf(v): return 1\n'
+        '        case Group(cs)\n'
+        '            int total = 0\n'
+        '            for c in cs\n'
+        '                total = total + count(c)\n'
+        '            return total\n'
+        + main('print("{@1}", count(Node.Group([Node.Leaf(1), Node.Group([Node.Leaf(2), Node.Leaf(3)])])))')
+    ) == ['3']
