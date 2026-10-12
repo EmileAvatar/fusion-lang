@@ -364,6 +364,44 @@ class IfStmt(ASTNode):
 
 
 @dataclass
+class MatchPattern(ASTNode):
+    """One thing a `case` matches (Task 25.3): an enum value's bare name (`Red`), with the
+    names its data is bound to (`Number(n)`, Task 25.4) - or a constant (`'+'`, `42`, "go").
+
+    Attributes:
+        name: The enum value's name, for an enum pattern (None for a constant)
+        bindings: The names given to the value's data, in field order (Task 25.4)
+        value: The constant - a LiteralExpr, or `-` and a number (None for an enum pattern)
+    """
+    name: Optional[str] = None
+    bindings: List[str] = field(default_factory=list)
+    value: Optional[ASTNode] = None
+
+
+@dataclass
+class MatchCase(ASTNode):
+    """`case A, B` and its body (Task 25.3)."""
+    patterns: List[MatchPattern]
+    body: 'BlockStmt'
+
+
+@dataclass
+class MatchStmt(ASTNode):
+    """match subject / case ... / else ... (Task 25.3). No fall-through: exactly one case
+    (or the else) runs. On an enum every value must be covered unless there is an `else`;
+    on an int, char or string an `else` is required.
+
+    Attributes:
+        subject: The value matched
+        cases: The cases, in order
+        else_body: The `else` block, or None
+    """
+    subject: ASTNode
+    cases: List[MatchCase]
+    else_body: Optional['BlockStmt'] = None
+
+
+@dataclass
 class WhileStmt(ASTNode):
     """While loop: while condition { body }
 

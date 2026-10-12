@@ -71,9 +71,12 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 25.2 Plain enums: one line / block / braces / End enum, commas optional, explicit values;
 		Color.Red, ==, printing, toString / toInt, values(), fromString; as fields, elements, Map
 		keys; across modules and in --interface
-	[ ] 25.3 Enums with data (tagged unions), e.g. Token = Number(int) | Word(string)
-	[ ] 25.4 `match` with a check that every case is handled
-	[ ] 25.5 Example + docs (a compiler needs this for its many node kinds)
+	[DONE] 25.3 `match` on enums (bare names, every value covered or an else) and on int / byte /
+		char / string (constants, else required); several values per case; three block styles;
+		break / continue act on the loop
+	[ ] 25.4 Enums with data (tagged unions): Token.Number(42), read through `case Number(n)`
+	[ ] 25.5 Recursive enums: a value holding its own enum (an expression tree / AST)
+	[ ] 25.6 Example + docs (a compiler needs this for its many node kinds)
 
 #### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
 	[ ] 26.1 Detailed plan (for approval) - strings are ready for error messages

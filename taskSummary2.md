@@ -83,19 +83,7 @@ int function eval(Expr e)
 ```
 
 #### Sub-tasks
-- **25.2 Plain enums** - declaration in all three block styles + the one-line form, commas
-  optional, explicit int values (default 0, 1, 2 ...; duplicates an error); `Color.Red`;
-  == / != (only the same enum type - comparing with an int is an error, use toInt);
-  print / `{c}` / toString give the name; toInt; `Color.values()` (a List); `fromString`
-  (an unknown name stops the program with a clear error until Task 26 makes it
-  catchable); as a variable, parameter, return value, struct field, array / List element
-  and Map key; `public` + import across modules; `--interface` shows them. C: an int
-  type + a names table
-- **25.3 `match` statement** - on an enum: case names written bare (the type is known),
-  every value must be covered unless there is an `else` (missing ones are named in the
-  error); on int / char / string: constant cases, `else` required; several values per
-  case (`case '+', '-'`); a duplicate case is an error; no fall-through; all three block
-  styles; `break` / `continue` / `return` inside cases work as usual
+- 25.2 DONE (plain enums), 25.3 DONE (`match`) - detail archived
 - **25.4 Enums with data** - variants with named fields, built like a struct
   (`Token.Number(42)`, named arguments too); the data is read by `match` binding names
   by position (`case Number(n)`); value semantics like structs: copied deeply, freed
@@ -154,4 +142,5 @@ Kept under Task 22 until the renumbering is approved.
 - 2026-10-12: 22.7b done - a status line under each of the spec's 31 major sections; Task 22
   complete
 - Task 25 plan approved (all 4 recommended answers)
-- **Next Action:** 25.2 plain enums
+- 25.2 plain enums and 25.3 `match` done
+- **Next Action:** 25.4 enums with data

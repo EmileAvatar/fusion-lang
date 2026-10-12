@@ -185,6 +185,31 @@ void function main()
     print("{@1} {@2}", votes[Color.Red], Pixel(1).color)
 ```
 
+#### `match`
+
+<!-- example: syntax_match | task: 25.3 -->
+```fusion
+enum Light: Red Yellow Green
+
+string function action(Light l)
+    match l                               // every value needs a case (or an else)
+        case Red, Yellow                  // several values share a case
+            return "stop"
+        case Green: return "go"           // one statement after ':'
+
+void function main()
+    for l in Light.values()
+        print("{l}: {@1}", action(l))
+    for ch in ['+', 'x', '7']
+        match ch {                        // braces work too, and End match
+            case '+', '-' {
+                print("operator")
+            }
+            case '7': continue            // break / continue act on the loop
+            else: print("other")          // on an int, char or string: else is required
+        }
+```
+
 #### Strings (values, freed automatically)
 
 <!-- example: syntax_strings | task: 18.3.1 -->

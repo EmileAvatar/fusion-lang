@@ -929,6 +929,10 @@ class Parser:
         if self.match(TokenType.FOR):
             return self.parse_for_statement()
 
+        # match (Task 25.3)
+        if self.match(TokenType.MATCH):
+            return self.parse_match_statement()
+
         # Block statement
         if self.check(TokenType.LBRACE) or self.check(TokenType.INDENT):
             return self.parse_block_statement()
@@ -1120,6 +1124,88 @@ class Parser:
             then_branch=then_branch,
             else_branch=else_branch
         )
+
+    def parse_match_statement(self) -> ASTNode:
+        """Parse a match statement (Task 25.3), indented, braced or closed by `End match`:
+
+            match light                     match ch {
+                case Red, Yellow                case '+', '-' {
+                    print("stop")                   print("operator")
+                case Green: print("go")         }
+                                                else: print("other")
+                                            }
+
+        A case body is a block, or one statement after `:`. `else` catches the rest.
+        The MATCH token has already been consumed."""
+        match_token = self.previous()
+        subject = self.parse_expression()
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.match(TokenType.LBRACE):
+            closing = TokenType.RBRACE
+        elif self.match(TokenType.INDENT):
+            closing = TokenType.DEDENT
+        else:
+            raise ParserError(self.peek(), "Expected the cases of 'match' - an indented block "
+                                           "of 'case' lines, or '{' ... '}'")
+        cases, else_body = [], None
+        while True:
+            while self.match(TokenType.NEWLINE):
+                pass
+            if self.check(closing) or self.is_at_end():
+                break
+            if else_body is not None:
+                raise ParserError(self.peek(), "'else' must be the last part of a match")
+            if self.match(TokenType.ELSE):
+                else_body = self.parse_case_body()
+                continue
+            case_token = self.consume(TokenType.CASE, "Expected 'case' or 'else' inside 'match'")
+            patterns = [self.parse_match_pattern()]
+            while self.match(TokenType.COMMA):
+                patterns.append(self.parse_match_pattern())
+            cases.append(MatchCase(location=case_token.location, patterns=patterns,
+                                   body=self.parse_case_body()))
+        self.consume(closing, "Expected the end of 'match'")
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.check(TokenType.END) and self.peek(1).type == TokenType.MATCH:
+            self.advance()
+            self.advance()
+        if not cases:
+            raise ParserError(match_token, "A match needs at least one 'case'")
+        return MatchStmt(location=match_token.location, subject=subject, cases=cases,
+                         else_body=else_body)
+
+    def parse_case_body(self) -> BlockStmt:
+        """A case's (or the else's) body: `: statement` on the same line, or a block."""
+        if self.match(TokenType.COLON):
+            location = self.peek().location
+            return BlockStmt(location=location, statements=[self.parse_statement()])
+        while self.match(TokenType.NEWLINE):
+            pass
+        if not (self.check(TokenType.INDENT) or self.check(TokenType.LBRACE)):
+            raise ParserError(self.peek(), "Expected the body of the case - an indented block, "
+                                           "'{' ... '}', or ':' and one statement")
+        return self.parse_block_statement()
+
+    def parse_match_pattern(self) -> MatchPattern:
+        """`Red`, `Number(n)` (an enum value - its bare name) or a constant: 42, -1, 'x', "go"."""
+        location = self.peek().location
+        if self.check(TokenType.IDENTIFIER):
+            name = self.advance().value
+            if self.check(TokenType.DOT):
+                raise ParserError(self.peek(), f"In a case, write just the value's name: "
+                                               f"case {self.peek(1).value}")
+            bindings = []
+            if self.match(TokenType.LPAREN):
+                while not self.check(TokenType.RPAREN) and not self.is_at_end():
+                    bindings.append(self.consume(
+                        TokenType.IDENTIFIER, "Expected a name for the value's data").value)
+                    if not self.match(TokenType.COMMA):
+                        break
+                self.consume(TokenType.RPAREN, "Expected ')' after the names")
+            return MatchPattern(location=location, name=name, bindings=bindings)
+        return MatchPattern(location=location, value=self.parse_unary())
 
     def parse_while_statement(self) -> ASTNode:
         """Parse while loop: while condition { body }

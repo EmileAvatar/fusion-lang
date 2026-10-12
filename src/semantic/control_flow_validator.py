@@ -112,6 +112,11 @@ class ControlFlowValidator:
                 return then_returns and else_returns
             return False
 
+        elif isinstance(stmt, MatchStmt):
+            # Every case returns, and some case always runs (Task 25.3)
+            bodies = [c.body for c in stmt.cases] + ([stmt.else_body] if stmt.else_body else [])
+            return getattr(stmt, 'exhaustive', False) and all(self.check_returns(b) for b in bodies)
+
         elif isinstance(stmt, WhileStmt):
             # While loops don't guarantee return (might not execute)
             return False
@@ -154,6 +159,10 @@ class ControlFlowValidator:
             self.check_unreachable_code(stmt.then_branch)
             if stmt.else_branch:
                 self.check_unreachable_code(stmt.else_branch)
+
+        elif isinstance(stmt, MatchStmt):
+            for body in self._match_bodies(stmt):
+                self.check_unreachable_code(body)
 
         elif isinstance(stmt, WhileStmt):
             self.check_unreachable_code(stmt.body)
@@ -215,6 +224,15 @@ class ControlFlowValidator:
             if stmt.else_branch:
                 self.validate_statement(stmt.else_branch)
 
+        elif isinstance(stmt, MatchStmt):
+            # break / continue in a case act on the loop around the match (Task 25.3)
+            for body in self._match_bodies(stmt):
+                self.validate_statement(body)
+
+    @staticmethod
+    def _match_bodies(stmt) -> list:
+        return [c.body for c in stmt.cases] + ([stmt.else_body] if stmt.else_body else [])
+
     # ========================================================================
     # Condition Type Validation
     # ========================================================================
@@ -271,6 +289,10 @@ class ControlFlowValidator:
                     type_checker.symbol_table.exit_scope()
             else:
                 self.validate_conditions(stmt.body, type_checker)
+
+        elif isinstance(stmt, MatchStmt):
+            for body in self._match_bodies(stmt):
+                self.validate_conditions(body, type_checker)
 
         elif isinstance(stmt, BlockStmt):
             if stmt.scope is not None:

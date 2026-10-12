@@ -22,7 +22,7 @@ from ..parser.ast_nodes import (
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
-    BlockStmt, ListType, MapType, EnumDecl, EnumType,
+    BlockStmt, ListType, MapType, EnumDecl, EnumType, MatchStmt,
 )
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
@@ -215,7 +215,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
     # Statements whose temporaries are freed when they finish (Task 18.3.1)
     _STATEMENTS = (ExpressionStmt, VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt,
-                   WhileStmt, ForStmt)
+                   WhileStmt, ForStmt, MatchStmt)
 
     def visit(self, node: ASTNode) -> str:
         """Visit an AST node and generate C code.

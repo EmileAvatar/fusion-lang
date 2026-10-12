@@ -18,8 +18,8 @@ from typing import Dict, List, Optional
 
 from src.parser.ast_nodes import (
     ASTNode, CallExpr, EnumDecl, EnumStaticCall, EnumType, EnumValueExpr, ForStmt,
-    IdentifierExpr, ListType, MemberExpr, ParameterDecl, PrimitiveType, ProgramNode,
-    StructType, TypeNode, VarDeclStmt,
+    IdentifierExpr, ListType, LiteralExpr, MatchStmt, MemberExpr, ParameterDecl,
+    PrimitiveType, ProgramNode, StructType, TypeNode, UnaryExpr, VarDeclStmt,
 )
 from .errors import SemanticError
 
@@ -159,6 +159,93 @@ class EnumRulesMixin:
                 f"Enum '{decl.name}' has no function '{node.method}' (it has "
                 f"{decl.name}.values() and {decl.name}.fromString(text))", node.location))
         return self.enum_type(decl, node.location)
+
+    # ------------------------------------------------------------------ match (Task 25.3)
+
+    _MATCH_CONSTANT_TYPES = ('int', 'byte', 'char', 'string')
+
+    def visit_MatchStmt(self, node: MatchStmt) -> None:
+        """A match on an enum: bare value names, every value covered unless there is an
+        `else`. On an int, byte, char or string: constant cases and a required `else`. A
+        value can't be handled twice. Sets node.exhaustive - the validator reads it."""
+        subject_type = self.visit(node.subject)
+        node.exhaustive = node.else_body is not None
+        if isinstance(subject_type, EnumType):
+            self._check_enum_cases(node, subject_type.declaration)
+        elif isinstance(subject_type, PrimitiveType) and subject_type.name in self._MATCH_CONSTANT_TYPES:
+            self._check_constant_cases(node, subject_type)
+        elif not (isinstance(subject_type, PrimitiveType) and subject_type.name == 'void'):
+            self.errors.append(SemanticError(
+                f"match works on an enum, int, byte, char or string value, got "
+                f"{self.type_to_string(subject_type)}", node.subject.location))
+        for case in node.cases:
+            self.visit(case.body)
+        if node.else_body is not None:
+            self.visit(node.else_body)
+
+    def _check_enum_cases(self, node: MatchStmt, decl: EnumDecl) -> None:
+        handled = set()
+        for case in node.cases:
+            for pattern in case.patterns:
+                if pattern.name is None:
+                    self.errors.append(SemanticError(
+                        f"A case on enum '{decl.name}' names one of its values, e.g. case "
+                        f"{decl.variants[0].name}", pattern.location))
+                    continue
+                variant = decl.variant(pattern.name)
+                if variant is None:
+                    self.errors.append(SemanticError(
+                        f"Enum '{decl.name}' has no value '{pattern.name}' (its values: "
+                        f"{', '.join(v.name for v in decl.variants)})", pattern.location))
+                    continue
+                if pattern.name in handled:
+                    self.errors.append(SemanticError(
+                        f"'{pattern.name}' is already handled by an earlier case", pattern.location))
+                handled.add(pattern.name)
+                if pattern.bindings and not variant.fields:
+                    self.errors.append(SemanticError(
+                        f"'{pattern.name}' carries no data - write just case {pattern.name}",
+                        pattern.location))
+        missing = [v.name for v in decl.variants if v.name not in handled]
+        if node.else_body is None and missing:
+            self.errors.append(SemanticError(
+                f"This match on {decl.name} doesn't handle {', '.join(missing)} - add a case "
+                f"for {'it' if len(missing) == 1 else 'them'}, or an else", node.location))
+        elif node.else_body is not None and not missing:
+            self.warnings.append(SemanticError(
+                f"The else of this match never runs - every value of {decl.name} has its own "
+                f"case", node.else_body.location))
+        node.exhaustive = True if not missing else node.exhaustive
+
+    def _check_constant_cases(self, node: MatchStmt, subject_type: PrimitiveType) -> None:
+        seen = set()
+        for case in node.cases:
+            for pattern in case.patterns:
+                value = pattern.value
+                constant = isinstance(value, LiteralExpr) and value.type_hint != 'null' or (
+                    isinstance(value, UnaryExpr) and value.operator == '-'
+                    and isinstance(value.operand, LiteralExpr)
+                    and value.operand.type_hint in ('int', 'float', 'double'))
+                if not constant:
+                    self.errors.append(SemanticError(
+                        f"A case on {subject_type.name} needs a constant, such as 42, 'x' or "
+                        f"\"text\"", pattern.location))
+                    continue
+                value_type = self.visit(value)
+                if not self.types_compatible(subject_type, value_type):
+                    self.errors.append(SemanticError(
+                        f"This case is {self.type_to_string(value_type)}, but the match is on "
+                        f"{subject_type.name}", pattern.location))
+                    continue
+                key = ('-', value.operand.value) if isinstance(value, UnaryExpr) else value.value
+                if key in seen:
+                    self.errors.append(SemanticError(
+                        "This value is already handled by an earlier case", pattern.location))
+                seen.add(key)
+        if node.else_body is None:
+            self.errors.append(SemanticError(
+                f"A match on {subject_type.name} needs an else - its values can't all be "
+                f"listed", node.location))
 
     def _expect_enum_arguments(self, node: EnumStaticCall, expected: List[TypeNode]) -> None:
         call = f"{node.declaration.name}.{node.method}"

@@ -1763,8 +1763,18 @@ Arrays are different: they are passed **by reference** (see "Array parameters").
 
 ## Enumerations
 
-**Status:** [PARTLY] plain enums are built (25.2); enums with data (tagged unions)
-[PLANNED 25.4], `match` [PLANNED 25.3]
+**Status:** [PARTLY] plain enums (25.2) and `match` (25.3) are built; enums with data
+(tagged unions) [PLANNED 25.4]
+
+**`match` as built (Task 25.3, user decisions 2026-10-12):** `match value` then `case`
+lines, indented, in braces, or closed by `End match`. A case lists one or more values
+(`case Red, Yellow`) and has a block, or one statement after `:`. `else` catches the rest.
+On an enum the cases name values bare (`case Red`, never `case Color.Red`) and every value
+must be covered unless there is an `else` - the error names the missing ones; an `else`
+after every value is a warning. On an int, byte, char or string the cases are constants and
+an `else` is required. A value handled twice is an error. Exactly one case runs - no
+fall-through - and `break` / `continue` inside a case act on the loop around the match. A
+match whose every case returns (and that covers everything) ends a function
 
 **As built (Task 25.2, user decisions 2026-10-12):**
 * `enum` (or `Enum`) at top level, `public enum` for other modules. Forms: one line after
@@ -1883,14 +1893,13 @@ if status == StatusCode.OK
 if planet == Planets.EARTH
     print("Home planet")
 
-// Match statement
+// Match statement - as built (Task 25.3): bare value names, no ':' needed before a block
 match status
-    case StatusCode.OK:
+    case OK
         print("Request successful")
-    case StatusCode.NOT_FOUND:
+    case NOT_FOUND
         print("Resource not found")
-    case StatusCode.SERVER_ERROR:
-        print("Server error occurred")
+    else: print("Something else")
 
 // Get integer value
 int code = status.toInt()  // 200

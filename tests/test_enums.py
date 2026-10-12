@@ -207,3 +207,132 @@ def test_a_private_enum_stays_in_its_module(tmp_path):
         'main.fusion': 'import paint\nvoid function main()\n    print("x")\n',
     })
     assert "The public function 'hidden' uses the private enum 'Secret'" in message
+
+
+# ---------------------------------------------------------------- match (Task 25.3)
+
+LIGHT = 'enum Light: Red Yellow Green\n'
+
+
+def test_match_on_an_enum_in_every_block_style():
+    assert run_ok(
+        LIGHT
+        + 'string function action(Light l)\n'
+        '    match l\n'
+        '        case Red, Yellow\n'
+        '            return "stop"\n'
+        '        case Green: return "go"\n'
+        + 'string function braces(Light l) {\n'
+        '    match l {\n'
+        '        case Green {\n'
+        '            return "go"\n'
+        '        }\n'
+        '        else: return "wait"\n'
+        '    }\n'
+        '}\n'
+        + 'string function ended(Light l)\n'
+        '    string text = "?"\n'
+        '    match l\n'
+        '        case Red: text = "R"\n'
+        '        case Yellow: text = "Y"\n'
+        '        case Green: text = "G"\n'
+        '    End match\n'
+        '    return text\n'
+        + main(
+            'for l in Light.values()\n'
+            '    print("{l} {@1} {@2} {@3}", action(l), braces(l), ended(l))')
+    ) == ['Red stop wait R', 'Yellow stop wait Y', 'Green go go G']
+
+
+def test_match_on_int_char_and_string():
+    assert run_ok(main(
+        'for n in [0, 1, -1, 7]\n'
+        '    match n\n'
+        '        case 0: print("zero")\n'
+        '        case 1, 2: print("small")\n'
+        '        case -1: print("minus one")\n'
+        '        else: print("other {n}")\n'
+        'for ch in [\'+\', \'x\']\n'
+        '    match ch\n'
+        '        case \'+\', \'-\': print("operator")\n'
+        '        else: print("letter")\n'
+        'for word in split("go stop", " ")\n'
+        '    match word\n'
+        '        case "go": print("moving")\n'
+        '        else: print("halt")'
+    )) == ['zero', 'small', 'minus one', 'other 7', 'operator', 'letter', 'moving', 'halt']
+
+
+def test_break_and_continue_in_a_case_act_on_the_loop():
+    assert run_ok(main(
+        'for n in range(0, 10)\n'
+        '    match n\n'
+        '        case 1: continue\n'
+        '        case 4: break\n'
+        '        else: print("{n}")'
+    )) == ['0', '2', '3']
+
+
+def test_a_temporary_string_subject_is_freed():
+    assert run_ok(main(
+        'string name = "Ada"\n'
+        'match name + "!"\n'
+        '    case "Ada!": print("hi " + name)\n'
+        '    else: print("who")'
+    )) == ['hi Ada']
+
+
+def test_a_match_that_always_returns_needs_no_return_after_it():
+    assert run_ok(
+        LIGHT + 'int function code(Light l)\n'
+        '    match l\n'
+        '        case Red: return 1\n'
+        '        case Yellow: return 2\n'
+        '        case Green: return 3\n'
+        + main('print("{@1}", code(Light.Green))')
+    ) == ['3']
+
+
+@pytest.mark.parametrize("body, message", [
+    ('match l\n    case Red: print("r")',
+     "This match on Light doesn't handle Yellow, Green - add a case for them, or an else"),
+    ('match l\n    case Red, Red: print("r")\n    else: print("x")', "'Red' is already handled by an earlier case"),
+    ('match l\n    case Pink: print("p")\n    else: print("x")', "Enum 'Light' has no value 'Pink'"),
+    ('match l\n    case 1: print("p")\n    else: print("x")', "A case on enum 'Light' names one of its values"),
+    ('match l\n    case Red(x): print("p")\n    else: print("x")', "'Red' carries no data"),
+    ('match 5\n    case 1: print("one")', "A match on int needs an else"),
+    ('match 5\n    case 1, 1: print("one")\n    else: print("x")', "This value is already handled"),
+    ('match 5\n    case "a": print("a")\n    else: print("x")', "This case is string, but the match is on int"),
+    ('int k = 1\nmatch 5\n    case k: print("a")\n    else: print("x")', "A case on int needs a constant"),
+    ('match 2.5\n    case 1: print("a")\n    else: print("x")', "match works on an enum, int, byte, char or string value, got float"),
+])
+def test_match_errors(body, message):
+    assert message in errors_of(LIGHT + main('Light l = Light.Red\n' + body))
+
+
+def test_an_else_after_every_value_is_a_warning():
+    from tests.test_structs import warnings_of
+    assert "The else of this match never runs" in warnings_of(LIGHT + main(
+        'Light l = Light.Red\n'
+        'match l\n'
+        '    case Red, Yellow, Green: print("all")\n'
+        '    else: print("never")'))
+
+
+def test_a_match_without_every_case_returning_needs_a_return():
+    assert "return" in errors_of(
+        LIGHT + 'int function code(Light l)\n'
+        '    match l\n'
+        '        case Red: return 1\n'
+        '        else: print("no")\n' + main('print("x")'))
+
+
+@pytest.mark.parametrize("source, message", [
+    ('match 1\n', "Expected the cases of 'match'"),
+    ('match 1\n    else: print("x")\n    case 1: print("y")\n', "'else' must be the last part"),
+    ('match l\n    case Light.Red: print("x")\n', "In a case, write just the value's name: case Red"),
+    ('match l\n    case Red print("x")\n', "Expected the body of the case"),
+])
+def test_match_parse_errors(source, message):
+    with pytest.raises(Exception, match=message):
+        parse(LIGHT + main(source))

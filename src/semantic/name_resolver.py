@@ -12,7 +12,7 @@ from src.parser.ast_nodes import (
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
-    EnumDecl, EnumType, EnumStaticCall, EnumValueExpr,
+    EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt,
     ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES
 )
 from .symbol_table import SymbolTable
@@ -735,6 +735,12 @@ class NameResolver:
             self.resolve_block(stmt)
         elif isinstance(stmt, ExpressionStmt):
             self.resolve_expression(stmt.expression)
+        elif isinstance(stmt, MatchStmt):             # Task 25.3
+            self.resolve_expression(stmt.subject)
+            for case in stmt.cases:
+                self.resolve_block(case.body)
+            if stmt.else_body is not None:
+                self.resolve_block(stmt.else_body)
         # else: unknown statement type, silently ignore
 
     def resolve_var_decl(self, stmt: VarDeclStmt) -> None:

@@ -4408,3 +4408,23 @@ independent. Then features keep being added, and the complex parts come last.
 
 ---
 
+
+---
+
+#### Task 25.2 / 25.3 - plain enums and `match` (COMPLETE 2026-10-12)
+
+As planned (decisions: data inside enum; Color.Red, bare names in match cases; else; data only through match). Built in src/semantic/enums.py (normalize pass + type rules) and src/codegen/c_enums.py; tests in tests/test_enums.py.
+
+- **25.2 Plain enums** - declaration in all three block styles + the one-line form, commas
+  optional, explicit int values (default 0, 1, 2 ...; duplicates an error); `Color.Red`;
+  == / != (only the same enum type - comparing with an int is an error, use toInt);
+  print / `{c}` / toString give the name; toInt; `Color.values()` (a List); `fromString`
+  (an unknown name stops the program with a clear error until Task 26 makes it
+  catchable); as a variable, parameter, return value, struct field, array / List element
+  and Map key; `public` + import across modules; `--interface` shows them. C: an int
+  type + a names table
+- **25.3 `match` statement** - on an enum: case names written bare (the type is known),
+  every value must be covered unless there is an `else` (missing ones are named in the
+  error); on int / char / string: constant cases, `else` required; several values per
+  case (`case '+', '-'`); a duplicate case is an error; no fall-through; all three block
+  styles; `break` / `continue` / `return` inside cases work as usual

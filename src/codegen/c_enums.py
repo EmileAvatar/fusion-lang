@@ -7,9 +7,18 @@ A plain enum is an int in C, with a typedef for its name and two helpers:
     static fu_Color fu_Color__fromString(fusion_string s, where)     a name back to a value
 
 Color.Red is just its number; Color.values() is a list built from the numbers.
+
+A match (Task 25.3) becomes an if / else-if chain, not a C switch - so `break` and
+`continue` in a case still act on the loop around the match:
+
+    fusion_val_1 = <subject>;                                the subject, evaluated once
+    fusion_val_2 = (fusion_val_1 == 0 || ...) ? 1 : ... : 0;  which case runs
+    (the statement's temporaries are freed here)
+    if (fusion_val_2 == 1) { ... } else if ... else { ... }
 """
 
-from src.parser.ast_nodes import EnumDecl, EnumStaticCall, EnumType, EnumValueExpr, ListType
+from src.parser.ast_nodes import (EnumDecl, EnumStaticCall, EnumType, EnumValueExpr, ListType,
+                                  MatchStmt)
 from .c_names import mangle_function_name
 from .c_runtime import escape_c_text
 
@@ -67,6 +76,40 @@ class EnumsMixin:
             return self.fresh_temporary(code, node.inferred_type)   # freed unless stored
         # fromString: the text is borrowed
         return f'{c}__fromString({self.visit(node.arguments[0])}, {self._where(node)})'
+
+    def visit_MatchStmt(self, node: MatchStmt) -> str:
+        subject_type = node.subject.inferred_type
+        subject = self._declare_temp('val', self.map_type(subject_type))
+        self.emit_line(f'{subject} = {self.visit(node.subject)}')
+        choice = '0'
+        for number in range(len(node.cases), 0, -1):
+            tests = ' || '.join(self._pattern_test(subject, subject_type, p)
+                                for p in node.cases[number - 1].patterns)
+            choice = f'({tests}) ? {number} : {choice}'
+        chosen = self._declare_temp('val', 'int')
+        self.emit_line(f'{chosen} = {choice}')
+        self.flush_temps()          # a temporary subject is no longer needed
+        keyword = 'if'
+        for number, case in enumerate(node.cases, 1):
+            self.emit(f'{keyword} ({chosen} == {number}) {{')
+            self.indent()
+            self.visit(case.body)
+            self.dedent()
+            keyword = '} else if'
+        if node.else_body is not None:
+            self.emit('} else {')
+            self.indent()
+            self.visit(node.else_body)
+            self.dedent()
+        self.emit('}')
+        return ''
+
+    def _pattern_test(self, subject: str, subject_type, pattern) -> str:
+        if pattern.name is not None:
+            variant = subject_type.declaration.variant(pattern.name)
+            return f'{subject} == {self.enum_number(variant.value)}'
+        return self.value_equality(subject, subject_type, self.visit(pattern.value),
+                                   pattern.value.inferred_type)
 
     def enum_text_code(self, type_node: EnumType, code: str) -> str:
         """An enum value's name as a (static, never freed) fusion_string."""
