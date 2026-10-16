@@ -61,7 +61,7 @@ catch e                                      // any other error
     print(e.message)
 ```
 
-#### Sub-tasks
+#### Sub-tasks (updated 2026-10-16 after the user's review)
 - **26.7 Implicit errors** - `return Error(...)` in any function (it then can fail, as
   with throw); `T, Error function` stays valid as a marker, shown by `--interface`; a
   function marked `, Error` that can never fail gets a warning. `[errors] returns` still
@@ -69,28 +69,84 @@ catch e                                      // any other error
 - **26.8 Capture without a type** - `Ship s, err = f()`; `Ship s, Error err` still works.
   A call with no value keeps `Error err = save(s)` (a bare `err = save(s)` would read as an
   assignment)
-- **26.9 Custom error types** - declare one (Q1) with extra fields; built like a struct
-  (message first, code optional, then its fields - named arguments too); `where` filled in
-  as for Error; every Error field plus its own; `throw` / `return` it; printing shows the
-  message; a custom error can extend another custom error (FileNotFound -> FileError ->
-  Error). In C: the error carries a kind number and its extra fields on the heap, with
-  copy / free per kind (leak-checked)
-- **26.10 Typed capture** - `Ship s, FileError err = f()` captures any error (decision 2);
-  `err.kind` - the error's type name. (Typed catches: later)
-- **26.11 Built-in failures get their own types (Q4)** - e.g. IndexError (index out of
-  range), KeyError (missing Map key), FormatError (text that isn't a number, a bad
-  pattern), FileError (with `path`) - all subtypes of Error, so `catch e` still catches
-  everything
-- **26.12 Docs + examples** - SYNTAX_REFERENCE sections, examples/errors_demo extended,
-  spec "Error Handling", fusion.ebnf
+- **26.9 Custom error types** - `error FileError` + fields, `error FileNotFound : FileError`
+  extends one; an error type may give a **default message** (`message = "File not found"`,
+  overridable when thrown); built like a struct (message, code optional, then its fields -
+  named arguments too); `where` filled in; every Error field plus its own; `throw` /
+  `return` it; printing shows the message. In C: the error carries a kind number and its
+  extra fields on the heap, with copy / free per kind (leak-checked)
+- **26.10 Typed capture, `err.kind`, match on error types** - `Ship s, FileError err = f()`
+  captures any error (its own fields empty unless it is a FileError); `err.kind` is the
+  type name ("FileError") for logs and printing; `match err` with **error type names as
+  cases** - `case FileError` also matches its subtypes (FileNotFound), and inside the case
+  err is that type, so its own fields can be read; misspelled names are compile errors
+- **26.11 Typed catch** (user: now, for a working sample) - `catch FileError e` ...
+  `catch e`: first match wins, a parent type catches its subtypes, an untyped `catch e`
+  last; an error no catch matches goes on (through finally)
+- **26.12 Built-in error types** - the list below; built-in failures raise them; new
+  checks for failures that aren't errors yet (integer division by zero)
+- **26.13 Docs + examples** - SYNTAX_REFERENCE sections, examples/errors_demo extended
+  (custom errors, match on error types, typed catch), spec "Error Handling", fusion.ebnf
+- **No central ERROR enum** (user agreed): one closed list can't grow when a module adds
+  its own errors; each error type is its own kind, with an optional default message
 - Every part: tests under the leak check
+
+#### Built-in error types (26.12) - a proposal for the user to review
+Every one is an `Error`; a parent catches its children (`catch LookupError e` catches both
+IndexError and KeyError). "today" = raised as a plain Error now; "NEW" = not an error yet.
+
+```text
+Error
+ +- ArithmeticError                     doing the math is impossible
+ |   +- DivideByZeroError     NEW       7 / 0 and 7 % 0 on whole numbers - today the
+ |   |                                  program crashes (C stops it); 7.0 / 0 is infinity
+ |   +- OverflowError         later     a whole number too big for int (2147483647 + 1
+ |                                      wraps silently today) - Task 27.2 decides
+ +- FormatError                         text in the wrong shape
+ |   +- NumberFormatError     today     toInt("12x"), toFloat, parseInt, fromHex
+ |   +- PatternError          today     formatNumber with a bad pattern
+ |   +- HexFormatError        today     hexToBytes / hexToRaw: not hex, odd digit count
+ |   +- TextEncodingError     today     bytes that aren't valid text (toString, readText
+ |                                      of a binary file, hexToBytes)
+ +- ValueError                          a value outside what's allowed
+ |   +- RangeError            today     toByte(300), fromCharCode(-5), base not 2-36,
+ |   |                                  setInt16 too big, a negative count / width
+ |   |                                  (left, right, repeat, padLeft, truncate, mask ...)
+ |   +- UnknownValueError     today     Color.fromString("Pink")
+ +- LookupError                         asking for something that isn't there
+ |   +- IndexError            today     s[9], xs[9], b[9], substring / slice / insert /
+ |   |                                  removeAt / remove outside the range, getInt room;
+ |   |                                  fixed arrays a[9]: NEW with Task 27.1
+ |   +- KeyError              today     m["missing"]
+ +- FileError (path)                    the file system said no
+ |   +- FileNotFoundError     today     readText / readBytes / readLines of a missing file
+ |   +- PermissionError       today     not allowed to open / write / delete
+ |   +- FileReadError         today     reading failed part way
+ |   +- FileWriteError        today     writing failed (disk full)
+ |   +- FileTooLargeError     today     a file over 2 GB
+ |   +- DeleteError           today     deleteFile failed (missing, in use)
+ +- LimitError                          bigger than Fusion allows
+     +- StringTooLongError    today     a string over [strings] max_length
+     +- ResultTooLargeError   today     a result over 2 GB (repeat, join, replace ...)
+
+Not catchable - the program stops at once, nothing can recover:
+     out of memory, a List past 536,870,911 elements,
+     endless recursion (stack overflow - today a crash; a depth check is a later task)
+
+Later, when the feature exists: NullError (Task 30), NetworkError / TimeoutError (a net
+module), ParseError (JSON / data modules), CancelledError (threads), AssertionError
+(an `assert` statement), NotSupportedError (a backend that can't do something)
+```
 
 #### Decisions (user, 2026-10-16)
 1. Declared with `error FileError` + fields; `error FileNotFound : FileError` extends one
 2. `Ship s, FileError err = f()` captures **any** error: err is a FileError only when it
-   is one - otherwise its own fields are empty. Proposed: `err.kind` gives the error's
-   type name ("FileError", "Error", "IndexError") to tell them apart
-3. Typed catches (`catch FileError e`) come later - one `catch e` for now
+   is one - otherwise its own fields are empty. `err.kind` gives the error's type name
+   ("FileError", "Error", "IndexError") - user: yes; plus `match err` with error type names
+   as cases (compiler-checked, subtype-aware)
+3. Typed catches (`catch FileError e`) - user changed this: **now**, so there is a
+   working sample (26.11)
+5. An error type may give a default message; no central ERROR enum (user agreed)
 4. Built-in failures get their own types now: IndexError, KeyError, FormatError,
    FileError (with `path`)
 
@@ -153,4 +209,6 @@ Kept under Task 22 until the renumbering is approved.
 - 26.5 done
 - Task 26 complete (26.6: examples/errors_demo)
 - Task 26 part 2 planned, 4 questions answered
-- **Next Action:** user to say proceed, then 26.7
+- Plan updated (default message, match on error types, typed catch now, built-in
+  error type list)
+- **Next Action:** user to review the built-in error list, then 26.7

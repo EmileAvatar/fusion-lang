@@ -96,11 +96,14 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	(part 2 - user request 2026-10-16)
 	[ ] 26.7 Implicit errors: `return Error(...)` in any function; `T, Error function` an optional marker
 	[ ] 26.8 Capture without a type: `Ship s, err = f()`
-	[ ] 26.9 Custom error types: `error FileError` + fields, `error FileNotFound : FileError`
-	[ ] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`
-	[ ] 26.11 Built-in failures as types: IndexError, KeyError, FormatError, FileError
-	[ ] 26.12 Docs + examples
-	[POSTPONED - after 26.11] Typed catches: `catch FileError e` ... `catch e` (user: later)
+	[ ] 26.9 Custom error types: `error FileError` + fields, `error FileNotFound : FileError`, a
+		default message
+	[ ] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`; `match err`
+		with error type names as cases (subtype-aware, the type's own fields inside)
+	[ ] 26.11 Typed catch: `catch FileError e` ... `catch e`
+	[ ] 26.12 Built-in error types (ArithmeticError, FormatError, ValueError, LookupError, FileError,
+		LimitError and their children); new: integer division by zero is a DivideByZeroError
+	[ ] 26.13 Docs + examples
 	[DONE] Error handling example (was 16.5) - examples/errors_demo (26.6)
 
 #### 27 Semantic contract and safety (from the ChatGPT review, 2026-10-11; notes.md step 2) [ ]
