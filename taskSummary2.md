@@ -24,83 +24,11 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
-## TASK 26: Error handling - ACTIVE (plan approved 2026-10-16)
+## TASK 26: Error handling - COMPLETE (2026-10-16)
 
-**User decisions already made (2026-10-09, backlog):** Go-style error returns *only for
-returning an error from a function* (`Spaceship, Error function loadShip(...)`, then
-`Spaceship ship, Error err = loadShip(...)` and a simple `if err`); `try` / `catch` /
-`finally` / `throw` / `Error`; both on by default, both can be turned off per project in
-fusion.toml; the two are complementary.
-
-#### What it looks like (proposal)
-```text
-Ship, Error function loadShip(string file)
-    if not fileExists(file)
-        return Error("No such file: {file}")      // fails: the Ship part gets its default
-    return Ship(readText(file))                    // succeeds: no error
-
-void function main()
-    Ship ship, Error err = loadShip("ship.dat")    // capture: check it yourself
-    if err                                         // true when there is an error
-        print("Can't load: {@1} ({@2})", err.message, err.where)
-        return
-
-    string text, Error e = readText("x.txt")      // capture works on any call (Q2)
-
-    try
-        Ship s = loadShip("a.dat")                 // not captured: an error goes to catch
-        int n = toInt("12x")                       // a built-in's error too (Q3)
-    catch err
-        print("failed: {@1}", err.message)
-        throw err                                  // or pass it on
-    finally
-        print("always runs")
-
-    throw Error("Bad state", 42)                   // message + an optional code
-```
-
-#### The model
-- **`Error`** - a built-in value: `message` (string), `code` (int, default 0), `where`
-  ("main.fusion:12", filled in where it was made). `Error("msg")`, `Error("msg", 404)`. A
-  captured `err` with no error has an empty message; `if err` / `not err` test whether there
-  is one (the one place a non-bool is a condition - user decision "a simple if err check")
-- **A function that can fail** returns `T, Error` (or `Error` alone for a void one): `return
-  Error(...)` fails, `return value` succeeds. `throw` works in any function
-- **An error nobody captures bubbles up** (spec): out of the function, to the caller's
-  `catch` if inside `try`, else further up; at `main` the program stops with the message,
-  exactly as a run-time error does today (Q1)
-- **No setjmp/longjmp** - C would skip the automatic cleanup and the leak check would fail.
-  Instead explicit propagation, like Go / Zig / Rust's `?`: a failing call sets the current
-  error; the generated C checks right after each call that can fail and jumps to the catch,
-  or frees the function's values and returns. The checker works out which functions can
-  fail, so calls that can't fail cost nothing
-- **Config:** `[errors] returns = true`, `exceptions = true` - turning one off makes that
-  syntax a compile error (with `exceptions = false`, an error nobody captures stops the
-  program, as today)
-
-#### Sub-tasks
-- **26.1** this plan
-- 26.2 DONE (Error and error returns) - detail archived
-- 26.3 DONE (try / catch / finally / throw) - detail archived
-- 26.4 DONE (every built-in failure catchable) - detail archived
-- 26.5 DONE (config switches) - detail archived
-- **26.6 Example + docs** - SYNTAX_REFERENCE section, an example program (catch an error,
-  and show one nobody catches - was 16.5), spec "Error Handling" as built, fusion.ebnf
-- Every part: tests, all programs under the leak check (every error path must free)
-
-#### Not in this task
-Typed catches (`catch NetworkError e`) - wait for classes (32) or a later enum-based
-design; stack traces; `err.cause` chains
-
-#### Decisions (user, 2026-10-16) - plan approved
-1. Bubble up: capturing the error at a call is optional ("the err is optional to catch the
-   error from the specific function"); with no err it bubbles up until there is a catch;
-   at main the program stops with the message
-2. The capture form works on any call - it also catches what a throwing function or
-   built-in throws
-3. **All** built-in failures become catchable (not only the expected ones) - so 26.4 covers
-   every run-time error in the C runtime; an uncaught one stops the program as today
-4. One catch-all `catch err` in this task; typed catches later
+Error values, functions that can fail, capturing, bubbling, try / catch / finally / throw,
+every built-in failure catchable, `[errors]` switches, examples/errors_demo. Plan and notes:
+`task/taskSummaryArchive.md`.
 
 ---
 
@@ -151,4 +79,5 @@ Kept under Task 22 until the renumbering is approved.
 - 26.3 done
 - 26.4 done
 - 26.5 done
-- **Next Action:** 26.6 example + docs
+- Task 26 complete (26.6: examples/errors_demo)
+- **Next Action:** plan Task 27 (semantic contract and safety - 27.1 bounds checks for fixed arrays first) for approval

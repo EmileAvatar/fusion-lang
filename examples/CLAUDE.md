@@ -10,7 +10,9 @@ the generated `.c`, and the working `.exe`. (Once Fusion is self-hosted: `.fusio
   `SYNTAX_REFERENCE.md`, then run `python check.py --build-examples`. A block fenced as
   ` ```fusion multi-file ` (one file of a several-file project) is documentation only - it
   isn't built or checked as an example
-- **Hand-written demos** (`hello_world`, `fizzbuzz`, `structs_demo`, `strings_demo`, ...) -
+- **Hand-written demos** (`hello_world`, `fizzbuzz`, `structs_demo`, `strings_demo`,
+  `control_flow`, `errors_demo` - run it with the argument `uncaught` to see an error nobody
+  catches, ...) -
   fuller programs; each has its expected output in `tests/verify_examples.py`. Start the
   first line with `// ... (Task N)` so `#list.csv` gets its task number
 - **Example projects** of several files (Task 18.4.4): a folder `examples/<name>/` with a

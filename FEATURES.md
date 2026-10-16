@@ -80,7 +80,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		deep copies, ==, cleanup; first value can't hold itself; loops through other types are errors
 	[DONE] 25.6 Example examples/expressions (tokenize -> parse into an Expr tree -> evaluate) + docs
 
-#### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
+#### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [DONE]
 	[DONE] 26.1 Detailed plan - approved 2026-10-16 (errors bubble up, capture optional on any call,
 		every built-in failure catchable, one catch-all)
 	[DONE] 26.2 `Error` and error returns: `T, Error function`, `return Error(...)`, capture on any
@@ -91,8 +91,9 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		files, patterns, fromString, max_length, ... - uncaught still stops ("Runtime error at")
 	[DONE] 26.5 Config: `[errors] returns / exceptions` in fusion.toml (both on by default) - turning
 		one off makes that syntax a compile error
-	[ ] 26.6 Example + docs
-	[POSTPONED to 26] Error handling (try/catch) example (was 16.5)
+	[DONE] 26.6 Example examples/errors_demo (capture, bubbling, try / catch / finally, built-in
+		failures; the argument "uncaught" shows one nobody catches) + docs
+	[DONE] Error handling example (was 16.5) - examples/errors_demo (26.6)
 
 #### 27 Semantic contract and safety (from the ChatGPT review, 2026-10-11; notes.md step 2) [ ]
 	[ ] 27.1 Bounds checks for fixed arrays: `a[5]` on an `int[3]` crashes today (segmentation

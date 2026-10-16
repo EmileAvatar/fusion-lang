@@ -1,13 +1,13 @@
 # Fusion Compiler Verification Report
 
-**Date:** Mon Oct 12 18:50:54 SAST 2026
-**Total Examples:** 15
+**Date:** Fri Oct 16 21:18:03 SAST 2026
+**Total Examples:** 16
 
 ## Summary
 
-- **Compilation Success:** 15/15
-- **Execution Success:** 15/15
-- **Output Matches:** 15/15
+- **Compilation Success:** 16/16
+- **Execution Success:** 16/16
+- **Output Matches:** 16/16
 
 ## Detailed Results
 
@@ -290,6 +290,90 @@ row 3: 3 6 9 12 15 18
 15 is at 2, 99 is at -1
 pears: sold out
 in stock: 10```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
+#endif
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
+#ifdef _WIN32
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+... (truncated)
+```
+
+### errors_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+width = 80
+height = 24
+skip (1): Not 'name=value': depth
+skip (2): No name in: =5
+skip (0): '12x' is not a whole number (check with isInt first)
+total: 3
+total failed: 'oops' is not a whole number (check with isInt first)
+totals done
+all handled
+```
+
+**Expected:**
+```
+width = 80
+height = 24
+skip (1): Not 'name=value': depth
+skip (2): No name in: =5
+skip (0): '12x' is not a whole number (check with isInt first)
+total: 3
+total failed: 'oops' is not a whole number (check with isInt first)
+totals done
+all handled```
 
 **Generated C Code (first 50 lines):**
 ```c

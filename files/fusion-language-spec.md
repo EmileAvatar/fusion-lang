@@ -3057,7 +3057,7 @@ int age = ages.get("Alice")
 
 **Status:** [PARTLY] error returns, capturing (26.2), try / catch / finally / throw (26.3)
 catchable built-in failures (26.4) and the `[errors] returns / exceptions` switches (26.5)
-are built; the example [PLANNED 26.6]
+are built (Task 26 complete). Example program: `examples/errors_demo.fusion`
 
 **Every run-time error is an Error (Task 26.4, user decision 2026-10-16: all of them):** an
 index out of range (strings, lists, bytes), a missing Map key, text that isn't a number,

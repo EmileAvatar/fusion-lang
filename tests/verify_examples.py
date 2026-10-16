@@ -362,6 +362,7 @@ EXPECTED_OUTPUTS = {
     'shop': 'Receipt\n-------\nCoffee beans.. R 12.99\nMug........... R 8.50\nFilters....... R 3.99\n-------\nSubtotal...... R 25.48\nTotal + VAT... R 29.30',
     'control_flow': '95 -> A\n80 -> B\n50 -> C\n12 -> F\ncountdown: 3 2 1 go\nfirst primes: 2, 3, 5, 7, 11, 13, 17, 19\nrow 1: 1 2\nrow 2: 2 4 6 8\nrow 3: 3 6 9 12 15 18\n15 is at 2, 99 is at -1\npears: sold out\nin stock: 10',
     'expressions': '2 + 3 * 4 = 14   (2 + (3 * 4))\n(2 + 3) * 4 = 20   ((2 + 3) * 4)\n100 / 5 / 2 - 1 = 9   (((100 / 5) / 2) - 1)\n7 = 7   7',
+    'errors_demo': "width = 80\nheight = 24\nskip (1): Not 'name=value': depth\nskip (2): No name in: =5\nskip (0): '12x' is not a whole number (check with isInt first)\ntotal: 3\ntotal failed: 'oops' is not a whole number (check with isInt first)\ntotals done\nall handled",
     'wordcount': '17 words, 10 different\nthe.....   4\nbrown...   2\ndog.....   2\nfox.....   2\nquick...   2',
     'structs_demo':'a = (3, 4), b = (10, 4)\na + b = (13, 8)\nInside moveRight: x = 103\nAfter moveRight: a.x = 3\nAda: health 75.000000, score 15\nNewcomer score: 0, health 100.000000\nDune Messiah is available\nOrigin: (0, 0)\nNamed point: (7, 8)\nLinus: health 100.000000, score 42\nShifted: (8, 9)\nLinus (42) beat Ada (15)\nbox: max.x = 4, bigger max.x = 40\nBlue total 22, first position x = 1\nDiagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4\nAll struct tests passed!',
 }
