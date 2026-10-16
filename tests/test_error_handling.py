@@ -501,10 +501,10 @@ def test_capture_without_writing_the_type():
 
 # ---------------------------------------------------------------- 26.9 custom error types
 
-FILE_ERRORS = ('error FileError\n'
+FILE_ERRORS = ('error DiskError\n'
                '    string path\n'
                '    int attempts = 1\n'
-               'error FileNotFound : FileError\n'
+               'error DiskGone : DiskError\n'
                '    message = "File not found"\n'
                '    bool wasDeleted = false\n'
                'error Timeout\n'
@@ -515,22 +515,22 @@ def test_custom_error_types_fields_defaults_and_parents():
     assert run_ok(FILE_ERRORS
         + 'int function load(string path)\n'
         '    if path == ""\n'
-        '        throw FileNotFound(path = "none" + ".txt", wasDeleted = true)\n'
+        '        throw DiskGone(path = "none" + ".txt", wasDeleted = true)\n'
         '    if path == "slow"\n'
         '        return Timeout("too slow")\n'
         '    return 1\n'
         + main(
-            'int a, FileError e = load("")\n'
+            'int a, DiskError e = load("")\n'
             'print("{e} | {e.path} {e.attempts} {e.code} {a}")\n'
-            'FileError f = FileError("Can\'t open", 5, "x.txt")\n'
-            'FileNotFound g = FileNotFound(path = "y")\n'
+            'DiskError f = DiskError("Can\'t open", 5, "x.txt")\n'
+            'DiskGone g = DiskGone(path = "y")\n'
             'Error plain = g\n'
-            'FileError parent = g\n'
+            'DiskError parent = g\n'
             'print("{f} {f.path} {f.code} | {g} {g.wasDeleted} | {plain} | {parent.path}")\n'
             'int b, Timeout t = load("slow")\n'
             'print("{t} {t.code} {b}")\n'
-            'List<FileError> kept = [f, g]\n'
-            'FileError copy = kept[1]\n'
+            'List<DiskError> kept = [f, g]\n'
+            'DiskError copy = kept[1]\n'
             'print("{@1} {copy.path}", kept.len())')
     ) == ['File not found | none.txt 1 0 0', "Can't open x.txt 5 | File not found false | "
           'File not found | y', 'too slow 408 0', '2 y']
@@ -542,7 +542,7 @@ def test_a_typed_capture_takes_any_error():
         '    List<int> xs = [1]\n'
         '    return xs[i]\n'
         + main(
-            'int n, FileError err = index(5)\n'                # not a FileError: its own
+            'int n, DiskError err = index(5)\n'                # not a DiskError: its own
             'print("[{err.path}] {@1} {err}", err.attempts)')  # fields are the defaults
     ) == ['[] 1 index 5 is outside the list (length 1)']
 
@@ -550,18 +550,18 @@ def test_a_typed_capture_takes_any_error():
 def test_custom_errors_across_modules(tmp_path):
     assert run_project(tmp_path, {
         'files/errors.fusion': (
-            'public error FileError\n'
+            'public error DiskError\n'
             '    string path\n'
-            'public error FileNotFound : FileError\n'
+            'public error DiskGone : DiskError\n'
             '    message = "missing"\n'
             'public int function open(string p)\n'
-            '    throw FileNotFound(path = p)\n'),
+            '    throw DiskGone(path = p)\n'),
         'main.fusion': (
             'import files\n'
-            'error MyError : files.FileError\n'
+            'error MyError : files.DiskError\n'
             '    int line\n'
             'void function main()\n'
-            '    int n, files.FileError e = files.open("a.txt")\n'
+            '    int n, files.DiskError e = files.open("a.txt")\n'
             '    MyError m = MyError("mine", path = "b", line = 3)\n'
             '    print("{e} {e.path} | {m} {m.path} {m.line} {n}")\n'),
     }) == ['missing a.txt | mine b 3 0']
@@ -583,8 +583,8 @@ def test_error_type_declaration_errors(source, message):
 
 
 def test_reading_an_unknown_field_of_an_error_type():
-    assert "FileError has no field 'size'" in errors_of(
-        FILE_ERRORS + main('FileError f = FileError("m", path = "p")\nprint("{f.size}")'))
+    assert "DiskError has no field 'size'" in errors_of(
+        FILE_ERRORS + main('DiskError f = DiskError("m", path = "p")\nprint("{f.size}")'))
 
 
 # ---------------------------------------------------------------- 26.10 err.kind and match on error types
@@ -593,8 +593,8 @@ def test_kind_and_match_on_error_types():
     assert run_ok(FILE_ERRORS
         + 'void function fail(int which)\n'
         '    match which\n'
-        '        case 0: throw FileNotFound(path = "a.txt")\n'
-        '        case 1: throw FileError("locked", path = "b.txt")\n'
+        '        case 0: throw DiskGone(path = "a.txt")\n'
+        '        case 1: throw DiskError("locked", path = "b.txt")\n'
         '        case 2: throw Timeout("slow")\n'
         '        case 3: throw Error("plain")\n'
         '        else\n'
@@ -604,41 +604,41 @@ def test_kind_and_match_on_error_types():
             'for which in range(0, 5)\n'
             '    Error err = fail(which)\n'
             '    match err\n'
-            '        case FileNotFound\n'
+            '        case DiskGone\n'
             '            print("{err.kind}: gone {err.path}")\n'
-            '        case FileError: print("{err.kind}: {err} {err.path} {err.attempts}")\n'
+            '        case DiskError: print("{err.kind}: {err} {err.path} {err.attempts}")\n'
             '        case Timeout: print("{err.kind}: {err.code}")\n'
             '        else: print("{err.kind}: {err}")\n'
             '    if err.kind = "Timeout"\n'
             '        print("compared by name")')
-    ) == ['FileNotFound: gone a.txt', 'FileError: locked b.txt 1', 'Timeout: 408',
-          'compared by name', 'Error: plain', 'Error: index 5 is outside the list (length 1)']
+    ) == ['DiskGone: gone a.txt', 'DiskError: locked b.txt 1', 'Timeout: 408',
+          'compared by name', 'Error: plain', 'IndexError: index 5 is outside the list (length 1)']
 
 
 def test_match_on_an_error_type_from_a_module(tmp_path):
     assert run_project(tmp_path, {
         'files/errors.fusion': (
-            'public error FileError\n'
+            'public error DiskError\n'
             '    string path\n'
             'public int function open(string p)\n'
-            '    throw FileError("no", path = p)\n'),
+            '    throw DiskError("no", path = p)\n'),
         'main.fusion': (
             'import files\n'
-            'import files.FileError\n'
+            'import files.DiskError\n'
             'void function main()\n'
             '    int n, err = files.open("x")\n'
             '    match err\n'
-            '        case files.FileError: print("{err.kind} {err.path} {n}")\n'
+            '        case files.DiskError: print("{err.kind} {err.path} {n}")\n'
             '        else: print("other")\n'
             '    match err\n'
-            '        case FileError: print("short name too")\n'
+            '        case DiskError: print("short name too")\n'
             '        case Error: print("any")\n'),
-    }) == ['FileError x 0', 'short name too']
+    }) == ['DiskError x 0', 'short name too']
 
 
 @pytest.mark.parametrize("body, message", [
     ('match e\n    case Foo: print("x")\n    else: print("y")', "'Foo' is not an error type"),
-    ('match e\n    case FileError: print("x")', "A match on an Error needs an else (or `case Error`)"),
+    ('match e\n    case DiskError: print("x")', "A match on an Error needs an else (or `case Error`)"),
     ('match e\n    case 3: print("x")\n    else: print("y")', "A case on an Error names an error type"),
 ])
 def test_match_on_errors_type_errors(body, message):
@@ -647,11 +647,11 @@ def test_match_on_errors_type_errors(body, message):
 
 def test_a_case_after_its_parent_never_matches():
     from tests.test_structs import warnings_of
-    assert "'FileNotFound' never matches here" in warnings_of(FILE_ERRORS + main(
+    assert "'DiskGone' never matches here" in warnings_of(FILE_ERRORS + main(
         'Error e = Error("m")\n'
         'match e\n'
-        '    case FileError: print("x")\n'
-        '    case FileNotFound: print("y")\n'
+        '    case DiskError: print("x")\n'
+        '    case DiskGone: print("y")\n'
         '    else: print("z")'))
 
 
@@ -661,17 +661,17 @@ def test_typed_catches_first_match_wins():
     assert run_ok(FILE_ERRORS
         + 'void function fail(int which)\n'
         '    match which\n'
-        '        case 0: throw FileNotFound(path = "a.txt")\n'
-        '        case 1: throw FileError("locked", path = "b.txt")\n'
+        '        case 0: throw DiskGone(path = "a.txt")\n'
+        '        case 1: throw DiskError("locked", path = "b.txt")\n'
         '        case 2: throw Timeout("slow")\n'
         '        else: throw Error("plain")\n'
         + main(
             'for which in range(0, 4)\n'
             '    try\n'
             '        fail(which)\n'
-            '    catch FileNotFound e\n'
+            '    catch DiskGone e\n'
             '        print("not found: {e.path}")\n'
-            '    catch FileError e\n'
+            '    catch DiskError e\n'
             '        print("file: {e} {e.path}")\n'
             '    catch e\n'
             '        print("{e.kind}: {e}")')
@@ -684,7 +684,7 @@ def test_an_error_no_catch_takes_goes_on_through_finally():
         '    string held = "x" + "y"\n'
         '    try\n'
         '        throw Timeout("slow")\n'
-        '    catch FileError e\n'
+        '    catch DiskError e\n'
         '        print("never")\n'
         '    finally\n'
         '        print("inner finally " + held)\n'
@@ -692,7 +692,7 @@ def test_an_error_no_catch_takes_goes_on_through_finally():
         '    try\n'
         '        List<int> xs = [1]\n'
         '        print("{@1}", xs[3])\n'
-        '    catch FileError e\n'
+        '    catch DiskError e\n'
         '        print("never")\n'
         + main(
             'try\n'
@@ -701,11 +701,11 @@ def test_an_error_no_catch_takes_goes_on_through_finally():
             '    print("outer caught {t} {t.code}")\n'
             'Error e = noFinally()\n'
             'print("{e.kind}: {e}")')
-    ) == ['inner finally xy', 'outer caught slow 408', 'Error: index 3 is outside the list (length 1)']
+    ) == ['inner finally xy', 'outer caught slow 408', 'IndexError: index 3 is outside the list (length 1)']
 
 
 @pytest.mark.parametrize("body, message", [
-    ('try\n    print("x")\ncatch e\n    print("a")\ncatch FileError f\n    print("b")',
+    ('try\n    print("x")\ncatch e\n    print("a")\ncatch DiskError f\n    print("b")',
      "A catch without an error type catches everything - it must be the last catch"),
     ('try\n    print("x")\ncatch Foo e\n    print("a")', "'Foo' is not an error type"),
 ])
@@ -716,4 +716,79 @@ def test_typed_catch_errors(body, message):
 def test_a_catch_after_its_parent_never_runs():
     from tests.test_structs import warnings_of
     assert "This catch never runs" in warnings_of(FILE_ERRORS + main(
-        'try\n    print("x")\ncatch FileError e\n    print("a")\ncatch FileNotFound f\n    print("b")'))
+        'try\n    print("x")\ncatch DiskError e\n    print("a")\ncatch DiskGone f\n    print("b")'))
+
+
+# ---------------------------------------------------------------- 26.12 built-in error types
+
+@pytest.mark.parametrize("expression, kind", [
+    ('7 / zero', 'DivideByZeroError'),
+    ('7 % zero', 'DivideByZeroError'),
+    ('toInt("12x")', 'NumberFormatError'),
+    ('formatNumber(2.5, "#,##0.0" + ".0")', 'PatternError'),
+    ('hexToBytes("6g")', 'HexFormatError'),
+    ('toString(hexToRaw("ff"))', 'TextEncodingError'),
+    ('toByte(300)', 'RangeError'),
+    ('left("abc", -1)', 'RangeError'),
+    ('Color.fromString("Pink")', 'UnknownValueError'),
+    ('"abc"[5]', 'IndexError'),
+    ('xs[9]', 'IndexError'),
+    ('ages["Bob"]', 'KeyError'),
+    ('readText("no_such_file_26_12.txt")', 'FileNotFoundError'),
+    ('repeat("ab", 2000000000)', 'ResultTooLargeError'),
+])
+def test_built_in_failures_have_their_own_type(expression, kind):
+    lines = run_ok('enum Color: Red\n' + main(
+        f'int zero = 0\n'
+        f'List<int> xs = [1]\n'
+        f'Map<string, int> ages\n'
+        f'try\n'
+        f'    print("{{@1}}", {expression})\n'
+        f'catch e\n'
+        f'    print(e.kind)'))
+    assert lines == [kind]
+
+
+def test_built_in_parents_catch_their_children():
+    assert run_ok(main(
+        'List<int> xs = [1]\n'
+        'Map<string, int> m\n'
+        'for step in range(0, 4)\n'
+        '    try\n'
+        '        match step\n'
+        '            case 0: print("{@1}", xs[4])\n'
+        '            case 1: print("{@1}", m["x"])\n'
+        '            case 2: print("{@1}", readText("missing_26_12.txt"))\n'
+        '            else: print("{@1}", 1 / (step - 3))\n'
+        '    catch LookupError e\n'
+        '        print("lookup: {e.kind}")\n'
+        '    catch FileError e\n'
+        '        print("file: {e.kind} {e.path}")\n'
+        '    catch ArithmeticError e\n'
+        '        print("math: {e}")'
+    )) == ['lookup: IndexError', 'lookup: KeyError', 'file: FileNotFoundError missing_26_12.txt',
+           'math: 1 / 0: division by zero']
+
+
+def test_extending_a_built_in_error_type():
+    assert run_ok(
+        'error ConfigError : FileError\n'
+        '    int line\n'
+        + main(
+            'try\n'
+            '    throw ConfigError("bad value", path = "app.cfg", line = 7)\n'
+            'catch FileError e\n'
+            '    print("{e.kind}: {e} in {e.path}")\n'
+            'FileNotFoundError made = FileNotFoundError(path = "x")\n'
+            'print("{made} | {made.path}")')
+    ) == ['ConfigError: bad value in app.cfg', 'File not found | x']
+
+
+def test_a_built_in_name_cannot_be_declared_again():
+    assert "'IndexError' is one of Fusion's own error types - extend it instead" in errors_of(
+        'error IndexError\n    int x\n' + main('print("x")'))
+
+
+def test_division_by_a_written_number_needs_no_check():
+    c_code = generate_c(main('int n = 9\nprint("{@1} {@2}", n / 3, n % 2)'))
+    assert 'fusion_div_int(' not in c_code.split('// ---- Errors')[-1].split('int main')[-1]

@@ -1,28 +1,35 @@
-error FileError                              // a custom error: every Error field + its own
-    string path
+error ConfigError : FileError                // a custom error, extending Fusion's FileError:
+    int line                                 // every Error field, FileError's path, its own
     int attempts = 1
 
-error FileNotFound : FileError               // extends another error type
-    message = "File not found"               // a default message (code = ... works too)
+error MissingConfig : ConfigError            // extends another error type
+    message = "Config file not found"        // a default message (code = ... works too)
 
-int function open(string path)
+int function load(string path)
     if path == ""
-        throw FileNotFound(path = "none.txt")   // message, code, then fields - by name too
+        throw MissingConfig(path = "app.cfg", line = 0)   // message, code, then fields
     return 1
 
 void function main()
-    int n, FileError err = open("")          // a FileNotFound is a FileError too
-    print("{err}: {err.path} (attempt {err.attempts}, n = {n})")
-    FileError made = FileError("Can't open", 5, "data.bin")
+    int n, ConfigError err = load("")        // a MissingConfig is a ConfigError too
+    print("{err}: {err.path} line {err.line} (attempt {err.attempts}, n = {n})")
+    ConfigError made = ConfigError("Bad value", 5, "app.cfg", 12)
     Error any = made                         // every error type is an Error
     print("{any} / {made.path} / code {@1}", made.code)
     match any                                // match on error types (a typo is a compile error)
-        case FileNotFound: print("gone: {any.path}")   // inside, any is a FileNotFound
-        case FileError: print("{any.kind}: {any.path}")   // kind: the type's name
+        case MissingConfig: print("gone: {any.path}")   // inside, any is a MissingConfig
+        case ConfigError: print("{any.kind}: line {any.line}")   // kind: the type's name
         else: print("something else")
     try
-        open("")
-    catch FileNotFound e                     // the first catch whose type matches takes it
+        load("")
+    catch MissingConfig e                    // the first catch whose type matches takes it
         print("missing: {e.path}")
     catch e                                  // any other error - an untyped catch goes last
+        print("{e.kind}: {e}")
+    List<int> xs = [1, 2]
+    try
+        print("{@1}", xs[5] / 0)             // Fusion's own failures have types too
+    catch LookupError e                      // IndexError, KeyError
+        print("{e.kind}: {e}")
+    catch ArithmeticError e                  // DivideByZeroError
         print("{e.kind}: {e}")

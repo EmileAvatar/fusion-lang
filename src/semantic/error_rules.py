@@ -31,6 +31,52 @@ ERROR_FIELDS = {'message': 'string', 'code': 'int', 'where': 'string',
                 'kind': 'string'}    # kind: the error type's name, "FileError" (Task 26.10)
 
 
+# Fusion's own error types (Task 26.12): (name, parent, has a `path` field, default message).
+# Their order fixes their kind numbers (1, 2, ...) - the C runtime raises them by number
+BUILTIN_ERROR_TYPES = [
+    ('ArithmeticError', 'Error', False, None),
+    ('DivideByZeroError', 'ArithmeticError', False, 'Division by zero'),
+    ('FormatError', 'Error', False, None),
+    ('NumberFormatError', 'FormatError', False, None),
+    ('PatternError', 'FormatError', False, None),
+    ('HexFormatError', 'FormatError', False, None),
+    ('TextEncodingError', 'FormatError', False, None),
+    ('ValueError', 'Error', False, None),
+    ('RangeError', 'ValueError', False, None),
+    ('UnknownValueError', 'ValueError', False, None),
+    ('LookupError', 'Error', False, None),
+    ('IndexError', 'LookupError', False, 'Index out of range'),
+    ('KeyError', 'LookupError', False, 'Key not found'),
+    ('FileError', 'Error', True, None),
+    ('FileNotFoundError', 'FileError', False, 'File not found'),
+    ('PermissionError', 'FileError', False, 'Permission denied'),
+    ('FileReadError', 'FileError', False, None),
+    ('FileWriteError', 'FileError', False, None),
+    ('FileTooLargeError', 'FileError', False, None),
+    ('DeleteError', 'FileError', False, None),
+    ('LimitError', 'Error', False, None),
+    ('StringTooLongError', 'LimitError', False, None),
+    ('ResultTooLargeError', 'LimitError', False, None),
+]
+BUILTIN_ERROR_NAMES = [name for name, _, _, _ in BUILTIN_ERROR_TYPES]
+
+
+def builtin_error_decls(location) -> list:
+    """Fresh ErrorDecls for Fusion's own error types, for one program."""
+    from src.parser.ast_nodes import StructField
+    decls = []
+    for name, parent, has_path, message in BUILTIN_ERROR_TYPES:
+        fields = [StructField(location=location, name='path',
+                              field_type=PrimitiveType(location=location, name='string'),
+                              default_value=LiteralExpr(location=location, value='',
+                                                        type_hint='string'))] if has_path else []
+        decl = ErrorDecl(location=location, name=name, parent=parent, fields=fields, builtin=True,
+                         default_message=LiteralExpr(location=location, value=message,
+                                                     type_hint='string') if message else None)
+        decls.append(decl)
+    return decls
+
+
 def error_chain(decl) -> list:
     """A custom error type's line of ErrorDecls, from the one just below Error down to it."""
     chain = []
@@ -58,6 +104,17 @@ _SKIP_FIELDS = ('location', 'inferred_type', 'declaration', 'callee_declaration'
 
 def normalize_errors(program: ProgramNode) -> List[SemanticError]:
     errors: List[SemanticError] = []
+    # Fusion's own error types first (Task 26.12) - a program's type can extend them, not
+    # take their names
+    location = program.declarations[0].location if program.declarations else None
+    for decl in [d for d in program.declarations if isinstance(d, ErrorDecl) and not d.builtin]:
+        if decl.name in BUILTIN_ERROR_NAMES:
+            errors.append(SemanticError(
+                f"'{decl.name}' is one of Fusion's own error types - extend it instead "
+                f"(error MyError : {decl.name})", decl.location))
+            program.declarations.remove(decl)
+    if not any(isinstance(d, ErrorDecl) and d.builtin for d in program.declarations):
+        program.declarations[0:0] = builtin_error_decls(location)
     # Custom error types (Task 26.9) - linked to their parents here
     custom = {d.name: d for d in program.declarations if isinstance(d, ErrorDecl)}
     errors.extend(_link_error_types(custom))

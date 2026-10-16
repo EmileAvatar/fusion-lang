@@ -102,17 +102,17 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`; `match err`
 		with error type names as cases (subtype-aware, the type's own fields inside)
 	[DONE] 26.11 Typed catch: `catch FileError e` ... `catch e` - first match, subtypes, unmatched goes on
-	[ ] 26.12 Built-in error types - every one is an Error, a parent catches its children
+	[DONE] 26.12 Built-in error types - every one is an Error, a parent catches its children
 		(full list with examples: taskSummary2.md "Built-in error types"):
-		[ ] ArithmeticError: DivideByZeroError - NEW check: 7 / 0 and 7 % 0 crash today
-		[ ] FormatError: NumberFormatError (toInt("12x")), PatternError (formatNumber),
+		[DONE] ArithmeticError: DivideByZeroError - NEW check: 7 / 0 and 7 % 0 no longer crash
+		[DONE] FormatError: NumberFormatError (toInt("12x")), PatternError (formatNumber),
 			HexFormatError (hexToBytes), TextEncodingError (bytes that aren't text)
-		[ ] ValueError: RangeError (toByte(300), negative counts, base), UnknownValueError
+		[DONE] ValueError: RangeError (toByte(300), negative counts, base), UnknownValueError
 			(Color.fromString("Pink"))
-		[ ] LookupError: IndexError (s[9], xs[9], b[9], slice ...), KeyError (m["missing"])
-		[ ] FileError (path): FileNotFoundError, PermissionError, FileReadError, FileWriteError,
+		[DONE] LookupError: IndexError (s[9], xs[9], b[9], slice ...), KeyError (m["missing"])
+		[DONE] FileError (path): FileNotFoundError, PermissionError, FileReadError, FileWriteError,
 			FileTooLargeError, DeleteError
-		[ ] LimitError: StringTooLongError (max_length), ResultTooLargeError (over 2 GB)
+		[DONE] LimitError: StringTooLongError (max_length), ResultTooLargeError (over 2 GB)
 		(not catchable by design: out of memory, a List past 536,870,911 elements)
 	[ ] 26.13 Docs + examples
 	[DONE] Error handling example (was 16.5) - examples/errors_demo (26.6)

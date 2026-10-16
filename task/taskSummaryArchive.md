@@ -4717,3 +4717,12 @@ TryStmt now has a list of CatchClause (error_type, name, body); in C a chain of 
 - **26.11 Typed catch** (user: now, for a working sample) - `catch FileError e` ...
   `catch e`: first match wins, a parent type catches its subtypes, an untyped `catch e`
   last; an error no catch matches goes on (through finally)
+
+---
+
+#### Task 26.12 - built-in error types (COMPLETE 2026-10-16)
+
+BUILTIN_ERROR_TYPES in src/semantic/error_rules.py fixes their numbers (FUSION_KIND_* in the runtime); they are added to every program as ErrorDecls (builtin=True); runtime sites raise them with fusion_fail / fusion_file_fail; a type adding no fields shares its parent's data struct.
+
+- **26.12 Built-in error types** - the list below; built-in failures raise them; new
+  checks for failures that aren't errors yet (integer division by zero)

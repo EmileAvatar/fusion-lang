@@ -46,7 +46,13 @@ static inline FILE* fusion_open_file(fusion_string path, const char* mode, const
 #else
     f = fopen(p, mode);
 #endif
-    if (!f) fusion_runtime_error(where, "%s: can't open '%s' (%s)", what, p, strerror(errno));
+    if (!f) {
+        // Why it won't open decides the error type (Task 26.12)
+        int kind = errno == ENOENT ? FUSION_KIND_FileNotFoundError
+                 : errno == EACCES || errno == EPERM ? FUSION_KIND_PermissionError
+                 : mode[0] == 'r' ? FUSION_KIND_FileReadError : FUSION_KIND_FileWriteError;
+        fusion_file_fail(kind, where, path, "%s: can't open '%s' (%s)", what, p, strerror(errno));
+    }
     free(p);
     return f;   // NULL when it can't be opened - the error is on its way
 }
@@ -60,7 +66,7 @@ static inline char* fusion_read_all(fusion_string path, int* len, const char* wh
     while ((got = fread(data + n, 1, (size_t)(cap - n), f)) > 0) {
         n += (int)got;
         if (n == cap) {
-            if (cap > 1073741823) { fclose(f); fusion_dealloc(data); fusion_runtime_error(where, "%s: the file is larger than 2 GB", what); return NULL; }
+            if (cap > 1073741823) { fclose(f); fusion_dealloc(data); fusion_file_fail(FUSION_KIND_FileTooLargeError, where, path, "%s: the file is larger than 2 GB", what); return NULL; }
             char* bigger = (char*)fusion_alloc((size_t)cap * 2 + 1);
             memcpy(bigger, data, (size_t)n);
             fusion_dealloc(data);
@@ -69,7 +75,7 @@ static inline char* fusion_read_all(fusion_string path, int* len, const char* wh
     }
     int failed = ferror(f);
     fclose(f);
-    if (failed) { fusion_dealloc(data); fusion_runtime_error(where, "%s: reading failed (%s)", what, strerror(errno)); return NULL; }
+    if (failed) { fusion_dealloc(data); fusion_file_fail(FUSION_KIND_FileReadError, where, path, "%s: reading failed (%s)", what, strerror(errno)); return NULL; }
     *len = n;
     return data;
 }
@@ -87,7 +93,7 @@ static inline fusion_string fusion_readText(fusion_string path, const char* wher
     if (!fusion_utf8_valid(data + skip, len - skip)) {
         char* p = fusion_path_text(path);
         fusion_dealloc(data);
-        fusion_runtime_error(where, "readText: '%s' is not valid text - use readBytes for a binary file", p);
+        fusion_fail(FUSION_KIND_TextEncodingError, where, "readText: '%s' is not valid text - use readBytes for a binary file", p);
         free(p);
         return FUSION_STR("");
     }
@@ -101,7 +107,7 @@ static inline void fusion_write_all(fusion_string path, const char* mode, const 
     int closed = fclose(f);
     if ((int)wrote != len || closed != 0) {
         char* p = fusion_path_text(path);
-        fusion_runtime_error(where, "%s: writing '%s' failed (%s)", what, p, strerror(errno));
+        fusion_file_fail(FUSION_KIND_FileWriteError, where, path, "%s: writing '%s' failed (%s)", what, p, strerror(errno));
         free(p);
     }
 }
@@ -134,7 +140,8 @@ static inline void fusion_deleteFile(fusion_string path, const char* where) {
 #else
     failed = remove(p);
 #endif
-    if (failed) fusion_runtime_error(where, "deleteFile: can't delete '%s' (%s)", p, strerror(errno));
+    if (failed) fusion_file_fail(errno == ENOENT ? FUSION_KIND_FileNotFoundError : FUSION_KIND_DeleteError,
+                                 where, path, "deleteFile: can't delete '%s' (%s)", p, strerror(errno));
     free(p);
 }
 '''

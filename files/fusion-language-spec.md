@@ -3077,6 +3077,23 @@ read. A name that isn't an error type is a compile error (string compares would 
 through); an else (or `case Error`) is required; a case already covered by an earlier one
 is a warning.
 
+**Fusion's own error types (Task 26.12):** every run-time failure raises one of these -
+all Errors, a parent catches its children (`catch LookupError e` takes IndexError and
+KeyError). A program can extend them (`error ConfigError : FileError`), not reuse their names.
+
+```text
+ArithmeticError: DivideByZeroError (7 / 0, 7 % 0 on whole numbers - a crash before 26.12)
+FormatError: NumberFormatError (toInt("12x")), PatternError (formatNumber), HexFormatError,
+             TextEncodingError (bytes that aren't text)
+ValueError: RangeError (toByte(300), negative counts, base), UnknownValueError (fromString)
+LookupError: IndexError (s[9], xs[9], b[9], slice ...), KeyError (m["missing"])
+FileError (path): FileNotFoundError, PermissionError, FileReadError, FileWriteError,
+                  FileTooLargeError, DeleteError - chosen by why the system said no
+LimitError: StringTooLongError ([strings] max_length), ResultTooLargeError (over 2 GB)
+```
+Not catchable: out of memory, a List past 536,870,911 elements. Later: OverflowError (27.2b),
+endless recursion (27.2c), NullError (30.1b).
+
 **Typed catch (Task 26.11, user: now, for a working sample):** `catch FileNotFound e`,
 `catch FileError e`, ... `catch e` - the first catch whose type matches takes the error (a
 parent type catches its subtypes); an untyped catch takes any error and must be last; an

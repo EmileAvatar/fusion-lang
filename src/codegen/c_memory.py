@@ -37,7 +37,7 @@ from .c_names import mangle_function_name
 from .c_strings import STRING_LIBRARY
 from .c_bytes import BYTES_LIBRARY
 from .c_files import FILES_LIBRARY
-from .c_errors import ERRORS_LIBRARY
+from .c_errors import ERRORS_LIBRARY, BUILTIN_KIND_DEFINES
 from ..semantic.collection_rules import MUTATING_LIST_METHODS
 from ..semantic.name_resolver import MUTATING_BUILTINS
 
@@ -118,24 +118,53 @@ typedef struct {
 // The program's error types (Task 26.9): name, parent, and how to copy / free their fields.
 // Generated per program and set as main starts; NULL while there are none
 typedef struct { const char* name; int parent; void* (*copy)(void*); void (*free)(void*); } fusion_error_kind;
-static const fusion_error_kind* fusion_error_kinds = NULL;
+static const fusion_error_kind* fusion_error_kinds;   // Fusion's own types until main sets them all
 static fusion_error fusion_err;
 static int fusion_failed = 0;
-static inline void fusion_raise_text(const char* where, const char* text, int len);
+// Fusion's own error types (Task 26.12) - their numbers
+/*FUSION_KIND_DEFINES*/
+static inline void fusion_raise_text(int kind, void* extra, const char* where, const char* text, int len);
+static inline void* fusion_errdata_fu_FileError_new(fusion_string path);
+static void* fusion_errdata_fu_FileError_copy(void* p);
+static void fusion_errdata_fu_FileError_free(void* p);
+static inline fusion_string fusion_error_string(const char* text, int len);
 
 // A run-time error (an index out of range, text that isn't a number, a file that won't
 // open, ...) is an Error like any other since Task 26.4: it can be captured or caught, and
 // one nobody handles stops the program at the end of main. The function that raised it
 // returns a safe value at once; the generated code checks right after the call
+static inline int fusion_error_format(char* text, int size, const char* format, va_list args) {
+    int n = vsnprintf(text, (size_t)size, format, args);
+    if (n < 0) n = 0;
+    if (n >= size) n = size - 1;
+    return n;
+}
+// An error of one of Fusion's own types (FUSION_KIND_IndexError ...) - Task 26.12
+static inline void fusion_fail(int kind, const char* where, const char* format, ...) {
+    char text[512];
+    va_list args;
+    va_start(args, format);
+    int n = fusion_error_format(text, sizeof text, format, args);
+    va_end(args);
+    fusion_raise_text(kind, NULL, where, text, n);
+}
+// A FileError (or a subtype): its path too
+static inline void fusion_file_fail(int kind, const char* where, fusion_string path, const char* format, ...) {
+    char text[512];
+    va_list args;
+    va_start(args, format);
+    int n = fusion_error_format(text, sizeof text, format, args);
+    va_end(args);
+    fusion_raise_text(kind, fusion_errdata_fu_FileError_new(fusion_error_string(path.data, path.len)),
+                      where, text, n);
+}
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
     char text[512];
     va_list args;
     va_start(args, format);
-    int n = vsnprintf(text, sizeof text, format, args);
+    int n = fusion_error_format(text, sizeof text, format, args);
     va_end(args);
-    if (n < 0) n = 0;
-    if (n >= (int)sizeof text) n = (int)sizeof text - 1;
-    fusion_raise_text(where, text, n);
+    fusion_raise_text(0, NULL, where, text, n);
 }
 
 // A failure nothing can recover from - out of memory: stop at once
@@ -263,7 +292,7 @@ static inline fusion_char_buf fusion_char_text(fusion_char c) {
 static const char* fusion_at = NULL;   // "file:line" of the statement running now
 static inline void fusion_check_length(fusion_string* r) {
     if (r->chars > FUSION_MAX_LENGTH)
-        fusion_runtime_error(fusion_at, "a string of %d characters is longer than max_length %d ([strings] in fusion.toml)", r->chars, FUSION_MAX_LENGTH);
+        fusion_fail(FUSION_KIND_StringTooLongError, fusion_at, "a string of %d characters is longer than max_length %d ([strings] in fusion.toml)", r->chars, FUSION_MAX_LENGTH);
 }
 #define FUSION_CHECK_LENGTH(r) fusion_check_length(&(r))
 #else
@@ -302,13 +331,13 @@ static inline fusion_string fusion_str_concat_char(fusion_string a, fusion_char 
 static inline fusion_string fusion_char_concat_str(fusion_char c, fusion_string b) { char buf[4]; return fusion_str_concat(fusion_char_view(c, buf), b); }
 
 static inline fusion_char fusion_str_at(fusion_string s, int i, const char* where) {
-    if (i < 0 || i >= s.chars) { fusion_runtime_error(where, "index %d is outside the string (length %d)", i, s.chars); return 0; }
+    if (i < 0 || i >= s.chars) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the string (length %d)", i, s.chars); return 0; }
     return fusion_utf8_decode(s.data + fusion_utf8_offset(s, i));
 }
 
 static inline fusion_string fusion_str_substring(fusion_string s, int start, int count, const char* where) {
     if (start < 0 || count < 0 || start > s.chars || count > s.chars - start) {
-        fusion_runtime_error(where, "substring(start %d, count %d) is outside the string (length %d)", start, count, s.chars);
+        fusion_fail(FUSION_KIND_IndexError, where, "substring(start %d, count %d) is outside the string (length %d)", start, count, s.chars);
         return FUSION_STR("");
     }
     int from = fusion_utf8_offset(s, start);
@@ -358,14 +387,14 @@ static inline fusion_string fusion_str_asciiOnly(fusion_string s, fusion_char re
 static inline int fusion_charCode(fusion_char c) { return (int)c; }
 static inline fusion_char fusion_fromCharCode(int code, const char* where) {
 #ifdef FUSION_ASCII
-    if (code < 0 || code > 0x7F) { fusion_runtime_error(where, "%d is not an ASCII character code (the project uses ascii encoding)", code); return 0; }
+    if (code < 0 || code > 0x7F) { fusion_fail(FUSION_KIND_RangeError, where, "%d is not an ASCII character code (the project uses ascii encoding)", code); return 0; }
 #else
-    if (code < 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) { fusion_runtime_error(where, "%d is not a Unicode character code", code); return 0; }
+    if (code < 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) { fusion_fail(FUSION_KIND_RangeError, where, "%d is not a Unicode character code", code); return 0; }
 #endif
     return (fusion_char)code;
 }
 static inline int fusion_str_byteAt(fusion_string s, int i, const char* where) {
-    if (i < 0 || i >= s.len) { fusion_runtime_error(where, "byte %d is outside the string (%d bytes)", i, s.len); return 0; }
+    if (i < 0 || i >= s.len) { fusion_fail(FUSION_KIND_IndexError, where, "byte %d is outside the string (%d bytes)", i, s.len); return 0; }
     return (unsigned char)s.data[i];
 }
 static inline bool fusion_str_contains(fusion_string s, fusion_string part) { return fusion_str_indexOf(s, part) >= 0; }
@@ -419,12 +448,12 @@ static inline bool fusion_str_isInt(fusion_string s) { int v; return fusion_pars
 static inline bool fusion_str_isFloat(fusion_string s) { double v; return fusion_parse_float(s, &v); }
 static inline int fusion_str_toInt(fusion_string s, const char* where) {
     int v;
-    if (!fusion_parse_int(s, &v)) { fusion_runtime_error(where, "'%.*s' is not a whole number (check with isInt first)", s.len, s.data); return 0; }
+    if (!fusion_parse_int(s, &v)) { fusion_fail(FUSION_KIND_NumberFormatError, where, "'%.*s' is not a whole number (check with isInt first)", s.len, s.data); return 0; }
     return v;
 }
 static inline float fusion_str_toFloat(fusion_string s, const char* where) {
     double v;
-    if (!fusion_parse_float(s, &v)) { fusion_runtime_error(where, "'%.*s' is not a number (check with isFloat first)", s.len, s.data); return 0; }
+    if (!fusion_parse_float(s, &v)) { fusion_fail(FUSION_KIND_NumberFormatError, where, "'%.*s' is not a number (check with isFloat first)", s.len, s.data); return 0; }
     return (float)v;
 }
 // Equality across types (Task 18.3.5): a number equals text holding that number (text that
@@ -438,6 +467,7 @@ RUNTIME_PRELUDE += STRING_LIBRARY  # the versatile string functions (Task 18.3.6
 RUNTIME_PRELUDE += BYTES_LIBRARY   # raw bytes (Task 18.3.8)
 RUNTIME_PRELUDE += FILES_LIBRARY   # files (Task 18.5.5)
 RUNTIME_PRELUDE += ERRORS_LIBRARY  # errors travelling and caught (Task 26)
+RUNTIME_PRELUDE = RUNTIME_PRELUDE.replace('/*FUSION_KIND_DEFINES*/\n', BUILTIN_KIND_DEFINES)
 
 
 class MemoryManagementMixin:

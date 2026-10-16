@@ -36,6 +36,7 @@ max_length set, every expression making a string can fail.)
 
 from dataclasses import fields as dataclass_fields, is_dataclass
 
+from src.semantic.error_rules import BUILTIN_ERROR_NAMES, BUILTIN_ERROR_TYPES
 from src.parser.ast_nodes import (ArrayType, BinaryExpr, CallExpr, ErrorDecl, ErrorMakeExpr, ErrorType,
                                   FunctionDecl, FunctionType, IdentifierExpr, IndexExpr,
                                   InterpolatedStringExpr, LambdaExpr, ListType, MapType,
@@ -76,10 +77,26 @@ static inline fusion_string fusion_error_kind_text(fusion_error e) {
     fusion_string s = {(char*)name, n, n, 0};
     return s;
 }
+// Whole-number division (Task 26.12): by zero is a DivideByZeroError, not a crash.
+// -2147483648 / -1 doesn't fit and wraps, as + and * do today (OverflowError: Task 27.2b)
+static inline int fusion_div_int(int a, int b, const char* where) {
+    if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%d / 0: division by zero", a); return 0; }
+    if (b == -1) return (int)(0u - (unsigned)a);
+    return a / b;
+}
+static inline int fusion_mod_int(int a, int b, const char* where) {
+    if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%d %% 0: division by zero", a); return 0; }
+    if (b == -1) return 0;
+    return a % b;
+}
 // Two errors are equal when they are the same type with the same code and message
 static inline bool fusion_error_eq(fusion_error a, fusion_error b) {
     return a.active == b.active && a.kind == b.kind && a.code == b.code && fusion_str_eq(a.message, b.message);
 }
+// Fusion's own error types (Task 26.12); main sets the table with the program's own types
+static const fusion_error_kind fusion_builtin_kinds[] = {
+/*FUSION_BUILTIN_KIND_ROWS*/};
+static const fusion_error_kind* fusion_error_kinds = fusion_builtin_kinds;
 // Is an error of type `kind` a `target` (that type or one of its subtypes)? (Task 26.9)
 static inline int fusion_error_is(int kind, int target) {
     while (kind > 0) {
@@ -104,8 +121,8 @@ static inline fusion_string fusion_error_string(const char* text, int len) {
     r.data[len] = '\0'; r.len = len; r.chars = fusion_utf8_count(text, len); r.owned = 1;
     return r;
 }
-static inline void fusion_raise_text(const char* where, const char* text, int len) {
-    fusion_error e = fusion_error_make(fusion_error_string(text, len), 0, FUSION_STR(""));
+static inline void fusion_raise_text(int kind, void* extra, const char* where, const char* text, int len) {
+    fusion_error e = fusion_error_make_kind(fusion_error_string(text, len), 0, FUSION_STR(""), kind, extra);
     if (where) {
         int n = 0;
         while (where[n]) n++;
@@ -113,6 +130,28 @@ static inline void fusion_raise_text(const char* where, const char* text, int le
     }
     e.runtime = 1;
     fusion_raise(e);
+}
+// Fusion's FileError holds a path (Task 26.12) - its subtypes share this data
+typedef struct fusion_errdata_fu_FileError { fusion_string path; } fusion_errdata_fu_FileError;
+static inline void* fusion_errdata_fu_FileError_new(fusion_string path) {
+    fusion_errdata_fu_FileError* d = (fusion_errdata_fu_FileError*)fusion_alloc(sizeof *d);
+    d->path = path;
+    return d;
+}
+static void* fusion_errdata_fu_FileError_copy(void* p) {
+    fusion_errdata_fu_FileError* r = (fusion_errdata_fu_FileError*)fusion_alloc(sizeof *r);
+    r->path = fusion_str_copy(((fusion_errdata_fu_FileError*)p)->path);
+    return r;
+}
+static void fusion_errdata_fu_FileError_free(void* p) {
+    fusion_str_free(&((fusion_errdata_fu_FileError*)p)->path);
+    fusion_dealloc(p);
+}
+static inline fusion_errdata_fu_FileError* fusion_errdata_fu_FileError_of(fusion_error e) {
+    static fusion_errdata_fu_FileError none = {{0}};
+    if (e.extra && fusion_error_is(e.kind, FUSION_KIND_FileError)) return (fusion_errdata_fu_FileError*)e.extra;
+    none.path = FUSION_STR("");
+    return &none;
 }
 // Take the travelling error - it stops travelling (none: an Error holding none)
 static inline fusion_error fusion_take_error(void) {
@@ -136,6 +175,21 @@ def _chain(decl) -> list:
         chain.insert(0, decl)
         decl = decl.parent_declaration
     return chain
+
+
+# The rows of Fusion's own error types in the table of error types (Task 26.12)
+BUILTIN_KIND_ROWS = ['{"Error", -1, NULL, NULL}'] + [
+    f'{{"{name}", {0 if parent == "Error" else BUILTIN_ERROR_NAMES.index(parent) + 1}, '
+    + ('fusion_errdata_fu_FileError_copy, fusion_errdata_fu_FileError_free' if
+       name == 'FileError' or parent == 'FileError' else 'NULL, NULL') + '}'
+    for name, parent, _, _ in BUILTIN_ERROR_TYPES]
+
+ERRORS_LIBRARY = ERRORS_LIBRARY.replace(
+    '/*FUSION_BUILTIN_KIND_ROWS*/', ''.join(f'    {row},\n' for row in BUILTIN_KIND_ROWS))
+
+# Their numbers, for the runtime: FUSION_KIND_IndexError ... (declared at its top)
+BUILTIN_KIND_DEFINES = ''.join(f'#define FUSION_KIND_{name} {number}\n'
+                               for number, name in enumerate(BUILTIN_ERROR_NAMES, 1))
 
 
 class ErrorsMixin:
@@ -218,9 +272,24 @@ class ErrorsMixin:
                 isinstance(kind, PrimitiveType) and kind.name in ('string', 'bytes'))
         if type(node).__name__ == 'EnumStaticCall':
             return node.method == 'fromString'
+        if isinstance(node, BinaryExpr) and self.int_division_can_fail(node):
+            return True
         if isinstance(node, (BinaryExpr, InterpolatedStringExpr)):
             return self._makes_limited_string(node)
         return False
+
+    @staticmethod
+    def int_division_can_fail(node) -> bool:
+        """Whole numbers divided (/ or %) by something that may be zero (Task 26.12) - a
+        written number other than 0 can't be."""
+        if node.operator not in ('/', '%'):
+            return False
+        whole = ('int', 'byte')
+        if getattr(getattr(node.left, 'inferred_type', None), 'name', None) not in whole or \
+                getattr(getattr(node.right, 'inferred_type', None), 'name', None) not in whole:
+            return False
+        right = node.right
+        return not (type(right).__name__ == 'LiteralExpr' and right.value not in (0, -1))
 
     def _makes_limited_string(self, node) -> bool:
         """With [strings] max_length set, a new string can be too long."""
@@ -333,90 +402,108 @@ class ErrorsMixin:
         return (f'__extension__ ({{ {c_type} fusion_r = {code}; '
                 f'if (fusion_failed) {on_fail} fusion_r; }})')
 
-    # ------------------------------------------------------------------ custom error types (26.9)
+    # ------------------------------------------------------------------ error types (26.9, 26.12)
 
     def error_kind_number(self, decl) -> int:
-        return 0 if decl is None else self.error_kinds[decl.name]
+        if decl is None:
+            return 0
+        if decl.builtin:
+            return BUILTIN_ERROR_NAMES.index(decl.name) + 1
+        return self.error_kinds[decl.name]
+
+    @staticmethod
+    def _data_decl(decl):
+        """The error type whose struct holds decl's fields: the nearest in its line with
+        fields of its own (a type adding none shares its parent's) - None when it has none."""
+        for d in reversed(_chain(decl)):
+            if d.fields:
+                return d
+        return None
 
     def _errdata(self, decl) -> str:
         return f'fusion_errdata_{self._mangle_function_name(decl.name)}'
 
     def _errfield_path(self, decl, field_owner, field) -> str:
         """Where a field sits in decl's data: a parent's fields are inside `base`."""
-        chain = _chain(decl)
-        depth = len(chain) - 1 - chain.index(field_owner)
+        holders = [d for d in _chain(self._data_decl(decl)) if d.fields]
+        depth = len(holders) - 1 - holders.index(field_owner)
         return 'base.' * depth + self._field_name(field.name)
 
     def error_type_section_lines(self, program) -> list:
-        """Per custom error type: its fields' struct (a parent's struct first, as `base`, so
-        a subtype's data is also its parent's), make / copy / free / read helpers - and the
-        table of every error type, set as main starts."""
-        decls = [d for d in program.declarations if isinstance(d, ErrorDecl)]
+        """Per error type with fields of its own: a struct (the parent's data first, as
+        `base`, so a subtype's data is also its parent's) and make / copy / free / read
+        helpers - then the table of every error type, set as main starts. Fusion's own
+        FileError data is in the runtime (c_errors ERRORS_LIBRARY)."""
+        decls = [d for d in program.declarations if isinstance(d, ErrorDecl) and not d.builtin]
         self.error_kinds = {}
-        if not decls:
-            return []
         ordered = []
         for decl in decls:
             for d in _chain(decl):
-                if d not in ordered:
+                if d not in ordered and not d.builtin:
                     ordered.append(d)
-        for number, decl in enumerate(ordered, 1):
+        for number, decl in enumerate(ordered, len(BUILTIN_ERROR_NAMES) + 1):
             self.error_kinds[decl.name] = number
+        if not ordered:
+            return []
         lines = ['// Error types (Task 26.9)']
-        for decl in ordered:
-            data = self._errdata(decl)
+        for decl in (d for d in ordered if d.fields):
+            data, parent_data = self._errdata(decl), self._data_decl(decl.parent_declaration)
             lines.append(f'typedef struct {data} {{')
-            if decl.parent_declaration is not None:
-                lines.append(f'    {self._errdata(decl.parent_declaration)} base;')
+            if parent_data is not None:
+                lines.append(f'    {self._errdata(parent_data)} base;')
             for f in decl.fields:
                 lines.append(f'    {self.map_type(f.field_type)} {self._field_name(f.name)};')
-            if decl.parent_declaration is None and not decl.fields:
-                lines.append('    char fusion_none;')
             lines.append(f'}} {data};')
-        for decl in ordered:
-            data, number = self._errdata(decl), self.error_kinds[decl.name]
-            fields = [(d, f) for d in _chain(decl) for f in d.fields]
-            params = ', '.join(f'{self.map_type(f.field_type)} {self._field_name(f.name)}'
-                               for _, f in fields) or 'void'
-            lines.append(f'static inline void* {data}_new({params}) {{')
-            lines.append(f'    {data}* d = ({data}*)fusion_alloc(sizeof({data}));')
-            lines.append(f'    memset(d, 0, sizeof({data}));')
-            for owner, f in fields:
-                lines.append(f'    d->{self._errfield_path(decl, owner, f)} = {self._field_name(f.name)};')
-            lines += ['    return d;', '}']
-            lines.append(f'static void* {data}_copy(void* p) {{')
-            lines.append(f'    {data}* r = ({data}*)fusion_alloc(sizeof({data}));')
-            lines.append(f'    *r = *({data}*)p;')
-            for owner, f in fields:
-                if self.is_managed(f.field_type):
-                    path = self._errfield_path(decl, owner, f)
-                    lines.append(f'    r->{path} = {self.copy_code(f.field_type, "r->" + path)};')
-            lines += ['    return r;', '}']
-            lines.append(f'static void {data}_free(void* p) {{')
-            lines.append(f'    {data}* d = ({data}*)p;')
-            for owner, f in fields:
-                for line in self.free_lines(f.field_type, 'd->' + self._errfield_path(decl, owner, f)):
-                    lines.append('    ' + line)
-            lines += ['    (void)d;', '    fusion_dealloc(p);', '}']
-            # Reading a field: from this type or a subtype - else the field's default
-            lines.append(f'static inline {data}* {data}_of(fusion_error e) {{')
-            lines.append(f'    static {data} none; static int ready = 0;')
-            lines.append(f'    if (e.extra && fusion_error_is(e.kind, {number})) return ({data}*)e.extra;')
-            lines.append('    if (!ready) {')
-            lines.append('        memset(&none, 0, sizeof none);')
-            for owner, f in fields:
-                default = self.visit(f.default_value) if f.default_value is not None \
-                    else self._default_value_code(f.field_type)
-                lines.append(f'        none.{self._errfield_path(decl, owner, f)} = {default};')
-            lines += ['        ready = 1;', '    }', '    return &none;', '}']
+        for decl in (d for d in ordered if d.fields):
+            lines += self._error_data_helpers(decl)
         lines.append('static const fusion_error_kind fusion_error_kind_table[] = {')
-        lines.append('    {"Error", -1, NULL, NULL},')
+        lines += ['    ' + row + ',' for row in BUILTIN_KIND_ROWS]
         for decl in ordered:
-            data = self._errdata(decl)
-            # err.kind: the name as written, without the module (files.FileError -> FileError)
-            lines.append(f'    {{"{decl.name.split(".")[-1]}", {self.error_kind_number(decl.parent_declaration)}, '
-                         f'{data}_copy, {data}_free}},')
+            holder = self._data_decl(decl)
+            functions = f'{self._errdata(holder)}_copy, {self._errdata(holder)}_free' \
+                if holder is not None else 'NULL, NULL'
+            # err.kind: the name as written, without the module (files.MyError -> MyError)
+            lines.append(f'    {{"{decl.name.split(".")[-1]}", '
+                         f'{self.error_kind_number(decl.parent_declaration)}, {functions}}},')
         lines += ['};', '']
+        return lines
+
+    def _error_data_helpers(self, decl) -> list:
+        data, number = self._errdata(decl), self.error_kind_number(decl)
+        fields = [(d, f) for d in _chain(decl) for f in d.fields]
+        params = ', '.join(f'{self.map_type(f.field_type)} {self._field_name(f.name)}'
+                           for _, f in fields) or 'void'
+        lines = [f'static inline void* {data}_new({params}) {{',
+                 f'    {data}* d = ({data}*)fusion_alloc(sizeof({data}));',
+                 f'    memset(d, 0, sizeof({data}));']
+        for owner, f in fields:
+            lines.append(f'    d->{self._errfield_path(decl, owner, f)} = {self._field_name(f.name)};')
+        lines += ['    return d;', '}',
+                  f'static void* {data}_copy(void* p) {{',
+                  f'    {data}* r = ({data}*)fusion_alloc(sizeof({data}));',
+                  f'    *r = *({data}*)p;']
+        for owner, f in fields:
+            if self.is_managed(f.field_type):
+                path = self._errfield_path(decl, owner, f)
+                lines.append(f'    r->{path} = {self.copy_code(f.field_type, "r->" + path)};')
+        lines += ['    return r;', '}',
+                  f'static void {data}_free(void* p) {{',
+                  f'    {data}* d = ({data}*)p;']
+        for owner, f in fields:
+            for line in self.free_lines(f.field_type, 'd->' + self._errfield_path(decl, owner, f)):
+                lines.append('    ' + line)
+        lines += ['    (void)d;', '    fusion_dealloc(p);', '}',
+                  # Reading a field: from this type or a subtype - else the field's default
+                  f'static inline {data}* {data}_of(fusion_error e) {{',
+                  f'    static {data} none; static int ready = 0;',
+                  f'    if (e.extra && fusion_error_is(e.kind, {number})) return ({data}*)e.extra;',
+                  '    if (!ready) {',
+                  '        memset(&none, 0, sizeof none);']
+        for owner, f in fields:
+            default = self.visit(f.default_value) if f.default_value is not None \
+                else self._default_value_code(f.field_type)
+            lines.append(f'        none.{self._errfield_path(decl, owner, f)} = {default};')
+        lines += ['        ready = 1;', '    }', '    return &none;', '}']
         return lines
 
     # ------------------------------------------------------------------ Error values
@@ -431,11 +518,13 @@ class ErrorsMixin:
         if decl is None:
             made = f'fusion_error_make({message}, {code}, {where})'
         else:
-            # A custom error type: its number, and its fields on the heap (Task 26.9)
+            # An error type: its number, and its fields on the heap (Tasks 26.9, 26.12)
             fields = [f for d in _chain(decl) for f in d.fields]
+            holder = self._data_decl(decl)
             data = ', '.join(self.owned_value(v, f.field_type) for v, f in zip(values[2:], fields))
+            extra = f'{self._errdata(holder)}_new({data})' if holder is not None else 'NULL'
             made = (f'fusion_error_make_kind({message}, {code}, {where}, '
-                    f'{self.error_kind_number(decl)}, {self._errdata(decl)}_new({data}))')
+                    f'{self.error_kind_number(decl)}, {extra})')
         if id(node) in getattr(self, 'consumed', set()):
             return made
         return self.fresh_temporary(made, node.inferred_type)
@@ -447,7 +536,8 @@ class ErrorsMixin:
         decl = error_type.declaration
         owner = next(d for d in reversed(_chain(decl)) if any(f.name == node.member for f in d.fields))
         field = next(f for f in owner.fields if f.name == node.member)
-        return f'{self._errdata(decl)}_of({self.visit(node.object)})->{self._errfield_path(decl, owner, field)}'
+        holder = self._data_decl(decl)
+        return f'{self._errdata(holder)}_of({self.visit(node.object)})->{self._errfield_path(decl, owner, field)}'
 
     def visit_ErrorActiveExpr(self, node) -> str:
         return f'(({self.visit(node.operand)}).active)'

@@ -106,7 +106,7 @@ class SemanticAnalyzer:
                 self.type_checker._check_collection_type(field.field_type, field.location)
         self.type_checker.check_struct_nesting(structs)
         # A custom error type's fields (Task 26.9) - any type a struct field may have
-        for decl in (d for d in ast.declarations if isinstance(d, ErrorDecl)):
+        for decl in (d for d in ast.declarations if isinstance(d, ErrorDecl) and not d.builtin):
             for field in decl.fields:
                 self.name_resolver.resolve_type(field.field_type)
                 self.type_checker._check_collection_type(field.field_type, field.location)

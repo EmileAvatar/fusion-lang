@@ -181,7 +181,7 @@ class EnumsMixin:
                 size = len(variant.name.encode('utf-8'))
                 lines.append(f'    if (s.len == {size} && memcmp(s.data, "{text}", {size}) == 0) '
                              f'return {self.enum_number(variant.value)};')
-            lines += [f'    fusion_runtime_error(where, "\\"%.*s\\" is not a value of enum '
+            lines += [f'    fusion_fail(FUSION_KIND_UnknownValueError, where, "\\"%.*s\\" is not a value of enum '
                       f'{escape_c_text(enum.name, chr(34))}", s.len, s.data);',
                       f'    return {self.enum_number(enum.variants[0].value)};', '}', '']
         return lines

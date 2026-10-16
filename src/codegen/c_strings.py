@@ -72,12 +72,12 @@ static inline bool fusion_str_containsAny(fusion_string s, fusion_string chars) 
 
 // Extract (18.3.6a) - up to n characters from the start / end
 static inline fusion_string fusion_str_left(fusion_string s, int n, const char* where) {
-    if (n < 0) { fusion_runtime_error(where, "left(%d): the count can't be negative", n); return FUSION_STR(""); }
+    if (n < 0) { fusion_fail(FUSION_KIND_RangeError, where, "left(%d): the count can't be negative", n); return FUSION_STR(""); }
     if (n > s.chars) n = s.chars;
     return fusion_str_make(s.data, fusion_utf8_offset(s, n));
 }
 static inline fusion_string fusion_str_right(fusion_string s, int n, const char* where) {
-    if (n < 0) { fusion_runtime_error(where, "right(%d): the count can't be negative", n); return FUSION_STR(""); }
+    if (n < 0) { fusion_fail(FUSION_KIND_RangeError, where, "right(%d): the count can't be negative", n); return FUSION_STR(""); }
     if (n > s.chars) n = s.chars;
     int from = fusion_utf8_offset(s, s.chars - n);
     return fusion_str_make(s.data + from, s.len - from);
@@ -93,7 +93,7 @@ static inline fusion_string fusion_str_take(char* data, int len) {
     return r;
 }
 static inline int fusion_checked_size(long long len, const char* name, const char* where) {
-    if (len > 2147483646LL) { fusion_runtime_error(where, "%s: the result would be longer than 2,147,483,646 bytes", name); return -1; }
+    if (len > 2147483646LL) { fusion_fail(FUSION_KIND_ResultTooLargeError, where, "%s: the result would be longer than 2,147,483,646 bytes", name); return -1; }
     return (int)len;
 }
 
@@ -152,7 +152,7 @@ static inline fusion_string fusion_str_replace(fusion_string s, fusion_string ol
 static inline fusion_string fusion_str_replaceFirst(fusion_string s, fusion_string old, fusion_string with, const char* where) { return fusion_str_replace_n(s, old, with, 1, where); }
 
 static inline fusion_string fusion_str_insert(fusion_string s, int index, fusion_string part, const char* where) {
-    if (index < 0 || index > s.chars) { fusion_runtime_error(where, "insert(index %d) is outside the string (length %d)", index, s.chars); return FUSION_STR(""); }
+    if (index < 0 || index > s.chars) { fusion_fail(FUSION_KIND_IndexError, where, "insert(index %d) is outside the string (length %d)", index, s.chars); return FUSION_STR(""); }
     int at = fusion_utf8_offset(s, index);
     int len = fusion_checked_size((long long)s.len + part.len, "insert", where);
     if (len < 0) return FUSION_STR("");
@@ -164,7 +164,7 @@ static inline fusion_string fusion_str_insert(fusion_string s, int index, fusion
 }
 static inline fusion_string fusion_str_remove(fusion_string s, int start, int count, const char* where) {
     if (start < 0 || count < 0 || start > s.chars || count > s.chars - start) {
-        fusion_runtime_error(where, "remove(start %d, count %d) is outside the string (length %d)", start, count, s.chars);
+        fusion_fail(FUSION_KIND_IndexError, where, "remove(start %d, count %d) is outside the string (length %d)", start, count, s.chars);
         return FUSION_STR("");
     }
     int from = fusion_utf8_offset(s, start), to = fusion_utf8_offset(s, start + count);
@@ -174,7 +174,7 @@ static inline fusion_string fusion_str_remove(fusion_string s, int start, int co
     return fusion_str_take(out, s.len - (to - from));
 }
 static inline fusion_string fusion_str_repeat(fusion_string s, int n, const char* where) {
-    if (n < 0) { fusion_runtime_error(where, "repeat(%d): the count can't be negative", n); return FUSION_STR(""); }
+    if (n < 0) { fusion_fail(FUSION_KIND_RangeError, where, "repeat(%d): the count can't be negative", n); return FUSION_STR(""); }
     int len = fusion_checked_size((long long)s.len * n, "repeat", where);
     if (len < 0) return FUSION_STR("");
     char* out = (char*)fusion_alloc((size_t)len + 1);
@@ -208,7 +208,7 @@ static inline fusion_string fusion_str_trimEnd(fusion_string s) {
 // mode 0: fill on the left (padLeft), 1: on the right (padRight), 2: both sides (center -
 // an odd extra fill goes on the right)
 static inline fusion_string fusion_str_pad(fusion_string s, int width, fusion_char fill, int mode, const char* name, const char* where) {
-    if (width < 0) { fusion_runtime_error(where, "%s(width %d): the width can't be negative", name, width); return FUSION_STR(""); }
+    if (width < 0) { fusion_fail(FUSION_KIND_RangeError, where, "%s(width %d): the width can't be negative", name, width); return FUSION_STR(""); }
     if (s.chars >= width) return fusion_str_make(s.data, s.len);
     char f[4];
     int fill_len = fusion_utf8_encode(fill, f), add = width - s.chars;
@@ -227,7 +227,7 @@ static inline fusion_string fusion_str_center(fusion_string s, int width, fusion
 // The first `width` characters - nothing is added (user decision 2026-10-10: an added "..."
 // would surprise developers); a shorter string comes back unchanged
 static inline fusion_string fusion_str_truncate(fusion_string s, int width, const char* where) {
-    if (width < 0) { fusion_runtime_error(where, "truncate(width %d): the width can't be negative", width); return FUSION_STR(""); }
+    if (width < 0) { fusion_fail(FUSION_KIND_RangeError, where, "truncate(width %d): the width can't be negative", width); return FUSION_STR(""); }
     if (width > s.chars) width = s.chars;
     return fusion_str_make(s.data, fusion_utf8_offset(s, width));
 }
@@ -240,14 +240,14 @@ static inline int fusion_digit_value(char c) {
     return c >= 'a' && c <= 'z' ? c - 'a' + 10 : 99;
 }
 static inline bool fusion_check_base(int base, const char* name, const char* where) {
-    if (base < 2 || base > 36) { fusion_runtime_error(where, "%s: base %d is not between 2 and 36", name, base); return false; }
+    if (base < 2 || base > 36) { fusion_fail(FUSION_KIND_RangeError, where, "%s: base %d is not between 2 and 36", name, base); return false; }
     return true;
 }
 // Digits of v in `base`, zero-padded to at least `width` digits, with an optional '-'
 static inline fusion_string fusion_digits_text(uint32_t v, int base, bool negative, int width, const char* name, const char* where) {
     char digits[33];
     int n = 0;
-    if (width < 0) { fusion_runtime_error(where, "%s(width %d): the width can't be negative", name, width); return FUSION_STR(""); }
+    if (width < 0) { fusion_fail(FUSION_KIND_RangeError, where, "%s(width %d): the width can't be negative", name, width); return FUSION_STR(""); }
     do { digits[n++] = "0123456789abcdefghijklmnopqrstuvwxyz"[v % (uint32_t)base]; v /= (uint32_t)base; } while (v > 0);
     int pad = width > n ? width - n : 0;
     int len = fusion_checked_size((long long)negative + pad + n, name, where), o = 0;
@@ -308,7 +308,7 @@ static inline int fusion_str_parseInt(fusion_string s, int base, const char* whe
     int v;
     if (!fusion_check_base(base, "parseInt", where)) return 0;
     if (!fusion_parse_base(s, base, &v)) {
-        fusion_runtime_error(where, "'%.*s' is not a base-%d whole number that fits in an int (check with isInt(s, %d) first)", s.len, s.data, base, base);
+        fusion_fail(FUSION_KIND_NumberFormatError, where, "'%.*s' is not a base-%d whole number that fits in an int (check with isInt(s, %d) first)", s.len, s.data, base, base);
         return 0;
     }
     return v;
@@ -353,14 +353,14 @@ static inline bool fusion_utf8_valid(const char* p, int len) {
     return true;
 }
 static inline fusion_string fusion_str_hexToBytes(fusion_string s, const char* where) {
-    if (s.len % 2 != 0) { fusion_runtime_error(where, "hexToBytes: '%.*s' has an odd number of hex digits", s.len, s.data); return FUSION_STR(""); }
+    if (s.len % 2 != 0) { fusion_fail(FUSION_KIND_HexFormatError, where, "hexToBytes: '%.*s' has an odd number of hex digits", s.len, s.data); return FUSION_STR(""); }
     char* out = (char*)fusion_alloc((size_t)s.len / 2 + 1);
     for (int i = 0; i < s.len; i += 2) {
         int high = fusion_digit_value(s.data[i]), low = fusion_digit_value(s.data[i + 1]);
-        if (high > 15 || low > 15) { fusion_dealloc(out); fusion_runtime_error(where, "hexToBytes: '%.*s' is not hex text", s.len, s.data); return FUSION_STR(""); }
+        if (high > 15 || low > 15) { fusion_dealloc(out); fusion_fail(FUSION_KIND_HexFormatError, where, "hexToBytes: '%.*s' is not hex text", s.len, s.data); return FUSION_STR(""); }
         out[i / 2] = (char)(high * 16 + low);
     }
-    if (!fusion_utf8_valid(out, s.len / 2)) { fusion_dealloc(out); fusion_runtime_error(where, "hexToBytes: the bytes of '%.*s' are not valid text", s.len, s.data); return FUSION_STR(""); }
+    if (!fusion_utf8_valid(out, s.len / 2)) { fusion_dealloc(out); fusion_fail(FUSION_KIND_TextEncodingError, where, "hexToBytes: the bytes of '%.*s' are not valid text", s.len, s.data); return FUSION_STR(""); }
     return fusion_str_take(out, s.len / 2);
 }
 // ---- Number formatting (18.3.6d-2): formatNumber(n, pattern). A pattern starting with '%'
@@ -429,7 +429,7 @@ static inline fusion_string fusion_format_excel(double v, fusion_string p, fusio
     unsigned long long scale = 1;
     for (int k = 0; k < np.max_dec; k++) scale *= 10;
     x *= (double)scale;
-    if (x >= 1e18) { fusion_runtime_error(where, "formatNumber: %g is too large for this pattern", v); return FUSION_STR(""); }
+    if (x >= 1e18) { fusion_fail(FUSION_KIND_RangeError, where, "formatNumber: %g is too large for this pattern", v); return FUSION_STR(""); }
     unsigned long long r = (unsigned long long)(x + 0.5 + 1e-9 * (x > 1.0 ? x : 1.0));
     unsigned long long whole = r / scale, frac = r % scale;
     char ib[24], fb[24];
@@ -468,18 +468,18 @@ static inline fusion_string fusion_format_printf(double v, fusion_string p, int 
     memcpy(spec, p.data + at, (size_t)n);
     double rounded = v < 0 ? v - 0.5 : v + 0.5;
     if (conv == 'd' || conv == 'i') {
-        if (rounded >= 9.2e18 || rounded <= -9.2e18) { fusion_runtime_error(where, "formatNumber: %g is too large for %%d", v); return FUSION_STR(""); }
+        if (rounded >= 9.2e18 || rounded <= -9.2e18) { fusion_fail(FUSION_KIND_RangeError, where, "formatNumber: %g is too large for %%d", v); return FUSION_STR(""); }
         memcpy(spec + n, "lld", 4);
         piece_len = snprintf(piece, sizeof piece, spec, (long long)rounded);
     } else if (conv == 'x' || conv == 'X' || conv == 'o') {
-        if (rounded >= 2147483648.0 || rounded <= -2147483649.0) { fusion_runtime_error(where, "formatNumber: %g doesn't fit in an int for %%%c", v, conv); return FUSION_STR(""); }
+        if (rounded >= 2147483648.0 || rounded <= -2147483649.0) { fusion_fail(FUSION_KIND_RangeError, where, "formatNumber: %g doesn't fit in an int for %%%c", v, conv); return FUSION_STR(""); }
         spec[n] = conv; spec[n + 1] = '\0';
         piece_len = snprintf(piece, sizeof piece, spec, (unsigned int)(int)(long long)rounded);
     } else {
         spec[n] = conv; spec[n + 1] = '\0';
         piece_len = snprintf(piece, sizeof piece, spec, v);
     }
-    if (piece_len < 0 || piece_len >= (int)sizeof piece) { fusion_runtime_error(where, "formatNumber: the result is too long"); return FUSION_STR(""); }
+    if (piece_len < 0 || piece_len >= (int)sizeof piece) { fusion_fail(FUSION_KIND_RangeError, where, "formatNumber: the result is too long"); return FUSION_STR(""); }
     int before = fusion_copy_literal(NULL, p.data, at), after = fusion_copy_literal(NULL, p.data + end, p.len - end);
     char* out = (char*)fusion_alloc((size_t)(before + piece_len + after) + 1);
     fusion_copy_literal(out, p.data, at);
@@ -492,7 +492,7 @@ static inline fusion_string fusion_format_printf(double v, fusion_string p, int 
 // an int. Excel style reads the number at that precision first, so a float 2.675 (stored as
 // 2.67499995...) rounds as the 2.675 that was written
 static inline fusion_string fusion_formatNumber(double v, int digits, fusion_string p, const char* where) {
-    if (v != v || v - v != 0) { fusion_runtime_error(where, "formatNumber: the number isn't finite (infinity or not-a-number)"); return FUSION_STR(""); }
+    if (v != v || v - v != 0) { fusion_fail(FUSION_KIND_RangeError, where, "formatNumber: the number isn't finite (infinity or not-a-number)"); return FUSION_STR(""); }
     const char* problem;
     if (p.len > 0 && p.data[0] == '%') {
         int at = 0, end = 0;
@@ -505,7 +505,7 @@ static inline fusion_string fusion_formatNumber(double v, int digits, fusion_str
         snprintf(decimal, sizeof decimal, "%.*g", digits, v);
         if (!problem) return fusion_format_excel(strtod(decimal, NULL), p, np, where);
     }
-    fusion_runtime_error(where, "invalid number pattern \"%.*s\": %s", p.len, p.data, problem);
+    fusion_fail(FUSION_KIND_PatternError, where, "invalid number pattern \"%.*s\": %s", p.len, p.data, problem);
     return FUSION_STR("");
 }
 // ---- Compare (18.3.6e) - by character (code point); -1, 0 or 1. Ignoring case uses the
@@ -610,14 +610,14 @@ static inline fusion_string fusion_mask_range(fusion_string s, int from, int to,
     return fusion_str_take(out, o);
 }
 static inline fusion_string fusion_str_mask(fusion_string s, int keepStart, int keepEnd, fusion_char with, const char* where) {
-    if (keepStart < 0 || keepEnd < 0) { fusion_runtime_error(where, "mask(%d, %d): the counts can't be negative", keepStart, keepEnd); return FUSION_STR(""); }
+    if (keepStart < 0 || keepEnd < 0) { fusion_fail(FUSION_KIND_RangeError, where, "mask(%d, %d): the counts can't be negative", keepStart, keepEnd); return FUSION_STR(""); }
     if ((long long)keepStart + keepEnd >= s.chars) return fusion_str_make(s.data, s.len);
     return fusion_mask_range(s, keepStart, s.chars - keepEnd, with);
 }
 // maskEmail: the name before the last '@' keeps its first `keep` characters; the domain is
 // kept. Text without an '@' is masked after its first `keep` characters
 static inline fusion_string fusion_str_maskEmail(fusion_string s, int keep, fusion_char with, const char* where) {
-    if (keep < 0) { fusion_runtime_error(where, "maskEmail(%d): the count can't be negative", keep); return FUSION_STR(""); }
+    if (keep < 0) { fusion_fail(FUSION_KIND_RangeError, where, "maskEmail(%d): the count can't be negative", keep); return FUSION_STR(""); }
     int at = -1;
     for (int i = 0; i < s.len; i++) if (s.data[i] == '@') at = i;
     int name_chars = at < 0 ? s.chars : fusion_char_index(s, at);

@@ -646,6 +646,7 @@ class ErrorDecl(ASTNode):
     default_code: Optional[ASTNode] = None
     is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
     parent_declaration: Optional[Any] = None   # set by the name resolver
+    builtin: bool = False    # one of Fusion's own error types (Task 26.12)
 
 
 @dataclass

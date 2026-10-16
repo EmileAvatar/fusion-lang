@@ -116,13 +116,13 @@ class CollectionsMixin:
             f'void {name}_add({name}* l, {T} v)': [
                 f'{name}_grow(l, l->len + 1);', 'l->data[l->len++] = v;'],
             f'void {name}_insert({name}* l, int i, {T} v, const char* where)': [
-                'if (i < 0 || i > l->len) { fusion_runtime_error(where, "insert(position %d) is '
+                'if (i < 0 || i > l->len) { fusion_fail(FUSION_KIND_IndexError, where, "insert(position %d) is '
                 f'outside the list (length %d)", i, l->len); {free("v")} return; }}',
                 f'{name}_grow(l, l->len + 1);',
                 f'memmove(l->data + i + 1, l->data + i, sizeof({T}) * (size_t)(l->len - i));',
                 'l->data[i] = v; l->len++;'],
             f'void {name}_removeAt({name}* l, int i, const char* where)': [
-                'if (i < 0 || i >= l->len) { fusion_runtime_error(where, "removeAt(%d) is outside '
+                'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "removeAt(%d) is outside '
                 'the list (length %d)", i, l->len); return; }',
                 (free('l->data[i]') if managed else ''),
                 f'memmove(l->data + i, l->data + i + 1, sizeof({T}) * (size_t)(l->len - i - 1));',
@@ -131,11 +131,11 @@ class CollectionsMixin:
                 (f'for (int i = 0; i < l->len; i++) {{ {free("l->data[i]")} }}' if managed else ''),
                 'l->len = 0;'],
             f'{T} {name}_at({name} l, int i, const char* where)': [
-                'if (i < 0 || i >= l.len) { fusion_runtime_error(where, "index %d is outside the '
+                'if (i < 0 || i >= l.len) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the '
                 f'list (length %d)", i, l.len); return {self._default_value_code(element)}; }}',
                 'return l.data[i];'],
             f'{T}* {name}_ptr({name}* l, int i, const char* where)': [
-                'if (i < 0 || i >= l->len) { fusion_runtime_error(where, "index %d is outside the '
+                'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the '
                 f'list (length %d)", i, l->len); static {T} none; memset(&none, 0, sizeof none); return &none; }}',
                 'return &l->data[i];'],
             f'bool {name}_eq({name} a, {name} b)': [
@@ -153,7 +153,7 @@ class CollectionsMixin:
                 'return true;'],
             f'{name} {name}_slice({name} l, int start, int count, const char* where)': [
                 'if (start < 0 || count < 0 || start > l.len || count > l.len - start) {',
-                '    fusion_runtime_error(where, "slice(start %d, count %d) is outside the list '
+                '    fusion_fail(FUSION_KIND_IndexError, where, "slice(start %d, count %d) is outside the list '
                 '(length %d)", start, count, l.len);',
                 f'    return ({name}){{0}};',
                 '}',
@@ -350,17 +350,17 @@ class CollectionsMixin:
 
         if isinstance(key, EnumType):                       # Task 25.2
             hash_body = ['return (uint32_t)k * 2654435761u;']
-            missing = (f'fusion_runtime_error(where, "key %s is not in the map", '
+            missing = (f'fusion_fail(FUSION_KIND_KeyError, where, "key %s is not in the map", '
                        f'{self.enum_text_code(key, "k")}.data);')
         elif key.name == 'string':
             hash_body = ['uint32_t h = 2166136261u;',
                          'for (int i = 0; i < k.len; i++) { h ^= (unsigned char)k.data[i]; h *= 16777619u; }',
                          'return h;']
-            missing = ('fusion_runtime_error(where, "key \\"%.*s\\" is not in the map", k.len, k.data);')
+            missing = ('fusion_fail(FUSION_KIND_KeyError, where, "key \\"%.*s\\" is not in the map", k.len, k.data);')
         else:
             hash_body = ['return (uint32_t)k * 2654435761u;']
-            missing = ('fusion_runtime_error(where, "key %d is not in the map", (int)k);' if key.name == 'int'
-                       else 'fusion_runtime_error(where, "key \'%s\' is not in the map", fusion_char_text(k).bytes);')
+            missing = ('fusion_fail(FUSION_KIND_KeyError, where, "key %d is not in the map", (int)k);' if key.name == 'int'
+                       else 'fusion_fail(FUSION_KIND_KeyError, where, "key \'%s\' is not in the map", fusion_char_text(k).bytes);')
         key_eq = self.value_equality('m.keys[e - 1]', key, 'k', key)
         value_eq = self.value_equality('a.vals[i]', value, 'b.vals[j]', value)
         functions = {

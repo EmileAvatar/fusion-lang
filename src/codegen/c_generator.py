@@ -808,6 +808,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         c_op = operator_map.get(op, op)
 
+        # Whole-number / and % by zero: a DivideByZeroError, not a crash (Task 26.12)
+        if op in ('/', '%') and self.int_division_can_fail(node):
+            function = 'fusion_div_int' if op == '/' else 'fusion_mod_int'
+            return self.checked_code(f'{function}({left}, {right}, {self._where(node)})', 'int')
+
         # Special case: power operator
         if op == '**':
             self.includes.add('<math.h>')
