@@ -159,7 +159,7 @@ statement =
 
 variable_declaration =
     type_name identifier [ "=" expression ]    (* Explicit type required *)
-    | type_name identifier "," "Error" identifier "=" expression   (* capture, Task 26 *)
+    | type_name identifier "," [ "Error" ] identifier "=" expression   (* capture, Task 26 *)
     | "const" type_name identifier "=" expression ;  (* Constants must be initialized *)
 
 assignment =

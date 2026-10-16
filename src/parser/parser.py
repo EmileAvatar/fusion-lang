@@ -1002,11 +1002,13 @@ class Parser:
         # `Ship s, Error err = loadShip(f)` - capture the call's error (Task 26)
         error_name, error_location = None, None
         if self.match(TokenType.COMMA):
-            type_token = self.peek()
-            if type_token.value != 'Error':
-                raise ParserError(type_token, "After ',' a declaration names the variable that "
-                                              "captures the error: Ship s, Error err = loadShip(f)")
-            self.advance()
+            # `Ship s, err = ...` - the type is optional: it is always an Error (Task 26.8)
+            if not (self.check(TokenType.IDENTIFIER) and self.peek(1).type == TokenType.ASSIGN):
+                type_token = self.peek()
+                if type_token.value != 'Error':
+                    raise ParserError(type_token, "After ',' a declaration names the variable "
+                                                  "that captures the error: Ship s, err = loadShip(f)")
+                self.advance()
             error_token = self.consume(TokenType.IDENTIFIER, "Expected the error variable's name")
             error_name, error_location = error_token.value, error_token.location
             if not self.check(TokenType.ASSIGN):

@@ -63,9 +63,7 @@ catch e                                      // any other error
 
 #### Sub-tasks (updated 2026-10-16 after the user's review)
 - 26.7 DONE (implicit errors) - detail archived
-- **26.8 Capture without a type** - `Ship s, err = f()`; `Ship s, Error err` still works.
-  A call with no value keeps `Error err = save(s)` (a bare `err = save(s)` would read as an
-  assignment)
+- 26.8 DONE (capture without a type) - detail archived
 - **26.9 Custom error types** - `error FileError` + fields, `error FileNotFound : FileError`
   extends one; an error type may give a **default message** (`message = "File not found"`,
   overridable when thrown); built like a struct (message, code optional, then its fields -
@@ -209,4 +207,5 @@ Kept under Task 22 until the renumbering is approved.
 - Plan updated (default message, match on error types, typed catch now, built-in
   error type list)
 - 26.7 done
-- **Next Action:** 26.8 capture without a type
+- 26.8 done
+- **Next Action:** 26.9 custom error types

@@ -4674,3 +4674,11 @@ design; stack traces; `err.cause` chains
   with throw); `T, Error function` stays valid as a marker, shown by `--interface`; a
   function marked `, Error` that can never fail gets a warning. `[errors] returns` still
   switches Go-style returns / capturing off
+
+---
+
+#### Task 26.8 - capture without a type (COMPLETE 2026-10-16)
+
+- **26.8 Capture without a type** - `Ship s, err = f()`; `Ship s, Error err` still works.
+  A call with no value keeps `Error err = save(s)` (a bare `err = save(s)` would read as an
+  assignment)

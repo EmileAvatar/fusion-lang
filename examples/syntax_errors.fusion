@@ -12,7 +12,7 @@ Error function save(Ship s)                  // can fail, returns no value
         return Error("Too many crew on {s.name}")
 
 void function main()
-    Ship s, Error err = loadShip("")         // capture the error
+    Ship s, err = loadShip("")               // capture the error (`Error err` also works)
     if err                                   // true when there is one
         print("{err} (code {@1}, at {@2})", err.code, err.where)
     Ship ok, Error none = loadShip("Dawn")

@@ -161,6 +161,7 @@ def test_error_type_errors(source, message):
 
 @pytest.mark.parametrize("source, message", [
     (main('int n, string s = 1'), "After ',' a declaration names the variable that captures the error"),
+    (main('int n, err'), "Ship s, err = loadShip"),
     (main('int n, Error e'), "needs a call to capture"),
 ])
 def test_capture_parse_errors(source, message):
@@ -483,3 +484,15 @@ def test_the_interface_shows_the_marker(tmp_path):
     assert not errors
     assert '    public int, Error function load(string name)' in lines
     assert '    public int function size(string name)' in lines
+
+
+# ---------------------------------------------------------------- 26.8 capture without a type
+
+def test_capture_without_writing_the_type():
+    assert run_ok(SHIP + main(
+        'Ship s, err = loadShip("")\n'
+        'Ship t, err24 = loadShip("Dawn")\n'
+        'Ship u, Error e = loadShip("x")\n'
+        'int n, bad = toInt("4x")\n'
+        'print("{err} | {@1} {t.name} | {e} | {n} {bad.code}", not err24)'
+    )) == ['No name given | true Dawn! | Bad ship x | 0 0']

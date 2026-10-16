@@ -3088,7 +3088,8 @@ function - a function that throws can fail, so its callers check it. A capture
   to fail (Task 26.7, user decision 2026-10-16) - `--interface` shows the marker, and a
   marked function with nothing in it that could fail gets a warning. `Error function save(...)` is a function with no
   value that can fail. `return err` passes a captured error on
-* `Ship s, Error err = loadShip(f)` captures the error of any call - including any error
+* `Ship s, err = loadShip(f)` (or `Ship s, Error err = ...` - the type is optional, Task
+  26.8) captures the error of any call - including any error
   raised while evaluating the right side; `Error e = save(s)` when there's no value to keep
 * An error nobody captures **bubbles up**: out of the function to its caller, until
   something captures (or, with 26.3, catches) it. At the end of `main` the program stops

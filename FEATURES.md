@@ -96,7 +96,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	(part 2 - user request 2026-10-16)
 	[DONE] 26.7 Implicit errors: `return Error(...)` in any function; `T, Error function` an optional
 		marker (shown by --interface; marked but can't fail: a warning)
-	[ ] 26.8 Capture without a type: `Ship s, err = f()`
+	[DONE] 26.8 Capture without a type: `Ship s, err = f()` (`Error err` still works)
 	[ ] 26.9 Custom error types: `error FileError` + fields, `error FileNotFound : FileError`, a
 		default message
 	[ ] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`; `match err`
