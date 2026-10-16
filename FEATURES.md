@@ -80,7 +80,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		deep copies, ==, cleanup; first value can't hold itself; loops through other types are errors
 	[DONE] 25.6 Example examples/expressions (tokenize -> parse into an Expr tree -> evaluate) + docs
 
-#### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [DONE]
+#### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
 	[DONE] 26.1 Detailed plan - approved 2026-10-16 (errors bubble up, capture optional on any call,
 		every built-in failure catchable, one catch-all)
 	[DONE] 26.2 `Error` and error returns: `T, Error function`, `return Error(...)`, capture on any
@@ -93,6 +93,14 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		one off makes that syntax a compile error
 	[DONE] 26.6 Example examples/errors_demo (capture, bubbling, try / catch / finally, built-in
 		failures; the argument "uncaught" shows one nobody catches) + docs
+	(part 2 - user request 2026-10-16)
+	[ ] 26.7 Implicit errors: `return Error(...)` in any function; `T, Error function` an optional marker
+	[ ] 26.8 Capture without a type: `Ship s, err = f()`
+	[ ] 26.9 Custom error types: `error FileError` + fields, `error FileNotFound : FileError`
+	[ ] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`
+	[ ] 26.11 Built-in failures as types: IndexError, KeyError, FormatError, FileError
+	[ ] 26.12 Docs + examples
+	[POSTPONED - after 26.11] Typed catches: `catch FileError e` ... `catch e` (user: later)
 	[DONE] Error handling example (was 16.5) - examples/errors_demo (26.6)
 
 #### 27 Semantic contract and safety (from the ChatGPT review, 2026-10-11; notes.md step 2) [ ]
