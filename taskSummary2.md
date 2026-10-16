@@ -65,11 +65,7 @@ catch e                                      // any other error
 - 26.7 DONE (implicit errors) - detail archived
 - 26.8 DONE (capture without a type) - detail archived
 - 26.9 DONE (custom error types) - detail archived
-- **26.10 Typed capture, `err.kind`, match on error types** - `Ship s, FileError err = f()`
-  captures any error (its own fields empty unless it is a FileError); `err.kind` is the
-  type name ("FileError") for logs and printing; `match err` with **error type names as
-  cases** - `case FileError` also matches its subtypes (FileNotFound), and inside the case
-  err is that type, so its own fields can be read; misspelled names are compile errors
+- 26.10 DONE (typed capture, err.kind, match on error types) - detail archived
 - **26.11 Typed catch** (user: now, for a working sample) - `catch FileError e` ...
   `catch e`: first match wins, a parent type catches its subtypes, an untyped `catch e`
   last; an error no catch matches goes on (through finally)
@@ -204,4 +200,5 @@ Kept under Task 22 until the renumbering is approved.
 - 26.7 done
 - 26.8 done
 - 26.9 done
-- **Next Action:** 26.10 err.kind and match on error types
+- 26.10 done
+- **Next Action:** 26.11 typed catch

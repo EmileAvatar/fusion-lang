@@ -266,6 +266,13 @@ class ModuleLoader:
             if isinstance(node, StructType):
                 node.name = type_name(node.name, node)
                 return
+            if type(node).__name__ == 'MatchPattern' and node.name:
+                # `case FileError` / `case files.FileError` - an error type's internal name
+                # (Task 26.10); an enum value's bare name is left alone
+                internal = type_name(node.name, node) if node.dotted else lookup(node.name, node)
+                if isinstance(self._declaration(internal), ErrorDecl):
+                    node.name = internal
+                return
             if isinstance(node, MemberExpr) and isinstance(node.object, IdentifierExpr) \
                     and node.object.name in aliases and not is_local(node.object.name, scopes) \
                     and node.object.name not in module.names:
@@ -322,6 +329,12 @@ class ModuleLoader:
             if isinstance(decl, ErrorDecl) and decl.parent != 'Error':
                 decl.parent = type_name(decl.parent, decl)   # the parent error type (Task 26.9)
             walk(decl, [])
+
+    def _declaration(self, internal: str):
+        """The declaration an internal name (`files.FileError`, or a main-file name) means."""
+        module_id, _, name = internal.rpartition('.')
+        module = self.modules.get(module_id)
+        return module.names.get(name) if module is not None else None
 
     def _error(self, message: str, node) -> None:
         location = getattr(node, 'location', None)

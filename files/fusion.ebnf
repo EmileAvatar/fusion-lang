@@ -210,6 +210,7 @@ case_body = ":" statement | block ;
 
 pattern =
     identifier [ "(" identifier { "," identifier } ")" ]   (* an enum value, bare *)
+    | identifier { "." identifier }                       (* an error type, Task 26.10 *)
     | [ "-" ] literal ;                                    (* int, byte, char, string *)
     (* On an enum every value needs a case unless there is an else (missing ones are named
        in the error); on an int / byte / char / string an else is required. A value can't

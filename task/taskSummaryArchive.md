@@ -4695,3 +4695,15 @@ In C: fusion_error has kind + extra (the fields on the heap); each type has a da
   named arguments too); `where` filled in; every Error field plus its own; `throw` /
   `return` it; printing shows the message. In C: the error carries a kind number and its
   extra fields on the heap, with copy / free per kind (leak-checked)
+
+---
+
+#### Task 26.10 - err.kind and match on error types (COMPLETE 2026-10-16)
+
+Narrowing: the type checker sets err's type for the case body; the loader gives case names that are error types their internal names.
+
+- **26.10 Typed capture, `err.kind`, match on error types** - `Ship s, FileError err = f()`
+  captures any error (its own fields empty unless it is a FileError); `err.kind` is the
+  type name ("FileError") for logs and printing; `match err` with **error type names as
+  cases** - `case FileError` also matches its subtypes (FileNotFound), and inside the case
+  err is that type, so its own fields can be read; misspelled names are compile errors

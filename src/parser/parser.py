@@ -1268,9 +1268,13 @@ class Parser:
         location = self.peek().location
         if self.check(TokenType.IDENTIFIER):
             name = self.advance().value
-            if self.check(TokenType.DOT):
-                raise ParserError(self.peek(), f"In a case, write just the value's name: "
-                                               f"case {self.peek(1).value}")
+            dotted = False
+            while self.check(TokenType.DOT) and self.peek(1).type == TokenType.IDENTIFIER:
+                self.advance()
+                name += '.' + self.advance().value    # an error type from a module (26.10)
+                dotted = True
+            if dotted:
+                return MatchPattern(location=location, name=name, dotted=True)
             bindings = []
             if self.match(TokenType.LPAREN):
                 while not self.check(TokenType.RPAREN) and not self.is_at_end():

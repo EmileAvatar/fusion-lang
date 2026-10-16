@@ -585,3 +585,71 @@ def test_error_type_declaration_errors(source, message):
 def test_reading_an_unknown_field_of_an_error_type():
     assert "FileError has no field 'size'" in errors_of(
         FILE_ERRORS + main('FileError f = FileError("m", path = "p")\nprint("{f.size}")'))
+
+
+# ---------------------------------------------------------------- 26.10 err.kind and match on error types
+
+def test_kind_and_match_on_error_types():
+    assert run_ok(FILE_ERRORS
+        + 'void function fail(int which)\n'
+        '    match which\n'
+        '        case 0: throw FileNotFound(path = "a.txt")\n'
+        '        case 1: throw FileError("locked", path = "b.txt")\n'
+        '        case 2: throw Timeout("slow")\n'
+        '        case 3: throw Error("plain")\n'
+        '        else\n'
+        '            List<int> xs = [1]\n'
+        '            print("{@1}", xs[5])\n'
+        + main(
+            'for which in range(0, 5)\n'
+            '    Error err = fail(which)\n'
+            '    match err\n'
+            '        case FileNotFound\n'
+            '            print("{err.kind}: gone {err.path}")\n'
+            '        case FileError: print("{err.kind}: {err} {err.path} {err.attempts}")\n'
+            '        case Timeout: print("{err.kind}: {err.code}")\n'
+            '        else: print("{err.kind}: {err}")\n'
+            '    if err.kind = "Timeout"\n'
+            '        print("compared by name")')
+    ) == ['FileNotFound: gone a.txt', 'FileError: locked b.txt 1', 'Timeout: 408',
+          'compared by name', 'Error: plain', 'Error: index 5 is outside the list (length 1)']
+
+
+def test_match_on_an_error_type_from_a_module(tmp_path):
+    assert run_project(tmp_path, {
+        'files/errors.fusion': (
+            'public error FileError\n'
+            '    string path\n'
+            'public int function open(string p)\n'
+            '    throw FileError("no", path = p)\n'),
+        'main.fusion': (
+            'import files\n'
+            'import files.FileError\n'
+            'void function main()\n'
+            '    int n, err = files.open("x")\n'
+            '    match err\n'
+            '        case files.FileError: print("{err.kind} {err.path} {n}")\n'
+            '        else: print("other")\n'
+            '    match err\n'
+            '        case FileError: print("short name too")\n'
+            '        case Error: print("any")\n'),
+    }) == ['FileError x 0', 'short name too']
+
+
+@pytest.mark.parametrize("body, message", [
+    ('match e\n    case Foo: print("x")\n    else: print("y")', "'Foo' is not an error type"),
+    ('match e\n    case FileError: print("x")', "A match on an Error needs an else (or `case Error`)"),
+    ('match e\n    case 3: print("x")\n    else: print("y")', "A case on an Error names an error type"),
+])
+def test_match_on_errors_type_errors(body, message):
+    assert message in errors_of(FILE_ERRORS + main('Error e = Error("m")\n' + body))
+
+
+def test_a_case_after_its_parent_never_matches():
+    from tests.test_structs import warnings_of
+    assert "'FileNotFound' never matches here" in warnings_of(FILE_ERRORS + main(
+        'Error e = Error("m")\n'
+        'match e\n'
+        '    case FileError: print("x")\n'
+        '    case FileNotFound: print("y")\n'
+        '    else: print("z")'))

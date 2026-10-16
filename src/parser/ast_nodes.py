@@ -431,6 +431,7 @@ class MatchPattern(ASTNode):
     name: Optional[str] = None
     bindings: List[str] = field(default_factory=list)
     value: Optional[ASTNode] = None
+    dotted: bool = False      # `case files.FileError` - an error type from a module (26.10)
 
 
 @dataclass

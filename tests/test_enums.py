@@ -304,6 +304,7 @@ def test_a_match_that_always_returns_needs_no_return_after_it():
     ('match 5\n    case "a": print("a")\n    else: print("x")', "This case is string, but the match is on int"),
     ('int k = 1\nmatch 5\n    case k: print("a")\n    else: print("x")', "A case on int needs a constant"),
     ('match 2.5\n    case 1: print("a")\n    else: print("x")', "match works on an enum, int, byte, char or string value, got float"),
+    ('match l\n    case Light.Red: print("x")\n    else: print("y")', "In a case, write just the value's name: case Red"),
 ])
 def test_match_errors(body, message):
     assert message in errors_of(LIGHT + main('Light l = Light.Red\n' + body))
@@ -329,7 +330,6 @@ def test_a_match_without_every_case_returning_needs_a_return():
 @pytest.mark.parametrize("source, message", [
     ('match 1\n', "Expected the cases of 'match'"),
     ('match 1\n    else: print("x")\n    case 1: print("y")\n', "'else' must be the last part"),
-    ('match l\n    case Light.Red: print("x")\n', "In a case, write just the value's name: case Red"),
     ('match l\n    case Red print("x")\n', "Expected the body of the case"),
 ])
 def test_match_parse_errors(source, message):

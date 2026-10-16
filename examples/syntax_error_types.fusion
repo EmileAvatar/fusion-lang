@@ -16,3 +16,7 @@ void function main()
     FileError made = FileError("Can't open", 5, "data.bin")
     Error any = made                         // every error type is an Error
     print("{any} / {made.path} / code {@1}", made.code)
+    match any                                // match on error types (a typo is a compile error)
+        case FileNotFound: print("gone: {any.path}")   // inside, any is a FileNotFound
+        case FileError: print("{any.kind}: {any.path}")   // kind: the type's name
+        else: print("something else")

@@ -27,7 +27,8 @@ from src.parser.ast_nodes import (
 from .errors import SemanticError
 
 # The fields every Error has, and their types
-ERROR_FIELDS = {'message': 'string', 'code': 'int', 'where': 'string'}
+ERROR_FIELDS = {'message': 'string', 'code': 'int', 'where': 'string',
+                'kind': 'string'}    # kind: the error type's name, "FileError" (Task 26.10)
 
 
 def error_chain(decl) -> list:
@@ -132,7 +133,7 @@ def _link_error_types(custom: dict) -> List[SemanticError]:
                 f"Error type '{decl.name}' extends itself through '{step.name}'", decl.location))
             decl.parent_declaration = None
     for decl in custom.values():
-        taken = set(ERROR_FIELDS) | {'kind'}
+        taken = set(ERROR_FIELDS)
         for d in error_chain(decl):
             for f in d.fields:
                 if f.name in taken and d is decl:

@@ -257,6 +257,9 @@ class EnumRulesMixin:
         node.exhaustive = node.else_body is not None
         if isinstance(subject_type, EnumType):
             self._check_enum_cases(node, subject_type.declaration)
+        elif type(subject_type).__name__ == 'ErrorType':
+            self._check_error_cases(node)               # Task 26.10
+            return
         elif isinstance(subject_type, PrimitiveType) and subject_type.name in self._MATCH_CONSTANT_TYPES:
             self._check_constant_cases(node, subject_type)
         elif not (isinstance(subject_type, PrimitiveType) and subject_type.name == 'void'):
@@ -268,10 +271,74 @@ class EnumRulesMixin:
         if node.else_body is not None:
             self.visit(node.else_body)
 
+    def _check_error_cases(self, node: MatchStmt) -> None:
+        """`match err` with error type names as cases (Task 26.10): `case FileError` matches a
+        FileError or one of its subtypes, `case Error` any error. A name that isn't an error
+        type is a compile error. Inside a case with one type, err is that type - so its own
+        fields can be read. Error types can't all be listed: an else (or `case Error`) is
+        required."""
+        from .error_rules import is_error_subtype
+        from src.parser.ast_nodes import ErrorType
+        catches_all = False
+        seen = []
+        for case in node.cases:
+            types = []
+            for pattern in case.patterns:
+                pattern.error_declaration = None
+                if pattern.name is None or pattern.bindings:
+                    self.errors.append(SemanticError(
+                        "A case on an Error names an error type, e.g. case FileError",
+                        pattern.location))
+                    continue
+                if pattern.name == 'Error':
+                    catches_all = True
+                    types.append(None)
+                    continue
+                symbol = self.symbol_table.lookup(pattern.name)
+                if symbol is None or symbol.symbol_type != 'errortype':
+                    self.errors.append(SemanticError(
+                        f"'{pattern.name}' is not an error type", pattern.location))
+                    continue
+                decl = symbol.declaration
+                if any(is_error_subtype(decl, earlier) for earlier in seen if earlier is not None) \
+                        or None in seen:
+                    self.warnings.append(SemanticError(
+                        f"'{pattern.name}' never matches here - an earlier case already takes it",
+                        pattern.location))
+                pattern.error_declaration = decl
+                types.append(decl)
+            seen.extend(types)
+            # Inside the case, err is that error type (one type, err a variable)
+            narrowed = None
+            if len(types) == 1 and types[0] is not None and type(node.subject).__name__ == 'IdentifierExpr':
+                narrowed = self.symbol_table.lookup(node.subject.name)
+            if narrowed is not None:
+                saved = narrowed.data_type
+                narrowed.data_type = ErrorType(location=case.location, name=types[0].name,
+                                               declaration=types[0])
+                try:
+                    self.visit(case.body)
+                finally:
+                    narrowed.data_type = saved
+            else:
+                self.visit(case.body)
+        node.exhaustive = node.else_body is not None or catches_all
+        if not node.exhaustive:
+            self.errors.append(SemanticError(
+                "A match on an Error needs an else (or `case Error`) - error types can't all be "
+                "listed", node.location))
+        if node.else_body is not None:
+            self.visit(node.else_body)
+
     def _check_enum_cases(self, node: MatchStmt, decl: EnumDecl) -> None:
         handled = set()
         for case in node.cases:
             for pattern in case.patterns:
+                if pattern.dotted:
+                    self.errors.append(SemanticError(
+                        f"In a case, write just the value's name: case "
+                        f"{pattern.name.split('.')[-1]}", pattern.location))
+                    continue
                 if pattern.name is None:
                     self.errors.append(SemanticError(
                         f"A case on enum '{decl.name}' names one of its values, e.g. case "

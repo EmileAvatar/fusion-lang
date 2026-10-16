@@ -99,7 +99,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 26.8 Capture without a type: `Ship s, err = f()` (`Error err` still works)
 	[DONE] 26.9 Custom error types: `error FileError` + fields, `error FileNotFound : FileError`, a
 		default message / code, made like a struct, across modules
-	[ ] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`; `match err`
+	[DONE] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`; `match err`
 		with error type names as cases (subtype-aware, the type's own fields inside)
 	[ ] 26.11 Typed catch: `catch FileError e` ... `catch e`
 	[ ] 26.12 Built-in error types - every one is an Error, a parent catches its children
@@ -123,6 +123,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		index must be a clear run-time error, never missed (user: "so we don't miss out-of-range
 		errors any more") - reading and writing, array parameters, arrays in structs, arrays of
 		structs. Lists, strings and bytes are checked already
+	[ ] 27.1b Indexing an array literal directly - `[1, 2][5]` - generates invalid C (found
+		2026-10-16 while testing 26.10)
 	[ ] 27.2 The contract, written in the spec in one place: copying (deep - every copy is
 		independent, nested lists too), the equality table (which types `==` / `===` compare),
 		`=` in conditions with its ambiguous cases tested, Unicode indexing (code points, not

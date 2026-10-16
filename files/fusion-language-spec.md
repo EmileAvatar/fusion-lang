@@ -3066,7 +3066,16 @@ not found"` (or `code = 404`) gives that type a default. Made like a struct: mes
 then the fields (the parent's first), by position or by name; a field without a default must
 be given. An error type is accepted where its parent (or Error) is expected. Its fields are
 read only. Thrown or returned like any error, copied and freed automatically, across modules
-with `public error`. No central ERROR enum: each error type is its own kind, so a module
+with `public error`.
+
+**Typed capture, `err.kind`, match on error types (Task 26.10):** `Ship s, FileError err =
+f()` captures **any** error (user decision): err's own fields are their defaults unless it
+really is a FileError. `err.kind` is the type's name ("FileError", "Error"). `match err`
+takes error type names as cases: `case FileError` also matches its subtypes, `case Error`
+any error, and inside a case with one type err *is* that type, so its own fields can be
+read. A name that isn't an error type is a compile error (string compares would let a typo
+through); an else (or `case Error`) is required; a case already covered by an earlier one
+is a warning. No central ERROR enum: each error type is its own kind, so a module
 can add its own
 
 **Every run-time error is an Error (Task 26.4, user decision 2026-10-16: all of them):** an

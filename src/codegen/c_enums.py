@@ -290,6 +290,10 @@ class EnumsMixin:
         return next(f.field_type for f in struct.fields if f.name == name)
 
     def _pattern_test(self, subject: str, subject_type, pattern) -> str:
+        if type(subject_type).__name__ == 'ErrorType':
+            # case FileError: that type or a subtype (Task 26.10); case Error: any error
+            number = self.error_kind_number(getattr(pattern, 'error_declaration', None))
+            return f'({subject}.active && fusion_error_is({subject}.kind, {number}))'
         if pattern.name is not None:
             struct = self.data_struct(subject_type)
             enum = struct.enum_decl if struct is not None else subject_type.declaration

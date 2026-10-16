@@ -68,6 +68,14 @@ static inline void fusion_error_free(fusion_error* e) {
     if (e->extra) fusion_error_kinds[e->kind].free(e->extra);
     e->extra = NULL; e->kind = 0;
 }
+// err.kind - the name of the error's type, "FileError" (Task 26.10)
+static inline fusion_string fusion_error_kind_text(fusion_error e) {
+    const char* name = e.kind > 0 && fusion_error_kinds ? fusion_error_kinds[e.kind].name : "Error";
+    int n = 0;
+    while (name[n]) n++;
+    fusion_string s = {(char*)name, n, n, 0};
+    return s;
+}
 // Two errors are equal when they are the same type with the same code and message
 static inline bool fusion_error_eq(fusion_error a, fusion_error b) {
     return a.active == b.active && a.kind == b.kind && a.code == b.code && fusion_str_eq(a.message, b.message);
@@ -405,7 +413,8 @@ class ErrorsMixin:
         lines.append('    {"Error", -1, NULL, NULL},')
         for decl in ordered:
             data = self._errdata(decl)
-            lines.append(f'    {{"{decl.name}", {self.error_kind_number(decl.parent_declaration)}, '
+            # err.kind: the name as written, without the module (files.FileError -> FileError)
+            lines.append(f'    {{"{decl.name.split(".")[-1]}", {self.error_kind_number(decl.parent_declaration)}, '
                          f'{data}_copy, {data}_free}},')
         lines += ['};', '']
         return lines
