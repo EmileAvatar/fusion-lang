@@ -9,6 +9,7 @@ from typing import List, Optional
 
 from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl
 from .enums import normalize_enums, check_holding_loops
+from .error_rules import normalize_errors
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
 from .symbol_table import SymbolTable
@@ -79,6 +80,7 @@ class SemanticAnalyzer:
 
         # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
         # nothing after this mistakes an enum for a struct
+        self.errors.extend(normalize_errors(ast))     # Task 26
         self.errors.extend(normalize_enums(ast))
         self.errors.extend(check_holding_loops(ast))
 
@@ -135,6 +137,7 @@ class SemanticAnalyzer:
                     # Type check function (already in scope)
                     old_return_type = self.type_checker.current_function_return_type
                     self.type_checker.current_function_return_type = decl.return_type
+                    self.type_checker.current_function_returns_error = decl.returns_error
                     self.type_checker._check_collection_type(decl.return_type, decl.location)
 
                     self.type_checker.current_function_name = decl.name

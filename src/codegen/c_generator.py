@@ -31,11 +31,12 @@ from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
 from .c_equality import EqualityMixin, EQUALITY_OPERATORS
 from .c_collections import CollectionsMixin
 from .c_enums import EnumsMixin
+from .c_errors import ErrorsMixin
 from ..semantic.name_resolver import FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS
 
 
 class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin,
-                     CollectionsMixin, EnumsMixin):
+                     CollectionsMixin, EnumsMixin, ErrorsMixin):
     """Generates C code from Fusion AST.
 
     Uses visitor pattern to traverse the AST and generate equivalent C code.
@@ -133,6 +134,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         # Enums with data become structs (Task 25.4) - before the struct table below
         self.lower_data_enums(program)
+        # Which functions can fail, so their calls are checked (Task 26)
+        self.failing_functions = self.find_failing_functions(program)
+        self.fail_targets, self.fail_sites = [], []
 
         # Struct declarations by name - default values of struct-typed fields and arrays
         # need them (Task 18.2.3)
@@ -236,10 +240,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             if getattr(self, 'max_length', None) is not None and self.cleanup_scopes:
                 self.emit_line(f'fusion_at = {self._where(node)}')
             self.begin_statement()
+            site = self.open_fail_site() if hasattr(self, 'fail_sites') else None
             try:
                 return visitor(node)
             finally:
                 self.end_statement()
+                if site is not None:
+                    self.close_fail_site(site)   # Task 26
         return visitor(node)
 
     def generic_visit(self, node: ASTNode) -> str:
@@ -432,6 +439,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self.enum_number(self.enum_default_value(type_node))   # its first value
         if type(type_node).__name__ == 'BoxType':
             return 'NULL'   # an enum holding itself, not in use (Task 25.5)
+        if type(type_node).__name__ == 'ErrorType':
+            return '((fusion_error){0})'   # no error (Task 26)
         if isinstance(type_node, StructType):
             struct = self._struct_decl(type_node)
             return self._struct_initializer(struct, [None] * len(struct.fields))
@@ -600,6 +609,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return   # (also StringExprPart - {name} inside a string)
             if isinstance(node, (VarDeclStmt, ParameterDecl)) and local_needs_renaming(node.name):
                 names.add(node.name)
+            if isinstance(node, VarDeclStmt) and node.error_name and local_needs_renaming(node.error_name):
+                names.add(node.error_name)
             if isinstance(node, ForStmt) and local_needs_renaming(node.variable):
                 names.add(node.variable)
             if isinstance(node, MatchPattern):          # case Number(n) (Task 25.4)
@@ -617,6 +628,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return   # (also StringExprPart - {name} inside a string)
             if isinstance(node, (VarDeclStmt, ParameterDecl, IdentifierExpr)) and node.name in names:
                 node.name = f'fu_{node.name}'
+            if isinstance(node, VarDeclStmt) and node.error_name in names:
+                node.error_name = f'fu_{node.error_name}'
             if isinstance(node, ForStmt) and node.variable in names:
                 node.variable = f'fu_{node.variable}'
             if isinstance(node, MatchPattern):
@@ -827,6 +840,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """A call - whose fresh string (or string-holding) result is held in a temporary
         and freed after the statement, unless something takes it over (Task 18.3.1)."""
         code = self._call_code(node)
+        if hasattr(self, 'failing_functions') and self.call_can_fail(node):
+            code = self.checked_call(code, node)   # an error goes on from here (Task 26)
         if self.is_fresh(node) and id(node) not in getattr(self, 'consumed', set()):
             return self.fresh_temporary(code, node.inferred_type)
         return code
@@ -1165,6 +1180,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # which C's const would forbid - Fusion's own const check already prevents changes
         const_keyword = 'const ' if node.is_const and not self.is_managed(node.var_type) else ''
         try:
+            if node.error_name or getattr(node, 'capture_only', False):
+                self.capture_declaration(node)        # T x, Error err = f() (Task 26)
+                return ''
             return self._var_decl_code(node, const_keyword)
         finally:
             self.register_owned(node.name, node.var_type, node.location)
@@ -1296,6 +1314,15 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             Empty string (code emitted directly)
         """
         return_type = getattr(self, 'current_return_type', None)
+        if getattr(node, 'raises', False):
+            # `return Error(...)`: the function fails - its values are freed and the error
+            # goes on to the caller (Task 26)
+            self.emit_line(self.raise_code(node.value))
+            self.flush_temps()
+            self.emit_frees(self.owned_in_scopes('function'))
+            for line in self._fail_action(self.fail_targets[0]):
+                self.emit(line)
+            return ''
         value_code = None
         if node.value and isinstance(return_type, ArrayType):
             # Returned inside the hidden wrapper struct (Task 18.2.4): a literal fills it
@@ -1632,6 +1659,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if not hasattr(self, 'cleanup_scopes'):
             self.cleanup_scopes, self.stmt_temps, self.consumed = [], [], set()
         self.push_scope('function')
+        if hasattr(self, 'fail_targets'):
+            # An error nobody captures leaves the function here (Task 26)
+            self.fail_targets = [self.function_fail_target(node.name, node.return_type)]
+            self.fail_sites = []
         assigned = self.assigned_roots(node.body)
         for param in node.parameters:
             if param.name in assigned and not isinstance(param.param_type, ArrayType) \
@@ -1758,12 +1789,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if not hasattr(self, 'cleanup_scopes'):
             self.cleanup_scopes, self.stmt_temps, self.consumed = [], [], set()
         saved = (self.output, self.indent_level, getattr(self, 'current_return_type', None),
-                 self.cleanup_scopes, self.stmt_temps)
+                 self.cleanup_scopes, self.stmt_temps, getattr(self, 'fail_targets', None),
+                 getattr(self, 'fail_sites', None))
         self.output, self.indent_level = [], 1
         self.current_return_type = node.return_type
         self.cleanup_scopes, self.stmt_temps = [], []
         self.temp_scopes.append([])
         self.push_scope('function')
+        if saved[5] is not None:
+            self.fail_targets = [self.function_fail_target(name, node.return_type)]   # Task 26
+            self.fail_sites = []
         if return_type == 'void':
             self.visit(ExpressionStmt(location=node.location, expression=node.body))
         else:
@@ -1772,7 +1807,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         temps = self.temp_scopes.pop()
         body_lines = self.output
         (self.output, self.indent_level, self.current_return_type,
-         self.cleanup_scopes, self.stmt_temps) = saved
+         self.cleanup_scopes, self.stmt_temps, fail_targets, fail_sites) = saved
+        if fail_targets is not None:
+            self.fail_targets, self.fail_sites = fail_targets, fail_sites
         self.lambda_definitions.extend(
             [f'static {return_type} {name}({params}) {{']
             + [f'    {line}' for line in temps]

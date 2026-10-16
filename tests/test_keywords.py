@@ -19,8 +19,8 @@ class TestKeywordTable:
     def test_keyword_count(self):
         """Verify expected number of keywords."""
         # 67 keywords total (including special cases: 'Enum'/'enum', 'End'/'end')
-        assert KEYWORD_COUNT == 67
-        assert len(KEYWORDS) == 67
+        assert KEYWORD_COUNT == 66
+        assert len(KEYWORDS) == 66
 
     def test_keyword_table_is_dict(self):
         """Verify KEYWORDS is a dictionary."""
@@ -341,10 +341,10 @@ class TestOtherKeywords:
         assert is_keyword('throw')
         assert get_keyword_type('throw') == TokenType.THROW
 
-    def test_error_capitalized(self):
-        """Error requires capital E."""
-        assert is_keyword('Error')
-        assert get_keyword_type('Error') == TokenType.ERROR
+    def test_error_is_a_type_name_not_a_keyword(self):
+        """Error is a built-in type, read as a name like List (Task 26)."""
+        assert not is_keyword('Error')
+        assert get_keyword_type('Error') == TokenType.IDENTIFIER
 
     def test_go_keyword(self):
         assert is_keyword('go')
@@ -381,8 +381,8 @@ class TestCaseSensitivity:
         assert is_keyword('Weak')
         assert not is_keyword('weak')
 
-        # Error requires capital E
-        assert is_keyword('Error')
+        # Error is a built-in type name, not a keyword (Task 26)
+        assert not is_keyword('Error')
         assert not is_keyword('error')
 
         # Enum allows both

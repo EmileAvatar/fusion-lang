@@ -62,6 +62,9 @@ class TypeMapperMixin:
         elif isinstance(fusion_type, EnumType):
             return mangle_function_name(fusion_type.name)   # typedef int (Task 25.2)
 
+        elif type(fusion_type).__name__ == 'ErrorType':
+            return 'fusion_error'   # Task 26
+
         elif type(fusion_type).__name__ == 'BoxType':
             # An enum holding itself: a pointer, written with `struct` so it works inside
             # the struct's own definition (Task 25.5)

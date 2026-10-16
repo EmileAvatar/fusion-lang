@@ -13,7 +13,7 @@ from src.parser.ast_nodes import (
     InterpolatedStringExpr, StringExprPart, StringPositionalPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
     ListType, MapType, NewCollectionExpr,
-    EnumType, EnumValueExpr, EnumStaticCall,
+    EnumType, EnumValueExpr, EnumStaticCall, ErrorType, ErrorActiveExpr,
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
@@ -21,6 +21,7 @@ from .number_patterns import number_pattern_problem
 from .name_resolver import builtin_layer
 from .collection_rules import CollectionRulesMixin
 from .enums import EnumRulesMixin, ENUM_METHODS
+from .error_rules import ErrorRulesMixin
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
                             TYPE_CLASSES, CLASS_STATICS, NOT_METHODS,
                             builtin_defaults)
@@ -44,7 +45,7 @@ def field_default(field: StructField):
     return None
 
 
-class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
+class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
     """Type checks the AST using visitor pattern.
 
     Validates type compatibility in expressions, assignments, function calls,
@@ -71,6 +72,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
         self.stdlib_layer = getattr(stdlib_config, 'layer', 'std')
         self.layer_errors_at = set()
         self.current_function_return_type: Optional[TypeNode] = None
+        self.current_function_returns_error = False   # `T, Error function` (Task 26)
         self.errors: List[SemanticError] = []
         self.warnings: List[SemanticError] = []
         self.structs_config = structs_config or StructsConfig()
@@ -214,6 +216,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
         if isinstance(type1, EnumType) and isinstance(type2, EnumType):
             return type1.name == type2.name
 
+        if isinstance(type1, ErrorType) and isinstance(type2, ErrorType):
+            return True   # Task 26
+
         # Structs: same struct, by name (Task 18.2.1)
         if isinstance(type1, StructType) and isinstance(type2, StructType):
             return type1.name == type2.name
@@ -347,7 +352,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
         if isinstance(type_node, ArrayType):
             size_str = str(type_node.size) if type_node.size is not None else ''
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
-        if isinstance(type_node, (StructType, EnumType)):
+        if isinstance(type_node, (StructType, EnumType, ErrorType)):
             return type_node.name
         if isinstance(type_node, ListType):
             return f"List<{self.type_to_string(type_node.element_type)}>"
@@ -590,6 +595,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
 
         # Logical operators: bool and bool -> bool
         if node.operator in ['and', 'or', '&&', '||']:
+            # `err and ...` - an Error means "there is an error" (Task 26)
+            if isinstance(left_type, ErrorType):
+                node.left = ErrorActiveExpr(location=node.left.location, operand=node.left)
+                left_type = self.visit(node.left)
+            if isinstance(right_type, ErrorType):
+                node.right = ErrorActiveExpr(location=node.right.location, operand=node.right)
+                right_type = self.visit(node.right)
             if not self.is_bool_type(left_type):
                 self.errors.append(SemanticError(
                     f"Left operand of '{node.operator}' must be bool, got {self.type_to_string(left_type)}",
@@ -807,6 +819,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
             return operand_type
 
         if node.operator in ['not', '!']:
+            if isinstance(operand_type, ErrorType):           # `not err` (Task 26)
+                node.operand = ErrorActiveExpr(location=node.operand.location, operand=node.operand)
+                operand_type = self.visit(node.operand)
             if not self.is_bool_type(operand_type):
                 self.errors.append(SemanticError(
                     f"Logical not requires bool type, got {self.type_to_string(operand_type)}",
@@ -1158,7 +1173,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
 
         for number, extra in enumerate(extras, start=1):
             extra_type = self.visit(extra)
-            if not isinstance(extra_type, (PrimitiveType, EnumType)):
+            if not isinstance(extra_type, (PrimitiveType, EnumType, ErrorType)):
                 self.errors.append(SemanticError(
                     f"Can't print a whole {self.type_to_string(extra_type)} value - print its "
                     f"elements or fields one at a time",
@@ -1615,8 +1630,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
         for segment in node.segments:
             if isinstance(segment, StringExprPart):
                 expr_type = self.visit(segment.expression)
-                if isinstance(expr_type, EnumType):
-                    continue   # an enum value prints its name (Task 25.2)
+                if isinstance(expr_type, (EnumType, ErrorType)):
+                    continue   # an enum value prints its name (25.2), an Error its message (26)
                 # Only single values can be printed - a whole array (Task 15.9, used to crash
                 # codegen), struct, or function has no printf format. (void is the error-
                 # recovery type - its own error, e.g. an undefined variable, is already
@@ -1735,6 +1750,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
             The field's type (void for error recovery)
         """
         object_type = self.visit(node.object)
+        if isinstance(object_type, ErrorType):
+            return self.error_member_type(node)    # err.message, err.code, err.where (Task 26)
         struct = self.struct_declaration(object_type)
         if struct is None:
             self.errors.append(SemanticError(
@@ -1775,6 +1792,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
             node: Variable declaration statement node
         """
         self._check_collection_type(node.var_type, node.location)   # Task 18.5
+        if isinstance(node.var_type, ErrorType) and node.initializer is not None \
+                and node.error_name is None:
+            # `Error e = save(ship)` - an expression that isn't an Error: capture its error
+            # (Task 26); `Error e = Error("x")` - an ordinary Error value
+            init_type = self.visit(node.initializer)
+            node.capture_only = not isinstance(init_type, ErrorType)
+            return
         if isinstance(node.var_type, ArrayType):
             self._check_array_var_decl(node)
             return
@@ -2122,6 +2146,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
             self._check_array_return(node)
         elif node.value:
             return_type = self._visit_value_for(self.current_function_return_type, node.value)
+            if isinstance(return_type, ErrorType) and self.current_function_returns_error:
+                node.raises = True     # `return Error(...)` - the function fails (Task 26)
+                return
+            if isinstance(return_type, ErrorType):
+                self.errors.append(SemanticError(
+                    "This function can't fail - declare it 'T, Error function' (or 'Error "
+                    "function') to return an Error, or throw it", node.location))
+                return
             if not self.types_compatible(self.current_function_return_type, return_type):
                 self.errors.append(SemanticError(
                     f"Return type {self.type_to_string(return_type)} does not match function return type {self.type_to_string(self.current_function_return_type)}",
@@ -2142,7 +2174,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
         Args:
             node: If statement node
         """
-        condition_type = self.visit(node.condition)
+        condition_type = self.condition_type(node, 'condition')   # `if err` (Task 26)
         if not self.is_bool_type(condition_type):
             self.errors.append(SemanticError(
                 f"If condition must be bool, got {self.type_to_string(condition_type)}",
@@ -2160,7 +2192,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin):
         Args:
             node: While statement node
         """
-        condition_type = self.visit(node.condition)
+        condition_type = self.condition_type(node, 'condition')   # `while not err` (Task 26)
         if not self.is_bool_type(condition_type):
             self.errors.append(SemanticError(
                 f"While condition must be bool, got {self.type_to_string(condition_type)}",

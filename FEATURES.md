@@ -81,8 +81,14 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 25.6 Example examples/expressions (tokenize -> parse into an Expr tree -> evaluate) + docs
 
 #### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
-	[ ] 26.1 Detailed plan (for approval) - strings are ready for error messages
-	[ ] 26.2 File and conversion errors become catchable instead of stopping the program
+	[DONE] 26.1 Detailed plan - approved 2026-10-16 (errors bubble up, capture optional on any call,
+		every built-in failure catchable, one catch-all)
+	[DONE] 26.2 `Error` and error returns: `T, Error function`, `return Error(...)`, capture on any
+		call, `if err`, bubbling (explicit, leak-free), stop at main
+	[ ] 26.3 try / catch / finally / throw
+	[ ] 26.4 Every built-in failure catchable (files, conversions, index out of range, ...)
+	[ ] 26.5 Config: [errors] returns / exceptions
+	[ ] 26.6 Example + docs
 	[POSTPONED to 26] Error handling (try/catch) example (was 16.5)
 
 #### 27 Semantic contract and safety (from the ChatGPT review, 2026-10-11; notes.md step 2) [ ]

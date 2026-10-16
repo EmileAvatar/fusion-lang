@@ -107,7 +107,7 @@ KEYWORDS: Dict[str, TokenType] = {
     'in': TokenType.IN,
 
     # ============================================================
-    # Other Keywords (9)
+    # Other Keywords (8) - Error is a built-in type name, like List (Task 26)
     # ============================================================
     'import': TokenType.IMPORT,
     'new': TokenType.NEW,
@@ -116,7 +116,6 @@ KEYWORDS: Dict[str, TokenType] = {
     'catch': TokenType.CATCH,
     'finally': TokenType.FINALLY,
     'throw': TokenType.THROW,
-    'Error': TokenType.ERROR,       # Capital E required for Error type
     'go': TokenType.GO,
 }
 

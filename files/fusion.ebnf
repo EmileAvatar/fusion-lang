@@ -33,9 +33,11 @@ qualified_type = identifier { "." identifier } ;
 (* ========== Functions ========== *)
 
 function_declaration =
-    [ "async" ] return_type "function" identifier
+    [ "async" ] return_type [ "," "Error" ] "function" identifier
     "(" [ parameter_list ] ")"
     ( block | end_function_block | ":" expression ) ;
+    (* Task 26: `Ship, Error function f()` and `Error function f()` (no value) can fail -
+       `return Error(...)` fails; an error nobody captures bubbles up to the caller *)
 
 end_function_block =
     newline { statement } "End" "function" ;
@@ -156,6 +158,7 @@ statement =
 
 variable_declaration =
     type_name identifier [ "=" expression ]    (* Explicit type required *)
+    | type_name identifier "," "Error" identifier "=" expression   (* capture, Task 26 *)
     | "const" type_name identifier "=" expression ;  (* Constants must be initialized *)
 
 assignment =

@@ -256,6 +256,26 @@ class EnumStaticCall(ASTNode):
 
 
 @dataclass
+class ErrorMakeExpr(ASTNode):
+    """Error("No such file", 404) - an error value (Task 26). The parser reads it as a call;
+    src/semantic/error_rules.py turns it into this node.
+
+    Attributes:
+        arguments: The message, and optionally the code
+    """
+    arguments: List[ASTNode]
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
+class ErrorActiveExpr(ASTNode):
+    """`if err` - true when an Error value holds an error (Task 26); made by the type checker
+    where an Error is used as a condition."""
+    operand: ASTNode
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class StringTextPart:
     """A literal text segment within an interpolated string.
 
@@ -337,6 +357,9 @@ class VarDeclStmt(ASTNode):
     name: str
     initializer: Optional[ASTNode]
     is_const: bool = False
+    # `Ship s, Error err = loadShip(f)` - the variable that captures an error (Task 26)
+    error_name: Optional[str] = None
+    error_location: Optional[Any] = None
 
 
 @dataclass
@@ -521,6 +544,7 @@ class FunctionDecl(ASTNode):
     body: ASTNode  # BlockStmt or single expression (for lambdas)
     is_lambda: bool = False  # True for inline lambdas with ":"
     is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
+    returns_error: bool = False  # `Ship, Error function` / `Error function` - can fail (Task 26)
 
 
 @dataclass
@@ -706,6 +730,13 @@ class StructType(TypeNode):
     """
     name: str
     declaration: Optional[Any] = None
+
+
+@dataclass
+class ErrorType(TypeNode):
+    """The built-in Error type (Task 26): message, code, where. The parser reads `Error` as a
+    struct name; src/semantic/error_rules.py replaces it with this."""
+    name: str = 'Error'
 
 
 @dataclass

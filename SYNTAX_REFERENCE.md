@@ -494,6 +494,35 @@ Each file imports what it uses; files of one module share all their names; each 
 loaded once, so modules may import each other. A whole project to try: `examples/shop/`.
 `python main.py main.fusion --interface` prints the public names of every module it imports.
 
+#### Errors: `T, Error function`, capturing an error
+
+<!-- example: syntax_errors | task: 26.2 -->
+```fusion
+struct Ship
+    string name
+    int crew
+
+Ship, Error function loadShip(string name)   // a function that can fail
+    if name == ""
+        return Error("No name given", 400)   // a message, and optionally a code
+    return Ship(name, 3)
+
+Error function save(Ship s)                  // can fail, returns no value
+    if s.crew > 2
+        return Error("Too many crew on {s.name}")
+
+void function main()
+    Ship s, Error err = loadShip("")         // capture the error
+    if err                                   // true when there is one
+        print("{err} (code {@1}, at {@2})", err.code, err.where)
+    Ship ok, Error none = loadShip("Dawn")
+    print("{ok.name}, no error: {@1}", not none)
+    Error e = save(ok)                       // capture works on any call
+    print("save: {e}")
+    Ship last = loadShip("Last")             // not captured: an error would bubble up -
+    print(last.name)                         // at main the program stops with its message
+```
+
 #### Equality: `=`, `==`, `===`
 
 <!-- example: syntax_equality | task: 18.3.5 -->

@@ -3055,7 +3055,27 @@ int age = ages.get("Alice")
 
 ## Error Handling
 
-**Status:** [PLANNED 26] Go-style error returns + try/catch, both on by default, switchable in config
+**Status:** [PARTLY] error returns and capturing are built (26.2); try / catch / finally /
+throw [PLANNED 26.3]; built-in failures catchable [PLANNED 26.4]; config switches [PLANNED 26.5]
+
+**As built (Task 26.2, user decisions 2026-10-09 and 2026-10-16):**
+* `Error` is a built-in value: `message` (string), `code` (int, 0 unless given), `where`
+  ("main.fusion:12", where it was made). Made with `Error("msg")` or `Error("msg", 404)`;
+  printing it prints the message. There is no `null`: a captured Error with no error has an
+  empty message, and `if err` / `not err` test whether there is one - the one non-bool
+  allowed as a condition
+* `Ship, Error function loadShip(...)` can fail: `return Error(...)` fails (the Ship part
+  is its default), `return ship` succeeds. `Error function save(...)` is a function with no
+  value that can fail. `return err` passes a captured error on
+* `Ship s, Error err = loadShip(f)` captures the error of any call - including any error
+  raised while evaluating the right side; `Error e = save(s)` when there's no value to keep
+* An error nobody captures **bubbles up**: out of the function to its caller, until
+  something captures (or, with 26.3, catches) it. At the end of `main` the program stops
+  with `Error at main.fusion:12: message` and exit code 1
+* In C: no setjmp / longjmp. A failing function sets the current error and returns a
+  default; the call is checked right after it runs (a GCC statement expression), and the
+  statement's failure block frees what is held before passing the error on - so every
+  error path is leak-free. Only calls that can fail are checked
 
 Description: Explicit error handling with multiple return values.
 

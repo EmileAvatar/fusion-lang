@@ -4538,3 +4538,14 @@ ranges in cases (`case 1..9`), guards (`case n if n > 0`), methods on enums (Tas
 
 ---
 
+
+---
+
+#### Task 26.2 - Error and error returns (COMPLETE 2026-10-16)
+
+Built in src/semantic/error_rules.py and src/codegen/c_errors.py; `Error` stopped being a lexer keyword (a built-in type name, like List). Tests: tests/test_error_handling.py.
+
+- **26.2 `Error` and error returns** - the Error value (fields, construction, printing the
+  message), `T, Error function` / `Error function`, `return Error(...)`, capture
+  `T x, Error err = f()`, `if err`, bubbling to the caller and stopping at main; which
+  functions can fail (call graph); cleanup of strings / lists on every error path

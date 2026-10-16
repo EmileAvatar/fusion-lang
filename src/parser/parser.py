@@ -782,6 +782,9 @@ class Parser:
             if self.peek(offset).type != TokenType.RBRACKET:
                 return False
             offset += 1
+        if self.peek(offset).type == TokenType.COMMA and self.peek(offset + 1).value == 'Error' \
+                and self.peek(offset + 2).type == TokenType.FUNCTION:
+            return True                                # Ship, Error function (Task 26)
         return self.peek(offset).type in (TokenType.IDENTIFIER, TokenType.FUNCTION)
 
     def parse_collection_type(self, name_token) -> TypeNode:
@@ -987,6 +990,20 @@ class Parser:
         name = name_token.value
         location = name_token.location
 
+        # `Ship s, Error err = loadShip(f)` - capture the call's error (Task 26)
+        error_name, error_location = None, None
+        if self.match(TokenType.COMMA):
+            type_token = self.peek()
+            if type_token.value != 'Error':
+                raise ParserError(type_token, "After ',' a declaration names the variable that "
+                                              "captures the error: Ship s, Error err = loadShip(f)")
+            self.advance()
+            error_token = self.consume(TokenType.IDENTIFIER, "Expected the error variable's name")
+            error_name, error_location = error_token.value, error_token.location
+            if not self.check(TokenType.ASSIGN):
+                raise ParserError(self.peek(), f"'{name}, {error_name}' needs a call to capture: "
+                                               f"... = loadShip(f)")
+
         # Optional initializer
         initializer = None
         if self.match(TokenType.ASSIGN):
@@ -998,7 +1015,9 @@ class Parser:
             location=location,
             var_type=var_type,
             name=name,
-            initializer=initializer
+            initializer=initializer,
+            error_name=error_name,
+            error_location=error_location
         )
 
     def parse_const_declaration(self) -> ASTNode:
@@ -1474,12 +1493,21 @@ class Parser:
                 or self.is_struct_type_declaration_start()):
             return_type = self.parse_type()
 
+            # `Ship, Error function` - a function that can fail (Task 26)
+            returns_error = False
+            if self.check(TokenType.COMMA) and self.peek(1).value == 'Error':
+                self.advance()
+                self.advance()
+                returns_error = True
+
             # Skip newlines after return type
             while self.match(TokenType.NEWLINE):
                 pass
 
             if self.match(TokenType.FUNCTION):
-                return self.parse_function_declaration(return_type)
+                decl = self.parse_function_declaration(return_type)
+                decl.returns_error = returns_error
+                return decl
 
             # Could be a global variable declaration
             # For MVP, we might not support global vars

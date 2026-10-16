@@ -37,6 +37,7 @@ from .c_names import mangle_function_name
 from .c_strings import STRING_LIBRARY
 from .c_bytes import BYTES_LIBRARY
 from .c_files import FILES_LIBRARY
+from .c_errors import ERRORS_LIBRARY
 from ..semantic.collection_rules import MUTATING_LIST_METHODS
 from ..semantic.name_resolver import MUTATING_BUILTINS
 
@@ -403,6 +404,7 @@ static inline bool fusion_char_eq_str(fusion_char c, fusion_string s) { return s
 RUNTIME_PRELUDE += STRING_LIBRARY  # the versatile string functions (Task 18.3.6)
 RUNTIME_PRELUDE += BYTES_LIBRARY   # raw bytes (Task 18.3.8)
 RUNTIME_PRELUDE += FILES_LIBRARY   # files (Task 18.5.5)
+RUNTIME_PRELUDE += ERRORS_LIBRARY  # errors travelling and caught (Task 26)
 
 
 class MemoryManagementMixin:
@@ -414,6 +416,8 @@ class MemoryManagementMixin:
         """True if values of this type own heap memory (a string anywhere inside them)."""
         if type(type_node).__name__ == 'BoxType':
             return True   # an enum holding itself, on the heap (Task 25.5)
+        if type(type_node).__name__ == 'ErrorType':
+            return True   # its message and where (Task 26)
         if isinstance(type_node, (ListType, MapType)):
             return True   # a list / map owns its buffers (Tasks 18.5.1, 18.5.2)
         if isinstance(type_node, PrimitiveType):
@@ -432,6 +436,8 @@ class MemoryManagementMixin:
         """C expression giving an independent copy of a (non-array) managed value."""
         if type(type_node).__name__ == 'BoxType':
             return f'fusion_box_copy_{self.map_type(type_node.inner)}({code})'   # Task 25.5
+        if type(type_node).__name__ == 'ErrorType':
+            return f'fusion_error_copy({code})'                                 # Task 26
         if isinstance(type_node, PrimitiveType) and type_node.name in ('string', 'bytes'):
             return f'fusion_str_copy({code})'
         if isinstance(type_node, (ListType, MapType)):
@@ -446,6 +452,8 @@ class MemoryManagementMixin:
             return []
         if type(type_node).__name__ == 'BoxType':
             return [f'fusion_box_free_{self.map_type(type_node.inner)}(&{lvalue});']   # Task 25.5
+        if type(type_node).__name__ == 'ErrorType':
+            return [f'fusion_error_free(&{lvalue});']                                  # Task 26
         if isinstance(type_node, (ListType, MapType)):
             return [f'{self.map_type(type_node)}_free(&{lvalue});']
         if isinstance(type_node, PrimitiveType):
@@ -460,6 +468,8 @@ class MemoryManagementMixin:
         """C statement replacing a stored managed value, freeing the old one."""
         if isinstance(type_node, (ListType, MapType)):
             return f'{self.map_type(type_node)}_set(&{lvalue}, {value_code});'
+        if type(type_node).__name__ == 'ErrorType':
+            return f'fusion_error_set(&{lvalue}, {value_code});'   # Task 26
         if isinstance(type_node, PrimitiveType):
             return f'fusion_str_set(&{lvalue}, {value_code});'
         return f'fusion_set_{self._struct_c_name(type_node)}(&{lvalue}, {value_code});'

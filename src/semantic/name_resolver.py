@@ -12,7 +12,8 @@ from src.parser.ast_nodes import (
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
-    EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt,
+    EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt, ErrorType, ErrorMakeExpr,
+    ErrorActiveExpr,
     ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES
 )
 from .symbol_table import SymbolTable
@@ -779,6 +780,12 @@ class NameResolver:
                 is_constant=is_const
             )
             self.symbol_table.define(symbol)
+            if stmt.error_name is not None:            # Ship s, Error err = ... (Task 26)
+                self.check_not_struct_name(stmt.error_name, "Variable", stmt.error_location)
+                self.symbol_table.define(Symbol(
+                    name=stmt.error_name, symbol_type='variable',
+                    data_type=ErrorType(location=stmt.error_location),
+                    location=stmt.error_location))
         except SemanticError as e:
             self.errors.append(e)
 
@@ -956,7 +963,7 @@ class NameResolver:
             self.resolve_expression(expr.index)
         elif isinstance(expr, NamedArgument):
             self.resolve_expression(expr.value)
-        elif isinstance(expr, EnumStaticCall):          # Color.fromString(text) (Task 25)
+        elif isinstance(expr, (EnumStaticCall, ErrorMakeExpr)):   # Task 25, Task 26
             for argument in expr.arguments:
                 self.resolve_expression(argument)
         elif isinstance(expr, MemberExpr):

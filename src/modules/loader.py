@@ -303,6 +303,8 @@ class ModuleLoader:
                     walk(getattr(node, f.name), scopes)
             if isinstance(node, VarDeclStmt) and scopes:
                 scopes[-1].add(node.name)       # visible from the next statement on
+                if node.error_name:
+                    scopes[-1].add(node.error_name)   # Ship s, Error err = ... (Task 26)
 
         for decl in program.declarations:
             if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):

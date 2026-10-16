@@ -31,6 +31,8 @@ class CollectionsMixin:
             return self._struct_c_name(element)
         if isinstance(element, EnumType):
             return self.map_type(element)                   # Task 25.2
+        if type(element).__name__ == 'ErrorType':
+            return 'error'                                  # Task 26
         if isinstance(element, ListType):
             return 'list_' + self._list_key(element.element_type)
         if isinstance(element, MapType):
