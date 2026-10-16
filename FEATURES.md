@@ -80,7 +80,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		deep copies, ==, cleanup; first value can't hold itself; loops through other types are errors
 	[DONE] 25.6 Example examples/expressions (tokenize -> parse into an Expr tree -> evaluate) + docs
 
-#### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [ ]
+#### 26 Error handling: Go-style error returns + try/catch, both on by default, switchable in config [DONE]
 	[DONE] 26.1 Detailed plan - approved 2026-10-16 (errors bubble up, capture optional on any call,
 		every built-in failure catchable, one catch-all)
 	[DONE] 26.2 `Error` and error returns: `T, Error function`, `return Error(...)`, capture on any
@@ -114,7 +114,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 			FileTooLargeError, DeleteError
 		[DONE] LimitError: StringTooLongError (max_length), ResultTooLargeError (over 2 GB)
 		(not catchable by design: out of memory, a List past 536,870,911 elements)
-	[ ] 26.13 Docs + examples
+	[DONE] 26.13 Docs + examples: examples/errors_demo with a custom error type, match on error
+		types, typed catch, built-in types (FileNotFoundError, DivideByZeroError)
 	[DONE] Error handling example (was 16.5) - examples/errors_demo (26.6)
 
 #### 27 Semantic contract and safety (from the ChatGPT review, 2026-10-11; notes.md step 2) [ ]

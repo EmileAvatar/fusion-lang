@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Fri Oct 16 21:18:03 SAST 2026
+**Date:** Fri Oct 16 22:46:03 SAST 2026
 **Total Examples:** 16
 
 ## Summary
@@ -355,11 +355,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 width = 80
 height = 24
 skip (1): Not 'name=value': depth
-skip (2): No name in: =5
-skip (0): '12x' is not a whole number (check with isInt first)
+skip (2): A setting needs a name - '=5'
+skip: NumberFormatError: '12x' is not a whole number (check with isInt first)
 total: 3
-total failed: 'oops' is not a whole number (check with isInt first)
+total failed: NumberFormatError: 'oops' is not a whole number (check with isInt first)
 totals done
+FileNotFoundError: no_such_settings.txt
+DivideByZeroError: 10 / 0: division by zero
 all handled
 ```
 
@@ -368,11 +370,13 @@ all handled
 width = 80
 height = 24
 skip (1): Not 'name=value': depth
-skip (2): No name in: =5
-skip (0): '12x' is not a whole number (check with isInt first)
+skip (2): A setting needs a name - '=5'
+skip: NumberFormatError: '12x' is not a whole number (check with isInt first)
 total: 3
-total failed: 'oops' is not a whole number (check with isInt first)
+total failed: NumberFormatError: 'oops' is not a whole number (check with isInt first)
 totals done
+FileNotFoundError: no_such_settings.txt
+DivideByZeroError: 10 / 0: division by zero
 all handled```
 
 **Generated C Code (first 50 lines):**

@@ -4726,3 +4726,121 @@ BUILTIN_ERROR_TYPES in src/semantic/error_rules.py fixes their numbers (FUSION_K
 
 - **26.12 Built-in error types** - the list below; built-in failures raise them; new
   checks for failures that aren't errors yet (integer division by zero)
+
+---
+
+#### Task 26 part 2 - complete (archived 2026-10-16)
+
+**26.13** (COMPLETE): examples/errors_demo extended.
+
+## TASK 26 (part 2): implicit errors, untyped capture, custom error types - PLAN (decisions made, awaiting "proceed")
+
+**User request (2026-10-16):** the `, Error` in a signature is optional - any function can
+give an error, writing it just tells the compiler (and readers) that this one can. The
+capture variable's type is optional too: it is always Error or a subtype. Custom errors are
+subtypes of Error with extra fields, so modules (files, databases, a graphics engine) can
+have their own specific errors.
+
+#### What it looks like
+```text
+Ship, Error function loadShip(string name)   // marked: this function can give an error
+Ship function loadShip(string name)          // the same function - `, Error` is optional
+    if name == ""
+        return Error("No name given")         // allowed in any function now
+    ...
+
+Ship s = loadShip("")                        // an error bubbles up until something catches it
+Ship s, err = loadShip("")                   // capture: err is an Error (any name works)
+Ship s, err24 = loadShip("")
+Ship s, Error err = loadShip("")             // the type may still be written
+Ship s, FileError err = loadShip("")         // only a FileError is captured (see Q2)
+
+error FileError                              // a custom error (syntax: Q1)
+    string path
+    int attempts = 1
+
+throw FileError("Can't open", path = "ship.dat")   // message first, then its own fields
+print("{@1} {@2}", err.message, err.path)     // message / code / where + its own fields
+
+try
+    ...
+catch FileError e                            // typed catches, first match wins (Q3)
+    print("file: {e.path}")
+catch e                                      // any other error
+    print(e.message)
+```
+
+#### Sub-tasks (updated 2026-10-16 after the user's review)
+- 26.7 DONE (implicit errors) - detail archived
+- 26.8 DONE (capture without a type) - detail archived
+- 26.9 DONE (custom error types) - detail archived
+- 26.10 DONE (typed capture, err.kind, match on error types) - detail archived
+- 26.11 DONE (typed catch) - detail archived
+- 26.12 DONE (built-in error types) - detail archived
+- **26.13 Docs + examples** - SYNTAX_REFERENCE sections, examples/errors_demo extended
+  (custom errors, match on error types, typed catch), spec "Error Handling", fusion.ebnf
+- **No central ERROR enum** (user agreed): one closed list can't grow when a module adds
+  its own errors; each error type is its own kind, with an optional default message
+- Every part: tests under the leak check
+
+#### Built-in error types (26.12) - a proposal for the user to review
+Every one is an `Error`; a parent catches its children (`catch LookupError e` catches both
+IndexError and KeyError). "today" = raised as a plain Error now; "NEW" = not an error yet.
+
+```text
+Error
+ +- ArithmeticError                     doing the math is impossible
+ |   +- DivideByZeroError     NEW       7 / 0 and 7 % 0 on whole numbers - today the
+ |   |                                  program crashes (C stops it); 7.0 / 0 is infinity
+ |   +- OverflowError         later     a whole number too big for int (2147483647 + 1
+ |                                      wraps silently today) - Task 27.2 decides
+ +- FormatError                         text in the wrong shape
+ |   +- NumberFormatError     today     toInt("12x"), toFloat, parseInt, fromHex
+ |   +- PatternError          today     formatNumber with a bad pattern
+ |   +- HexFormatError        today     hexToBytes / hexToRaw: not hex, odd digit count
+ |   +- TextEncodingError     today     bytes that aren't valid text (toString, readText
+ |                                      of a binary file, hexToBytes)
+ +- ValueError                          a value outside what's allowed
+ |   +- RangeError            today     toByte(300), fromCharCode(-5), base not 2-36,
+ |   |                                  setInt16 too big, a negative count / width
+ |   |                                  (left, right, repeat, padLeft, truncate, mask ...)
+ |   +- UnknownValueError     today     Color.fromString("Pink")
+ +- LookupError                         asking for something that isn't there
+ |   +- IndexError            today     s[9], xs[9], b[9], substring / slice / insert /
+ |   |                                  removeAt / remove outside the range, getInt room;
+ |   |                                  fixed arrays a[9]: NEW with Task 27.1
+ |   +- KeyError              today     m["missing"]
+ +- FileError (path)                    the file system said no
+ |   +- FileNotFoundError     today     readText / readBytes / readLines of a missing file
+ |   +- PermissionError       today     not allowed to open / write / delete
+ |   +- FileReadError         today     reading failed part way
+ |   +- FileWriteError        today     writing failed (disk full)
+ |   +- FileTooLargeError     today     a file over 2 GB
+ |   +- DeleteError           today     deleteFile failed (missing, in use)
+ +- LimitError                          bigger than Fusion allows
+     +- StringTooLongError    today     a string over [strings] max_length
+     +- ResultTooLargeError   today     a result over 2 GB (repeat, join, replace ...)
+
+Not catchable - the program stops at once, nothing can recover:
+     out of memory, a List past 536,870,911 elements,
+     endless recursion (stack overflow - today a crash; a depth check is a later task)
+
+Later, when the feature exists: NullError (Task 30), NetworkError / TimeoutError (a net
+module), ParseError (JSON / data modules), CancelledError (threads), AssertionError
+(an `assert` statement), NotSupportedError (a backend that can't do something)
+```
+
+#### Decisions (user, 2026-10-16)
+1. Declared with `error FileError` + fields; `error FileNotFound : FileError` extends one
+2. `Ship s, FileError err = f()` captures **any** error: err is a FileError only when it
+   is one - otherwise its own fields are empty. `err.kind` gives the error's type name
+   ("FileError", "Error", "IndexError") - user: yes; plus `match err` with error type names
+   as cases (compiler-checked, subtype-aware)
+3. Typed catches (`catch FileError e`) - user changed this: **now**, so there is a
+   working sample (26.11)
+5. An error type may give a default message; no central ERROR enum (user agreed)
+4. Built-in failures get their own types now: IndexError, KeyError, FormatError,
+   FileError (with `path`)
+
+---
+

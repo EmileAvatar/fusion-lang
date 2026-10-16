@@ -1,16 +1,23 @@
-// Errors: functions that can fail, capturing, try / catch / finally, throw and built-in
-// failures (Task 26.6). Run it with the argument "uncaught" to see an error nobody catches
+// Errors: functions that can fail, capturing, try / catch / finally, throw, error types and
+// built-in failures (Tasks 26.6, 26.13). Run it with the argument "uncaught" to see an error
+// nobody catches
 struct Setting
     string name
     int value
 
+error SettingError                             // a custom error type (Task 26.9)
+    string line
+
+error NoNameError : SettingError
+    message = "A setting needs a name"
+
 Setting, Error function parseSetting(string line)
     List<string> parts = split(line, "=")
     if parts.len() != 2
-        return Error("Not 'name=value': {line}", 1)
+        return SettingError("Not 'name=value'", 1, line)
     string name = parts[0].trim()
     if name.isEmpty()
-        return Error("No name in: {line}", 2)
+        return NoNameError(code = 2, line = line)
     int value = toInt(parts[1].trim())         // "12x": a built-in failure - it bubbles up
     return Setting(name, value)
 
@@ -23,19 +30,32 @@ int function total(List<string> lines)
 
 void function main(string... args)
     for line in ["width = 80", "height=24", "depth", "=5", "size = 12x"]
-        Setting s, Error err = parseSetting(line)
-        if err
-            print("skip ({@1}): {err}", err.code)
-            continue
-        print("{s.name} = {s.value}")
+        Setting s, err = parseSetting(line)
+        match err                              // on the error's type
+            case NoNameError: print("skip ({@1}): {err} - '{err.line}'", err.code)
+            case SettingError: print("skip ({@1}): {err}: {err.line}", err.code)
+            case NumberFormatError: print("skip: {err.kind}: {err}")
+            else: print("{s.name} = {s.value}")
 
     try
         print("total: {@1}", total(["a=1", "b=2"]))
         print("total: {@1}", total(["a=1", "b=oops"]))
+    catch SettingError err                     // typed catches: the first that matches
+        print("bad setting: {err}")
     catch err
-        print("total failed: {err}")
+        print("total failed: {err.kind}: {err}")
     finally
         print("totals done")
+
+    int zero = 0
+    try
+        print("{@1}", readText("no_such_settings.txt"))
+    catch FileNotFoundError err                // Fusion's own error types (Task 26.12)
+        print("{err.kind}: {err.path}")
+    try
+        print("{@1}", 10 / zero)
+    catch ArithmeticError err
+        print("{err.kind}: {err}")
 
     if len(args) > 0 and args[0] == "uncaught"
         throw Error("nobody catches this")     // stops the program: exit code 1
