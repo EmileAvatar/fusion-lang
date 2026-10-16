@@ -101,8 +101,18 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[ ] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`; `match err`
 		with error type names as cases (subtype-aware, the type's own fields inside)
 	[ ] 26.11 Typed catch: `catch FileError e` ... `catch e`
-	[ ] 26.12 Built-in error types (ArithmeticError, FormatError, ValueError, LookupError, FileError,
-		LimitError and their children); new: integer division by zero is a DivideByZeroError
+	[ ] 26.12 Built-in error types - every one is an Error, a parent catches its children
+		(full list with examples: taskSummary2.md "Built-in error types"):
+		[ ] ArithmeticError: DivideByZeroError - NEW check: 7 / 0 and 7 % 0 crash today
+		[ ] FormatError: NumberFormatError (toInt("12x")), PatternError (formatNumber),
+			HexFormatError (hexToBytes), TextEncodingError (bytes that aren't text)
+		[ ] ValueError: RangeError (toByte(300), negative counts, base), UnknownValueError
+			(Color.fromString("Pink"))
+		[ ] LookupError: IndexError (s[9], xs[9], b[9], slice ...), KeyError (m["missing"])
+		[ ] FileError (path): FileNotFoundError, PermissionError, FileReadError, FileWriteError,
+			FileTooLargeError, DeleteError
+		[ ] LimitError: StringTooLongError (max_length), ResultTooLargeError (over 2 GB)
+		(not catchable by design: out of memory, a List past 536,870,911 elements)
 	[ ] 26.13 Docs + examples
 	[DONE] Error handling example (was 16.5) - examples/errors_demo (26.6)
 
@@ -117,6 +127,11 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		`=` in conditions with its ambiguous cases tested, Unicode indexing (code points, not
 		what a reader sees as one symbol), integer conversions and overflow, changing a
 		collection while looping over it, cleanup on every path (early return, break, exit)
+	[ ] 27.2b OverflowError: whole-number arithmetic that doesn't fit (2147483647 + 1 wraps
+		silently today - against "never change values silently"); decide the cost of checking
+		every + - * (user, 2026-10-16)
+	[ ] 27.2c Endless recursion: a stack overflow crashes today - a depth check that raises a
+		catchable error (user, 2026-10-16)
 	[ ] 27.3 Interaction tests: features together - a struct holding lists, copied, passed
 		through functions and across modules; nested collections; early returns
 	[ ] 27.4 Block-style equivalence: the same app written 3 times - indentation, braces,
@@ -149,6 +164,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 
 #### 30 Nullable values & safe navigation (`?.`, `?[`, `.length`) (was 14) [ ]
 	[ ] 30.1 Nullability model decision
+	[ ] 30.1b NullError: using a value that holds nothing (the "divide by null" case) - an Error
+		subtype (Task 26 error list, 2026-10-16)
 	[ ] 30.2 Compile-time null-flow analysis
 	[ ] 30.3 `.` / `?.` / `?[` parser support (the `.` part exists since 18.2.1)
 	[ ] 30.4 Runtime null-check codegen
@@ -281,6 +298,10 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use
+	[POSTPONED - with each feature] More error types (Task 26 list, 2026-10-16): NetworkError /
+		TimeoutError (a network module), ParseError (JSON / data modules), CancelledError
+		(threads), AssertionError (an `assert` statement), NotSupportedError (a backend that
+		can't do something) - each an Error subtype
 	[POSTPONED - after MVP] Per-field string sizes (`string(255) name`) to match database columns
 	[POSTPONED - needs references] Identity operator (same object in memory)
 	[POSTPONED - after MVP] Multi-dimensional arrays (growable lists: done, 18.5.1)
