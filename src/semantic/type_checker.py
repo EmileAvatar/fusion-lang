@@ -2146,13 +2146,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             self._check_array_return(node)
         elif node.value:
             return_type = self._visit_value_for(self.current_function_return_type, node.value)
-            if isinstance(return_type, ErrorType) and self.current_function_returns_error:
-                node.raises = True     # `return Error(...)` - the function fails (Task 26)
-                return
             if isinstance(return_type, ErrorType):
-                self.errors.append(SemanticError(
-                    "This function can't fail - declare it 'T, Error function' (or 'Error "
-                    "function') to return an Error, or throw it", node.location))
+                # `return Error(...)` - the function fails. Allowed in any function: `, Error`
+                # in the signature is only a marker (user decision 2026-10-16, Task 26.7)
+                node.raises = True
                 return
             if not self.types_compatible(self.current_function_return_type, return_type):
                 self.errors.append(SemanticError(

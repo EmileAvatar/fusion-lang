@@ -94,7 +94,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 26.6 Example examples/errors_demo (capture, bubbling, try / catch / finally, built-in
 		failures; the argument "uncaught" shows one nobody catches) + docs
 	(part 2 - user request 2026-10-16)
-	[ ] 26.7 Implicit errors: `return Error(...)` in any function; `T, Error function` an optional marker
+	[DONE] 26.7 Implicit errors: `return Error(...)` in any function; `T, Error function` an optional
+		marker (shown by --interface; marked but can't fail: a warning)
 	[ ] 26.8 Capture without a type: `Ship s, err = f()`
 	[ ] 26.9 Custom error types: `error FileError` + fields, `error FileNotFound : FileError`, a
 		default message

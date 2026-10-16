@@ -4665,3 +4665,12 @@ design; stack traces; `err.cause` chains
 
 ---
 
+
+---
+
+#### Task 26.7 - implicit errors (COMPLETE 2026-10-16)
+
+- **26.7 Implicit errors** - `return Error(...)` in any function (it then can fail, as
+  with throw); `T, Error function` stays valid as a marker, shown by `--interface`; a
+  function marked `, Error` that can never fail gets a warning. `[errors] returns` still
+  switches Go-style returns / capturing off

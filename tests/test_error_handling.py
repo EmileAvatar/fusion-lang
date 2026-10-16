@@ -147,7 +147,6 @@ def test_programs_without_errors_get_no_checks():
 
 
 @pytest.mark.parametrize("source, message", [
-    ('int function f()\n    return Error("x")\n', "This function can't fail - declare it 'T, Error function'"),
     ('Error, Error function f()\n    return Error("x")\n', "a function that can fail is 'T, Error function'"),
     ('void function f()\n    Error e = Error(1)\n', "Error(...) needs a string message, got int"),
     ('void function f()\n    Error e = Error("a", "b")\n', "Error(...) needs a int code, got string"),
@@ -420,7 +419,7 @@ def test_turning_error_returns_off():
     assert "'half' returns an Error - error returns is turned off for this project " \
            "([errors] returns = false in fusion.toml)" in errors
     assert "Capturing an error is turned off" in errors
-    assert 'try' not in errors and 'throw' not in errors
+    assert 'try / catch' not in errors and 'throw is turned off' not in errors
 
 
 def test_turning_exceptions_off():
@@ -440,3 +439,47 @@ def test_errors_section_in_fusion_toml(tmp_path):
         (tmp_path / 'fusion.toml').write_text(text)
         with pytest.raises(ProjectConfigError, match=message):
             load_project_config(source)
+
+
+# ---------------------------------------------------------------- 26.7 implicit errors
+
+def test_any_function_can_return_an_error():
+    assert run_ok(
+        'int function half(int n)\n'                 # not marked - `, Error` is optional
+        '    if n % 2 == 1\n'
+        '        return Error("odd")\n'
+        '    return n / 2\n'
+        + 'int function twice(int n)\n'
+        '    return half(n) * 2\n'                    # passes it on
+        + main(
+            'int a, Error e1 = twice(8)\n'
+            'int b, Error e2 = twice(3)\n'
+            'print("{a} {@1} {b} {e2}", not e1)')
+    ) == ['8 true 0 odd']
+
+
+def test_a_marked_function_that_cannot_fail_is_a_warning():
+    from tests.test_structs import warnings_of
+    text = warnings_of('int, Error function add(int a, int b)\n    return a + b\n'
+                       + 'int, Error function parsed(string s)\n    return toInt(s)\n'
+                       + main('print("{@1} {@2}", add(1, 2), parsed("3"))'))
+    assert "'add' is marked as able to fail (', Error'), but nothing in it can give an error" in text
+    assert "'parsed'" not in text
+
+
+def test_returning_an_error_with_error_returns_off():
+    assert "Returning an Error is turned off for this project ([errors] returns = false" in \
+        errors_with('int function f()\n    return Error("x")\n' + main('print("x")'), returns=False)
+
+
+def test_the_interface_shows_the_marker(tmp_path):
+    from src.modules import program_interfaces
+    (tmp_path / 'ships').mkdir()
+    (tmp_path / 'ships' / 'ships.fusion').write_text(
+        'public int, Error function load(string name)\n    return Error("no")\n'
+        'public int function size(string name)\n    return 1\n')
+    (tmp_path / 'main.fusion').write_text('import ships\nvoid function main()\n    print("x")\n')
+    lines, errors = program_interfaces(str(tmp_path / 'main.fusion'))
+    assert not errors
+    assert '    public int, Error function load(string name)' in lines
+    assert '    public int function size(string name)' in lines

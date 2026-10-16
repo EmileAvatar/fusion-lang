@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl
 from .enums import normalize_enums, check_holding_loops
-from .error_rules import normalize_errors, check_error_settings
+from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
 from .symbol_table import SymbolTable
@@ -174,6 +174,7 @@ class SemanticAnalyzer:
         # Return success if no errors
         # Ways of handling errors the project turned off (Task 26.5)
         self.errors.extend(check_error_settings(ast, self.errors_config))
+        self.warnings.extend(marked_but_cannot_fail(ast))   # Task 26.7
         return len(self.errors) == 0
 
     def check_structs_settings(self, structs: List[StructDecl]) -> None:

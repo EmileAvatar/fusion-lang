@@ -414,7 +414,8 @@ def module_interface(module: Module) -> List[str]:
                 elif p.default_value is not None:
                     text += ' = ...'
                 params.append(text)
-            lines.append(f'    public {type_text(decl.return_type, module.id)} function '
+            marker = ', Error' if decl.returns_error else ''    # can fail (Task 26.7)
+            lines.append(f'    public {type_text(decl.return_type, module.id)}{marker} function '
                          f'{name}({", ".join(params)})')
     return lines
 

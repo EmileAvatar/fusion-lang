@@ -62,10 +62,7 @@ catch e                                      // any other error
 ```
 
 #### Sub-tasks (updated 2026-10-16 after the user's review)
-- **26.7 Implicit errors** - `return Error(...)` in any function (it then can fail, as
-  with throw); `T, Error function` stays valid as a marker, shown by `--interface`; a
-  function marked `, Error` that can never fail gets a warning. `[errors] returns` still
-  switches Go-style returns / capturing off
+- 26.7 DONE (implicit errors) - detail archived
 - **26.8 Capture without a type** - `Ship s, err = f()`; `Ship s, Error err` still works.
   A call with no value keeps `Error err = save(s)` (a bare `err = save(s)` would read as an
   assignment)
@@ -211,4 +208,5 @@ Kept under Task 22 until the renumbering is approved.
 - Task 26 part 2 planned, 4 questions answered
 - Plan updated (default message, match on error types, typed catch now, built-in
   error type list)
-- **Next Action:** user to review the built-in error list, then 26.7
+- 26.7 done
+- **Next Action:** 26.8 capture without a type

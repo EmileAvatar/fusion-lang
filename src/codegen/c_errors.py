@@ -161,8 +161,8 @@ class ErrorsMixin:
             return False   # a lambda is its own function
         if self.expr_can_fail(node, failing):
             return True
-        if isinstance(node, ThrowStmt):
-            return True
+        if isinstance(node, ThrowStmt) or getattr(node, 'raises', False):
+            return True    # throw, or `return Error(...)` in any function (Task 26.7)
         if isinstance(node, CallExpr) and isinstance(node.callee, IdentifierExpr):
             # walk only the arguments - the callee is a name, not a call
             return self._calls_failing(node.arguments, failing)

@@ -2,8 +2,8 @@ struct Ship
     string name
     int crew
 
-Ship, Error function loadShip(string name)   // a function that can fail
-    if name == ""
+Ship, Error function loadShip(string name)   // `, Error` marks it as able to fail -
+    if name == ""                            // optional: any function may return an Error
         return Error("No name given", 400)   // a message, and optionally a code
     return Ship(name, 3)
 

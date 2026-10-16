@@ -3083,8 +3083,10 @@ function - a function that throws can fail, so its callers check it. A capture
   printing it prints the message. There is no `null`: a captured Error with no error has an
   empty message, and `if err` / `not err` test whether there is one - the one non-bool
   allowed as a condition
-* `Ship, Error function loadShip(...)` can fail: `return Error(...)` fails (the Ship part
-  is its default), `return ship` succeeds. `Error function save(...)` is a function with no
+* Any function can fail: `return Error(...)` fails (the value part is its default),
+  `return ship` succeeds. Writing `Ship, Error function loadShip(...)` only marks it as able
+  to fail (Task 26.7, user decision 2026-10-16) - `--interface` shows the marker, and a
+  marked function with nothing in it that could fail gets a warning. `Error function save(...)` is a function with no
   value that can fail. `return err` passes a captured error on
 * `Ship s, Error err = loadShip(f)` captures the error of any call - including any error
   raised while evaluating the right side; `Error e = save(s)` when there's no value to keep

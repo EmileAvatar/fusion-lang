@@ -99,6 +99,10 @@ def check_error_settings(program: ProgramNode, config) -> List[SemanticError]:
         if not is_dataclass(node) or isinstance(node, type):
             return
         if not config.returns:
+            if type(node).__name__ == 'ReturnStmt' and getattr(node, 'raises', False):
+                errors.append(SemanticError(
+                    f"Returning an Error {off.format(key='returns')} - throw it instead",
+                    node.location))
             if isinstance(node, FunctionDecl) and node.returns_error:
                 errors.append(SemanticError(
                     f"'{node.name}' returns an Error - error returns {off.format(key='returns')}",
@@ -115,6 +119,27 @@ def check_error_settings(program: ProgramNode, config) -> List[SemanticError]:
 
     walk(program.declarations)
     return errors
+
+
+def marked_but_cannot_fail(program: ProgramNode) -> List[SemanticError]:
+    """A function marked `, Error` with nothing in it that could fail: a warning (Task 26.7).
+    Anything that might fail - a throw, `return Error(...)`, a call, an index, fromString -
+    counts, so this never warns wrongly."""
+    def might_fail(node) -> bool:
+        if isinstance(node, list):
+            return any(might_fail(item) for item in node)
+        if not is_dataclass(node) or isinstance(node, type):
+            return False
+        if isinstance(node, (ThrowStmt, CallExpr)) or type(node).__name__ in (
+                'IndexExpr', 'EnumStaticCall') or getattr(node, 'raises', False):
+            return True
+        return any(might_fail(getattr(node, f.name)) for f in dataclass_fields(node)
+                   if f.name not in _SKIP_FIELDS)
+
+    return [SemanticError(f"'{d.name}' is marked as able to fail (', Error'), but nothing in it "
+                          f"can give an error", d.location)
+            for d in program.declarations
+            if isinstance(d, FunctionDecl) and d.returns_error and not might_fail(d.body)]
 
 
 class ErrorRulesMixin:
