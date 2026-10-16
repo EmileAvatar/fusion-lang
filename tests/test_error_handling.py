@@ -294,3 +294,97 @@ def test_try_type_errors(body, message):
 def test_try_parse_errors(body, message):
     with pytest.raises(Exception, match=message):
         errors_of(main(body))
+
+
+# ---------------------------------------------------------------- 26.4 every built-in failure catchable
+
+@pytest.mark.parametrize("expression, message", [
+    ('"abc"[5]', "index 5 is outside the string (length 3)"),
+    ('substring("abc", 2, 5)', "substring(start 2, count 5) is outside the string"),
+    ('toInt("12x")', "'12x' is not a whole number"),
+    ('toFloat("x")', "'x' is not a number"),
+    ('parseInt("10", 99)', "base 99 is not between 2 and 36"),
+    ('toHex("12x")', "'12x' is not a whole number"),
+    ('formatNumber(2.5, "#,##0.0" + ".0")', "invalid number pattern"),   # made while running
+    ('left("abc", -1)', "left(-1): the count can't be negative"),
+    ('repeat("ab", -2)', "repeat(-2): the count can't be negative"),
+    ('hexToBytes("6g")', "is not hex text"),
+    ('fromCharCode(-5)', "-5 is not a Unicode character code"),
+    ('toByte(300)', "300 doesn't fit in a byte"),
+    ('readText("no_such_file_26_4.txt")', "readText: can't open 'no_such_file_26_4.txt'"),
+    ('toString(hexToRaw("ff"))', "bytes are not valid text"),
+    ('Color.fromString("Pink")', '"Pink" is not a value of enum Color'),
+])
+def test_a_built_in_failure_is_captured(expression, message):
+    lines = run_ok('enum Color: Red Green\n' + main(
+        f'try\n'
+        f'    print("{{@1}}", {expression})\n'
+        f'    print("not reached")\n'
+        f'catch err\n'
+        f'    print(err.message)'))
+    assert len(lines) == 1 and message in lines[0], lines
+
+
+def test_collection_failures_are_caught():
+    assert run_ok(main(
+        'List<string> xs = ["a", "b"]\n'
+        'Map<string, List<int>> m\n'
+        'bytes b = toBytes("hi")\n'
+        'for step in range(0, 9)\n'
+        '    try\n'
+        '        match step\n'
+        '            case 0: print(xs[7])\n'
+        '            case 1: xs[7] = "c"\n'
+        '            case 2: xs.insert(9, "d")\n'
+        '            case 3: xs.removeAt(-1)\n'
+        '            case 4: print("{@1}", xs.slice(1, 5).len())\n'
+        '            case 5: print("{@1}", m["none"].len())\n'
+        '            case 6: m["none"][0] = 1\n'
+        '            case 7: b[5] = 0x41\n'
+        '            else: print("{@1}", getInt(b, 0))\n'
+        '    catch err\n'
+        '        print("{step}: {err}")\n'
+        'print("{@1} {@2}", xs.len(), m.len())'
+    )) == ['0: index 7 is outside the list (length 2)', '1: index 7 is outside the list (length 2)',
+           '2: insert(position 9) is outside the list (length 2)',
+           '3: removeAt(-1) is outside the list (length 2)',
+           '4: slice(start 1, count 5) is outside the list (length 2)',
+           '5: key "none" is not in the map', '6: key "none" is not in the map',
+           '7: byte 5 is outside the bytes (length 2)',
+           '8: getInt(at 0) needs 4 bytes there, but the bytes have length 2', '2 0']
+
+
+def test_a_failing_function_given_to_a_list_method():
+    assert run_ok(
+        'int, Error function check(int n)\n'
+        '    if n == 3\n'
+        '        return Error("three")\n'
+        '    return n\n'
+        + main(
+            'List<int> xs = [1, 2, 3, 4]\n'
+            'List<int> kept, Error err = xs.filter(func(int n) : check(n) > 1)\n'
+            'print("{@1} {err}", kept.len())')
+    ) == ['0 three']
+
+
+def test_an_uncaught_built_in_failure_stops_like_before():
+    lines, stderr = run_failing(main(
+        'string held = "x" + "y"\n'
+        'List<string> xs = [held]\n'
+        'print(xs[0])\n'
+        'print(xs[3])\n'
+        'print("never")'
+    ))
+    assert lines == ['xy']
+    assert 'Runtime error at test.fusion:5: index 3 is outside the list (length 1)' in stderr
+
+
+def test_a_built_in_failure_bubbles_out_of_functions():
+    assert run_ok(
+        'int function third(List<int> xs)\n'
+        '    string note = "looking"\n'
+        '    return xs[2]\n'
+        + main(
+            'int n, Error err = third([1])\n'
+            'print("{n} {err} at {@1}", err.where)')
+    ) == ['0 index 2 is outside the list (length 1) at test.fusion:3']

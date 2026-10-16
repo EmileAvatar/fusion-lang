@@ -108,10 +108,33 @@ static inline void fusion_init(int argc, char** argv) {
         atexit(fusion_wait_for_key);
 }
 
+// Errors (Task 26): an error travels in fusion_err while fusion_failed is set - declared
+// here so every run-time error can raise one; the rest is in the errors part further down
+typedef struct { int active; int code; fusion_string message; fusion_string where; int runtime; } fusion_error;
+static fusion_error fusion_err;
+static int fusion_failed = 0;
+static inline void fusion_raise_text(const char* where, const char* text, int len);
+
+// A run-time error (an index out of range, text that isn't a number, a file that won't
+// open, ...) is an Error like any other since Task 26.4: it can be captured or caught, and
+// one nobody handles stops the program at the end of main. The function that raised it
+// returns a safe value at once; the generated code checks right after the call
 static inline void fusion_runtime_error(const char* where, const char* format, ...) {
+    char text[512];
+    va_list args;
+    va_start(args, format);
+    int n = vsnprintf(text, sizeof text, format, args);
+    va_end(args);
+    if (n < 0) n = 0;
+    if (n >= (int)sizeof text) n = (int)sizeof text - 1;
+    fusion_raise_text(where, text, n);
+}
+
+// A failure nothing can recover from - out of memory: stop at once
+static inline void fusion_fatal(const char* format, ...) {
     va_list args;
     fflush(stdout);
-    fprintf(stderr, "Runtime error%s%s: ", where ? " at " : "", where ? where : "");
+    fprintf(stderr, "Runtime error: ");
     va_start(args, format);
     vfprintf(stderr, format, args);
     va_end(args);
@@ -124,13 +147,13 @@ static inline void fusion_runtime_error(const char* where, const char* format, .
 
 static inline void* fusion_alloc(size_t size) {
     void* p = malloc(size);
-    if (!p) fusion_runtime_error(NULL, "out of memory");
+    if (!p) fusion_fatal("out of memory");
 #ifdef FUSION_LEAK_CHECK
     if (!fusion_leak_ready) { fusion_leak_ready = 1; atexit(fusion_leak_report); }
     if (fusion_live_count == fusion_live_cap) {
         fusion_live_cap = fusion_live_cap ? fusion_live_cap * 2 : 64;
         fusion_live = (void**)realloc(fusion_live, (size_t)fusion_live_cap * sizeof(void*));
-        if (!fusion_live) fusion_runtime_error(NULL, "out of memory");
+        if (!fusion_live) fusion_fatal("out of memory");
     }
     fusion_live[fusion_live_count++] = p;
 #endif
@@ -271,13 +294,15 @@ static inline fusion_string fusion_str_concat_char(fusion_string a, fusion_char 
 static inline fusion_string fusion_char_concat_str(fusion_char c, fusion_string b) { char buf[4]; return fusion_str_concat(fusion_char_view(c, buf), b); }
 
 static inline fusion_char fusion_str_at(fusion_string s, int i, const char* where) {
-    if (i < 0 || i >= s.chars) fusion_runtime_error(where, "index %d is outside the string (length %d)", i, s.chars);
+    if (i < 0 || i >= s.chars) { fusion_runtime_error(where, "index %d is outside the string (length %d)", i, s.chars); return 0; }
     return fusion_utf8_decode(s.data + fusion_utf8_offset(s, i));
 }
 
 static inline fusion_string fusion_str_substring(fusion_string s, int start, int count, const char* where) {
-    if (start < 0 || count < 0 || start > s.chars || count > s.chars - start)
+    if (start < 0 || count < 0 || start > s.chars || count > s.chars - start) {
         fusion_runtime_error(where, "substring(start %d, count %d) is outside the string (length %d)", start, count, s.chars);
+        return FUSION_STR("");
+    }
     int from = fusion_utf8_offset(s, start);
     return fusion_str_make(s.data + from, fusion_utf8_offset(s, start + count) - from);
 }
@@ -325,14 +350,14 @@ static inline fusion_string fusion_str_asciiOnly(fusion_string s, fusion_char re
 static inline int fusion_charCode(fusion_char c) { return (int)c; }
 static inline fusion_char fusion_fromCharCode(int code, const char* where) {
 #ifdef FUSION_ASCII
-    if (code < 0 || code > 0x7F) fusion_runtime_error(where, "%d is not an ASCII character code (the project uses ascii encoding)", code);
+    if (code < 0 || code > 0x7F) { fusion_runtime_error(where, "%d is not an ASCII character code (the project uses ascii encoding)", code); return 0; }
 #else
-    if (code < 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) fusion_runtime_error(where, "%d is not a Unicode character code", code);
+    if (code < 0 || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) { fusion_runtime_error(where, "%d is not a Unicode character code", code); return 0; }
 #endif
     return (fusion_char)code;
 }
 static inline int fusion_str_byteAt(fusion_string s, int i, const char* where) {
-    if (i < 0 || i >= s.len) fusion_runtime_error(where, "byte %d is outside the string (%d bytes)", i, s.len);
+    if (i < 0 || i >= s.len) { fusion_runtime_error(where, "byte %d is outside the string (%d bytes)", i, s.len); return 0; }
     return (unsigned char)s.data[i];
 }
 static inline bool fusion_str_contains(fusion_string s, fusion_string part) { return fusion_str_indexOf(s, part) >= 0; }
@@ -386,12 +411,12 @@ static inline bool fusion_str_isInt(fusion_string s) { int v; return fusion_pars
 static inline bool fusion_str_isFloat(fusion_string s) { double v; return fusion_parse_float(s, &v); }
 static inline int fusion_str_toInt(fusion_string s, const char* where) {
     int v;
-    if (!fusion_parse_int(s, &v)) fusion_runtime_error(where, "'%.*s' is not a whole number (check with isInt first)", s.len, s.data);
+    if (!fusion_parse_int(s, &v)) { fusion_runtime_error(where, "'%.*s' is not a whole number (check with isInt first)", s.len, s.data); return 0; }
     return v;
 }
 static inline float fusion_str_toFloat(fusion_string s, const char* where) {
     double v;
-    if (!fusion_parse_float(s, &v)) fusion_runtime_error(where, "'%.*s' is not a number (check with isFloat first)", s.len, s.data);
+    if (!fusion_parse_float(s, &v)) { fusion_runtime_error(where, "'%.*s' is not a number (check with isFloat first)", s.len, s.data); return 0; }
     return (float)v;
 }
 // Equality across types (Task 18.3.5): a number equals text holding that number (text that

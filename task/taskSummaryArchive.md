@@ -4559,3 +4559,14 @@ In C: the try body jumps to fusion_catch_N / fusion_finerr_N; finally is copied 
 - **26.3 try / catch / finally / throw** - one `catch err` catching any error (kinds via
   `err.code`, or an enum code later), `throw` / rethrow, `finally` always runs (also on
   return / break); nesting; all three block styles
+
+---
+
+#### Task 26.4 - built-in failures catchable (COMPLETE 2026-10-16)
+
+fusion_runtime_error now raises and returns; each of ~60 runtime sites returns a safe value (fusion_checked_size -1, fusion_check_base / fusion_bytes_room false, file helpers NULL); out of memory is fusion_fatal. A call is checked when its C function takes `where`; a new value a failed call handed back is freed.
+
+- **26.4 Every built-in failure becomes catchable** (user: all of them): text to number,
+  files, `Enum.fromString`, a missing Map key, an index out of range, a string over its
+  max_length, a list too large, ... - each C runtime error returns with a safe value and
+  the error set, instead of exiting (about 60 places)

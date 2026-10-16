@@ -82,10 +82,7 @@ void function main()
 - **26.1** this plan
 - 26.2 DONE (Error and error returns) - detail archived
 - 26.3 DONE (try / catch / finally / throw) - detail archived
-- **26.4 Every built-in failure becomes catchable** (user: all of them): text to number,
-  files, `Enum.fromString`, a missing Map key, an index out of range, a string over its
-  max_length, a list too large, ... - each C runtime error returns with a safe value and
-  the error set, instead of exiting (about 60 places)
+- 26.4 DONE (every built-in failure catchable) - detail archived
 - **26.5 Config** - `[errors] returns / exceptions` in fusion.toml
 - **26.6 Example + docs** - SYNTAX_REFERENCE section, an example program (catch an error,
   and show one nobody catches - was 16.5), spec "Error Handling" as built, fusion.ebnf
@@ -152,4 +149,5 @@ Kept under Task 22 until the renumbering is approved.
 - Task 26 plan approved (bubble up, capture any call, all built-ins catchable, one catch)
 - 26.2 done
 - 26.3 done
-- **Next Action:** 26.4 every built-in failure catchable
+- 26.4 done
+- **Next Action:** 26.5 config switches

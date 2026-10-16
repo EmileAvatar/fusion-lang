@@ -27,21 +27,31 @@ try / catch / finally (26.3):
 Which functions can fail is worked out first (failing_functions): one declared `T, Error`
 or `Error function`, and - repeated until nothing changes - one calling a function that can
 fail, or calling through a function value. Calls that can't fail get no check.
+
+Built-ins (26.4): every run-time error is an Error too. A runtime C function takes a
+`where` argument exactly when it can report one - so those calls, s[i] / xs[i] / m[k] /
+b[i], element writes and Enum.fromString are checked the same way. (With [strings]
+max_length set, every expression making a string can fail.)
 """
 
 from dataclasses import fields as dataclass_fields, is_dataclass
 
-from src.parser.ast_nodes import (ArrayType, CallExpr, ErrorMakeExpr, ErrorType, FunctionDecl,
-                                  FunctionType, IdentifierExpr, LambdaExpr, PrimitiveType,
-                                  ThrowStmt)
+from src.parser.ast_nodes import (ArrayType, BinaryExpr, CallExpr, ErrorMakeExpr, ErrorType,
+                                  FunctionDecl, FunctionType, IdentifierExpr, IndexExpr,
+                                  InterpolatedStringExpr, LambdaExpr, ListType, MapType,
+                                  PrimitiveType, ThrowStmt)
+
+# List methods whose C function takes `where` - they report errors (Task 26.4)
+_FAILING_LIST_METHODS = ('insert', 'removeAt', 'slice')
+# List methods that call a function given to them - it may fail
+_CALLING_LIST_METHODS = ('sortBy', 'filter', 'map', 'reduce')
 
 ERRORS_LIBRARY = r'''
 // ---- Errors (Task 26) - an error travels in fusion_err while fusion_failed is set ----
-typedef struct { int active; int code; fusion_string message; fusion_string where; } fusion_error;
-static fusion_error fusion_err;
-static int fusion_failed = 0;
+// (fusion_error, fusion_err and fusion_failed are declared at the top of the runtime)
 static inline fusion_error fusion_error_make(fusion_string message, int code, fusion_string where) {
-    fusion_error e; e.active = 1; e.code = code; e.message = message; e.where = where; return e;
+    fusion_error e; e.active = 1; e.code = code; e.message = message; e.where = where; e.runtime = 0;
+    return e;
 }
 static inline fusion_error fusion_error_copy(fusion_error e) {
     e.message = fusion_str_copy(e.message); e.where = fusion_str_copy(e.where); return e;
@@ -53,8 +63,27 @@ static inline void fusion_error_set(fusion_error* dst, fusion_error v) { fusion_
 static inline const char* fusion_error_text(fusion_error e) { return e.message.data ? e.message.data : ""; }
 // Start an error on its way (an Error holding none changes nothing)
 static inline void fusion_raise(fusion_error e) {
-    if (!e.active) { fusion_error_free(&e); return; }
+    if (!e.active || fusion_failed) { fusion_error_free(&e); return; }   // the first one travels
     fusion_error_free(&fusion_err); fusion_err = e; fusion_failed = 1;
+}
+// A run-time error (fusion_runtime_error): its text, and where it happened
+static inline fusion_string fusion_error_string(const char* text, int len) {
+    // Built directly - an error's own text is never held to [strings] max_length
+    fusion_string r;
+    r.data = (char*)fusion_alloc((size_t)len + 1);
+    if (len > 0) memcpy(r.data, text, (size_t)len);
+    r.data[len] = '\0'; r.len = len; r.chars = fusion_utf8_count(text, len); r.owned = 1;
+    return r;
+}
+static inline void fusion_raise_text(const char* where, const char* text, int len) {
+    fusion_error e = fusion_error_make(fusion_error_string(text, len), 0, FUSION_STR(""));
+    if (where) {
+        int n = 0;
+        while (where[n]) n++;
+        e.where = fusion_error_string(where, n);
+    }
+    e.runtime = 1;
+    fusion_raise(e);
 }
 // Take the travelling error - it stops travelling (none: an Error holding none)
 static inline fusion_error fusion_take_error(void) {
@@ -64,8 +93,8 @@ static inline fusion_error fusion_take_error(void) {
 static inline void fusion_uncaught(void) {
     fusion_error e = fusion_take_error();
     fflush(stdout);
-    fprintf(stderr, "Error%s%s: %s\n", e.where.len ? " at " : "", e.where.len ? e.where.data : "",
-            fusion_error_text(e));
+    fprintf(stderr, "%s%s%s: %s\n", e.runtime ? "Runtime error" : "Error", e.where.len ? " at " : "",
+            e.where.len ? e.where.data : "", fusion_error_text(e));
     fusion_error_free(&e);
     exit(1);
 }
@@ -130,7 +159,7 @@ class ErrorsMixin:
             return any(self._calls_failing(item, failing) for item in node)
         if not is_dataclass(node) or isinstance(node, type) or isinstance(node, LambdaExpr):
             return False   # a lambda is its own function
-        if isinstance(node, CallExpr) and self.call_can_fail(node, failing):
+        if self.expr_can_fail(node, failing):
             return True
         if isinstance(node, ThrowStmt):
             return True
@@ -142,11 +171,45 @@ class ErrorsMixin:
                    if f.name not in ('location', 'inferred_type', 'scope', 'declaration',
                                      'callee_declaration', 'resolved_arguments'))
 
+    def expr_can_fail(self, node, failing=None) -> bool:
+        """True for an expression that can raise an error (Task 26.4)."""
+        if isinstance(node, CallExpr):
+            return self.call_can_fail(node, failing)
+        if isinstance(node, IndexExpr):
+            kind = getattr(node.array, 'inferred_type', None)
+            return isinstance(kind, (ListType, MapType)) or (
+                isinstance(kind, PrimitiveType) and kind.name in ('string', 'bytes'))
+        if type(node).__name__ == 'EnumStaticCall':
+            return node.method == 'fromString'
+        if isinstance(node, (BinaryExpr, InterpolatedStringExpr)):
+            return self._makes_limited_string(node)
+        return False
+
+    def _makes_limited_string(self, node) -> bool:
+        """With [strings] max_length set, a new string can be too long."""
+        kind = getattr(node, 'inferred_type', None)
+        return getattr(self, 'max_length', None) is not None and isinstance(kind, PrimitiveType) \
+            and kind.name == 'string' and (not isinstance(node, BinaryExpr) or node.operator == '+')
+
     def call_can_fail(self, node: CallExpr, failing=None) -> bool:
         failing = self.failing_functions if failing is None else failing
         declaration = getattr(node, 'callee_declaration', None)
         if isinstance(declaration, FunctionDecl):
             return declaration.name in failing
+        list_method = getattr(node, 'list_method', None)
+        if list_method in _FAILING_LIST_METHODS:
+            return True
+        if list_method in _CALLING_LIST_METHODS:
+            return getattr(self, 'value_calls_fail', True)
+        if list_method is not None or getattr(node, 'map_method', None):
+            return False
+        if isinstance(node.callee, IdentifierExpr) and node.callee.name in self._STRING_BUILTINS \
+                and not isinstance(getattr(node.callee, 'inferred_type', None), FunctionType):
+            name = node.callee.name
+            arguments = node.resolved_arguments or node.arguments
+            if name == 'toString' and arguments and self._is_bytes(arguments[0]):
+                return True                       # bytes that aren't valid text
+            return self._STRING_BUILTINS[name][1] or self._makes_limited_string(node)
         if not isinstance(node.callee, IdentifierExpr) or \
                 isinstance(getattr(node.callee, 'inferred_type', None), FunctionType):
             # A call through a function value - it may be a function that fails
@@ -211,15 +274,27 @@ class ErrorsMixin:
             return [f'return ({wrapper}){{{self._default_value_code(return_type)}}};']
         return [f'return {self._default_value_code(return_type)};']
 
-    def checked_call(self, code: str, node: CallExpr) -> str:
-        """A call that can fail, checked right after it runs."""
-        label = self.fail_label()
+    def checked_call(self, code: str, node) -> str:
+        """A call (or another expression) that can fail, checked right after it runs."""
         result = node.inferred_type
         if result is None or (isinstance(result, PrimitiveType) and result.name == 'void'):
+            return self.checked_code(code, None)
+        # A new value a failed call still handed back is freed before the error goes on
+        free = ' '.join(self.free_lines(result, 'fusion_r')) \
+            if not isinstance(result, ArrayType) and self.is_fresh(node) else ''
+        return self.checked_code(code, self.return_c_type(result), free)
+
+    def checked_code(self, code: str, c_type, free: str = '') -> str:
+        """`code` with a check right after it - c_type is its C type, None for no value;
+        `free` frees fusion_r when it fails."""
+        if not getattr(self, 'fail_sites', None):
+            return code     # not inside a statement (nothing can fail there)
+        label = self.fail_label()
+        if c_type is None:
             return f'__extension__ ({{ {code}; if (fusion_failed) goto {label}; }})'
-        c_type = self.return_c_type(result)
+        on_fail = f'{{ {free} goto {label}; }}' if free else f'goto {label};'
         return (f'__extension__ ({{ {c_type} fusion_r = {code}; '
-                f'if (fusion_failed) goto {label}; fusion_r; }})')
+                f'if (fusion_failed) {on_fail} fusion_r; }})')
 
     # ------------------------------------------------------------------ Error values
 

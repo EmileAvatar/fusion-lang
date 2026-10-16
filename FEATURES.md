@@ -87,7 +87,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		call, `if err`, bubbling (explicit, leak-free), stop at main
 	[DONE] 26.3 try / catch err / finally / throw: one catch-all, finally on every exit (return,
 		break, continue, errors passing through), rethrow, nesting, three block styles
-	[ ] 26.4 Every built-in failure catchable (files, conversions, index out of range, ...)
+	[DONE] 26.4 Every built-in failure catchable: index out of range, missing key, conversions,
+		files, patterns, fromString, max_length, ... - uncaught still stops ("Runtime error at")
 	[ ] 26.5 Config: [errors] returns / exceptions
 	[ ] 26.6 Example + docs
 	[POSTPONED to 26] Error handling (try/catch) example (was 16.5)

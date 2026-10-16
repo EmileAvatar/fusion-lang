@@ -205,8 +205,9 @@ class EnumsMixin:
             if id(node) in getattr(self, 'consumed', set()):
                 return code
             return self.fresh_temporary(code, node.inferred_type)   # freed unless stored
-        if node.method == 'fromString':   # the text is borrowed
-            return f'{c}__fromString({self.visit(node.arguments[0])}, {self._where(node)})'
+        if node.method == 'fromString':   # the text is borrowed; an unknown name fails (26.4)
+            return self.checked_code(f'{c}__fromString({self.visit(node.arguments[0])}, '
+                                     f'{self._where(node)})', c)
         # Token.Number(42) - its tag and its own fields (Task 25.4)
         struct = decl.struct_decl
         variant = decl.variant(node.method)

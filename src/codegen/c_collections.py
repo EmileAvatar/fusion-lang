@@ -95,7 +95,7 @@ class CollectionsMixin:
             f'void {name}_grow({name}* l, int need)': [
                 'if (need <= l->cap) return;',
                 'int cap = l->cap < 4 ? 4 : l->cap;',
-                'while (cap < need) { if (cap > 536870911) fusion_runtime_error(NULL, "a List '
+                'while (cap < need) { if (cap > 536870911) fusion_fatal("a List '
                 'can\'t hold more than 536,870,911 elements"); cap *= 2; }',
                 f'{T}* data = ({T}*)fusion_alloc(sizeof({T}) * (size_t)cap);',
                 f'if (l->len > 0) memcpy(data, l->data, sizeof({T}) * (size_t)l->len);',
@@ -116,14 +116,14 @@ class CollectionsMixin:
             f'void {name}_add({name}* l, {T} v)': [
                 f'{name}_grow(l, l->len + 1);', 'l->data[l->len++] = v;'],
             f'void {name}_insert({name}* l, int i, {T} v, const char* where)': [
-                'if (i < 0 || i > l->len) fusion_runtime_error(where, "insert(position %d) is '
-                'outside the list (length %d)", i, l->len);',
+                'if (i < 0 || i > l->len) { fusion_runtime_error(where, "insert(position %d) is '
+                f'outside the list (length %d)", i, l->len); {free("v")} return; }}',
                 f'{name}_grow(l, l->len + 1);',
                 f'memmove(l->data + i + 1, l->data + i, sizeof({T}) * (size_t)(l->len - i));',
                 'l->data[i] = v; l->len++;'],
             f'void {name}_removeAt({name}* l, int i, const char* where)': [
-                'if (i < 0 || i >= l->len) fusion_runtime_error(where, "removeAt(%d) is outside '
-                'the list (length %d)", i, l->len);',
+                'if (i < 0 || i >= l->len) { fusion_runtime_error(where, "removeAt(%d) is outside '
+                'the list (length %d)", i, l->len); return; }',
                 (free('l->data[i]') if managed else ''),
                 f'memmove(l->data + i, l->data + i + 1, sizeof({T}) * (size_t)(l->len - i - 1));',
                 'l->len--;'],
@@ -131,12 +131,12 @@ class CollectionsMixin:
                 (f'for (int i = 0; i < l->len; i++) {{ {free("l->data[i]")} }}' if managed else ''),
                 'l->len = 0;'],
             f'{T} {name}_at({name} l, int i, const char* where)': [
-                'if (i < 0 || i >= l.len) fusion_runtime_error(where, "index %d is outside the '
-                'list (length %d)", i, l.len);',
+                'if (i < 0 || i >= l.len) { fusion_runtime_error(where, "index %d is outside the '
+                f'list (length %d)", i, l.len); return {self._default_value_code(element)}; }}',
                 'return l.data[i];'],
             f'{T}* {name}_ptr({name}* l, int i, const char* where)': [
-                'if (i < 0 || i >= l->len) fusion_runtime_error(where, "index %d is outside the '
-                'list (length %d)", i, l->len);',
+                'if (i < 0 || i >= l->len) { fusion_runtime_error(where, "index %d is outside the '
+                f'list (length %d)", i, l->len); static {T} none; memset(&none, 0, sizeof none); return &none; }}',
                 'return &l->data[i];'],
             f'bool {name}_eq({name} a, {name} b)': [
                 'if (a.len != b.len) return false;',
@@ -152,9 +152,11 @@ class CollectionsMixin:
                 f'{name}_removeAt(l, i, NULL);',
                 'return true;'],
             f'{name} {name}_slice({name} l, int start, int count, const char* where)': [
-                'if (start < 0 || count < 0 || start > l.len || count > l.len - start)',
+                'if (start < 0 || count < 0 || start > l.len || count > l.len - start) {',
                 '    fusion_runtime_error(where, "slice(start %d, count %d) is outside the list '
                 '(length %d)", start, count, l.len);',
+                f'    return ({name}){{0}};',
+                '}',
                 f'{name} r = {{0}};',
                 f'{name}_grow(&r, count);',
                 f'for (int i = 0; i < count; i++) r.data[i] = {copy("l.data[start + i]")};',
@@ -243,14 +245,16 @@ class CollectionsMixin:
         inner_type = getattr(getattr(expr, 'array', None), 'inferred_type', None)
         if isinstance(expr, IndexExpr) and isinstance(inner_type, ListType):
             name = self.list_c_name(inner_type)
-            return (f'(*{name}_ptr(&{self.list_lvalue(expr.array, False)}, {self.visit(expr.index)}, '
-                    f'{self._where(expr)}))')
+            pointer = (f'{name}_ptr(&{self.list_lvalue(expr.array, False)}, {self.visit(expr.index)}, '
+                       f'{self._where(expr)})')
+            return f'(*{self.checked_code(pointer, self.map_type(inner_type.element_type) + "*")})'
         if isinstance(expr, IndexExpr) and isinstance(inner_type, MapType):
             name = self.map_c_name(inner_type)
             base = self.list_lvalue(expr.array, False)
             if final:
                 return f'(*{name}_put(&{base}, {self.visit(expr.index)}))'
-            return f'(*{name}_ptr(&{base}, {self.visit(expr.index)}, {self._where(expr)}))'
+            pointer = f'{name}_ptr(&{base}, {self.visit(expr.index)}, {self._where(expr)})'
+            return f'(*{self.checked_code(pointer, self.map_type(inner_type.value_type) + "*")})'
         if isinstance(expr, IndexExpr):
             return f'{self.list_lvalue(expr.array, False)}[{self.visit(expr.index)}]'
         if isinstance(expr, MemberExpr):
@@ -402,11 +406,11 @@ class CollectionsMixin:
                 'return &m->vals[m->len - 1];'],
             f'{V}* {name}_ptr({name}* m, {K} k, const char* where)': [
                 f'int i = {name}_find(*m, k);',
-                f'if (i < 0) {missing}',
+                f'if (i < 0) {{ {missing} static {V} none; memset(&none, 0, sizeof none); return &none; }}',
                 'return &m->vals[i];'],
             f'{V} {name}_get({name} m, {K} k, const char* where)': [
                 f'int i = {name}_find(m, k);',
-                f'if (i < 0) {missing}',
+                f'if (i < 0) {{ {missing} return {self._default_value_code(value)}; }}',
                 'return m.vals[i];'],
             f'{V} {name}_getOr({name} m, {K} k, {V} otherwise)': [
                 f'int i = {name}_find(m, k);',
@@ -509,6 +513,7 @@ class CollectionsMixin:
                 'long long len = 0;',
                 'for (int i = 0; i < parts.len; i++) len += parts.data[i].len + (i > 0 ? sep.len : 0);',
                 'int total = fusion_checked_size(len, "join", where), o = 0;',
+                'if (total < 0) return FUSION_STR("");',
                 'char* out = (char*)fusion_alloc((size_t)total + 1);',
                 'for (int i = 0; i < parts.len; i++) {',
                 '    if (i > 0) { memcpy(out + o, sep.data, (size_t)sep.len); o += sep.len; }',

@@ -3055,8 +3055,17 @@ int age = ages.get("Alice")
 
 ## Error Handling
 
-**Status:** [PARTLY] error returns, capturing (26.2) and try / catch / finally / throw (26.3)
-are built; built-in failures catchable [PLANNED 26.4]; config switches [PLANNED 26.5]
+**Status:** [PARTLY] error returns, capturing (26.2), try / catch / finally / throw (26.3)
+and catchable built-in failures (26.4) are built; config switches [PLANNED 26.5]
+
+**Every run-time error is an Error (Task 26.4, user decision 2026-10-16: all of them):** an
+index out of range (strings, lists, bytes), a missing Map key, text that isn't a number,
+a file that won't open, an invalid pattern, `Enum.fromString` with an unknown name, a
+string over `[strings] max_length`, ... can be captured or caught like any other error;
+`err.where` says where it happened. One nobody handles stops the program at the end of main
+with `Runtime error at main.fusion:12: ...`, as before. Only running out of memory (and a
+List past 536,870,911 elements) still stops at once. In C, a runtime function reports with
+its `where` argument and returns a safe value; the call is checked right after it runs
 
 **try / catch / finally / throw as built (Task 26.3):** `try` then `catch err` (or a bare
 `catch`) and/or `finally`, indented, in braces, or closed by `End try`. One catch catches

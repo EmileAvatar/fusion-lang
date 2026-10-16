@@ -48,18 +48,19 @@ static inline FILE* fusion_open_file(fusion_string path, const char* mode, const
 #endif
     if (!f) fusion_runtime_error(where, "%s: can't open '%s' (%s)", what, p, strerror(errno));
     free(p);
-    return f;
+    return f;   // NULL when it can't be opened - the error is on its way
 }
 // The whole file in a fusion_alloc buffer with room for a final '\0'
 static inline char* fusion_read_all(fusion_string path, int* len, const char* what, const char* where) {
     FILE* f = fusion_open_file(path, "rb", what, where);
+    if (!f) return NULL;
     int cap = 4096, n = 0;
     char* data = (char*)fusion_alloc((size_t)cap + 1);
     size_t got;
     while ((got = fread(data + n, 1, (size_t)(cap - n), f)) > 0) {
         n += (int)got;
         if (n == cap) {
-            if (cap > 1073741823) { fclose(f); fusion_runtime_error(where, "%s: the file is larger than 2 GB", what); }
+            if (cap > 1073741823) { fclose(f); fusion_dealloc(data); fusion_runtime_error(where, "%s: the file is larger than 2 GB", what); return NULL; }
             char* bigger = (char*)fusion_alloc((size_t)cap * 2 + 1);
             memcpy(bigger, data, (size_t)n);
             fusion_dealloc(data);
@@ -68,34 +69,40 @@ static inline char* fusion_read_all(fusion_string path, int* len, const char* wh
     }
     int failed = ferror(f);
     fclose(f);
-    if (failed) { fusion_dealloc(data); fusion_runtime_error(where, "%s: reading failed (%s)", what, strerror(errno)); }
+    if (failed) { fusion_dealloc(data); fusion_runtime_error(where, "%s: reading failed (%s)", what, strerror(errno)); return NULL; }
     *len = n;
     return data;
 }
 static inline fusion_bytes fusion_readBytes(fusion_string path, const char* where) {
     int len;
     char* data = fusion_read_all(path, &len, "readBytes", where);
+    if (!data) return FUSION_STR("");
     return fusion_bytes_take(data, len);
 }
 static inline fusion_string fusion_readText(fusion_string path, const char* where) {
     int len, skip = 0;
     char* data = fusion_read_all(path, &len, "readText", where);
+    if (!data) return FUSION_STR("");
     if (len >= 3 && (unsigned char)data[0] == 0xEF && (unsigned char)data[1] == 0xBB && (unsigned char)data[2] == 0xBF) skip = 3;
     if (!fusion_utf8_valid(data + skip, len - skip)) {
         char* p = fusion_path_text(path);
         fusion_dealloc(data);
         fusion_runtime_error(where, "readText: '%s' is not valid text - use readBytes for a binary file", p);
+        free(p);
+        return FUSION_STR("");
     }
     if (skip) memmove(data, data + 3, (size_t)(len - 3));
     return fusion_str_take(data, len - skip);
 }
 static inline void fusion_write_all(fusion_string path, const char* mode, const char* data, int len, const char* what, const char* where) {
     FILE* f = fusion_open_file(path, mode, what, where);
+    if (!f) return;
     size_t wrote = len > 0 ? fwrite(data, 1, (size_t)len, f) : 0;
     int closed = fclose(f);
     if ((int)wrote != len || closed != 0) {
         char* p = fusion_path_text(path);
         fusion_runtime_error(where, "%s: writing '%s' failed (%s)", what, p, strerror(errno));
+        free(p);
     }
 }
 static inline void fusion_writeText(fusion_string path, fusion_string text, const char* where) { fusion_write_all(path, "wb", text.data, text.len, "writeText", where); }

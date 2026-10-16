@@ -17,3 +17,9 @@ void function main()
         throw Error("stop here")             // throw works in any function
     catch err
         print("caught: {err}")
+    int n, Error bad = toInt("12x")          // a built-in's failure is an Error too
+    List<int> xs = [1, 2]
+    try
+        print("{@1}", xs[5])                 // index out of range, a missing file, ...
+    catch err
+        print("{bad} / {err}")

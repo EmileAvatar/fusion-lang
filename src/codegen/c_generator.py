@@ -17,7 +17,7 @@ import os
 from ..parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
     PrimitiveType, ArrayType, FunctionType, StructType, StructDecl,
-    LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr,
+    LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, InterpolatedStringExpr,
     CallExpr, LambdaExpr, NamedArgument,
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
@@ -247,7 +247,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 self.end_statement()
                 if site is not None:
                     self.close_fail_site(site)   # Task 26
-        return visitor(node)
+        code = visitor(node)
+        if isinstance(node, (BinaryExpr, InterpolatedStringExpr)) and hasattr(self, 'fail_sites') \
+                and self._makes_limited_string(node):
+            # Over [strings] max_length (26.4): the new string is freed as the error goes on
+            code = self.checked_code(code, 'fusion_string', 'fusion_str_free(&fusion_r);')
+        return code
 
     def generic_visit(self, node: ASTNode) -> str:
         """Handle unknown node types."""
@@ -1119,20 +1124,22 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         array_code = self.visit(node.array)
         index_code = self.visit(node.index)
+        # Out of range / a missing key is an error that can be caught (Task 26.4)
+        checked = lambda code: self.checked_code(code, self.map_type(node.inferred_type))
         # s[i] - one character, bounds-checked (Task 18.3.2)
         if self._is_string(node.array):
-            return f'fusion_str_at({array_code}, {index_code}, {self._where(node)})'
+            return checked(f'fusion_str_at({array_code}, {index_code}, {self._where(node)})')
         # m[k] - a map's value; a missing key is a run-time error (Task 18.5.2)
         if isinstance(getattr(node.array, 'inferred_type', None), MapType):
             name = self.map_c_name(node.array.inferred_type)
-            return f'{name}_get({array_code}, {index_code}, {self._where(node)})'
+            return checked(f'{name}_get({array_code}, {index_code}, {self._where(node)})')
         # xs[i] - one list element, bounds-checked (Task 18.5.1)
         if isinstance(getattr(node.array, 'inferred_type', None), ListType):
             name = self.list_c_name(node.array.inferred_type)
-            return f'{name}_at({array_code}, {index_code}, {self._where(node)})'
+            return checked(f'{name}_at({array_code}, {index_code}, {self._where(node)})')
         # b[i] - one raw byte, bounds-checked (Task 18.3.8)
         if self._is_bytes(node.array):
-            return f'fusion_bytes_at({array_code}, {index_code}, {self._where(node)})'
+            return checked(f'fusion_bytes_at({array_code}, {index_code}, {self._where(node)})')
         # make()[0] - the returned array is inside its wrapper struct (Task 18.2.4)
         if self._returns_array(node.array):
             return f'{array_code}.data[{index_code}]'
@@ -1274,9 +1281,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         # b[i] = v - edits the bytes in place, bounds-checked (Task 18.3.8)
         if isinstance(node.target, IndexExpr) and self._is_bytes(node.target.array):
-            self.emit_line(f'fusion_bytes_put(&{self.visit(node.target.array)}, '
-                           f'{self.visit(node.target.index)}, {self.visit(node.value)}, '
-                           f'{self._where(node)})')
+            put = (f'fusion_bytes_put(&{self.visit(node.target.array)}, '
+                   f'{self.visit(node.target.index)}, {self.visit(node.value)}, {self._where(node)})')
+            self.emit_line(self.checked_code(put, None))   # out of range: an error (Task 26.4)
             return ''
 
         # target is an lvalue-producing expression - IdentifierExpr ("x") or IndexExpr
