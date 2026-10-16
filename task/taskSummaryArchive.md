@@ -4682,3 +4682,16 @@ design; stack traces; `err.cause` chains
 - **26.8 Capture without a type** - `Ship s, err = f()`; `Ship s, Error err` still works.
   A call with no value keeps `Error err = save(s)` (a bare `err = save(s)` would read as an
   assignment)
+
+---
+
+#### Task 26.9 - custom error types (COMPLETE 2026-10-16)
+
+In C: fusion_error has kind + extra (the fields on the heap); each type has a data struct (parent first, as `base`), _new / _copy / _free / _of helpers, and a row in fusion_error_kind_table, set as main starts. The typed capture `Ship s, FileError err` was parsed here already.
+
+- **26.9 Custom error types** - `error FileError` + fields, `error FileNotFound : FileError`
+  extends one; an error type may give a **default message** (`message = "File not found"`,
+  overridable when thrown); built like a struct (message, code optional, then its fields -
+  named arguments too); `where` filled in; every Error field plus its own; `throw` /
+  `return` it; printing shows the message. In C: the error carries a kind number and its
+  extra fields on the heap, with copy / free per kind (leak-checked)

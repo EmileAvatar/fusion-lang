@@ -7,7 +7,8 @@ all semantic analysis passes over the AST.
 import sys
 from typing import List, Optional
 
-from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl
+from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl,
+                                ErrorDecl, LiteralExpr)
 from .enums import normalize_enums, check_holding_loops
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
@@ -96,6 +97,7 @@ class SemanticAnalyzer:
         # use any struct (Task 18.2.1)
         from src.parser.ast_nodes import FunctionDecl
         self.name_resolver.register_enums(ast)
+        self.name_resolver.register_error_types(ast)   # Task 26.9
         self.name_resolver.register_structs(ast)
         structs = [d for d in ast.declarations if isinstance(d, StructDecl)]
         for struct in structs:
@@ -103,6 +105,22 @@ class SemanticAnalyzer:
             for field in struct.fields:   # List<...> fields (Task 18.5)
                 self.type_checker._check_collection_type(field.field_type, field.location)
         self.type_checker.check_struct_nesting(structs)
+        # A custom error type's fields (Task 26.9) - any type a struct field may have
+        for decl in (d for d in ast.declarations if isinstance(d, ErrorDecl)):
+            for field in decl.fields:
+                self.name_resolver.resolve_type(field.field_type)
+                self.type_checker._check_collection_type(field.field_type, field.location)
+                if field.default_value is not None and \
+                        not self.name_resolver.is_constant_default(field.default_value):
+                    self.errors.append(SemanticError(
+                        f"The default of '{field.name}' in error type '{decl.name}' must be a "
+                        f"constant", field.location))
+            for what, value, want in (('message', decl.default_message, 'string'),
+                                      ('code', decl.default_code, 'int')):
+                if value is not None and not (isinstance(value, LiteralExpr) and value.type_hint == want):
+                    self.errors.append(SemanticError(
+                        f"The default {what} of error type '{decl.name}' must be a {want} "
+                        f"written in the source", value.location))
         # The data an enum's values carry (Task 25.4) - any type a struct field may have
         for enum in (d for d in ast.declarations if isinstance(d, EnumDecl)):
             for variant in enum.variants:

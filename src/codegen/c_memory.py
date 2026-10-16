@@ -110,7 +110,15 @@ static inline void fusion_init(int argc, char** argv) {
 
 // Errors (Task 26): an error travels in fusion_err while fusion_failed is set - declared
 // here so every run-time error can raise one; the rest is in the errors part further down
-typedef struct { int active; int code; fusion_string message; fusion_string where; int runtime; } fusion_error;
+typedef struct {
+    int active; int code; fusion_string message; fusion_string where; int runtime;
+    int kind;       // 0: Error; a custom error type's number (Task 26.9)
+    void* extra;    // a custom error type's own fields, on the heap - or NULL
+} fusion_error;
+// The program's error types (Task 26.9): name, parent, and how to copy / free their fields.
+// Generated per program and set as main starts; NULL while there are none
+typedef struct { const char* name; int parent; void* (*copy)(void*); void (*free)(void*); } fusion_error_kind;
+static const fusion_error_kind* fusion_error_kinds = NULL;
 static fusion_error fusion_err;
 static int fusion_failed = 0;
 static inline void fusion_raise_text(const char* where, const char* text, int len);

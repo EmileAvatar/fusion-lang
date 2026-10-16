@@ -160,6 +160,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         if self.types_equal(expected, actual):
             return True
 
+        # An error type where its parent (or Error) is expected (Task 26.9)
+        if isinstance(expected, ErrorType) and isinstance(actual, ErrorType):
+            from .error_rules import is_error_subtype
+            return is_error_subtype(actual.declaration, expected.declaration)
+
         # Numeric promotions (byte -> int -> float -> double)
         if self.is_numeric_promotion(expected, actual):
             return True
@@ -217,7 +222,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             return type1.name == type2.name
 
         if isinstance(type1, ErrorType) and isinstance(type2, ErrorType):
-            return True   # Task 26
+            return type1.name == type2.name   # Task 26
 
         # Structs: same struct, by name (Task 18.2.1)
         if isinstance(type1, StructType) and isinstance(type2, StructType):
@@ -1751,7 +1756,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         """
         object_type = self.visit(node.object)
         if isinstance(object_type, ErrorType):
-            return self.error_member_type(node)    # err.message, err.code, err.where (Task 26)
+            return self.error_member_type(node, object_type)   # err.message, err.path (Task 26)
         struct = self.struct_declaration(object_type)
         if struct is None:
             self.errors.append(SemanticError(

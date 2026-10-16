@@ -64,12 +64,7 @@ catch e                                      // any other error
 #### Sub-tasks (updated 2026-10-16 after the user's review)
 - 26.7 DONE (implicit errors) - detail archived
 - 26.8 DONE (capture without a type) - detail archived
-- **26.9 Custom error types** - `error FileError` + fields, `error FileNotFound : FileError`
-  extends one; an error type may give a **default message** (`message = "File not found"`,
-  overridable when thrown); built like a struct (message, code optional, then its fields -
-  named arguments too); `where` filled in; every Error field plus its own; `throw` /
-  `return` it; printing shows the message. In C: the error carries a kind number and its
-  extra fields on the heap, with copy / free per kind (leak-checked)
+- 26.9 DONE (custom error types) - detail archived
 - **26.10 Typed capture, `err.kind`, match on error types** - `Ship s, FileError err = f()`
   captures any error (its own fields empty unless it is a FileError); `err.kind` is the
   type name ("FileError") for logs and printing; `match err` with **error type names as
@@ -208,4 +203,5 @@ Kept under Task 22 until the renumbering is approved.
   error type list)
 - 26.7 done
 - 26.8 done
-- **Next Action:** 26.9 custom error types
+- 26.9 done
+- **Next Action:** 26.10 err.kind and match on error types

@@ -55,7 +55,9 @@ class EqualityMixin:
         equal, with `negate`)"""
         left_name = getattr(left_type, 'name', None)
         right_name = getattr(right_type, 'name', None)
-        if type(left_type).__name__ == 'BoxType':
+        if type(left_type).__name__ == 'ErrorType':
+            helper = 'fusion_error_eq'   # same type, code and message (Task 26.9)
+        elif type(left_type).__name__ == 'BoxType':
             helper = f'fusion_box_eq_{self.map_type(left_type.inner)}'   # what they point to (25.5)
         elif type(left_type).__name__ in ('ListType', 'MapType'):
             helper = f'{self.map_type(left_type)}_eq'   # element by element / key by key (18.5)

@@ -12,7 +12,7 @@ from src.parser.ast_nodes import (
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
-    EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt, ErrorType, ErrorMakeExpr,
+    EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt, ErrorType, ErrorMakeExpr, ErrorDecl,
     ErrorActiveExpr, TryStmt, ThrowStmt,
     ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES
 )
@@ -391,6 +391,24 @@ class NameResolver:
                     name=enum.name, symbol_type='enum',
                     data_type=EnumType(location=enum.location, name=enum.name, declaration=enum),
                     location=enum.location, declaration=enum))
+            except SemanticError as e:
+                self.errors.append(e)
+
+    def register_error_types(self, program: ProgramNode) -> None:
+        """Register every custom error type's name (Task 26.9) - it can't share a name with a
+        struct, function or another type."""
+        for decl in (d for d in program.declarations if isinstance(d, ErrorDecl)):
+            if decl.name in ('bytes', 'byte') or decl.name in TYPE_CLASSES \
+                    or decl.name in COLLECTION_TYPE_NAMES:
+                self.errors.append(SemanticError(
+                    f"'{decl.name}' is a built-in type - choose another name for the error type",
+                    decl.location))
+                continue
+            try:
+                self.symbol_table.define(Symbol(
+                    name=decl.name, symbol_type='errortype',
+                    data_type=ErrorType(location=decl.location, name=decl.name, declaration=decl),
+                    location=decl.location, declaration=decl))
             except SemanticError as e:
                 self.errors.append(e)
 
@@ -794,9 +812,15 @@ class NameResolver:
             self.symbol_table.define(symbol)
             if stmt.error_name is not None:            # Ship s, Error err = ... (Task 26)
                 self.check_not_struct_name(stmt.error_name, "Variable", stmt.error_location)
+                error_type = stmt.error_type
+                if error_type is not None and not isinstance(error_type, ErrorType):
+                    self.errors.append(SemanticError(
+                        f"'{getattr(error_type, 'name', '?')}' is not an error type - the "
+                        f"variable after ',' captures an error", stmt.error_location))
+                    error_type = None
                 self.symbol_table.define(Symbol(
                     name=stmt.error_name, symbol_type='variable',
-                    data_type=ErrorType(location=stmt.error_location),
+                    data_type=error_type or ErrorType(location=stmt.error_location),
                     location=stmt.error_location))
         except SemanticError as e:
             self.errors.append(e)

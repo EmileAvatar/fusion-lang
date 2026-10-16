@@ -523,6 +523,30 @@ void function main()
     print(last.name)                         // at main the program stops with its message
 ```
 
+#### Custom error types
+
+<!-- example: syntax_error_types | task: 26.9 -->
+```fusion
+error FileError                              // a custom error: every Error field + its own
+    string path
+    int attempts = 1
+
+error FileNotFound : FileError               // extends another error type
+    message = "File not found"               // a default message (code = ... works too)
+
+int function open(string path)
+    if path == ""
+        throw FileNotFound(path = "none.txt")   // message, code, then fields - by name too
+    return 1
+
+void function main()
+    int n, FileError err = open("")          // a FileNotFound is a FileError too
+    print("{err}: {err.path} (attempt {err.attempts}, n = {n})")
+    FileError made = FileError("Can't open", 5, "data.bin")
+    Error any = made                         // every error type is an Error
+    print("{any} / {made.path} / code {@1}", made.code)
+```
+
 #### `try` / `catch` / `finally` / `throw`
 
 <!-- example: syntax_try | task: 26.3 -->

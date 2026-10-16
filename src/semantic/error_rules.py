@@ -20,14 +20,36 @@ from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import List, Optional
 
 from src.parser.ast_nodes import (
-    ASTNode, CallExpr, EnumDecl, ErrorActiveExpr, ErrorMakeExpr, ErrorType, FunctionDecl,
-    IdentifierExpr, PrimitiveType, ProgramNode, StructDecl, StructType, ThrowStmt, TryStmt,
-    TypeNode,
+    ASTNode, CallExpr, EnumDecl, ErrorActiveExpr, ErrorDecl, ErrorMakeExpr, ErrorType,
+    FunctionDecl, IdentifierExpr, LiteralExpr, PrimitiveType, ProgramNode, StructDecl,
+    StructType, ThrowStmt, TryStmt, TypeNode,
 )
 from .errors import SemanticError
 
 # The fields every Error has, and their types
 ERROR_FIELDS = {'message': 'string', 'code': 'int', 'where': 'string'}
+
+
+def error_chain(decl) -> list:
+    """A custom error type's line of ErrorDecls, from the one just below Error down to it."""
+    chain = []
+    while decl is not None and decl not in chain:
+        chain.insert(0, decl)
+        decl = decl.parent_declaration
+    return chain
+
+
+def all_error_fields(decl) -> list:
+    """Every field of a custom error type: its parents' first, then its own."""
+    return [f for d in error_chain(decl) for f in d.fields]
+
+
+def is_error_subtype(child, parent) -> bool:
+    """True when error type `child` (an ErrorDecl, or None for Error) is `parent` or one
+    of its subtypes. Every error type is an Error."""
+    if parent is None:
+        return True
+    return parent in error_chain(child)
 
 _SKIP_FIELDS = ('location', 'inferred_type', 'declaration', 'callee_declaration', 'scope',
                 'resolved_arguments')
@@ -35,13 +57,18 @@ _SKIP_FIELDS = ('location', 'inferred_type', 'declaration', 'callee_declaration'
 
 def normalize_errors(program: ProgramNode) -> List[SemanticError]:
     errors: List[SemanticError] = []
+    # Custom error types (Task 26.9) - linked to their parents here
+    custom = {d.name: d for d in program.declarations if isinstance(d, ErrorDecl)}
+    errors.extend(_link_error_types(custom))
 
     def convert(node) -> Optional[ASTNode]:
-        if isinstance(node, StructType) and node.name == 'Error':
-            return ErrorType(location=node.location)
+        if isinstance(node, StructType) and (node.name == 'Error' or node.name in custom):
+            return ErrorType(location=node.location, name=node.name,
+                             declaration=custom.get(node.name))
         if isinstance(node, CallExpr) and isinstance(node.callee, IdentifierExpr) \
-                and node.callee.name == 'Error':
-            return ErrorMakeExpr(location=node.location, arguments=node.arguments)
+                and (node.callee.name == 'Error' or node.callee.name in custom):
+            return ErrorMakeExpr(location=node.location, arguments=node.arguments,
+                                 declaration=custom.get(node.callee.name))
         return None
 
     def walk(node) -> None:
@@ -81,6 +108,40 @@ def normalize_errors(program: ProgramNode) -> List[SemanticError]:
             # `Error function save()` - returns no value, and can fail
             decl.returns_error = True
             decl.return_type = PrimitiveType(location=decl.return_type.location, name='void')
+    return errors
+
+
+def _link_error_types(custom: dict) -> List[SemanticError]:
+    """Each custom error type's parent must be Error or another error type, with no loops;
+    a field name can't repeat one from a parent, or be message / code / where / kind."""
+    errors = []
+    for decl in custom.values():
+        if decl.parent != 'Error':
+            decl.parent_declaration = custom.get(decl.parent)
+            if decl.parent_declaration is None:
+                errors.append(SemanticError(
+                    f"Error type '{decl.name}' extends '{decl.parent}', which is not an error "
+                    f"type (declare it with `error {decl.parent}`)", decl.location))
+    for decl in custom.values():
+        seen, step = set(), decl
+        while step is not None and step.name not in seen:
+            seen.add(step.name)
+            step = step.parent_declaration
+        if step is not None:
+            errors.append(SemanticError(
+                f"Error type '{decl.name}' extends itself through '{step.name}'", decl.location))
+            decl.parent_declaration = None
+    for decl in custom.values():
+        taken = set(ERROR_FIELDS) | {'kind'}
+        for d in error_chain(decl):
+            for f in d.fields:
+                if f.name in taken and d is decl:
+                    errors.append(SemanticError(
+                        f"Error type '{decl.name}' already has a field '{f.name}'"
+                        + (" (every error has message, code, where and kind)"
+                           if f.name in ERROR_FIELDS or f.name == 'kind' else " from a parent"),
+                        f.location))
+                taken.add(f.name)
     return errors
 
 
@@ -149,25 +210,22 @@ class ErrorRulesMixin:
         return ErrorType(location=location)
 
     def visit_ErrorMakeExpr(self, node: ErrorMakeExpr) -> TypeNode:
-        """Error("message") or Error("message", code)."""
-        if not 1 <= len(node.arguments) <= 2:
-            self.errors.append(SemanticError(
-                f"Error(...) takes a message and optionally a code, got {len(node.arguments)} "
-                f"argument(s)", node.location))
-        expected = ['string', 'int']
-        for argument, want in zip(node.arguments, expected):
-            if type(argument).__name__ == 'NamedArgument':
-                self.errors.append(SemanticError(
-                    "Error(...) takes its message and code in order, without names",
-                    argument.location))
-                continue
-            got = self.visit(argument)
-            want_type = PrimitiveType(location=argument.location, name=want)
-            if not self.types_compatible(want_type, got):
-                self.errors.append(SemanticError(
-                    f"Error(...) needs a {want} {'message' if want == 'string' else 'code'}, got "
-                    f"{self.type_to_string(got)}", argument.location))
-        return self.error_type(node.location)
+        """Error("message", code) / FileError("message", code, path, ...) - by position or
+        by name; message can be left out when the type gives a default, code is 0 unless
+        given, a field without a default must be given (Task 26.9)."""
+        decl = node.declaration
+        name = decl.name if decl is not None else 'Error'
+        loc = node.location
+        message_default = next((d.default_message for d in reversed(error_chain(decl))
+                                if d.default_message is not None), None)
+        code_default = next((d.default_code for d in reversed(error_chain(decl))
+                             if d.default_code is not None), None) \
+            or LiteralExpr(location=loc, value=0, type_hint='int')
+        slots = [('message', PrimitiveType(location=loc, name='string'), message_default),
+                 ('code', PrimitiveType(location=loc, name='int'), code_default)]
+        slots += [(f.name, f.field_type, f.default_value) for f in all_error_fields(decl)]
+        self._check_named_call(node, f"'{name}(...)'", 'field', slots)
+        return ErrorType(location=loc, name=name, declaration=decl)
 
     def visit_ErrorActiveExpr(self, node: ErrorActiveExpr) -> TypeNode:
         self.visit(node.operand)
@@ -189,14 +247,19 @@ class ErrorRulesMixin:
                 f"throw needs an Error - throw Error(\"what went wrong\") - got "
                 f"{self.type_to_string(value_type)}", node.value.location))
 
-    def error_member_type(self, node) -> TypeNode:
-        """err.message, err.code, err.where."""
-        if node.member not in ERROR_FIELDS:
+    def error_member_type(self, node, error_type) -> TypeNode:
+        """err.message, err.code, err.where - and a custom error type's own fields."""
+        if node.member in ERROR_FIELDS:
+            return PrimitiveType(location=node.location, name=ERROR_FIELDS[node.member])
+        fields = all_error_fields(error_type.declaration)
+        found = next((f for f in fields if f.name == node.member), None)
+        if found is None:
+            names = list(ERROR_FIELDS) + [f.name for f in fields]
             self.errors.append(SemanticError(
-                f"An Error has no field '{node.member}' (its fields: "
-                f"{', '.join(ERROR_FIELDS)})", node.location))
+                f"{'An Error' if error_type.declaration is None else error_type.name} has no "
+                f"field '{node.member}' (its fields: {', '.join(names)})", node.location))
             return PrimitiveType(location=node.location, name='void')
-        return PrimitiveType(location=node.location, name=ERROR_FIELDS[node.member])
+        return found.field_type
 
     def condition_type(self, owner, attribute: str) -> TypeNode:
         """The type of a condition; an Error there means "there is an error" (user decision:

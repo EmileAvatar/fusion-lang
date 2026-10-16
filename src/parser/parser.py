@@ -1000,15 +1000,18 @@ class Parser:
         location = name_token.location
 
         # `Ship s, Error err = loadShip(f)` - capture the call's error (Task 26)
-        error_name, error_location = None, None
+        error_name, error_location, error_type = None, None, None
         if self.match(TokenType.COMMA):
-            # `Ship s, err = ...` - the type is optional: it is always an Error (Task 26.8)
+            # `Ship s, err = ...` - the type is optional: it is always an Error (Task 26.8);
+            # `Ship s, FileError err = ...` - an error type (26.10)
             if not (self.check(TokenType.IDENTIFIER) and self.peek(1).type == TokenType.ASSIGN):
-                type_token = self.peek()
-                if type_token.value != 'Error':
-                    raise ParserError(type_token, "After ',' a declaration names the variable "
-                                                  "that captures the error: Ship s, err = loadShip(f)")
-                self.advance()
+                offset = 1
+                while self.peek(offset).type == TokenType.DOT and self.peek(offset + 1).type == TokenType.IDENTIFIER:
+                    offset += 2                       # files.FileError err
+                if not (self.check(TokenType.IDENTIFIER) and self.peek(offset).type == TokenType.IDENTIFIER):
+                    raise ParserError(self.peek(), "After ',' a declaration names the variable "
+                                                   "that captures the error: Ship s, err = loadShip(f)")
+                error_type = self.parse_type()
             error_token = self.consume(TokenType.IDENTIFIER, "Expected the error variable's name")
             error_name, error_location = error_token.value, error_token.location
             if not self.check(TokenType.ASSIGN):
@@ -1028,7 +1031,8 @@ class Parser:
             name=name,
             initializer=initializer,
             error_name=error_name,
-            error_location=error_location
+            error_location=error_location,
+            error_type=error_type
         )
 
     def parse_const_declaration(self) -> ASTNode:
@@ -1520,13 +1524,14 @@ class Parser:
                 pass
             if self.check(TokenType.PUBLIC) or self.check(TokenType.PRIVATE):
                 raise ParserError(self.peek(), "Only one of 'public' / 'private' may be given")
-            if not (self.check(TokenType.STRUCT) or self.check(TokenType.ENUM) or self.is_type_start()
+            if not (self.check(TokenType.STRUCT) or self.check(TokenType.ENUM)
+                    or self.is_error_declaration_start() or self.is_type_start()
                     or self.is_function_type_declaration_start()
                     or self.is_struct_type_declaration_start()):
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
                                             f"an enum or a function")
             decl = self.parse_declaration()
-            if not isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):
+            if not isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl)):
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
                                             f"an enum or a function")
             decl.is_public = modifier.type == TokenType.PUBLIC
@@ -1539,6 +1544,10 @@ class Parser:
         # Enum declaration (Task 25)
         if self.match(TokenType.ENUM):
             return self.parse_enum_declaration()
+
+        # Custom error type: `error FileError` (Task 26.9) - `error` is only special here
+        if self.is_error_declaration_start():
+            return self.parse_error_declaration()
 
         # Function declaration: <return_type> function <name>(<params>) { body }
         if (self.is_type_start() or self.is_function_type_declaration_start()
@@ -1625,6 +1634,60 @@ class Parser:
             self.consume(TokenType.STRUCT, "Expected 'struct' after 'End'")
 
         return StructDecl(location=struct_token.location, name=name_token.value, fields=fields)
+
+    def is_error_declaration_start(self) -> bool:
+        """`error FileError` - not `error function f()` or a variable called error."""
+        return (self.check(TokenType.IDENTIFIER) and self.peek().value == 'error'
+                and self.peek(1).type == TokenType.IDENTIFIER
+                and self.peek(2).type != TokenType.FUNCTION)
+
+    def parse_error_declaration(self) -> ErrorDecl:
+        """A custom error type (Task 26.9), in any block style, or just `error Timeout`:
+
+            error FileNotFound : FileError
+                message = "File not found"     a default message (and/or `code = 404`)
+                bool wasDeleted                its own fields, like a struct's
+        """
+        error_token = self.advance()
+        name_token = self.consume(TokenType.IDENTIFIER, "Expected the error type's name")
+        decl = ErrorDecl(location=error_token.location, name=name_token.value)
+        if self.match(TokenType.COLON):
+            parent = self.consume(TokenType.IDENTIFIER, "Expected the parent error type after ':'")
+            decl.parent = parent.value
+            while self.check(TokenType.DOT) and self.peek(1).type == TokenType.IDENTIFIER:
+                self.advance()
+                decl.parent += '.' + self.advance().value     # files.FileError
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.match(TokenType.LBRACE):
+            closing = TokenType.RBRACE
+        elif self.match(TokenType.INDENT):
+            closing = TokenType.DEDENT
+        else:
+            return decl                                     # `error Timeout` - no body
+        while True:
+            while self.match(TokenType.NEWLINE):
+                pass
+            if self.check(closing) or self.is_at_end():
+                break
+            if self.check(TokenType.IDENTIFIER) and self.peek().value in ('message', 'code') \
+                    and self.peek(1).type == TokenType.ASSIGN:
+                which = self.advance().value
+                self.advance()
+                value = self.parse_expression()
+                if which == 'message':
+                    decl.default_message = value
+                else:
+                    decl.default_code = value
+                continue
+            decl.fields.append(self.parse_struct_field())
+        self.consume(closing, f"Expected the end of error type '{decl.name}'")
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.check(TokenType.END) and self.peek(1).value == 'error':
+            self.advance()
+            self.advance()
+        return decl
 
     def parse_enum_declaration(self) -> EnumDecl:
         """Parse an enum (Task 25), on one line or in any of the three block styles:

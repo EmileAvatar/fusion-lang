@@ -36,7 +36,7 @@ max_length set, every expression making a string can fail.)
 
 from dataclasses import fields as dataclass_fields, is_dataclass
 
-from src.parser.ast_nodes import (ArrayType, BinaryExpr, CallExpr, ErrorMakeExpr, ErrorType,
+from src.parser.ast_nodes import (ArrayType, BinaryExpr, CallExpr, ErrorDecl, ErrorMakeExpr, ErrorType,
                                   FunctionDecl, FunctionType, IdentifierExpr, IndexExpr,
                                   InterpolatedStringExpr, LambdaExpr, ListType, MapType,
                                   PrimitiveType, ThrowStmt)
@@ -49,15 +49,36 @@ _CALLING_LIST_METHODS = ('sortBy', 'filter', 'map', 'reduce')
 ERRORS_LIBRARY = r'''
 // ---- Errors (Task 26) - an error travels in fusion_err while fusion_failed is set ----
 // (fusion_error, fusion_err and fusion_failed are declared at the top of the runtime)
-static inline fusion_error fusion_error_make(fusion_string message, int code, fusion_string where) {
+static inline fusion_error fusion_error_make_kind(fusion_string message, int code, fusion_string where,
+                                                int kind, void* extra) {
     fusion_error e; e.active = 1; e.code = code; e.message = message; e.where = where; e.runtime = 0;
+    e.kind = kind; e.extra = extra;
     return e;
 }
+static inline fusion_error fusion_error_make(fusion_string message, int code, fusion_string where) {
+    return fusion_error_make_kind(message, code, where, 0, NULL);
+}
 static inline fusion_error fusion_error_copy(fusion_error e) {
-    e.message = fusion_str_copy(e.message); e.where = fusion_str_copy(e.where); return e;
+    e.message = fusion_str_copy(e.message); e.where = fusion_str_copy(e.where);
+    if (e.extra) e.extra = fusion_error_kinds[e.kind].copy(e.extra);
+    return e;
 }
 static inline void fusion_error_free(fusion_error* e) {
     fusion_str_free(&e->message); fusion_str_free(&e->where); e->active = 0; e->code = 0;
+    if (e->extra) fusion_error_kinds[e->kind].free(e->extra);
+    e->extra = NULL; e->kind = 0;
+}
+// Two errors are equal when they are the same type with the same code and message
+static inline bool fusion_error_eq(fusion_error a, fusion_error b) {
+    return a.active == b.active && a.kind == b.kind && a.code == b.code && fusion_str_eq(a.message, b.message);
+}
+// Is an error of type `kind` a `target` (that type or one of its subtypes)? (Task 26.9)
+static inline int fusion_error_is(int kind, int target) {
+    while (kind > 0) {
+        if (kind == target) return 1;
+        kind = fusion_error_kinds ? fusion_error_kinds[kind].parent : 0;
+    }
+    return kind == target;
 }
 static inline void fusion_error_set(fusion_error* dst, fusion_error v) { fusion_error_free(dst); *dst = v; }
 static inline const char* fusion_error_text(fusion_error e) { return e.message.data ? e.message.data : ""; }
@@ -99,6 +120,14 @@ static inline void fusion_uncaught(void) {
     exit(1);
 }
 '''
+
+
+def _chain(decl) -> list:
+    chain = []
+    while decl is not None and decl not in chain:
+        chain.insert(0, decl)
+        decl = decl.parent_declaration
+    return chain
 
 
 class ErrorsMixin:
@@ -296,16 +325,120 @@ class ErrorsMixin:
         return (f'__extension__ ({{ {c_type} fusion_r = {code}; '
                 f'if (fusion_failed) {on_fail} fusion_r; }})')
 
+    # ------------------------------------------------------------------ custom error types (26.9)
+
+    def error_kind_number(self, decl) -> int:
+        return 0 if decl is None else self.error_kinds[decl.name]
+
+    def _errdata(self, decl) -> str:
+        return f'fusion_errdata_{self._mangle_function_name(decl.name)}'
+
+    def _errfield_path(self, decl, field_owner, field) -> str:
+        """Where a field sits in decl's data: a parent's fields are inside `base`."""
+        chain = _chain(decl)
+        depth = len(chain) - 1 - chain.index(field_owner)
+        return 'base.' * depth + self._field_name(field.name)
+
+    def error_type_section_lines(self, program) -> list:
+        """Per custom error type: its fields' struct (a parent's struct first, as `base`, so
+        a subtype's data is also its parent's), make / copy / free / read helpers - and the
+        table of every error type, set as main starts."""
+        decls = [d for d in program.declarations if isinstance(d, ErrorDecl)]
+        self.error_kinds = {}
+        if not decls:
+            return []
+        ordered = []
+        for decl in decls:
+            for d in _chain(decl):
+                if d not in ordered:
+                    ordered.append(d)
+        for number, decl in enumerate(ordered, 1):
+            self.error_kinds[decl.name] = number
+        lines = ['// Error types (Task 26.9)']
+        for decl in ordered:
+            data = self._errdata(decl)
+            lines.append(f'typedef struct {data} {{')
+            if decl.parent_declaration is not None:
+                lines.append(f'    {self._errdata(decl.parent_declaration)} base;')
+            for f in decl.fields:
+                lines.append(f'    {self.map_type(f.field_type)} {self._field_name(f.name)};')
+            if decl.parent_declaration is None and not decl.fields:
+                lines.append('    char fusion_none;')
+            lines.append(f'}} {data};')
+        for decl in ordered:
+            data, number = self._errdata(decl), self.error_kinds[decl.name]
+            fields = [(d, f) for d in _chain(decl) for f in d.fields]
+            params = ', '.join(f'{self.map_type(f.field_type)} {self._field_name(f.name)}'
+                               for _, f in fields) or 'void'
+            lines.append(f'static inline void* {data}_new({params}) {{')
+            lines.append(f'    {data}* d = ({data}*)fusion_alloc(sizeof({data}));')
+            lines.append(f'    memset(d, 0, sizeof({data}));')
+            for owner, f in fields:
+                lines.append(f'    d->{self._errfield_path(decl, owner, f)} = {self._field_name(f.name)};')
+            lines += ['    return d;', '}']
+            lines.append(f'static void* {data}_copy(void* p) {{')
+            lines.append(f'    {data}* r = ({data}*)fusion_alloc(sizeof({data}));')
+            lines.append(f'    *r = *({data}*)p;')
+            for owner, f in fields:
+                if self.is_managed(f.field_type):
+                    path = self._errfield_path(decl, owner, f)
+                    lines.append(f'    r->{path} = {self.copy_code(f.field_type, "r->" + path)};')
+            lines += ['    return r;', '}']
+            lines.append(f'static void {data}_free(void* p) {{')
+            lines.append(f'    {data}* d = ({data}*)p;')
+            for owner, f in fields:
+                for line in self.free_lines(f.field_type, 'd->' + self._errfield_path(decl, owner, f)):
+                    lines.append('    ' + line)
+            lines += ['    (void)d;', '    fusion_dealloc(p);', '}']
+            # Reading a field: from this type or a subtype - else the field's default
+            lines.append(f'static inline {data}* {data}_of(fusion_error e) {{')
+            lines.append(f'    static {data} none; static int ready = 0;')
+            lines.append(f'    if (e.extra && fusion_error_is(e.kind, {number})) return ({data}*)e.extra;')
+            lines.append('    if (!ready) {')
+            lines.append('        memset(&none, 0, sizeof none);')
+            for owner, f in fields:
+                default = self.visit(f.default_value) if f.default_value is not None \
+                    else self._default_value_code(f.field_type)
+                lines.append(f'        none.{self._errfield_path(decl, owner, f)} = {default};')
+            lines += ['        ready = 1;', '    }', '    return &none;', '}']
+        lines.append('static const fusion_error_kind fusion_error_kind_table[] = {')
+        lines.append('    {"Error", -1, NULL, NULL},')
+        for decl in ordered:
+            data = self._errdata(decl)
+            lines.append(f'    {{"{decl.name}", {self.error_kind_number(decl.parent_declaration)}, '
+                         f'{data}_copy, {data}_free}},')
+        lines += ['};', '']
+        return lines
+
     # ------------------------------------------------------------------ Error values
 
     def visit_ErrorMakeExpr(self, node) -> str:
         string = PrimitiveType(location=node.location, name='string')
-        message = self.owned_value(node.arguments[0], string)
-        code = self.visit(node.arguments[1]) if len(node.arguments) > 1 else '0'
-        made = f'fusion_error_make({message}, {code}, FUSION_STR({self._where(node)}))'
+        values = list(node.resolved_arguments or node.arguments)
+        message = self.owned_value(values[0], string)
+        code = self.visit(values[1]) if len(values) > 1 and values[1] is not None else '0'
+        where = f'FUSION_STR({self._where(node)})'
+        decl = node.declaration
+        if decl is None:
+            made = f'fusion_error_make({message}, {code}, {where})'
+        else:
+            # A custom error type: its number, and its fields on the heap (Task 26.9)
+            fields = [f for d in _chain(decl) for f in d.fields]
+            data = ', '.join(self.owned_value(v, f.field_type) for v, f in zip(values[2:], fields))
+            made = (f'fusion_error_make_kind({message}, {code}, {where}, '
+                    f'{self.error_kind_number(decl)}, {self._errdata(decl)}_new({data}))')
         if id(node) in getattr(self, 'consumed', set()):
             return made
         return self.fresh_temporary(made, node.inferred_type)
+
+    def error_field_code(self, node) -> str:
+        """err.path - a custom error type's field (read only); the field's default when the
+        error held is another type (Task 26.9)."""
+        error_type = node.object.inferred_type
+        decl = error_type.declaration
+        owner = next(d for d in reversed(_chain(decl)) if any(f.name == node.member for f in d.fields))
+        field = next(f for f in owner.fields if f.name == node.member)
+        return f'{self._errdata(decl)}_of({self.visit(node.object)})->{self._errfield_path(decl, owner, field)}'
 
     def visit_ErrorActiveExpr(self, node) -> str:
         return f'(({self.visit(node.operand)}).active)'

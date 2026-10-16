@@ -257,14 +257,19 @@ class EnumStaticCall(ASTNode):
 
 @dataclass
 class ErrorMakeExpr(ASTNode):
-    """Error("No such file", 404) - an error value (Task 26). The parser reads it as a call;
-    src/semantic/error_rules.py turns it into this node.
+    """Error("No such file", 404) / FileError("Can't open", path = "x") - an error value
+    (Task 26, 26.9). The parser reads it as a call; src/semantic/error_rules.py turns it
+    into this node.
 
     Attributes:
-        arguments: The message, and optionally the code
+        arguments: message, code, then the type's fields - by position or by name
+        declaration: The ErrorDecl of a custom error type (None for Error)
+        resolved_arguments: one value per slot (message, code, fields...), after checking
     """
     arguments: List[ASTNode]
     inferred_type: Optional['TypeNode'] = None
+    declaration: Optional[Any] = None
+    resolved_arguments: Optional[List[ASTNode]] = None
 
 
 @dataclass
@@ -360,6 +365,7 @@ class VarDeclStmt(ASTNode):
     # `Ship s, Error err = loadShip(f)` - the variable that captures an error (Task 26)
     error_name: Optional[str] = None
     error_location: Optional[Any] = None
+    error_type: Optional['TypeNode'] = None   # `Ship s, FileError err` (26.10); None: Error
 
 
 @dataclass
@@ -601,6 +607,33 @@ class StructDecl(ASTNode):
 
 
 @dataclass
+class ErrorDecl(ASTNode):
+    """A custom error type (Task 26.9, user decisions 2026-10-16):
+
+        error FileError                     error FileNotFound : FileError
+            string path                         message = "File not found"
+            int attempts = 1                    bool wasDeleted
+
+    Every error type is an Error: it has message, code and where, plus its parent's fields
+    and its own.
+
+    Attributes:
+        name: The type's name
+        parent: The parent error type's name ("Error" when none is written)
+        fields: Its own fields (not the parent's)
+        default_message: `message = "..."` - used when none is given (None: required)
+        default_code: `code = ...` - used when none is given (None: 0)
+    """
+    name: str
+    parent: str = 'Error'
+    fields: List['StructField'] = field(default_factory=list)
+    default_message: Optional[ASTNode] = None
+    default_code: Optional[ASTNode] = None
+    is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
+    parent_declaration: Optional[Any] = None   # set by the name resolver
+
+
+@dataclass
 class EnumVariant(ASTNode):
     """One value of an enum (Task 25): `Red`, `OK = 200`, or with data `Number(int value)`.
 
@@ -758,9 +791,11 @@ class StructType(TypeNode):
 
 @dataclass
 class ErrorType(TypeNode):
-    """The built-in Error type (Task 26): message, code, where. The parser reads `Error` as a
+    """The built-in Error type (Task 26): message, code, where - or a custom error type
+    (26.9), whose ErrorDecl is in `declaration`. The parser reads an error type's name as a
     struct name; src/semantic/error_rules.py replaces it with this."""
     name: str = 'Error'
+    declaration: Optional[Any] = None   # the ErrorDecl of a custom error type
 
 
 @dataclass

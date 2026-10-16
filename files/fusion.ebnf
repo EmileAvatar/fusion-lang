@@ -17,6 +17,7 @@ program = {
     | struct_declaration
     | interface_declaration
     | enum_declaration
+    | error_declaration
     | import_statement
 } ;
 
@@ -421,6 +422,20 @@ struct_field =
        required). Array and struct fields can't have a written default. A default must be a
        constant, like a parameter default: a
        literal (not null) or a negated number literal. *)
+
+(* ========== Error types (Task 26.9) ========== *)
+
+error_declaration =
+    "error" identifier [ ":" type_name ] [ { NEWLINE } error_body ] ;
+    (* `error` is a word only at top level here. Every error type is an Error (message,
+       code, where) plus its parent's fields and its own *)
+
+error_body =
+    INDENT { error_line NEWLINE } DEDENT [ "End" "error" ]
+    | "{" { NEWLINE } { error_line NEWLINE } "}" ;
+
+error_line = ( "message" | "code" ) "=" literal      (* a default for that error type *)
+           | struct_field ;
 
 (* ========== Enums ========== *)
 

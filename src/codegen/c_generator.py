@@ -23,6 +23,7 @@ from ..parser.ast_nodes import (
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
     BlockStmt, ListType, MapType, EnumDecl, EnumType, MatchStmt, MatchPattern, TryStmt, ThrowStmt,
+    ErrorDecl,
 )
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
@@ -125,7 +126,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # Two Fusion names must never become the same C name (modules, Task 18.4.2)
         c_names = {}
         for decl in program.declarations:
-            if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):
+            if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl)):
                 c_name = mangle_function_name(decl.name)
                 other = c_names.setdefault(c_name, decl.name)
                 if other != decl.name:
@@ -164,6 +165,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # Struct typedefs come first (Task 18.2.1) - function types, forward declarations
         # and function bodies may all use them
         self._generate_struct_definitions(program)
+        self.output.extend(self.error_type_section_lines(program))   # Task 26.9
         typedef_index = len(self.output)
 
         # Generate forward declarations
@@ -1155,6 +1157,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         Valid as both an rvalue and an assignment lvalue.
         """
+        object_type = getattr(node.object, 'inferred_type', None)
+        if type(object_type).__name__ == 'ErrorType' and object_type.declaration is not None \
+                and node.member not in ('message', 'code', 'where'):
+            return self.error_field_code(node)    # err.path (Task 26.9)
         return f'{self.visit(node.object)}.{self._field_name(node.member)}'
 
     # _FORMAT_SPECIFIERS, _format_specifier_for_expr, _generate_print_call,
@@ -1664,6 +1670,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # and waiting for a key at the end unless run with --headless
         if node.name == 'main':
             self.emit_line('fusion_init(argc, argv)')
+            if getattr(self, 'error_kinds', None):
+                self.emit_line('fusion_error_kinds = fusion_error_kind_table')   # Task 26.9
             # main(string... args) - the program's arguments (Task 18.5.4)
             if node.parameters:
                 name = node.parameters[0].name

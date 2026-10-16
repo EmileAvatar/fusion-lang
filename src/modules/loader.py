@@ -25,7 +25,8 @@ from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from src.parser.ast_nodes import (
-    ASTNode, ProgramNode, ImportDecl, FunctionDecl, StructDecl, EnumDecl, VarDeclStmt, BlockStmt,
+    ASTNode, ProgramNode, ImportDecl, FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt,
+    BlockStmt,
     ForStmt, LambdaExpr, IdentifierExpr, MemberExpr, StructType, PrimitiveType, ArrayType,
     FunctionType, LiteralExpr,
 )
@@ -47,7 +48,7 @@ class Module:
         self.names: Dict[str, ASTNode] = {}   # top-level name -> its declaration
         for _, program in files:
             for decl in program.declarations:
-                if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):
+                if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl)):
                     self.names.setdefault(decl.name, decl)
 
     def qualify(self, name: str) -> str:
@@ -148,7 +149,7 @@ class ModuleLoader:
         def private_structs(type_node):
             if isinstance(type_node, StructType):
                 decl = module.names.get(type_node.name)
-                if isinstance(decl, (StructDecl, EnumDecl)) and not decl.is_public:
+                if isinstance(decl, (StructDecl, EnumDecl, ErrorDecl)) and not decl.is_public:
                     yield type_node.name
             elif is_dataclass(type_node) and not isinstance(type_node, type):
                 for f in dataclass_fields(type_node):
@@ -166,11 +167,15 @@ class ModuleLoader:
             elif isinstance(decl, EnumDecl):
                 used = [f.field_type for v in decl.variants for f in v.fields]
                 what = f"public enum '{decl.name}'"
+            elif isinstance(decl, ErrorDecl):
+                used = [f.field_type for f in decl.fields]
+                what = f"public error type '{decl.name}'"
             else:
                 used = [f.field_type for f in decl.fields]
                 what = f"public struct '{decl.name}'"
             for name in sorted({n for t in used for n in private_structs(t)}):
-                kind = 'enum' if isinstance(module.names.get(name), EnumDecl) else 'struct'
+                kind = {EnumDecl: 'enum', ErrorDecl: 'error type'}.get(
+                    type(module.names.get(name)), 'struct')
                 self._error(f"The {what} uses the private {kind} '{name}' - make '{name}' "
                             f"public too", decl)
 
@@ -312,8 +317,10 @@ class ModuleLoader:
                     scopes[-1].add(node.error_name)   # Ship s, Error err = ... (Task 26)
 
         for decl in program.declarations:
-            if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl)):
+            if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl)):
                 decl.name = module.qualify(decl.name)
+            if isinstance(decl, ErrorDecl) and decl.parent != 'Error':
+                decl.parent = type_name(decl.parent, decl)   # the parent error type (Task 26.9)
             walk(decl, [])
 
     def _error(self, message: str, node) -> None:
@@ -394,6 +401,11 @@ def module_interface(module: Module) -> List[str]:
             continue
         if isinstance(decl, StructDecl):
             lines.append(f'    public struct {name}')
+            for f in decl.fields:
+                lines.append(f'        {type_text(f.field_type, module.id)} {f.name}')
+        elif isinstance(decl, ErrorDecl):
+            parent = '' if decl.parent == 'Error' else f' : {decl.parent}'
+            lines.append(f'    public error {name}{parent}')   # Task 26.9
             for f in decl.fields:
                 lines.append(f'        {type_text(f.field_type, module.id)} {f.name}')
         elif isinstance(decl, EnumDecl):

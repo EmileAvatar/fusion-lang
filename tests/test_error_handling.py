@@ -12,6 +12,7 @@ import pytest
 from tests.test_end_to_end import compile_and_run
 from tests.test_structs import errors_of, generate_c, main
 from tests.test_strings import run_ok
+from tests.test_modules import run_project
 
 SHIP = ('struct Ship\n    string name\n    int crew\n'
         'Ship, Error function loadShip(string name)\n'
@@ -148,9 +149,9 @@ def test_programs_without_errors_get_no_checks():
 
 @pytest.mark.parametrize("source, message", [
     ('Error, Error function f()\n    return Error("x")\n', "a function that can fail is 'T, Error function'"),
-    ('void function f()\n    Error e = Error(1)\n', "Error(...) needs a string message, got int"),
-    ('void function f()\n    Error e = Error("a", "b")\n', "Error(...) needs a int code, got string"),
-    ('void function f()\n    Error e = Error()\n', "Error(...) takes a message and optionally a code"),
+    ('void function f()\n    Error e = Error(1)\n', "Argument 'message' to 'Error(...)': expected string, got int"),
+    ('void function f()\n    Error e = Error("a", "b")\n', "Argument 'code' to 'Error(...)': expected int, got string"),
+    ('void function f()\n    Error e = Error()\n', "Missing argument for field 'message' of 'Error(...)'"),
     ('void function f()\n    Error e = Error("a")\n    print(e.text)\n', "An Error has no field 'text'"),
     ('struct Error\n    int x\n', "'Error' is a built-in type"),
     ('void function f()\n    Error e = Error("a")\n    int n = e + 1\n', "Error"),
@@ -496,3 +497,91 @@ def test_capture_without_writing_the_type():
         'int n, bad = toInt("4x")\n'
         'print("{err} | {@1} {t.name} | {e} | {n} {bad.code}", not err24)'
     )) == ['No name given | true Dawn! | Bad ship x | 0 0']
+
+
+# ---------------------------------------------------------------- 26.9 custom error types
+
+FILE_ERRORS = ('error FileError\n'
+               '    string path\n'
+               '    int attempts = 1\n'
+               'error FileNotFound : FileError\n'
+               '    message = "File not found"\n'
+               '    bool wasDeleted = false\n'
+               'error Timeout\n'
+               '    code = 408\n')
+
+
+def test_custom_error_types_fields_defaults_and_parents():
+    assert run_ok(FILE_ERRORS
+        + 'int function load(string path)\n'
+        '    if path == ""\n'
+        '        throw FileNotFound(path = "none" + ".txt", wasDeleted = true)\n'
+        '    if path == "slow"\n'
+        '        return Timeout("too slow")\n'
+        '    return 1\n'
+        + main(
+            'int a, FileError e = load("")\n'
+            'print("{e} | {e.path} {e.attempts} {e.code} {a}")\n'
+            'FileError f = FileError("Can\'t open", 5, "x.txt")\n'
+            'FileNotFound g = FileNotFound(path = "y")\n'
+            'Error plain = g\n'
+            'FileError parent = g\n'
+            'print("{f} {f.path} {f.code} | {g} {g.wasDeleted} | {plain} | {parent.path}")\n'
+            'int b, Timeout t = load("slow")\n'
+            'print("{t} {t.code} {b}")\n'
+            'List<FileError> kept = [f, g]\n'
+            'FileError copy = kept[1]\n'
+            'print("{@1} {copy.path}", kept.len())')
+    ) == ['File not found | none.txt 1 0 0', "Can't open x.txt 5 | File not found false | "
+          'File not found | y', 'too slow 408 0', '2 y']
+
+
+def test_a_typed_capture_takes_any_error():
+    assert run_ok(FILE_ERRORS
+        + 'int function index(int i)\n'
+        '    List<int> xs = [1]\n'
+        '    return xs[i]\n'
+        + main(
+            'int n, FileError err = index(5)\n'                # not a FileError: its own
+            'print("[{err.path}] {@1} {err}", err.attempts)')  # fields are the defaults
+    ) == ['[] 1 index 5 is outside the list (length 1)']
+
+
+def test_custom_errors_across_modules(tmp_path):
+    assert run_project(tmp_path, {
+        'files/errors.fusion': (
+            'public error FileError\n'
+            '    string path\n'
+            'public error FileNotFound : FileError\n'
+            '    message = "missing"\n'
+            'public int function open(string p)\n'
+            '    throw FileNotFound(path = p)\n'),
+        'main.fusion': (
+            'import files\n'
+            'error MyError : files.FileError\n'
+            '    int line\n'
+            'void function main()\n'
+            '    int n, files.FileError e = files.open("a.txt")\n'
+            '    MyError m = MyError("mine", path = "b", line = 3)\n'
+            '    print("{e} {e.path} | {m} {m.path} {m.line} {n}")\n'),
+    }) == ['missing a.txt | mine b 3 0']
+
+
+@pytest.mark.parametrize("source, message", [
+    ('error A : Missing\n', "Error type 'A' extends 'Missing', which is not an error type"),
+    ('error A : B\n    int x\nerror B : A\n    int y\n', "extends itself"),
+    ('error A\n    string message\n', "Error type 'A' already has a field 'message'"),
+    ('error A\n    int x\nerror B : A\n    int x\n', "Error type 'B' already has a field 'x' from a parent"),
+    ('error A\n    message = 5\n', "The default message of error type 'A' must be a string"),
+    ('error A\n    int x\n', None),
+])
+def test_error_type_declaration_errors(source, message):
+    if message is None:
+        assert 'x' in errors_of(source + main('A a = A("m")'))   # x has no default
+    else:
+        assert message in errors_of(source + main('print("x")'))
+
+
+def test_reading_an_unknown_field_of_an_error_type():
+    assert "FileError has no field 'size'" in errors_of(
+        FILE_ERRORS + main('FileError f = FileError("m", path = "p")\nprint("{f.size}")'))

@@ -3059,6 +3059,16 @@ int age = ages.get("Alice")
 catchable built-in failures (26.4) and the `[errors] returns / exceptions` switches (26.5)
 are built (Task 26 complete). Example program: `examples/errors_demo.fusion`
 
+**Custom error types (Task 26.9, user decisions 2026-10-16):** `error FileError` with fields
+like a struct's; `error FileNotFound : FileError` extends one. Every error type is an Error:
+message, code, where - plus its parents' fields and its own. A body line `message = "File
+not found"` (or `code = 404`) gives that type a default. Made like a struct: message, code,
+then the fields (the parent's first), by position or by name; a field without a default must
+be given. An error type is accepted where its parent (or Error) is expected. Its fields are
+read only. Thrown or returned like any error, copied and freed automatically, across modules
+with `public error`. No central ERROR enum: each error type is its own kind, so a module
+can add its own
+
 **Every run-time error is an Error (Task 26.4, user decision 2026-10-16: all of them):** an
 index out of range (strings, lists, bytes), a missing Map key, text that isn't a number,
 a file that won't open, an invalid pattern, `Enum.fromString` with an unknown name, a
