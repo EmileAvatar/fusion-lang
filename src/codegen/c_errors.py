@@ -469,7 +469,7 @@ class ErrorsMixin:
         if finally_body is not None:
             self.finally_stack.append({'body': finally_body, 'loops': self._loop_count(),
                                        'targets': len(self.fail_targets)})
-        target = catch_label if node.catch_body is not None else fin_label
+        target = catch_label if node.catches else fin_label
         body_target = {'kind': 'try', 'label': target, 'scope_index': len(self.cleanup_scopes),
                        'temp_level': len(self.stmt_temps)}
         self.fail_targets.append(body_target)
@@ -477,8 +477,8 @@ class ErrorsMixin:
         self.fail_targets.pop()
         self.emit_line(f'goto {end_label}')
         # Only paths something can jump to are written (no unused labels)
-        catch_used = node.catch_body is not None and body_target.get('used')
-        finally_used = node.catch_body is None and body_target.get('used')
+        catch_used = bool(node.catches) and body_target.get('used')
+        finally_used = not node.catches and body_target.get('used')
 
         if catch_used:
             self.emit('if (0) {')
@@ -490,16 +490,37 @@ class ErrorsMixin:
             if finally_body is not None:
                 # An error in the catch still runs the finally
                 self.fail_targets.append(catch_target)
-            self.push_scope('block')
-            name = node.catch_name or f'fusion_caught_{n}'
-            self.emit_line(f'fusion_error {name} = fusion_take_error()')
-            self.register_owned(name, ErrorType(location=node.location), node.location)
-            self.visit(node.catch_body)
-            self.pop_scope()
+            # The first catch whose type matches the error takes it (Task 26.11)
+            catches_all = False
+            for clause in node.catches:
+                decl = getattr(clause.error_type, 'declaration', None)
+                if clause.error_type is None or decl is None:
+                    catches_all = True
+                    self.emit('{')
+                else:
+                    self.emit(f'if (fusion_error_is(fusion_err.kind, {self.error_kind_number(decl)})) {{')
+                self.indent()
+                self.push_scope('block')
+                name = clause.name or f'fusion_caught_{n}'
+                self.emit_line(f'fusion_error {name} = fusion_take_error()')
+                self.register_owned(name, ErrorType(location=node.location), node.location)
+                self.visit(clause.body)
+                self.pop_scope()
+                self.emit_line(f'goto {end_label}')
+                self.dedent()
+                self.emit('}')
+                if catches_all:
+                    break
             if finally_body is not None:
                 self.fail_targets.pop()
                 finally_used = finally_used or catch_target.get('used')
-            self.emit_line(f'goto {end_label}')
+            if not catches_all:
+                # No catch matched: the error goes on - through the finally, if there is one
+                if finally_body is not None:
+                    self.emit_line(f'goto {fin_label}')
+                    finally_used = True
+                else:
+                    self.emit_line(f'goto {self.fail_label()}')
             self.dedent()
             self.emit('}')
 

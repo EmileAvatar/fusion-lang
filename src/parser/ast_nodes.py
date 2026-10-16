@@ -395,20 +395,34 @@ class IfStmt(ASTNode):
 
 
 @dataclass
+class CatchClause(ASTNode):
+    """`catch FileError e` / `catch e` / `catch` (Tasks 26.3, 26.11).
+
+    Attributes:
+        error_type: The error type it catches (None: any error)
+        name: The variable that gets the error (None for a bare `catch`)
+        body: The catch block
+    """
+    error_type: Optional['TypeNode'] = None
+    name: Optional[str] = None
+    body: Optional['BlockStmt'] = None
+
+
+@dataclass
 class TryStmt(ASTNode):
-    """try / catch err / finally (Task 26.3). An error in the body goes to the catch, which
-    gets it in `catch_name`; `finally` always runs - after the body, after the catch, when an
-    error passes through, and before a return / break / continue leaves the try.
+    """try / catch ... / finally (Tasks 26.3, 26.11). An error in the body goes to the first
+    catch whose type matches (a parent type catches its subtypes; an untyped catch any
+    error); one no catch matches goes on. `finally` always runs - after the body, after a
+    catch, when an error passes through, and before a return / break / continue leaves the
+    try.
 
     Attributes:
         body: The try block
-        catch_name: The catch's Error variable (None for a bare `catch`)
-        catch_body: The catch block, or None
+        catches: The catch clauses, in order
         finally_body: The finally block, or None
     """
     body: 'BlockStmt'
-    catch_name: Optional[str] = None
-    catch_body: Optional['BlockStmt'] = None
+    catches: List[CatchClause] = field(default_factory=list)
     finally_body: Optional['BlockStmt'] = None
 
 

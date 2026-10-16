@@ -653,3 +653,67 @@ def test_a_case_after_its_parent_never_matches():
         '    case FileError: print("x")\n'
         '    case FileNotFound: print("y")\n'
         '    else: print("z")'))
+
+
+# ---------------------------------------------------------------- 26.11 typed catch
+
+def test_typed_catches_first_match_wins():
+    assert run_ok(FILE_ERRORS
+        + 'void function fail(int which)\n'
+        '    match which\n'
+        '        case 0: throw FileNotFound(path = "a.txt")\n'
+        '        case 1: throw FileError("locked", path = "b.txt")\n'
+        '        case 2: throw Timeout("slow")\n'
+        '        else: throw Error("plain")\n'
+        + main(
+            'for which in range(0, 4)\n'
+            '    try\n'
+            '        fail(which)\n'
+            '    catch FileNotFound e\n'
+            '        print("not found: {e.path}")\n'
+            '    catch FileError e\n'
+            '        print("file: {e} {e.path}")\n'
+            '    catch e\n'
+            '        print("{e.kind}: {e}")')
+    ) == ['not found: a.txt', 'file: locked b.txt', 'Timeout: slow', 'Error: plain']
+
+
+def test_an_error_no_catch_takes_goes_on_through_finally():
+    assert run_ok(FILE_ERRORS
+        + 'void function inner()\n'
+        '    string held = "x" + "y"\n'
+        '    try\n'
+        '        throw Timeout("slow")\n'
+        '    catch FileError e\n'
+        '        print("never")\n'
+        '    finally\n'
+        '        print("inner finally " + held)\n'
+        + 'void function noFinally()\n'
+        '    try\n'
+        '        List<int> xs = [1]\n'
+        '        print("{@1}", xs[3])\n'
+        '    catch FileError e\n'
+        '        print("never")\n'
+        + main(
+            'try\n'
+            '    inner()\n'
+            'catch Timeout t\n'
+            '    print("outer caught {t} {t.code}")\n'
+            'Error e = noFinally()\n'
+            'print("{e.kind}: {e}")')
+    ) == ['inner finally xy', 'outer caught slow 408', 'Error: index 3 is outside the list (length 1)']
+
+
+@pytest.mark.parametrize("body, message", [
+    ('try\n    print("x")\ncatch e\n    print("a")\ncatch FileError f\n    print("b")',
+     "A catch without an error type catches everything - it must be the last catch"),
+    ('try\n    print("x")\ncatch Foo e\n    print("a")', "'Foo' is not an error type"),
+])
+def test_typed_catch_errors(body, message):
+    assert message in errors_of(FILE_ERRORS + main(body))
+
+
+def test_a_catch_after_its_parent_never_runs():
+    from tests.test_structs import warnings_of
+    assert "This catch never runs" in warnings_of(FILE_ERRORS + main(
+        'try\n    print("x")\ncatch FileError e\n    print("a")\ncatch FileNotFound f\n    print("b")'))

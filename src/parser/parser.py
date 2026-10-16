@@ -1217,14 +1217,22 @@ class Parser:
         body = self._try_part_block('try')
         node = TryStmt(location=try_token.location, body=body)
         self._skip_newlines_before(TokenType.CATCH, TokenType.FINALLY)
-        if self.match(TokenType.CATCH):
+        while self.match(TokenType.CATCH):
+            clause = CatchClause(location=self.previous().location)
             if self.check(TokenType.IDENTIFIER):
-                node.catch_name = self.advance().value
-            node.catch_body = self._try_part_block('catch')
-            self._skip_newlines_before(TokenType.FINALLY)
+                # `catch FileError e` (a type, then the name - Task 26.11) or `catch e`
+                offset = 1
+                while self.peek(offset).type == TokenType.DOT and self.peek(offset + 1).type == TokenType.IDENTIFIER:
+                    offset += 2
+                if self.peek(offset).type == TokenType.IDENTIFIER:
+                    clause.error_type = self.parse_type()
+                clause.name = self.consume(TokenType.IDENTIFIER, "Expected the error's name").value
+            clause.body = self._try_part_block('catch')
+            node.catches.append(clause)
+            self._skip_newlines_before(TokenType.CATCH, TokenType.FINALLY)
         if self.match(TokenType.FINALLY):
             node.finally_body = self._try_part_block('finally')
-        if node.catch_body is None and node.finally_body is None:
+        if not node.catches and node.finally_body is None:
             raise ParserError(try_token, "A try needs a 'catch', a 'finally', or both")
         while self.match(TokenType.NEWLINE):
             pass

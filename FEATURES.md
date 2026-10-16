@@ -101,7 +101,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		default message / code, made like a struct, across modules
 	[DONE] 26.10 Typed capture `Ship s, FileError err = f()` (captures any error); `err.kind`; `match err`
 		with error type names as cases (subtype-aware, the type's own fields inside)
-	[ ] 26.11 Typed catch: `catch FileError e` ... `catch e`
+	[DONE] 26.11 Typed catch: `catch FileError e` ... `catch e` - first match, subtypes, unmatched goes on
 	[ ] 26.12 Built-in error types - every one is an Error, a parent catches its children
 		(full list with examples: taskSummary2.md "Built-in error types"):
 		[ ] ArithmeticError: DivideByZeroError - NEW check: 7 / 0 and 7 % 0 crash today

@@ -119,8 +119,8 @@ class ControlFlowValidator:
             # The finally returns, or the body does and so does the catch (Task 26.3)
             if stmt.finally_body is not None and self.check_returns(stmt.finally_body):
                 return True
-            return self.check_returns(stmt.body) and (
-                stmt.catch_body is None or self.check_returns(stmt.catch_body))
+            return self.check_returns(stmt.body) and all(
+                self.check_returns(c.body) for c in stmt.catches)
 
         elif isinstance(stmt, MatchStmt):
             # Every case returns, and some case always runs (Task 25.3)
@@ -249,7 +249,8 @@ class ControlFlowValidator:
 
     @staticmethod
     def _try_bodies(stmt) -> list:
-        return [b for b in (stmt.body, stmt.catch_body, stmt.finally_body) if b is not None]
+        return [stmt.body] + [c.body for c in stmt.catches] + \
+            ([stmt.finally_body] if stmt.finally_body is not None else [])
 
     @staticmethod
     def _match_bodies(stmt) -> list:

@@ -756,12 +756,18 @@ class NameResolver:
             self.resolve_expression(stmt.expression)
         elif isinstance(stmt, TryStmt):               # Task 26.3
             self.resolve_block(stmt.body)
-            if stmt.catch_body is not None:
-                names = [stmt.catch_name] if stmt.catch_name else []
-                self.resolve_block(stmt.catch_body, bindings=names)
-                if stmt.catch_name:
-                    stmt.catch_body.scope.lookup(stmt.catch_name).data_type = \
-                        ErrorType(location=stmt.catch_body.location)
+            for clause in stmt.catches:
+                names = [clause.name] if clause.name else []
+                self.resolve_block(clause.body, bindings=names)
+                error_type = clause.error_type
+                if error_type is not None and not isinstance(error_type, ErrorType):
+                    self.errors.append(SemanticError(
+                        f"'{getattr(error_type, 'name', '?')}' is not an error type",
+                        error_type.location))
+                    error_type = None
+                if clause.name:
+                    clause.body.scope.lookup(clause.name).data_type = \
+                        error_type or ErrorType(location=clause.body.location)
             if stmt.finally_body is not None:
                 self.resolve_block(stmt.finally_body)
         elif isinstance(stmt, ThrowStmt):

@@ -4707,3 +4707,13 @@ Narrowing: the type checker sets err's type for the case body; the loader gives 
   type name ("FileError") for logs and printing; `match err` with **error type names as
   cases** - `case FileError` also matches its subtypes (FileNotFound), and inside the case
   err is that type, so its own fields can be read; misspelled names are compile errors
+
+---
+
+#### Task 26.11 - typed catch (COMPLETE 2026-10-16)
+
+TryStmt now has a list of CatchClause (error_type, name, body); in C a chain of fusion_error_is tests.
+
+- **26.11 Typed catch** (user: now, for a working sample) - `catch FileError e` ...
+  `catch e`: first match wins, a parent type catches its subtypes, an untyped `catch e`
+  last; an error no catch matches goes on (through finally)

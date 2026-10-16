@@ -303,10 +303,9 @@ class ModuleLoader:
                     if f.name not in _SKIP_FIELDS:
                         walk(getattr(node, f.name), inner)
                 return
-            if type(node).__name__ == 'TryStmt' and node.catch_name:
-                walk(node.body, scopes)
-                walk(node.catch_body, scopes + [{node.catch_name}])    # Task 26.3
-                walk(node.finally_body, scopes)
+            if type(node).__name__ == 'CatchClause':
+                walk(node.error_type, scopes)
+                walk(node.body, scopes + [{node.name} if node.name else set()])   # Task 26.11
                 return
             if isinstance(node, ForStmt):
                 for f in dataclass_fields(node):

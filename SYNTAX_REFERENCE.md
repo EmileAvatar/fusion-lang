@@ -549,6 +549,12 @@ void function main()
         case FileNotFound: print("gone: {any.path}")   // inside, any is a FileNotFound
         case FileError: print("{any.kind}: {any.path}")   // kind: the type's name
         else: print("something else")
+    try
+        open("")
+    catch FileNotFound e                     // the first catch whose type matches takes it
+        print("missing: {e.path}")
+    catch e                                  // any other error - an untyped catch goes last
+        print("{e.kind}: {e}")
 ```
 
 #### `try` / `catch` / `finally` / `throw`

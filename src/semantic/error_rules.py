@@ -235,8 +235,23 @@ class ErrorRulesMixin:
     def visit_TryStmt(self, node: TryStmt) -> None:
         """try / catch err / finally (Task 26.3) - err is an Error in the catch block."""
         self.visit(node.body)
-        if node.catch_body is not None:
-            self.visit(node.catch_body)
+        taken = []      # the types caught so far (None: any error)
+        for index, clause in enumerate(node.catches):
+            decl = getattr(clause.error_type, 'declaration', None) \
+                if isinstance(clause.error_type, ErrorType) else None
+            catches_all = clause.error_type is None or (
+                isinstance(clause.error_type, ErrorType) and decl is None)
+            if None in taken or (decl is not None and any(
+                    t is not None and is_error_subtype(decl, t) for t in taken)):
+                self.warnings.append(SemanticError(
+                    "This catch never runs - an earlier catch already takes its errors",
+                    clause.location))
+            if clause.error_type is None and index != len(node.catches) - 1:
+                self.errors.append(SemanticError(
+                    "A catch without an error type catches everything - it must be the last "
+                    "catch", clause.location))
+            taken.append(None if catches_all else decl)
+            self.visit(clause.body)
         if node.finally_body is not None:
             self.visit(node.finally_body)
 

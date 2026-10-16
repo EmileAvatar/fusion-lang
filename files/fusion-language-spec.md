@@ -3075,7 +3075,13 @@ takes error type names as cases: `case FileError` also matches its subtypes, `ca
 any error, and inside a case with one type err *is* that type, so its own fields can be
 read. A name that isn't an error type is a compile error (string compares would let a typo
 through); an else (or `case Error`) is required; a case already covered by an earlier one
-is a warning. No central ERROR enum: each error type is its own kind, so a module
+is a warning.
+
+**Typed catch (Task 26.11, user: now, for a working sample):** `catch FileNotFound e`,
+`catch FileError e`, ... `catch e` - the first catch whose type matches takes the error (a
+parent type catches its subtypes); an untyped catch takes any error and must be last; an
+error no catch takes goes on, through the finally. A catch an earlier one already covers is
+a warning. No central ERROR enum: each error type is its own kind, so a module
 can add its own
 
 **Every run-time error is an Error (Task 26.4, user decision 2026-10-16: all of them):** an

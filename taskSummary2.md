@@ -66,9 +66,7 @@ catch e                                      // any other error
 - 26.8 DONE (capture without a type) - detail archived
 - 26.9 DONE (custom error types) - detail archived
 - 26.10 DONE (typed capture, err.kind, match on error types) - detail archived
-- **26.11 Typed catch** (user: now, for a working sample) - `catch FileError e` ...
-  `catch e`: first match wins, a parent type catches its subtypes, an untyped `catch e`
-  last; an error no catch matches goes on (through finally)
+- 26.11 DONE (typed catch) - detail archived
 - **26.12 Built-in error types** - the list below; built-in failures raise them; new
   checks for failures that aren't errors yet (integer division by zero)
 - **26.13 Docs + examples** - SYNTAX_REFERENCE sections, examples/errors_demo extended
@@ -201,4 +199,5 @@ Kept under Task 22 until the renumbering is approved.
 - 26.8 done
 - 26.9 done
 - 26.10 done
-- **Next Action:** 26.11 typed catch
+- 26.11 done
+- **Next Action:** 26.12 built-in error types

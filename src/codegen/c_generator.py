@@ -618,8 +618,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 names.add(node.name)
             if isinstance(node, VarDeclStmt) and node.error_name and local_needs_renaming(node.error_name):
                 names.add(node.error_name)
-            if isinstance(node, TryStmt) and node.catch_name and local_needs_renaming(node.catch_name):
-                names.add(node.catch_name)
+            if type(node).__name__ == 'CatchClause' and node.name and local_needs_renaming(node.name):
+                names.add(node.name)
             if isinstance(node, ForStmt) and local_needs_renaming(node.variable):
                 names.add(node.variable)
             if isinstance(node, MatchPattern):          # case Number(n) (Task 25.4)
@@ -639,8 +639,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 node.name = f'fu_{node.name}'
             if isinstance(node, VarDeclStmt) and node.error_name in names:
                 node.error_name = f'fu_{node.error_name}'
-            if isinstance(node, TryStmt) and node.catch_name in names:
-                node.catch_name = f'fu_{node.catch_name}'
+            if type(node).__name__ == 'CatchClause' and node.name in names:
+                node.name = f'fu_{node.name}'
             if isinstance(node, ForStmt) and node.variable in names:
                 node.variable = f'fu_{node.variable}'
             if isinstance(node, MatchPattern):
