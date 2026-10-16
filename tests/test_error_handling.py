@@ -167,3 +167,130 @@ def test_error_type_errors(source, message):
 def test_capture_parse_errors(source, message):
     with pytest.raises(Exception, match=message):
         errors_of(source)
+
+
+# ---------------------------------------------------------------- 26.3 try / catch / finally / throw
+
+HALF = ('int, Error function half(int n)\n'
+        '    if n % 2 == 1\n'
+        '        return Error("odd: {n}", 7)\n'
+        '    return n / 2\n'
+        'int function strict(int n)\n'
+        '    if n < 0\n'
+        '        throw Error("negative")\n'
+        '    return n\n')
+
+
+def test_try_catch_finally_in_a_loop_with_break_and_continue():
+    assert run_ok(HALF
+        + 'string function walk()\n'
+        '    string log = ""\n'
+        '    for n in [4, 3, -2, 8, 6]\n'
+        '        try\n'
+        '            string note = "n" + toString(n)\n'
+        '            int h = half(strict(n))\n'
+        '            log = log + note + "=" + toString(h) + " "\n'
+        '            if h == 4\n'
+        '                break\n'
+        '        catch err\n'
+        '            log = log + "[" + err.message + "] "\n'
+        '            if err.code == 0\n'
+        '                continue\n'
+        '            log = log + "code " + toString(err.code) + " "\n'
+        '        finally\n'
+        '            log = log + "f "\n'
+        '    return log\n'
+        + main('print(walk())')
+    ) == ['n4=2 f [odd: 3] code 7 f [negative] f n8=4 f ']
+
+
+def test_finally_runs_before_return_and_when_an_error_passes():
+    assert run_ok(HALF
+        + 'int function early(int n)\n'
+        '    string held = "x" + toString(n)\n'
+        '    try\n'
+        '        return half(n)\n'
+        '    finally\n'
+        '        print("finally " + held)\n'
+        + main(
+            'print("{@1}", early(10))\n'
+            'int r, Error err = early(3)\n'
+            'print("{r} {err}")')
+    ) == ['finally x10', '5', 'finally x3', '0 odd: 3']
+
+
+def test_nested_tries_rethrow_and_errors_in_a_catch():
+    assert run_ok(HALF + main(
+        'try\n'
+        '    try\n'
+        '        int x = half(5)\n'
+        '        print("{x}")\n'
+        '    finally\n'
+        '        print("inner finally")\n'
+        'catch e\n'
+        '    print("outer caught: {e}")\n'
+        'try\n'
+        '    try\n'
+        '        throw Error("first")\n'
+        '    catch e\n'
+        '        print("caught {e}")\n'
+        '        throw e\n'
+        '    finally\n'
+        '        print("finally after catch")\n'
+        'catch again\n'
+        '    print("again {again}")\n'
+        'try {\n'
+        '    int y = half(7)\n'
+        '    print("{y}")\n'
+        '} catch {\n'
+        '    print("bare catch")\n'
+        '}'
+    )) == ['inner finally', 'outer caught: odd: 5', 'caught first', 'finally after catch',
+           'again first', 'bare catch']
+
+
+def test_a_thrown_error_nobody_catches_stops_the_program():
+    lines, stderr = run_failing(HALF + main(
+        'try\n'
+        '    print("{@1}", strict(1))\n'
+        'finally\n'
+        '    print("done")\n'
+        'print("{@1}", strict(-1))'
+    ))
+    assert lines == ['1', 'done']
+    assert 'Error at test.fusion:7: negative' in stderr
+
+
+def test_capture_catches_a_thrown_error_too():
+    assert run_ok(HALF + main(
+        'int n, Error err = strict(-5)\n'
+        'print("{n} {err}")'
+    )) == ['0 negative']
+
+
+def test_throw_an_error_held_in_a_variable_with_none():
+    assert run_ok(main(
+        'Error none = Error("x")\n'
+        'Error e = Error("kept")\n'
+        'try\n'
+        '    throw e\n'
+        'catch caught\n'
+        '    print("{caught}")'
+    )) == ['kept']
+
+
+@pytest.mark.parametrize("body, message", [
+    ('throw "oops"', "throw needs an Error"),
+    ('try\n    print("x")\ncatch e\n    int n = e', "Cannot assign Error to variable of type int"),
+])
+def test_try_type_errors(body, message):
+    assert message in errors_of(main(body))
+
+
+@pytest.mark.parametrize("body, message", [
+    ('try\n    print("x")\n', "A try needs a 'catch', a 'finally', or both"),
+    ('try print("x")\ncatch\n    print("y")\n', "Expected the try block"),
+])
+def test_try_parse_errors(body, message):
+    with pytest.raises(Exception, match=message):
+        errors_of(main(body))

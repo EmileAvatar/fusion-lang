@@ -3055,8 +3055,17 @@ int age = ages.get("Alice")
 
 ## Error Handling
 
-**Status:** [PARTLY] error returns and capturing are built (26.2); try / catch / finally /
-throw [PLANNED 26.3]; built-in failures catchable [PLANNED 26.4]; config switches [PLANNED 26.5]
+**Status:** [PARTLY] error returns, capturing (26.2) and try / catch / finally / throw (26.3)
+are built; built-in failures catchable [PLANNED 26.4]; config switches [PLANNED 26.5]
+
+**try / catch / finally / throw as built (Task 26.3):** `try` then `catch err` (or a bare
+`catch`) and/or `finally`, indented, in braces, or closed by `End try`. One catch catches
+any error - tell them apart with `err.code` (typed catches come later). An error in the try
+block goes to the catch; one in the catch goes on (through the finally). `finally` always
+runs: after the try block, after the catch, when an error passes through, and before a
+`return`, `break` or `continue` leaves the try. `throw Error(...)` / `throw err` work in any
+function - a function that throws can fail, so its callers check it. A capture
+(`int n, Error err = f()`) also catches what `f` throws
 
 **As built (Task 26.2, user decisions 2026-10-09 and 2026-10-16):**
 * `Error` is a built-in value: `message` (string), `code` (int, 0 unless given), `where`

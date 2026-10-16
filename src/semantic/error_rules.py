@@ -21,7 +21,8 @@ from typing import List, Optional
 
 from src.parser.ast_nodes import (
     ASTNode, CallExpr, EnumDecl, ErrorActiveExpr, ErrorMakeExpr, ErrorType, FunctionDecl,
-    IdentifierExpr, PrimitiveType, ProgramNode, StructDecl, StructType, TypeNode,
+    IdentifierExpr, PrimitiveType, ProgramNode, StructDecl, StructType, ThrowStmt, TryStmt,
+    TypeNode,
 )
 from .errors import SemanticError
 
@@ -113,6 +114,22 @@ class ErrorRulesMixin:
     def visit_ErrorActiveExpr(self, node: ErrorActiveExpr) -> TypeNode:
         self.visit(node.operand)
         return PrimitiveType(location=node.location, name='bool')
+
+    def visit_TryStmt(self, node: TryStmt) -> None:
+        """try / catch err / finally (Task 26.3) - err is an Error in the catch block."""
+        self.visit(node.body)
+        if node.catch_body is not None:
+            self.visit(node.catch_body)
+        if node.finally_body is not None:
+            self.visit(node.finally_body)
+
+    def visit_ThrowStmt(self, node: ThrowStmt) -> None:
+        value_type = self.visit(node.value)
+        if not isinstance(value_type, ErrorType) and not (
+                isinstance(value_type, PrimitiveType) and value_type.name == 'void'):
+            self.errors.append(SemanticError(
+                f"throw needs an Error - throw Error(\"what went wrong\") - got "
+                f"{self.type_to_string(value_type)}", node.value.location))
 
     def error_member_type(self, node) -> TypeNode:
         """err.message, err.code, err.where."""

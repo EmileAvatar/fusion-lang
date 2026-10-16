@@ -389,6 +389,30 @@ class IfStmt(ASTNode):
 
 
 @dataclass
+class TryStmt(ASTNode):
+    """try / catch err / finally (Task 26.3). An error in the body goes to the catch, which
+    gets it in `catch_name`; `finally` always runs - after the body, after the catch, when an
+    error passes through, and before a return / break / continue leaves the try.
+
+    Attributes:
+        body: The try block
+        catch_name: The catch's Error variable (None for a bare `catch`)
+        catch_body: The catch block, or None
+        finally_body: The finally block, or None
+    """
+    body: 'BlockStmt'
+    catch_name: Optional[str] = None
+    catch_body: Optional['BlockStmt'] = None
+    finally_body: Optional['BlockStmt'] = None
+
+
+@dataclass
+class ThrowStmt(ASTNode):
+    """throw Error("...") / throw err (Task 26.3) - start an error on its way."""
+    value: ASTNode
+
+
+@dataclass
 class MatchPattern(ASTNode):
     """One thing a `case` matches (Task 25.3): an enum value's bare name (`Red`), with the
     names its data is bound to (`Number(n)`, Task 25.4) - or a constant (`'+'`, `42`, "go").

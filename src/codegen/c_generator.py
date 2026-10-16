@@ -22,7 +22,7 @@ from ..parser.ast_nodes import (
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
-    BlockStmt, ListType, MapType, EnumDecl, EnumType, MatchStmt, MatchPattern,
+    BlockStmt, ListType, MapType, EnumDecl, EnumType, MatchStmt, MatchPattern, TryStmt, ThrowStmt,
 )
 from .c_types import TypeMapperMixin
 from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
@@ -136,7 +136,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.lower_data_enums(program)
         # Which functions can fail, so their calls are checked (Task 26)
         self.failing_functions = self.find_failing_functions(program)
-        self.fail_targets, self.fail_sites = [], []
+        self.fail_targets, self.fail_sites, self.finally_stack = [], [], []
 
         # Struct declarations by name - default values of struct-typed fields and arrays
         # need them (Task 18.2.3)
@@ -222,7 +222,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
     # Statements whose temporaries are freed when they finish (Task 18.3.1)
     _STATEMENTS = (ExpressionStmt, VarDeclStmt, AssignmentStmt, ReturnStmt, IfStmt,
-                   WhileStmt, ForStmt, MatchStmt)
+                   WhileStmt, ForStmt, MatchStmt, TryStmt, ThrowStmt)
 
     def visit(self, node: ASTNode) -> str:
         """Visit an AST node and generate C code.
@@ -611,6 +611,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 names.add(node.name)
             if isinstance(node, VarDeclStmt) and node.error_name and local_needs_renaming(node.error_name):
                 names.add(node.error_name)
+            if isinstance(node, TryStmt) and node.catch_name and local_needs_renaming(node.catch_name):
+                names.add(node.catch_name)
             if isinstance(node, ForStmt) and local_needs_renaming(node.variable):
                 names.add(node.variable)
             if isinstance(node, MatchPattern):          # case Number(n) (Task 25.4)
@@ -630,6 +632,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 node.name = f'fu_{node.name}'
             if isinstance(node, VarDeclStmt) and node.error_name in names:
                 node.error_name = f'fu_{node.error_name}'
+            if isinstance(node, TryStmt) and node.catch_name in names:
+                node.catch_name = f'fu_{node.catch_name}'
             if isinstance(node, ForStmt) and node.variable in names:
                 node.variable = f'fu_{node.variable}'
             if isinstance(node, MatchPattern):
@@ -1318,6 +1322,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             # `return Error(...)`: the function fails - its values are freed and the error
             # goes on to the caller (Task 26)
             self.emit_line(self.raise_code(node.value))
+            self.emit_finally_for_exit('function', error_pending=True)   # Task 26.3
             self.flush_temps()
             self.emit_frees(self.owned_in_scopes('function'))
             for line in self._fail_action(self.fail_targets[0]):
@@ -1342,17 +1347,20 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # Leaving the function: this statement's temporaries and every owned variable in
         # the function are freed first - after the returned value is safely computed
         owned = self.owned_in_scopes('function') if hasattr(self, 'cleanup_scopes') else []
-        if not owned and not self.has_pending_temps():
+        leaves_finally = any(True for _ in getattr(self, 'finally_stack', None) or [])
+        if not owned and not self.has_pending_temps() and not leaves_finally:
             self.emit_line(f'return {value_code}' if value_code is not None else 'return')
             return ''
         if value_code is None:
             self.flush_temps()
+            self.emit_finally_for_exit('function')   # a try being left runs its finally (26.3)
             self.emit_frees(owned)
             self.emit_line('return')
             return ''
         result = self._declare_temp('ret', self.return_c_type(return_type))
         self.emit_line(f'{result} = {value_code}')
         self.flush_temps()
+        self.emit_finally_for_exit('function')
         self.emit_frees(owned)
         self.emit_line(f'return {result}')
         return ''
@@ -1553,7 +1561,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
-        # Leaving the loop: free what its body owns (Task 18.3.1)
+        # Leaving the loop: a try being left runs its finally (26.3); free what the body owns
+        self.emit_finally_for_exit('loop')
         if hasattr(self, 'cleanup_scopes'):
             self.emit_frees(self.owned_in_scopes('loop'))
         self.emit_line('break')
@@ -1568,6 +1577,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        self.emit_finally_for_exit('loop')
         if hasattr(self, 'cleanup_scopes'):
             self.emit_frees(self.owned_in_scopes('loop'))
         self.emit_line('continue')
@@ -1662,7 +1672,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if hasattr(self, 'fail_targets'):
             # An error nobody captures leaves the function here (Task 26)
             self.fail_targets = [self.function_fail_target(node.name, node.return_type)]
-            self.fail_sites = []
+            self.fail_sites, self.finally_stack = [], []
         assigned = self.assigned_roots(node.body)
         for param in node.parameters:
             if param.name in assigned and not isinstance(param.param_type, ArrayType) \

@@ -523,6 +523,31 @@ void function main()
     print(last.name)                         // at main the program stops with its message
 ```
 
+#### `try` / `catch` / `finally` / `throw`
+
+<!-- example: syntax_try | task: 26.3 -->
+```fusion
+int, Error function half(int n)
+    if n % 2 == 1
+        return Error("odd: {n}", 7)
+    return n / 2
+
+void function main()
+    for n in [4, 3, 8]
+        try                                  // an error in here goes to the catch
+            print("{n} / 2 = {@1}", half(n))
+        catch err                            // err: the Error
+            print("caught: {err} (code {@1})", err.code)
+            if err.code == 7
+                continue                     // the finally still runs first
+        finally                              // always runs
+            print("done with {n}")
+    try
+        throw Error("stop here")             // throw works in any function
+    catch err
+        print("caught: {err}")
+```
+
 #### Equality: `=`, `==`, `===`
 
 <!-- example: syntax_equality | task: 18.3.5 -->

@@ -112,6 +112,16 @@ class ControlFlowValidator:
                 return then_returns and else_returns
             return False
 
+        elif isinstance(stmt, ThrowStmt):
+            return True    # the function ends here too (Task 26.3)
+
+        elif isinstance(stmt, TryStmt):
+            # The finally returns, or the body does and so does the catch (Task 26.3)
+            if stmt.finally_body is not None and self.check_returns(stmt.finally_body):
+                return True
+            return self.check_returns(stmt.body) and (
+                stmt.catch_body is None or self.check_returns(stmt.catch_body))
+
         elif isinstance(stmt, MatchStmt):
             # Every case returns, and some case always runs (Task 25.3)
             bodies = [c.body for c in stmt.cases] + ([stmt.else_body] if stmt.else_body else [])
@@ -164,6 +174,10 @@ class ControlFlowValidator:
             for body in self._match_bodies(stmt):
                 self.check_unreachable_code(body)
 
+        elif isinstance(stmt, TryStmt):
+            for body in self._try_bodies(stmt):
+                self.check_unreachable_code(body)
+
         elif isinstance(stmt, WhileStmt):
             self.check_unreachable_code(stmt.body)
 
@@ -179,7 +193,7 @@ class ControlFlowValidator:
         Returns:
             True if statement terminates execution
         """
-        return isinstance(stmt, (ReturnStmt, BreakStmt, ContinueStmt))
+        return isinstance(stmt, (ReturnStmt, BreakStmt, ContinueStmt, ThrowStmt))
 
     # ========================================================================
     # Break/Continue Validation
@@ -228,6 +242,14 @@ class ControlFlowValidator:
             # break / continue in a case act on the loop around the match (Task 25.3)
             for body in self._match_bodies(stmt):
                 self.validate_statement(body)
+
+        elif isinstance(stmt, TryStmt):
+            for body in self._try_bodies(stmt):
+                self.validate_statement(body)
+
+    @staticmethod
+    def _try_bodies(stmt) -> list:
+        return [b for b in (stmt.body, stmt.catch_body, stmt.finally_body) if b is not None]
 
     @staticmethod
     def _match_bodies(stmt) -> list:
@@ -292,6 +314,10 @@ class ControlFlowValidator:
 
         elif isinstance(stmt, MatchStmt):
             for body in self._match_bodies(stmt):
+                self.validate_conditions(body, type_checker)
+
+        elif isinstance(stmt, TryStmt):
+            for body in self._try_bodies(stmt):
                 self.validate_conditions(body, type_checker)
 
         elif isinstance(stmt, BlockStmt):

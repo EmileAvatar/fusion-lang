@@ -936,6 +936,15 @@ class Parser:
         if self.match(TokenType.MATCH):
             return self.parse_match_statement()
 
+        # try / catch / finally, throw (Task 26.3)
+        if self.match(TokenType.TRY):
+            return self.parse_try_statement()
+        if self.match(TokenType.THROW):
+            throw_token = self.previous()
+            value = self.parse_expression()
+            self.consume_statement_terminator()
+            return ThrowStmt(location=throw_token.location, value=value)
+
         # Block statement
         if self.check(TokenType.LBRACE) or self.check(TokenType.INDENT):
             return self.parse_block_statement()
@@ -1194,6 +1203,47 @@ class Parser:
             raise ParserError(match_token, "A match needs at least one 'case'")
         return MatchStmt(location=match_token.location, subject=subject, cases=cases,
                          else_body=else_body)
+
+    def parse_try_statement(self) -> ASTNode:
+        """Parse try / catch err / finally (Task 26.3), indented, braced or closed by
+        `End try`. A try needs a catch, a finally, or both. The TRY token is consumed."""
+        try_token = self.previous()
+        body = self._try_part_block('try')
+        node = TryStmt(location=try_token.location, body=body)
+        self._skip_newlines_before(TokenType.CATCH, TokenType.FINALLY)
+        if self.match(TokenType.CATCH):
+            if self.check(TokenType.IDENTIFIER):
+                node.catch_name = self.advance().value
+            node.catch_body = self._try_part_block('catch')
+            self._skip_newlines_before(TokenType.FINALLY)
+        if self.match(TokenType.FINALLY):
+            node.finally_body = self._try_part_block('finally')
+        if node.catch_body is None and node.finally_body is None:
+            raise ParserError(try_token, "A try needs a 'catch', a 'finally', or both")
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.check(TokenType.END) and self.peek(1).type == TokenType.TRY:
+            self.advance()
+            self.advance()
+        return node
+
+    def _try_part_block(self, part: str) -> BlockStmt:
+        while self.match(TokenType.NEWLINE):
+            pass
+        if not (self.check(TokenType.INDENT) or self.check(TokenType.LBRACE)):
+            raise ParserError(self.peek(), f"Expected the {part} block - an indented block "
+                                           f"or '{{' ... '}}'")
+        return self.parse_block_statement()
+
+    def _skip_newlines_before(self, *token_types) -> None:
+        """Skip blank lines only when one of token_types follows (`}` then `catch` on the
+        next line, brace style)."""
+        offset = 0
+        while self.peek(offset).type == TokenType.NEWLINE:
+            offset += 1
+        if offset and self.peek(offset).type in token_types:
+            for _ in range(offset):
+                self.advance()
 
     def parse_case_body(self) -> BlockStmt:
         """A case's (or the else's) body: `: statement` on the same line, or a block."""

@@ -13,7 +13,7 @@ from src.parser.ast_nodes import (
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
     EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt, ErrorType, ErrorMakeExpr,
-    ErrorActiveExpr,
+    ErrorActiveExpr, TryStmt, ThrowStmt,
     ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES
 )
 from .symbol_table import SymbolTable
@@ -736,6 +736,18 @@ class NameResolver:
             self.resolve_block(stmt)
         elif isinstance(stmt, ExpressionStmt):
             self.resolve_expression(stmt.expression)
+        elif isinstance(stmt, TryStmt):               # Task 26.3
+            self.resolve_block(stmt.body)
+            if stmt.catch_body is not None:
+                names = [stmt.catch_name] if stmt.catch_name else []
+                self.resolve_block(stmt.catch_body, bindings=names)
+                if stmt.catch_name:
+                    stmt.catch_body.scope.lookup(stmt.catch_name).data_type = \
+                        ErrorType(location=stmt.catch_body.location)
+            if stmt.finally_body is not None:
+                self.resolve_block(stmt.finally_body)
+        elif isinstance(stmt, ThrowStmt):
+            self.resolve_expression(stmt.value)
         elif isinstance(stmt, MatchStmt):             # Task 25.3
             self.resolve_expression(stmt.subject)
             for case in stmt.cases:

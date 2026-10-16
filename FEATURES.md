@@ -85,7 +85,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		every built-in failure catchable, one catch-all)
 	[DONE] 26.2 `Error` and error returns: `T, Error function`, `return Error(...)`, capture on any
 		call, `if err`, bubbling (explicit, leak-free), stop at main
-	[ ] 26.3 try / catch / finally / throw
+	[DONE] 26.3 try / catch err / finally / throw: one catch-all, finally on every exit (return,
+		break, continue, errors passing through), rethrow, nesting, three block styles
 	[ ] 26.4 Every built-in failure catchable (files, conversions, index out of range, ...)
 	[ ] 26.5 Config: [errors] returns / exceptions
 	[ ] 26.6 Example + docs

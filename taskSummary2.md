@@ -81,9 +81,7 @@ void function main()
 #### Sub-tasks
 - **26.1** this plan
 - 26.2 DONE (Error and error returns) - detail archived
-- **26.3 try / catch / finally / throw** - one `catch err` catching any error (kinds via
-  `err.code`, or an enum code later), `throw` / rethrow, `finally` always runs (also on
-  return / break); nesting; all three block styles
+- 26.3 DONE (try / catch / finally / throw) - detail archived
 - **26.4 Every built-in failure becomes catchable** (user: all of them): text to number,
   files, `Enum.fromString`, a missing Map key, an index out of range, a string over its
   max_length, a list too large, ... - each C runtime error returns with a safe value and
@@ -153,4 +151,5 @@ Kept under Task 22 until the renumbering is approved.
 - Task 25 complete (25.6: examples/expressions)
 - Task 26 plan approved (bubble up, capture any call, all built-ins catchable, one catch)
 - 26.2 done
-- **Next Action:** 26.3 try / catch / finally / throw
+- 26.3 done
+- **Next Action:** 26.4 every built-in failure catchable

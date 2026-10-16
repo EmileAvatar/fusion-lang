@@ -4549,3 +4549,13 @@ Built in src/semantic/error_rules.py and src/codegen/c_errors.py; `Error` stoppe
   message), `T, Error function` / `Error function`, `return Error(...)`, capture
   `T x, Error err = f()`, `if err`, bubbling to the caller and stopping at main; which
   functions can fail (call graph); cleanup of strings / lists on every error path
+
+---
+
+#### Task 26.3 - try / catch / finally / throw (COMPLETE 2026-10-16)
+
+In C: the try body jumps to fusion_catch_N / fusion_finerr_N; finally is copied in at each exit (emit_finally_for_exit); only paths something jumps to are written.
+
+- **26.3 try / catch / finally / throw** - one `catch err` catching any error (kinds via
+  `err.code`, or an enum code later), `throw` / rethrow, `finally` always runs (also on
+  return / break); nesting; all three block styles

@@ -11,8 +11,18 @@ like Go, Zig or Rust's `?`, an error travels explicitly:
 
 - each statement that has such a call gets a failure block after it, which frees the
   statement's temporaries and the values owned so far, then goes on to its target: return
-  from the function (the error bubbles up), a capture (`T x, Error err = ...`), or (26.3) a
-  catch. An error that reaches the end of main stops the program with its message
+  from the function (the error bubbles up), a capture (`T x, Error err = ...`), or a
+  try's catch. An error that reaches the end of main stops the program with its message
+
+try / catch / finally (26.3):
+
+      <body>                         errors go to fusion_catch_N (or fusion_finerr_N)
+      goto fusion_tryend_N;
+      if (0) { fusion_catch_N: fusion_error err = fusion_take_error(); <catch>; goto fusion_tryend_N; }
+      if (0) { fusion_finerr_N: saved = fusion_take_error(); <finally>; fusion_raise(saved); goto <outer>; }
+      fusion_tryend_N:; <finally>
+
+  and a return / break / continue leaving the try runs a copy of the finally first.
 
 Which functions can fail is worked out first (failing_functions): one declared `T, Error`
 or `Error function`, and - repeated until nothing changes - one calling a function that can
@@ -21,8 +31,9 @@ fail, or calling through a function value. Calls that can't fail get no check.
 
 from dataclasses import fields as dataclass_fields, is_dataclass
 
-from src.parser.ast_nodes import (ArrayType, CallExpr, ErrorType, FunctionDecl, FunctionType,
-                                  IdentifierExpr, LambdaExpr, PrimitiveType)
+from src.parser.ast_nodes import (ArrayType, CallExpr, ErrorMakeExpr, ErrorType, FunctionDecl,
+                                  FunctionType, IdentifierExpr, LambdaExpr, PrimitiveType,
+                                  ThrowStmt)
 
 ERRORS_LIBRARY = r'''
 // ---- Errors (Task 26) - an error travels in fusion_err while fusion_failed is set ----
@@ -121,6 +132,8 @@ class ErrorsMixin:
             return False   # a lambda is its own function
         if isinstance(node, CallExpr) and self.call_can_fail(node, failing):
             return True
+        if isinstance(node, ThrowStmt):
+            return True
         if isinstance(node, CallExpr) and isinstance(node.callee, IdentifierExpr):
             # walk only the arguments - the callee is a name, not a call
             return self._calls_failing(node.arguments, failing)
@@ -159,6 +172,7 @@ class ErrorsMixin:
             self.fail_count = getattr(self, 'fail_count', 0) + 1
             site['label'] = f'fusion_fail_{self.fail_count}'
             site['target'] = self.fail_targets[-1]
+            site['target']['used'] = True     # a try's catch / finally path is needed
         return site['label']
 
     def close_fail_site(self, site: dict) -> None:
@@ -224,6 +238,110 @@ class ErrorsMixin:
     def raise_code(self, value) -> str:
         """`return Error(...)` in a function that can fail: start the error on its way."""
         return f'fusion_raise({self.owned_value(value, ErrorType(location=value.location))})'
+
+    # ------------------------------------------------------------------ try / catch / finally
+
+    def _loop_count(self) -> int:
+        return sum(1 for scope in self.cleanup_scopes if scope['kind'] == 'loop')
+
+    def visit_TryStmt(self, node) -> str:
+        self.fail_count = getattr(self, 'fail_count', 0) + 1
+        n = self.fail_count
+        catch_label, fin_label, end_label = f'fusion_catch_{n}', f'fusion_finerr_{n}', f'fusion_tryend_{n}'
+        finally_body = node.finally_body
+        if finally_body is not None:
+            self.finally_stack.append({'body': finally_body, 'loops': self._loop_count(),
+                                       'targets': len(self.fail_targets)})
+        target = catch_label if node.catch_body is not None else fin_label
+        body_target = {'kind': 'try', 'label': target, 'scope_index': len(self.cleanup_scopes),
+                       'temp_level': len(self.stmt_temps)}
+        self.fail_targets.append(body_target)
+        self.visit(node.body)
+        self.fail_targets.pop()
+        self.emit_line(f'goto {end_label}')
+        # Only paths something can jump to are written (no unused labels)
+        catch_used = node.catch_body is not None and body_target.get('used')
+        finally_used = node.catch_body is None and body_target.get('used')
+
+        if catch_used:
+            self.emit('if (0) {')
+            self.indent()
+            self.emit(f'{catch_label}:;')
+            catch_target = {'kind': 'try', 'label': fin_label,
+                            'scope_index': len(self.cleanup_scopes),
+                            'temp_level': len(self.stmt_temps)}
+            if finally_body is not None:
+                # An error in the catch still runs the finally
+                self.fail_targets.append(catch_target)
+            self.push_scope('block')
+            name = node.catch_name or f'fusion_caught_{n}'
+            self.emit_line(f'fusion_error {name} = fusion_take_error()')
+            self.register_owned(name, ErrorType(location=node.location), node.location)
+            self.visit(node.catch_body)
+            self.pop_scope()
+            if finally_body is not None:
+                self.fail_targets.pop()
+                finally_used = finally_used or catch_target.get('used')
+            self.emit_line(f'goto {end_label}')
+            self.dedent()
+            self.emit('}')
+
+        if finally_body is not None:
+            self.finally_stack.pop()
+        if finally_used:
+            # An error passing through: run the finally, then send the error on
+            self.emit('if (0) {')
+            self.indent()
+            self.emit(f'{fin_label}:;')
+            self.push_scope('block')
+            saved = f'fusion_saved_{n}'
+            self.emit_line(f'fusion_error {saved} = fusion_take_error()')
+            self.register_owned(saved, ErrorType(location=node.location), node.location)
+            self.visit(finally_body)
+            self.emit_line(f'fusion_raise({saved}); {saved} = (fusion_error){{0}}')
+            self.pop_scope()
+            self.emit_line(f'goto {self.fail_label()}')
+            self.dedent()
+            self.emit('}')
+        self.emit(f'{end_label}:;')
+        if finally_body is not None:
+            self.visit(finally_body)
+        return ''
+
+    def visit_ThrowStmt(self, node) -> str:
+        self.emit_line(f'fusion_raise({self.owned_value(node.value, ErrorType(location=node.location))})')
+        if isinstance(node.value, ErrorMakeExpr):
+            self.emit_line(f'goto {self.fail_label()}')        # always an error
+        else:
+            self.emit_line(f'if (fusion_failed) goto {self.fail_label()}')   # err may hold none
+        return ''
+
+    def emit_finally_for_exit(self, leaving: str, error_pending: bool = False) -> None:
+        """Before a return (leaving 'function') or a break / continue (leaving 'loop'):
+        run the finally of every try being left, innermost first. While one runs, it is no
+        longer "being left", and errors in it go to the targets outside its try."""
+        if not getattr(self, 'finally_stack', None):
+            return
+        loops = self._loop_count()
+        entries = [e for e in self.finally_stack if leaving == 'function' or e['loops'] == loops]
+        if not entries:
+            return
+        saved_stack, saved_targets = self.finally_stack, self.fail_targets
+        holder = None
+        if error_pending:
+            self.fail_count = getattr(self, 'fail_count', 0) + 1
+            holder = f'fusion_pending_{self.fail_count}'
+            self.emit_line(f'fusion_error {holder} = fusion_take_error()')
+        try:
+            for entry in reversed(entries):
+                index = saved_stack.index(entry)
+                self.finally_stack = saved_stack[:index]
+                self.fail_targets = saved_targets[:entry['targets']]
+                self.visit(entry['body'])
+        finally:
+            self.finally_stack, self.fail_targets = saved_stack, saved_targets
+        if holder:
+            self.emit_line(f'fusion_raise({holder})')
 
     # ------------------------------------------------------------------ capturing
 

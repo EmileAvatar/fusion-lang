@@ -151,6 +151,7 @@ statement =
     | loop_statement
     | match_statement
     | try_statement
+    | throw_statement
     | return_statement
     | break_statement
     | continue_statement
@@ -232,8 +233,13 @@ loop_infinite =
 
 try_statement =
     "try" block
-    { "catch" [ "(" type_name identifier ")" ] block }
-    [ "finally" block ] ;
+    [ "catch" [ identifier ] block ]
+    [ "finally" block ]
+    [ "End" "try" ] ;
+    (* Implemented (Task 26.3). A catch, a finally, or both. One catch for any error (its
+       Error in the identifier); finally runs on every way out *)
+
+throw_statement = "throw" expression ;      (* an Error - Task 26.3 *)
 
 (* ========== Expressions ========== *)
 
