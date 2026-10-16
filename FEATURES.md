@@ -89,7 +89,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		break, continue, errors passing through), rethrow, nesting, three block styles
 	[DONE] 26.4 Every built-in failure catchable: index out of range, missing key, conversions,
 		files, patterns, fromString, max_length, ... - uncaught still stops ("Runtime error at")
-	[ ] 26.5 Config: [errors] returns / exceptions
+	[DONE] 26.5 Config: `[errors] returns / exceptions` in fusion.toml (both on by default) - turning
+		one off makes that syntax a compile error
 	[ ] 26.6 Example + docs
 	[POSTPONED to 26] Error handling (try/catch) example (was 16.5)
 

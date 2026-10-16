@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from ..parser.ast_nodes import ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl
 from .enums import normalize_enums, check_holding_loops
-from .error_rules import normalize_errors
+from .error_rules import normalize_errors, check_error_settings
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
 from .symbol_table import SymbolTable
@@ -39,7 +39,8 @@ class SemanticAnalyzer:
     """
 
     def __init__(self, structs_config: Optional[StructsConfig] = None,
-                 strings_config: Optional[StringsConfig] = None, stdlib_config=None):
+                 strings_config: Optional[StringsConfig] = None, stdlib_config=None,
+                 errors_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -47,6 +48,7 @@ class SemanticAnalyzer:
                 defaults if not given
         """
         self.structs_config = structs_config or StructsConfig()
+        self.errors_config = errors_config   # [errors] returns / exceptions (Task 26.5)
         self.symbol_table = SymbolTable()
         self.name_resolver = NameResolver(self.symbol_table)
         self.type_checker = TypeChecker(self.symbol_table, self.structs_config, strings_config,
@@ -170,6 +172,8 @@ class SemanticAnalyzer:
         self.warnings.extend(self.control_flow_validator.warnings)
 
         # Return success if no errors
+        # Ways of handling errors the project turned off (Task 26.5)
+        self.errors.extend(check_error_settings(ast, self.errors_config))
         return len(self.errors) == 0
 
     def check_structs_settings(self, structs: List[StructDecl]) -> None:

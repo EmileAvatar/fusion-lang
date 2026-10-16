@@ -84,6 +84,39 @@ def normalize_errors(program: ProgramNode) -> List[SemanticError]:
     return errors
 
 
+def check_error_settings(program: ProgramNode, config) -> List[SemanticError]:
+    """[errors] returns = false / exceptions = false (Task 26.5): that syntax is an error."""
+    if config is None or (config.returns and config.exceptions):
+        return []
+    errors: List[SemanticError] = []
+    off = "is turned off for this project ([errors] {key} = false in fusion.toml)"
+
+    def walk(node) -> None:
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if not config.returns:
+            if isinstance(node, FunctionDecl) and node.returns_error:
+                errors.append(SemanticError(
+                    f"'{node.name}' returns an Error - error returns {off.format(key='returns')}",
+                    node.location))
+            if type(node).__name__ == 'VarDeclStmt' and (node.error_name or getattr(node, 'capture_only', False)):
+                errors.append(SemanticError(
+                    f"Capturing an error {off.format(key='returns')}", node.location))
+        if not config.exceptions and isinstance(node, (TryStmt, ThrowStmt)):
+            what = 'try / catch / finally' if isinstance(node, TryStmt) else 'throw'
+            errors.append(SemanticError(f"{what} {off.format(key='exceptions')}", node.location))
+        for f in dataclass_fields(node):
+            if f.name not in _SKIP_FIELDS:
+                walk(getattr(node, f.name))
+
+    walk(program.declarations)
+    return errors
+
+
 class ErrorRulesMixin:
     """Type rules for Error values (Task 26), mixed into the TypeChecker."""
 

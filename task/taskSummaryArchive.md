@@ -4570,3 +4570,11 @@ fusion_runtime_error now raises and returns; each of ~60 runtime sites returns a
   files, `Enum.fromString`, a missing Map key, an index out of range, a string over its
   max_length, a list too large, ... - each C runtime error returns with a safe value and
   the error set, instead of exiting (about 60 places)
+
+---
+
+#### Task 26.5 - [errors] switches (COMPLETE 2026-10-16)
+
+ErrorsConfig in src/config/project_config.py; check_error_settings() in src/semantic/error_rules.py.
+
+- **26.5 Config** - `[errors] returns / exceptions` in fusion.toml

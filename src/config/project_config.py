@@ -148,6 +148,21 @@ class StdlibConfig:
 
 
 @dataclass
+class ErrorsConfig:
+    """Which ways of handling errors a project uses (Task 26.5, user decision 2026-10-09:
+    both on by default, both can be turned off).
+
+    Attributes:
+        returns: Go-style error returns - `T, Error function`, `return Error(...)`, capturing
+            `T x, Error err = f()`
+        exceptions: try / catch / finally / throw. With both off, an error nobody can
+            capture still stops the program with its message
+    """
+    returns: bool = True
+    exceptions: bool = True
+
+
+@dataclass
 class ProjectConfig:
     """Resolved project configuration - either loaded from fusion.toml or all defaults.
 
@@ -167,6 +182,7 @@ class ProjectConfig:
     structs: StructsConfig = field(default_factory=StructsConfig)
     strings: StringsConfig = field(default_factory=StringsConfig)
     stdlib: StdlibConfig = field(default_factory=StdlibConfig)
+    errors: ErrorsConfig = field(default_factory=ErrorsConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     backend: str = DEFAULT_BACKEND
     source_path: Optional[str] = None
@@ -316,6 +332,21 @@ def _load_stdlib_section(data: dict, config_path: str) -> StdlibConfig:
     return stdlib
 
 
+def _load_errors_section(data: dict, config_path: str) -> ErrorsConfig:
+    """Parse and validate the [errors] section (Task 26.5)."""
+    errors = ErrorsConfig()
+    section = _require_table(data, "errors", config_path)
+    for key, value in section.items():
+        if key not in ("returns", "exceptions"):
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting errors.{key} (known: ['returns', 'exceptions'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: errors.{key} must be true or false, got {value!r}")
+        setattr(errors, key, value)
+    return errors
+
+
 def load_project_config(source_path: str) -> ProjectConfig:
     """Load project configuration for compiling `source_path`.
 
@@ -401,6 +432,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
         structs=structs,
         strings=strings,
         stdlib=_load_stdlib_section(data, config_path),
+        errors=_load_errors_section(data, config_path),
         safety_mode=safety_mode,
         backend=backend,
         source_path=config_path,

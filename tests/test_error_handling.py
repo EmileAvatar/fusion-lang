@@ -388,3 +388,55 @@ def test_a_built_in_failure_bubbles_out_of_functions():
             'int n, Error err = third([1])\n'
             'print("{n} {err} at {@1}", err.where)')
     ) == ['0 index 2 is outside the list (length 1) at test.fusion:3']
+
+
+# ---------------------------------------------------------------- 26.5 [errors] in fusion.toml
+
+from src.config import ErrorsConfig, load_project_config, ProjectConfigError  # noqa: E402
+from src.lexer import Lexer  # noqa: E402
+from src.parser.parser import Parser  # noqa: E402
+from src.semantic import SemanticAnalyzer  # noqa: E402
+
+USES_BOTH = (HALF + main(
+    'int n, Error err = half(3)\n'
+    'try\n'
+    '    throw Error("x")\n'
+    'catch e\n'
+    '    print("{e}")'))
+
+
+def errors_with(source: str, **settings) -> str:
+    analyzer = SemanticAnalyzer(errors_config=ErrorsConfig(**settings))
+    analyzer.analyze(Parser(Lexer(source, 'test').tokenize()).parse_program())
+    return '\n'.join(str(e) for e in analyzer.get_errors())
+
+
+def test_both_ways_are_on_by_default():
+    assert errors_with(USES_BOTH) == ''
+
+
+def test_turning_error_returns_off():
+    errors = errors_with(USES_BOTH, returns=False)
+    assert "'half' returns an Error - error returns is turned off for this project " \
+           "([errors] returns = false in fusion.toml)" in errors
+    assert "Capturing an error is turned off" in errors
+    assert 'try' not in errors and 'throw' not in errors
+
+
+def test_turning_exceptions_off():
+    errors = errors_with(USES_BOTH, exceptions=False)
+    assert "try / catch / finally is turned off for this project ([errors] exceptions = false" in errors
+    assert "throw is turned off" in errors     # strict() throws too
+    assert 'returns an Error' not in errors
+
+
+def test_errors_section_in_fusion_toml(tmp_path):
+    source = str(tmp_path / 'p.fusion')
+    assert load_project_config(source).errors == ErrorsConfig()
+    (tmp_path / 'fusion.toml').write_text('[errors]\nreturns = false\n')
+    assert load_project_config(source).errors == ErrorsConfig(returns=False, exceptions=True)
+    for text, message in [('[errors]\nexceptions = "no"\n', "errors.exceptions must be true or false"),
+                          ('[errors]\npanic = true\n', "unknown setting errors.panic")]:
+        (tmp_path / 'fusion.toml').write_text(text)
+        with pytest.raises(ProjectConfigError, match=message):
+            load_project_config(source)

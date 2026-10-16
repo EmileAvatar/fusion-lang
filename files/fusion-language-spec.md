@@ -3056,7 +3056,8 @@ int age = ages.get("Alice")
 ## Error Handling
 
 **Status:** [PARTLY] error returns, capturing (26.2), try / catch / finally / throw (26.3)
-and catchable built-in failures (26.4) are built; config switches [PLANNED 26.5]
+catchable built-in failures (26.4) and the `[errors] returns / exceptions` switches (26.5)
+are built; the example [PLANNED 26.6]
 
 **Every run-time error is an Error (Task 26.4, user decision 2026-10-16: all of them):** an
 index out of range (strings, lists, bytes), a missing Map key, text that isn't a number,
@@ -3947,7 +3948,7 @@ void function main()
 
 ## Build and Compilation
 
-**Status:** [PARTLY] `fusion.toml` with [indentation], [source], [structs], [strings] and [stdlib] is built (12.12, 19.6, 18.2, 18.3, 18.5.6); other config formats [PLANNED 31]; enforcing [safety] / [backend] [PLANNED 31.5]; build modes and commands: no task yet
+**Status:** [PARTLY] `fusion.toml` with [indentation], [source], [structs], [strings], [stdlib] and [errors] is built (12.12, 19.6, 18.2, 18.3, 18.5.6, 26.5); other config formats [PLANNED 31]; enforcing [safety] / [backend] [PLANNED 31.5]; build modes and commands: no task yet
 
 Description: Flexible compilation options for different targets and use cases.
 
@@ -4052,6 +4053,10 @@ max_length = "max"             # "max" (default) = no limit; a number = error wh
 
 [stdlib]                       # Task 18.5.6 - see "Collections (as built)" / layers
 layer = "std"                  # std (default) | alloc | core
+
+[errors]                       # Task 26.5 - see "Error Handling"
+returns = true                 # false: T, Error function / return Error / capturing are errors
+exceptions = true              # false: try / catch / finally / throw are errors
 
 [structs]                      # Task 18.2 - see "Structures and Value Types"
 max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct)

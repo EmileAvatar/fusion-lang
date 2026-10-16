@@ -595,6 +595,10 @@ max_length = "max"               # no limit (default); a number = longer strings
 [stdlib]
 layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)
 
+[errors]
+returns = true                   # T, Error function / capturing errors (default on)
+exceptions = true                # try / catch / finally / throw (default on)
+
 [structs]
 max_nesting_depth  = 3
 warn_nesting_depth = 3

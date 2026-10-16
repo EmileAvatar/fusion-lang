@@ -83,7 +83,7 @@ void function main()
 - 26.2 DONE (Error and error returns) - detail archived
 - 26.3 DONE (try / catch / finally / throw) - detail archived
 - 26.4 DONE (every built-in failure catchable) - detail archived
-- **26.5 Config** - `[errors] returns / exceptions` in fusion.toml
+- 26.5 DONE (config switches) - detail archived
 - **26.6 Example + docs** - SYNTAX_REFERENCE section, an example program (catch an error,
   and show one nobody catches - was 16.5), spec "Error Handling" as built, fusion.ebnf
 - Every part: tests, all programs under the leak check (every error path must free)
@@ -150,4 +150,5 @@ Kept under Task 22 until the renumbering is approved.
 - 26.2 done
 - 26.3 done
 - 26.4 done
-- **Next Action:** 26.5 config switches
+- 26.5 done
+- **Next Action:** 26.6 example + docs
