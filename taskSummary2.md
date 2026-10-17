@@ -36,9 +36,7 @@ recursion.
 - 27.5 DONE (equality heading), 27.4 DONE (three block styles, same C) - detail archived
 - 27.2b DONE (OverflowError, unsafe mode), 27.2d DONE (wrapAdd, unchecked) - detail archived
 - 27.2c DONE (endless recursion) - detail archived
-- **27.3 Interaction tests** - features together: a struct holding lists and enums with
-  data, copied, passed through functions and across modules; nested collections; errors
-  passing through all of it; early returns, break, continue - every program leak-checked
+- 27.3 DONE (interaction tests) - detail archived
 - **27.2 The contract** - written last, in one spec section, documenting what was built
   and tested: copying (deep), the equality table, `=` in conditions (with its ambiguous
   cases tested), Unicode indexing (code points), integer conversions and overflow, changing
@@ -129,4 +127,5 @@ Kept under Task 22 until the renumbering is approved.
 - 27.5 and 27.4 done
 - 27.2b and 27.2d done
 - 27.2c done
-- **Next Action:** 27.3 interaction tests
+- 27.3 done (found: changing a list while looping over it skips elements)
+- **Next Action:** user decision on changing a collection while looping, then 27.2 the contract

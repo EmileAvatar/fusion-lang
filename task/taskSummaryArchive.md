@@ -4891,3 +4891,13 @@ fusion_stack_start (in fusion_init) records the stack start and room (Windows: G
 
 - **27.2c Endless recursion** - a StackOverflowError (subtype of LimitError) instead of a
   crash (Q3)
+
+---
+
+#### Task 27.3 - interaction tests (COMPLETE 2026-10-17)
+
+All passed on the first run. Found for the contract: a for loop reads the list / map live, so removing an element while looping skips the next one.
+
+- **27.3 Interaction tests** - features together: a struct holding lists and enums with
+  data, copied, passed through functions and across modules; nested collections; errors
+  passing through all of it; early returns, break, continue - every program leak-checked

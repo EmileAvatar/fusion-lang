@@ -247,3 +247,139 @@ def test_max_call_depth_in_fusion_toml(tmp_path):
     (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = 0\n')
     with pytest.raises(ProjectConfigError, match='max_call_depth must be "max" or a whole number'):
         load_project_config(source)
+
+
+# ---------------------------------------------------------------- 27.3 features together
+
+def test_a_struct_holding_collections_and_enums_is_a_value():
+    assert run_ok(
+        'enum Role\n    Admin\n    Guest(string invitedBy)\n'
+        'struct Team\n    string name\n    List<string> members\n    Map<string, Role> roles\n'
+        'Team function renamed(Team t, string name)\n'
+        '    t.name = name\n'                        # a parameter changed: the caller's stays
+        '    t.members.add("new")\n'
+        '    return t\n'
+        + main(
+            'Team a = Team("A", ["ada", "bo"], Map<string, Role>())\n'
+            'a.roles["ada"] = Role.Admin\n'
+            'a.roles["bo"] = Role.Guest("ada")\n'
+            'Team b = a\n'                            # a deep copy
+            'b.members[0] = "zed"\n'
+            'b.roles["bo"] = Role.Admin\n'
+            'Team c = renamed(a, "C")\n'
+            'print("{a.name} {@1} {@2} {@3}", a.members[0], a.members.len(), a.roles["bo"])\n'
+            'print("{b.name} {@1} {@2}", b.members[0], b.roles["bo"])\n'
+            'print("{c.name} {@1} {@2}", c.members.len(), c == a)\n'
+            'match a.roles["bo"]\n'
+            '    case Guest(by): print("invited by {by}")\n'
+            '    else: print("?")\n'
+            'List<Team> teams = [a, b, c]\n'
+            'teams[1].members.add("x")\n'
+            'print("{@1} {@2}", teams[1].members.len(), b.members.len())')
+    ) == ['A ada 2 Guest', 'A zed Admin', 'C 3 false', 'invited by ada', '3 2']
+
+
+def test_nested_collections():
+    assert run_ok(main(
+        'Map<string, List<int>> scores\n'
+        'scores["ada"] = [1, 2]\n'
+        'scores["bo"] = List<int>()\n'
+        'scores["ada"].add(3)\n'
+        'scores["bo"].add(9)\n'
+        'List<List<string>> grid = [["a", "b"], ["c"]]\n'
+        'grid[1].add("d")\n'
+        'List<List<string>> copy = grid\n'
+        'copy[0][0] = "z"\n'
+        'int total = 0\n'
+        'for name in scores\n'
+        '    for s in scores[name]\n'
+        '        total = total + s\n'
+        'print("{total} {@1} {@2} {@3}", grid[0][0], copy[0][0], grid[1].join(""))'
+    )) == ['15 a z cd']
+
+
+def test_an_error_through_everything_frees_everything():
+    assert run_ok(
+        'error ParseError\n    int line\n'
+        'struct Doc\n    string title\n    List<string> lines\n'
+        'Doc function parse(List<string> raw)\n'
+        '    Doc d = Doc("t", List<string>())\n'
+        '    int number = 0\n'
+        '    for line in raw\n'
+        '        number = number + 1\n'
+        '        string clean = line.trim()\n'
+        '        match clean\n'
+        '            case "": continue\n'
+        '            case "!": throw ParseError("bang", line = number)\n'
+        '            else: d.lines.add(clean)\n'
+        '    return d\n'
+        + main(
+            'List<List<string>> inputs = [[" a ", "", "b"], ["x", "!", "y"]]\n'
+            'for input in inputs\n'
+            '    try\n'
+            '        Doc d = parse(input)\n'
+            '        print("{@1} lines", d.lines.len())\n'
+            '    catch ParseError e\n'
+            '        print("{e} on line {e.line}")\n'
+            '    finally\n'
+            '        print("done")')
+    ) == ['2 lines', 'done', 'bang on line 2', 'done']
+
+
+def test_early_exits_with_owned_values():
+    assert run_ok(
+        'string function first(List<string> words, string start)\n'
+        '    for w in words\n'
+        '        string lower = w.toLower()\n'
+        '        if lower.startsWith(start)\n'
+        '            return lower\n'
+        '    return ""\n'
+        + 'int function count(List<string> words)\n'
+        '    int n = 0\n'
+        '    for w in words\n'
+        '        string copy = w + "!"\n'
+        '        if w == "stop"\n'
+        '            break\n'
+        '        if w == "skip"\n'
+        '            continue\n'
+        '        n = n + len(copy)\n'
+        '    return n\n'
+        + main('print("{@1} {@2}", first(["Apple", "Banana"], "ba"), count(["ab", "skip", "c", "stop", "zz"]))')
+    ) == ['banana 5']
+
+
+def test_across_modules(tmp_path):
+    from tests.test_modules import run_project
+    assert run_project(tmp_path, {
+        'shapes/shapes.fusion': (
+            'public enum Shape\n'
+            '    Circle(int r)\n'
+            '    Box(int w, int h)\n'
+            'public error ShapeError\n'
+            '    int size\n'
+            'public struct Drawing\n'
+            '    string name\n'
+            '    List<Shape> shapes\n'
+            'public int function area(Shape s)\n'
+            '    match s\n'
+            '        case Circle(r): return 3 * r * r\n'
+            '        case Box(w, h)\n'
+            '            if w < 0\n'
+            '                throw ShapeError("negative", size = w)\n'
+            '            return w * h\n'),
+        'main.fusion': (
+            'import shapes\n'
+            'import shapes.Shape\n'
+            'void function main()\n'
+            '    shapes.Drawing d = shapes.Drawing("d", [Shape.Circle(1), Shape.Box(2, 3)])\n'
+            '    shapes.Drawing copy = d\n'
+            '    copy.shapes.add(Shape.Box(-1, 1))\n'
+            '    int total = 0\n'
+            '    for s in copy.shapes\n'
+            '        int a, shapes.ShapeError err = shapes.area(s)\n'
+            '        if err\n'
+            '            print("{err} {err.size}")\n'
+            '            continue\n'
+            '        total = total + a\n'
+            '    print("{total} {@1} {@2}", d.shapes.len(), copy.shapes.len())\n'),
+    }) == ['negative -1', '9 2 3']

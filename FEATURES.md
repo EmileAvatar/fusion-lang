@@ -144,8 +144,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 27.2d Wrapping on purpose: wrapAdd(a, b), wrapSub, wrapMul (hashes, checksums); an
 		`unchecked` block turns overflow checks off inside it (user, 2026-10-17) - bounds checks
 		are never turned off
-	[ ] 27.3 Interaction tests: features together - a struct holding lists, copied, passed
-		through functions and across modules; nested collections; early returns
+	[DONE] 27.3 Interaction tests: features together - a struct holding lists, copied, passed
+		through functions and across modules; nested collections; early returns - tests/test_safety.py
 	[DONE] 27.4 Block-style equivalence: the same app written 3 times - indentation, braces,
 		`End` keywords - 3 .fusion files that must compile to identical C (user request);
 		kept as examples and checked by check.py - examples/style_indent, style_braces,
