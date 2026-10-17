@@ -74,3 +74,28 @@ def test_a_written_index_inside_the_array_needs_no_check():
     assert 'fusion_index(' not in c_code.split('int main')[-1]
     c_code = generate_c(main('int[3] a = [1, 2, 3]\nint i = 2\nprint("{@1}", a[i])'))
     assert 'fusion_index(i, 3, ' in c_code
+
+
+# ---------------------------------------------------------------- 27.4 the three block styles
+
+def test_the_three_block_styles_compile_to_the_same_c():
+    """examples/style_indent / style_braces / style_end: one program written with
+    indentation, braces and End keywords must give identical C - only the source positions
+    in run-time error messages ("style_end.fusion:12") may differ (user request, Task 27.4)."""
+    import re
+    from pathlib import Path
+    from src.lexer import Lexer
+    from src.parser.parser import Parser
+    from src.semantic import SemanticAnalyzer
+    from src.codegen import CCodeGenerator
+    examples = Path(__file__).resolve().parent.parent / 'examples'
+    outputs = {}
+    for style in ('indent', 'braces', 'end'):
+        path = examples / f'style_{style}.fusion'
+        source = path.read_text(encoding='utf-8')
+        ast = Parser(Lexer(source, str(path)).tokenize()).parse_program()
+        analyzer = SemanticAnalyzer()
+        assert analyzer.analyze(ast), analyzer.get_errors()
+        c_code = CCodeGenerator().generate(ast)
+        outputs[style] = re.sub(r'"style_\w+\.fusion:\d+"', '"WHERE"', c_code)
+    assert outputs['indent'] == outputs['braces'] == outputs['end']

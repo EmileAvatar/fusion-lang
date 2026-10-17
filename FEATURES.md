@@ -146,10 +146,11 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		are never turned off
 	[ ] 27.3 Interaction tests: features together - a struct holding lists, copied, passed
 		through functions and across modules; nested collections; early returns
-	[ ] 27.4 Block-style equivalence: the same app written 3 times - indentation, braces,
+	[DONE] 27.4 Block-style equivalence: the same app written 3 times - indentation, braces,
 		`End` keywords - 3 .fusion files that must compile to identical C (user request);
-		kept as examples and checked by check.py
-	[ ] 27.5 Doc fix: the equality heading in SYNTAX_REFERENCE.md names `!==` too
+		kept as examples and checked by check.py - examples/style_indent, style_braces,
+		style_end; tests/test_safety.py compares their C
+	[DONE] 27.5 Doc fix: the equality heading in SYNTAX_REFERENCE.md names `!==` too
 
 #### 28 Self-hosting phase 1 - the test run (was 10) [ ]
 	[DONE] 28.0 Prerequisites: analysis (was 10.1) and language features (was 10.2, by Task 18)

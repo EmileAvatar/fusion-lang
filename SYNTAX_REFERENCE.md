@@ -599,7 +599,7 @@ void function main()
         print("{bad} / {err}")
 ```
 
-#### Equality: `=`, `==`, `===`
+#### Equality: `=`, `==`, `!=`, `===`, `!==`
 
 <!-- example: syntax_equality | task: 18.3.5 -->
 ```fusion
@@ -613,8 +613,8 @@ void function main()
         print("x is 2")
     if x == "2" and 'a' == "a" and x == 2.0
         print("== compares values across a few types")
-    if x !== "2"
-        print("=== also compares the type")
+    if x !== "2"                        // === and !== also compare the type
+        print("2 and \"2\" are different types")
     Point a = Point(1, 2)
     if a == Point(1, 2)
         print("structs compare field by field")

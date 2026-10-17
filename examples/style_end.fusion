@@ -1,0 +1,35 @@
+// The same program in three block styles - End keywords (Task 27.4)
+enum Shape: Square Circle
+
+struct Item
+    string name
+    int size
+    Shape shape
+End struct
+
+int function area(Item item)
+    match item.shape
+        case Square
+            return item.size * item.size
+        case Circle
+            return 3 * item.size * item.size
+    End match
+End function
+
+void function main()
+    List<Item> items = [Item("box", 2, Shape.Square), Item("coin", 1, Shape.Circle)]
+    int total = 0
+    for item in items
+        if area(item) > 3
+            print("{item.name}: big")
+        else
+            print("{item.name}: small")
+        End if
+        total = total + area(item)
+    End for
+    int countdown = 3
+    while countdown > 0
+        countdown = countdown - 1
+    End while
+    print("total {total}, countdown {countdown}")
+End function

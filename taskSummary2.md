@@ -33,10 +33,7 @@ recursion.
 
 #### Sub-tasks, in the order they would be done
 - 27.1 DONE (array bounds checks, array literal indexing) - detail archived
-- **27.5 Doc fix** - the SYNTAX_REFERENCE equality heading names `!==` too (minutes)
-- **27.4 Block-style equivalence** - one app written 3 times (indentation, braces, `End`
-  keywords): examples/styles/indent.fusion, braces.fusion, end.fusion; check.py compiles
-  all three and fails unless the C is identical (user request)
+- 27.5 DONE (equality heading), 27.4 DONE (three block styles, same C) - detail archived
 - **27.2b OverflowError** (user decision 2026-10-17: checked by default, off in unsafe mode)
   - int `+ - *`, unary `-`, `-2147483648 / -1` and `% -1`, conversions that don't fit
   (toInt of a double too big, byte arithmetic that leaves 0-255 when stored) raise an
@@ -137,4 +134,5 @@ Kept under Task 22 until the renumbering is approved.
 - Task 26 part 2 complete (26.7-26.13)
 - Task 27 plan approved (bounds always; wrapAdd functions; stack use + max_call_depth; unchecked blocks)
 - 27.1 done
-- **Next Action:** 27.5 doc fix, then 27.4 block styles
+- 27.5 and 27.4 done
+- **Next Action:** 27.2b OverflowError

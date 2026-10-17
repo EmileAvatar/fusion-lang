@@ -1,13 +1,13 @@
 # Fusion Compiler Verification Report
 
-**Date:** Fri Oct 16 22:46:03 SAST 2026
-**Total Examples:** 16
+**Date:** Sat Oct 17 05:28:48 SAST 2026
+**Total Examples:** 19
 
 ## Summary
 
-- **Compilation Success:** 16/16
-- **Execution Success:** 16/16
-- **Output Matches:** 16/16
+- **Compilation Success:** 19/19
+- **Execution Success:** 19/19
+- **Output Matches:** 19/19
 
 ## Detailed Results
 
@@ -1106,6 +1106,222 @@ box: max.x = 4, bigger max.x = 40
 Blue total 22, first position x = 1
 Diagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4
 All struct tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
+#endif
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
+#ifdef _WIN32
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+... (truncated)
+```
+
+### style_braces
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+box: big
+coin: small
+total 7, countdown 0
+```
+
+**Expected:**
+```
+box: big
+coin: small
+total 7, countdown 0```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
+#endif
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
+#ifdef _WIN32
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+... (truncated)
+```
+
+### style_end
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+box: big
+coin: small
+total 7, countdown 0
+```
+
+**Expected:**
+```
+box: big
+coin: small
+total 7, countdown 0```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static inline void fusion_leak_report(void) {
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#endif
+
+// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
+// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
+#ifdef _WIN32
+__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
+#endif
+// Waiting before the window closes (user request 2026-10-11): a program started by
+// double-clicking it would close before its output can be read, so it waits for a key when
+// it ends - also after a run-time error. Not when run with --headless, and not when no one
+// is at the console (input or output redirected - tests, scripts, pipes)
+#ifdef _WIN32
+#include <conio.h>
+#include <io.h>
+#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
+#else
+... (truncated)
+```
+
+### style_indent
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+box: big
+coin: small
+total 7, countdown 0
+```
+
+**Expected:**
+```
+box: big
+coin: small
+total 7, countdown 0```
 
 **Generated C Code (first 50 lines):**
 ```c

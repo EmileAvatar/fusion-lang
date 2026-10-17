@@ -4858,3 +4858,12 @@ fusion_index(i, length, where) checks every index of a fixed-size array before t
   element is touched; a check is left out when the index is a number written in the source
   and inside the array. **27.1b** in the same go: `[1, 2][5]` (indexing an array literal)
   generates invalid C today
+
+---
+
+#### Task 27.5 / 27.4 (COMPLETE 2026-10-17)
+
+- **27.5 Doc fix** - the SYNTAX_REFERENCE equality heading names `!==` too (minutes)
+- **27.4 Block-style equivalence** - one app written 3 times (indentation, braces, `End`
+  keywords): examples/styles/indent.fusion, braces.fusion, end.fusion; check.py compiles
+  all three and fails unless the C is identical (user request)
