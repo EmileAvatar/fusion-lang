@@ -4844,3 +4844,17 @@ module), ParseError (JSON / data modules), CancelledError (threads), AssertionEr
 
 ---
 
+
+---
+
+#### Task 27.1 - array bounds checks (COMPLETE 2026-10-17)
+
+fusion_index(i, length, where) checks every index of a fixed-size array before the element is touched (an int[] parameter uses its hidden length); a written index inside the array is not checked.
+
+- **27.1 Bounds checks for fixed arrays** - `a[i]` reading and writing, for local arrays,
+  `int[]` parameters (their hidden length), struct array fields, arrays of structs and
+  returned arrays: an index outside the array raises an **IndexError** (catchable, like
+  lists) instead of a crash or a silent overwrite. In C the index is checked before the
+  element is touched; a check is left out when the index is a number written in the source
+  and inside the array. **27.1b** in the same go: `[1, 2][5]` (indexing an array literal)
+  generates invalid C today

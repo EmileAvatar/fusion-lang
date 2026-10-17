@@ -9,6 +9,8 @@ Part B: print("User {@1} is {@2}", name, age) - {@N} placeholders for the argume
         silently printing "1".
 """
 
+import re
+
 import pytest
 
 from src.parser.ast_nodes import StringPositionalPart
@@ -17,6 +19,13 @@ from tests.test_structs import (
     parse, analyze, errors_of, warnings_of, generate_c, main, POINT,
 )
 from tests.test_end_to_end import compile_and_run
+
+
+def unchecked(c_code: str) -> str:
+    """The C without the checks after calls that can fail (Task 26) - next(c) writes c[0], so
+    it can raise an IndexError; these tests are about evaluation order only."""
+    return re.sub(r'__extension__ \(\{ \w+ fusion_r = (.*?); if \(fusion_failed\) goto fusion_fail_\d+; fusion_r; \}\)',
+                  r'\1', c_code)
 
 
 SUB = 'int function sub(int a, int b) : a - b\n'
@@ -43,14 +52,14 @@ def test_one_call_beside_plain_values_needs_no_temporaries():
 
 
 def test_two_calls_are_sequenced_left_to_right():
-    c_code = generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(next(c), next(c))'))
+    c_code = unchecked(generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(next(c), next(c))')))
     assert 'int d = (fusion_arg_1 = fu_next(c, 1), fusion_arg_2 = fu_next(c, 1), ' \
            'fu_sub(fusion_arg_1, fusion_arg_2));' in c_code
 
 
 def test_call_beside_array_read_is_sequenced():
     # next(c) changes c[0], so reading c[0] before or after it gives different values
-    c_code = generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(c[0], next(c))'))
+    c_code = unchecked(generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(c[0], next(c))')))
     assert 'fusion_arg_1 = c[0], fusion_arg_2 = fu_next(c, 1)' in c_code
 
 
@@ -60,8 +69,8 @@ def test_struct_constructor_is_sequenced():
 
 
 def test_function_value_call_is_sequenced():
-    c_code = generate_c(NEXT + SUB + main(
-        'int[] c = [0]\n(int, int) : int f = sub\nint e = f(next(c), next(c))'))
+    c_code = unchecked(generate_c(NEXT + SUB + main(
+        'int[] c = [0]\n(int, int) : int f = sub\nint e = f(next(c), next(c))')))
     assert 'f(fusion_arg_1, fusion_arg_2)' in c_code
 
 
@@ -120,18 +129,18 @@ def test_placeholders_mix_with_named_values():
 
 
 def test_repeated_call_argument_is_evaluated_once():
-    c_code = generate_c(NEXT + main('int[] c = [0]\nprint("{@1} {@1}", next(c))'))
+    c_code = unchecked(generate_c(NEXT + main('int[] c = [0]\nprint("{@1} {@1}", next(c))')))
     assert '(fusion_arg_1 = fu_next(c, 1), printf("%d %d\\n", fusion_arg_1, fusion_arg_1));' in c_code
 
 
 def test_arguments_evaluated_in_written_order_not_placeholder_order():
-    c_code = generate_c(NEXT + main('int[] c = [0]\nprint("{@2} {@1}", next(c), next(c))'))
+    c_code = unchecked(generate_c(NEXT + main('int[] c = [0]\nprint("{@2} {@1}", next(c), next(c))')))
     assert ('(fusion_arg_1 = fu_next(c, 1), fusion_arg_2 = fu_next(c, 1), '
             'printf("%d %d\\n", fusion_arg_2, fusion_arg_1));') in c_code
 
 
 def test_unused_call_argument_still_runs():
-    c_code = generate_c(NEXT + main('int[] c = [0]\nprint("{@1}", 5, next(c))'))
+    c_code = unchecked(generate_c(NEXT + main('int[] c = [0]\nprint("{@1}", 5, next(c))')))
     assert 'fusion_arg_1 = fu_next(c, 1)' in c_code
 
 

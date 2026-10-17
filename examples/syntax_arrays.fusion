@@ -12,3 +12,7 @@ void function main()
     scores[0] = 99
     int[3] p = podium()
     print("{@1} {@2} {@3} {@4}", sum(scores), len(scores), buffer[0], p[0])
+    try
+        scores[5] = 1                       // every index is checked: an IndexError
+    catch IndexError e
+        print("{e}")

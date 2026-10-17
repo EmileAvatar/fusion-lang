@@ -119,12 +119,12 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] Error handling example (was 16.5) - examples/errors_demo (26.6)
 
 #### 27 Semantic contract and safety (from the ChatGPT review, 2026-10-11; notes.md step 2) [ ]
-	[ ] 27.1 Bounds checks for fixed arrays: `a[5]` on an `int[3]` crashes today (segmentation
+	[DONE] 27.1 Bounds checks for fixed arrays: `a[5]` on an `int[3]` crashes today (segmentation
 		fault, found 2026-10-11) or, worse, silently overwrites other memory. Every out-of-range
 		index must be a clear run-time error, never missed (user: "so we don't miss out-of-range
 		errors any more") - reading and writing, array parameters, arrays in structs, arrays of
 		structs. Lists, strings and bytes are checked already
-	[ ] 27.1b Indexing an array literal directly - `[1, 2][5]` - generates invalid C (found
+	[DONE] 27.1b Indexing an array literal directly - `[1, 2][5]` - generates invalid C (found
 		2026-10-16 while testing 26.10)
 	[ ] 27.2 The contract, written in the spec in one place: copying (deep - every copy is
 		independent, nested lists too), the equality table (which types `==` / `===` compare),
@@ -317,7 +317,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[POSTPONED - after MVP] Per-field string sizes (`string(255) name`) to match database columns
 	[POSTPONED - needs references] Identity operator (same object in memory)
 	[POSTPONED - after MVP] Multi-dimensional arrays (growable lists: done, 18.5.1)
-	[POSTPONED to 27.1] Bounds checks for fixed arrays (strings, lists and bytes are checked)
+	[DONE] Bounds checks for fixed arrays - Task 27.1
 	[POSTPONED to 32 / 33] Classes, interfaces, inheritance (32), generics (33); enums: Task 25;
 		threading: no task yet
 

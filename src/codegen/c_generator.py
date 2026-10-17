@@ -1147,9 +1147,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # b[i] - one raw byte, bounds-checked (Task 18.3.8)
         if self._is_bytes(node.array):
             return checked(f'fusion_bytes_at({array_code}, {index_code}, {self._where(node)})')
+        # A fixed-size array: the index is checked before the element is touched - outside
+        # the array is an IndexError, never a crash or a silent overwrite (Task 27.1)
+        index_code = self.checked_array_index(node, index_code)
         # make()[0] - the returned array is inside its wrapper struct (Task 18.2.4)
         if self._returns_array(node.array):
             return f'{array_code}.data[{index_code}]'
+        # [1, 2][i] - an array written in place is a C compound literal (Task 27.1b)
+        if isinstance(node.array, ArrayLiteralExpr):
+            element = self.map_type(node.array.inferred_type.element_type)
+            return f'(({element}[]){array_code})[{index_code}]'
         return f'{array_code}[{index_code}]'
 
     def visit_NamedArgument(self, node: NamedArgument) -> str:

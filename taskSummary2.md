@@ -32,13 +32,7 @@ construct does is pinned down and nothing fails silently. Sources: the ChatGPT r
 recursion.
 
 #### Sub-tasks, in the order they would be done
-- **27.1 Bounds checks for fixed arrays** - `a[i]` reading and writing, for local arrays,
-  `int[]` parameters (their hidden length), struct array fields, arrays of structs and
-  returned arrays: an index outside the array raises an **IndexError** (catchable, like
-  lists) instead of a crash or a silent overwrite. In C the index is checked before the
-  element is touched; a check is left out when the index is a number written in the source
-  and inside the array. **27.1b** in the same go: `[1, 2][5]` (indexing an array literal)
-  generates invalid C today
+- 27.1 DONE (array bounds checks, array literal indexing) - detail archived
 - **27.5 Doc fix** - the SYNTAX_REFERENCE equality heading names `!==` too (minutes)
 - **27.4 Block-style equivalence** - one app written 3 times (indentation, braces, `End`
   keywords): examples/styles/indent.fusion, braces.fusion, end.fusion; check.py compiles
@@ -142,4 +136,5 @@ Kept under Task 22 until the renumbering is approved.
 - 26.12 done
 - Task 26 part 2 complete (26.7-26.13)
 - Task 27 plan approved (bounds always; wrapAdd functions; stack use + max_call_depth; unchecked blocks)
-- **Next Action:** 27.1 bounds checks for fixed arrays
+- 27.1 done
+- **Next Action:** 27.5 doc fix, then 27.4 block styles

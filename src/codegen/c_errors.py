@@ -37,6 +37,7 @@ max_length set, every expression making a string can fail.)
 from dataclasses import fields as dataclass_fields, is_dataclass
 
 from src.semantic.error_rules import BUILTIN_ERROR_NAMES, BUILTIN_ERROR_TYPES
+from .c_names import array_length_name
 from src.parser.ast_nodes import (ArrayType, BinaryExpr, CallExpr, ErrorDecl, ErrorMakeExpr, ErrorType,
                                   FunctionDecl, FunctionType, IdentifierExpr, IndexExpr,
                                   InterpolatedStringExpr, LambdaExpr, ListType, MapType,
@@ -76,6 +77,15 @@ static inline fusion_string fusion_error_kind_text(fusion_error e) {
     while (name[n]) n++;
     fusion_string s = {(char*)name, n, n, 0};
     return s;
+}
+// A fixed-size array's index (Task 27.1): outside the array is an IndexError, and the
+// element at 0 is used instead - the generated code jumps away before touching it
+static inline int fusion_index(int i, int length, const char* where) {
+    if (i < 0 || i >= length) {
+        fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the array (length %d)", i, length);
+        return 0;
+    }
+    return i;
 }
 // Whole-number division (Task 26.12): by zero is a DivideByZeroError, not a crash.
 // -2147483648 / -1 doesn't fit and wraps, as + and * do today (OverflowError: Task 27.2b)
@@ -268,7 +278,7 @@ class ErrorsMixin:
             return self.call_can_fail(node, failing)
         if isinstance(node, IndexExpr):
             kind = getattr(node.array, 'inferred_type', None)
-            return isinstance(kind, (ListType, MapType)) or (
+            return isinstance(kind, (ListType, MapType, ArrayType)) or (
                 isinstance(kind, PrimitiveType) and kind.name in ('string', 'bytes'))
         if type(node).__name__ == 'EnumStaticCall':
             return node.method == 'fromString'
@@ -277,6 +287,28 @@ class ErrorsMixin:
         if isinstance(node, (BinaryExpr, InterpolatedStringExpr)):
             return self._makes_limited_string(node)
         return False
+
+    def array_length_code(self, array):
+        """C code for a fixed-size array's length: its size, or an `int[]` parameter's hidden
+        length - None when unknown."""
+        kind = getattr(array, 'inferred_type', None)
+        if isinstance(kind, ArrayType) and kind.size is not None:
+            return str(kind.size)
+        if isinstance(array, IdentifierExpr):
+            return array_length_name(array.name)
+        return None
+
+    def checked_array_index(self, node, index_code: str) -> str:
+        """`a[i]` on a fixed-size array: i checked against its length (Task 27.1) - left as
+        it is when i is a number written in the source and inside the array."""
+        length = self.array_length_code(node.array)
+        if length is None:
+            return index_code
+        index = node.index
+        if type(index).__name__ == 'LiteralExpr' and isinstance(index.value, int) \
+                and length.isdigit() and 0 <= index.value < int(length):
+            return index_code
+        return self.checked_code(f'fusion_index({index_code}, {length}, {self._where(node)})', 'int')
 
     @staticmethod
     def int_division_can_fail(node) -> bool:

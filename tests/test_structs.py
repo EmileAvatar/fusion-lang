@@ -363,7 +363,8 @@ def test_named_arguments_without_calls_need_no_temporaries():
 
 
 def test_reordered_calls_use_temporaries_in_written_order():
-    c_code = generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(b = next(c), a = next(c))'))
+    from tests.test_positional import unchecked
+    c_code = unchecked(generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(b = next(c), a = next(c))')))
     assert 'int fusion_arg_1;' in c_code and 'int fusion_arg_2;' in c_code
     assert ('int d = (fusion_arg_1 = fu_next(c, 1), fusion_arg_2 = fu_next(c, 1), '
             'fu_sub(fusion_arg_2, fusion_arg_1));') in c_code

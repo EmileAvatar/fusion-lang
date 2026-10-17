@@ -110,7 +110,7 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
 
 ## Data Types and Variables
 
-**Status:** [PARTLY] int, float, double, bool, char, string, byte / bytes, const and fixed-size arrays are built (01-04, 08, 09, 18.3); bounds checks for fixed arrays [PLANNED 27.1]; nullability [PLANNED 30]; type-inferred const, `long` and other sized types: no task yet
+**Status:** [PARTLY] int, float, double, bool, char, string, byte / bytes, const and fixed-size arrays are built (01-04, 08, 09, 18.3); every array index is checked - outside the array is an IndexError (27.1); nullability [PLANNED 30]; type-inferred const, `long` and other sized types: no task yet
 
 Description: Type system combining static typing with clear null safety rules.
 
