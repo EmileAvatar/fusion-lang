@@ -13,7 +13,7 @@ from src.parser.ast_nodes import (
     InterpolatedStringExpr, StringExprPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
     EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt, ErrorType, ErrorMakeExpr, ErrorDecl,
-    ErrorActiveExpr, TryStmt, ThrowStmt,
+    ErrorActiveExpr, TryStmt, ThrowStmt, UncheckedStmt,
     ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES
 )
 from .symbol_table import SymbolTable
@@ -64,7 +64,7 @@ MUTATING_BUILTINS = {'setInt', 'setInt16'}
 # Standard-library layers (Task 18.5.6, the D lesson - layer the stdlib from day one): a
 # built-in's layer is the lowest a project must allow to use it. Every built-in not listed
 # here is "alloc" (it takes or makes text, bytes, lists or maps)
-CORE_BUILTINS = {'range', 'len', 'charCode', 'fromCharCode', 'toByte'}
+CORE_BUILTINS = {'range', 'len', 'charCode', 'fromCharCode', 'toByte', 'wrapAdd', 'wrapSub', 'wrapMul'}
 STD_BUILTINS = {'print', 'readLine', 'isEndOfInput', 'exit', 'readText', 'readLines',
                 'writeText', 'appendText', 'readBytes', 'writeBytes', 'fileExists',
                 'deleteFile'}
@@ -308,6 +308,10 @@ class NameResolver:
             # Raw bytes (18.3.8)
             'toBytes': ([string_type, bool_type], bytes_type),
             'toByte': ([int_type], byte_type),
+            # Whole numbers that wrap around on purpose (Task 27.2d)
+            'wrapAdd': ([int_type, int_type], int_type),
+            'wrapSub': ([int_type, int_type], int_type),
+            'wrapMul': ([int_type, int_type], int_type),
             'newBytes': ([int_type, byte_type], bytes_type),
             'slice': ([bytes_type, int_type, int_type], bytes_type),
             'getInt': ([bytes_type, int_type, bool_type], int_type),
@@ -754,6 +758,8 @@ class NameResolver:
             self.resolve_block(stmt)
         elif isinstance(stmt, ExpressionStmt):
             self.resolve_expression(stmt.expression)
+        elif isinstance(stmt, UncheckedStmt):         # Task 27.2d
+            self.resolve_block(stmt.body)
         elif isinstance(stmt, TryStmt):               # Task 26.3
             self.resolve_block(stmt.body)
             for clause in stmt.catches:

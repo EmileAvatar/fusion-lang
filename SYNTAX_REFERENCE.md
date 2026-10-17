@@ -527,6 +527,28 @@ void function main()
     print(last.name)                         // at main the program stops with its message
 ```
 
+#### Whole numbers: overflow and wrapping
+
+<!-- example: syntax_overflow | task: 27.2b -->
+```fusion
+int function hash(string text)
+    int h = 17
+    unchecked                                // + - * inside wrap around on purpose
+        for c in [1, 2, 3]
+            h = h * 1000003 + c
+    return h
+
+void function main()
+    int big = 2147483647
+    try
+        print("{@1}", big + 1)               // doesn't fit in an int: an OverflowError
+    catch OverflowError e                    // (an ArithmeticError) - never a changed value
+        print("{e}")
+    print("{@1} {@2}", wrapAdd(big, 1), big.wrapMul(2))   // wrapping on purpose
+    print("{@1} {@2}", hash("x"), 60 * 60 * 24)            // written numbers: no check
+```
+`[safety] mode = "unsafe"` in fusion.toml makes all `+ - *` wrap (array bounds stay checked).
+
 #### Custom error types
 
 <!-- example: syntax_error_types | task: 26.9 -->
@@ -652,7 +674,7 @@ string_mutable     = true
 string_warn_length = 64
 
 [safety]
-mode = "normal"                  # reserved
+mode = "normal"                  # normal | strict (reserved) | unsafe: + - * wrap instead of OverflowError
 
 [backend]
 target = "c"

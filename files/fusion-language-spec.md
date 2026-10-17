@@ -3091,8 +3091,18 @@ FileError (path): FileNotFoundError, PermissionError, FileReadError, FileWriteEr
                   FileTooLargeError, DeleteError - chosen by why the system said no
 LimitError: StringTooLongError ([strings] max_length), ResultTooLargeError (over 2 GB)
 ```
-Not catchable: out of memory, a List past 536,870,911 elements. Later: OverflowError (27.2b),
-endless recursion (27.2c), NullError (30.1b).
+Not catchable: out of memory, a List past 536,870,911 elements. Later: endless recursion
+(27.2c), NullError (30.1b).
+
+**Whole-number overflow (Tasks 27.2b, 27.2d, user decisions 2026-10-17):** int `+ - *`,
+unary `-` and `-2147483648 / -1` that don't fit raise an **OverflowError** (an
+ArithmeticError) - never a silently changed value (C, Go and Java wrap; Fusion checks, like
+Swift). In C each is GCC's overflow builtin: the operation and one jump; arithmetic made only
+of written numbers (`60 * 60 * 24`) isn't checked. Wrapping on purpose (hashes, checksums):
+`wrapAdd(a, b)`, `wrapSub`, `wrapMul` (methods too: `a.wrapMul(b)`), or an `unchecked` block
+whose `+ - *` wrap. `[safety] mode = "unsafe"` makes every `+ - *` wrap. Wrapping is always
+defined (unsigned arithmetic) - never C's undefined behaviour. Array bounds checks are never
+turned off.
 
 **Typed catch (Task 26.11, user: now, for a working sample):** `catch FileNotFound e`,
 `catch FileError e`, ... `catch e` - the first catch whose type matches takes the error (a
@@ -4111,7 +4121,8 @@ string_mutable     = true      # false = string fields can't be changed after co
 string_warn_length = 64        # guideline: warn when a string field is longer (0 = never warn)
 
 [safety]
-mode = "normal"      # "normal" | "strict" - reserved, not yet enforced by any compiler pass
+mode = "normal"      # "unsafe": whole-number + - * wrap instead of raising OverflowError
+                     # (Task 27.2b); bounds checks stay. "strict" is reserved
 
 [backend]
 target = "c"         # "c" only for now - "llvm" is reserved for the Task 40 backend, not implemented yet

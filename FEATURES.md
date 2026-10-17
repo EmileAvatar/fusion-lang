@@ -131,7 +131,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		`=` in conditions with its ambiguous cases tested, Unicode indexing (code points, not
 		what a reader sees as one symbol), integer conversions and overflow, changing a
 		collection while looping over it, cleanup on every path (early return, break, exit)
-	[ ] 27.2b OverflowError: whole-number arithmetic that doesn't fit (2147483647 + 1 wraps
+	[DONE] 27.2b OverflowError: whole-number arithmetic that doesn't fit (2147483647 + 1 wraps
 		silently today - against "never change values silently"). User decision 2026-10-17:
 		**checked by default** (+ - * unary -, / of -2147483648 by -1, number conversions that
 		don't fit) - an OverflowError, subtype of ArithmeticError; **turned off in unsafe mode**
@@ -141,7 +141,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		User decision 2026-10-17: stack use by default (a limit from the real stack size);
 		`[safety] max_call_depth` = "max" (default) or a number - a call counter for
 		memory-constrained devices
-	[ ] 27.2d Wrapping on purpose: wrapAdd(a, b), wrapSub, wrapMul (hashes, checksums); an
+	[DONE] 27.2d Wrapping on purpose: wrapAdd(a, b), wrapSub, wrapMul (hashes, checksums); an
 		`unchecked` block turns overflow checks off inside it (user, 2026-10-17) - bounds checks
 		are never turned off
 	[ ] 27.3 Interaction tests: features together - a struct holding lists, copied, passed

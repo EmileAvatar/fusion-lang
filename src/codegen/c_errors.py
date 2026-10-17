@@ -88,17 +88,51 @@ static inline int fusion_index(int i, int length, const char* where) {
     return i;
 }
 // Whole-number division (Task 26.12): by zero is a DivideByZeroError, not a crash.
-// -2147483648 / -1 doesn't fit and wraps, as + and * do today (OverflowError: Task 27.2b)
-static inline int fusion_div_int(int a, int b, const char* where) {
+// -2147483648 / -1 doesn't fit: an OverflowError (27.2b), or it wraps when not checked
+static inline int fusion_div_int(int a, int b, int check, const char* where) {
     if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%d / 0: division by zero", a); return 0; }
-    if (b == -1) return (int)(0u - (unsigned)a);
+    if (b == -1) {
+        if (check && a == -2147483647 - 1) {
+            fusion_fail(FUSION_KIND_OverflowError, where, "%d / -1 doesn't fit in an int", a);
+            return 0;
+        }
+        return (int)(0u - (unsigned)a);
+    }
     return a / b;
 }
-static inline int fusion_mod_int(int a, int b, const char* where) {
+static inline int fusion_mod_int(int a, int b, int check, const char* where) {
+    (void)check;
     if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%d %% 0: division by zero", a); return 0; }
     if (b == -1) return 0;
     return a % b;
 }
+// Whole-number + - * (Task 27.2b, user decision 2026-10-17): a result that doesn't fit in an
+// int is an OverflowError - never a silently changed value. GCC's overflow builtins compile
+// to the operation and one jump
+static inline int fusion_add_int(int a, int b, const char* where) {
+    int r;
+    if (__builtin_add_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%d + %d doesn't fit in an int", a, b); return 0; }
+    return r;
+}
+static inline int fusion_sub_int(int a, int b, const char* where) {
+    int r;
+    if (__builtin_sub_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%d - %d doesn't fit in an int", a, b); return 0; }
+    return r;
+}
+static inline int fusion_mul_int(int a, int b, const char* where) {
+    int r;
+    if (__builtin_mul_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%d * %d doesn't fit in an int", a, b); return 0; }
+    return r;
+}
+static inline int fusion_neg_int(int a, const char* where) {
+    if (a == -2147483647 - 1) { fusion_fail(FUSION_KIND_OverflowError, where, "-(%d) doesn't fit in an int", a); return 0; }
+    return -a;
+}
+// Wrapping around on purpose (wrapAdd ..., an unchecked block, unsafe mode - Task 27.2d):
+// done on unsigned numbers, so it is defined - never C's undefined behaviour
+static inline int fusion_wrap_add(int a, int b) { return (int)((unsigned)a + (unsigned)b); }
+static inline int fusion_wrap_sub(int a, int b) { return (int)((unsigned)a - (unsigned)b); }
+static inline int fusion_wrap_mul(int a, int b) { return (int)((unsigned)a * (unsigned)b); }
 // Two errors are equal when they are the same type with the same code and message
 static inline bool fusion_error_eq(fusion_error a, fusion_error b) {
     return a.active == b.active && a.kind == b.kind && a.code == b.code && fusion_str_eq(a.message, b.message);
@@ -284,6 +318,11 @@ class ErrorsMixin:
             return node.method == 'fromString'
         if isinstance(node, BinaryExpr) and self.int_division_can_fail(node):
             return True
+        if type(node).__name__ in ('BinaryExpr', 'UnaryExpr') and node.operator in ('+', '-', '*') \
+                and self.whole_number_operands(node) and not self.wraps(node) \
+                and not self.constant_fits(node):
+            return not (type(node).__name__ == 'UnaryExpr'
+                        and type(node.operand).__name__ == 'LiteralExpr')   # -5 is just a number
         if isinstance(node, (BinaryExpr, InterpolatedStringExpr)):
             return self._makes_limited_string(node)
         return False
@@ -309,6 +348,53 @@ class ErrorsMixin:
                 and length.isdigit() and 0 <= index.value < int(length):
             return index_code
         return self.checked_code(f'fusion_index({index_code}, {length}, {self._where(node)})', 'int')
+
+    @staticmethod
+    def whole_number_operands(node) -> bool:
+        """int (or byte) arithmetic - its result is an int (Task 27.2b)."""
+        whole = ('int', 'byte')
+        operands = [node.operand] if type(node).__name__ == 'UnaryExpr' else [node.left, node.right]
+        return all(getattr(getattr(o, 'inferred_type', None), 'name', None) in whole for o in operands)
+
+    def wraps(self, node) -> bool:
+        """Arithmetic that wraps around: unsafe mode, or inside an unchecked block."""
+        return getattr(self, 'safety_mode', 'normal') == 'unsafe' or getattr(node, 'unchecked', False)
+
+    @staticmethod
+    def constant_value(node):
+        """The value of whole-number arithmetic made only of numbers written in the source
+        (60 * 60 * 24), or None."""
+        kind = type(node).__name__
+        if kind == 'LiteralExpr' and isinstance(node.value, int) and not isinstance(node.value, bool):
+            return node.value
+        if kind == 'UnaryExpr' and node.operator == '-':
+            inner = ErrorsMixin.constant_value(node.operand)
+            return None if inner is None else -inner
+        if kind == 'BinaryExpr' and node.operator in ('+', '-', '*'):
+            left = ErrorsMixin.constant_value(node.left)
+            right = ErrorsMixin.constant_value(node.right)
+            if left is None or right is None:
+                return None
+            return {'+': left + right, '-': left - right, '*': left * right}[node.operator]
+        return None
+
+    @staticmethod
+    def constant_fits(node) -> bool:
+        """Numbers written in the source whose result (and every step) fits - nothing to check."""
+        if type(node).__name__ != 'BinaryExpr':
+            return False
+        value = ErrorsMixin.constant_value(node)
+        if value is None:
+            return False
+        steps = [node]
+        while steps:
+            step = steps.pop()
+            if type(step).__name__ == 'BinaryExpr':
+                v = ErrorsMixin.constant_value(step)
+                if v is None or not -2147483648 <= v <= 2147483647:
+                    return False
+                steps += [step.left, step.right]
+        return True
 
     @staticmethod
     def int_division_can_fail(node) -> bool:
@@ -595,7 +681,7 @@ class ErrorsMixin:
         body_target = {'kind': 'try', 'label': target, 'scope_index': len(self.cleanup_scopes),
                        'temp_level': len(self.stmt_temps)}
         self.fail_targets.append(body_target)
-        self.visit(node.body)
+        self.visit_in_c_block(node.body)
         self.fail_targets.pop()
         self.emit_line(f'goto {end_label}')
         # Only paths something can jump to are written (no unused labels)
@@ -657,7 +743,7 @@ class ErrorsMixin:
             saved = f'fusion_saved_{n}'
             self.emit_line(f'fusion_error {saved} = fusion_take_error()')
             self.register_owned(saved, ErrorType(location=node.location), node.location)
-            self.visit(finally_body)
+            self.visit_in_c_block(finally_body)
             self.emit_line(f'fusion_raise({saved}); {saved} = (fusion_error){{0}}')
             self.pop_scope()
             self.emit_line(f'goto {self.fail_label()}')
@@ -665,7 +751,7 @@ class ErrorsMixin:
             self.emit('}')
         self.emit(f'{end_label}:;')
         if finally_body is not None:
-            self.visit(finally_body)
+            self.visit_in_c_block(finally_body)
         return ''
 
     def visit_ThrowStmt(self, node) -> str:
@@ -675,6 +761,15 @@ class ErrorsMixin:
         else:
             self.emit_line(f'if (fusion_failed) goto {self.fail_label()}')   # err may hold none
         return ''
+
+    def visit_in_c_block(self, block) -> None:
+        """A block in braces of its own: names declared inside don't clash with a sibling
+        block's in C (`try` after `try`, a finally copied in twice)."""
+        self.emit('{')
+        self.indent()
+        self.visit(block)
+        self.dedent()
+        self.emit('}')
 
     def emit_finally_for_exit(self, leaving: str, error_pending: bool = False) -> None:
         """Before a return (leaving 'function') or a break / continue (leaving 'loop'):
@@ -697,7 +792,7 @@ class ErrorsMixin:
                 index = saved_stack.index(entry)
                 self.finally_stack = saved_stack[:index]
                 self.fail_targets = saved_targets[:entry['targets']]
-                self.visit(entry['body'])
+                self.visit_in_c_block(entry['body'])
         finally:
             self.finally_stack, self.fail_targets = saved_stack, saved_targets
         if holder:

@@ -142,8 +142,9 @@ def test_a_match_on_a_failing_call():
 
 
 def test_programs_without_errors_get_no_checks():
-    c_code = generate_c('int function twice(int n) : n * 2\n' + main(
-        '(int) : int f = twice\nprint("{@1}", f(2) + twice(3))'))
+    # (no arithmetic: whole-number + - * can overflow since Task 27.2b)
+    c_code = generate_c('bool function big(int n) : n > 10\n' + main(
+        '(int) : bool f = big\nprint("{@1} {@2}", f(2), big(30))'))
     assert 'fusion_failed) goto' not in c_code
 
 

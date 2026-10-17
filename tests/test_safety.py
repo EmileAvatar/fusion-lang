@@ -99,3 +99,80 @@ def test_the_three_block_styles_compile_to_the_same_c():
         c_code = CCodeGenerator().generate(ast)
         outputs[style] = re.sub(r'"style_\w+\.fusion:\d+"', '"WHERE"', c_code)
     assert outputs['indent'] == outputs['braces'] == outputs['end']
+
+
+# ---------------------------------------------------------------- 27.2b overflow, 27.2d wrapping
+
+def test_whole_number_overflow_is_an_error():
+    assert run_ok(main(
+        'int big = 2147483647\n'
+        'int low = -2147483647 - 1\n'
+        'for step in range(0, 5)\n'
+        '    try\n'
+        '        match step\n'
+        '            case 0: print("{@1}", big + 1)\n'
+        '            case 1: print("{@1}", low - 1)\n'
+        '            case 2: print("{@1}", big * 2)\n'
+        '            case 3: print("{@1}", -low)\n'
+        '            else: print("{@1}", low / -1)\n'
+        '    catch OverflowError e\n'
+        '        print("{e}")\n'
+        'print("{@1} {@2} {@3}", big - 1, low + 1, 60 * 60 * 24)'
+    )) == ["2147483647 + 1 doesn't fit in an int", "-2147483648 - 1 doesn't fit in an int",
+           "2147483647 * 2 doesn't fit in an int", "-(-2147483648) doesn't fit in an int",
+           "-2147483648 / -1 doesn't fit in an int", '2147483646 -2147483647 86400']
+
+
+def test_an_overflow_is_an_arithmetic_error():
+    assert run_ok(main(
+        'int big = 2147483647\n'
+        'try\n'
+        '    print("{@1}", big + big)\n'
+        'catch ArithmeticError e\n'
+        '    print("{e.kind}")'
+    )) == ['OverflowError']
+
+
+def test_wrapping_on_purpose():
+    assert run_ok(
+        'int function hash(string text)\n'
+        '    int h = 17\n'
+        '    unchecked\n'
+        '        for c in [1, 2, 3, 4, 5, 6, 7]\n'
+        '            h = h * 1000003 + c\n'
+        '    return h\n'
+        + main(
+            'int big = 2147483647\n'
+            'print("{@1} {@2} {@3}", wrapAdd(big, 1), wrapSub(-big - 1, 1), wrapMul(big, 2))\n'
+            'print("{@1} {@2}", big.wrapAdd(2), hash("x"))\n'
+            'unchecked {\n'
+            '    int w = big + 1\n'
+            '    print("{w}")\n'
+            '}')
+    ) == ['-2147483648 2147483647 -2', f'-2147483647 {_wrapped_hash()}', '-2147483648']
+
+
+def _wrapped_hash() -> int:
+    h = 17
+    for c in range(1, 8):
+        h = (h * 1000003 + c) & 0xFFFFFFFF
+    return h - (1 << 32) if h >= 1 << 31 else h
+
+
+def test_unsafe_mode_wraps_and_keeps_bounds_checks():
+    from tests.test_end_to_end import compile_and_run
+    exit_code, stdout, stderr = compile_and_run(main(
+        'int big = 2147483647\n'
+        'print("{@1} {@2}", big + 1, big * 2)\n'
+        'int[2] a = [1, 2]\n'
+        'try\n'
+        '    print("{@1}", a[big + 3])\n'
+        'catch e\n'
+        '    print("{e.kind}")'), safety_mode='unsafe')
+    assert exit_code == 0, stderr
+    assert stdout.splitlines() == ['-2147483648 -2', 'IndexError']
+
+
+def test_numbers_written_in_the_source_need_no_check():
+    c_code = generate_c(main('int day = 60 * 60 * 24\nprint("{day}")'))
+    assert 'fusion_mul_int(' not in c_code.split('int main')[-1]

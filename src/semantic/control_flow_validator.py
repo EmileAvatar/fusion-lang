@@ -115,6 +115,9 @@ class ControlFlowValidator:
         elif isinstance(stmt, ThrowStmt):
             return True    # the function ends here too (Task 26.3)
 
+        elif isinstance(stmt, UncheckedStmt):
+            return self.check_returns(stmt.body)     # Task 27.2d
+
         elif isinstance(stmt, TryStmt):
             # The finally returns, or the body does and so does the catch (Task 26.3)
             if stmt.finally_body is not None and self.check_returns(stmt.finally_body):
@@ -174,7 +177,7 @@ class ControlFlowValidator:
             for body in self._match_bodies(stmt):
                 self.check_unreachable_code(body)
 
-        elif isinstance(stmt, TryStmt):
+        elif isinstance(stmt, (TryStmt, UncheckedStmt)):
             for body in self._try_bodies(stmt):
                 self.check_unreachable_code(body)
 
@@ -243,12 +246,14 @@ class ControlFlowValidator:
             for body in self._match_bodies(stmt):
                 self.validate_statement(body)
 
-        elif isinstance(stmt, TryStmt):
+        elif isinstance(stmt, (TryStmt, UncheckedStmt)):
             for body in self._try_bodies(stmt):
                 self.validate_statement(body)
 
     @staticmethod
     def _try_bodies(stmt) -> list:
+        if isinstance(stmt, UncheckedStmt):
+            return [stmt.body]
         return [stmt.body] + [c.body for c in stmt.catches] + \
             ([stmt.finally_body] if stmt.finally_body is not None else [])
 
@@ -317,7 +322,7 @@ class ControlFlowValidator:
             for body in self._match_bodies(stmt):
                 self.validate_conditions(body, type_checker)
 
-        elif isinstance(stmt, TryStmt):
+        elif isinstance(stmt, (TryStmt, UncheckedStmt)):
             for body in self._try_bodies(stmt):
                 self.validate_conditions(body, type_checker)
 

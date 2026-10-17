@@ -427,6 +427,14 @@ class TryStmt(ASTNode):
 
 
 @dataclass
+class UncheckedStmt(ASTNode):
+    """unchecked + a block (Task 27.2d, user decision 2026-10-17): whole-number arithmetic
+    inside wraps around instead of raising an OverflowError - for hashes, checksums, random
+    numbers. Array bounds stay checked."""
+    body: 'BlockStmt'
+
+
+@dataclass
 class ThrowStmt(ASTNode):
     """throw Error("...") / throw err (Task 26.3) - start an error on its way."""
     value: ASTNode

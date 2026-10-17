@@ -1,0 +1,15 @@
+int function hash(string text)
+    int h = 17
+    unchecked                                // + - * inside wrap around on purpose
+        for c in [1, 2, 3]
+            h = h * 1000003 + c
+    return h
+
+void function main()
+    int big = 2147483647
+    try
+        print("{@1}", big + 1)               // doesn't fit in an int: an OverflowError
+    catch OverflowError e                    // (an ArithmeticError) - never a changed value
+        print("{e}")
+    print("{@1} {@2}", wrapAdd(big, 1), big.wrapMul(2))   // wrapping on purpose
+    print("{@1} {@2}", hash("x"), 60 * 60 * 24)            // written numbers: no check

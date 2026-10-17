@@ -25,6 +25,11 @@ from src.config import StructsConfig
 from tests.test_end_to_end import compile_and_run
 
 
+
+def unchecked(c_code):
+    from tests.test_positional import unchecked as plain
+    return plain(c_code)
+
 def parse(source: str):
     return Parser(Lexer(source, "test.fusion").tokenize()).parse_program()
 
@@ -138,6 +143,7 @@ def test_omitted_trailing_defaults_filled_in():
 
 def test_field_access_and_assignment():
     c_code = generate_c(POINT + main('Point p\np.x = 5\nint y = p.x + 1'))
+    c_code = unchecked(c_code)   # plain arithmetic again (Task 27.2b)
     assert 'p.x = 5;' in c_code
     assert 'int y = (p.x + 1);' in c_code
 
@@ -147,6 +153,7 @@ def test_struct_parameters_and_return_values():
         POINT + 'Point function add(Point a, Point b)\n    return Point(a.x + b.x, a.y + b.y)\n'
         + main('Point c = add(Point(1, 2), Point(3, 4))')
     )
+    c_code = unchecked(c_code)   # plain arithmetic again (Task 27.2b)
     assert 'fu_Point fu_add(fu_Point a, fu_Point b);' in c_code
     assert 'return (fu_Point){(a.x + b.x), (a.y + b.y)};' in c_code
 
@@ -330,7 +337,7 @@ def test_named_arguments_parse():
 
 
 def test_named_arguments_reordered_to_parameter_order():
-    assert 'int r = fu_sub(3, 5);' in generate_c(SUB + main('int r = sub(b = 5, a = 3)'))
+    assert 'int r = fu_sub(3, 5);' in unchecked(generate_c(SUB + main('int r = sub(b = 5, a = 3)')))
 
 
 def test_named_argument_skips_any_defaulted_parameter():

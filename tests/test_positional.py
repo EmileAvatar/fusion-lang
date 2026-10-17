@@ -22,10 +22,21 @@ from tests.test_end_to_end import compile_and_run
 
 
 def unchecked(c_code: str) -> str:
-    """The C without the checks after calls that can fail (Task 26) - next(c) writes c[0], so
-    it can raise an IndexError; these tests are about evaluation order only."""
-    return re.sub(r'__extension__ \(\{ \w+ fusion_r = (.*?); if \(fusion_failed\) goto fusion_fail_\d+; fusion_r; \}\)',
-                  r'\1', c_code)
+    """The C without the checks after calls that can fail (Task 26) and with whole-number
+    arithmetic in its plain form again (27.2b) - these tests are about other things:
+    evaluation order, temporaries, names."""
+    check = (r'__extension__ \(\{ \w+ fusion_r = (.*?); '
+             r'if \(fusion_failed\) goto fusion_fail_\d+; fusion_r; \}\)')
+    operand = r'(?:[\w.]+(?:\[[^\[\]]*\])?|\([^()]*\)|\w+\([^()]*\))'
+    arithmetic = re.compile(r'fusion_(add|sub|mul)_int\((' + operand + r'), (' + operand
+                            + r'), "[^"]*"\)')
+    symbols = {'add': '+', 'sub': '-', 'mul': '*'}
+    previous = None
+    while previous != c_code:
+        previous = c_code
+        c_code = re.sub(check, r'\1', c_code)
+        c_code = arithmetic.sub(lambda m: f'({m.group(2)} {symbols[m.group(1)]} {m.group(3)})', c_code)
+    return c_code
 
 
 SUB = 'int function sub(int a, int b) : a - b\n'
@@ -39,15 +50,15 @@ NEXT = ('int function next(int[] counter)\n'
 # ============================================================
 
 def test_plain_arguments_need_no_temporaries():
-    c_code = generate_c(SUB + main('int x = 1\nint r = sub(x, 2)'))
+    c_code = unchecked(generate_c(SUB + main('int x = 1\nint r = sub(x, 2)')))
     assert 'int r = fu_sub(x, 2);' in c_code
     assert 'fusion_arg' not in c_code
 
 
 def test_one_call_beside_plain_values_needs_no_temporaries():
     # A call can't change a plain variable or literal, so evaluation order isn't visible
-    c_code = generate_c(SUB + 'int function twice(int v) : v * 2\n'
-                        + main('int x = 1\nint r = sub(twice(x), x)'))
+    c_code = unchecked(generate_c(SUB + 'int function twice(int v) : v * 2\n'
+                                  + main('int x = 1\nint r = sub(twice(x), x)')))
     assert 'int r = fu_sub(fu_twice(x), x);' in c_code
 
 
@@ -64,7 +75,7 @@ def test_call_beside_array_read_is_sequenced():
 
 
 def test_struct_constructor_is_sequenced():
-    c_code = generate_c(POINT + NEXT + main('int[] c = [0]\nPoint p = Point(next(c), next(c))'))
+    c_code = unchecked(generate_c(POINT + NEXT + main('int[] c = [0]\nPoint p = Point(next(c), next(c))')))
     assert '(fu_Point){fusion_arg_1, fusion_arg_2}' in c_code
 
 

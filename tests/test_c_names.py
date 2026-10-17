@@ -9,6 +9,11 @@ from tests.test_structs import generate_c, main
 from tests.test_strings import run_ok
 
 
+
+def unchecked(c_code):
+    from tests.test_positional import unchecked as plain
+    return plain(c_code)
+
 def test_functions_named_like_the_c_library():
     """A Fusion function named free, exit, abs, rename or printf used to clash with the C
     headers."""
@@ -57,5 +62,6 @@ def test_plain_names_stay_readable():
     """Ordinary locals keep their names in C - only clashing ones change."""
     c_code = generate_c('int function twice(int value) : value * 2\n\n'
                         + main('int count = twice(4)'))
+    c_code = unchecked(c_code)   # plain arithmetic again (Task 27.2b)
     assert 'int fu_twice(int value)' in c_code
     assert 'int count = fu_twice(4);' in c_code

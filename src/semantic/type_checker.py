@@ -73,6 +73,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         self.layer_errors_at = set()
         self.current_function_return_type: Optional[TypeNode] = None
         self.current_function_returns_error = False   # `T, Error function` (Task 26)
+        self.unchecked_depth = 0                      # inside unchecked blocks (Task 27.2d)
         self.errors: List[SemanticError] = []
         self.warnings: List[SemanticError] = []
         self.structs_config = structs_config or StructsConfig()
@@ -524,6 +525,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         Returns:
             Result type of the binary operation
         """
+        node.unchecked = self.unchecked_depth > 0     # wraps instead of checking (27.2d)
         # In a comparison a literal takes the other side's type: xs == [1, 2] (Task 18.5.1)
         if node.operator in ('==', '!=', '===', '!==') and isinstance(node.left, ArrayLiteralExpr) \
                 and not isinstance(node.right, ArrayLiteralExpr):
@@ -810,6 +812,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             Result type of the unary operation
         """
         operand_type = self.visit(node.operand)
+        node.unchecked = self.unchecked_depth > 0     # Task 27.2d
 
         if node.operator == '-':
             if not self.is_numeric_type(operand_type):
@@ -2187,6 +2190,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         self.visit(node.then_branch)
         if node.else_branch:
             self.visit(node.else_branch)
+
+    def visit_UncheckedStmt(self, node) -> None:
+        """unchecked: arithmetic inside wraps around (Task 27.2d)."""
+        self.unchecked_depth += 1
+        try:
+            self.visit(node.body)
+        finally:
+            self.unchecked_depth -= 1
 
     def visit_WhileStmt(self, node: WhileStmt) -> None:
         """Check while loop condition is bool.

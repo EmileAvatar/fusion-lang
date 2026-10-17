@@ -55,7 +55,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         generated_functions: List of generated function signatures
     """
 
-    def __init__(self, encoding: str = 'utf-8', max_length=None):
+    def __init__(self, encoding: str = 'utf-8', max_length=None, safety_mode: str = 'normal'):
         """Initialize code generator.
 
         Args:
@@ -67,6 +67,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         self.encoding = encoding
         self.max_length = max_length
+        # [safety] mode = "unsafe": whole-number arithmetic wraps instead of raising an
+        # OverflowError (Task 27.2b, user decision 2026-10-17)
+        self.safety_mode = safety_mode
         self.output: List[str] = []
         self.indent_level: int = 0
         self.includes: Set[str] = set()
@@ -811,7 +814,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # Whole-number / and % by zero: a DivideByZeroError, not a crash (Task 26.12)
         if op in ('/', '%') and self.int_division_can_fail(node):
             function = 'fusion_div_int' if op == '/' else 'fusion_mod_int'
-            return self.checked_code(f'{function}({left}, {right}, {self._where(node)})', 'int')
+            overflow = 0 if self.wraps(node) else 1
+            return self.checked_code(f'{function}({left}, {right}, {overflow}, {self._where(node)})', 'int')
+
+        # Whole-number + - *: an OverflowError when it doesn't fit (Task 27.2b) - or it wraps
+        # around (unsafe mode, an unchecked block) - never C's undefined behaviour
+        if op in ('+', '-', '*') and self.whole_number_operands(node):
+            name = {'+': 'add', '-': 'sub', '*': 'mul'}[op]
+            if self.wraps(node):
+                return f'fusion_wrap_{name}({left}, {right})'
+            if self.constant_fits(node):
+                return f'({left} {c_op} {right})'
+            return self.checked_code(f'fusion_{name}_int({left}, {right}, {self._where(node)})', 'int')
 
         # Special case: power operator
         if op == '**':
@@ -831,6 +845,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             C unary operation expression
         """
         operand = self.visit(node.operand)
+        # -n of the smallest int doesn't fit (Task 27.2b)
+        if node.operator == '-' and self.whole_number_operands(node) \
+                and type(node.operand).__name__ != 'LiteralExpr':
+            if self.wraps(node):
+                return f'fusion_wrap_sub(0, {operand})'
+            return self.checked_code(f'fusion_neg_int({operand}, {self._where(node)})', 'int')
         op = node.operator
 
         operator_map = {
@@ -996,6 +1016,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'compareNatural': ('fusion_str_compareNatural', False),
         # Raw bytes (18.3.8, c_bytes.py) - toBytes picks fusion_<str|char|int|byte>_toBytes
         'toBytes': ('fusion_str_toBytes', False), 'toByte': ('fusion_toByte', True),
+        # Wrapping on purpose (Task 27.2d)
+        'wrapAdd': ('fusion_wrap_add', False), 'wrapSub': ('fusion_wrap_sub', False),
+        'wrapMul': ('fusion_wrap_mul', False),
         'newBytes': ('fusion_newBytes', True), 'slice': ('fusion_bytes_slice', True),
         'getInt': ('fusion_bytes_getInt', True), 'getInt16': ('fusion_bytes_getInt16', True),
         'getUInt16': ('fusion_bytes_getUInt16', True), 'setInt': ('fusion_bytes_setInt', True),
@@ -1608,6 +1631,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if hasattr(self, 'cleanup_scopes'):
             self.emit_frees(self.owned_in_scopes('loop'))
         self.emit_line('continue')
+        return ''
+
+    def visit_UncheckedStmt(self, node) -> str:
+        """unchecked: the arithmetic inside wraps (Task 27.2d) - the checker marked it."""
+        self.visit_in_c_block(node.body)
         return ''
 
     def visit_BlockStmt(self, node: BlockStmt) -> str:

@@ -43,7 +43,7 @@ DEFAULT_ALLOW_UNICODE_IDENTIFIERS = False
 # "strict" is referenced by files/fusion-language-spec.md (e.g. Weak<T> causing a compile
 # error in strict mode) but not enforced by any pass yet - accepted here so a project can
 # already declare its intent, same status as the Unique/Shared/Weak keywords.
-VALID_SAFETY_MODES = ("normal", "strict")
+VALID_SAFETY_MODES = ("normal", "strict", "unsafe")   # unsafe: arithmetic wraps (27.2b)
 
 # "llvm" is Task 11's planned backend - not implemented yet, so not accepted as a value
 # until that lands. Keeping the set explicit (rather than accepting anything) means a typo

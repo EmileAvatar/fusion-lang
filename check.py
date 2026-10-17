@@ -101,7 +101,8 @@ def compile_and_run_leak_checked(source: str, source_path: str):
         if not analyzer.analyze(ast):
             return None, '\n'.join(str(e) for e in analyzer.get_errors())
         c_code = CCodeGenerator(encoding=config.strings.encoding,
-                                max_length=config.strings.max_length).generate(ast)
+                                max_length=config.strings.max_length,
+                                safety_mode=config.safety_mode).generate(ast)
     except Exception as e:  # report, don't crash the checker
         return None, f'{type(e).__name__}: {e}'
 

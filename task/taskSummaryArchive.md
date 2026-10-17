@@ -4867,3 +4867,18 @@ fusion_index(i, length, where) checks every index of a fixed-size array before t
 - **27.4 Block-style equivalence** - one app written 3 times (indentation, braces, `End`
   keywords): examples/styles/indent.fusion, braces.fusion, end.fusion; check.py compiles
   all three and fails unless the C is identical (user request)
+
+---
+
+#### Task 27.2b / 27.2d - overflow and wrapping (COMPLETE 2026-10-17)
+
+fusion_add_int / _sub_ / _mul_ / _neg_ (GCC overflow builtins) raise OverflowError (built-in kind 24); fusion_wrap_* use unsigned arithmetic. The checker marks arithmetic inside unchecked blocks; CCodeGenerator(safety_mode=...) from fusion.toml. Also fixed: a try / finally / unchecked body now gets its own C block (two sibling try blocks declaring the same name failed to compile).
+
+- **27.2b OverflowError** (user decision 2026-10-17: checked by default, off in unsafe mode)
+  - int `+ - *`, unary `-`, `-2147483648 / -1` and `% -1`, conversions that don't fit
+  (toInt of a double too big, byte arithmetic that leaves 0-255 when stored) raise an
+  OverflowError (subtype of ArithmeticError). In C: GCC's __builtin_add_overflow /
+  _sub_ / _mul_ (one jump after each operation). Left out when provable: constants, a
+  `for i in range(...)` counter. `[safety] mode = "unsafe"` (new value) turns the checks
+  off - arithmetic then wraps (two's complement, defined - never C undefined behaviour).
+  Plus a way to wrap on purpose (Q2)

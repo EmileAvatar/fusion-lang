@@ -153,6 +153,7 @@ statement =
     | match_statement
     | try_statement
     | throw_statement
+    | unchecked_statement
     | return_statement
     | break_statement
     | continue_statement
@@ -243,6 +244,10 @@ try_statement =
        first matching catch runs; finally runs on every way out *)
 
 throw_statement = "throw" expression ;      (* an Error - Task 26.3 *)
+
+unchecked_statement = "unchecked" block [ "End" "unchecked" ] ;
+    (* Task 27.2d: whole-number + - * inside wrap around instead of raising OverflowError;
+       `unchecked` is a word only before a block *)
 
 (* ========== Expressions ========== *)
 

@@ -936,6 +936,23 @@ class Parser:
         if self.match(TokenType.MATCH):
             return self.parse_match_statement()
 
+        # unchecked block (Task 27.2d) - `unchecked` is a word only before a block
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'unchecked' \
+                and self.peek(1).type in (TokenType.NEWLINE, TokenType.LBRACE, TokenType.INDENT):
+            unchecked_token = self.advance()
+            while self.match(TokenType.NEWLINE):
+                pass
+            if not (self.check(TokenType.INDENT) or self.check(TokenType.LBRACE)):
+                raise ParserError(self.peek(), "Expected the unchecked block - an indented "
+                                               "block or '{' ... '}'")
+            body = self.parse_block_statement()
+            while self.match(TokenType.NEWLINE):
+                pass
+            if self.check(TokenType.END) and self.peek(1).value == 'unchecked':
+                self.advance()
+                self.advance()
+            return UncheckedStmt(location=unchecked_token.location, body=body)
+
         # try / catch / finally, throw (Task 26.3)
         if self.match(TokenType.TRY):
             return self.parse_try_statement()

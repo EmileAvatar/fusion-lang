@@ -14,6 +14,11 @@ from src.codegen import CCodeGenerator
 from tests.test_end_to_end import compile_and_run
 
 
+
+def unchecked(c_code):
+    from tests.test_positional import unchecked as plain
+    return plain(c_code)
+
 def analyze(source: str):
     """Run semantic analysis; return (analyzer, ast, ok)."""
     ast = Parser(Lexer(source, "test.fusion").tokenize()).parse_program()
@@ -168,6 +173,7 @@ def test_sized_array_parameter_stays_c_array():
         'int function first(int[3] trio) : trio[0] + len(trio)\n'
         'void function main()\n    int[] a = [1, 2, 3]\n    int f = first(a)\n'
     )
+    c_code = unchecked(c_code)   # plain arithmetic again (Task 27.2b)
     assert 'int fu_first(int trio[3])' in c_code
     assert '(trio[0] + 3)' in c_code      # len of a sized parameter is still a constant
     assert 'fu_first(a)' in c_code
@@ -291,6 +297,7 @@ def test_function_type_parses_with_colon_and_arrow():
 
 def test_lambda_is_lifted_to_static_function_with_inferred_return_type():
     c_code = generate_c('void function main()\n    (int) : int op = func(int x) : x * 2\n')
+    c_code = unchecked(c_code)   # plain arithmetic again (Task 27.2b)
     assert 'static int fusion_lambda_1(int x) {' in c_code
     assert 'return (x * 2);' in c_code
     assert '<lambda>' not in c_code  # the old placeholder is gone
@@ -311,6 +318,7 @@ def test_named_function_as_value_and_call_through_variable():
         'int function tripler(int x) : x * 3\n'
         'void function main()\n    (int) : int op = tripler\n    int a = op(5)\n'
     )
+    c_code = unchecked(c_code)   # plain arithmetic again (Task 27.2b)
     assert 'fusion_fn_1 op = fu_tripler;' in c_code
     assert 'int a = op(5);' in c_code
 

@@ -34,14 +34,7 @@ recursion.
 #### Sub-tasks, in the order they would be done
 - 27.1 DONE (array bounds checks, array literal indexing) - detail archived
 - 27.5 DONE (equality heading), 27.4 DONE (three block styles, same C) - detail archived
-- **27.2b OverflowError** (user decision 2026-10-17: checked by default, off in unsafe mode)
-  - int `+ - *`, unary `-`, `-2147483648 / -1` and `% -1`, conversions that don't fit
-  (toInt of a double too big, byte arithmetic that leaves 0-255 when stored) raise an
-  OverflowError (subtype of ArithmeticError). In C: GCC's __builtin_add_overflow /
-  _sub_ / _mul_ (one jump after each operation). Left out when provable: constants, a
-  `for i in range(...)` counter. `[safety] mode = "unsafe"` (new value) turns the checks
-  off - arithmetic then wraps (two's complement, defined - never C undefined behaviour).
-  Plus a way to wrap on purpose (Q2)
+- 27.2b DONE (OverflowError, unsafe mode), 27.2d DONE (wrapAdd, unchecked) - detail archived
 - **27.2c Endless recursion** - a StackOverflowError (subtype of LimitError) instead of a
   crash (Q3)
 - **27.3 Interaction tests** - features together: a struct holding lists and enums with
@@ -135,4 +128,5 @@ Kept under Task 22 until the renumbering is approved.
 - Task 27 plan approved (bounds always; wrapAdd functions; stack use + max_call_depth; unchecked blocks)
 - 27.1 done
 - 27.5 and 27.4 done
-- **Next Action:** 27.2b OverflowError
+- 27.2b and 27.2d done
+- **Next Action:** 27.2c endless recursion
