@@ -4901,3 +4901,40 @@ All passed on the first run. Found for the contract: a for loop reads the list /
 - **27.3 Interaction tests** - features together: a struct holding lists and enums with
   data, copied, passed through functions and across modules; nested collections; errors
   passing through all of it; early returns, break, continue - every program leak-checked
+
+---
+
+#### Task 27 - complete (archived 2026-10-17)
+
+**27.2** (COMPLETE): the contract section in files/fusion-language-spec.md; 27.2e (loop changes) and the `=` message added; 27.2f (int to float precision) left open for the user.
+
+## TASK 27: Semantic contract and safety - ACTIVE (plan approved 2026-10-17)
+
+**Why before self-hosting:** the self-hosting test run is only meaningful if what each
+construct does is pinned down and nothing fails silently. Sources: the ChatGPT review
+(2026-10-11), Notes/04/notes.md step 2, and the user's decisions on arrays, overflow and
+recursion.
+
+#### Sub-tasks, in the order they would be done
+- 27.1 DONE (array bounds checks, array literal indexing) - detail archived
+- 27.5 DONE (equality heading), 27.4 DONE (three block styles, same C) - detail archived
+- 27.2b DONE (OverflowError, unsafe mode), 27.2d DONE (wrapAdd, unchecked) - detail archived
+- 27.2c DONE (endless recursion) - detail archived
+- 27.3 DONE (interaction tests) - detail archived
+- **27.2 The contract** - written last, in one spec section, documenting what was built
+  and tested: copying (deep), the equality table, `=` in conditions (with its ambiguous
+  cases tested), Unicode indexing (code points), integer conversions and overflow, changing
+  a collection while looping over it, cleanup on every path, error propagation, evaluation
+  order (call arguments left to right; operands - the open 37.2 noted)
+
+#### Decisions (user, 2026-10-17) - plan approved
+1. Array bounds checks are **always** on - unsafe mode doesn't remove them
+2. Wrapping on purpose: functions `wrapAdd(a, b)`, `wrapSub`, `wrapMul` (methods too)
+3. Endless recursion: **both** - stack use is the default (a limit from the real stack
+   size); `[safety] max_call_depth` = "max" (default: stack use only) or a number (a call
+   counter) for memory-constrained devices, tuned by profiling - most projects won't use it
+4. Turning checks off: the whole project (`[safety] mode = "unsafe"`) **and** per block now -
+   an `unchecked` block turns overflow checks off inside it (bounds checks stay)
+
+---
+

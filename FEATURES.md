@@ -118,7 +118,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		types, typed catch, built-in types (FileNotFoundError, DivideByZeroError)
 	[DONE] Error handling example (was 16.5) - examples/errors_demo (26.6)
 
-#### 27 Semantic contract and safety (from the ChatGPT review, 2026-10-11; notes.md step 2) [ ]
+#### 27 Semantic contract and safety (from the ChatGPT review, 2026-10-11; notes.md step 2) [DONE]
 	[DONE] 27.1 Bounds checks for fixed arrays: `a[5]` on an `int[3]` crashes today (segmentation
 		fault, found 2026-10-11) or, worse, silently overwrites other memory. Every out-of-range
 		index must be a clear run-time error, never missed (user: "so we don't miss out-of-range
@@ -126,11 +126,17 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		structs. Lists, strings and bytes are checked already
 	[DONE] 27.1b Indexing an array literal directly - `[1, 2][5]` - generates invalid C (found
 		2026-10-16 while testing 26.10)
-	[ ] 27.2 The contract, written in the spec in one place: copying (deep - every copy is
+	[DONE] 27.2 The contract, written in the spec in one place: copying (deep - every copy is
 		independent, nested lists too), the equality table (which types `==` / `===` compare),
 		`=` in conditions with its ambiguous cases tested, Unicode indexing (code points, not
 		what a reader sees as one symbol), integer conversions and overflow, changing a
 		collection while looping over it, cleanup on every path (early return, break, exit)
+	[DONE] 27.2e Changing a List / Map while a for loop goes over it is a ModifiedWhileLoopingError
+		(user decision 2026-10-17: an error, never a skipped element); `=` outside a condition
+		says to write `==`
+	[ ] 27.2f int to float loses precision above 16,777,216 silently (`float f = 16777217` holds
+		16777216, found 2026-10-17) - decide: keep the automatic widening, or make it an error /
+		require toFloat when it isn't exact (int to double is always exact)
 	[DONE] 27.2b OverflowError: whole-number arithmetic that doesn't fit (2147483647 + 1 wraps
 		silently today - against "never change values silently"). User decision 2026-10-17:
 		**checked by default** (+ - * unary -, / of -2147483648 by -1, number conversions that

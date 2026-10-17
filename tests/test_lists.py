@@ -133,14 +133,29 @@ def test_for_each():
     )) == ['7', '8', 'ab 10']
 
 
-def test_changing_a_list_while_looping_over_it_is_safe():
+def test_changing_a_list_while_looping_over_it_is_an_error():
+    # Task 27.2e (user decision 2026-10-17): adding or removing elements of the list being
+    # looped over is a ModifiedWhileLoopingError - never a skipped element. Setting an
+    # element's value is fine
     assert run_ok(main(
         'List<string> xs = ["a", "b"]\n'
+        'try\n'
+        '    for s in xs\n'
+        '        xs.add(s + "!")\n'
+        'catch e\n'
+        '    print("{e.kind}")\n'
         'for s in xs\n'
-        '    xs.add(s + "!")\n'
-        '    xs.removeAt(0)\n'
-        'print("{@1} {@2}", xs.len(), xs[0])'
-    )) == ['2 a!']
+        '    xs[0] = s + "?"\n'
+        'Map<string, int> m\n'
+        'm["a"] = 1\n'
+        'try\n'
+        '    for k in m\n'
+        '        m["a"] = 2\n'               # a value replaced: fine
+        '        m.remove(k)\n'               # a key removed: the error, after this pass
+        'catch e\n'
+        '    print("{e.kind}")\n'
+        'print("{@1} {@2} {@3}", xs.len(), xs[0], m.len())'
+    )) == ['ModifiedWhileLoopingError', 'ModifiedWhileLoopingError', '3 a!? 0']
 
 
 def test_return_from_inside_a_for_each_frees_everything():

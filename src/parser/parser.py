@@ -959,6 +959,7 @@ class Parser:
         if self.match(TokenType.THROW):
             throw_token = self.previous()
             value = self.parse_expression()
+            self.reject_compare_with_single_equals()   # Task 27.2
             self.consume_statement_terminator()
             return ThrowStmt(location=throw_token.location, value=value)
 
@@ -990,6 +991,7 @@ class Parser:
         # Check for assignment: expr = value
         if self.match(TokenType.ASSIGN):
             value = self.parse_expression()
+            self.reject_compare_with_single_equals()   # Task 27.2
             self.consume_statement_terminator()
             return AssignmentStmt(
                 location=expr.location,
@@ -1039,6 +1041,7 @@ class Parser:
         initializer = None
         if self.match(TokenType.ASSIGN):
             initializer = self.parse_expression()
+            self.reject_compare_with_single_equals()   # Task 27.2
 
         self.consume_statement_terminator()
 
@@ -1077,6 +1080,7 @@ class Parser:
 
         self.consume(TokenType.ASSIGN, "Expected '=' after const variable name")
         initializer = self.parse_expression()
+        self.reject_compare_with_single_equals()   # Task 27.2
 
         self.consume_statement_terminator()
 
@@ -1100,6 +1104,7 @@ class Parser:
         value = None
         if not self.check(TokenType.NEWLINE) and not self.is_block_end():
             value = self.parse_expression()
+            self.reject_compare_with_single_equals()   # Task 27.2
 
         self.consume_statement_terminator()
 
@@ -1275,6 +1280,13 @@ class Parser:
         if offset and self.peek(offset).type in token_types:
             for _ in range(offset):
                 self.advance()
+
+    def reject_compare_with_single_equals(self) -> None:
+        """`bool same = a = b`: `=` compares only in a condition (if / while / else if) -
+        elsewhere it stores, so a second one is a mistake (Task 27.2)."""
+        if self.check(TokenType.ASSIGN):
+            raise ParserError(self.peek(), "'=' compares only in a condition (if, while); to "
+                                           "compare here write '==', e.g. bool same = a == b")
 
     def parse_case_body(self) -> BlockStmt:
         """A case's (or the else's) body: `: statement` on the same line, or a block."""
@@ -1704,6 +1716,7 @@ class Parser:
                 which = self.advance().value
                 self.advance()
                 value = self.parse_expression()
+                self.reject_compare_with_single_equals()   # Task 27.2
                 if which == 'message':
                     decl.default_message = value
                 else:

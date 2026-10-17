@@ -383,3 +383,53 @@ def test_across_modules(tmp_path):
             '        total = total + a\n'
             '    print("{total} {@1} {@2}", d.shapes.len(), copy.shapes.len())\n'),
     }) == ['negative -1', '9 2 3']
+
+
+# ---------------------------------------------------------------- 27.2 the contract
+
+def test_single_equals_compares_in_every_kind_of_condition():
+    assert run_ok(main(
+        'int a = 1\n'
+        'int b = 1\n'
+        'if a = b and b = 1 or a = 5\n'
+        '    print("and/or")\n'
+        'if (a = 1)\n'
+        '    print("parentheses")\n'
+        'if a = 2\n'
+        '    print("no")\n'
+        'else if a = 1\n'
+        '    print("else if")\n'
+        'int n = 3\n'
+        'while not (n = 0)\n'
+        '    n = n - 1\n'
+        'print("while {n}")'
+    )) == ['and/or', 'parentheses', 'else if', 'while 0']
+
+
+@pytest.mark.parametrize("body", [
+    'int a = 1\nbool same = a = 1',
+    'int a = 1\nbool same\nsame = a = 1',
+    'const int a = 1 = 1',
+])
+def test_single_equals_outside_a_condition_says_to_use_double(body):
+    from tests.test_structs import parse
+    with pytest.raises(Exception, match="'=' compares only in a condition"):
+        parse(main(body))
+
+
+def test_changing_a_collection_while_looping_is_an_error():
+    lines, stderr = run_failing(main(
+        'List<int> xs = [1, 2, 3]\n'
+        'for x in xs\n'
+        '    if x == 2\n'
+        '        xs.removeAt(0)\n'
+        '    print("{x}")'))
+    assert lines == ['1', '2']
+    assert 'the List changed while a for loop went over it (an element was added or removed ' \
+           'inside the loop)' in stderr
+
+
+def test_a_temporary_list_can_be_looped_over_without_a_check():
+    c_code = generate_c('List<int> function make() : [1, 2]\n'
+                        + main('for x in make()\n    print("{x}")'))
+    assert 'fusion_changes_' not in c_code

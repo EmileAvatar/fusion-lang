@@ -60,6 +60,7 @@ BUILTIN_ERROR_TYPES = [
     # (new types go last - the numbers above are fixed)
     ('OverflowError', 'ArithmeticError', False, None),          # Task 27.2b
     ('StackOverflowError', 'LimitError', False, None),          # Task 27.2c
+    ('ModifiedWhileLoopingError', 'ValueError', False, None),   # Task 27.2e
 ]
 BUILTIN_ERROR_NAMES = [name for name, _, _, _ in BUILTIN_ERROR_TYPES]
 

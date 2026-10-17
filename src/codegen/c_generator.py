@@ -1561,6 +1561,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         body may change the list safely. A list made just for the loop is freed after it."""
         iterable, element = node.iterable, node.element_type
         iterable_type = iterable.inferred_type
+        watched = None
         self.temp_count = getattr(self, 'temp_count', 0) + 1
         n = self.temp_count
         index = f'fusion_i_{n}'
@@ -1572,6 +1573,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             if isinstance(iterable, (IdentifierExpr, MemberExpr, IndexExpr)):
                 self.emit_line(f'{list_c}* fusion_iter_{n} = &{self.list_lvalue(iterable, final=False)}')
                 source = f'fusion_iter_{n}->'
+                # Elements added or removed while looping: an error, never a skip (27.2e)
+                watched = f'fusion_changes_{n}'
+                self.emit_line(f'int {watched} = fusion_iter_{n}->changes')
             else:
                 self.emit_line(f'{list_c} fusion_iter_{n} = {self.owned_value(iterable, iterable_type)}')
                 self.register_owned(f'fusion_iter_{n}', iterable_type)
@@ -1589,6 +1593,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             item = f'{array_code}[{index}]'
         self.emit(f'for (int {index} = 0; {index} < {length}; {index}++) {{')
         self.indent()
+        if watched is not None:
+            self.emit(self.loop_change_check(f'fusion_iter_{n}->changes', watched, iterable_type, node))
         self.push_scope('loop')
         # The loop variable lives in a scope inside the loop's, so break and continue free
         # it too (they free everything inside the loop scope)
@@ -1601,6 +1607,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.pop_scope()
         self.dedent()
         self.emit('}')
+        if watched is not None:     # a change in the last pass, too
+            self.emit(self.loop_change_check(f'fusion_iter_{n}->changes', watched, iterable_type, node))
         self.pop_scope()
         self.dedent()
         self.emit('}')

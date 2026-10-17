@@ -385,6 +385,10 @@ class ErrorsMixin:
             return True
         if isinstance(node, ThrowStmt) or getattr(node, 'raises', False):
             return True    # throw, or `return Error(...)` in any function (Task 26.7)
+        if type(node).__name__ == 'ForStmt' and isinstance(
+                getattr(node.iterable, 'inferred_type', None), (ListType, MapType)) and \
+                type(node.iterable).__name__ in ('IdentifierExpr', 'MemberExpr', 'IndexExpr'):
+            return True    # the list may change while looping (Task 27.2e)
         if isinstance(node, CallExpr) and isinstance(node.callee, IdentifierExpr):
             # walk only the arguments - the callee is a name, not a call
             return self._calls_failing(node.arguments, failing)
@@ -435,6 +439,15 @@ class ErrorsMixin:
                 and length.isdigit() and 0 <= index.value < int(length):
             return index_code
         return self.checked_code(f'fusion_index({index_code}, {length}, {self._where(node)})', 'int')
+
+    def loop_change_check(self, now: str, before: str, iterable_type, node) -> str:
+        """A for loop over a List / Map whose elements were added or removed meanwhile: a
+        ModifiedWhileLoopingError (Task 27.2e, user decision 2026-10-17)."""
+        what = 'Map' if isinstance(iterable_type, MapType) else 'List'
+        change = 'a key was added or removed' if what == 'Map' else 'an element was added or removed'
+        return (f'if ({now} != {before}) {{ fusion_fail(FUSION_KIND_ModifiedWhileLoopingError, '
+                f'{self._where(node)}, "the {what} changed while a for loop went over it ({change} '
+                f'inside the loop)"); goto {self.fail_label()}; }}')
 
     @staticmethod
     def whole_number_operands(node) -> bool:

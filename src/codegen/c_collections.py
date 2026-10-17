@@ -62,10 +62,12 @@ class CollectionsMixin:
             if isinstance(kind, MapType):
                 lines.append(f'typedef struct {{ {self.map_type(kind.key_type)}* keys; '
                              f'{self.map_type(kind.value_type)}* vals; int len; int cap; '
-                             f'int* slots; int nslots; }} {name};')
+                             f'int* slots; int nslots; int changes; }} {name};')
             else:
                 element_c = self.map_type(kind.element_type)
-                lines.append(f'typedef struct {{ {element_c}* data; int len; int cap; }} {name};')
+                # changes: counts elements added / removed - a for loop going over the
+                # list checks it (Task 27.2e)
+                lines.append(f'typedef struct {{ {element_c}* data; int len; int cap; int changes; }} {name};')
         lines += self.list_protos + ['']
         return lines
 
@@ -114,22 +116,22 @@ class CollectionsMixin:
             f'void {name}_set({name}* dst, {name} value)': [
                 f'{name}_free(dst);', '*dst = value;'],
             f'void {name}_add({name}* l, {T} v)': [
-                f'{name}_grow(l, l->len + 1);', 'l->data[l->len++] = v;'],
+                f'{name}_grow(l, l->len + 1);', 'l->data[l->len++] = v;', 'l->changes++;'],
             f'void {name}_insert({name}* l, int i, {T} v, const char* where)': [
                 'if (i < 0 || i > l->len) { fusion_fail(FUSION_KIND_IndexError, where, "insert(position %d) is '
                 f'outside the list (length %d)", i, l->len); {free("v")} return; }}',
                 f'{name}_grow(l, l->len + 1);',
                 f'memmove(l->data + i + 1, l->data + i, sizeof({T}) * (size_t)(l->len - i));',
-                'l->data[i] = v; l->len++;'],
+                'l->data[i] = v; l->len++; l->changes++;'],
             f'void {name}_removeAt({name}* l, int i, const char* where)': [
                 'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "removeAt(%d) is outside '
                 'the list (length %d)", i, l->len); return; }',
                 (free('l->data[i]') if managed else ''),
                 f'memmove(l->data + i, l->data + i + 1, sizeof({T}) * (size_t)(l->len - i - 1));',
-                'l->len--;'],
+                'l->len--; l->changes++;'],
             f'void {name}_clear({name}* l)': [
                 (f'for (int i = 0; i < l->len; i++) {{ {free("l->data[i]")} }}' if managed else ''),
-                'l->len = 0;'],
+                'l->len = 0; l->changes++;'],
             f'{T} {name}_at({name} l, int i, const char* where)': [
                 'if (i < 0 || i >= l.len) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the '
                 f'list (length %d)", i, l.len); return {self._default_value_code(element)}; }}',
@@ -395,7 +397,7 @@ class CollectionsMixin:
                 '}',
                 f'm->keys[m->len] = {kcopy("k")};',
                 f'm->vals[m->len] = {self._default_value_code(value)};',
-                'm->len++;',
+                'm->len++; m->changes++;',
                 f'if (m->len * 2 > m->nslots) {name}_index(m, m->nslots < 16 ? 16 : m->nslots * 2);',
                 'else {',
                 '    uint32_t mask = (uint32_t)m->nslots - 1;',
@@ -422,12 +424,12 @@ class CollectionsMixin:
                 free_entry('i'),
                 f'memmove(m->keys + i, m->keys + i + 1, sizeof({K}) * (size_t)(m->len - i - 1));',
                 f'memmove(m->vals + i, m->vals + i + 1, sizeof({V}) * (size_t)(m->len - i - 1));',
-                'm->len--;',
+                'm->len--; m->changes++;',
                 f'{name}_index(m, m->nslots);',
                 'return true;'],
             f'void {name}_clear({name}* m)': [
                 f'for (int i = 0; i < m->len; i++) {{ {free_entry("i")} }}' if (key_managed or value_managed) else '',
-                'm->len = 0;',
+                'm->len = 0; m->changes++;',
                 'if (m->slots) memset(m->slots, 0, sizeof(int) * (size_t)m->nslots);'],
             f'{name} {name}_copy({name} v)': [
                 f'{name} r = {{0}};',
