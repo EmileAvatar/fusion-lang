@@ -55,7 +55,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         generated_functions: List of generated function signatures
     """
 
-    def __init__(self, encoding: str = 'utf-8', max_length=None, safety_mode: str = 'normal'):
+    def __init__(self, encoding: str = 'utf-8', max_length=None, safety_mode: str = 'normal',
+                 max_call_depth=None):
         """Initialize code generator.
 
         Args:
@@ -70,6 +71,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # [safety] mode = "unsafe": whole-number arithmetic wraps instead of raising an
         # OverflowError (Task 27.2b, user decision 2026-10-17)
         self.safety_mode = safety_mode
+        # [safety] max_call_depth: None ("max") - endless recursion is caught by stack use;
+        # a number - calls are counted too (Task 27.2c)
+        self.max_call_depth = max_call_depth
         self.output: List[str] = []
         self.indent_level: int = 0
         self.includes: Set[str] = set()
@@ -1686,6 +1690,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # Generate function signature
         return_type = self.return_c_type(node.return_type)
         func_name = self._mangle_function_name(node.name)
+        # [safety] max_call_depth (27.2c): the body becomes NAME__body, NAME counts the calls
+        depth_wrapper = None
+        if self.max_call_depth is not None and node.name in getattr(self, 'recursive_functions', ()):
+            depth_wrapper = func_name
+            func_name = f'{func_name}__body'
+            self.emit(f'static {return_type} {func_name}({self._c_parameter_list(node.parameters)});')
         self.current_return_type = node.return_type
 
         # Special case: void main() -> int main() in C
@@ -1730,6 +1740,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             # An error nobody captures leaves the function here (Task 26)
             self.fail_targets = [self.function_fail_target(node.name, node.return_type)]
             self.fail_sites, self.finally_stack = [], []
+            if node.name in getattr(self, 'recursive_functions', ()):
+                for line in self.stack_check_lines(node):    # endless recursion (27.2c)
+                    self.emit(line)
         assigned = self.assigned_roots(node.body)
         for param in node.parameters:
             if param.name in assigned and not isinstance(param.param_type, ArrayType) \
@@ -1760,6 +1773,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.dedent()
         self.emit('}')
         self.emit()  # Blank line after function
+        if depth_wrapper is not None:
+            for line in self.depth_wrapper_lines(node, depth_wrapper, func_name):
+                self.emit(line)
 
         return ''
 

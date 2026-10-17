@@ -137,7 +137,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		don't fit) - an OverflowError, subtype of ArithmeticError; **turned off in unsafe mode**
 		([safety] mode = "unsafe" - wraps, still never C undefined behaviour). Checks the
 		compiler can prove unneeded are left out (constants, range loop counters)
-	[ ] 27.2c Endless recursion: a stack overflow crashes today - a catchable StackOverflowError.
+	[DONE] 27.2c Endless recursion: a stack overflow crashes today - a catchable StackOverflowError.
 		User decision 2026-10-17: stack use by default (a limit from the real stack size);
 		`[safety] max_call_depth` = "max" (default) or a number - a call counter for
 		memory-constrained devices

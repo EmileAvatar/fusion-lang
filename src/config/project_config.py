@@ -184,6 +184,7 @@ class ProjectConfig:
     stdlib: StdlibConfig = field(default_factory=StdlibConfig)
     errors: ErrorsConfig = field(default_factory=ErrorsConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
+    max_call_depth: Optional[int] = None   # [safety] max_call_depth - None: "max" (Task 27.2c)
     backend: str = DEFAULT_BACKEND
     source_path: Optional[str] = None
 
@@ -414,6 +415,21 @@ def load_project_config(source_path: str) -> ProjectConfig:
                 f"got {mode!r}"
             )
         safety_mode = mode
+    # max_call_depth (Task 27.2c, user decision 2026-10-17): "max" (the default) - endless
+    # recursion is caught by stack use alone; a number also counts calls, for
+    # memory-constrained devices (tuned by profiling)
+    max_call_depth = None
+    if "max_call_depth" in safety_section:
+        depth = safety_section["max_call_depth"]
+        if depth != "max" and (isinstance(depth, bool) or not isinstance(depth, int) or depth < 1):
+            raise ProjectConfigError(
+                f"{config_path}: safety.max_call_depth must be \"max\" or a whole number of 1 or "
+                f"more, got {depth!r}")
+        max_call_depth = None if depth == "max" else depth
+    for key in safety_section:
+        if key not in ("mode", "max_call_depth"):
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting safety.{key} (known: ['mode', 'max_call_depth'])")
 
     backend = DEFAULT_BACKEND
     backend_section = _require_table(data, "backend", config_path)
@@ -434,6 +450,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
         stdlib=_load_stdlib_section(data, config_path),
         errors=_load_errors_section(data, config_path),
         safety_mode=safety_mode,
+        max_call_depth=max_call_depth,
         backend=backend,
         source_path=config_path,
     )

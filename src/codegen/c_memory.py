@@ -97,8 +97,40 @@ static void fusion_wait_for_key(void) {
     getchar();
 #endif
 }
+// Endless recursion (Task 27.2c, user decision 2026-10-17): where the stack starts, and how
+// much of it the program's own functions may use - the rest is left for the runtime
+static char* fusion_stack_base = NULL;
+static size_t fusion_stack_room = 0;
+static int fusion_call_depth __attribute__((unused)) = 0;   // [safety] max_call_depth: calls counted
+#ifdef _WIN32
+__declspec(dllimport) void __stdcall GetCurrentThreadStackLimits(uintptr_t* low, uintptr_t* high);
+#else
+#include <sys/resource.h>
+#endif
+static inline void fusion_stack_start(char* here) {
+    size_t size = 1024 * 1024;
+#ifdef _WIN32
+    uintptr_t low = 0, high = 0;
+    GetCurrentThreadStackLimits(&low, &high);
+    if (high > low) size = (size_t)(high - low);
+#else
+    struct rlimit limit;
+    size = getrlimit(RLIMIT_STACK, &limit) == 0 && limit.rlim_cur != RLIM_INFINITY
+         ? (size_t)limit.rlim_cur : (size_t)8 * 1024 * 1024;
+#endif
+    fusion_stack_base = here;
+    fusion_stack_room = size - size / 8;
+}
+// True when a function that can call itself finds the stack nearly full
+static inline bool fusion_stack_low(void) {
+    char here;
+    return fusion_stack_base && (size_t)(fusion_stack_base - &here) > fusion_stack_room;
+}
+
 static inline void fusion_init(int argc, char** argv) {
     bool headless = false;
+    char stack_here;
+    fusion_stack_start(&stack_here);
 #ifdef _WIN32
     SetConsoleOutputCP(65001);
     SetConsoleCP(65001);   // typed input as UTF-8 too (readLine, Task 18.5.4)

@@ -38,6 +38,7 @@ from dataclasses import fields as dataclass_fields, is_dataclass
 
 from src.semantic.error_rules import BUILTIN_ERROR_NAMES, BUILTIN_ERROR_TYPES
 from .c_names import array_length_name
+from .c_runtime import escape_c_text
 from src.parser.ast_nodes import (ArrayType, BinaryExpr, CallExpr, ErrorDecl, ErrorMakeExpr, ErrorType,
                                   FunctionDecl, FunctionType, IdentifierExpr, IndexExpr,
                                   InterpolatedStringExpr, LambdaExpr, ListType, MapType,
@@ -241,14 +242,100 @@ class ErrorsMixin:
 
     # ------------------------------------------------------------------ which calls can fail
 
+    def find_recursive_functions(self, program) -> set:
+        """The functions that can call themselves (Task 27.2c): those on a cycle of calls - a
+        call through a function value counts as a call to every function used as a value."""
+        functions = {d.name: d for d in program.declarations if isinstance(d, FunctionDecl)}
+        as_values = set()
+        calls = {name: set() for name in functions}
+
+        def walk(node, owner, callee_ids):
+            if isinstance(node, list):
+                for item in node:
+                    walk(item, owner, callee_ids)
+                return
+            if not is_dataclass(node) or isinstance(node, type):
+                return
+            if isinstance(node, CallExpr):
+                callee_ids.add(id(node.callee))
+                declaration = getattr(node, 'callee_declaration', None)
+                if isinstance(declaration, FunctionDecl) and declaration.name in functions:
+                    calls[owner].add(declaration.name)
+                elif not isinstance(node.callee, IdentifierExpr) or \
+                        isinstance(getattr(node.callee, 'inferred_type', None), FunctionType):
+                    calls[owner].add('*values*')
+            if isinstance(node, IdentifierExpr) and node.name in functions and id(node) not in callee_ids:
+                as_values.add(node.name)
+            for f in dataclass_fields(node):
+                if f.name not in ('location', 'inferred_type', 'scope', 'declaration',
+                                  'callee_declaration', 'resolved_arguments'):
+                    walk(getattr(node, f.name), owner, callee_ids)
+
+        for name, decl in functions.items():
+            walk(decl.body, name, set())
+        for name in calls:
+            if '*values*' in calls[name]:
+                calls[name] = (calls[name] - {'*values*'}) | as_values
+
+        def reaches(start, target):
+            seen, todo = set(), list(calls.get(start, ()))
+            while todo:
+                name = todo.pop()
+                if name == target:
+                    return True
+                if name not in seen:
+                    seen.add(name)
+                    todo.extend(calls.get(name, ()))
+            return False
+
+        return {name for name in functions if name != 'main' and reaches(name, name)}
+
+    def stack_check_lines(self, node) -> list:
+        """At the start of a function that can call itself: a full stack is a
+        StackOverflowError, not a crash (Task 27.2c)."""
+        message = escape_c_text(f"{node.name.split('.')[-1]}() went too deep - the stack is "
+                                f"full (does it call itself without end?)", '"')
+        return [f'if (fusion_stack_low()) {{',
+                f'    fusion_fail(FUSION_KIND_StackOverflowError, {self._where(node)}, "{message}");'] + \
+               ['    ' + line for line in self._fail_action(self.fail_targets[0])] + ['}']
+
+    def depth_wrapper_lines(self, node, c_name: str, body_name: str) -> list:
+        """[safety] max_call_depth = a number: the function counts its calls (Task 27.2c)."""
+        return_type = self.return_c_type(node.return_type)
+        params = self._c_parameter_list(node.parameters)
+        names = []
+        for p in node.parameters:
+            names.append(p.name)
+            if isinstance(p.param_type, ArrayType) and p.param_type.size is None:
+                names.append(array_length_name(p.name))
+        call = f'{body_name}({", ".join(names)})'
+        void = return_type == 'void'
+        message = escape_c_text(f"{node.name.split('.')[-1]}() went past "
+                                f"[safety] max_call_depth = {self.max_call_depth} calls", '"')
+        lines = [f'{return_type} {c_name}({params}) {{',
+                 f'    if (fusion_call_depth >= {self.max_call_depth}) {{',
+                 f'        fusion_fail(FUSION_KIND_StackOverflowError, {self._where(node)}, "{message}");']
+        lines += ['        ' + line for line in self._fail_action(
+            self.function_fail_target(node.name, node.return_type))] + ['    }',
+                 '    fusion_call_depth++;']
+        if void:
+            lines += [f'    {call};', '    fusion_call_depth--;', '}', '']
+        else:
+            lines += [f'    {return_type} fusion_result = {call};', '    fusion_call_depth--;',
+                      '    return fusion_result;', '}', '']
+        return lines
+
     def find_failing_functions(self, program) -> set:
         """The functions that can fail. A call through a function value can fail only when
         some function that can fail is used as a value, or some lambda can fail
         (self.value_calls_fail) - so programs without errors get no checks at all."""
         functions = [d for d in program.declarations if isinstance(d, FunctionDecl)]
         self.value_calls_fail = False
+        # A function that can call itself can fail: a StackOverflowError (Task 27.2c)
+        self.recursive_functions = self.find_recursive_functions(program)
         while True:
-            failing = {f.name for f in functions if getattr(f, 'returns_error', False)}
+            failing = {f.name for f in functions if getattr(f, 'returns_error', False)} \
+                | self.recursive_functions
             changed = True
             while changed:
                 changed = False

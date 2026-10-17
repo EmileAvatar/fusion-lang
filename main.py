@@ -125,7 +125,8 @@ def compile_file(source_path: str) -> int:
     print(f"[4/5] Code generation...", file=sys.stderr)
     generator = CCodeGenerator(encoding=project_config.strings.encoding,
                                max_length=project_config.strings.max_length,
-                               safety_mode=project_config.safety_mode)
+                               safety_mode=project_config.safety_mode,
+                               max_call_depth=project_config.max_call_depth)
     try:
         c_code = generator.generate(ast)
     except Exception as e:

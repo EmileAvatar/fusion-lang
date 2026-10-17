@@ -176,3 +176,74 @@ def test_unsafe_mode_wraps_and_keeps_bounds_checks():
 def test_numbers_written_in_the_source_need_no_check():
     c_code = generate_c(main('int day = 60 * 60 * 24\nprint("{day}")'))
     assert 'fusion_mul_int(' not in c_code.split('int main')[-1]
+
+
+# ---------------------------------------------------------------- 27.2c endless recursion
+
+ENDLESS = ('int function down(int n)\n'
+           '    string held = "x" + toString(n)\n'
+           '    return down(n + 1) + len(held)\n'
+           'int function ping(int n) : pong(n + 1)\n'          # two functions calling each other
+           'int function pong(int n) : ping(n + 1)\n'
+           'int function fact(int n)\n'
+           '    if n <= 1\n'
+           '        return 1\n'
+           '    return n * fact(n - 1)\n')
+
+USES = main('print("{@1}", fact(10))\n'
+            'try\n'
+            '    print("{@1}", down(0))\n'
+            'catch StackOverflowError e\n'
+            '    print("{e.kind}: {e}")\n'
+            'int n, err = ping(0)\n'
+            'print("{err.kind} {n}")\n'
+            'print("still running")')
+
+
+def test_endless_recursion_is_a_catchable_error():
+    lines = run_ok(ENDLESS + USES)
+    assert lines == ['3628800', 'StackOverflowError: down() went too deep - the stack is full '
+                     '(does it call itself without end?)', 'StackOverflowError 0', 'still running']
+
+
+def test_call_depth_mode_counts_calls():
+    from src.lexer import Lexer
+    from src.parser.parser import Parser
+    from src.semantic import SemanticAnalyzer
+    from src.codegen import CCodeGenerator
+    source = ENDLESS + USES
+    ast = Parser(Lexer(source, 'test.fusion').tokenize()).parse_program()
+    assert SemanticAnalyzer().analyze(ast)
+    c_code = CCodeGenerator(max_call_depth=500).generate(ast)
+    assert 'fusion_call_depth >= 500' in c_code and 'fu_down__body' in c_code
+    import os, subprocess, tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        c_file, exe = os.path.join(tmp, 't.c'), os.path.join(tmp, 't.exe')
+        open(c_file, 'w', encoding='utf-8').write(c_code)
+        build = subprocess.run(['gcc', '-DFUSION_LEAK_CHECK', c_file, '-o', exe, '-lm'],
+                               capture_output=True, text=True)
+        assert build.returncode == 0, build.stderr
+        run = subprocess.run([exe, '--headless'], capture_output=True, text=True,
+                             stdin=subprocess.DEVNULL, timeout=30)
+    assert run.returncode == 0, run.stderr
+    assert 'down() went past [safety] max_call_depth = 500 calls' in run.stdout
+
+
+def test_only_functions_that_can_recurse_are_checked():
+    c_code = generate_c('int function twice(int n) : n + n\n'
+                        + 'int function fact(int n)\n    if n <= 1\n        return 1\n    return n * fact(n - 1)\n'
+                        + main('print("{@1} {@2}", twice(2), fact(3))'))
+    assert c_code.count('if (fusion_stack_low())') == 1
+
+
+def test_max_call_depth_in_fusion_toml(tmp_path):
+    from src.config import load_project_config, ProjectConfigError
+    source = str(tmp_path / 'p.fusion')
+    assert load_project_config(source).max_call_depth is None
+    (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = 10000\n')
+    assert load_project_config(source).max_call_depth == 10000
+    (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = "max"\n')
+    assert load_project_config(source).max_call_depth is None
+    (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = 0\n')
+    with pytest.raises(ProjectConfigError, match='max_call_depth must be "max" or a whole number'):
+        load_project_config(source)

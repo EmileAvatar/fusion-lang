@@ -35,8 +35,7 @@ recursion.
 - 27.1 DONE (array bounds checks, array literal indexing) - detail archived
 - 27.5 DONE (equality heading), 27.4 DONE (three block styles, same C) - detail archived
 - 27.2b DONE (OverflowError, unsafe mode), 27.2d DONE (wrapAdd, unchecked) - detail archived
-- **27.2c Endless recursion** - a StackOverflowError (subtype of LimitError) instead of a
-  crash (Q3)
+- 27.2c DONE (endless recursion) - detail archived
 - **27.3 Interaction tests** - features together: a struct holding lists and enums with
   data, copied, passed through functions and across modules; nested collections; errors
   passing through all of it; early returns, break, continue - every program leak-checked
@@ -129,4 +128,5 @@ Kept under Task 22 until the renumbering is approved.
 - 27.1 done
 - 27.5 and 27.4 done
 - 27.2b and 27.2d done
-- **Next Action:** 27.2c endless recursion
+- 27.2c done
+- **Next Action:** 27.3 interaction tests

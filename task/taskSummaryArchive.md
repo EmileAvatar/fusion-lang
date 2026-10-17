@@ -4882,3 +4882,12 @@ fusion_add_int / _sub_ / _mul_ / _neg_ (GCC overflow builtins) raise OverflowErr
   `for i in range(...)` counter. `[safety] mode = "unsafe"` (new value) turns the checks
   off - arithmetic then wraps (two's complement, defined - never C undefined behaviour).
   Plus a way to wrap on purpose (Q2)
+
+---
+
+#### Task 27.2c - endless recursion (COMPLETE 2026-10-17)
+
+fusion_stack_start (in fusion_init) records the stack start and room (Windows: GetCurrentThreadStackLimits); a function on a call cycle (find_recursive_functions) starts with fusion_stack_low(); max_call_depth wraps it as NAME__body + a counting NAME.
+
+- **27.2c Endless recursion** - a StackOverflowError (subtype of LimitError) instead of a
+  crash (Q3)

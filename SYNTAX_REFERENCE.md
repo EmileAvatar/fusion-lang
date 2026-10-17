@@ -675,6 +675,8 @@ string_warn_length = 64
 
 [safety]
 mode = "normal"                  # normal | strict (reserved) | unsafe: + - * wrap instead of OverflowError
+max_call_depth = "max"           # endless recursion: caught by stack use; a number also counts
+                                 # calls (memory-constrained devices) - a StackOverflowError
 
 [backend]
 target = "c"
