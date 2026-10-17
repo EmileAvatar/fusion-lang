@@ -24,6 +24,55 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 27: Semantic contract and safety - ACTIVE (plan approved 2026-10-17)
+
+**Why before self-hosting:** the self-hosting test run is only meaningful if what each
+construct does is pinned down and nothing fails silently. Sources: the ChatGPT review
+(2026-10-11), Notes/04/notes.md step 2, and the user's decisions on arrays, overflow and
+recursion.
+
+#### Sub-tasks, in the order they would be done
+- **27.1 Bounds checks for fixed arrays** - `a[i]` reading and writing, for local arrays,
+  `int[]` parameters (their hidden length), struct array fields, arrays of structs and
+  returned arrays: an index outside the array raises an **IndexError** (catchable, like
+  lists) instead of a crash or a silent overwrite. In C the index is checked before the
+  element is touched; a check is left out when the index is a number written in the source
+  and inside the array. **27.1b** in the same go: `[1, 2][5]` (indexing an array literal)
+  generates invalid C today
+- **27.5 Doc fix** - the SYNTAX_REFERENCE equality heading names `!==` too (minutes)
+- **27.4 Block-style equivalence** - one app written 3 times (indentation, braces, `End`
+  keywords): examples/styles/indent.fusion, braces.fusion, end.fusion; check.py compiles
+  all three and fails unless the C is identical (user request)
+- **27.2b OverflowError** (user decision 2026-10-17: checked by default, off in unsafe mode)
+  - int `+ - *`, unary `-`, `-2147483648 / -1` and `% -1`, conversions that don't fit
+  (toInt of a double too big, byte arithmetic that leaves 0-255 when stored) raise an
+  OverflowError (subtype of ArithmeticError). In C: GCC's __builtin_add_overflow /
+  _sub_ / _mul_ (one jump after each operation). Left out when provable: constants, a
+  `for i in range(...)` counter. `[safety] mode = "unsafe"` (new value) turns the checks
+  off - arithmetic then wraps (two's complement, defined - never C undefined behaviour).
+  Plus a way to wrap on purpose (Q2)
+- **27.2c Endless recursion** - a StackOverflowError (subtype of LimitError) instead of a
+  crash (Q3)
+- **27.3 Interaction tests** - features together: a struct holding lists and enums with
+  data, copied, passed through functions and across modules; nested collections; errors
+  passing through all of it; early returns, break, continue - every program leak-checked
+- **27.2 The contract** - written last, in one spec section, documenting what was built
+  and tested: copying (deep), the equality table, `=` in conditions (with its ambiguous
+  cases tested), Unicode indexing (code points), integer conversions and overflow, changing
+  a collection while looping over it, cleanup on every path, error propagation, evaluation
+  order (call arguments left to right; operands - the open 37.2 noted)
+
+#### Decisions (user, 2026-10-17) - plan approved
+1. Array bounds checks are **always** on - unsafe mode doesn't remove them
+2. Wrapping on purpose: functions `wrapAdd(a, b)`, `wrapSub`, `wrapMul` (methods too)
+3. Endless recursion: **both** - stack use is the default (a limit from the real stack
+   size); `[safety] max_call_depth` = "max" (default: stack use only) or a number (a call
+   counter) for memory-constrained devices, tuned by profiling - most projects won't use it
+4. Turning checks off: the whole project (`[safety] mode = "unsafe"`) **and** per block now -
+   an `unchecked` block turns overflow checks off inside it (bounds checks stay)
+
+---
+
 ## TASK 26: Error handling - COMPLETE (2026-10-16)
 
 Error values, functions that can fail, capturing, bubbling, try / catch / finally / throw,
@@ -92,4 +141,5 @@ Kept under Task 22 until the renumbering is approved.
 - 26.11 done
 - 26.12 done
 - Task 26 part 2 complete (26.7-26.13)
-- **Next Action:** plan Task 27 (semantic contract and safety - 27.1 bounds checks for fixed arrays first, now an IndexError) for approval
+- Task 27 plan approved (bounds always; wrapAdd functions; stack use + max_call_depth; unchecked blocks)
+- **Next Action:** 27.1 bounds checks for fixed arrays

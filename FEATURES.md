@@ -137,8 +137,13 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		don't fit) - an OverflowError, subtype of ArithmeticError; **turned off in unsafe mode**
 		([safety] mode = "unsafe" - wraps, still never C undefined behaviour). Checks the
 		compiler can prove unneeded are left out (constants, range loop counters)
-	[ ] 27.2c Endless recursion: a stack overflow crashes today - a depth check that raises a
-		catchable error (user, 2026-10-16)
+	[ ] 27.2c Endless recursion: a stack overflow crashes today - a catchable StackOverflowError.
+		User decision 2026-10-17: stack use by default (a limit from the real stack size);
+		`[safety] max_call_depth` = "max" (default) or a number - a call counter for
+		memory-constrained devices
+	[ ] 27.2d Wrapping on purpose: wrapAdd(a, b), wrapSub, wrapMul (hashes, checksums); an
+		`unchecked` block turns overflow checks off inside it (user, 2026-10-17) - bounds checks
+		are never turned off
 	[ ] 27.3 Interaction tests: features together - a struct holding lists, copied, passed
 		through functions and across modules; nested collections; early returns
 	[ ] 27.4 Block-style equivalence: the same app written 3 times - indentation, braces,
