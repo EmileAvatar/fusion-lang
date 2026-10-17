@@ -433,3 +433,68 @@ def test_a_temporary_list_can_be_looped_over_without_a_check():
     c_code = generate_c('List<int> function make() : [1, 2]\n'
                         + main('for x in make()\n    print("{x}")'))
     assert 'fusion_changes_' not in c_code
+
+
+# ---------------------------------------------------------------- 27.2f int to float
+
+def analyzed(source: str, auto_widening: bool):
+    from src.config import NumbersConfig
+    from src.lexer import Lexer
+    from src.parser.parser import Parser
+    from src.semantic import SemanticAnalyzer
+    analyzer = SemanticAnalyzer(numbers_config=NumbersConfig(auto_widening=auto_widening))
+    ok = analyzer.analyze(Parser(Lexer(source, 'test.fusion').tokenize()).parse_program())
+    return ok, '\n'.join(str(e) for e in analyzer.get_errors()), \
+        '\n'.join(str(w) for w in analyzer.get_warnings())
+
+
+def test_an_int_that_does_not_fit_a_float_is_an_error_by_default():
+    assert run_ok(
+        'float function half(float x) : x / 2.0\n'
+        + main(
+            'int small = 1000\n'
+            'int big = 16777217\n'
+            'float a = small\n'
+            'print("{a} {@1}", half(small))\n'
+            'List<float> values = [1.5]\n'
+            'for n in [small, big]\n'
+            '    try\n'
+            '        values.add(n)\n'
+            '        print("{@1}", n < 2.5)\n'           # compared with a float, too
+            '    catch PrecisionError e\n'
+            '        print("{e.kind}: {e}")\n'
+            'print("{@1}", values.len())')
+    ) == ['1000.000000 500.000000', 'false',
+          "PrecisionError: 16777217 can't be stored exactly in a float (it would become "
+          "16777216) - use a double, or set [numbers] auto_widening = true", '2']
+
+
+def test_a_written_number_that_does_not_fit_is_a_compile_error():
+    ok, errors, _ = analyzed(main('float f = 16777217'), auto_widening=False)
+    assert not ok and "16777217 can't be stored exactly in a float" in errors
+    ok, errors, _ = analyzed(main('float f = 16777216\nfloat g = 3\nprint("{f} {g}")'), auto_widening=False)
+    assert ok, errors
+
+
+def test_auto_widening_gives_warnings():
+    ok, errors, warnings = analyzed(main('int n = 5\nfloat f = n\nfloat g = 16777217\nprint("{f} {g}")'),
+                                    auto_widening=True)
+    assert ok, errors
+    assert "An int becomes a float here and may lose precision above 16,777,216" in warnings
+    assert "16777217 can't be stored exactly in a float" in warnings
+
+
+def test_int_to_double_needs_no_check():
+    c_code = generate_c(main('int n = 16777217\ndouble d = n\nprint("{d}")'))
+    assert 'fusion_int_to_float(' not in c_code.split('int main')[-1]
+
+
+def test_numbers_section_in_fusion_toml(tmp_path):
+    from src.config import load_project_config, ProjectConfigError
+    source = str(tmp_path / 'p.fusion')
+    assert load_project_config(source).numbers.auto_widening is False
+    (tmp_path / 'fusion.toml').write_text('[numbers]\nauto_widening = true\n')
+    assert load_project_config(source).numbers.auto_widening is True
+    (tmp_path / 'fusion.toml').write_text('[numbers]\nauto_widening = "yes"\n')
+    with pytest.raises(ProjectConfigError, match='must be true or false'):
+        load_project_config(source)

@@ -28,7 +28,7 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 Bounds checks, three block styles, overflow / wrapping / unsafe mode, endless recursion,
 interaction tests, changing a collection while looping, the contract (spec "The Semantic
-Contract"). Open: 27.2f (int to float precision) for the user. Plan: task/taskSummaryArchive.md.
+Contract"), int to float ([numbers] auto_widening, 27.2f). Plan: task/taskSummaryArchive.md.
 
 ---
 
@@ -106,5 +106,5 @@ Kept under Task 22 until the renumbering is approved.
 - 27.2b and 27.2d done
 - 27.2c done
 - 27.3 done (found: changing a list while looping over it skips elements)
-- Task 27 complete; 27.2f open (user decision)
-- **Next Action:** user to decide 27.2f; then plan Task 28 (self-hosting phase 1 - the test run)
+- Task 27 complete; 27.2f done ([numbers] auto_widening, default false)
+- **Next Action:** plan Task 28 (self-hosting phase 1 - the test run) for approval

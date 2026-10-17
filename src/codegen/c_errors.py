@@ -134,6 +134,16 @@ static inline int fusion_neg_int(int a, const char* where) {
 static inline int fusion_wrap_add(int a, int b) { return (int)((unsigned)a + (unsigned)b); }
 static inline int fusion_wrap_sub(int a, int b) { return (int)((unsigned)a - (unsigned)b); }
 static inline int fusion_wrap_mul(int a, int b) { return (int)((unsigned)a * (unsigned)b); }
+// An int used as a float (Task 27.2f): it must fit exactly - [numbers] auto_widening = false
+static inline float fusion_int_to_float(int x, const char* where) {
+    float f = (float)x;
+    if ((double)f != (double)x) {
+        fusion_fail(FUSION_KIND_PrecisionError, where, "%d can't be stored exactly in a float "
+                    "(it would become %.0f) - use a double, or set [numbers] auto_widening = true",
+                    x, (double)f);
+    }
+    return f;
+}
 // Two errors are equal when they are the same type with the same code and message
 static inline bool fusion_error_eq(fusion_error a, fusion_error b) {
     return a.active == b.active && a.kind == b.kind && a.code == b.code && fusion_str_eq(a.message, b.message);
@@ -405,6 +415,8 @@ class ErrorsMixin:
             kind = getattr(node.array, 'inferred_type', None)
             return isinstance(kind, (ListType, MapType, ArrayType)) or (
                 isinstance(kind, PrimitiveType) and kind.name in ('string', 'bytes'))
+        if type(node).__name__ == 'WidenExpr':
+            return True                     # an int that may not fit a float (27.2f)
         if type(node).__name__ == 'EnumStaticCall':
             return node.method == 'fromString'
         if isinstance(node, BinaryExpr) and self.int_division_can_fail(node):
@@ -756,6 +768,11 @@ class ErrorsMixin:
         field = next(f for f in owner.fields if f.name == node.member)
         holder = self._data_decl(decl)
         return f'{self._errdata(holder)}_of({self.visit(node.object)})->{self._errfield_path(decl, owner, field)}'
+
+    def visit_WidenExpr(self, node) -> str:
+        """An int used as a float, checked to fit exactly (Task 27.2f)."""
+        return self.checked_code(f'fusion_int_to_float({self.visit(node.operand)}, '
+                                 f'{self._where(node)})', 'float')
 
     def visit_ErrorActiveExpr(self, node) -> str:
         return f'(({self.visit(node.operand)}).active)'

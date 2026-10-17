@@ -281,6 +281,17 @@ class ErrorActiveExpr(ASTNode):
 
 
 @dataclass
+class WidenExpr(ASTNode):
+    """An int used as a float (Task 27.2f): a float holds whole numbers exactly only up to
+    16,777,216. With [numbers] auto_widening = false (the default) the value is checked when
+    the program runs - a PrecisionError when it wouldn't be exact. Made by the type checker.
+    (int to double is always exact, so it needs none.)"""
+    operand: ASTNode
+    checked: bool = True
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class StringTextPart:
     """A literal text segment within an interpolated string.
 

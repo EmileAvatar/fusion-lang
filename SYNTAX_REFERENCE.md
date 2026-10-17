@@ -662,6 +662,10 @@ max_length = "max"               # no limit (default); a number = longer strings
 [stdlib]
 layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)
 
+[numbers]
+auto_widening = false            # an int used as a float must fit exactly (else an error);
+                                 # true: it widens automatically, with a warning
+
 [errors]
 returns = true                   # T, Error function / capturing errors (default on)
 exceptions = true                # try / catch / finally / throw (default on)

@@ -13,7 +13,7 @@ from src.parser.ast_nodes import (
     InterpolatedStringExpr, StringExprPart, StringPositionalPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
     ListType, MapType, NewCollectionExpr,
-    EnumType, EnumValueExpr, EnumStaticCall, ErrorType, ErrorActiveExpr,
+    EnumType, EnumValueExpr, EnumStaticCall, ErrorType, ErrorActiveExpr, WidenExpr,
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
@@ -322,12 +322,53 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
 
     def _visit_value_for(self, expected: TypeNode, value: ASTNode) -> TypeNode:
         """Visit a value about to be stored as `expected` - an array literal stored as
-        bytes is a bytes literal (Task 18.3.8)."""
+        bytes is a bytes literal (Task 18.3.8); an int stored as a float is widened (27.2f)."""
         if self._is_bytes_type(expected) and isinstance(value, ArrayLiteralExpr):
             return self._check_bytes_literal(value)
         if isinstance(expected, ListType) and isinstance(value, ArrayLiteralExpr):
             return self._check_list_literal(value, expected)
-        return self.visit(value)
+        result = self.visit(value)
+        self.widen_to_float(value, result, expected)
+        return result
+
+    _FLOAT_EXACT = 16777216   # 2^24: every whole number up to here fits a float exactly
+
+    def widen_to_float(self, value, value_type, target_type) -> None:
+        """An int (or byte) used as a float (Task 27.2f, user decision 2026-10-17): with
+        [numbers] auto_widening = false (the default) it must fit exactly - a written number
+        that doesn't is a compile error, any other value is checked while the program runs.
+        With true it widens automatically, and gets a warning."""
+        if not (isinstance(target_type, PrimitiveType) and target_type.name == 'float'
+                and isinstance(value_type, PrimitiveType) and value_type.name in ('int', 'byte')):
+            return
+        if isinstance(value, LiteralExpr) and isinstance(value.value, int):
+            import struct
+            exact = struct.unpack('f', struct.pack('f', float(value.value)))[0] == value.value
+            if exact:
+                return
+            problem = (f"{value.value} can't be stored exactly in a float (a float holds whole "
+                       f"numbers exactly only up to 16,777,216) - use a double")
+            if getattr(self, 'auto_widening', False):
+                self.warnings.append(SemanticError(problem + " ([numbers] auto_widening = true)",
+                                                   value.location))
+            else:
+                self.errors.append(SemanticError(
+                    problem + ", or set [numbers] auto_widening = true", value.location))
+            return
+        if value_type.name == 'byte':
+            return                   # 0-255 always fits
+        if getattr(self, 'auto_widening', False):
+            self.warnings.append(SemanticError(
+                "An int becomes a float here and may lose precision above 16,777,216 "
+                "([numbers] auto_widening = true)", value.location))
+            return
+        # Checked while running: the node becomes WidenExpr(the value), in place
+        import copy
+        inner = copy.copy(value)
+        value.__class__ = WidenExpr
+        value.__dict__.clear()
+        value.__dict__.update(WidenExpr(location=inner.location, operand=inner,
+                                        inferred_type=target_type).__dict__)
 
     def is_bool_type(self, type_node: TypeNode) -> bool:
         """Check if type is bool.
@@ -561,6 +602,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
                         f"use toBytes(...) first, or toByte(n) for a single byte",
                         operand.location))
             return PrimitiveType(location=node.location, name='bytes')
+
+        # An int beside a float becomes a float (Task 27.2f)
+        if node.operator in ('+', '-', '*', '/', '%', '<', '>', '<=', '>=', '==', '!='):
+            self.widen_to_float(node.left, left_type, right_type)
+            self.widen_to_float(node.right, right_type, left_type)
 
         # Arithmetic operators: int/float/double + int/float/double
         if node.operator in ['+', '-', '*', '/', '%']:
@@ -2190,6 +2236,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         self.visit(node.then_branch)
         if node.else_branch:
             self.visit(node.else_branch)
+
+    def visit_WidenExpr(self, node) -> TypeNode:
+        self.visit(node.operand)
+        return PrimitiveType(location=node.location, name='float')
 
     def visit_UncheckedStmt(self, node) -> None:
         """unchecked: arithmetic inside wraps around (Task 27.2d)."""

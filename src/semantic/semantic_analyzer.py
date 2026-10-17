@@ -41,7 +41,7 @@ class SemanticAnalyzer:
 
     def __init__(self, structs_config: Optional[StructsConfig] = None,
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
-                 errors_config=None):
+                 errors_config=None, numbers_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -54,6 +54,8 @@ class SemanticAnalyzer:
         self.name_resolver = NameResolver(self.symbol_table)
         self.type_checker = TypeChecker(self.symbol_table, self.structs_config, strings_config,
                                         stdlib_config)
+        # [numbers] auto_widening (Task 27.2f): an int used as a float
+        self.type_checker.auto_widening = bool(getattr(numbers_config, 'auto_widening', False))
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 

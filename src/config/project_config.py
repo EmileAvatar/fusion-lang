@@ -148,6 +148,20 @@ class StdlibConfig:
 
 
 @dataclass
+class NumbersConfig:
+    """How numbers convert (Task 27.2f, user decision 2026-10-17).
+
+    Attributes:
+        auto_widening: False (default) - an int used as a float must fit exactly (a float
+            holds whole numbers exactly only up to 16,777,216): a written number that doesn't
+            is a compile error, any other value is checked while running (PrecisionError).
+            True - the int becomes a float automatically; every place it happens gets a
+            warning
+    """
+    auto_widening: bool = False
+
+
+@dataclass
 class ErrorsConfig:
     """Which ways of handling errors a project uses (Task 26.5, user decision 2026-10-09:
     both on by default, both can be turned off).
@@ -183,6 +197,7 @@ class ProjectConfig:
     strings: StringsConfig = field(default_factory=StringsConfig)
     stdlib: StdlibConfig = field(default_factory=StdlibConfig)
     errors: ErrorsConfig = field(default_factory=ErrorsConfig)
+    numbers: NumbersConfig = field(default_factory=NumbersConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     max_call_depth: Optional[int] = None   # [safety] max_call_depth - None: "max" (Task 27.2c)
     backend: str = DEFAULT_BACKEND
@@ -333,6 +348,21 @@ def _load_stdlib_section(data: dict, config_path: str) -> StdlibConfig:
     return stdlib
 
 
+def _load_numbers_section(data: dict, config_path: str) -> NumbersConfig:
+    """Parse and validate the [numbers] section (Task 27.2f)."""
+    numbers = NumbersConfig()
+    section = _require_table(data, "numbers", config_path)
+    for key, value in section.items():
+        if key != "auto_widening":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting numbers.{key} (known: ['auto_widening'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: numbers.auto_widening must be true or false, got {value!r}")
+        numbers.auto_widening = value
+    return numbers
+
+
 def _load_errors_section(data: dict, config_path: str) -> ErrorsConfig:
     """Parse and validate the [errors] section (Task 26.5)."""
     errors = ErrorsConfig()
@@ -449,6 +479,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
         strings=strings,
         stdlib=_load_stdlib_section(data, config_path),
         errors=_load_errors_section(data, config_path),
+        numbers=_load_numbers_section(data, config_path),
         safety_mode=safety_mode,
         max_call_depth=max_call_depth,
         backend=backend,

@@ -146,10 +146,14 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
   side (`-7 % 2` is -1). Dividing a whole number by 0 is a DivideByZeroError;
   `-2147483648 / -1` an OverflowError
 * `float` / `double` follow IEEE 754: dividing by 0.0 gives infinity, no error
-* An int is widened to float / double automatically; nothing is narrowed silently - a
-  narrowing conversion is a function (`toByte`, `toInt` of text) that checks. **Open
-  (27.2f):** int to *float* loses precision above 16,777,216 (`float f = 16777217` holds
-  16777216) - to be decided; int to double is always exact
+* An int used as a double is always exact. An int used as a **float** (stored, passed,
+  returned, or beside a float in `+ - * / %` or a comparison) must fit exactly - a float
+  holds whole numbers exactly only up to 16,777,216 (Task 27.2f, user decision 2026-10-17):
+  with `[numbers] auto_widening = false` (the default) a written number that doesn't fit is a
+  compile error and any other value is checked while running - a **PrecisionError** (an
+  ArithmeticError); with `true` it widens automatically and every place gets a warning.
+  Nothing is narrowed silently - a narrowing conversion is a function (`toByte`, `toInt` of
+  text) that checks
 * `byte` is 0-255; byte arithmetic gives an int; storing back into a byte goes through `toByte`
 
 #### Indexes, loops and collections
@@ -3160,6 +3164,8 @@ FileError (path): FileNotFoundError, PermissionError, FileReadError, FileWriteEr
                   FileTooLargeError, DeleteError - chosen by why the system said no
 LimitError: StringTooLongError ([strings] max_length), ResultTooLargeError (over 2 GB)
 ```
+Added by Task 27: OverflowError and PrecisionError (ArithmeticError), StackOverflowError
+(LimitError), ModifiedWhileLoopingError (ValueError).
 Not catchable: out of memory, a List past 536,870,911 elements. Later: NullError (30.1b).
 
 **Endless recursion (Task 27.2c, user decisions 2026-10-17):** a function that can call
@@ -4184,6 +4190,11 @@ max_length = "max"             # "max" (default) = no limit; a number = error wh
 
 [stdlib]                       # Task 18.5.6 - see "Collections (as built)" / layers
 layer = "std"                  # std (default) | alloc | core
+
+[numbers]                      # Task 27.2f - see "The Semantic Contract"
+auto_widening = false          # false: an int used as a float must fit exactly - a written
+                               # number that doesn't is a compile error, a value a
+                               # PrecisionError; true: widens automatically, with a warning
 
 [errors]                       # Task 26.5 - see "Error Handling"
 returns = true                 # false: T, Error function / return Error / capturing are errors

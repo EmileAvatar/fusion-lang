@@ -134,9 +134,9 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 27.2e Changing a List / Map while a for loop goes over it is a ModifiedWhileLoopingError
 		(user decision 2026-10-17: an error, never a skipped element); `=` outside a condition
 		says to write `==`
-	[ ] 27.2f int to float loses precision above 16,777,216 silently (`float f = 16777217` holds
-		16777216, found 2026-10-17) - decide: keep the automatic widening, or make it an error /
-		require toFloat when it isn't exact (int to double is always exact)
+	[DONE] 27.2f int to float: `[numbers] auto_widening` (user decision 2026-10-17) - false (default):
+		an int used as a float must fit exactly (a written number that doesn't: compile error;
+		a value: PrecisionError); true: widens automatically, with a warning at every place
 	[DONE] 27.2b OverflowError: whole-number arithmetic that doesn't fit (2147483647 + 1 wraps
 		silently today - against "never change values silently"). User decision 2026-10-17:
 		**checked by default** (+ - * unary -, / of -2147483648 by -1, number conversions that

@@ -108,7 +108,8 @@ def compile_file(source_path: str) -> int:
     analyzer = SemanticAnalyzer(structs_config=project_config.structs,
                                 strings_config=project_config.strings,
                                 stdlib_config=project_config.stdlib,
-                                errors_config=project_config.errors)
+                                errors_config=project_config.errors,
+                                numbers_config=project_config.numbers)
     success = analyzer.analyze(ast)
 
     if not success:
