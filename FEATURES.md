@@ -132,8 +132,11 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		what a reader sees as one symbol), integer conversions and overflow, changing a
 		collection while looping over it, cleanup on every path (early return, break, exit)
 	[ ] 27.2b OverflowError: whole-number arithmetic that doesn't fit (2147483647 + 1 wraps
-		silently today - against "never change values silently"); decide the cost of checking
-		every + - * (user, 2026-10-16)
+		silently today - against "never change values silently"). User decision 2026-10-17:
+		**checked by default** (+ - * unary -, / of -2147483648 by -1, number conversions that
+		don't fit) - an OverflowError, subtype of ArithmeticError; **turned off in unsafe mode**
+		([safety] mode = "unsafe" - wraps, still never C undefined behaviour). Checks the
+		compiler can prove unneeded are left out (constants, range loop counters)
 	[ ] 27.2c Endless recursion: a stack overflow crashes today - a depth check that raises a
 		catchable error (user, 2026-10-16)
 	[ ] 27.3 Interaction tests: features together - a struct holding lists, copied, passed
