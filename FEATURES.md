@@ -289,18 +289,22 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[ ] 42.2 Settings with `service(name).X = ...` - only from the thread that created it, never
 		a sub-thread; the compiler picks the defaults not given (Mailbox, WhenFull, Scheduler,
 		Timeout, ...)
-	[ ] 42.3 Units: `service(a, b) T unit = T(a, b)` - one service owns both; calls to a or b
-		go through it (one thread, one resource - P2)
+	[ ] 42.3 Units: `service(a, b, ...) T unit = T(a, b)` - one service owns them all (one or
+		more names); calls to a or b go through it (one thread, one resource - P2). A warning
+		above `[concurrency] max_unit_warn` (e.g. 5), an error above `max_unit` (e.g. 32)
 	[ ] 42.4 `service(x).final = { ... }` - extra clean-up; leaving scope always releases every
 		associated resource (like try-with-resources)
 	[ ] 42.5 Resources as services by default: files, sockets, pipes, databases
 		(`[concurrency] resource_as_service = true`; direct access only in unsafe mode)
 	[ ] 42.6 Settings that fit the machine: built-in defaults < fusion.toml < the program's
-		defaults < service(x) in code; a minimum (e.g. "needs 4 GB") stops with a clear message
-	[ ] 42.7 The Thread class: ID (never reused, main = 0), GUID, hierarchy key (0.2.1),
-		priority, an internal counter and helpers that track threads as they start and end -
-		to be designed
-	[ ] 42.8 Default timeouts per resource kind - starting values in Concurrency.md 3.7
+		defaults < service(x) in code. Levels from MIN (embedded or unknown memory) up, e.g.
+		2GB as low end. Runs on any machine: never blocks the program or errors - a machine
+		matching no level gets MIN
+	[ ] 42.7 The Thread class (to be designed): ID (never reused, main = 0), GUID, hierarchy
+		key (0.2.1), priority, an internal counter and helper functions that track threads as
+		they are created and end
+	[ ] 42.8 Default timeouts and other defaults per resource kind - confirm the exact values
+		(starting point: Concurrency.md 3.7)
 	[ ] 42.9 Custom contention rules and schedulers (Concurrency.md 3.8); Rule.HIERARCHY default
 	[ ] 42.10 Trap checks: warnings by default, errors when fusion.toml says so (two resources
 		per thread, shared variables, missing timeouts, services blocking on each other)
@@ -317,6 +321,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		turns)
 	[POSTPONED - later, own framework] 42.12 Cluster threads over several servers
 		(ClusterThreadPool) - a separate cluster framework, probably outside Fusion's first scope
+	[ ] 42.13 The compiler checks P9 (a service handling a request calls only down the
+		hierarchy, or sends without waiting) across modules - to be designed
 	(The thread view in the editor: 36.6)
 
 ---

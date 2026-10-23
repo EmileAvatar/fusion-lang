@@ -803,8 +803,11 @@ service(dbConnection).final = {                // extra clean-up, as in try-with
 }
 ```
 
-**One unit from several services.** `service(a, b)` makes one service that owns both, so
-they change together and no thread ever holds two resources (P2):
+**One unit from several services.** `service(a, b, ...)` makes one service that owns them
+all, so they change together and no thread ever holds two resources (P2). The list holds one
+or more names. A long list is a sign of a bad design, so the compiler warns above a limit
+(for example 5) and gives an error above a hard limit (for example 32). Both limits are
+settings in `fusion.toml`:
 
 ```fusion
 service(person, honda) CarPerson carPerson = CarPerson(person, honda)
@@ -820,12 +823,20 @@ order:
 3. the program's own defaults, which may override the machine's settings;
 4. `service(name)` in the code.
 
-A program can also refuse to start below a minimum, for example "needs 4 GB", with a clear
-message.
+The program must run on **any** machine. The lowest level is `MIN`, used for embedded
+systems and for machines whose memory is unknown; `2GB` is an example of a low-end level.
+Machine settings only tune the defaults for the developer's app: they **never** stop the
+program from running and never cause an error. A machine that matches no level gets the
+`MIN` settings.
 
 ```toml
-[concurrency.machine]
-minimum_memory = "4GB"                   # below this, the program stops with a clear message
+[concurrency]
+max_unit_warn = 5                        # service(a, b, ...) with more names: a warning
+max_unit = 32                            # more than this: a compile error
+
+[concurrency.machine.min]                # embedded, or memory unknown: the lowest settings
+default_pool_size = 1
+default_mailbox = 16
 [concurrency.machine.small]              # used when the machine has less than 8 GB
 when_memory_below = "8GB"
 default_pool_size = 2
@@ -1353,14 +1364,16 @@ Links:
 - [Pony - What makes Pony different](https://ponylang.io/discover/what-makes-pony-different/)
 - [Microsoft Orleans](https://learn.microsoft.com/en-us/dotnet/orleans/overview)
 
-### 3.10 Still open
+### 3.10 Future tasks
 
-1. The exact default values (3.7 is the starting point).
-2. The `Thread` class: its internal counter (IDs) and helper functions that track threads
-   as they are created and end - to be designed (FEATURES.md Task 42).
-3. How the compiler checks P9 (a service calling only down the hierarchy) across modules.
-4. **Cluster threads** across several servers - later, and probably outside Fusion's first
-   scope. A separate **cluster framework** will handle threads over a cluster of servers.
+Scheduled in `FEATURES.md` Task 42:
+- **42.8:** the exact default values (3.7 is the starting point).
+- **42.7:** the `Thread` class: its internal counter (IDs), and helpers that track threads as
+  they start and end.
+- **42.13:** how the compiler checks P9 (a service calls only down the hierarchy) across
+  modules.
+- **42.12:** cluster threads across several servers. This is later, probably outside Fusion's
+  first scope, and handled by a separate cluster framework.
 
 ---
 
