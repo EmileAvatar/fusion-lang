@@ -132,6 +132,7 @@ When a language feature or spec changes, update every affected file without aski
 | Syntax (lambdas, blocks, types, keywords, operators) | `files/fusion.ebnf`, `files/fusion-language-spec.md`, `SYNTAX_REFERENCE.md` |
 | String interpolation | language spec, `SYNTAX_REFERENCE.md`, examples |
 | Standard library module | language spec |
+| A concurrency idea, design decision, trap, principle or real-world case | `Concurrency.md` (full write-up) and `Concurrency_Traps.md` (the overview tables) - keep both in step; schedule any new feature in `FEATURES.md` Task 42 |
 | A source file added, renamed or given a new job | that folder's `CLAUDE.md` (one line per file) |
 
 ---
@@ -139,6 +140,11 @@ When a language feature or spec changes, update every affected file without aski
 ## Project notes
 - **Core concept:** an agnostic language - each project configures features, safety level,
   memory strategy and backend (`fusion.toml`)
+- **Long-term concurrency goal:** a million requests on one machine with many cores - no
+  races, no deadlocks, no freezes, no slowdown - with as small a memory and CPU footprint as
+  possible, and very scalable. The core: a resource becomes a service (`service` keyword),
+  instead of every caller updating it by hand; manual locking is a last resort
+  (`Concurrency.md`, `Concurrency_Traps.md`, FEATURES.md Task 42)
 - **Guiding rule:** a simple working language first, advanced features after
   (`FutureFeaturesCaution.md`). Security principle: never trust code
 - **Repository is public** on GitHub (`EmileAvatar/fusion-lang`); history was scrubbed of a

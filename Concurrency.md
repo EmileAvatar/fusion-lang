@@ -779,13 +779,61 @@ resource_as_service = true      # the default
 - Direct access with no service at all is allowed only in **unsafe** mode, for embedded
   systems.
 
-**Variables and lists can be services too.** A variable shared between threads can be
-declared as a service: one thread owns it, and the others send requests to it.
+**The `service` keyword (user, 2026-10-23).** Any variable, struct or class object can be
+made a service. On its own the keyword uses Fusion's default settings for the service's
+thread:
 
 ```fusion
-service int counter = 0               // owned by its own thread; other threads send requests
-counter += 1                          // a request to the owner, carried out atomically
+service int counter = 0                        // a variable is now a service
+service Person person = Person("Ada")          // a struct is now a service
+service Car honda = Honda(Color.Black)         // a class object is now a service
+counter += 1                                   // a request to counter's thread, done atomically
 ```
+
+**Settings** are changed with `service(name)`, and only by the thread that created the
+service, never by its sub-threads. The compiler chooses the defaults that are not given.
+
+```fusion
+service(counter).Mailbox = 1000                // queue size
+service(person).WhenFull = Full.ERROR          // a full queue gives QueueFullError
+service(honda).Scheduler = MyCustomScheduler
+service(person).Timeout = 60000                // milliseconds: 60 seconds
+service(dbConnection).final = {                // extra clean-up, as in try-with-resources;
+    dbConnection.flush()                       // leaving scope always releases everything
+}
+```
+
+**One unit from several services.** `service(a, b)` makes one service that owns both, so
+they change together and no thread ever holds two resources (P2):
+
+```fusion
+service(person, honda) CarPerson carPerson = CarPerson(person, honda)
+print(person.name)                    // sent to carPerson's thread, which carries it out
+print(carPerson.Person.name)          // or through the unit itself
+```
+
+**Settings that fit the machine.** Defaults can depend on the computer the program runs on,
+because a PC with 2 GB can't take what suits one with 32 GB. The values are resolved in this
+order:
+1. Fusion's built-in defaults;
+2. `fusion.toml`;
+3. the program's own defaults, which may override the machine's settings;
+4. `service(name)` in the code.
+
+A program can also refuse to start below a minimum, for example "needs 4 GB", with a clear
+message.
+
+```toml
+[concurrency.machine]
+minimum_memory = "4GB"                   # below this, the program stops with a clear message
+[concurrency.machine.small]              # used when the machine has less than 8 GB
+when_memory_below = "8GB"
+default_pool_size = 2
+default_mailbox = 100
+```
+
+The syntax: `service <type> <name>` declares a service, and `service(<list of names>)`
+changes settings or forms a unit.
 
 The same applies to collections. `ModifiedWhileLoopingError` (Task 27.2e) is for ordinary
 lists, which must not change while something loops over them. A list declared as a service
@@ -1211,20 +1259,108 @@ Links:
 | Reads in parallel | The service decides. Writes lock only what they change, reads run together |
 | Two resources in one step | Never two resources per thread; if they can't be separated, one service owns both as a unit |
 | OS threads or Fusion tasks | The OS scheduler by default; a Fusion scheduler for advanced developers (`fusion.toml`, or `ThreadPool(10, scheduler)`) |
-| Timeouts | Defaults per resource kind (database 2 min, file 2 min, socket 60 s - to be checked); set per resource when opened |
+| Timeouts | Defaults per resource kind, starting from what others use (3.7); set per resource when opened |
 | Compile error or warning | Warnings by default; `fusion.toml` can make each one an error the program must catch |
 | Direct access without a service | Only in unsafe mode (embedded). `resource_as_service = true` is the default; `false` gives control to the opening thread |
 
-### 3.7 Still open
+### 3.7 Default timeouts - what others use (researched 2026-10-23)
 
-1. The exact default timeouts. Look at what database drivers, HTTP clients and operating
-   systems use.
-2. Syntax: `service int counter`, `Thread.start(...)`, `ThreadPool(10, Scheduler.X)` are
-   only sketches.
-3. How a custom rule (model B) and a custom scheduler (model C) are written: an interface
-   with a method to implement, a lambda, or settings.
-4. How the compiler checks P9 (a service calling only down the hierarchy) across modules.
-5. Cluster thread pools across machines - later.
+These are the starting point for Fusion's defaults per kind of resource:
+
+| What | Default elsewhere | Source |
+|---|---|---|
+| Database: getting a connection from the pool | 30 s | HikariCP `connectionTimeout` (Java) |
+| Database: one command or query | 30 s | .NET `SqlCommand.CommandTimeout` |
+| Database: an idle pooled connection is closed after | 10 min | HikariCP `idleTimeout` |
+| Database: a connection is replaced after | 30 min | HikariCP `maxLifetime` |
+| SQLite: waiting for a locked database | 5 s | Python `sqlite3.connect(timeout=5.0)` |
+| HTTP request (whole request) | 100 s | .NET `HttpClient.Timeout` |
+| Proxy: waiting between two reads from a server | 60 s | nginx `proxy_read_timeout` |
+| A call to another service | 5 s | Erlang `gen_server:call` |
+| HTTP in Go, Python `requests`, Java `HttpClient` | **none** (waits forever) | A well-known trap: always set one |
+
+**Suggested Fusion starting values** (to be confirmed when the task starts):
+- a database query: 30 s;
+- getting a connection: 30 s;
+- an HTTP request: 100 s;
+- a socket read: 60 s;
+- a request to a service: 5 s;
+- waiting for a file lock: 5 s.
+
+A file read or write itself gets no fixed limit, because its size varies; a timeout can be
+given per call (`timeout = 10min` for a big file).
+
+### 3.8 Custom rules and schedulers - examples
+
+**A rule** decides who wins when two threads want the same service. The default is the
+hierarchy (the senior key wins). A custom rule is a class with one method:
+
+```fusion
+class PaymentsFirst implements ContentionRule {
+    // return the thread that goes first; the other one waits or releases
+    Thread function decide(Thread a, Thread b) {
+        if a.name == "payments" {
+            return a
+        }
+        if b.name == "payments" {
+            return b
+        }
+        return Rule.HIERARCHY.decide(a, b)      // otherwise, the default
+    }
+}
+service(db).Rule = PaymentsFirst()
+```
+
+**A scheduler** decides the order in which a service carries out the requests in its
+mailbox. A custom one is a class with one method:
+
+```fusion
+class WritesFirst implements Scheduler {
+    // given what is waiting, return what to run next (several = run together)
+    List<Request> function next(List<Request> waiting) {
+        List<Request> writes = waiting.filter((Request r) : r.isWrite)
+        if writes.len() > 0 {
+            return [writes[0]]                  // one write at a time, before any read
+        }
+        return waiting                          // no writes: all reads together
+    }
+}
+service(log).Scheduler = WritesFirst()
+```
+
+### 3.9 Does any other language have this?
+
+Several languages have parts of it. None has the whole set: a service made from any
+variable, struct or class at the place it is declared, with settings such as mailbox,
+timeout, scheduler and rule, grouped units, and resources as services by default.
+
+| Language | What it has | How Fusion's `service` differs |
+|---|---|---|
+| **Swift** | `actor` keyword (5.5): a class-like type whose state only its own task touches; callers must `await`; the compiler checks it | An actor is fixed when the **type** is written; in Fusion **any** value becomes a service where it is declared. Swift has no mailbox, timeout or scheduler settings. Swift actors can change between `await`s (re-entrancy), a known trap |
+| **Pony** | `actor` keyword; no locks at all, so it is free of data races and deadlocks, checked by the compiler | The closest in guarantees. Pony never lets anyone wait for a reply (only send), which is how it avoids deadlock. Fusion allows `await`, so it needs P4 and P9 |
+| **Erlang / Elixir** | Every process is a service (`gen_server`); mailboxes; 5 s call timeout; supervisors | The proven model, but as a library pattern, not a keyword on a variable; dynamic types |
+| **Akka** (Scala / Java), **Orleans** (C#) | Actor libraries; Orleans "grains" are services that exist on demand | Libraries, not the language; no compiler checks |
+| **Kotlin** | `actor { }` coroutine builder (now obsolete), channels | A library function |
+| **Go, Java, C#, C++, Python, Rust** | Channels, locks, async - no service construct | The developer builds the service by hand |
+
+So Fusion's `service` is close to a **Swift actor applied to any value**, combined with
+**Erlang's operational settings** (mailbox, timeouts, supervision), and resources as
+services by default. That combination, with the one-resource-per-thread and hierarchy
+rules, would be Fusion's signature.
+
+Links:
+- [Swift - Concurrency (actors)](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency/)
+- [Pony - What makes Pony different](https://ponylang.io/discover/what-makes-pony-different/)
+- [Microsoft Orleans](https://learn.microsoft.com/en-us/dotnet/orleans/overview)
+
+### 3.10 Still open
+
+1. The exact default values (3.7 is the starting point).
+2. The `Thread` class: its internal counter (IDs) and helper functions that track threads
+   as they are created and end - to be designed (FEATURES.md Task 42).
+3. How the compiler checks P9 (a service calling only down the hierarchy) across modules.
+4. **Cluster threads** across several servers - later, and probably outside Fusion's first
+   scope. A separate **cluster framework** will handle threads over a cluster of servers.
 
 ---
 

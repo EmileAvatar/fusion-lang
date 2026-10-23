@@ -278,6 +278,47 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[ ] 41.8 Simulator & tooling (stretch)
 	[ ] 41.9 Docs & examples
 
+#### 42 Concurrency: services and threads (user, 2026-10-23) [ ]
+	Goal: a million requests on one machine with many cores - no races, deadlocks, freezes or
+	slowdown, with a small memory / CPU footprint and very scalable. A resource becomes a
+	service; manual locking is a last resort. Design: Concurrency.md (sections 3-4);
+	overview: Concurrency_Traps.md. Ideas only - plan first when the task starts.
+	[ ] 42.1 `service` keyword: `service <type> <name>` makes a variable, struct or class object
+		a service with Fusion's default thread settings (`service int counter = 0`,
+		`service Person person = ...`, `service Car honda = Honda(Color.Black)`)
+	[ ] 42.2 Settings with `service(name).X = ...` - only from the thread that created it, never
+		a sub-thread; the compiler picks the defaults not given (Mailbox, WhenFull, Scheduler,
+		Timeout, ...)
+	[ ] 42.3 Units: `service(a, b) T unit = T(a, b)` - one service owns both; calls to a or b
+		go through it (one thread, one resource - P2)
+	[ ] 42.4 `service(x).final = { ... }` - extra clean-up; leaving scope always releases every
+		associated resource (like try-with-resources)
+	[ ] 42.5 Resources as services by default: files, sockets, pipes, databases
+		(`[concurrency] resource_as_service = true`; direct access only in unsafe mode)
+	[ ] 42.6 Settings that fit the machine: built-in defaults < fusion.toml < the program's
+		defaults < service(x) in code; a minimum (e.g. "needs 4 GB") stops with a clear message
+	[ ] 42.7 The Thread class: ID (never reused, main = 0), GUID, hierarchy key (0.2.1),
+		priority, an internal counter and helpers that track threads as they start and end -
+		to be designed
+	[ ] 42.8 Default timeouts per resource kind - starting values in Concurrency.md 3.7
+	[ ] 42.9 Custom contention rules and schedulers (Concurrency.md 3.8); Rule.HIERARCHY default
+	[ ] 42.10 Trap checks: warnings by default, errors when fusion.toml says so (two resources
+		per thread, shared variables, missing timeouts, services blocking on each other)
+	[ ] 42.11 Possible service settings to go through (user + Claude, 2026-10-23):
+		Mailbox (size) / WhenFull (WAIT, ERROR, DROP_OLDEST, DROP_NEWEST) / Timeout per
+		request / IdleTimeout (release the thread when unused) / Scheduler (IMMEDIATE,
+		BATCHED, custom) / BatchSize and BatchDelay / Priority / Rule (who wins contention) /
+		Threads (pool size, min and max) / MaxParallelReads / final (clean-up) / OnError
+		(restart, stop, report to parent) / RestartLimit (n restarts per period) / Name (for
+		tools and logs) / Trace (profiling on) / Affinity (pin to CPU cores) / MemoryLimit /
+		Lifetime (scope, until close, whole program) / Snapshot (readers see copies) /
+		WarnAt (mailbox fill level that warns, e.g. 80%) / Retry policy / Shutdown (finish
+		the mailbox, or drop it) / Access (which threads may send to it) / Weight (share of
+		turns)
+	[POSTPONED - later, own framework] 42.12 Cluster threads over several servers
+		(ClusterThreadPool) - a separate cluster framework, probably outside Fusion's first scope
+	(The thread view in the editor: 36.6)
+
 ---
 
 ## Old task numbers (renumbered 2026-10-11)
@@ -325,9 +366,6 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
-	[ ] Concurrency - no task yet. Ideas and principles: Concurrency.md section 3 (resources as
-		services by default, one resource per thread, the thread hierarchy decides, every wait
-		has a deadline); other languages: section 4
 	From the showcase review (user, 2026-10-23):
 	[ ] `elif` as an alias for `else if` (less typing)
 	[ ] `switch` as an alias for `match` - the two are interchangeable
