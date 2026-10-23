@@ -4938,3 +4938,85 @@ recursion.
 
 ---
 
+---
+
+## TASK 23.9: Fusion_showcase.fusion - PLAN (approved 2026-10-23; user: location files/showcase/ with a
+fusion.toml beside it; tags [built] / [designed] / [idea] / [rejected], each with a one-line description)
+
+**Goal (user):** one file that shows what a finished Fusion will look like: every feature,
+built now or still to be designed, from types to loops, classes and everything in between.
+It does not have to compile or run. It is a picture of where the language is going.
+
+**Rules for the file**
+- Exactly 3 functions show the three block styles, one each: indentation, `End function`,
+  and braces. Everything else uses braces `{}`: functions, classes, enums, interfaces and
+  any other blocks.
+- Each section has a header comment, and every feature line is tagged `// [built]`,
+  `// [designed]` (in the spec, not built yet) or `// [idea]` (not designed yet; it needs a
+  decision). This keeps it clear what is real and what is wishful, so nothing is shown as
+  working when it isn't.
+- Where a design exists, the syntax follows the spec and `SYNTAX_REFERENCE.md`. For an
+  `[idea]`, the syntax is the shortest readable form (concise-syntax preference) and is not
+  a decision.
+- ASCII only (Rule 2).
+
+**Where it goes:** `files/Fusion_showcase.fusion`. It must not go in `examples/`, because
+`check.py` and `verify_examples.py` build every `examples/*.fusion` file and this one won't
+compile. It gets added to the ASCII check list in `check.py`. One line in the spec under
+"Language Features Summary", plus a row in `files/` docs, points to it.
+
+**Outline (sections in file order)**
+1. Header: what the file is, the three tags, and the `fusion.toml` settings it assumes (as a
+   comment: `[safety]`, `[errors]`, `[numbers]`, `[strings]`, memory strategy, backend)
+2. Modules and imports: `module`, `import x`, aliases, `public`, visibility levels [built / designed]
+3. Constants and variables: `const`, inferred `var` [idea], every primitive type (byte, int,
+   long, float, double, bool, char, string), number literals (hex, binary, `1_000`) [idea]
+4. Strings: interpolation `{x}`, `{@1}`, full expressions `{a + b}` [designed], mutable vs
+   fixed strings, `string(255)` sizes, raw / multi-line strings [idea], the string library
+5. Arrays and collections: fixed arrays, `List<T>`, `Map<K,V>`, map literals [open], Set,
+   slices [idea], multi-dimensional arrays
+6. Nullable and safety: `string? name`, `?.`, `?[`, `??` [designed, Task 30], strict mode
+7. Operators: arithmetic, `wrapAdd`, `unchecked { }`, comparison, logic, the `...` operator,
+   ranges, precedence notes
+8. The 3 block-style functions:
+   - indentation: `int function sumTo(int n)` with a `for` loop
+   - `End function`: `string function grade(int score)` with if / else if
+   - braces: `bool function isPrime(int n) { ... }`
+9. Functions (braces): default values, named arguments, multiple returns, one-line `: expr`
+   bodies, lambdas, function types, closures [designed], generic functions [Task 33]
+10. Control flow: if / else, while, do-while, for, for-each, loop labels, break / continue,
+    `match` with enums, values and error types
+11. Enums: plain, with values, with data (tagged unions), self-holding, `values()` /
+    `fromString`, enum methods [idea]
+12. Structs: fields, nesting, value semantics, methods on structs [Task 32]
+13. Interfaces: definition, default methods [idea]
+14. Classes: fields, constructor, properties (get / set), static members, inheritance,
+    implementing interfaces, `override`, generic classes [Tasks 32 / 33]
+15. Errors: `T, Error function`, capture `T x, err = f()`, bubbling, custom error types,
+    `throw`, try / catch typed / finally, `err.kind`, error chaining [designed]
+16. Memory: Unique / Shared / Weak, `using` / try-with-resources, GC as an option [Task 38]
+17. Concurrency: threads, channels ("share memory by communicating"), async / await,
+    interrupts [designed, no task yet]
+18. Callbacks and events [designed]
+19. Standard library tour: file I/O, console input, program arguments, math, date / time,
+    regex [designed]
+20. Interop: DLL loading, external processes, inline C / assembly [designed]
+21. Documentation comments and region blocks [designed]
+22. HIDL sketch: a small hardware interface block [Task 41]
+23. `main`: calls a little of each section, so the file reads like a real program
+
+**Size:** about 500-700 lines. Each section is short, with one or two examples per feature.
+
+**Steps**
+1. Grep the spec section for each feature, so `[designed]` lines use the spec's syntax
+2. Write `files/Fusion_showcase.fusion`, adding it to `ascii_checked_files` in `check.py`
+3. In `FEATURES.md`, add a `[DONE] 23.9` line under Task 23. Any `[idea]` that is new gets a
+   line in "Later / advanced" (Rule 3, "add to tasks"); I'll list them for you first
+4. Run `python check.py`, then ship it
+
+**Questions (defaults in brackets)**
+- Location: `files/` [yes], or the repo root next to `SYNTAX_REFERENCE.md`?
+- Include not-yet-designed `[idea]` features (var, slices, ranges, Set, raw strings,
+  number literals) [yes, tagged], or only what the spec already has?
+
+---

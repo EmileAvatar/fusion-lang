@@ -5689,6 +5689,9 @@ Priority | Operators | Associativity
 
 **Status:** [DESIGN] a summary of the whole design, built and not built
 
+One file showing all of it, each feature tagged built / designed / idea / rejected:
+`files/showcase/Fusion_showcase.fusion` (with its `fusion.toml`).
+
 Description: Comprehensive overview of Fusion's capabilities and design decisions.
 
 ---

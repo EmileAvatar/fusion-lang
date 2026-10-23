@@ -1,0 +1,118 @@
+# fusion.toml - every project setting a finished Fusion will have (Task 23.9, 2026-10-23)
+#
+# Goes with Fusion_showcase.fusion. Each setting has a comment line before it:
+#   [built]     the compiler reads it today      [designed]  in the language spec, not built
+#   [idea]      not designed yet                 [rejected]  decided against
+# Every setting is optional; the value shown is the default. A misspelled key or a bad value
+# is an error, never silently ignored [built].
+# [designed] The same settings may also be written as fusion.yaml / .json / .ini (Task 31);
+# two config files in one place is an error.
+
+# [designed] The project itself: name, version, the file that holds main
+[project]
+name = "showcase"
+version = "0.1.0"
+main = "Fusion_showcase.fusion"
+
+[indentation]
+# [built] Spaces per tab
+tab_width = 4
+# [built] Mixed tabs and spaces: a warning (true) or an error (false)
+allow_mixed = true
+# [idea] Allow only some block styles in this project: indent, end, braces
+block_styles = ["indent", "end", "braces"]
+
+[source]
+# [built] Identifiers ASCII-only unless turned on (look-alike letter defense)
+allow_unicode_identifiers = false
+
+[strings]
+# [built] utf-8 or ascii; [designed] utf-16 / utf-32
+encoding = "utf-8"
+# [built] "max" = no limit; a number = a longer string is a StringTooLongError
+max_length = "max"
+# [designed] Strings can be changed in place (Task 29)
+mutable = true
+# [designed] Identical text stored once (Task 29)
+pooling = false
+
+[numbers]
+# [built] false: an int used as a float must fit exactly (else PrecisionError); true: a warning
+auto_widening = false
+
+[errors]
+# [built] T, Error function / capturing errors
+returns = true
+# [built] try / catch / finally / throw
+exceptions = true
+# [designed] Every error carries a stack trace
+stack_traces = true
+
+[structs]
+# [built] Deepest struct nesting allowed, and the depth that warns
+max_nesting_depth = 3
+warn_nesting_depth = 3
+# [built] "owned" - each struct holds its own strings; [designed] "pooled" (Task 29)
+string_storage = "owned"
+# [built] false: string fields can't change after construction
+string_mutable = true
+# [built] Warn when a string field is longer than this (0 = never)
+string_warn_length = 64
+
+[stdlib]
+# [built] std (everything) | alloc (no OS: no print, no files) | core (no heap)
+layer = "std"
+
+[safety]
+# [built] normal | unsafe (+ - * wrap instead of OverflowError); [designed] strict
+mode = "normal"
+# [built] Endless recursion: "max" = caught by stack use; a number also counts calls
+max_call_depth = "max"
+# [rejected] Turning off array bounds checks - they stay on even in unsafe mode (Task 27.1)
+# [designed] strict mode: null checks forced, Weak<T> is an error, callbacks limited
+null_checks = "strict"
+# [designed] Loop protection: the most passes a loop may make (0 = no limit)
+max_iterations = 0
+
+[memory]
+# [designed] gc (automatic) | smart (Unique / Shared / Weak) | manual (raw pointers) (Task 38)
+strategy = "smart"
+# [rejected] Non-atomic Shared counts as an option - always atomic (decided 2026-09-13)
+
+[threads]
+# [designed] Threads allowed at all (off for small devices)
+enabled = true
+# [idea] Size of the thread pool ("auto" = one per CPU core)
+pool_size = "auto"
+
+[modules]
+# [idea] Extra folders searched for imported modules
+paths = ["lib", "vendor"]
+# [designed] Libraries must declare what they may do (files, network, ...) (Task 39)
+require_capabilities = true
+
+[backend]
+# [built] "c"; [designed] "llvm" (Task 40)
+target = "c"
+# [designed] The platform to build for: windows-x64, linux-x64, wasm, ...
+platform = "windows-x64"
+
+[build]
+# [designed] debug | release
+mode = "debug"
+# [designed] speed | size | none
+optimize = "none"
+# [designed] exe | lib (a DLL / shared library)
+output = "exe"
+# [idea] Wait for a key before the window closes (built as the default, --headless turns
+# it off - not yet a setting)
+wait_at_exit = true
+
+[docs]
+# [designed] Make documentation from /** */ comments
+generate = false
+output = "docs/"
+
+[hardware]
+# [idea] Hardware descriptions to import (HIDL, Task 41)
+hidl = ["MicrowaveController.hidl"]

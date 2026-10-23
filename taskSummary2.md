@@ -24,6 +24,13 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 23.9: Fusion_showcase.fusion - COMPLETE (2026-10-23)
+
+files/showcase/Fusion_showcase.fusion + fusion.toml: every feature tagged [built] /
+[designed] / [idea] / [rejected] with a one-line description. Plan: task/taskSummaryArchive.md.
+
+---
+
 ## TASK 27: Semantic contract and safety - COMPLETE (2026-10-17)
 
 Bounds checks, three block styles, overflow / wrapping / unsafe mode, endless recursion,
@@ -107,4 +114,6 @@ Kept under Task 22 until the renumbering is approved.
 - 27.2c done
 - 27.3 done (found: changing a list while looping over it skips elements)
 - Task 27 complete; 27.2f done ([numbers] auto_widening, default false)
+- 23.9 done: files/showcase (Fusion_showcase.fusion + fusion.toml); user answered: files/showcase/,
+  tags built / designed / idea / rejected + one-line description each
 - **Next Action:** plan Task 28 (self-hosting phase 1 - the test run) for approval

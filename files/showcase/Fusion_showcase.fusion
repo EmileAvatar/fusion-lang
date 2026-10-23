@@ -1,0 +1,958 @@
+// =============================================================================================
+// Fusion_showcase.fusion - what a finished Fusion will look like (Task 23.9, 2026-10-23)
+// =============================================================================================
+//
+// A picture of the whole language: what works now and what is still to come. It does NOT
+// compile and is not meant to run (built examples that do: SYNTAX_REFERENCE.md, examples/).
+// Its settings: fusion.toml in this folder.
+//
+// Every feature has a comment line before it: a tag, then a one-line description.
+//   [built]     works in the compiler today
+//   [designed]  in the language spec (files/fusion-language-spec.md), not built yet
+//   [idea]      not designed yet - the syntax shown is a suggestion, not a decision
+//   [rejected]  considered and decided against - shown so it isn't proposed again
+// A task number (Task 32) says which task will build it.
+//
+// Block styles: exactly three functions show the three styles (section 8). Everything else
+// uses braces {}.
+//
+// Sections
+//    1 Modules and imports          13 Interfaces
+//    2 Constants and variables      14 Classes
+//    3 Types and conversions        15 Generics
+//    4 Strings                      16 Errors
+//    5 Arrays and collections       17 Memory
+//    6 Null safety                  18 Concurrency
+//    7 Operators                    19 Callbacks and events
+//    8 The three block styles       20 Standard library tour
+//    9 Functions                    21 Interop
+//   10 Control flow                 22 Comments and documentation
+//   11 Enums                        23 Hardware (HIDL)
+//   12 Structs                      24 main
+// =============================================================================================
+
+
+// =============================================================================================
+// 1. Modules and imports
+// =============================================================================================
+
+// [built] A whole module: every .fusion file in the folder money/ - used as money.make(5)
+import money
+// [built] One name from a module, used without a prefix
+import money.Price
+// [built] An alias for a long module path
+import lib.utils as libutils
+// [designed] Everything a module exports, without prefixes
+import Spaceships.*
+// [designed] A system library from the standard library tree
+import Fusion.System.Process
+// [idea] Import only some names from a module
+import geometry { square, circle }
+
+// [designed] A module file names its module and what it exports (spec "Module Definition")
+module Showcase
+export Ship, Fleet
+
+// [built] public: other modules can use it; without it only this module's files see it
+public int function version() { return 1 }
+// [designed] protected / private on class members (section 14); private on module names
+private int function secretVersion() { return 0 }
+
+
+// =============================================================================================
+// 2. Constants and variables
+// =============================================================================================
+
+// [designed] A module-level constant (local constants are built - see main)
+const int MAX_SHIPS = 100
+// [designed] A constant whose type comes from its value
+const GAME_NAME = "Star Fusion"
+// [idea] A whole-program setting read from fusion.toml at compile time
+const string BUILD_MODE = config.build.mode
+
+void function variables() {
+    // [built] Type first, then the name; a value is optional
+    int count = 10
+    // [built] No value given: the type's default (0, 0.0, false, "", empty)
+    string name
+    // [built] A local constant - assigning to it again is a compile error
+    const float PI = 3.14159
+    // [designed] var: the type comes from the value
+    var speed = 299792.458
+    // [designed] Several variables of one type in one line
+    int x = 1, y = 2, z = 3
+    // [built] Number literals: hex, binary, octal, and _ to group digits
+    int flags = 0xFF + 0b1010 + 0o17 + 1_000_000
+    // [designed] Compound assignment
+    count += 5
+    count *= 2
+    // [idea] ++ and -- as statements only (never inside an expression)
+    count++
+}
+
+
+// =============================================================================================
+// 3. Types and conversions
+// =============================================================================================
+
+void function types() {
+    // [built] The built types: whole numbers, decimals, true / false, one character, text
+    int i = 42
+    float f = 2.5
+    double d = 3.14159265359
+    bool ok = true
+    char c = 'A'
+    string s = "text"
+    // [built] byte (0-255) and bytes (raw binary data)
+    byte b = 255
+    bytes raw = [0x00, 0xFF, 0x41]
+    // [designed] Sized and unsigned whole numbers (spec "Complete Type Specifications")
+    sbyte tiny = -128
+    short small = 32767
+    ushort port = 65535
+    uint count = 4000000000
+    long big = 9000000000000000000
+    ulong huge = 18000000000000000000
+    // [designed] decimal: exact base-10 numbers for money
+    decimal price = 19.99
+    // [built] An int used as a double is always exact; as a float it must fit (PrecisionError)
+    double wide = i
+    // [built] Conversions are functions that check (toInt of "12x" is a NumberFormatError)
+    int n = toInt("123")
+    byte narrow = toByte(200)
+    // [designed] cast<T>: a narrowing conversion that checks the value fits
+    int cut = cast<int>(d)
+    // [designed] Widening a whole number to a bigger one is automatic
+    long l = i
+    // [rejected] int? - a value type can't hold null; only objects and strings can (spec
+    //            "Type Categories"; the spec's own `int? first = arr?[0]` is settled in Task 30)
+    // [built] Methods on any value through its type class (Int, Float, String, ...)
+    string hex = 255.toHex()
+    // [designed] More type-class methods (spec "Autobox Classes")
+    float rounded = f.round(2)
+    // [idea] Type tests with is (the spec uses is only for null)
+    if s is string { print("a string") }
+    // [idea] typeOf(x) gives the type's name as text
+    print(typeOf(price))
+}
+
+
+// =============================================================================================
+// 4. Strings
+// =============================================================================================
+
+void function strings() {
+    string name = "Ada"
+    int age = 36
+    // [built] Interpolation: a name or a field path inside {}
+    print("{name} is {age}")
+    // [built] Numbered placeholders, any order, repeatable
+    print("{@2}, {@1}!", "World", "Hello")
+    // [designed] Any expression inside {}
+    print("next year: {age + 1}")
+    // [idea] A format inside {}: {value:pattern}
+    print("price: {19.5:$0.00}")
+    // [built] Strings are values: a copy is independent, freed automatically
+    string copy = name
+    // [built] Unicode text: characters vs bytes
+    print("{@1} characters, {@2} bytes", len("caf\u00e9"), lenb("caf\u00e9"))
+    // [built] The string library as functions or methods, chained
+    print(name.trim().toUpper().padLeft(10, '.'))
+    // [built] Masks for display
+    print(formatMask("5551234567", "(###) ###-####"))
+    // [designed] Mutable strings: edit in place (Task 29)
+    name[0] = 'E'
+    // [designed] A fixed (immutable) string type (Task 29)
+    fixed string code = "ABC-123"
+    // [designed] A string with a size limit, to match a database column
+    string(255) title = "Captain"
+    // [idea] Raw strings: no escapes, backslashes stay as written
+    string path = r"C:\Fusion\examples"
+    // [idea] Multi-line strings, indentation removed up to the closing quotes
+    string poem = """
+        Roses are red,
+        Fusion is new.
+        """
+    // [designed] Regular expressions (spec "Regular Expressions")
+    bool found = matches("ship-42", "ship-[0-9]+")
+}
+
+
+// =============================================================================================
+// 5. Arrays and collections
+// =============================================================================================
+
+void function collections() {
+    // [built] Fixed arrays: size from the literal; every index is checked (IndexError)
+    int[] scores = [10, 20, 30]
+    float[3] buffer
+    // [built] List<T>: grows; add, insert, sort, filter, reduce, ...
+    List<int> numbers = [3, 1, 2]
+    numbers.add(10)
+    List<int> big = numbers.filter((int x) : x > 2)
+    // [built] Map<K, V> (also Dictionary<K, V>): keys keep the order they were added
+    Map<string, int> ages
+    ages["Alice"] = 30
+    print("{@1}", ages.get("Zed", 0))
+    // [idea] Map literals (FEATURES.md "Later")
+    Map<string, int> stock = {"apples": 3, "pears": 0}
+    // [built] Lists of lists
+    List<List<int>> grid = [[1, 2], [3, 4]]
+    // [rejected] Changing a list while looping over it silently skipping elements - it is
+    //            a ModifiedWhileLoopingError (Task 27.2e, user decision)
+    // [designed] An array from a range, and spreading arrays into one
+    int[] oneToTen = [1...10]
+    int[] both = [...scores, ...oneToTen]
+    // [designed] Methods on arrays: sum, max, map
+    int total = scores.sum()
+    // [designed] Multi-dimensional fixed arrays
+    int[10][10] cells
+    // [idea] Set<T>: each value once
+    Set<string> tags = ["new", "sale"]
+    // [idea] Slices: a part of a list or string, by range
+    List<int> firstTwo = numbers[0...1]
+    // [idea] Tuples: a few values without declaring a struct
+    (string, int) pair = ("Ada", 36)
+}
+
+
+// =============================================================================================
+// 6. Null safety (Task 30)
+// =============================================================================================
+
+// [designed] Value types are never null; objects and strings can be (spec "Null Handling")
+void function nulls(Ship ship) {
+    // [designed] Test for null: ?.null or is null
+    if ship?.null { return }
+    if ship is null { return }
+    // [designed] Safe navigation: none when anything on the way is null
+    string captain = ship?.captain?.name
+    // [designed] A default when it is null
+    string label = ship?.name ?? "Unknown"
+    // [designed] Safe indexing of an array that may be null
+    int[]? maybe = loadScores()
+    int len = maybe?.length ?? 0
+    // [designed] NullError: using something that holds nothing is a catchable error (30.1b)
+    // [designed] strict mode: a parameter is checked for null at the start of the function
+}
+
+
+// =============================================================================================
+// 7. Operators
+// =============================================================================================
+
+void function operators() {
+    int a = 7
+    int b = 2
+    // [built] Arithmetic; a whole number that doesn't fit is an OverflowError, never changed
+    int sum = a + b * 2 - a / b % 3
+    // [rejected] Silent wrap-around on overflow (as in C) - values never change silently
+    // [built] Wrapping on purpose: functions, or an unchecked block
+    int h = wrapMul(a, 1000003)
+    unchecked {
+        h = h * 31 + a
+    }
+    // [built] Comparison: == != < > <= >=, and = compares inside a condition
+    if a = 7 and b != 3 { print("yes") }
+    // [built] === and !== also compare the type
+    if a !== "7" { print("different types") }
+    // [designed] <> as another way to write !=
+    if a <> b { print("not equal") }
+    // [built] Logic in words
+    if a > 0 and not (b > 5 or a < 0) { print("ok") }
+    // [designed] ** for powers
+    int cube = a ** 3
+    // [designed] Bit operators
+    int bits = (a & 0xF) | (b << 2) ^ ~a
+    // [idea] if as a value: one expression, both branches required
+    string size = if a > 5 then "big" else "small"
+}
+
+
+// =============================================================================================
+// 8. The three block styles - [built] every block can use any of them, and the compiler
+//    gives the same program for all three (Task 27.4)
+// =============================================================================================
+
+// [built] Style 1 - indentation: the block is everything indented below the line
+int function sumTo(int n)
+    int total = 0
+    for i in range(1, n + 1)
+        total = total + i
+    return total
+
+// [built] Style 2 - End keywords: the block ends with End and its kind
+string function grade(int score)
+    if score >= 90
+        return "A"
+    else if score >= 70
+        return "B"
+    End if
+    return "C"
+End function
+
+// [built] Style 3 - braces
+bool function isPrime(int n) {
+    if n < 2 {
+        return false
+    }
+    for d in range(2, n) {
+        if n % d == 0 {
+            return false
+        }
+    }
+    return true
+}
+
+
+// =============================================================================================
+// 9. Functions (braces from here on)
+// =============================================================================================
+
+// [built] One-line function: the value after ':'
+int function square(int x) : x * x
+
+// [built] Default values; callers may name arguments
+void function greet(string name = "World", int times = 1) {
+    for i in range(0, times) { print("Hello, {name}!") }
+}
+
+// [built] Function values: a parameter of a function type
+int function apply((int) : int f, int v) : f(v)
+
+// [built] An array parameter (any size), and a fixed-size array returned
+int[3] function podium() : [3, 1, 2]
+
+// [designed] Variadic parameters: any number of values, as an array
+int function total(int... numbers) {
+    int t = 0
+    for n in numbers { t += n }
+    return t
+}
+
+// [designed] Several return values (an error as the last one is built - section 16)
+(int, int) function divide(int a, int b) : (a / b, a % b)
+
+// [idea] Function overloading by parameter types
+string function describe(int x) : "int {x}"
+string function describe(string s) : "text {s}"
+
+void function functions() {
+    // [built] Named arguments in any order, after the unnamed ones
+    greet(times = 2)
+    // [built] Lambdas, and named functions used as values
+    (int) : int twice = func(int x) : x * 2
+    print("{@1} {@2}", apply(twice, 5), apply(square, 5))
+    // [designed] Closures: a lambda that uses a variable around it
+    int step = 3
+    (int) : int addStep = func(int x) : x + step
+    // [designed] Spreading an array into a variadic call
+    int t = total(...[1, 2, 3])
+    // [designed] Receiving several return values
+    int q, int r = divide(7, 2)
+    // [designed] Named lambdas inside a function, with a body of several lines
+    int function clamp(int v) {
+        if v > 10 { return 10 }
+        return v
+    }
+}
+
+
+// =============================================================================================
+// 10. Control flow
+// =============================================================================================
+
+void function controlFlow(int n) {
+    // [built] if / else if / else
+    if n > 10 {
+        print("big")
+    } else if n > 5 {
+        print("medium")
+    } else {
+        print("small")
+    }
+    // [built] while, and for over a range (with an optional step)
+    while n > 0 { n = n - 1 }
+    for i in range(0, 10, 2) { print("{i}") }
+    // [built] for each element of an array, list, map (keys) or enum's values
+    for name in ["Ada", "Grace"] { print(name) }
+    // [built] break and continue
+    for i in range(0, 100) {
+        if i == 3 { continue }
+        if i == 8 { break }
+    }
+    // [designed] Ranges with ... (inclusive), and a step
+    for i in 1...10 { print("{i}") }
+    for angle in 0...360...45 { print("{angle}") }
+    // [designed] Loop labels: break or continue an outer loop
+    outer: for x in range(0, 10) {
+        for y in range(0, 10) {
+            if x * y == 42 { break outer }
+        }
+    }
+    // [idea] do-while: the body runs at least once
+    do {
+        n = n + 1
+    } while n < 3
+    // [idea] loop: runs until a break
+    loop {
+        if n > 5 { break }
+        n = n + 1
+    }
+    // [built] match on a value: several values per case, else required
+    match n {
+        case 1, 2: print("one or two")
+        case 3 { print("three") }
+        else: print("other")
+    }
+    // [idea] Guards in match: a case with a condition
+    match n {
+        case x if x < 0: print("negative")
+        else: print("not negative")
+    }
+    // [idea] Ranges in match cases
+    match n {
+        case 0...9: print("one digit")
+        else: print("more digits")
+    }
+    // [designed] Loop safety checks after the loop: every N passes, and an interrupt
+    while n < 1000000 {
+        n = n + 1
+    } with {50} {
+        check {
+            if n > 500000 { exit loop }
+        }
+        check interrupt(signal, data) {
+            if signal == InterruptSignal.Shutdown { exit loop }
+        }
+    }
+    // [designed] A per-loop pass limit, as an attribute
+    #[max_iterations(100000)]
+    while n > 0 { n = n - 1 }
+    // [idea] assert: an AssertionError when the condition is false
+    assert n == 0, "n should be 0"
+}
+
+
+// =============================================================================================
+// 11. Enums
+// =============================================================================================
+
+// [built] A plain enum on one line
+enum Color { Red Green Blue }
+
+// [built] Values given; the rest count up from the last one
+enum Status {
+    OK = 200
+    NotFound = 404
+}
+
+// [built] Enums with data (tagged unions), read through match
+enum Shape {
+    Circle(double radius)
+    Rect(double width, double height)
+    Empty
+}
+
+// [built] An enum that holds itself (stored on the heap automatically)
+enum Expr {
+    Num(int value)
+    Add(Expr left, Expr right)
+}
+
+// [rejected] One central ERROR enum for every error - errors are types, each with its own
+//            name (Task 26.10, user decision)
+
+// [idea] Methods inside an enum
+enum Planet {
+    Mercury, Earth, Mars
+    double function gravity() {
+        match this {
+            case Mercury: return 3.7
+            case Earth: return 9.8
+            case Mars: return 3.7
+        }
+    }
+}
+
+double function area(Shape s) {
+    // [built] match on an enum: every value needs a case; data is bound to names
+    match s {
+        case Circle(r): return 3.14159 * r * r
+        case Rect(w, h): return w * h
+        case Empty: return 0.0
+    }
+}
+
+int function eval(Expr e) {
+    match e {
+        case Num(v): return v
+        case Add(l, r): return eval(l) + eval(r)
+    }
+}
+
+void function enums() {
+    // [built] values(), fromString, toInt, toString; an enum as a Map key
+    for c in Color.values() { print("{c} = {@1}", c.toInt()) }
+    Color red = Color.fromString("Red")
+    Map<Color, int> votes
+    // [built] Enum values with data compare by value and data
+    print("{@1}", Shape.Rect(2.0, 3.0) == Shape.Rect(2.0, 3.0))
+    // [idea] Flags: an enum whose values combine with | (Permission declared as flags)
+    Permission p = Permission.Read | Permission.Write
+}
+
+
+// =============================================================================================
+// 12. Structs - values, copied when assigned
+// =============================================================================================
+
+// [built] Fields, defaults, nested structs, arrays and lists inside
+struct Point {
+    int x
+    int y
+}
+
+struct Player {
+    string name
+    float health = 100.0
+    int[3] scores
+    List<string> items
+    Point position
+}
+
+// [designed] Methods on structs (Task 32.1)
+struct Vector3 {
+    float x
+    float y
+    float z
+    float function length() : sqrt(x * x + y * y + z * z)
+    // [idea] Operator overloading: + on your own types
+    Vector3 operator +(Vector3 other) : Vector3(x + other.x, y + other.y, z + other.z)
+}
+
+void function structs() {
+    // [built] Construction by position or by name; a copy is independent
+    Point a = Point(3, 4)
+    Point b = Point(y = 2, x = 1)
+    Point c = a
+    c.x = 10
+    // [built] Structs compare field by field
+    print("{@1}", a == Point(3, 4))
+    // [designed] Calling a struct's method
+    float len = Vector3(1, 2, 2).length()
+    // [idea] Copy with changes: a new struct with some fields replaced
+    Point moved = a with { x = 5 }
+}
+
+
+// =============================================================================================
+// 13. Interfaces (Task 32)
+// =============================================================================================
+
+// [designed] An interface lists what a class must provide
+interface IMovable {
+    void function move(Vector3 direction, float deltaTime)
+    void function stop()
+    property Speed: float { get; }
+}
+
+// [designed] An interface may give a method a default body
+interface IDamageable {
+    property Health: float { get; set; }
+    void function takeDamage(float amount)
+    bool function isAlive() : Health > 0
+}
+
+
+// =============================================================================================
+// 14. Classes (Task 32)
+// =============================================================================================
+
+// [designed] A class: references, not copies; implements interfaces
+class Ship implements IMovable, IDamageable {
+    // [designed] Auto-properties, with a private setter
+    property Name: string { get; private set; }
+    property Speed: float { get; set; }
+    property Health: float { get; set; }
+
+    // [designed] Class constants are static automatically
+    public const float MAX_SPEED = 1000.0
+
+    // [designed] A static field: one for the whole class
+    private static int shipCount = 0
+
+    // [designed] Private instance fields
+    private float fuel = 100.0
+
+    // [designed] The constructor: no return type
+    constructor(string name, float speed) {
+        this.Name = name
+        this.Speed = speed
+        this.Health = 100.0
+        shipCount += 1
+    }
+
+    // [designed] Methods
+    void function move(Vector3 direction, float deltaTime) {
+        fuel -= 0.1 * deltaTime
+    }
+    void function stop() { Speed = 0 }
+    void function takeDamage(float amount) { Health -= amount }
+
+    // [designed] A computed property
+    property IsOperational: bool {
+        get { return Health > 0 and fuel > 0 }
+    }
+
+    // [designed] A property that checks the value it is given
+    property Fuel: float {
+        get { return fuel }
+        set {
+            if value < 0 { fuel = 0 } else { fuel = value }
+        }
+    }
+
+    // [designed] Static methods and properties
+    public static Ship function createDefault() : Ship("Default", 100.0)
+    public static int TotalShips { get { return shipCount } }
+
+    // [designed] A class nested in a class
+    class Engine {
+        float power
+        constructor(float power) { this.power = power }
+    }
+}
+
+// [designed] Single inheritance; super calls the parent's constructor
+class Warship extends Ship {
+    property WeaponPower: int { get; set; }
+
+    constructor(string name, float speed, int power) {
+        super(name, speed)
+        this.WeaponPower = power
+    }
+
+    // [designed] override replaces a parent method (virtual / abstract / sealed are reserved)
+    override void function stop() {
+        print("{Name} holds position")
+        super.stop()
+    }
+}
+
+// [designed] An abstract class: can't be made directly
+abstract class Weapon {
+    abstract int function damage()
+}
+
+// [designed] An indexed property
+class Inventory {
+    private List<string> items
+    property Items[int index]: string {
+        get { return items[index] }
+        set { items[index] = value }
+    }
+}
+
+// [idea] Extension methods: add a method to a type you didn't write
+extend string {
+    bool function isShout() : this == this.toUpper()
+}
+
+
+// =============================================================================================
+// 15. Generics (Task 33) - List<T> and Map<K, V> are built in already
+// =============================================================================================
+
+// [designed] A generic class
+class Container<T> {
+    private List<T> items
+    void function add(T item) { items.add(item) }
+    T function get(int index) : items[index]
+    property Count: int { get { return items.len() } }
+}
+
+// [designed] A generic function with a constraint
+T function findMax<T>(List<T> items) where T implements IComparable<T> {
+    T best = items[0]
+    for item in items {
+        if item.compareTo(best) > 0 { best = item }
+    }
+    return best
+}
+
+// [designed] Several type parameters
+class Pair<K, V> {
+    K key
+    V value
+}
+
+
+// =============================================================================================
+// 16. Errors - all [built] unless marked (Task 26)
+// =============================================================================================
+
+// [built] A custom error type, extending a built-in one, with its own fields
+error ConfigError : FileError {
+    int line
+}
+
+// [built] A default message for an error type
+error MissingConfig : ConfigError {
+    message = "Config file not found"
+}
+
+// [built] `, Error` marks a function that can fail
+int, Error function loadConfig(string path) {
+    if path == "" {
+        return Error("No path given", 400)
+    }
+    if not fileExists(path) {
+        // [built] throw works in any function
+        throw MissingConfig(path = path, line = 0)
+    }
+    return 1
+}
+
+void function errors() {
+    // [built] Capture the error, or let it bubble up to the caller
+    int n, err = loadConfig("")
+    if err { print("{err} (code {@1}, kind {@2})", err.code, err.kind) }
+    // [built] Capture only one error type
+    int m, ConfigError cfg = loadConfig("app.cfg")
+    // [built] try / typed catch / untyped catch / finally
+    try {
+        int v = loadConfig("app.cfg")
+        print("{@1}", [1, 2][5] / 0)
+    } catch MissingConfig e {
+        print("missing: {e.path}")
+    } catch ArithmeticError e {
+        print("{e.kind}: {e}")
+    } catch e {
+        print("other: {e}")
+    } finally {
+        print("always runs")
+    }
+    // [built] match on error types
+    match err {
+        case MissingConfig: print("gone")
+        else: print("something else")
+    }
+    // [designed] Error chaining: an error that wraps the error that caused it
+    Error wrapped = Error("Load failed", cause = err)
+    // [designed] A stack trace on every error
+    print(err.stackTrace)
+    // [idea] ? after a call: return its error from this function at once (short bubbling)
+    int w = loadConfig("x")?
+    // [designed] More error types as modules arrive: NetworkError, TimeoutError, ParseError,
+    //            CancelledError, AssertionError, NotSupportedError
+}
+
+
+// =============================================================================================
+// 17. Memory (Task 38)
+// =============================================================================================
+
+void function memory() {
+    // [built] Strings, lists, maps and structs are values: copied and freed automatically
+    List<string> names = ["a", "b"]
+    // [designed] Unique<T>: one owner; moving it must be written as .move()
+    Unique<Ship> solo = Unique.create<Ship>("Solo", 50.0)
+    Unique<Ship> taken = solo.move()
+    // [rejected] Moving a Unique by plain assignment (C++ style) - a compile error instead
+    //            (decided 2026-09-13)
+    // [designed] Shared<T>: counted owners; the count is always atomic
+    Shared<Ship> shared = Shared.create<Ship>("Hub", 10.0)
+    Shared<Ship> another = shared
+    // [rejected] A cycle detector for Shared - Weak breaks cycles instead (decided 2026-09-13)
+    // [designed] Weak<T>: doesn't keep it alive; lock() gives null once it is gone
+    Weak<Ship> watcher = shared
+    Shared<Ship>? alive = watcher.lock()
+    // [designed] using: closed / unlocked at the end of the block, even on an error
+    using file = openFile("log.txt") {
+        file.write("entry")
+    }
+    // [designed] Raw pointers, only inside unsafe (embedded / interop)
+    unsafe {
+        Ship* raw = allocate<Ship>(1)
+        deallocate(raw)
+    }
+    // [designed] Garbage collection as a project option: fusion.toml [memory] strategy
+}
+
+
+// =============================================================================================
+// 18. Concurrency (no task yet)
+// =============================================================================================
+
+// [designed] async functions and await
+async string, Error function download(string url) {
+    Response response = await http.get(url)
+    return await response.readBody()
+}
+
+void function concurrency() {
+    // [designed] Channels: threads share data by sending it
+    Channel<int> updates = Channel.create<int>()
+    // [designed] go: run a function on another thread
+    go producer(updates)
+    int first = updates.receive()
+    // [designed] A mutex, locked for the length of a using block
+    Mutex lock = Mutex()
+    using lock {
+        print("only one thread at a time")
+    }
+    // [designed] await in a caller, with the error captured
+    string page, err = await download("https://example.com")
+    // [idea] Wait for several tasks together
+    List<string> pages = await all([download("a"), download("b")])
+}
+
+void function producer(Channel<int> out) {
+    for i in range(0, 10) { out.send(i) }
+}
+
+
+// =============================================================================================
+// 19. Callbacks and events
+// =============================================================================================
+
+// [designed] A name for a function type
+type Callback = void function(int result)
+
+// [designed] An event: many handlers, called in turn
+class Button {
+    Event<void function(Button)> onClick
+    void function click() { onClick.invoke(this) }
+}
+
+void function events() {
+    Button btn = Button()
+    // [designed] Add a handler with +=
+    btn.onClick += func(Button b) : print("Clicked!")
+    btn.click()
+}
+
+
+// =============================================================================================
+// 20. Standard library tour
+// =============================================================================================
+
+void function library(string... args) {
+    // [built] Files: text and bytes
+    writeText("notes.txt", "first line\n")
+    appendText("notes.txt", "second line\n")
+    List<string> lines = readLines("notes.txt")
+    if fileExists("notes.txt") { deleteFile("notes.txt") }
+    // [built] Console input and program arguments
+    string line = readLine()
+    print("{@1} argument(s)", len(args))
+    // [built] Numbers in other bases, and formatting
+    print("{@1} {@2}", toHex(255), formatNumber(1234.5, "$#,##0.00"))
+    // [built] Text helpers that return lists
+    List<string> parts = "a,b,c".split(",")
+    // [designed] Math library
+    double root = Math.sqrt(2.0)
+    // [designed] Date and time
+    DateTime now = DateTime.now()
+    print(now.format("yyyy-MM-dd"))
+    // [designed] Data formats: JSON, CSV, XML, ...
+    Json data = Json.parse("{\"ship\": \"Dawn\"}")
+    // [designed] Networking
+    Response r = http.get("https://example.com")
+    // [designed] Running another program
+    Process proc = Process.start("python", ["script.py"])
+    string output = proc.readOutput()
+    // [built] End now, with an exit code
+    exit(0)
+}
+
+
+// =============================================================================================
+// 21. Interop
+// =============================================================================================
+
+// [designed] Loading a DLL and calling a function in it
+void function interop() {
+    DLL lib = DLL.load("mylib.dll")
+    type AddFunc = int function(int, int)
+    AddFunc add = lib.getFunction<AddFunc>("add")
+    print("{@1}", add(10, 20))
+    lib.unload()
+}
+
+// [designed] Inline assembly, only in a function marked @Unsafe
+@Unsafe
+int function fastAdd(int a, int b) {
+    int result
+    asm {
+        mov eax, [a]
+        add eax, [b]
+        mov [result], eax
+    }
+    return result
+}
+
+// [idea] Calling a C function by declaring it
+extern "C" int function abs(int x)
+
+
+// =============================================================================================
+// 22. Comments and documentation
+// =============================================================================================
+
+// [built] A line comment
+/* [built] A block comment
+   over several lines */
+
+// [designed] Documentation comments, read by the documentation generator
+/**
+ * Distance between two points.
+ * @param a the first point
+ * @param b the second point
+ * @return the distance
+ */
+double function distance(Point a, Point b) : sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2)
+
+// [designed] Regions: sections an editor can fold
+#Region Helpers
+int function helper() : 1
+#End Region
+
+// [designed] Single-quote comments - disabled for now: they clash with char literals
+
+
+// =============================================================================================
+// 23. Hardware (HIDL, Task 41)
+// =============================================================================================
+
+// [idea] Import a hardware description; Fusion makes a typed API from it
+//        (the HIDL format is files/Fusion_Hardware_Interface_Definition_Language_HIDL.md)
+import hardware "MicrowaveController.hidl" as microwave
+
+void function hardware() {
+    // [idea] Registers become typed properties; out-of-range values are compile errors
+    microwave.POWER.level = 7
+    microwave.TIMER.seconds = 90
+    if microwave.DOOR.isOpen { print("close the door") }
+}
+
+
+// =============================================================================================
+// 24. main - [built] the program starts here; (string... args) is optional
+// =============================================================================================
+
+void function main(string... args) {
+    print("Hello, Fusion! version {@1}", version())
+    print("{@1} {@2} {@3}", sumTo(10), grade(85), isPrime(7))
+    print("{@1}", area(Shape.Circle(1.0)))
+    print("{@1}", eval(Expr.Add(Expr.Num(2), Expr.Num(3))))
+    structs()
+    errors()
+    Ship ship = Ship("Dawn", 200.0)
+    Warship war = Warship("Spear", 150.0, 50)
+    Container<int> box = Container<int>()
+    box.add(42)
+    events()
+    library(...args)
+}

@@ -41,6 +41,8 @@ Their detail is in `task/taskSummaryArchive.md`.
 	[DONE] 23.7 A compiled program waits for a key before its window closes; `--headless` closes it at
 		once; no wait when output is redirected (user request 2026-10-11) - #run.bat passes --headless
 	[DONE] 23.8 Windows Explorer preview of .fusion files: tools/windows/fusion-file-preview.reg (user request)
+	[DONE] 23.9 files/showcase/: Fusion_showcase.fusion + fusion.toml - the whole language, built and
+		future, each feature tagged [built] / [designed] / [idea] / [rejected] (user request 2026-10-23)
 
 #### 22 Project tracking restructure (FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, check.py) [DONE]
 	[DONE] 22.1-22.6 FEATURES.md, SYNTAX_REFERENCE.md, slim CLAUDE.md, working file / archive /
