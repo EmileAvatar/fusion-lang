@@ -203,6 +203,10 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 #### 32 Methods on structs, then classes and interfaces (user, 2026-10-11) [ ]
 	[ ] 32.1 Methods on the program's own structs (`p.move(1, 2)`) - built-in types have them (18.3.7)
 	[ ] 32.2 Classes, interfaces, inheritance - plan first
+		User decisions (2026-10-23, showcase review): `inherits`, with `extends` as an alias;
+		interface names need no I prefix; several constructors per class; a constructor may
+		call another (private ones too) with this(...); constructors calling each other in a
+		circle are a compile error
 	[ ] 32.3 Example (was 16.2: classes, interfaces & enums)
 
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ]
@@ -318,6 +322,20 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
+	From the showcase review (user, 2026-10-23):
+	[ ] `elif` as an alias for `else if` (less typing)
+	[ ] `switch` as an alias for `match` - the two are interchangeable
+	[ ] Enum values with fixed constants, built by the enum's private constructor:
+		`enum Planet { Mercury(3.7) ... }`, Planet.Mercury.gravity() / Planet.Mercury.Name
+	[ ] Several return values only when `[functions] multiple_returns = true` (off by default);
+		a function that can fail always has its Error last
+	[ ] Operator overloading, off by default - `[language] operator_overloading = true`
+	[ ] Namespaces: group related modules (several folders / libraries) under one name
+	[ ] println with a line ending: the PC's own, or set in fusion.toml (print already ends
+		the line today - to settle: print without a line ending?)
+	[ ] `loop { }` with no break / return inside is a compile error (to be confirmed)
+	[ ] Open: `int?` - the spec says value types can't be null but its `?[` example uses `int?`
+		(user will check, with Task 30)
 	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use
 	[POSTPONED - with each feature] More error types (Task 26 list, 2026-10-16): NetworkError /
 		TimeoutError (a network module), ParseError (JSON / data modules), CancelledError

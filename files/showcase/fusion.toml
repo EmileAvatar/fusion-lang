@@ -59,6 +59,19 @@ string_mutable = true
 # [built] Warn when a string field is longer than this (0 = never)
 string_warn_length = 64
 
+[functions]
+# [designed] Several return values per function (user, 2026-10-23: off unless allowed);
+# a function that can fail always has its Error last
+multiple_returns = false
+
+[language]
+# [idea] Operator overloading (+ on your own types) - only for exceptional cases (user)
+operator_overloading = false
+
+[console]
+# [idea] The line ending println uses: "system" (the PC's own) | "lf" | "crlf"
+line_ending = "system"
+
 [stdlib]
 # [built] std (everything) | alloc (no OS: no print, no files) | core (no heap)
 layer = "std"

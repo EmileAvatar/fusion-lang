@@ -49,14 +49,25 @@ import Fusion.System.Process
 // [idea] Import only some names from a module
 import geometry { square, circle }
 
+// [idea] Namespaces: group related modules (from several folders or libraries) under one
+//        name (user, 2026-10-23)
+namespace Fusion.Games {
+    import physics
+    import graphics
+}
+
 // [designed] A module file names its module and what it exports (spec "Module Definition")
 module Showcase
 export Ship, Fleet
 
 // [built] public: other modules can use it; without it only this module's files see it
-public int function version() { return 1 }
+public int function version() {
+    return 1
+}
 // [designed] protected / private on class members (section 14); private on module names
-private int function secretVersion() { return 0 }
+private int function secretVersion() {
+    return 0
+}
 
 
 // =============================================================================================
@@ -131,7 +142,9 @@ void function types() {
     // [designed] More type-class methods (spec "Autobox Classes")
     float rounded = f.round(2)
     // [idea] Type tests with is (the spec uses is only for null)
-    if s is string { print("a string") }
+    if s is string {
+        print("a string")
+    }
     // [idea] typeOf(x) gives the type's name as text
     print(typeOf(price))
 }
@@ -223,8 +236,12 @@ void function collections() {
 // [designed] Value types are never null; objects and strings can be (spec "Null Handling")
 void function nulls(Ship ship) {
     // [designed] Test for null: ?.null or is null
-    if ship?.null { return }
-    if ship is null { return }
+    if ship?.null {
+        return
+    }
+    if ship is null {
+        return
+    }
     // [designed] Safe navigation: none when anything on the way is null
     string captain = ship?.captain?.name
     // [designed] A default when it is null
@@ -253,13 +270,21 @@ void function operators() {
         h = h * 31 + a
     }
     // [built] Comparison: == != < > <= >=, and = compares inside a condition
-    if a = 7 and b != 3 { print("yes") }
+    if a = 7 and b != 3 {
+        print("yes")
+    }
     // [built] === and !== also compare the type
-    if a !== "7" { print("different types") }
+    if a !== "7" {
+        print("different types")
+    }
     // [designed] <> as another way to write !=
-    if a <> b { print("not equal") }
+    if a <> b {
+        print("not equal")
+    }
     // [built] Logic in words
-    if a > 0 and not (b > 5 or a < 0) { print("ok") }
+    if a > 0 and not (b > 5 or a < 0) {
+        print("ok")
+    }
     // [designed] ** for powers
     int cube = a ** 3
     // [designed] Bit operators
@@ -314,7 +339,9 @@ int function square(int x) : x * x
 
 // [built] Default values; callers may name arguments
 void function greet(string name = "World", int times = 1) {
-    for i in range(0, times) { print("Hello, {name}!") }
+    for i in range(0, times) {
+        print("Hello, {name}!")
+    }
 }
 
 // [built] Function values: a parameter of a function type
@@ -326,11 +353,15 @@ int[3] function podium() : [3, 1, 2]
 // [designed] Variadic parameters: any number of values, as an array
 int function total(int... numbers) {
     int t = 0
-    for n in numbers { t += n }
+    for n in numbers {
+        t += n
+    }
     return t
 }
 
-// [designed] Several return values (an error as the last one is built - section 16)
+// [designed] Several return values - only when fusion.toml allows it ([functions]
+//            multiple_returns, off by default). A function that can fail always has its
+//            Error last, closest to the function name (built - section 16)
 (int, int) function divide(int a, int b) : (a / b, a % b)
 
 // [idea] Function overloading by parameter types
@@ -348,11 +379,13 @@ void function functions() {
     (int) : int addStep = func(int x) : x + step
     // [designed] Spreading an array into a variadic call
     int t = total(...[1, 2, 3])
-    // [designed] Receiving several return values
+    // [designed] Receiving several return values (only with [functions] multiple_returns)
     int q, int r = divide(7, 2)
     // [designed] Named lambdas inside a function, with a body of several lines
     int function clamp(int v) {
-        if v > 10 { return 10 }
+        if v > 10 {
+            return 10
+        }
         return v
     }
 }
@@ -366,20 +399,28 @@ void function controlFlow(int n) {
     // [built] if / else if / else
     if n > 10 {
         print("big")
-    } else if n > 5 {
+    } elif n > 5 {                // [designed] elif: an alias for else if (less typing)
         print("medium")
     } else {
         print("small")
     }
     // [built] while, and for over a range (with an optional step)
-    while n > 0 { n = n - 1 }
+    while n > 0 {
+        n = n - 1
+    }
     for i in range(0, 10, 2) { print("{i}") }
     // [built] for each element of an array, list, map (keys) or enum's values
-    for name in ["Ada", "Grace"] { print(name) }
+    for name in ["Ada", "Grace"] {
+        print(name)
+    }
     // [built] break and continue
     for i in range(0, 100) {
-        if i == 3 { continue }
-        if i == 8 { break }
+        if i == 3 {
+            continue
+        }
+        if i == 8 {
+            break
+        }
     }
     // [designed] Ranges with ... (inclusive), and a step
     for i in 1...10 { print("{i}") }
@@ -387,23 +428,35 @@ void function controlFlow(int n) {
     // [designed] Loop labels: break or continue an outer loop
     outer: for x in range(0, 10) {
         for y in range(0, 10) {
-            if x * y == 42 { break outer }
+            if x * y == 42 {
+                break outer
+            }
         }
     }
     // [idea] do-while: the body runs at least once
     do {
         n = n + 1
     } while n < 3
-    // [idea] loop: runs until a break
+    // [idea] loop: runs until a break - a loop with no break / return inside is a compile
+    //        error (user, 2026-10-23: to be confirmed)
     loop {
-        if n > 5 { break }
+        if n > 5 {
+            break
+        }
         n = n + 1
     }
     // [built] match on a value: several values per case, else required
     match n {
         case 1, 2: print("one or two")
-        case 3 { print("three") }
+        case 3 {
+            print("three")
+        }
         else: print("other")
+    }
+    // [designed] switch: an alias for match - the two are interchangeable (user, 2026-10-23)
+    switch n {
+        case 0: print("zero")
+        else: print("not zero")
     }
     // [idea] Guards in match: a case with a condition
     match n {
@@ -420,15 +473,21 @@ void function controlFlow(int n) {
         n = n + 1
     } with {50} {
         check {
-            if n > 500000 { exit loop }
+            if n > 500000 {
+                exit loop
+            }
         }
         check interrupt(signal, data) {
-            if signal == InterruptSignal.Shutdown { exit loop }
+            if signal == InterruptSignal.Shutdown {
+                exit loop
+            }
         }
     }
     // [designed] A per-loop pass limit, as an attribute
     #[max_iterations(100000)]
-    while n > 0 { n = n - 1 }
+    while n > 0 {
+        n = n - 1
+    }
     // [idea] assert: an AssertionError when the condition is false
     assert n == 0, "n should be 0"
 }
@@ -463,16 +522,19 @@ enum Expr {
 // [rejected] One central ERROR enum for every error - errors are types, each with its own
 //            name (Task 26.10, user decision)
 
-// [idea] Methods inside an enum
+// [designed] Enum values with fixed constants, built by the enum's private constructor
+//            (user, 2026-10-23): Planet.Mercury.gravity() is 3.7, Planet.Mercury.Name is
+//            "Mercury". Values written in (...) are constants; types in (...) declare data
 enum Planet {
-    Mercury, Earth, Mars
-    double function gravity() {
-        match this {
-            case Mercury: return 3.7
-            case Earth: return 9.8
-            case Mars: return 3.7
-        }
+    Mercury(3.7)
+    Earth(9.8)
+    Mars(3.71)
+
+    private double g
+    private constructor(double g) {
+        this.g = g
     }
+    double function gravity() : g
 }
 
 double function area(Shape s) {
@@ -527,7 +589,8 @@ struct Vector3 {
     float y
     float z
     float function length() : sqrt(x * x + y * y + z * z)
-    // [idea] Operator overloading: + on your own types
+    // [idea] Operator overloading: + on your own types - off by default, allowed only with
+    //        [language] operator_overloading = true (user, 2026-10-23: for exceptional cases)
     Vector3 operator +(Vector3 other) : Vector3(x + other.x, y + other.y, z + other.z)
 }
 
@@ -550,15 +613,16 @@ void function structs() {
 // 13. Interfaces (Task 32)
 // =============================================================================================
 
-// [designed] An interface lists what a class must provide
-interface IMovable {
+// [designed] An interface lists what a class must provide. Names need no I in front
+//            (Movable, not IMovable - user, 2026-10-23)
+interface Movable {
     void function move(Vector3 direction, float deltaTime)
     void function stop()
     property Speed: float { get; }
 }
 
 // [designed] An interface may give a method a default body
-interface IDamageable {
+interface Damageable {
     property Health: float { get; set; }
     void function takeDamage(float amount)
     bool function isAlive() : Health > 0
@@ -570,7 +634,7 @@ interface IDamageable {
 // =============================================================================================
 
 // [designed] A class: references, not copies; implements interfaces
-class Ship implements IMovable, IDamageable {
+class Ship implements Movable, Damageable {
     // [designed] Auto-properties, with a private setter
     property Name: string { get; private set; }
     property Speed: float { get; set; }
@@ -585,7 +649,7 @@ class Ship implements IMovable, IDamageable {
     // [designed] Private instance fields
     private float fuel = 100.0
 
-    // [designed] The constructor: no return type
+    // [designed] Constructors: no return type; a class may have several
     constructor(string name, float speed) {
         this.Name = name
         this.Speed = speed
@@ -593,23 +657,44 @@ class Ship implements IMovable, IDamageable {
         shipCount += 1
     }
 
+    // [designed] A constructor may call another one (a private one too) with this(...)
+    constructor(string name) {
+        this(name, 100.0)
+    }
+    private constructor() {
+        this("Unnamed")
+    }
+    // [rejected] Constructors calling each other in a circle - an immediate compile error
+
     // [designed] Methods
     void function move(Vector3 direction, float deltaTime) {
         fuel -= 0.1 * deltaTime
     }
-    void function stop() { Speed = 0 }
-    void function takeDamage(float amount) { Health -= amount }
+    void function stop() {
+        Speed = 0
+    }
+    void function takeDamage(float amount) {
+        Health -= amount
+    }
 
     // [designed] A computed property
     property IsOperational: bool {
-        get { return Health > 0 and fuel > 0 }
+        get {
+            return Health > 0 and fuel > 0
+        }
     }
 
     // [designed] A property that checks the value it is given
     property Fuel: float {
-        get { return fuel }
+        get {
+            return fuel
+        }
         set {
-            if value < 0 { fuel = 0 } else { fuel = value }
+            if value < 0 {
+                fuel = 0
+            } else {
+                fuel = value
+            }
         }
     }
 
@@ -620,12 +705,15 @@ class Ship implements IMovable, IDamageable {
     // [designed] A class nested in a class
     class Engine {
         float power
-        constructor(float power) { this.power = power }
+        constructor(float power) {
+            this.power = power
+        }
     }
 }
 
-// [designed] Single inheritance; super calls the parent's constructor
-class Warship extends Ship {
+// [designed] Single inheritance: inherits, or its alias extends; super calls the parent's
+//            constructor
+class Warship inherits Ship {
     property WeaponPower: int { get; set; }
 
     constructor(string name, float speed, int power) {
@@ -649,8 +737,12 @@ abstract class Weapon {
 class Inventory {
     private List<string> items
     property Items[int index]: string {
-        get { return items[index] }
-        set { items[index] = value }
+        get {
+            return items[index]
+        }
+        set {
+            items[index] = value
+        }
     }
 }
 
@@ -667,16 +759,20 @@ extend string {
 // [designed] A generic class
 class Container<T> {
     private List<T> items
-    void function add(T item) { items.add(item) }
+    void function add(T item) {
+        items.add(item)
+    }
     T function get(int index) : items[index]
     property Count: int { get { return items.len() } }
 }
 
 // [designed] A generic function with a constraint
-T function findMax<T>(List<T> items) where T implements IComparable<T> {
+T function findMax<T>(List<T> items) where T implements Comparable<T> {
     T best = items[0]
     for item in items {
-        if item.compareTo(best) > 0 { best = item }
+        if item.compareTo(best) > 0 {
+            best = item
+        }
     }
     return best
 }
@@ -809,7 +905,9 @@ void function concurrency() {
 }
 
 void function producer(Channel<int> out) {
-    for i in range(0, 10) { out.send(i) }
+    for i in range(0, 10) {
+        out.send(i)
+    }
 }
 
 
@@ -823,7 +921,9 @@ type Callback = void function(int result)
 // [designed] An event: many handlers, called in turn
 class Button {
     Event<void function(Button)> onClick
-    void function click() { onClick.invoke(this) }
+    void function click() {
+        onClick.invoke(this)
+    }
 }
 
 void function events() {
@@ -843,7 +943,12 @@ void function library(string... args) {
     writeText("notes.txt", "first line\n")
     appendText("notes.txt", "second line\n")
     List<string> lines = readLines("notes.txt")
-    if fileExists("notes.txt") { deleteFile("notes.txt") }
+    if fileExists("notes.txt") {
+        deleteFile("notes.txt")
+    }
+    // [idea] println: print with a line ending - the PC's own (\r\n on Windows) or one set
+    //        in fusion.toml (user, 2026-10-23; note print already ends the line today)
+    println("done")
     // [built] Console input and program arguments
     string line = readLine()
     print("{@1} argument(s)", len(args))
@@ -934,7 +1039,9 @@ void function hardware() {
     // [idea] Registers become typed properties; out-of-range values are compile errors
     microwave.POWER.level = 7
     microwave.TIMER.seconds = 90
-    if microwave.DOOR.isOpen { print("close the door") }
+    if microwave.DOOR.isOpen {
+        print("close the door")
+    }
 }
 
 
