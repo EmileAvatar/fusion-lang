@@ -10,6 +10,8 @@ and `files/showcase/Fusion_showcase.fusion` section 18. Names such as `ThreadPoo
 - **Section 1** explains each term, with a short example.
 - **Section 2** shows the common traps: each with code that has the bug, and how it is
   normally solved.
+- **Section 3** collects possible ideas for Fusion: the fixes in general form, and a first
+  model of threads, priorities and resources run as services.
 
 ---
 
@@ -63,8 +65,7 @@ this thread may change the user interface. A long job on it freezes the window, 
 jobs go to another thread, and their result is sent back to it.
 
 The main thread doesn't control other threads by itself. It owns the thread pool or
-ThreadManager that does. When `main` ends, the program ends, and the other threads end with
-it.
+ThreadManager that does. When `main` ends, the program ends, and the other threads end with it.
 
 #### Thread pool / ThreadManager
 
@@ -616,3 +617,238 @@ Fusion's spec already chooses "share memory by communicating" (channels) as the 
 the compiler should **prevent**, and which it should only warn about, is a design question
 for when concurrency becomes a task. Rust shows that races (trap 1) can be made a compile
 error; Go shows that a frozen program (traps 3 and 10) can at least give a clear message.
+
+---
+
+## Section 3 - Future: possible ideas
+
+**These are possible ideas, not design choices.** They are written down to be discussed
+when concurrency becomes a task. The code is a sketch: nothing here is decided, and the
+names may change.
+
+### 3.1 The fixes, in general form
+
+Each trap in Section 2 has specific fixes. Behind each fix is a more general principle (the
+"abstract solution"), which can guide a language design rather than a single program.
+
+| # | Trap | Usual fixes | Abstract solution |
+|---|---|---|---|
+| 1 | Race condition | Don't share; atomics; a mutex; one owner thread fed by a channel | **Remove shared changeable state**, or make each change **indivisible** |
+| 2 | Check-then-act | Check and act inside one lock; one combined operation (compare-and-set, `getOrAdd`) | **A decision and its action form one indivisible step** |
+| 3 | Deadlock | One global lock order; one lock at a time; locks with a timeout; channels instead of locks | **Break the waiting circle**: an order on resources, or no waiting while holding |
+| 4 | Forgotten unlock | `using lock { }` / guard objects - never a manual unlock | **Tie a resource's release to a scope**, so leaving it in any way releases it |
+| 5 | Livelock | Random backoff before retrying; give one side priority | **Break the symmetry** between the competing threads |
+| 6 | Starvation | Fair (first-come) locks; writers block new readers | **Bounded waiting**: every waiter is served within a known limit (fairness, aging) |
+| 7 | Priority inversion | Priority inheritance | **Whoever blocks important work temporarily becomes important** |
+| 8 | Change never seen | Atomics, locks, channels, cancellation tokens - never a plain flag | **Communicate only through operations that synchronize** (that set up "happens before") |
+| 9 | Collection changed by two threads | Concurrent collections; a lock; one owner thread; copy-on-write snapshots | **Confinement** (one owner) **or immutability** (readers get a snapshot) |
+| 10 | Channel with nobody receiving | Start the receiver first; buffers; the sender closes; timeouts | **Every channel has a defined lifetime and owner**, and every wait has a limit |
+| 11 | Blocking inside async | Async I/O; heavy work moved to a thread pool | **Keep blocking work and waiting work on separate executors** |
+| 12 | Forgetting `await` | A compiler warning or error for an ignored future | **No orphan tasks**: every started task is awaited, or explicitly detached |
+| 13 | Sync-over-async deadlock | "Async all the way" | **Never block a thread that the awaited work needs** |
+| 14 | Errors lost in another thread | Tasks return a result or an error; a handler for uncaught errors | **Errors travel with results** back to whoever waits |
+| 15 | Thread leaks, too many threads | Fixed-size pools; semaphores; async for I/O; a clear way for every thread to end | **Bounded resources and admission control**; every task has an owner and an end |
+| 16 | UI from another thread | Post the update to the main thread | **Thread affinity**: an object that belongs to one thread is only reached by messages to it |
+| 17 | Contention, false sharing | Short critical sections; split locks; per-thread counters; padding | **Locality**: keep each thread's hot data its own, and share as little and as briefly as possible |
+
+Three ideas cover most of the table:
+- **Ownership:** one owner per piece of changeable data.
+- **Scoped lifetimes:** locks, tasks and channels end with the block that created them.
+- **Bounded waiting:** timeouts, fairness and limits.
+
+The model below builds on all three.
+
+### 3.2 A first model (user's proposal, 2026-10-23)
+
+This section restates the proposal, and adds notes on what exists elsewhere and what would
+need to be worked out.
+
+#### A. Every thread has an identity
+
+- **ID:** a number. Each new thread gets the next number (ID + 1), so an ID is never used
+  twice in a run. The main thread is always **0**, the **prime** thread.
+- **GUID:** a globally unique ID, so a thread can also be identified across processes, logs
+  and machines.
+- **Key:** a multi-part key that records **who created it**. Main is `0`, a thread created
+  by main is `0.3`, and a thread created by that one is `0.3.7`. The key is the thread's
+  place in the family tree.
+- **Priority:** `normal` unless stated.
+
+```fusion
+Thread importer = Thread.start(importData, priority = Priority.Low, timeout = 30s)
+print("{importer.id} {importer.key} {importer.guid}")   // 7  0.3.7  6f1c...-...
+```
+
+*Notes:*
+- The key matches **structured concurrency** (Kotlin coroutines, Swift tasks, Java's
+  StructuredTaskScope): a parent owns its children. This gives clear rules:
+  - cancelling a parent cancels its children;
+  - an error in a child is reported to its parent;
+  - a parent doesn't end until its children have ended.
+
+  That fixes trap 12 (orphan tasks), trap 14 (lost errors) and trap 15 (leaks).
+- The ID never repeating needs a 64-bit counter. At a million threads per second it would
+  take about 290,000 years to run out.
+- For tasks (many small jobs on few threads) the same identity can apply to each task, not
+  only to each operating-system thread.
+
+#### B. Priority: lower priority yields to higher
+
+A thread with lower priority, deeper in the tree, always yields to a thread with higher
+priority.
+
+*Notes:* "always yields" alone leads to **starvation** (trap 6): a busy high-priority
+thread could stop low ones forever. Point E (weighted turns) is the fix, so B and E work
+together. Priority also needs **priority inheritance** (trap 7). In this model that means a
+service (point D) handles a high-priority request first, even when it came from a
+low-priority thread acting on a high one's behalf.
+
+#### C. A sleeping thread releases its locks
+
+When a thread sleeps it gives up its resources, and it takes them again when it wakes, before
+it carries on.
+
+*Notes:* This is how a **condition variable wait** already works. The danger is that
+anything may have changed while it slept. A check made before sleeping can be wrong after
+waking (trap 2). Two possible rules:
+- Sleeping inside a lock is a compile error. Only a `wait until <condition>` is allowed
+  there; it releases the lock, then takes it again **and checks the condition again**.
+- Releasing must only happen where the data is consistent, never halfway through an update.
+  The compiler could check this.
+
+#### D. Resources run as services (the core idea)
+
+For files, sockets, pipes and database connections, the usual model is reversed:
+- The resource gets its own thread, or a small pool, the moment it is opened.
+- Other threads **never lock it**. They send it messages ("write this line", "read 4 KB",
+  "run this query").
+- The resource's thread carries out each request **atomically**, one at a time and in order,
+  and sends the result back.
+- When the resource is closed, its thread is released.
+- When code writes to a file, it is the file's own thread that does the writing, not the
+  calling thread.
+- The real lock on the file (for other **applications**, for example several programs
+  sharing one log file) is held only for the moment of each read or write. It is released
+  straight after.
+
+```fusion
+File log = File.open("app.log")       // the file becomes a service with its own worker
+log.write("started")                  // a message to the service - this thread locks nothing
+string all = await log.readAll()      // the reply comes back as a future
+log.close()                           // the service ends; its worker is released
+```
+
+To the caller it reads like ordinary code; the message passing is hidden inside.
+
+*Notes:*
+- **This is the actor model** (Erlang / Elixir, Akka, Microsoft Orleans). It is proven at very
+  large scale: Erlang runs millions of these in phone switches and WhatsApp. Database
+  connection pools and asynchronous log writers already work this way.
+- It removes traps 1, 2, 4, 8 and 9 for resources, because only one thread ever touches them.
+- **One thread per open file does not scale to a million.** The usual answer:
+  - Each resource is a **mailbox** (a queue of requests), not a thread.
+  - A few I/O threads serve all the mailboxes, using the operating system's event-driven
+    I/O (IOCP on Windows, epoll / io_uring on Linux).
+  - It still looks like "the file has its own worker", but it costs a few hundred bytes,
+    not 1 MB of stack.
+- Questions to settle:
+  - **Ordering:** requests from one sender are carried out in the order sent. Is that
+    enough?
+  - **Full mailbox (back-pressure):** what happens when requests arrive faster than they
+    are served? The sender waits, gets an error, or the oldest requests are dropped.
+  - **Reads in parallel:** many readers of a file could be served at once, like a
+    read-write lock.
+  - **Two resources in one step** (write a file **and** update a database, or neither): this
+    needs a coordinator or a compensating step (the "saga" pattern). Atomic actions across
+    services are the hard part of every actor system.
+  - **Services waiting on each other** can still deadlock (A waits for B's reply, and B waits
+    for A's). Timeouts (point F) turn that into an error instead of a freeze.
+
+#### E. Weighted turns: even low priority always runs
+
+Priorities get **shares** of the turns, not absolute precedence. For example, out of every
+10 turns:
+- high priority gets 5;
+- medium gets 4;
+- low gets 1.
+
+A low-priority thread is still guaranteed at least 1 turn in 10. The numbers only illustrate
+the idea; the real ones would be settings.
+
+*Notes:*
+- This is **weighted fair scheduling**: Linux's scheduler gives weights from "nice"
+  values, and "stride" and "lottery" scheduling are textbook forms.
+- The operating system decides which **OS thread** runs on a core, not Fusion. Fusion could
+  apply the weights in two places it controls:
+  - **its own task scheduler**, if Fusion runs many light tasks on a few OS threads, as Go
+    does (a large piece of work);
+  - **the order in which a service (D) takes requests from its mailbox**, which is simpler
+    and gives most of the benefit.
+- Weights go well with **aging**: a request that has waited long enough moves up a level.
+
+#### F. Every thread states a timeout
+
+Each thread or task says how long it may run, or waits for something:
+- `never` is only for very important long-running threads, such as a server that waits for
+  clients for as long as it is up.
+- Others get a time to match their work: a quick log write or a small database update gets
+  a short timeout, while a big file or a large SQL update gets a longer one.
+- When the time is up, the thread is stopped and its resources are released automatically.
+
+```fusion
+Thread server = Thread.start(serveClients, priority = Priority.High, timeout = never)
+Thread report = Thread.start(buildReport, timeout = 10min)
+db.execute("UPDATE ...", timeout = 2s)
+```
+
+*Notes:*
+- Go passes a **deadline** down to every child ("context"); in this model a child's timeout
+  could never be longer than its parent's (see A).
+- "Stopped" must be **cooperative** (see "Cancellation" in Section 1), or a write could be cut
+  in half. Services (D) make this safe: a request either completes or is rolled back, and a
+  timeout never leaves a half-written record.
+- A missing timeout could be a compile error. Alternatively, it could take a default from
+  `fusion.toml`, set per kind of work (quick, file, database, server).
+
+#### G. Editor tools: seeing the threads
+
+The editor tools Fusion will have (Task 36) would show, for each thread:
+- what it is doing;
+- which variables it changes;
+- which files, sockets, web connections and databases it uses;
+- profiling: how long it waits, how long it runs, and how full its mailbox is.
+
+*Notes:* the compiler already knows which variables and resources each function touches, so
+much of this is available **before** the program runs. That includes warnings like "two
+threads change `count` without a lock". The rest comes from tracing while it runs, as in
+Visual Studio's Parallel Stacks, Go's trace viewer and tokio-console.
+
+#### H. The goal: a million requests without locking up or slowing down
+
+The aim is that a server can handle 1,000,000 requests without freezing and without
+slowing down. The pieces above serve that goal:
+- Requests are **tasks**, not threads: a million tasks over a pool sized to the CPU cores
+  (traps 15 and 17).
+- Busy resources are **services** with bounded mailboxes. The resource controls the work,
+  not the callers, so there are no shared locks to queue for (traps 1, 3 and 17), and
+  back-pressure instead of collapse.
+- **Weighted turns** keep low-priority work moving (traps 6 and 7).
+- **Timeouts** stop anything from waiting forever (traps 3, 10 and 15).
+- **The family tree** (keys) means nothing is orphaned and no error is lost (traps 12, 14 and
+  15).
+
+In short: **the resource becomes a service, instead of every caller updating it by hand.**
+
+### 3.3 Open questions for later
+
+1. Operating-system threads only, or Fusion's own light tasks on top (as in Go and
+   Erlang)? Points B and E depend on this.
+2. Mailbox full: does the sender wait, get an error, or are old requests dropped? Could
+   this be a setting per resource?
+3. Is the timeout required in the code, or taken from a `fusion.toml` default per kind of
+   work?
+4. Which traps are compile errors, which are warnings, and which are run-time errors with a
+   clear message?
+5. How do services stay atomic across two resources (file and database together)?
+6. Is the service model the only way to reach a file, or is direct access still allowed
+   for simple single-threaded programs (with no worker started)?
