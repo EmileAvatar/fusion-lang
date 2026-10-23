@@ -12,8 +12,9 @@ explanation, with code, is in [Concurrency.md](Concurrency.md):
 change as the design develops.
 
 **Fusion's concurrency goal:** a million requests on one machine with many cores, with no
-races, no deadlocks, no freezes and no slowdown, using as little memory and CPU as
-possible. The core idea: **a resource becomes a service, instead of every caller updating it
+data races by construction, deadlocks and freezes prevented by rules (any that slip through
+become clear errors), and no slowdown, using as little memory and CPU as possible.
+Version one of `service`: [Concurrency.md](Concurrency.md) section 3.11. The core idea: **a resource becomes a service, instead of every caller updating it
 by hand.** Manual locking is a last resort.
 
 ---

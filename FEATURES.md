@@ -279,17 +279,26 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[ ] 41.9 Docs & examples
 
 #### 42 Concurrency: services and threads (user, 2026-10-23) [ ]
-	Goal: a million requests on one machine with many cores - no races, deadlocks, freezes or
-	slowdown, with a small memory / CPU footprint and very scalable. A resource becomes a
-	service; manual locking is a last resort. Design: Concurrency.md (sections 3-4);
-	overview: Concurrency_Traps.md. Ideas only - plan first when the task starts.
+	Goal: a million requests on one machine with many cores - no data races by construction,
+	deadlocks and freezes prevented by rules (any that slip through become clear errors), no
+	slowdown, a small memory / CPU footprint, very scalable. A resource becomes a service;
+	manual locking is a last resort. Design: Concurrency.md (sections 3-4); overview:
+	Concurrency_Traps.md. Plan first when the task starts.
+	[ ] 42.0 Version one (agreed 2026-10-24, Concurrency.md 3.11): five rules - one owner,
+		each operation one step, copies out, handles shared; the compiler picks plain variable
+		/ atomic / mailbox on a shared pool (never a thread per service); waits in order,
+		`async` to not wait, not re-entrant by default; `service(x).run { }` for several steps;
+		a timeout = the caller stopped waiting. Created only by a parent thread, outside loops
+		(class field or function variable); a warning when no other thread uses it.
+		Contextual keyword. Settings v1: Mailbox, WhenFull, Timeout, final. Roadmap phases
+		1-5 and the 8 first tests in 3.11; a prototype measuring cost first
 	[ ] 42.1 `service` keyword: `service <type> <name>` makes a variable, struct or class object
 		a service with Fusion's default thread settings (`service int counter = 0`,
 		`service Person person = ...`, `service Car honda = Honda(Color.Black)`)
 	[ ] 42.2 Settings with `service(name).X = ...` - only from the thread that created it, never
 		a sub-thread; the compiler picks the defaults not given (Mailbox, WhenFull, Scheduler,
 		Timeout, ...)
-	[ ] 42.3 Units: `service(a, b, ...) T unit = T(a, b)` - one service owns them all (one or
+	[ ] 42.3 (after version one) Units: `service(a, b, ...) T unit = T(a, b)` - one service owns them all (one or
 		more names); calls to a or b go through it (one thread, one resource - P2). A warning
 		above `[concurrency] max_unit_warn` (e.g. 5), an error above `max_unit` (e.g. 32)
 	[ ] 42.4 `service(x).final = { ... }` - extra clean-up; leaving scope always releases every
@@ -305,10 +314,10 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		they are created and end
 	[ ] 42.8 Default timeouts and other defaults per resource kind - confirm the exact values
 		(starting point: Concurrency.md 3.7)
-	[ ] 42.9 Custom contention rules and schedulers (Concurrency.md 3.8); Rule.HIERARCHY default
+	[ ] 42.9 (after version one) Custom contention rules and schedulers (Concurrency.md 3.8); Rule.HIERARCHY default
 	[ ] 42.10 Trap checks: warnings by default, errors when fusion.toml says so (two resources
 		per thread, shared variables, missing timeouts, services blocking on each other)
-	[ ] 42.11 Possible service settings to go through (user + Claude, 2026-10-23):
+	[ ] 42.11 (after version one) Possible service settings to go through (user + Claude, 2026-10-23):
 		Mailbox (size) / WhenFull (WAIT, ERROR, DROP_OLDEST, DROP_NEWEST) / Timeout per
 		request / IdleTimeout (release the thread when unused) / Scheduler (IMMEDIATE,
 		BATCHED, custom) / BatchSize and BatchDelay / Priority / Rule (who wins contention) /

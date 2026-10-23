@@ -141,7 +141,8 @@ When a language feature or spec changes, update every affected file without aski
 - **Core concept:** an agnostic language - each project configures features, safety level,
   memory strategy and backend (`fusion.toml`)
 - **Long-term concurrency goal:** a million requests on one machine with many cores - no
-  races, no deadlocks, no freezes, no slowdown - with as small a memory and CPU footprint as
+  data races by construction, deadlocks and freezes prevented by rules (any that slip through
+  become clear errors), no slowdown - with as small a memory and CPU footprint as
   possible, and very scalable. The core: a resource becomes a service (`service` keyword),
   instead of every caller updating it by hand; manual locking is a last resort
   (`Concurrency.md`, `Concurrency_Traps.md`, FEATURES.md Task 42)

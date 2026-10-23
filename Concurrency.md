@@ -663,7 +663,8 @@ The model below builds on all three.
 
 ### 3.2 The goal
 
-**A million requests on one machine with many cores: no races, no deadlocks, no freezes, and
+**A million requests on one machine with many cores, with no data races by construction,
+deadlocks and freezes prevented by rules (any that slip through become clear errors), and
 no slowdown.**
 
 The approach is to turn the traps into **design principles**, the way the "Gang of Four" book
@@ -1374,6 +1375,136 @@ Scheduled in `FEATURES.md` Task 42:
   modules.
 - **42.12:** cluster threads across several servers. This is later, probably outside Fusion's
   first scope, and handled by a separate cluster framework.
+
+### 3.11 Version one of `service` (agreed 2026-10-24)
+
+This version was agreed after reviews by ChatGPT and Claude
+(`Notes/notes chatgpt review on our concurrency.md`). The aim is to keep it as simple as
+possible. Everything else in Section 3 builds on these rules later.
+
+#### The five rules
+
+1. **What `service` means:** one owner of the state. Every statement or method call on it is
+   one indivisible step. Anything read out of it is a **copy**. Copying a service variable
+   gives another **handle** to the same service, not a second copy of its state.
+2. **How it runs is the compiler's choice.** A service is a logical owner, never a thread of
+   its own:
+   - used by one thread only: it becomes a plain variable, at no cost;
+   - a simple value (`service int`): CPU atomic instructions;
+   - anything else: a mailbox, served by a small shared worker pool.
+3. **Waiting:** ordinary code reads in order. `counter += 1` followed by `print(counter)`
+   prints the updated value. Not waiting must be asked for (`async`). A service finishes one
+   request before it starts the next, even if the request `await`s in the middle. That makes
+   it **not re-entrant** by default; re-entrancy has to be opted into.
+4. **Several steps as one:** a class method, or `service(x).run { ... }`, runs as one step:
+
+   ```fusion
+   service(account).run {
+       if account.balance >= 800 {       // the check and the change are one step:
+           account.balance -= 800        // two withdrawals can't both pass the check
+       }
+   }
+   ```
+
+5. **A timeout means the caller stopped waiting, not that the work was undone.** Every
+   request ends as **completed**, **failed**, **timed out** (its effects may still happen),
+   or **cancelled**.
+
+#### Where a service is created (user, 2026-10-24)
+
+- A service exists **only** for state that several threads read or write. Its job is to
+  make sure the operations are atomic, especially when several values must change as one
+  unit.
+- It is declared **outside** loops: as a class field, or as a variable, struct or class
+  object in a function. The threads (for example, child workers started in a loop) then
+  act on it.
+- **Only a parent thread creates a service**, and its child threads use it. A child thread
+  can in turn create its own service, for further processing by **its** children, and send
+  results on to its parent's service.
+- If no other thread ever uses a service, the compiler gives a warning.
+
+```fusion
+void function processOrders(List<Order> orders) {
+    service Totals totals = Totals()          // created by the parent, outside the loop
+    for order in orders {
+        go worker(order, totals)              // child threads act on the shared service
+    }
+}
+
+void function worker(Order order, Totals totals) {
+    service List<Line> lines = []             // a child may create its own service, for
+    for item in order.items {                 // its own children to fill
+        go priceLine(item, lines)
+    }
+    totals.add(order.id, lines)               // then send the result to the parent's service
+}
+```
+
+#### The keyword
+
+`service` is a **contextual** keyword for now, the way `error` is. A variable may still be
+named `service`. It may become a full keyword later.
+
+#### Adopted from the reviews
+
+- **Three separate concerns:**
+  - **Ownership:** the thread tree. It decides who cancels whom and where errors go.
+  - **Priority:** what runs sooner.
+  - **Contention:** who wins when two threads want one resource.
+
+  `Rule.HIERARCHY` is only the default for contention.
+- **"One resource per thread" means at the same time:** never hold one resource while
+  waiting on another. Using a database and then a log file, one after the other, is fine.
+- **A release happens between requests, never in the middle of one.**
+- **Cheap reads:** readers can get a **snapshot** instead of sending one request per read.
+- **When the mailbox is full:** wait, reject (`QueueFullError`), or **coalesce**. Coalescing
+  merges pending requests into the newest one where that is safe, such as position updates,
+  never withdrawals.
+- **Nothing escapes:** a class object inside a service is never handed out; only copies
+  leave.
+- **The goal's wording:** no data races by construction; deadlocks and freezes prevented
+  by rules, and any that slip through turned into clear errors.
+
+#### Postponed until version one works
+
+- units (`service(a, b)`);
+- custom schedulers and contention rules;
+- machine-dependent profiles;
+- most of the settings in FEATURES.md 42.11.
+
+Version one needs four settings: `Mailbox`, `WhenFull`, `Timeout` and `final`. The
+execution profiles ChatGPT suggested (LOCAL, SERIAL, PARALLEL, IO, REALTIME) are dropped:
+the compiler chooses the implementation (rule 2).
+
+#### Roadmap (from ChatGPT's review)
+
+1. **Meaning:** the five rules, a mailbox, exclusive ownership, waiting and `async`, error
+   propagation.
+2. **Structured execution:** tasks and futures, `await`, cancellation, parent-child
+   lifetimes, bounded queues, deadlines, shutdown and clean-up.
+3. **An efficient runtime:** the shared worker pool, cheap logical services, back-pressure,
+   snapshots, profiling.
+4. **Advanced coordination:** units across several resources, scheduling and fairness,
+   priority inheritance, deadlock diagnostics, custom schedulers.
+5. **Platforms:** embedded profiles, high-throughput servers, backend optimizations;
+   distributed services (the cluster framework) only if justified.
+
+Before phase 1 is planned in full: a small prototype measuring the cost per request and
+per service.
+
+#### First tests
+
+1. Thousands of concurrent increments give the exact expected result.
+2. Concurrent withdrawals never break the balance rule.
+3. A snapshot stays consistent while the service changes.
+4. Errors reach the right caller.
+5. Cancellation and shutdown release every resource.
+6. A full mailbox gives the configured result.
+7. Services calling each other never wait in an endless circle.
+8. Many logical services share a small worker pool.
+
+A **deterministic test mode** (a seed that fixes the order threads run in) lets a failing
+order be replayed.
 
 ---
 
