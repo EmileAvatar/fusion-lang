@@ -236,6 +236,9 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[ ] 36.2 VS Code extension: the grammar, `.fusion` file icon, comment / bracket / indent rules
 	[ ] 36.3 Sublime Text package
 	[ ] 36.4 Others as needed: Notepad++ (user-defined language), Vim / Neovim, tree-sitter grammar
+	[ ] 36.6 Later: a thread view - a "stack of threads" (what each thread does, which variables
+		and files / sockets / databases it touches), profiling, graphs and heat maps
+		(user, 2026-10-23; Concurrency.md section 3.3 H - design later)
 	[ ] 36.5 Later: a language server (LSP) - errors as you type, go to definition, completion -
 		built on the self-hosted compiler, one server for every editor
 
@@ -322,6 +325,9 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
+	[ ] Concurrency - no task yet. Ideas and principles: Concurrency.md section 3 (resources as
+		services by default, one resource per thread, the thread hierarchy decides, every wait
+		has a deadline); other languages: section 4
 	From the showcase review (user, 2026-10-23):
 	[ ] `elif` as an alias for `else if` (less typing)
 	[ ] `switch` as an alias for `match` - the two are interchangeable

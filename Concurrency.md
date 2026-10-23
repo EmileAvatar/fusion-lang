@@ -10,8 +10,11 @@ and `files/showcase/Fusion_showcase.fusion` section 18. Names such as `ThreadPoo
 - **Section 1** explains each term, with a short example.
 - **Section 2** shows the common traps: each with code that has the bug, and how it is
   normally solved.
-- **Section 3** collects possible ideas for Fusion: the fixes in general form, and a first
-  model of threads, priorities and resources run as services.
+- **Section 3** collects possible ideas for Fusion: the fixes in general form, a model of
+  threads and resources run as services, ten principles written like design patterns, and
+  real-world cases with links.
+- **Section 4** compares how C, C++, Java, C#, Go, Python, Rust, Erlang and Node.js handle a
+  million requests and races, deadlocks and freezes.
 
 ---
 
@@ -658,197 +661,746 @@ Three ideas cover most of the table:
 
 The model below builds on all three.
 
-### 3.2 A first model (user's proposal, 2026-10-23)
+### 3.2 The goal
 
-This section restates the proposal, and adds notes on what exists elsewhere and what would
-need to be worked out.
+**A million requests on one machine with many cores: no races, no deadlocks, no freezes, and
+no slowdown.**
 
-#### A. Every thread has an identity
+The approach is to turn the traps into **design principles**, the way the "Gang of Four" book
+turned common object-oriented problems into Design Patterns. The principles are built into
+the language and its libraries, with defaults that are safe and settings that can change
+them. This may not solve concurrency for good. The aim is to make races and deadlocks
+**very hard to write**.
 
-- **ID:** a number. Each new thread gets the next number (ID + 1), so an ID is never used
-  twice in a run. The main thread is always **0**, the **prime** thread.
-- **GUID:** a globally unique ID, so a thread can also be identified across processes, logs
-  and machines.
-- **Key:** a multi-part key that records **who created it**. Main is `0`, a thread created
-  by main is `0.3`, and a thread created by that one is `0.3.7`. The key is the thread's
-  place in the family tree.
+Its core is one sentence: **a resource becomes a service, instead of every caller updating
+it by hand.** Manual locking is a last resort.
+
+Out of scope for now: several machines (a later `ClusterThreadPool`). Everything here is
+about one machine with many cores.
+
+### 3.3 The model (user's direction, 2026-10-23)
+
+#### A. Every thread has an identity and a place in the family tree
+
+- **ID:** a number. Each new thread gets the next number, and an ID is never used twice in a
+  run. The main thread is always **0**, the **prime** thread.
+- **GUID:** a globally unique ID, for logs and for later, across processes and machines.
+- **Key:** the path of who created whom. Main is `0`, its threads are `0.1` and `0.2`, and a
+  thread created by `0.2` is `0.2.1`.
 - **Priority:** `normal` unless stated.
 
 ```fusion
 Thread importer = Thread.start(importData, priority = Priority.Low, timeout = 30s)
-print("{importer.id} {importer.key} {importer.guid}")   // 7  0.3.7  6f1c...-...
+print("{importer.id} {importer.key} {importer.guid}")   // 7  0.2.1  6f1c...
 ```
 
-*Notes:*
-- The key matches **structured concurrency** (Kotlin coroutines, Swift tasks, Java's
-  StructuredTaskScope): a parent owns its children. This gives clear rules:
-  - cancelling a parent cancels its children;
-  - an error in a child is reported to its parent;
-  - a parent doesn't end until its children have ended.
+A parent owns its children. Cancelling a parent cancels its children, a child's error is
+reported to its parent, and a parent ends only after its children. This is **structured
+concurrency**, used by Kotlin, Swift and Java, and it fixes orphan tasks, lost errors and
+thread leaks (traps 12, 14 and 15).
 
-  That fixes trap 12 (orphan tasks), trap 14 (lost errors) and trap 15 (leaks).
-- The ID never repeating needs a 64-bit counter. At a million threads per second it would
-  take about 290,000 years to run out.
-- For tasks (many small jobs on few threads) the same identity can apply to each task, not
-  only to each operating-system thread.
+#### B. The hierarchy decides who gets a resource
 
-#### B. Priority: lower priority yields to higher
+When two threads want the same resource, a **rule** decides which one must give way.
 
-A thread with lower priority, deeper in the tree, always yields to a thread with higher
-priority.
+- The default is **`Rule.HIERARCHY`**: the senior key wins. If A is `0.1` and B is `0.2`,
+  B releases the resource and A goes first.
+- A program can define its own rule. For example, B may have priority over this one
+  resource, so A must release it.
 
-*Notes:* "always yields" alone leads to **starvation** (trap 6): a busy high-priority
-thread could stop low ones forever. Point E (weighted turns) is the fix, so B and E work
-together. Priority also needs **priority inheritance** (trap 7). In this model that means a
-service (point D) handles a high-priority request first, even when it came from a
-low-priority thread acting on a high one's behalf.
+Because the hierarchy decides in advance, two threads can never wait on each other in a
+circle. This is the same idea as "always lock in one order" (trap 3), made automatic.
 
-#### C. A sleeping thread releases its locks
+#### C. Resources are services (the default)
 
-When a thread sleeps it gives up its resources, and it takes them again when it wakes, before
-it carries on.
-
-*Notes:* This is how a **condition variable wait** already works. The danger is that
-anything may have changed while it slept. A check made before sleeping can be wrong after
-waking (trap 2). Two possible rules:
-- Sleeping inside a lock is a compile error. Only a `wait until <condition>` is allowed
-  there; it releases the lock, then takes it again **and checks the condition again**.
-- Releasing must only happen where the data is consistent, never halfway through an update.
-  The compiler could check this.
-
-#### D. Resources run as services (the core idea)
-
-For files, sockets, pipes and database connections, the usual model is reversed:
-- The resource gets its own thread, or a small pool, the moment it is opened.
-- Other threads **never lock it**. They send it messages ("write this line", "read 4 KB",
-  "run this query").
-- The resource's thread carries out each request **atomically**, one at a time and in order,
-  and sends the result back.
+Files, sockets, pipes and database connections are **services**:
+- When the resource is opened, a thread or thread pool is created to manage it. That thread
+  or pool **coordinates this one resource only**.
+- Other threads never lock the resource. They send it requests, and it carries them out and
+  sends back the results.
 - When the resource is closed, its thread is released.
-- When code writes to a file, it is the file's own thread that does the writing, not the
-  calling thread.
-- The real lock on the file (for other **applications**, for example several programs
-  sharing one log file) is held only for the moment of each read or write. It is released
-  straight after.
+- The lock on the real file (for other programs, for example several applications writing
+  one log file) is held only during each read or write, then released at once.
 
 ```fusion
-File log = File.open("app.log")       // the file becomes a service with its own worker
-log.write("started")                  // a message to the service - this thread locks nothing
-string all = await log.readAll()      // the reply comes back as a future
-log.close()                           // the service ends; its worker is released
+File log = File.open("app.log")       // log gets its own thread, which manages it as a service
+log.write("started")                  // 10 threads may call this: the service puts the
+log.write("ready")                    // writes in order, one at a time
+string text = await log.readAll()
+log.close()                           // the service ends, its thread is released
 ```
 
-To the caller it reads like ordinary code; the message passing is hidden inside.
-
-*Notes:*
-- **This is the actor model** (Erlang / Elixir, Akka, Microsoft Orleans). It is proven at very
-  large scale: Erlang runs millions of these in phone switches and WhatsApp. Database
-  connection pools and asynchronous log writers already work this way.
-- It removes traps 1, 2, 4, 8 and 9 for resources, because only one thread ever touches them.
-- **One thread per open file does not scale to a million.** The usual answer:
-  - Each resource is a **mailbox** (a queue of requests), not a thread.
-  - A few I/O threads serve all the mailboxes, using the operating system's event-driven
-    I/O (IOCP on Windows, epoll / io_uring on Linux).
-  - It still looks like "the file has its own worker", but it costs a few hundred bytes,
-    not 1 MB of stack.
-- Questions to settle:
-  - **Ordering:** requests from one sender are carried out in the order sent. Is that
-    enough?
-  - **Full mailbox (back-pressure):** what happens when requests arrive faster than they
-    are served? The sender waits, gets an error, or the oldest requests are dropped.
-  - **Reads in parallel:** many readers of a file could be served at once, like a
-    read-write lock.
-  - **Two resources in one step** (write a file **and** update a database, or neither): this
-    needs a coordinator or a compensating step (the "saga" pattern). Atomic actions across
-    services are the hard part of every actor system.
-  - **Services waiting on each other** can still deadlock (A waits for B's reply, and B waits
-    for A's). Timeouts (point F) turn that into an error instead of a freeze.
-
-#### E. Weighted turns: even low priority always runs
-
-Priorities get **shares** of the turns, not absolute precedence. For example, out of every
-10 turns:
-- high priority gets 5;
-- medium gets 4;
-- low gets 1.
-
-A low-priority thread is still guaranteed at least 1 turn in 10. The numbers only illustrate
-the idea; the real ones would be settings.
-
-*Notes:*
-- This is **weighted fair scheduling**: Linux's scheduler gives weights from "nice"
-  values, and "stride" and "lottery" scheduling are textbook forms.
-- The operating system decides which **OS thread** runs on a core, not Fusion. Fusion could
-  apply the weights in two places it controls:
-  - **its own task scheduler**, if Fusion runs many light tasks on a few OS threads, as Go
-    does (a large piece of work);
-  - **the order in which a service (D) takes requests from its mailbox**, which is simpler
-    and gives most of the benefit.
-- Weights go well with **aging**: a request that has waited long enough moves up a level.
-
-#### F. Every thread states a timeout
-
-Each thread or task says how long it may run, or waits for something:
-- `never` is only for very important long-running threads, such as a server that waits for
-  clients for as long as it is up.
-- Others get a time to match their work: a quick log write or a small database update gets
-  a short timeout, while a big file or a large SQL update gets a longer one.
-- When the time is up, the thread is stopped and its resources are released automatically.
+A service brings its own **thread pool** and **scheduler**. Fusion provides some schedulers,
+and a developer can write their own:
 
 ```fusion
-Thread server = Thread.start(serveClients, priority = Priority.High, timeout = never)
-Thread report = Thread.start(buildReport, timeout = 10min)
-db.execute("UPDATE ...", timeout = 2s)
+Database db = Database.open("connection string", ThreadPool(10), Scheduler.BASIC)
+// Database db = Database.open("connection string")     // the default pool and scheduler
+db.execute("UPDATE ...")
+db.execute("SELECT ...")
+db.close()
 ```
 
-*Notes:*
-- Go passes a **deadline** down to every child ("context"); in this model a child's timeout
-  could never be longer than its parent's (see A).
-- "Stopped" must be **cooperative** (see "Cancellation" in Section 1), or a write could be cut
-  in half. Services (D) make this safe: a request either completes or is rolled back, and a
-  timeout never leaves a half-written record.
-- A missing timeout could be a compile error. Alternatively, it could take a default from
-  `fusion.toml`, set per kind of work (quick, file, database, server).
+The application sees **one** database object served by 10 threads. Behind it, the database
+may accept 1,000 connections; the service decides how to use them. From outside, each request
+is one action.
 
-#### G. Editor tools: seeing the threads
+**The scheduler decides the order** in which requests are carried out:
+- `IMMEDIATE`: each request is carried out as it arrives.
+- `BATCHED`: requests are collected and run together, as many as the service allows at
+  once. Databases do this to save disk writes ("group commit").
+- **Custom:** the developer's own order, for example all writes first and then the reads.
 
-The editor tools Fusion will have (Task 36) would show, for each thread:
-- what it is doing;
-- which variables it changes;
+**The service decides what can run in parallel.** For example, a write locks only the table
+or column it changes, while any number of reads run alongside it.
+
+**The mailbox** (the queue of requests waiting) is set when the service is created:
+- its size: unlimited, or a number, for example 100;
+- what happens when it is full: the sender waits, or the sender gets a **`QueueFullError`**
+  and the request is not added.
+
+```fusion
+File audit = File.open("audit.log", mailbox = 100, whenFull = Full.ERROR)   // QueueFullError
+File trace = File.open("trace.log", mailbox = 1000, whenFull = Full.WAIT)
+```
+
+**Settings (`fusion.toml`):**
+
+```toml
+[concurrency]
+resource_as_service = true      # the default
+```
+
+- `true` (the default): every file, socket, pipe and database is a service, even in a
+  single-threaded program.
+- `false`: the thread that opened the resource controls it. Other threads can use it
+  directly, so all the traps in Section 2 are possible, and syncing is the developer's job.
+  Frameworks that manage their own resources may choose this.
+- Direct access with no service at all is allowed only in **unsafe** mode, for embedded
+  systems.
+
+**Variables and lists can be services too.** A variable shared between threads can be
+declared as a service: one thread owns it, and the others send requests to it.
+
+```fusion
+service int counter = 0               // owned by its own thread; other threads send requests
+counter += 1                          // a request to the owner, carried out atomically
+```
+
+The same applies to collections. `ModifiedWhileLoopingError` (Task 27.2e) is for ordinary
+lists, which must not change while something loops over them. A list declared as a service
+may be changed while others loop: each loop sees a snapshot.
+
+#### D. One thread, one resource
+
+**No thread ever holds more than one resource.** Waiting on two or more results at once is a
+sign of a bad design.
+
+- By default this is a **warning** in the editor and the compiler. A setting can make it a
+  **compile error**.
+- Only **unsafe** mode allows a thread to wait on two or more resources, and then it's the
+  developer's decision.
+- **Two resources that can't be separated logically** (for example, a file and a database
+  row that must change together) are treated as **one unit**. One service owns both, and
+  only its thread touches them, so the atomic step happens inside that service. All other
+  threads use channels to reach it.
+
+#### E. Scheduling
+
+- The default is the **operating system's** scheduler.
+- A **Fusion scheduler** is an option for advanced developers who need finer control. It
+  can be set in `fusion.toml`, or per pool in the code: `ThreadPool(10, Scheduler.WEIGHTED)`.
+- **Weighted turns:** priorities get shares of the turns, not absolute precedence. For
+  example, out of 10 turns high priority gets 5, medium 4 and low 1, so low priority still
+  runs at least 1 time in 10. The numbers only illustrate the idea.
+
+#### F. Every wait has a timeout
+
+Each thread, task and request states a timeout:
+- **Defaults per kind of resource.** The starting values are 2 minutes for a database,
+  2 minutes for a file and 60 seconds for a socket. They are to be checked against best
+  practice; for comparison, .NET's `SqlCommand` waits 30 seconds by default, and Erlang's
+  `gen_server:call` 5 seconds.
+- **Set per resource** when it is opened (`timeout = 10min` for a big SQL update).
+- **`never`** is only for very important long-running threads, such as a server waiting for
+  clients.
+- When a timeout runs out, the work stops cooperatively, and its resources are released.
+  Because a service's requests either complete or are rolled back, nothing is left
+  half-written.
+
+#### G. How the traps are reported
+
+- Every trap the compiler or runtime can see is a **warning** by default.
+- `fusion.toml` can turn each one into an **error**. The error is a Fusion error type that
+  the program must catch and handle, for example a `DeadlockError`, `TimeoutError` or
+  `QueueFullError`.
+
+```toml
+[concurrency.traps]
+two_resources = "warning"     # warning | error
+shared_variable = "warning"
+missing_timeout = "error"
+```
+
+#### H. Editor tools: a stack of threads
+
+Fusion's editor tools would show the threads the way a debugger shows a call stack: what each
+thread does, in order.
+
+```text
+Thread 0      main app
+Thread 1      autolock variable A, as a service
+Thread 2      uses variable A - sends a request to Thread 1
+Thread 1      variable A out of scope - resources released
+```
+
+The same view would show:
+- which variables each thread changes;
 - which files, sockets, web connections and databases it uses;
-- profiling: how long it waits, how long it runs, and how full its mailbox is.
+- profiling: time waiting, time running, how full each mailbox is.
 
-*Notes:* the compiler already knows which variables and resources each function touches, so
-much of this is available **before** the program runs. That includes warnings like "two
-threads change `count` without a lock". The rest comes from tracing while it runs, as in
-Visual Studio's Parallel Stacks, Go's trace viewer and tokio-console.
+Graphs and heat maps come later. Most of this is known **before** the program runs, because
+the compiler sees which variables and resources each function touches. The rest comes from
+tracing while it runs. (Noted in `FEATURES.md` under Task 36.)
 
-#### H. The goal: a million requests without locking up or slowing down
+### 3.4 The principles - a catalogue
 
-The aim is that a server can handle 1,000,000 requests without freezing and without
-slowing down. The pieces above serve that goal:
-- Requests are **tasks**, not threads: a million tasks over a pool sized to the CPU cores
-  (traps 15 and 17).
-- Busy resources are **services** with bounded mailboxes. The resource controls the work,
-  not the callers, so there are no shared locks to queue for (traps 1, 3 and 17), and
-  back-pressure instead of collapse.
-- **Weighted turns** keep low-priority work moving (traps 6 and 7).
-- **Timeouts** stop anything from waiting forever (traps 3, 10 and 15).
-- **The family tree** (keys) means nothing is orphaned and no error is lost (traps 12, 14 and
-  15).
+Each principle is written like a design pattern: its intent, the problem it solves, the
+solution, and what it costs. They rest on one fact.
 
-In short: **the resource becomes a service, instead of every caller updating it by hand.**
+A deadlock needs **all four** of these "Coffman conditions" (1971):
+1. **Mutual exclusion:** only one thread may use a resource at a time.
+2. **Hold and wait:** a thread holds one resource while it waits for another.
+3. **No preemption:** a resource can't be taken from the thread that holds it.
+4. **Circular wait:** threads wait on each other in a circle.
 
-### 3.3 Open questions for later
+Break any one, and deadlock is impossible. The principles below break three of them.
 
-1. Operating-system threads only, or Fusion's own light tasks on top (as in Go and
-   Erlang)? Points B and E depend on this.
-2. Mailbox full: does the sender wait, get an error, or are old requests dropped? Could
-   this be a setting per resource?
-3. Is the timeout required in the code, or taken from a `fusion.toml` default per kind of
-   work?
-4. Which traps are compile errors, which are warnings, and which are run-time errors with a
-   clear message?
-5. How do services stay atomic across two resources (file and database together)?
-6. Is the service model the only way to reach a file, or is direct access still allowed
-   for simple single-threaded programs (with no worker started)?
+#### P1. Resource as Service
+
+- **Intent:** make shared resources safe without locks in the callers.
+- **Problem:** many threads update one file, socket, database or variable, which leads to
+  races, check-then-act bugs and forgotten unlocks (traps 1, 2, 4, 8, 9).
+- **Solution:** one coordinator (a thread or pool) owns the resource; everyone else sends
+  requests (model C).
+- **Consequences:** callers can't corrupt the resource. The costs are a hop through a
+  mailbox (microseconds), and the mailbox can fill up (P6).
+- **Seen in:** Erlang's `gen_server`, database connection pools, Node.js's file thread pool,
+  and Python's advice for logging from many processes (case 1 below).
+
+#### P2. One Thread, One Resource
+
+- **Intent:** no thread waits on two resources.
+- **Problem:** a thread that holds A and waits for B is half of every deadlock (trap 3).
+- **Solution:** a warning or compile error when a thread would hold two (model D). Things
+  that must change together become one service.
+- **Consequences:** this breaks **hold and wait**. A design that needs two resources at once
+  must name them as one unit, which also documents the dependency.
+
+#### P3. The Hierarchy Decides
+
+- **Intent:** contention always has a known winner.
+- **Problem:** two threads each wait for the other to give way (traps 3 and 5).
+- **Solution:** `Rule.HIERARCHY` (the senior key wins), or a custom rule; the loser
+  releases (model B).
+- **Consequences:** this breaks **circular wait** and **no preemption**. Releasing must
+  be safe, which services guarantee (a request completes or is rolled back).
+
+#### P4. Every Wait Has a Deadline
+
+- **Intent:** nothing waits forever.
+- **Problem:** frozen programs: lost replies, a channel nobody reads, services waiting on
+  each other (traps 3, 10, 13 and 15).
+- **Solution:** a timeout on every thread, request and wait, with defaults per resource
+  kind (model F). A child's deadline is never later than its parent's.
+- **Consequences:** a freeze becomes a `TimeoutError` with a clear message. The timeout
+  values need care: too short, and slow but healthy work fails.
+
+#### P5. Owned Threads (the family tree)
+
+- **Intent:** every thread and task has an owner and an end.
+- **Problem:** orphan tasks, lost errors, leaked threads (traps 12, 14 and 15).
+- **Solution:** the ID / key tree (model A): parents wait for children, cancel them, and
+  receive their errors.
+- **Consequences:** a thread can't outlive its purpose. Long-lived workers belong to a
+  long-lived parent, for example a server.
+- **Seen in:** Erlang's supervision trees, which restart failed workers, Kotlin's
+  coroutine scopes, and Java's StructuredTaskScope.
+
+#### P6. Bounded Mailboxes
+
+- **Intent:** overload is visible and controlled.
+- **Problem:** requests arrive faster than they are served. Memory fills up and everything
+  slows down at once.
+- **Solution:** a size for every mailbox, and a stated policy for when it is full (wait or
+  `QueueFullError`).
+- **Consequences:** the system slows down at the edge (back-pressure) instead of
+  collapsing in the middle.
+
+#### P7. The Service Owns Its Schedule
+
+- **Intent:** the resource, which knows its own rules, decides the order and what runs in
+  parallel.
+- **Problem:** callers can't know that reads may share and writes may not, or that batching
+  saves 90% of disk writes.
+- **Solution:** a scheduler per service, chosen from `IMMEDIATE`, `BATCHED` or a custom one
+  (model C).
+- **Consequences:** this gives the best throughput, and the caller's code stays simple.
+- **Seen in:** SQLite in WAL mode: many readers at once, one writer, and readers never block
+  the writer.
+
+#### P8. Weighted Turns
+
+- **Intent:** important work goes first, and no work starves.
+- **Problem:** strict priority starves low priority (trap 6) and allows priority inversion
+  (trap 7).
+- **Solution:** shares of the turns (model E). A service takes requests from a high-priority
+  thread first, **including requests a low-priority thread makes on its behalf**
+  (priority inheritance).
+- **Seen in:** Linux's weights per "nice" level; the Mars Pathfinder fix (case 9 below).
+
+#### P9. Services Never Block on Each Other
+
+- **Intent:** stop deadlocks between services, which message passing alone does not
+  prevent.
+- **Problem:** service A, while handling a request, waits for service B's reply, while B
+  waits for A's. This is the most common deadlock in Go programs (case 5).
+- **Solution:** a service handling a request may only call **down** the hierarchy, or
+  send without waiting for a reply. The compiler can check this from the key tree. P4 is
+  the backstop.
+- **Consequences:** Together with P2 and P3, this closes the remaining circle.
+
+#### P10. Visible Concurrency
+
+- **Intent:** concurrency bugs can be seen before they happen.
+- **Problem:** bugs that depend on timing hide from testing. The 2003 blackout bug took
+  weeks of code audit to find (case 10).
+- **Solution:** the editor's thread stack, graphs and heat maps (model H), and compiler
+  warnings for shared variables and for threads holding two resources.
+
+### 3.5 Real-world cases
+
+Each case says what happened, shows a short sketch of the bug, and names the principle that
+prevents it. The code sketches are simplified, not the original code.
+
+#### Case 1 - Several processes writing one log file (Python)
+
+Python's own documentation says logging to one file from **several processes** is not
+supported. There is no standard way to serialize access to a file across processes, and
+log lines get mixed up. Its advice is to send every log record to one process (or one
+thread) that alone writes the file. That is **P1, Resource as Service**, recommended by the
+language itself.
+
+```python
+# every worker process: send, don't write
+queue_handler = logging.handlers.QueueHandler(queue)
+# one listener: the only writer of the file
+listener = logging.handlers.QueueListener(queue, logging.FileHandler("app.log"))
+```
+
+Link: [Python Logging Cookbook - Logging to a single file from multiple processes](https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes)
+
+#### Case 2 - Two transfers deadlock in a database (PostgreSQL)
+
+This is the textbook database deadlock, from PostgreSQL's manual. Two transactions update
+the same two rows in opposite orders, and each waits for the other's row lock. PostgreSQL
+detects it and cancels one transaction.
+
+```sql
+-- transaction 1                                   -- transaction 2
+UPDATE accounts SET balance = balance + 100        UPDATE accounts SET balance = balance + 100
+  WHERE acctnum = 11111;                             WHERE acctnum = 22222;
+                                                   UPDATE accounts SET balance = balance - 100
+                                                     WHERE acctnum = 11111;   -- waits for 1
+UPDATE accounts SET balance = balance - 100
+  WHERE acctnum = 22222;                           -- waits for 2: deadlock
+```
+
+The manual's advice: always take locks in the same order. Prevented by **P3** (the order is
+fixed by the hierarchy) and **P7** (the database service orders the writes).
+
+Link: [PostgreSQL documentation - Deadlocks](https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-DEADLOCKS)
+
+#### Case 3 - A shared map crashes a log shipper (Go, Grafana Promtail)
+
+Promtail 2.2.0 crashed with `fatal error: concurrent map read and map write` when it sent
+logs to several Loki servers. Several clients used one shared map without a lock, and Go's
+runtime stopped the program. The fix added synchronization.
+
+```go
+var tenants = map[string]string{}       // shared by every client goroutine
+func getTenantID(c Client) string {
+    return tenants[c.Name]              // read in one goroutine ...
+}                                       // ... while another writes: fatal error
+```
+
+Prevented by **P1**: the map is a service (`service Map<string, string> tenants`), so only
+its owner touches it.
+
+Link: [grafana/loki#3571](https://github.com/grafana/loki/issues/3571), fix [grafana/loki#3573](https://github.com/grafana/loki/pull/3573)
+
+#### Case 4 - A HashMap loops forever at 100% CPU (Java)
+
+In Java 7, two threads that resized the same `HashMap` at once could link its internal
+list into a **circle**. Every later `get` then looped forever. Servers froze at 100% CPU
+with no error message. Java 8 removed the loop, but entries can still be lost. The
+documented fix is `ConcurrentHashMap` or a lock.
+
+```java
+static Map<String, User> cache = new HashMap<>();   // not thread-safe
+// many request threads:
+cache.put(id, user);       // two resizes at once -> a circular list
+cache.get(id);             // spins forever
+```
+
+Prevented by **P1**: a shared collection is a service, never touched directly from two
+threads.
+
+Link: [DZone - Resizing the HashMap: Dangers Ahead](https://dzone.com/articles/resizing-the-hashmap-dangers-ahead)
+
+#### Case 5 - Docker hangs on start-up, and a study of 171 Go bugs
+
+Docker's engine deadlocked on start-up whenever more than one plugin was installed (fixed in
+moby/moby#25384). It is one of 171 concurrency bugs collected from Docker, Kubernetes, etcd,
+CockroachDB, gRPC and BoltDB, in a 2019 study of real Go programs.
+
+The key finding: **58% of the blocking bugs (freezes) came from message passing**, not
+locks. Channels alone don't prevent deadlocks. This is why **P9** (services never block on
+each other) and **P4** (deadlines) are needed alongside **P1**.
+
+```go
+ch := make(chan result)          // unbuffered
+go func() { ch <- work() }()     // sends, and waits for a receiver
+select {
+case r := <-ch: use(r)
+case <-time.After(timeout):      // the caller gives up and leaves ...
+    return                       // ... and the goroutine waits forever: a leak
+}
+```
+
+Links:
+- [moby/moby#25384 - fix deadlock when more than 1 plugin is installed](https://github.com/moby/moby/pull/25384)
+- [system-pclub/go-concurrency-bugs](https://github.com/system-pclub/go-concurrency-bugs) (the
+  data set)
+- [Understanding Real-World Concurrency Bugs in Go (paper, ASPLOS 2019)](https://songlh.github.io/paper/go-study.pdf)
+
+#### Case 6 - Netflix servers freeze on Java 21 virtual threads
+
+After moving to Java 21 virtual threads, Netflix servers stopped answering at random:
+- Virtual threads waiting inside `synchronized` blocks were **pinned** to the few real
+  carrier threads.
+- With every carrier pinned, the thread holding the lock could never be scheduled to
+  release it.
+- Ordinary thread dumps didn't show the cause.
+
+JDK 24 (JEP 491) later removed this kind of pinning.
+
+```java
+synchronized (span) {      // pins this virtual thread to its carrier thread
+    lock.lock();           // waits - and every carrier is now pinned and waiting,
+}                          // so the lock's owner can never run to release it
+```
+
+Prevented by **P2** (no thread holds two locks: here `synchronized` and `lock`) and **P10**
+(the thread view shows who holds what).
+
+Links:
+- [Netflix Tech Blog - Java 21 Virtual Threads: Dude, Where's My Lock?](https://netflixtechblog.com/java-21-virtual-threads-dude-wheres-my-lock-3052540e231d)
+- [Reproducing the deadlock with TLA+](https://surfingcomplexity.blog/2024/08/01/reproducing-a-java-21-virtual-threads-deadlock-scenario-with-tla/)
+- [OpenJDK loom-dev: real-world pinning / ReentrantLock deadlock](https://mail.openjdk.org/pipermail/loom-dev/2024-June/006808.html)
+
+#### Case 7 - The UI freezes waiting for its own async work (C#)
+
+This is the classic .NET freeze. A button handler blocks on `.Result`, but the async method
+needs the UI thread to continue after its `await`, so each waits for the other.
+
+```csharp
+void Button_Click(...) {
+    var json = GetJsonAsync(uri).Result;   // blocks the UI thread ...
+}
+async Task<string> GetJsonAsync(Uri uri) {
+    var s = await client.GetStringAsync(uri);   // ... which this needs to continue
+    return s;
+}
+```
+
+The fix: "async all the way down", never blocking on async code. Prevented by **P9** (never
+block on something that needs you) and **P4** (a deadline turns the freeze into an error).
+
+Link: [Stephen Cleary - Don't Block on Async Code](https://blog.stephencleary.com/2012/07/dont-block-on-async-code.html)
+
+#### Case 8 - One slow request stalls every client (Node.js)
+
+Node.js serves thousands of clients with one event-loop thread and a small worker pool, and
+uses that pool for file operations. One CPU-heavy callback, or a synchronous file read, on
+the event loop stalls **every** client.
+
+```javascript
+app.get("/report", (req, res) => {
+    const data = fs.readFileSync("big.csv");   // blocks the only event-loop thread
+    res.send(summarize(data));                 // every other client waits
+});
+```
+
+Prevented by **P1** (the file is a service with its own pool; Node's own design for `fs`)
+and **P7** (heavy work goes to a pool that is meant for it).
+
+Links:
+- [Node.js - Don't Block the Event Loop (or the Worker Pool)](https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop)
+- [Alice Ryhl - Async: What is blocking?](https://ryhl.io/blog/async-what-is-blocking/) (Rust:
+  aim for 10-100 microseconds between `.await` points)
+
+#### Case 9 - Mars Pathfinder resets itself on Mars (1997)
+
+A low-priority weather task held a shared bus lock. Medium-priority tasks kept it from
+running, so the high-priority bus task waited too long. A watchdog then reset the whole
+computer, again and again. The fix, sent from Earth, turned on **priority inheritance** for
+that lock.
+
+Prevented by **P8** (requests on behalf of a high-priority thread are served at high
+priority) and **P1** (the bus is a service, so no lock is held across tasks).
+
+Link: [Glenn Reeves (JPL software lead) - What really happened on Mars](https://www.cs.cornell.edu/courses/cs614/1999sp/papers/pathfinder2.html)
+
+#### Case 10 - The 2003 North American blackout
+
+A race condition in GE's XA/21 energy management system silently stopped the alarm system
+at FirstEnergy's control room. Operators didn't see the failing lines in time, and about 50
+million people lost power. The bug's window was milliseconds wide. It took weeks of auditing
+about a million lines of code, and a lab that slowed the system down, to find it.
+
+Prevented by **P1** (the alarm list is a service) and **P10** (shared variables are flagged
+by the compiler, not found after the blackout).
+
+Link: [The Register - Software bug contributed to blackout](https://www.theregister.com/2004/04/08/blackout_bug_report/)
+
+#### Case 11 - What real concurrency bugs look like (MySQL, Apache, Mozilla, OpenOffice)
+
+A 2008 study of 105 real concurrency bugs found:
+- about a third of the non-deadlock bugs broke the order the programmer intended ("A
+  must happen before B");
+- 34% involved **several variables** that had to change together;
+- 92% could be triggered by forcing the order of at most four memory accesses.
+
+This supports **P1** and **P2**. Things that must change together belong in one service,
+which carries out each request whole and in order. The study won the ASPLOS Influential
+Paper award.
+
+Link: [Lu et al. - Learning from Mistakes: A Comprehensive Study on Real World Concurrency Bug Characteristics (PDF)](https://www.cs.columbia.edu/~junfeng/10fa-e6998/papers/concurrency-bugs.pdf)
+
+#### Case 12 - Scaling done right: WhatsApp on Erlang
+
+WhatsApp ran **2 to 3 million connections on one server** with Erlang on FreeBSD:
+- each connection is a light Erlang process with its own mailbox, and no shared memory;
+- supervisors restart whatever fails.
+
+This is P1, P5 and P6 together, proven at the scale this document aims for.
+
+Links:
+- [FreeBSD Foundation - WhatsApp testimonial](https://freebsdfoundation.org/testimonial/whatsapp/)
+- [High Scalability - How WhatsApp grew to nearly 500 million users](https://highscalability.com/how-whatsapp-grew-to-nearly-500-million-users-11000-cores-an/)
+- [Erlang - OTP Design Principles](https://www.erlang.org/doc/system/design_principles.html)
+  (supervision trees, `gen_server`)
+
+### 3.6 Questions settled (user, 2026-10-23)
+
+| Question | Answer |
+|---|---|
+| Ordering of requests | The service's scheduler: `IMMEDIATE`, `BATCHED`, or custom (for example writes first) |
+| Mailbox full | The developer chooses: unlimited or a size; when full, the sender waits or gets `QueueFullError` |
+| Reads in parallel | The service decides. Writes lock only what they change, reads run together |
+| Two resources in one step | Never two resources per thread; if they can't be separated, one service owns both as a unit |
+| OS threads or Fusion tasks | The OS scheduler by default; a Fusion scheduler for advanced developers (`fusion.toml`, or `ThreadPool(10, scheduler)`) |
+| Timeouts | Defaults per resource kind (database 2 min, file 2 min, socket 60 s - to be checked); set per resource when opened |
+| Compile error or warning | Warnings by default; `fusion.toml` can make each one an error the program must catch |
+| Direct access without a service | Only in unsafe mode (embedded). `resource_as_service = true` is the default; `false` gives control to the opening thread |
+
+### 3.7 Still open
+
+1. The exact default timeouts. Look at what database drivers, HTTP clients and operating
+   systems use.
+2. Syntax: `service int counter`, `Thread.start(...)`, `ThreadPool(10, Scheduler.X)` are
+   only sketches.
+3. How a custom rule (model B) and a custom scheduler (model C) are written: an interface
+   with a method to implement, a lambda, or settings.
+4. How the compiler checks P9 (a service calling only down the hierarchy) across modules.
+5. Cluster thread pools across machines - later.
+
+---
+
+## Section 4 - How other languages handle it
+
+This section compares other languages on the two things that matter most here: **serving
+a million requests**, and **avoiding races, deadlocks and freezes**.
+
+#### C
+
+- **A million requests:** an event loop on the operating system's event API (epoll on
+  Linux, IOCP on Windows). One thread watches thousands of sockets; nginx and Redis work
+  this way. It is fast but hard to write: every request is a state machine written by hand.
+- **Races:** the language does nothing. A data race is undefined behaviour. Tools find
+  some races while testing (ThreadSanitizer: `gcc -fsanitize=thread`).
+- **Deadlocks and freezes:** nothing. A deadlock is a silent hang.
+
+```c
+pthread_mutex_lock(&m);
+balance -= amount;          /* forget the unlock on one path: a silent hang later */
+pthread_mutex_unlock(&m);
+```
+
+#### C++
+
+- **A million requests:** event loops (Boost.Asio), and since C++20 coroutines
+  (`co_await`), so the code reads in a straight line.
+- **Races:** undefined behaviour, as in C. `std::atomic` and `std::mutex` help, and
+  ThreadSanitizer finds some races.
+- **Deadlocks:** `std::scoped_lock` can lock **several mutexes at once without deadlock**,
+  using a built-in avoidance algorithm. Guard objects (`lock_guard`) make forgotten unlocks
+  impossible.
+
+```cpp
+std::scoped_lock both(from.m, to.m);   // takes both locks in a safe order - trap 3 avoided
+from.balance -= amount;
+to.balance += amount;                  // both unlocked when 'both' goes out of scope
+```
+
+#### Java
+
+- **A million requests:** **virtual threads** (Java 21, JEP 444). Millions of cheap threads
+  run on a few real ones, so plain blocking code scales.
+
+  ```java
+  try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      for (int i = 0; i < 1_000_000; i++) {
+          executor.submit(() -> handle(request));   // one cheap virtual thread per request
+      }
+  }   // waits for all of them - structured
+  ```
+
+- **Races:** `synchronized`, `java.util.concurrent` (`ConcurrentHashMap`, atomics), and a
+  defined memory model. Races are still possible, and nothing stops them at compile time.
+- **Deadlocks and freezes:**
+  - The runtime can **find** deadlocked threads (`ThreadMXBean.findDeadlockedThreads()`),
+    and thread dumps show who holds which lock.
+  - Pinning froze Netflix (case 6) until JDK 24.
+
+#### C\#
+
+- **A million requests:** `async` / `await` on a thread pool, plus `System.Threading.Channels`
+  for producer/consumer queues with a bounded size and a choice of what happens when full.
+  That is **P6**, built in.
+- **Races:** `lock`, `Interlocked`, concurrent collections. No compile-time check.
+- **Deadlocks and freezes:** the sync-over-async freeze (case 7) is the best-known trap.
+  `CancellationToken` and timeouts are passed through most APIs (**P4**).
+
+```csharp
+var channel = Channel.CreateBounded<Request>(new BoundedChannelOptions(100) {
+    FullMode = BoundedChannelFullMode.Wait          // or DropOldest, DropNewest, DropWrite
+});
+```
+
+#### Go
+
+- **A million requests:** goroutines, which start with a 2 KB stack, multiplexed by Go's
+  own scheduler onto a few OS threads. A million goroutines is normal.
+- **Races:** "share memory by communicating" with channels. The **race detector**
+  (`go run -race`) finds races while testing. A map used from two goroutines can crash
+  the program on purpose (case 3), which is better than corrupting it silently.
+- **Deadlocks and freezes:** the runtime reports `all goroutines are asleep - deadlock!`,
+  but only when **every** goroutine is stuck. A partial deadlock in a server goes unnoticed,
+  and most real Go freezes come from channels (case 5). `context` passes deadlines and
+  cancellation down to children (**P4**, **P5**).
+
+```go
+ctx, cancel := context.WithTimeout(parent, 2*time.Second)   // the child inherits a deadline
+defer cancel()
+row := db.QueryRowContext(ctx, "SELECT ...")                // gives up after 2 s
+```
+
+#### Python
+
+- **A million requests:** `asyncio` (one thread, an event loop, many coroutines), or
+  several processes. Threads don't run Python code in parallel because of the **GIL**
+  (Global Interpreter Lock); Python 3.13 offers an optional build without it.
+- **Races:** the GIL hides some races but not all. `count += 1` can still lose updates
+  between threads. Locks and `queue.Queue` are the tools.
+- **Deadlocks and freezes:** no detection. Blocking calls inside `asyncio` freeze the event
+  loop (trap 11). Python's own advice for shared files is a single writer (case 1, **P1**).
+
+#### Rust
+
+- **A million requests:** async with a runtime such as Tokio (millions of tasks on a thread
+  pool).
+- **Races:** **data races are compile errors.** The `Send` and `Sync` rules stop a value
+  from being shared between threads unless it is safe, such as an `Arc<Mutex<T>>` or an
+  atomic. This is the strongest guarantee of any mainstream language, and the model for
+  "let the compiler check".
+
+  ```rust
+  let count = Rc::new(0);
+  thread::spawn(move || println!("{}", count));
+  // compile error: `Rc<i32>` cannot be sent between threads safely
+  ```
+
+- **Deadlocks and freezes:** **not** prevented. Two `Mutex`es locked in opposite orders
+  still deadlock, and blocking inside async freezes a worker (case 8).
+
+#### Erlang / Elixir
+
+- **A million requests:** the reference point. Processes are tiny (a few KB), each has a
+  mailbox, and there is no shared memory. WhatsApp held 2-3 million connections per server
+  (case 12).
+- **Races:** no shared memory means **no data races** at all. Each process is a service
+  (**P1**).
+- **Deadlocks and freezes:**
+  - `gen_server:call` has a **5-second timeout by default**, so a deadlock between two
+    servers becomes an error, not a freeze (**P4**).
+  - Supervision trees restart what fails (**P5**). "Let it crash" is the philosophy: a
+    process in a bad state is restarted fresh.
+
+```erlang
+gen_server:call(BankServer, {withdraw, 80})   % a request to the service; 5 s timeout
+```
+
+#### JavaScript / Node.js
+
+- **A million requests:** one event-loop thread plus a worker pool (libuv). It suits I/O
+  and is weak at CPU-heavy work.
+- **Races:** your own code runs on one thread, so there are no data races. Ordering bugs
+  between `await`s remain (check-then-act across an `await`).
+- **Freezes:** any blocking call stalls every client (case 8).
+
+#### Summary
+
+| Language | A million requests | Data races | Deadlocks | Freezes |
+|---|---|---|---|---|
+| C | Event loop by hand (epoll / IOCP) | Undefined behaviour; tools only | Nothing | Silent hang |
+| C++ | Asio, coroutines | Undefined behaviour; tools only | `scoped_lock` for several locks | Silent hang |
+| Java | Virtual threads (21+) | Library tools; memory model | Detectable at run time | Pinning (fixed in 24) |
+| C# | async / await, bounded Channels | Library tools | Manual | Sync-over-async; cancellation tokens |
+| Go | Goroutines | Race detector (testing) | Reported only when all are stuck | Channels: 58% of freezes |
+| Python | asyncio, processes | GIL hides some | Nothing | Blocking in the event loop |
+| Rust | async (Tokio) | **Compile errors** | Not prevented | Blocking in async |
+| Erlang | Tiny processes, mailboxes | **None** (no sharing) | Call timeout by default | Supervisors restart |
+| Node.js | Event loop + worker pool | None in your code | Rare | One blocking call stalls all |
+
+#### What Fusion can take from each
+
+- From **Erlang:** every resource and shared value is a process with a mailbox (P1), call
+  timeouts by default (P4), and supervision trees (P5). Erlang alone proves the
+  million-connection goal.
+- From **Rust:** shared changeable data without protection is a compile error. In Fusion
+  that is a warning by default, an error when `fusion.toml` says so.
+- From **Go:** cheap tasks over a few threads, a race detector for testing, and deadlines
+  passed down to children (`context`). Go's bug study is also a warning: channels alone
+  don't stop freezes.
+- From **C#:** bounded channels with a chosen "when full" policy (P6).
+- From **C++:** when several locks truly are needed (unsafe mode), take them all at once
+  in a safe order.
+- From **Java:** virtual threads show that plain, blocking-style code can scale. The
+  Netflix case shows why tools must show who holds what (P10).
+
+Fusion's own addition is the combination: **services by default, one resource per thread,
+the hierarchy deciding contention, and every wait with a deadline.** Between them they break
+three of the four conditions a deadlock needs. That is the claim to test when concurrency
+becomes a task.
