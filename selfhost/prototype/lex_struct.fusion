@@ -1,0 +1,50 @@
+// Task 28.1.2 prototype, pattern A (naive): one struct holds the source, the position and
+// the tokens, and is passed in and returned at every step - each step copies all of it.
+struct Token
+    int kind
+    int start
+    int stop
+
+struct Lexer
+    bytes data
+    int pos
+    List<Token> tokens
+
+int function kindOf(int c)
+    if c == 32 or c == 9 or c == 13
+        return 0
+    if c == 10
+        return 4
+    if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or c == 95
+        return 1
+    if c >= 48 and c <= 57
+        return 2
+    if c == 34
+        return 3
+    return 5
+
+Lexer function step(Lexer lx)
+    int n = len(lx.data)
+    int k = kindOf(lx.data[lx.pos])
+    int stop = lx.pos + 1
+    if k == 1 or k == 2
+        while stop < n and kindOf(lx.data[stop]) >= 1 and kindOf(lx.data[stop]) <= 2
+            stop = stop + 1
+    else if k == 3
+        while stop < n and lx.data[stop] != 34
+            stop = stop + 1
+        if stop < n
+            stop = stop + 1
+    else if k == 0
+        while stop < n and kindOf(lx.data[stop]) == 0
+            stop = stop + 1
+    if k != 0
+        lx.tokens.add(Token(k, lx.pos, stop))
+    lx.pos = stop
+    return lx
+
+void function main(string... args)
+    Lexer lx = Lexer(readBytes(args[0]), 0, [])
+    while lx.pos < len(lx.data)
+        lx = step(lx)
+    print("{@1} tokens", lx.tokens.len())

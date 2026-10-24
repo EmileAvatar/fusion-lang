@@ -196,4 +196,6 @@ Kept under Task 22 until the renumbering is approved.
 - Plan approved (user: 28.1.4, then 28.1.1). 28.1.4 done: files/Builtins.md, generated and
   checked
 - 28.1.1 done: run(command), ProcessError, tests, SYNTAX_REFERENCE example
-- **Next Action:** 28.1.2 shared state (measure with a lexer prototype)
+- 28.1.2 done: measured (selfhost/prototype/) - pattern B over bytes is fast; no compiler
+  change needed; slow string indexing found (FEATURES.md Later)
+- **Next Action:** 28.1.3 the C run-time as a shared file

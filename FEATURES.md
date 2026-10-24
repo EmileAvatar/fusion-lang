@@ -180,8 +180,11 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 			goes to cmd exactly as written. Tested: exit codes, output order, a failing
 			command, compiling + running a Fusion program from Fusion (a folder with a space),
 			an example's exe, Notepad
-		[ ] 28.1.2 Shared state (gap B): measure with a lexer prototype. A parameter a
-			function only reads is already passed without a copy; one it changes is copied
+		[DONE] 28.1.2 Shared state (gap B), measured with three lexer prototypes
+			(selfhost/prototype/): a read-only source over `bytes` + one token returned per call
+			is fast (20,000 lines in 0.05 s) - no compiler change needed. A struct copied per
+			step is slow (5,000 lines: 7.5 s); `text[i]` on a non-ASCII string is very slow
+			(52 s) - task/selfhost_subset.md "28.1.2 results"
 		[ ] 28.1.3 The C run-time as a shared file `runtime/fusion_runtime.h` (gap C)
 		[DONE] 28.1.4 `files/Builtins.md`: every built-in function (94), type class and List / Map
 			method, generated from the compiler (`check.py --builtins`, tools/builtins_doc.py);
@@ -433,6 +436,10 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		(design and all 9 decisions: spec "Masking", Task 18.3.6f; built 2026-10-10)
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
+	[ ] Fast `text[i]` for any string (found in 28.1.2, 2026-10-24): today it is instant only
+		when the whole string is ASCII; one non-ASCII character makes each lookup count from the
+		start (a loop over 5,000 lines: 52 s instead of 0.03 s). Fix: the run-time remembers
+		the last position found and continues from there
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):

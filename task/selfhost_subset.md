@@ -97,6 +97,37 @@ code. 28.7 compares what the programs **print**, so the C text may differ.
 
 ---
 
+## 28.1.2 results - shared state, measured (2026-10-24)
+
+Three versions of a small lexer (`selfhost/prototype/`), each timed on example sources
+joined into one file. "+ one e" means the same file with a single non-ASCII character
+(an e-acute in a comment).
+
+| Pattern | 5,000 lines | 5,000 lines + one e | 20,000 lines | 20,000 lines + one e |
+|---|---|---|---|---|
+| **B over `bytes`**: the source is a read-only parameter, a function returns one token, the caller collects them | 0.04 s | 0.04 s | 0.05 s | 0.05 s |
+| **B over `string`** characters (`text[i]`) | 0.03 s | **52 s** | 0.05 s | **over 60 s** |
+| **A**: one struct (source, position, tokens) passed in and returned at every step | **7.5 s** | 7.1 s | **over 60 s** | over 60 s |
+
+What it shows:
+1. **Pattern B over `bytes` is fast and grows evenly:** 171,550 tokens in 0.05 s. A
+   parameter a function only reads is never copied, so no compiler change is needed. This
+   is the pattern the Fusion compiler uses.
+2. **Pattern A is slow, and gets worse the bigger the file:** each step changes the struct,
+   so the whole struct (source and every token so far) is copied each time. Avoid it.
+3. **`text[i]` on a `string` is fast only while the whole string is ASCII.** One
+   non-ASCII character anywhere makes each `text[i]` count from the start (characters
+   take one to four bytes in UTF-8), so a loop over the string becomes about 1,400 times
+   slower. The compiler reads its source as `bytes`.
+
+**Possible fix (not part of Task 28):** the run-time could remember the last position
+found in a string (character index and byte offset). The next `text[i]` would then
+continue from there instead of from the start. A loop through a string would be fast again
+for every program, not just ASCII ones. Listed in FEATURES.md "Later" for the user to
+decide.
+
+---
+
 ## Recommendation for Task 28
 
 - **The test run targets tier 1** (18 programs). Tiers 2 and 3 follow as extensions, in

@@ -271,6 +271,7 @@ def ascii_checked_files():
     return list((ROOT / 'src').rglob('*.py')) + list((ROOT / 'tests').glob('*.py')) + \
         list((ROOT / 'tools').rglob('*.py')) + \
         list((ROOT / 'examples').rglob('*.fusion')) + list((ROOT / 'files' / 'showcase').glob('*')) + \
+        list((ROOT / 'selfhost').rglob('*.fusion')) + \
         [ROOT / 'main.py', ROOT / 'check.py']
 
 
