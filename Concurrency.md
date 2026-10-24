@@ -811,10 +811,11 @@ or more names. A long list is a sign of a bad design, so the compiler warns abov
 settings in `fusion.toml`:
 
 ```fusion
-service(person, honda) CarPerson carPerson = CarPerson(person, honda)
-print(person.name)                    // sent to carPerson's thread, which carries it out
-print(carPerson.Person.name)          // or through the unit itself
+service(person, honda) carPerson      // one group service: carPerson
+print(person.name)                    // routed to carPerson's queue, carried out atomically
 ```
+
+The agreed rules for groups (2026-10-24) are in `files/Service.md`, "Group services".
 
 **Settings that fit the machine.** Defaults can depend on the computer the program runs on,
 because a PC with 2 GB can't take what suits one with 32 GB. The values are resolved in this

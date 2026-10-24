@@ -73,9 +73,13 @@ Money gets its **own dedicated, strict type** (to be designed), not a literal of
 - **Conversions are allowed both ways**, to and from other number types such as `decimal`,
   `float` and `int`, but they are where conversion problems can happen. That is why the
   conversion is always written out (`decimal total = 19.99m`).
-- **To `int`, normal rounding:** below .5 goes down, .5 and above goes up (19.4 becomes 19,
-  19.5 becomes 20).
-- Open: does -19.5 become -20 (away from zero) or -19?
+- **To `int`, normal rounding - half away from zero** (the default, user 2026-10-24): below
+  .5 goes toward zero, .5 and above goes away from zero. So 19.4 becomes 19, 19.5 becomes
+  20, and -19.5 becomes -20. This is COBOL's `ROUNDED`, and the rule in C `round()`, Go,
+  Rust, SQL and Excel.
+- **Other rounding modes as an enum** in the money class, so the developer can choose,
+  for example `HALF_AWAY_FROM_ZERO` (the default), `HALF_EVEN` (banker's rounding),
+  `TRUNCATE`, `UP` and `DOWN`. COBOL has the same idea in its `ROUNDED MODE` phrase.
 
 ---
 

@@ -75,7 +75,7 @@ void function worker(Order order, Totals totals) {
 | `service(name).Setting = value` | Changes a setting. Only the thread that created the service may do this |
 | `service(name).run { ... }` | Runs several steps as one indivisible step |
 | `async` | Sends a request without waiting for its reply |
-| `service(a, b, ...) T unit = ...` | One unit owning several services (after version one) |
+| `service(a, b, ...) group` | Groups two or more variables into one service (see "Group services"; after version one) |
 
 ```fusion
 service(account).run {
@@ -296,6 +296,72 @@ service(db).Priority = "6.3.1"                  // custom shares: high 6, medium
 - **`WorkerThreadType`** defaults to `AUTO`: `SHARED` as more threads read the resource,
   `SINGLE` when its work is heavy. The developer can set it by hand.
 
+## Group services (units)
+
+Agreed 2026-10-24 (user). It will be built after version one.
+
+A **group service** makes two or more related variables into **one** service, so they can be
+changed together atomically:
+
+```fusion
+service(person, honda) carPerson             // person and honda are now one unit: carPerson
+```
+
+The form is `service(<members>) <group name>`. There is no type and no constructor. After
+this line, every read, write or call on `person` or `honda` is routed to `carPerson`'s
+queue, and its worker carries it out atomically.
+
+#### The rules
+
+1. **The group does the work.** `carPerson` handles every request that reads, writes or
+   calls `person` or `honda`, and queues the requests automatically. Custom code that needs
+   several members at once runs inside the group, as one step:
+
+   ```fusion
+   print(person.name)                         // routed through carPerson's queue
+   service(carPerson).run {
+       honda.owner = person.name              // both members change in one step
+       person.car = honda.model
+   }
+   ```
+
+2. **Release.** When `carPerson` goes out of scope, `person` and `honda` are released, and
+   other threads can use them directly again. While the group exists, threads must send
+   their requests to it, not to the members.
+3. **Members are plain variables.** A member may itself be a service, which keeps its own
+   worker (`SINGLE` or `SHARED`) for its own requests.
+4. **One owner - a hard rule.** A variable belongs to at most one service or group at a
+   time. Putting it in a second one is a **compile error**. While `person` and `honda` are
+   grouped, the group is their only owner, and they can't be shared with anything else.
+5. **Nesting is allowed.** A group may contain another group, as long as no variable breaks
+   rule 4. Like nested loops and `if`s, deep nesting gets harder to follow.
+6. **Each service keeps its own settings.** The group's settings belong to the group;
+   members that are services keep theirs. A group can't take over a log file's or a
+   database connection's settings. The group's `Timeout` must still be long enough for its
+   members' work, such as a slow SQL query; choosing it is the developer's job.
+7. **Undone where possible.** If an operation fails halfway, its changes are undone where
+   that is possible:
+   - a change to a value is undone by its opposite (`balance + 1` by `balance - 1`);
+   - a database operation is rolled back.
+
+   What has left the program can't be undone: a line written to a log file, or data sent
+   on a socket. (To be discussed in depth once a working system exists.)
+8. **Formed before use.** A group is created before any thread uses its members, like a
+   database connection: create the group, change its settings if needed, then let the
+   calls and child threads go through it, and finally release it.
+
+   ```fusion
+   service(person, honda) carPerson           // 1. create
+   service(carPerson).Timeout = 30s           // 2. settings, if needed
+   go updateRecords(carPerson)                // 3. children and calls go through it
+   ```                                        // 4. released at the end of the scope
+
+9. **Not only in functions.** A class method can create a group from the class's fields.
+   Any thread can then use the class safely.
+10. **Limits:** a warning above `max_unit_warn` names (default 5) and a compile error above
+    `max_unit` (default 32), both in `fusion.toml`. These are everyday defaults that a
+    project can change.
+
 ## Not decided yet
 
-- Units (`service(a, b, ...)`), after version one.
+- How "undone where possible" (group rule 7) works in detail.

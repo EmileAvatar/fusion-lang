@@ -298,9 +298,12 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[ ] 42.2 Settings with `service(name).X = ...` - only from the thread that created it, never
 		a sub-thread; the compiler picks the defaults not given (Mailbox, WhenFull, Scheduler,
 		Timeout, ...)
-	[ ] 42.3 (after version one) Units: `service(a, b, ...) T unit = T(a, b)` - one service owns them all (one or
-		more names); calls to a or b go through it (one thread, one resource - P2). A warning
-		above `[concurrency] max_unit_warn` (e.g. 5), an error above `max_unit` (e.g. 32)
+	[ ] 42.3 (after version one) Group services: `service(a, b, ...) group` - two or more
+		plain variables become one service; every call on a or b goes through the group's
+		queue, atomically; released at the end of its scope. A variable has one owner only
+		(a second group: compile error); nesting allowed; each service keeps its own
+		settings; undone where possible; formed before use; also from class methods. A
+		warning above `max_unit_warn` (5), an error above `max_unit` (32) - files/Service.md
 	[ ] 42.4 `service(x).final = { ... }` - extra clean-up; leaving scope always releases every
 		associated resource (like try-with-resources)
 	[ ] 42.5 Resources as services by default: files, sockets, pipes, databases
