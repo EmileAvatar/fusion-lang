@@ -20,7 +20,8 @@ examples use nearly everything built:
 - 53 kinds of syntax node;
 - 15 types;
 - 15 operators;
-- about 110 builtin functions, about 80 of them from the string library;
+- 94 built-in functions (the compiler's own count; about 80 are string and number text
+  functions);
 - 14 list and map methods.
 
 Compiling **all** of them means re-implementing nearly the whole Python compiler. That is

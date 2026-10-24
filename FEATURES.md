@@ -174,7 +174,14 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 28.0 Prerequisites: analysis (was 10.1) and language features (was 10.2, by Task 18)
 	[DONE] 28.1 The subset: exactly what the programs in examples/ need - measured by
 		tools/example_subset.py: three tiers (18 / 12 / 14 programs), and gaps A-C (calling GCC,
-		shared state, the C run-time) - task/selfhost_subset.md
+		shared state, the C run-time) - task/selfhost_subset.md. Target: tier 1 (user)
+		[ ] 28.1.1 `run(command)`: run another program, wait, return its exit code (gap A) -
+			tested with Notepad, the examples, and compiling + running an app from Fusion
+		[ ] 28.1.2 Shared state (gap B): measure; a parameter a function never changes is
+			not copied (List parameters are copied today - found 2026-10-24)
+		[ ] 28.1.3 The C run-time as a shared file `runtime/fusion_runtime.h` (gap C)
+		[ ] 28.1.4 `files/Builtins.md`: every built-in function (94) and method, generated
+			from the compiler and checked by check.py
 	[ ] 28.2 Lexer in Fusion
 	[ ] 28.3 Parser in Fusion
 	[ ] 28.4 Checker in Fusion

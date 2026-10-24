@@ -27,9 +27,80 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 ## TASK 28: Self-hosting phase 1 - the test run - ACTIVE (2026-10-24)
 
 Done in steps (user). 28.1 done: `task/selfhost_subset.md` - the examples fall into three
-tiers; gaps A (calling GCC), B (state without globals - structs and lists are copies),
-C (the C run-time). Waiting: the user's choice of target tier and of A-C, then the plan for
-28.2-28.8.
+tiers; gaps A (calling GCC), B (state without globals), C (the C run-time).
+
+**The test run targets tier 1** - a milestone that confirms the approach works, not the
+whole language (user, 2026-10-24). Tiers 2 and 3 come later.
+
+### Plan for 28.1.1-28.1.4 - PLAN (awaiting approval, 2026-10-24)
+
+**28.1.1 `run(command)` - run another program**
+- `int run(string command)`: runs the command through the system shell (`cmd /c` on
+  Windows, `/bin/sh -c` elsewhere - C's `system()`), **waits** until it ends, and returns
+  its exit code.
+- If the shell itself can't be started, that is a new built-in error type,
+  **`ProcessError`** (an Error subtype, added at the end of the list so the existing kind
+  numbers don't change). A program that runs and fails is not an error: its exit code is
+  returned. (A command that isn't found gives the shell's own code: 9009 on Windows, 127
+  elsewhere.)
+- Layer: **std** only (not alloc / core). Security note: running programs is a capability;
+  Task 39 will be able to restrict it per project.
+- Not waiting: `run("start notepad")` on Windows. A separate `start(command)` and
+  capturing the output (`runOutput`) are left for later.
+- **Tests:**
+  - unit tests: the type, the layer, and the error type;
+  - end-to-end tests: `run("exit 3")` returns 3;
+  - run a compiled example (`hello_world.exe --headless`);
+  - **compile and run from Fusion:** `run("python main.py examples/hello_world.fusion")`,
+    then run the exe it made;
+  - by hand: `run("notepad")` opens Notepad and waits until it is closed (a window can't
+    be tested automatically).
+- Example in `SYNTAX_REFERENCE.md` (Rule 4), using `run("echo hello")`, which works on
+  every system; spec and grammar notes.
+
+**28.1.2 Shared state - measure, then decide**
+- Found while planning: a `List` parameter is **copied when the function starts**, even if
+  the function only reads it (`xs = fusion_list_string_copy(xs)` in the C). So handing the
+  token list to each parser function copies all the tokens on every call, which is very
+  slow for a compiler.
+- Proposed fix: **a parameter the function never changes is not copied** (it is borrowed).
+  - This is a compiler optimisation, not a language change. The meaning stays the same,
+    because the function can't change the value anyway, and the caller waits while it runs.
+  - Where the function stores the value (in a struct, a list or a return value), the copy
+    happens there, as assignments already do.
+  - Every test and example must still pass, and the leak check must stay clean.
+- A small prototype first: a lexer in Fusion tokenizing a large file (about 5,000 lines),
+  timed before and after, so the numbers decide.
+- The pattern for the compiler's code: a small struct for the changing state (the
+  position, the errors), returned from functions; the token list as a read-only parameter.
+
+**28.1.3 The C run-time as a shared file**
+- Today every generated C file contains the whole run-time (`hello_world.c`: 1,635 lines).
+- Part of it is always the same (strings, errors, checks, files). Part of it is generated
+  for the program's own types: `List<T>` helpers, and copy / free functions for structs.
+- Step 1: find the boundary in the C generator, and measure how much is fixed.
+- Step 2: the Python compiler writes the fixed part to `runtime/fusion_runtime.h`, and
+  `#include`s it, or keeps writing it inline, whichever keeps the tests simplest.
+- The Fusion compiler then writes only the include, the type helpers its program needs,
+  and the program. For tier 1 the only type helpers are structs and arrays.
+
+**28.1.4 A list of the built-in functions, kept in step automatically** (user question)
+- There is no single list today. `SYNTAX_REFERENCE.md` shows examples, and the spec
+  describes the library, but neither is complete.
+- Correction to 28.1: the compiler has **94** built-in functions (the "about 110" counted
+  struct constructions as calls). On top of these come the list and map methods.
+- Proposed: `files/Builtins.md`, **generated from the compiler itself**. Each entry has:
+  - the name;
+  - the parameters and return type;
+  - the layer (core / alloc / std);
+  - whether it can fail;
+  - the list and map methods.
+
+  `check.py` gets a check that the file matches the compiler (like the reference check),
+  so it updates whenever a builtin is added.
+
+**Order:** 28.1.4 (small) and 28.1.1, then 28.1.2, then 28.1.3. After those comes the plan
+for 28.2-28.8.
 
 ---
 
@@ -126,4 +197,5 @@ Kept under Task 22 until the renumbering is approved.
 - 23.9 done: files/showcase (Fusion_showcase.fusion + fusion.toml); user answered: files/showcase/,
   tags built / designed / idea / rejected + one-line description each
 - 28.1 done: the subset measured (task/selfhost_subset.md, tools/example_subset.py)
-- **Next Action:** user decides the target tier and gaps A-C; then plan 28.2-28.8
+- User: tier 1 is the test-run target; 28.1.1-28.1.3 sub-tasks; 28.1.4 builtins list proposed
+- **Next Action:** user approves the 28.1.1-28.1.4 plan (taskSummary2.md)
