@@ -13,6 +13,16 @@ The single place to see what is done, open, or postponed. One line per item.
   not started -> `task/taskBacklog.md`. What the language can do today, with examples ->
   `SYNTAX_REFERENCE.md`
 
+**Features become settings (user, 2026-10-24).** Each feature is designed so a project can
+turn it on or off in `fusion.toml` where that makes sense, with a safe default. When an item
+here is reviewed (for example the showcase [idea] list), decide whether it becomes a
+setting, a fixed rule, or is discarded. Example - structs:
+- a struct is a value type, never null: it always has a value;
+- it may hold empty or filled `List`, `Map`, `string` (a setting, on by default since it is
+  built);
+- functions on structs: a setting, off by default;
+- classes inside structs: a setting, off by default.
+
 ---
 
 ## Done
@@ -420,8 +430,10 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		2026-10-24); note for developers: `print` already ends the line
 	[ ] `loop`: a `loop { }` with no break / return inside is a compile error (user, 2026-10-24),
 		and the user is thinking of dropping the `loop` keyword - to review
-	[ ] Structs may hold List / Map (user, 2026-10-24); classes inside structs deferred. The core
-		rule of a struct: it always has a value (never null)
+	[ ] Struct settings (user, 2026-10-24): a struct is a value type and never null - it always
+		has a value, so it may hold an empty List / Map / string but never null. In
+		fusion.toml [structs]: holding List / Map (on by default - built), functions on
+		structs (off by default, Task 32.1), classes inside structs (off by default)
 	[ ] Open: `int?` - the spec says value types can't be null but its `?[` example uses `int?`
 		(user will check, with Task 30)
 	Showcase [idea] list - to go through one by one (files/showcase/, user 2026-10-24):

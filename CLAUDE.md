@@ -146,6 +146,10 @@ When a language feature or spec changes, update every affected file without aski
   possible, and very scalable. The core: a resource becomes a service (`service` keyword),
   instead of every caller updating it by hand; manual locking is a last resort
   (`Concurrency.md`, `Concurrency_Traps.md`, FEATURES.md Task 42)
+- **Features become settings:** design each feature so a project can switch it in
+  `fusion.toml` where that makes sense, with a safe default (e.g. `[structs]`: holding
+  List / Map on, functions on structs off, classes inside structs off). Reviewing an idea
+  means deciding: a setting, a fixed rule, or discarded (FEATURES.md, top)
 - **Guiding rule:** a simple working language first, advanced features after
   (`FutureFeaturesCaution.md`). Security principle: never trust code
 - **Repository is public** on GitHub (`EmileAvatar/fusion-lang`); history was scrubbed of a
