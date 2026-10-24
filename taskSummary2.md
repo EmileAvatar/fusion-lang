@@ -285,5 +285,6 @@ Kept under Task 22 until the renumbering is approved.
 - Slice 2 done: the parser is complete for tier 1 (all 18 programs parse; --ast); the
   code generator checks types in the same walk; 8 of 18 programs print the same as the
   Python-built ones, leak-free
-- **Next Action:** slice 3 - string values and printing every type (syntax_strings,
-  syntax_interpolation, syntax_variables_and_control_flow, syntax_defaults_and_named_args)
+- Slice 3 done: string ownership (fresh vs borrowed, freed in statement expressions - no
+  temporaries), floats / chars / bools, format(), default and named arguments - 12 of 18
+- **Next Action:** slice 4 - arrays (arrays_demo, functions_demo)

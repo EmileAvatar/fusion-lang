@@ -1,12 +1,21 @@
 // Module codegen - the syntax tree -> C (Tasks 28.4 + 28.5, one walk)
 //
 // Checking and generating happen in the same walk: each expression comes back as its C
-// code and its type, so `+` knows whether it adds ints, and print how to show a value.
-// The C follows what the Python compiler writes for the same program with the shared
-// run-time header (runtime/fusion_runtime.h, 28.1.3): the #include, then the program.
+// code and its type, so `+` knows whether it adds ints or joins strings, and print how to
+// show a value. The C follows what the Python compiler writes for the same program with
+// the shared run-time header (runtime/fusion_runtime.h, 28.1.3).
 //
 // A run-time error ends the program, as uncaught (tier 1 has no try - user decision
 // 2026-10-24): FUSION_CHECK runs an operation that can fail and stops if it did.
+//
+// Strings are values, freed automatically (as in the Python compiler):
+// - an expression is "fresh" when its string is new and nobody else owns it (a call's
+//   result, a join, a format); otherwise it borrows (a variable, a literal)
+// - a variable takes over a fresh value and copies a borrowed one
+// - a fresh value used inside a bigger expression is freed right after, inside a GCC
+//   statement expression - so no temporaries are needed at the top of the function
+// - each block frees its own variables at its end; return, break and continue free what
+//   they leave
 
 import lexer
 import lexer.StrPart
@@ -14,10 +23,11 @@ import parser
 import parser.Node
 import parser.TypeRef
 
-// An expression's C code and its type
+// An expression's C code, its type, and whether it is a fresh string (see above)
 struct Gen {
     string code
     TypeRef typ
+    bool fresh
 }
 
 // A function's signature: its result and parameters (Param nodes - names, types, defaults)
@@ -26,13 +36,16 @@ struct Sig {
     List<Node> params
 }
 
-// What a statement sees: the variables in scope, the file (for "file:line" in errors),
-// the function's result type, and whether it is main
+// What a statement sees: the variables in scope, the file (for "file:line" in errors), the
+// function's result type, whether it is main, the strings owned so far in this function
+// (freed in reverse), and how many of them were owned when the innermost loop began
 struct Ctx {
     Map<string, TypeRef> vars
     string file
     TypeRef result
     bool isMain
+    List<string> owned
+    int loopOwned
 }
 
 // A statement's C lines - and the context after it (a declaration adds a variable)
@@ -61,9 +74,21 @@ string function pad(int depth) : repeat("    ", depth)
 
 string function where(Ctx ctx, int line) : "\"" + ctx.file + ":" + toString(line) + "\""
 
+// A string literal: FUSION_STR, or FUSION_STRU with its character count when it isn't ASCII
+string function stringLiteral(string text) {
+    if lenb(text) == len(text) {
+        return "FUSION_STR(\"" + cText(text) + "\")"
+    }
+    return "FUSION_STRU(\"" + cText(text) + "\", " + toString(len(text)) + ")"
+}
+
 // ---------------------------------------------------------------- types
 
 TypeRef function prim(string name) : TypeRef.Prim(name)
+
+Gen function plain(string code, TypeRef t) : Gen(code, t, false)
+
+Gen function freshString(string code) : Gen(code, prim("string"), true)
 
 bool function isPrim(TypeRef t, string name) {
     match t {
@@ -71,6 +96,8 @@ bool function isPrim(TypeRef t, string name) {
         else: return false
     }
 }
+
+bool function isNumber(TypeRef t) : isPrim(t, "int") or isPrim(t, "float") or isPrim(t, "double") or isPrim(t, "byte")
 
 string function typeName(TypeRef t) : parser.showType(t)
 
@@ -92,15 +119,107 @@ string, Error function cType(TypeRef t) {
     }
 }
 
+// A value made to fit where a `target` is expected: the same type, or a widening that
+// keeps the exact value (float -> double, int -> double; int -> float checked to fit)
+Gen, Error function convert(Gen g, TypeRef target, Ctx ctx, int line, string what) {
+    if sameType(g.typ, target) {
+        return g
+    }
+    if isPrim(target, "double") and isPrim(g.typ, "float") {
+        if endsWith(g.code, "f") and not startsWith(g.code, "(") {
+            return plain(left(g.code, len(g.code) - 1), target)    // a literal, at full precision
+        }
+        return plain("((double)" + g.code + ")", target)
+    }
+    if isPrim(target, "double") and isPrim(g.typ, "int") {
+        return plain("((double)" + g.code + ")", target)
+    }
+    if isPrim(target, "float") and isPrim(g.typ, "int") {
+        return plain("FUSION_CHECK(float, fusion_int_to_float(" + g.code + ", " + where(ctx, line) + "))", target)
+    }
+    return Error(format("{@1}: {@2} must be {@3}, got {@4}", line, what, typeName(target), typeName(g.typ)))
+}
+
+// The value stored in a new place: a fresh string is taken over, any other is copied
+string function ownedValue(Gen g) {
+    if isPrim(g.typ, "string") and not g.fresh {
+        return "fusion_str_copy(" + g.code + ")"
+    }
+    return g.code
+}
+
+// ---------------------------------------------------------------- operands
+
+// Operands worked out once, in order, into temporaries when any of them is a fresh string
+// (which is freed after use); otherwise used as they are
+struct Operands {
+    List<string> names
+    List<string> decls
+    List<string> frees
+}
+
+Operands, Error function operands(List<Gen> gs) {
+    bool anyFresh = false
+    for g in gs {
+        if g.fresh {
+            anyFresh = true
+        }
+    }
+    List<string> names = []
+    List<string> decls = []
+    List<string> frees = []
+    for i in range(0, gs.len()) {
+        Gen g = gs[i]
+        if not anyFresh {
+            names.add(g.code)
+        } else {
+            string name = "fusion_o" + toString(i + 1)
+            decls.add(cType(g.typ) + " " + name + " = " + g.code + "; ")
+            names.add(name)
+            if g.fresh {
+                frees.add("fusion_str_free(&" + name + "); ")
+            }
+        }
+    }
+    return Operands(names, decls, frees)
+}
+
+// `expr` (written with the operand names) as one expression that frees the fresh operands
+string function freeing(Operands o, string resultCType, string expr) {
+    if o.decls.len() == 0 {
+        return expr
+    }
+    return "__extension__ (\{ " + o.decls.join("") + resultCType + " fusion_v = " + expr + "; " + o.frees.join("") + "fusion_v; \})"
+}
+
 // ---------------------------------------------------------------- expressions
 
 // An operation that can fail, made to stop the program if it did
 string function checked(string cType, string code) : "FUSION_CHECK(" + cType + ", " + code + ")"
 
+Gen, Error function genStringBinary(string op, Gen l, Gen r, int line) {
+    Operands o = operands([l, r])
+    string a = o.names[0]
+    string b = o.names[1]
+    if op == "+" {
+        return freshString(freeing(o, "fusion_string", "fusion_str_concat(" + a + ", " + b + ")"))
+    }
+    string test = ""
+    if op == "==" {
+        test = "fusion_str_eq(" + a + ", " + b + ")"
+    } else if op == "!=" {
+        test = "(!fusion_str_eq(" + a + ", " + b + "))"
+    } else if op == "<" or op == ">" or op == "<=" or op == ">=" {
+        test = "(fusion_str_cmp(" + a + ", " + b + ") " + op + " 0)"
+    } else {
+        return Error(format("{@1}: '{@2}' doesn't work on strings", line, op))
+    }
+    return plain(freeing(o, "bool", test), prim("bool"))
+}
+
 Gen, Error function genBinary(string op, Node left, Node right, int line, Ctx ctx, Map<string, Sig> funcs) {
     Gen l = genExpr(left, ctx, funcs)
     Gen r = genExpr(right, ctx, funcs)
-    bool ints = isPrim(l.typ, "int") and isPrim(r.typ, "int")
     if op == "and" or op == "&&" or op == "or" or op == "||" {
         if not isPrim(l.typ, "bool") or not isPrim(r.typ, "bool") {
             return Error(format("{@1}: '{@2}' needs two bools, got {@3} and {@4}", line, op, typeName(l.typ), typeName(r.typ)))
@@ -109,42 +228,120 @@ Gen, Error function genBinary(string op, Node left, Node right, int line, Ctx ct
         if op == "or" or op == "||" {
             c = "||"
         }
-        return Gen("(" + l.code + " " + c + " " + r.code + ")", prim("bool"))
+        return plain("(" + l.code + " " + c + " " + r.code + ")", prim("bool"))
     }
-    if ints and (op == "+" or op == "-" or op == "*") {
-        string fn = "fusion_add_int"
-        if op == "-" {
-            fn = "fusion_sub_int"
-        } else if op == "*" {
-            fn = "fusion_mul_int"
-        }
-        return Gen(checked("int", fn + "(" + l.code + ", " + r.code + ", " + where(ctx, line) + ")"), prim("int"))
+    if isPrim(l.typ, "string") and isPrim(r.typ, "string") {
+        return genStringBinary(op, l, r, line)
     }
-    if ints and (op == "/" or op == "%") {
-        // By a written number other than 0 and -1: plain C, it can't fail
-        bool safe = false
-        match right {
-            case IntLit(text, litLine) {
-                int v = lexer.intValue(text)
-                safe = v != 0 and v != -1
+    bool compare = op == "<" or op == ">" or op == "<=" or op == ">=" or op == "==" or op == "!="
+    if isPrim(l.typ, "int") and isPrim(r.typ, "int") {
+        if op == "+" or op == "-" or op == "*" {
+            string fn = "fusion_add_int"
+            if op == "-" {
+                fn = "fusion_sub_int"
+            } else if op == "*" {
+                fn = "fusion_mul_int"
             }
-            else {
-                safe = false
+            return plain(checked("int", fn + "(" + l.code + ", " + r.code + ", " + where(ctx, line) + ")"), prim("int"))
+        }
+        if op == "/" or op == "%" {
+            // By a written number other than 0 and -1: plain C, it can't fail
+            bool safe = false
+            match right {
+                case IntLit(text, litLine) {
+                    int v = lexer.intValue(text)
+                    safe = v != 0 and v != -1
+                }
+                else {
+                    safe = false
+                }
             }
+            if safe {
+                return plain("(" + l.code + " " + op + " " + r.code + ")", prim("int"))
+            }
+            string fn = "fusion_div_int"
+            if op == "%" {
+                fn = "fusion_mod_int"
+            }
+            return plain(checked("int", fn + "(" + l.code + ", " + r.code + ", 1, " + where(ctx, line) + ")"), prim("int"))
         }
-        if safe {
-            return Gen("(" + l.code + " " + op + " " + r.code + ")", prim("int"))
+        if compare {
+            return plain("(" + l.code + " " + op + " " + r.code + ")", prim("bool"))
         }
-        string fn = "fusion_div_int"
-        if op == "%" {
-            fn = "fusion_mod_int"
-        }
-        return Gen(checked("int", fn + "(" + l.code + ", " + r.code + ", 1, " + where(ctx, line) + ")"), prim("int"))
     }
-    if ints and (op == "<" or op == ">" or op == "<=" or op == ">=" or op == "==" or op == "!=") {
-        return Gen("(" + l.code + " " + op + " " + r.code + ")", prim("bool"))
+    if isNumber(l.typ) and isNumber(r.typ) and (isPrim(l.typ, "float") or isPrim(l.typ, "double") or isPrim(r.typ, "float") or isPrim(r.typ, "double")) {
+        // A float or double on either side: the other is widened to match
+        TypeRef wide = prim("float")
+        if isPrim(l.typ, "double") or isPrim(r.typ, "double") {
+            wide = prim("double")
+        }
+        Gen a = convert(l, wide, ctx, line, "the left side")
+        Gen b = convert(r, wide, ctx, line, "the right side")
+        if compare {
+            return plain("(" + a.code + " " + op + " " + b.code + ")", prim("bool"))
+        }
+        if op == "+" or op == "-" or op == "*" or op == "/" {
+            return plain("(" + a.code + " " + op + " " + b.code + ")", wide)
+        }
+    }
+    if (op == "==" or op == "!=") and sameType(l.typ, r.typ) and (isPrim(l.typ, "bool") or isPrim(l.typ, "char")) {
+        return plain("(" + l.code + " " + op + " " + r.code + ")", prim("bool"))
     }
     return Error(format("{@1}: '{@2}' on {@3} and {@4} comes in a later slice", line, op, typeName(l.typ), typeName(r.typ)))
+}
+
+// The arguments of a call put in parameter order: positional ones first, then named ones,
+// then the defaults of any left out
+List<Node>, Error function arrange(string name, Sig sig, List<Node> args, int line) {
+    int n = sig.params.len()
+    List<Node> slots = []
+    List<bool> given = []
+    List<string> names = []
+    for p in sig.params {
+        match p {
+            case Param(pname, ptype, pdefault, pline) {
+                slots.add(pdefault)
+                names.add(pname)
+            }
+            else {
+            }
+        }
+        given.add(false)
+    }
+    int next = 0
+    for a in args {
+        match a {
+            case NamedArg(argName, value, argLine) {
+                int at = names.indexOf(argName)
+                if at < 0 {
+                    return Error(format("{@1}: {@2}() has no parameter '{@3}'", line, name, argName))
+                }
+                if given[at] {
+                    return Error(format("{@1}: '{@2}' is given twice", line, argName))
+                }
+                slots[at] = value
+                given[at] = true
+            }
+            else {
+                if next >= n {
+                    return Error(format("{@1}: {@2}() takes {@3} argument(s), got more", line, name, n))
+                }
+                slots[next] = a
+                given[next] = true
+                next = next + 1
+            }
+        }
+    }
+    for i in range(0, n) {
+        if not given[i] {
+            match slots[i] {
+                case Nothing: return Error(format("{@1}: {@2}() needs a value for '{@3}'", line, name, names[i]))
+                else {
+                }
+            }
+        }
+    }
+    return slots
 }
 
 Gen, Error function genCall(Node callee, List<Node> args, int line, Ctx ctx, Map<string, Sig> funcs) {
@@ -153,57 +350,106 @@ Gen, Error function genCall(Node callee, List<Node> args, int line, Ctx ctx, Map
         case Name(n, nameLine): name = n
         else: return Error(format("{@1}: calling this comes in a later slice", line))
     }
+    if name == "format" {
+        return genFormat(args, line, ctx, funcs)
+    }
     if not funcs.has(name) {
         return Error(format("{@1}: unknown function '{@2}'", line, name))
     }
     Sig sig = funcs[name]
-    if args.len() != sig.params.len() {
-        return Error(format("{@1}: {@2}() takes {@3} argument(s), got {@4}", line, name, sig.params.len(), args.len()))
-    }
-    List<string> codes = []
-    for i in range(0, args.len()) {
-        Gen a = genExpr(args[i], ctx, funcs)
+    List<Node> slots = arrange(name, sig, args, line)
+    List<Gen> values = []
+    for i in range(0, slots.len()) {
+        Gen a = genExpr(slots[i], ctx, funcs)
         match sig.params[i] {
             case Param(pname, ptype, pdefault, pline) {
-                if not sameType(a.typ, ptype) {
-                    return Error(format("{@1}: argument {@2} of {@3}() must be {@4}, got {@5}", line, i + 1, name, typeName(ptype), typeName(a.typ)))
-                }
+                values.add(convert(a, ptype, ctx, line, "argument '" + pname + "' of " + name + "()"))
             }
             else {
             }
         }
-        codes.add(a.code)
     }
-    string call = "fu_" + name + "(" + codes.join(", ") + ")"
+    Operands o = operands(values)
+    string call = "fu_" + name + "(" + o.names.join(", ") + ")"
     if isPrim(sig.result, "void") {
-        return Gen(call, sig.result)
+        return plain(freeing(o, "int", "(" + call + ", 0)"), sig.result)
     }
-    return Gen(checked(cType(sig.result), call), sig.result)
+    string ct = cType(sig.result)
+    string code = freeing(o, ct, checked(ct, call))
+    return Gen(code, sig.result, isPrim(sig.result, "string"))
+}
+
+string function charLiteral(string text) {
+    int code = charCode(text[0])
+    if code >= 32 and code < 127 {
+        if text == "'" {
+            return "'\\''"
+        }
+        if text == "\\" {
+            return "'\\\\'"
+        }
+        return "'" + text + "'"
+    }
+    if code == 10 {
+        return "'\\n'"
+    }
+    if code == 9 {
+        return "'\\t'"
+    }
+    return "((fusion_char)0x" + toHex(code).toUpper() + ")"
 }
 
 Gen, Error function genExpr(Node e, Ctx ctx, Map<string, Sig> funcs) {
     match e {
-        case IntLit(text, line): return Gen(toString(lexer.intValue(text)), prim("int"))
+        case IntLit(text, line): return plain(toString(lexer.intValue(text)), prim("int"))
+        case FloatLit(text, line) {
+            string t = replace(text, "_", "")
+            if endsWith(t, "d") or endsWith(t, "D") {
+                return plain(left(t, len(t) - 1), prim("double"))
+            }
+            if endsWith(t, "f") or endsWith(t, "F") {
+                t = left(t, len(t) - 1)
+            }
+            return plain(t + "f", prim("float"))
+        }
         case BoolLit(value, line) {
             if value {
-                return Gen("true", prim("bool"))
+                return plain("true", prim("bool"))
             }
-            return Gen("false", prim("bool"))
+            return plain("false", prim("bool"))
+        }
+        case CharLit(text, line): return plain(charLiteral(text), prim("char"))
+        case Str(parts, line) {
+            bool interpolated = false
+            string text = ""
+            for p in parts {
+                if p.kind != 0 {
+                    interpolated = true
+                }
+                text = text + p.text
+            }
+            if not interpolated {
+                return plain(stringLiteral(text), prim("string"))
+            }
+            return genFormatText(parts, [], line, ctx, funcs)
         }
         case Name(name, line) {
             if not ctx.vars.has(name) {
                 return Error(format("{@1}: unknown name '{@2}'", line, name))
             }
-            return Gen(name, ctx.vars[name])
+            return plain(name, ctx.vars[name])
         }
         case Binary(op, left, right, line): return genBinary(op, left, right, line, ctx, funcs)
         case Unary(op, operand, line) {
             Gen o = genExpr(operand, ctx, funcs)
             if op == "-" and isPrim(o.typ, "int") {
-                return Gen(checked("int", "fusion_neg_int(" + o.code + ", " + where(ctx, line) + ")"), prim("int"))
+                return plain(checked("int", "fusion_neg_int(" + o.code + ", " + where(ctx, line) + ")"), prim("int"))
+            }
+            if op == "-" and (isPrim(o.typ, "float") or isPrim(o.typ, "double")) {
+                return plain("(-" + o.code + ")", o.typ)
             }
             if (op == "not" or op == "!") and isPrim(o.typ, "bool") {
-                return Gen("(!" + o.code + ")", prim("bool"))
+                return plain("(!" + o.code + ")", prim("bool"))
             }
             return Error(format("{@1}: '{@2}' on {@3} comes in a later slice", line, op, typeName(o.typ)))
         }
@@ -212,79 +458,166 @@ Gen, Error function genExpr(Node e, Ctx ctx, Map<string, Sig> funcs) {
     }
 }
 
-// ---------------------------------------------------------------- print
+// ---------------------------------------------------------------- print and format
 
-// The printf format and argument for one value
-Gen, Error function printValue(Gen g, int line) {
-    if isPrim(g.typ, "int") or isPrim(g.typ, "byte") {
-        return Gen("%d", g.typ)
-    }
-    return Error(format("{@1}: printing a {@2} comes in a later slice", line, typeName(g.typ)))
+// A value as a printf argument: its format, and the code (a string prints its text)
+struct PrintArg {
+    string spec
+    string code
 }
 
-// print(text, values...): one printf. The values after the text ({@N}) are each worked out
-// once, left to right, into a temporary first
-List<string>, Error function genPrint(List<Node> args, int line, Ctx ctx, Map<string, Sig> funcs, int depth) {
-    if args.len() == 0 {
-        return [pad(depth) + "printf(\"\\n\");"]
+PrintArg, Error function printArg(Gen g, int line) {
+    TypeRef t = g.typ
+    if isPrim(t, "string") {
+        return PrintArg("%s", g.code + ".data")
     }
-    List<StrPart> parts = []
-    match args[0] {
-        case Str(ps, strLine): parts = ps
-        else: return Error(format("{@1}: print needs text first", line))
+    if isPrim(t, "char") {
+        return PrintArg("%s", "fusion_char_text(" + g.code + ").bytes")
     }
-    List<string> before = []
-    List<string> extraCodes = []
-    List<TypeRef> extraTypes = []
-    for i in range(1, args.len()) {
-        Gen g = genExpr(args[i], ctx, funcs)
-        string temp = "fusion_p" + toString(i)
-        before.add(pad(depth + 1) + cType(g.typ) + " " + temp + " = " + g.code + ";")
-        extraCodes.add(temp)
-        extraTypes.add(g.typ)
+    if isPrim(t, "bool") {
+        return PrintArg("%s", "((" + g.code + ") ? \"true\" : \"false\")")
     }
+    if isPrim(t, "int") or isPrim(t, "byte") {
+        return PrintArg("%d", g.code)
+    }
+    if isPrim(t, "float") or isPrim(t, "double") {
+        return PrintArg("%f", g.code)
+    }
+    return Error(format("{@1}: printing a {@2} comes in a later slice", line, typeName(t)))
+}
+
+// The printf format and arguments for a string's parts: text, {name} and {@N} - where
+// extras are the values after the text, already in temporaries
+struct Formatted {
+    string fmt
+    List<string> args
+}
+
+Formatted, Error function formatParts(List<StrPart> parts, List<Gen> extraValues, int line, Ctx ctx, Map<string, Sig> funcs) {
     string fmt = ""
-    List<string> values = []
+    List<string> args = []
     for p in parts {
         if p.kind == 0 {
             fmt = fmt + cFormat(p.text)
         } else {
-            Gen value = Gen("", prim("void"))
+            Gen value = plain("", prim("void"))
             if p.kind == 1 {
                 value = genExpr(parser.pathNode(p.text, line), ctx, funcs)
             } else {
                 int n = toInt(p.text)
-                if n < 1 or n > extraCodes.len() {
+                if n < 1 or n > extraValues.len() {
                     return Error(format("{@1}: \{@{@2}\} has no value after the text", line, n))
                 }
-                value = Gen(extraCodes[n - 1], extraTypes[n - 1])
+                value = extraValues[n - 1]
             }
-            Gen spec = printValue(value, line)
-            fmt = fmt + spec.code
-            values.add(value.code)
+            PrintArg a = printArg(value, line)
+            fmt = fmt + a.spec
+            args.add(a.code)
         }
     }
-    string call = "printf(\"" + fmt + "\\n\""
-    for v in values {
-        call = call + ", " + v
+    return Formatted(fmt, args)
+}
+
+// The values after print's / format's text: worked out once each, left to right, into
+// temporaries - their declarations, the frees of fresh ones, and the values by name
+struct Extras {
+    List<string> decls
+    List<string> frees
+    List<Gen> values
+}
+
+Extras, Error function extras(List<Node> args, Ctx ctx, Map<string, Sig> funcs) {
+    List<string> decls = []
+    List<string> frees = []
+    List<Gen> values = []
+    for i in range(1, args.len()) {
+        Gen g = genExpr(args[i], ctx, funcs)
+        string temp = "fusion_p" + toString(i)
+        decls.add(cType(g.typ) + " " + temp + " = " + g.code + "; ")
+        if g.fresh {
+            frees.add("fusion_str_free(&" + temp + "); ")
+        }
+        values.add(plain(temp, g.typ))
     }
-    call = call + ");"
-    if before.len() == 0 {
-        return [pad(depth) + call]
+    return Extras(decls, frees, values)
+}
+
+// A string's parts as a new string (fusion_str_format) - extraValues are the {@N} values
+Gen, Error function genFormatText(List<StrPart> parts, List<Gen> extraValues, int line, Ctx ctx, Map<string, Sig> funcs) {
+    Formatted f = formatParts(parts, extraValues, line, ctx, funcs)
+    string call = "fusion_str_format(\"" + f.fmt + "\""
+    for a in f.args {
+        call = call + ", " + a
     }
-    List<string> lines = [pad(depth) + "\{"]
-    for b in before {
-        lines.add(b)
+    return freshString(call + ")")
+}
+
+// format(text, values...) - what print would write, as a new string
+Gen, Error function genFormat(List<Node> args, int line, Ctx ctx, Map<string, Sig> funcs) {
+    if args.len() == 0 {
+        return Error(format("{@1}: format needs text", line))
     }
-    lines.add(pad(depth + 1) + call)
-    lines.add(pad(depth) + "\}")
-    return lines
+    List<StrPart> parts = []
+    match args[0] {
+        case Str(ps, strLine): parts = ps
+        else: return Error(format("{@1}: format needs text first", line))
+    }
+    Extras x = extras(args, ctx, funcs)
+    Gen text = genFormatText(parts, x.values, line, ctx, funcs)
+    if x.decls.len() == 0 {
+        return text
+    }
+    return freshString("__extension__ (\{ " + x.decls.join("") + "fusion_string fusion_v = " + text.code + "; " + x.frees.join("") + "fusion_v; \})")
+}
+
+// print(text, values...) - one printf
+List<string>, Error function genPrint(List<Node> args, int line, Ctx ctx, Map<string, Sig> funcs, int depth) {
+    if args.len() == 0 {
+        return [pad(depth) + "printf(\"\\n\");"]
+    }
+    match args[0] {
+        case Str(parts, strLine) {
+            Extras x = extras(args, ctx, funcs)
+            Formatted f = formatParts(parts, x.values, line, ctx, funcs)
+            string call = "printf(\"" + f.fmt + "\\n\""
+            for a in f.args {
+                call = call + ", " + a
+            }
+            call = call + ");"
+            if x.decls.len() == 0 {
+                return [pad(depth) + call]
+            }
+            return [pad(depth) + "\{ " + x.decls.join("") + call + " " + x.frees.join("") + "\}"]
+        }
+        else {
+            // print(any value): its text
+            Gen g = genExpr(args[0], ctx, funcs)
+            if g.fresh {
+                return [pad(depth) + "\{ fusion_string fusion_p1 = " + g.code + "; printf(\"%s\\n\", fusion_p1.data); fusion_str_free(&fusion_p1); \}"]
+            }
+            PrintArg a = printArg(g, line)
+            return [pad(depth) + "printf(\"" + a.spec + "\\n\", " + a.code + ");"]
+        }
+    }
 }
 
 // ---------------------------------------------------------------- statements
 
+// The C that frees owned strings from position `from` on, newest first
+List<string> function freesFrom(Ctx ctx, int from, int depth) {
+    List<string> lines = []
+    int i = ctx.owned.len() - 1
+    while i >= from {
+        lines.add(pad(depth) + "fusion_str_free(&" + ctx.owned[i] + ");")
+        i = i - 1
+    }
+    return lines
+}
+
+// A block's statements, then the frees of the strings declared in it
 List<string>, Error function genBlock(Node block, Ctx ctx, Map<string, Sig> funcs, int depth) {
     List<string> lines = []
+    int ownedBefore = ctx.owned.len()
     match block {
         case Block(statements) {
             for s in statements {
@@ -297,7 +630,17 @@ List<string>, Error function genBlock(Node block, Ctx ctx, Map<string, Sig> func
         }
         else: return Error("a block was expected")
     }
+    for l in freesFrom(ctx, ownedBefore, depth) {
+        lines.add(l)
+    }
     return lines
+}
+
+// A loop body: the block, seen as the innermost loop (break / continue free its strings)
+List<string>, Error function genLoopBody(Node body, Ctx ctx, Map<string, Sig> funcs, int depth) {
+    Ctx inner = ctx
+    inner.loopOwned = ctx.owned.len()
+    return genBlock(body, inner, funcs, depth)
 }
 
 // `for i in range(a, b)` / `range(a, b, step)` - a C for loop
@@ -319,8 +662,7 @@ List<string>, Error function genForRange(string name, List<Node> args, Node body
     Ctx inner = ctx
     inner.vars[name] = prim("int")
     List<string> lines = [pad(depth) + "for (int " + name + " = " + from.code + "; " + name + test + to.code + "; " + name + " += " + step + ") \{"]
-    List<string> bodyLines = genBlock(body, inner, funcs, depth + 1)
-    for l in bodyLines {
+    for l in genLoopBody(body, inner, funcs, depth + 1) {
         lines.add(l)
     }
     lines.add(pad(depth) + "\}")
@@ -360,31 +702,88 @@ List<string>, Error function genIf(Node condition, Node then, Node otherwise, in
     return lines
 }
 
+// The value given to a variable of type `t` that has none: zero, false, ""
+string function zeroValue(TypeRef t) {
+    if isPrim(t, "string") {
+        return "FUSION_STR(\"\")"
+    }
+    if isPrim(t, "bool") {
+        return "false"
+    }
+    if isPrim(t, "float") {
+        return "0.0f"
+    }
+    if isPrim(t, "double") {
+        return "0.0"
+    }
+    return "0"
+}
+
+Out, Error function genReturn(Node value, int line, Ctx ctx, Map<string, Sig> funcs, int depth) {
+    List<string> frees = freesFrom(ctx, 0, depth + 1)
+    match value {
+        case Nothing {
+            string ret = "return;"
+            if ctx.isMain {
+                ret = "return 0;"
+            }
+            if frees.len() == 0 {
+                return Out([pad(depth) + ret], ctx)
+            }
+            List<string> lines = [pad(depth) + "\{"]
+            for f in frees {
+                lines.add(f)
+            }
+            lines.add(pad(depth + 1) + ret)
+            lines.add(pad(depth) + "\}")
+            return Out(lines, ctx)
+        }
+        else {
+            Gen v = convert(genExpr(value, ctx, funcs), ctx.result, ctx, line, "the returned value")
+            if frees.len() == 0 {
+                return Out([pad(depth) + "return " + ownedValue(v) + ";"], ctx)
+            }
+            // The value is worked out (and copied if it is a string) before anything is freed
+            List<string> lines = [pad(depth) + "\{", pad(depth + 1) + cType(ctx.result) + " fusion_ret = " + ownedValue(v) + ";"]
+            for f in frees {
+                lines.add(f)
+            }
+            lines.add(pad(depth + 1) + "return fusion_ret;")
+            lines.add(pad(depth) + "\}")
+            return Out(lines, ctx)
+        }
+    }
+}
+
 Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int depth) {
     match s {
         case VarDecl(name, varType, value, isConst, line) {
             string ct = cType(varType)
-            string init = "0"
+            string init = zeroValue(varType)
             match value {
                 case Nothing {
-                    init = "0"
+                    init = zeroValue(varType)
                 }
                 else {
-                    Gen v = genExpr(value, ctx, funcs)
-                    if not sameType(v.typ, varType) {
-                        return Error(format("{@1}: '{@2}' is {@3}, but its value is {@4}", line, name, typeName(varType), typeName(v.typ)))
-                    }
-                    init = v.code
+                    Gen v = convert(genExpr(value, ctx, funcs), varType, ctx, line, "'" + name + "'")
+                    init = ownedValue(v)
                 }
             }
+            string prefix = ""
+            if isConst {
+                prefix = "const "
+            }
             ctx.vars[name] = varType
-            return Out([pad(depth) + ct + " " + name + " = " + init + ";"], ctx)
+            if isPrim(varType, "string") {
+                ctx.owned.add(name)
+            }
+            return Out([pad(depth) + prefix + ct + " " + name + " = " + init + ";"], ctx)
         }
         case Assign(target, value, line) {
             Gen t = genExpr(target, ctx, funcs)
-            Gen v = genExpr(value, ctx, funcs)
-            if not sameType(v.typ, t.typ) {
-                return Error(format("{@1}: can't store a {@2} in a {@3}", line, typeName(v.typ), typeName(t.typ)))
+            Gen v = convert(genExpr(value, ctx, funcs), t.typ, ctx, line, "the value")
+            if isPrim(t.typ, "string") {
+                return Out([pad(depth) + "fusion_str_set(&" + t.code + ", " + ownedValue(v) + ");"], ctx)
             }
             return Out([pad(depth) + t.code + " = " + v.code + ";"], ctx)
         }
@@ -392,7 +791,7 @@ Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int de
         case While(condition, body, line) {
             Gen c = genExpr(condition, ctx, funcs)
             List<string> lines = [pad(depth) + "while (" + c.code + ") \{"]
-            for l in genBlock(body, ctx, funcs, depth + 1) {
+            for l in genLoopBody(body, ctx, funcs, depth + 1) {
                 lines.add(l)
             }
             lines.add(pad(depth) + "\}")
@@ -416,25 +815,17 @@ Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int de
             }
             return Error(format("{@1}: this for loop comes in a later slice", line))
         }
-        case Return(value, line) {
-            match value {
-                case Nothing {
-                    if ctx.isMain {
-                        return Out([pad(depth) + "return 0;"], ctx)
-                    }
-                    return Out([pad(depth) + "return;"], ctx)
-                }
-                else {
-                    Gen v = genExpr(value, ctx, funcs)
-                    if not sameType(v.typ, ctx.result) {
-                        return Error(format("{@1}: the function returns {@2}, not {@3}", line, typeName(ctx.result), typeName(v.typ)))
-                    }
-                    return Out([pad(depth) + "return " + v.code + ";"], ctx)
-                }
-            }
+        case Return(value, line): return genReturn(value, line, ctx, funcs, depth)
+        case Break(line) {
+            List<string> lines = freesFrom(ctx, ctx.loopOwned, depth)
+            lines.add(pad(depth) + "break;")
+            return Out(lines, ctx)
         }
-        case Break(line): return Out([pad(depth) + "break;"], ctx)
-        case Continue(line): return Out([pad(depth) + "continue;"], ctx)
+        case Continue(line) {
+            List<string> lines = freesFrom(ctx, ctx.loopOwned, depth)
+            lines.add(pad(depth) + "continue;")
+            return Out(lines, ctx)
+        }
         case Block(statements) {
             List<string> lines = [pad(depth) + "\{"]
             for l in genBlock(s, ctx, funcs, depth + 1) {
@@ -459,6 +850,10 @@ Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int de
                     if isPrim(g.typ, "void") {
                         return Out([pad(depth) + "FUSION_CHECK_VOID(" + g.code + ");"], ctx)
                     }
+                    if g.fresh {
+                        // A string nobody keeps: freed at once
+                        return Out([pad(depth) + "\{ fusion_string fusion_d = " + g.code + "; fusion_str_free(&fusion_d); \}"], ctx)
+                    }
                     return Out([pad(depth) + g.code + ";"], ctx)
                 }
                 else {
@@ -471,6 +866,30 @@ Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int de
 }
 
 // ---------------------------------------------------------------- declarations
+
+// Whether a statement (or anything inside it) assigns to the variable `name`
+bool function assigns(Node s, string name) {
+    match s {
+        case Assign(target, value, line) {
+            match target {
+                case Name(n, nameLine): return n == name
+                else: return false
+            }
+        }
+        case Block(statements) {
+            for st in statements {
+                if assigns(st, name) {
+                    return true
+                }
+            }
+            return false
+        }
+        case If(condition, then, otherwise, line): return assigns(then, name) or assigns(otherwise, name)
+        case While(condition, body, line): return assigns(body, name)
+        case For(loopName, iterable, body, line): return assigns(body, name)
+        else: return false
+    }
+}
 
 string, Error function paramList(List<Node> params) {
     List<string> ps = []
@@ -494,32 +913,11 @@ string, Error function prototype(string name, TypeRef result, List<Node> params)
     return cType(result) + " fu_" + name + "(" + paramList(params) + ")"
 }
 
-// A zero value of a type, for the stack check's early return
-string function zeroOf(TypeRef t) {
-    if isPrim(t, "void") {
-        return ""
-    }
-    if isPrim(t, "bool") {
-        return " false"
-    }
-    return " 0"
-}
-
 List<string>, Error function genFunction(Node f, string file, Map<string, Sig> funcs) {
     match f {
         case Function(name, result, params, body, line) {
-            Map<string, TypeRef> vars
-            for p in params {
-                match p {
-                    case Param(pname, ptype, pdefault, pline) {
-                        vars[pname] = ptype
-                    }
-                    else {
-                    }
-                }
-            }
             bool isMain = name == "main"
-            Ctx ctx = Ctx(vars, file, result, isMain)
+            Ctx ctx = Ctx(Map<string, TypeRef>(), file, result, isMain, [], 0)
             List<string> out = [prototype(name, result, params) + " \{"]
             if isMain {
                 out.add("    fusion_init(argc, argv);")
@@ -527,10 +925,31 @@ List<string>, Error function genFunction(Node f, string file, Map<string, Sig> f
                 // Endless recursion is a StackOverflowError, as in the Python compiler
                 out.add("    if (fusion_stack_low()) \{")
                 out.add("        fusion_fail(FUSION_KIND_StackOverflowError, \"" + file + ":" + toString(line) + "\", \"" + name + "() went too deep - the stack is full (does it call itself without end?)\");")
-                out.add("        return" + zeroOf(result) + ";")
+                string early = "return;"
+                if not isPrim(result, "void") {
+                    early = "return " + zeroValue(result) + ";"
+                }
+                out.add("        " + early)
                 out.add("    \}")
             }
+            for p in params {
+                match p {
+                    case Param(pname, ptype, pdefault, pline) {
+                        ctx.vars[pname] = ptype
+                        // A string parameter the function changes gets its own copy
+                        if isPrim(ptype, "string") and assigns(body, pname) {
+                            out.add("    " + pname + " = fusion_str_copy(" + pname + ");")
+                            ctx.owned.add(pname)
+                        }
+                    }
+                    else {
+                    }
+                }
+            }
             for l in genBlock(body, ctx, funcs, 1) {
+                out.add(l)
+            }
+            for l in freesFrom(ctx, 0, 1) {
                 out.add(l)
             }
             if isMain {
@@ -582,7 +1001,7 @@ public string, Error function generate(Node program, string path) {
     List<string> out = ["#include \"fusion_runtime.h\"", ""]
     out.add("// A run-time error ends the program (the self-hosted compiler has no try / catch yet)")
     out.add("#define FUSION_CHECK(T, e) __extension__ (\{ T fusion_r = (e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} fusion_r; \})")
-    out.add("#define FUSION_CHECK_VOID(e) do \{ e; if (fusion_failed) \{ fusion_uncaught(); exit(1); \} \} while (0)")
+    out.add("#define FUSION_CHECK_VOID(e) do \{ (void)(e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} \} while (0)")
     out.add("")
     out.add("// Forward declarations")
     for f in functions {

@@ -79,7 +79,11 @@ def test_selfhost_lexer_makes_the_python_lexers_tokens(selfhost, name):
 SLICES = ['hello_world',
           # slice 2: functions, parameters, if / while / for range, checked arithmetic, print
           'factorial', 'fizzbuzz', 'max_three', 'sum_array', 'const_demo', 'calculator',
-          'syntax_functions_and_blocks']
+          'syntax_functions_and_blocks',
+          # slice 3: string values (owned, copied, freed), floats / chars / bools, format,
+          # default and named arguments
+          'syntax_strings', 'syntax_variables_and_control_flow', 'syntax_interpolation',
+          'syntax_defaults_and_named_args']
 
 
 def run_exe(exe: Path) -> tuple:
