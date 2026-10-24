@@ -1378,6 +1378,8 @@ Scheduled in `FEATURES.md` Task 42:
 
 ### 3.11 Version one of `service` (agreed 2026-10-24)
 
+The full reference, with every setting and the `fusion.toml` defaults: `files/Service.md`.
+
 This version was agreed after reviews by ChatGPT and Claude
 (`Notes/notes chatgpt review on our concurrency.md`). The aim is to keep it as simple as
 possible. Everything else in Section 3 builds on these rules later.

@@ -330,9 +330,25 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		turns)
 	[POSTPONED - later, own framework] 42.12 Cluster threads over several servers
 		(ClusterThreadPool) - a separate cluster framework, probably outside Fusion's first scope
+	[ ] 42.14 Prime settings (user, 2026-10-24; files/Service.md): Mailbox (default 12), WhenFull
+		(default WAIT), Timeout, final, Scheduler (IMMEDIATE), Priority ("5.4.1"), Rule
+		(HIERARCHY), WorkerThreadType, ThreadPool, run - defaults in fusion.toml
+		[concurrency.defaults]; the rest are secondary settings (Coalesce, BatchSize, ...)
+	[ ] 42.15 WorkerThreadType per resource: SINGLE (its own dedicated, self-contained thread) |
+		SHARED (shared workers from a specific ThreadPool); later the default or the compiler
+		chooses
+	[ ] 42.16 Duration literals: `500ms`, `5s`, `2min`, `1h` - an int of milliseconds for now;
+		also read from text (strings, fusion.toml). The full time module: Task 43.1
 	[ ] 42.13 The compiler checks P9 (a service handling a request calls only down the
 		hierarchy, or sends without waiting) across modules - to be designed
-	(The thread view in the editor: 36.6)
+	(The thread view in the editor: 36.6. The service reference: files/Service.md)
+
+#### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
+	The standard library's core modules, designed one at a time (spec "Fusion Standard
+	Library (fusionlib)"). Plan first.
+	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
+		zones; epochs; durations and time calculations (a Math sub-module, user). Duration
+		literals map to int milliseconds until then (42.16)
 
 ---
 
