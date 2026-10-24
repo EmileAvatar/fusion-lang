@@ -65,10 +65,17 @@ glued on, and makes one token.
 
 #### Money
 
-Money gets its **own dedicated type** (to be designed), not a literal of its own.
-- `m` converts a money value to `decimal`: `decimal total = 19.99m`.
-- Converting to `int` **rounds up**. Whether that means always up (19.01 becomes 20) or
-  half up (19.49 becomes 19, 19.50 becomes 20) is still to be settled.
+Money gets its **own dedicated, strict type** (to be designed), not a literal of its own
+(user, 2026-10-24):
+- **Strict, like COBOL:** exact decimal digits, with specific rules, so nothing is ever lost
+  or changed by a conversion.
+- **For currency only:** money is used for money operations, not as a general number type.
+- **Conversions are allowed both ways**, to and from other number types such as `decimal`,
+  `float` and `int`, but they are where conversion problems can happen. That is why the
+  conversion is always written out (`decimal total = 19.99m`).
+- **To `int`, normal rounding:** below .5 goes down, .5 and above goes up (19.4 becomes 19,
+  19.5 becomes 20).
+- Open: does -19.5 become -20 (away from zero) or -19?
 
 ---
 
