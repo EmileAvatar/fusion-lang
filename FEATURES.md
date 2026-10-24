@@ -304,6 +304,11 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		(a second group: compile error); nesting allowed; each service keeps its own
 		settings; undone where possible; formed before use; also from class methods. A
 		warning above `max_unit_warn` (5), an error above `max_unit` (32) - files/Service.md
+	[ ] 42.3b (after version one) Service classes: `service class CarPerson { ... }` - every
+		object is a service and each method is one atomic step; for advanced, more complex
+		operations; not recommended in a loop (a warning); SINGLE / SHARED and the prime
+		settings chosen by the developer (files/Service.md). `run { }` is a one-time atomic
+		operation where it is written; the service carries out one operation at a time
 	[ ] 42.4 `service(x).final = { ... }` - extra clean-up; leaving scope always releases every
 		associated resource (like try-with-resources)
 	[ ] 42.5 Resources as services by default: files, sockets, pipes, databases

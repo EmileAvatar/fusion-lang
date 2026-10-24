@@ -815,7 +815,9 @@ service(person, honda) carPerson      // one group service: carPerson
 print(person.name)                    // routed to carPerson's queue, carried out atomically
 ```
 
-The agreed rules for groups (2026-10-24) are in `files/Service.md`, "Group services".
+The agreed rules for groups (2026-10-24) are in `files/Service.md`, "Group services". A class
+can also be declared `service class` ("Service classes"): each of its methods is one atomic
+step.
 
 **Settings that fit the machine.** Defaults can depend on the computer the program runs on,
 because a PC with 2 GB can't take what suits one with 32 GB. The values are resolved in this

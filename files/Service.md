@@ -35,8 +35,10 @@ service Car honda = Honda(Color.Black)      // a class object
 3. **Code runs in order.** After `counter += 1`, `print(counter)` shows the new value. To
    not wait for a reply, write `async`. A service finishes one request before it starts the
    next (it is not re-entrant).
-4. **Several steps as one:** `service(x).run { ... }`, or a method of the class, runs as one
-   step.
+4. **Several steps as one:** `service(x).run { ... }` is a one-time operation, carried out
+   where it is written. The block says which steps form one atomic operation. Several `run`
+   blocks can be written in different places, but the service carries out only one
+   operation at a time. A method of a service class works the same way.
 5. **A timeout means the caller stopped waiting**, not that the work was undone. Every
    request ends as **completed**, **failed**, **timed out** (its effects may still happen),
    or **cancelled**.
@@ -73,7 +75,8 @@ void function worker(Order order, Totals totals) {
 |---|---|
 | `service <type> <name> = value` | Declares a service |
 | `service(name).Setting = value` | Changes a setting. Only the thread that created the service may do this |
-| `service(name).run { ... }` | Runs several steps as one indivisible step |
+| `service(name).run { ... }` | A one-time atomic operation, carried out where it is written; the service runs one operation at a time |
+| `service class Name { ... }` | Every object of the class is a service, and each method is one atomic step (advanced) |
 | `async` | Sends a request without waiting for its reply |
 | `service(a, b, ...) group` | Groups two or more variables into one service (see "Group services"; after version one) |
 
@@ -296,6 +299,46 @@ service(db).Priority = "6.3.1"                  // custom shares: high 6, medium
 - **`WorkerThreadType`** defaults to `AUTO`: `SHARED` as more threads read the resource,
   `SINGLE` when its work is heavy. The developer can set it by hand.
 
+## Service classes (for advanced use)
+
+Agreed 2026-10-24 (user). A **class** can be declared with `service`. Every object made from
+it is then a service, and **each of its methods runs as one atomic step**. This is for
+more complex operations that need several steps on the same state. It suits advanced
+developers who want to control exactly how the service runs; for everyday code, a group
+service or `run` is enough.
+
+```fusion
+service class CarPerson {
+    Person person
+    Car car
+
+    constructor(Person person, Car car) {
+        this.person = person
+        this.car = car
+    }
+
+    void function buyCar() { ... }              // each method is one atomic step
+    void function registerCarWithGov() { ... }
+    void function buyInsurance() { ... }
+}
+
+CarPerson carPerson = CarPerson(ada, honda)     // a service, because its class is one
+service(carPerson).WorkerThreadType = WorkerThreadType.SINGLE    // its own thread, or
+service(carPerson).ThreadPool = ThreadPool(4)                    // its own pool
+carPerson.buyCar()                              // requests, carried out one at a time
+carPerson.registerCarWithGov()
+carPerson.buyInsurance()
+```
+
+- **Not in a loop:** creating service-class objects inside a loop is not recommended (a
+  warning).
+- **How it runs is up to the developer:** shared workers (`SHARED`), or its own thread
+  or pool (`SINGLE`), with any of the prime settings.
+- **Compared with a group:** a group (`service(person, honda) carPerson`) is quick and needs
+  no class. A service class gives the operations names and keeps their code in one place.
+- **In other languages:** this is the closest part of Fusion to a Swift `actor` or an
+  Erlang `gen_server`.
+
 ## Group services (units)
 
 Agreed 2026-10-24 (user). It will be built after version one.
@@ -353,8 +396,9 @@ queue, and its worker carries it out atomically.
    ```fusion
    service(person, honda) carPerson           // 1. create
    service(carPerson).Timeout = 30s           // 2. settings, if needed
-   go updateRecords(carPerson)                // 3. children and calls go through it
-   ```                                        // 4. released at the end of the scope
+   person.buyCar()                            // 3. calls go through carPerson automatically
+                                              // 4. released at the end of the scope
+   ```
 
 9. **Not only in functions.** A class method can create a group from the class's fields.
    Any thread can then use the class safely.
