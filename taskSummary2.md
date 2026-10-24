@@ -277,4 +277,6 @@ Kept under Task 22 until the renumbering is approved.
 - Plan approved (one walk, leak-free, errors end the program, braces, 28.1.5 first)
 - 28.1.5 done: \{ and \} escapes
 - User moved the old task-1.x-4.x files to task/archive/ (links updated)
-- **Next Action:** 28.2-28.6 vertical slice 1 - hello_world through every stage
+- 28.2 done: the lexer in Fusion matches the Python lexer on all 53 example files; a
+  Python compiler bug found and fixed (bare return in void main)
+- **Next Action:** slice 1 continued - parser, codegen and driver for hello_world

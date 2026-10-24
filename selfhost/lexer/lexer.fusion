@@ -1,0 +1,649 @@
+// Module lexer - Fusion source text -> tokens (Task 28.2)
+//
+// The same tokens as the Python lexer (src/lexer/), so `--tokens` output can be compared
+// with it. The source is read as bytes (28.1.2): a read-only parameter is never copied,
+// and data[i] is instant. Columns count characters, not bytes, as Python does.
+
+public enum Tok {
+    IF ELSE FOR WHILE LOOP END BREAK CONTINUE RETURN MATCH CASE
+    FUNCTION FUNC ASYNC AWAIT
+    CLASS STRUCT INTERFACE ENUM INHERITS IMPLEMENTS PROPERTY GET SET
+    PUBLIC PRIVATE PROTECTED STATIC VIRTUAL OVERRIDE ABSTRACT SEALED
+    INT FLOAT DOUBLE STRING BOOL CHAR BYTE SHORT LONG VOID
+    UNIQUE SHARED WEAK VAR CONST TRUE FALSE NULL THIS
+    AND OR NOT IS IN IMPORT NEW CAST TRY CATCH FINALLY THROW ERROR GO
+    PLUS MINUS MULTIPLY DIVIDE MODULO POWER
+    LESS GREATER LESS_EQUAL GREATER_EQUAL EQUAL NOT_EQUAL NOT_EQUAL_ALT
+    STRICT_EQUAL STRICT_NOT_EQUAL LOGICAL_AND LOGICAL_OR LOGICAL_NOT
+    ASSIGN PLUS_ASSIGN MINUS_ASSIGN MULTIPLY_ASSIGN DIVIDE_ASSIGN MODULO_ASSIGN POWER_ASSIGN
+    RANGE SAFE_NAV SAFE_INDEX CHANNEL_SEND ARROW INCREMENT DECREMENT
+    LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE COMMA COLON DOT QUESTION
+    INTEGER FLOAT_LIT STRING_LIT CHAR_LIT IDENTIFIER
+    INDENT DEDENT NEWLINE EOF
+}
+
+// One piece of a string literal: kind 0 = text, 1 = {name} (a name or a.b path), 2 = {@N}
+public struct StrPart {
+    int kind
+    string text
+}
+
+public struct Token {
+    Tok kind
+    string text              // the source text; a char's or a name's value; "" for INDENT ...
+    List<StrPart> parts      // STRING_LIT only
+    int line
+    int col
+}
+
+// A scan result: the text found, and the position after it
+struct Scan {
+    string text
+    int stop
+}
+
+struct StrScan {
+    List<StrPart> parts
+    int stop
+}
+
+struct NumScan {
+    Tok kind
+    int stop
+}
+
+// ---------------------------------------------------------------- tables
+
+Map<string, Tok> function keywordTable() {
+    Map<string, Tok> k
+    k["if"] = Tok.IF
+    k["else"] = Tok.ELSE
+    k["for"] = Tok.FOR
+    k["while"] = Tok.WHILE
+    k["loop"] = Tok.LOOP
+    k["end"] = Tok.END
+    k["End"] = Tok.END
+    k["break"] = Tok.BREAK
+    k["continue"] = Tok.CONTINUE
+    k["return"] = Tok.RETURN
+    k["match"] = Tok.MATCH
+    k["case"] = Tok.CASE
+    k["function"] = Tok.FUNCTION
+    k["func"] = Tok.FUNC
+    k["async"] = Tok.ASYNC
+    k["await"] = Tok.AWAIT
+    k["class"] = Tok.CLASS
+    k["struct"] = Tok.STRUCT
+    k["interface"] = Tok.INTERFACE
+    k["enum"] = Tok.ENUM
+    k["Enum"] = Tok.ENUM
+    k["inherits"] = Tok.INHERITS
+    k["implements"] = Tok.IMPLEMENTS
+    k["property"] = Tok.PROPERTY
+    k["get"] = Tok.GET
+    k["set"] = Tok.SET
+    k["public"] = Tok.PUBLIC
+    k["private"] = Tok.PRIVATE
+    k["protected"] = Tok.PROTECTED
+    k["static"] = Tok.STATIC
+    k["virtual"] = Tok.VIRTUAL
+    k["override"] = Tok.OVERRIDE
+    k["abstract"] = Tok.ABSTRACT
+    k["sealed"] = Tok.SEALED
+    k["int"] = Tok.INT
+    k["float"] = Tok.FLOAT
+    k["double"] = Tok.DOUBLE
+    k["string"] = Tok.STRING
+    k["bool"] = Tok.BOOL
+    k["char"] = Tok.CHAR
+    k["byte"] = Tok.BYTE
+    k["short"] = Tok.SHORT
+    k["long"] = Tok.LONG
+    k["void"] = Tok.VOID
+    k["Unique"] = Tok.UNIQUE
+    k["Shared"] = Tok.SHARED
+    k["Weak"] = Tok.WEAK
+    k["var"] = Tok.VAR
+    k["const"] = Tok.CONST
+    k["true"] = Tok.TRUE
+    k["false"] = Tok.FALSE
+    k["null"] = Tok.NULL
+    k["this"] = Tok.THIS
+    k["and"] = Tok.AND
+    k["or"] = Tok.OR
+    k["not"] = Tok.NOT
+    k["is"] = Tok.IS
+    k["in"] = Tok.IN
+    k["import"] = Tok.IMPORT
+    k["new"] = Tok.NEW
+    k["cast"] = Tok.CAST
+    k["try"] = Tok.TRY
+    k["catch"] = Tok.CATCH
+    k["finally"] = Tok.FINALLY
+    k["throw"] = Tok.THROW
+    k["go"] = Tok.GO
+    return k
+}
+
+// Every operator and delimiter, 1 to 3 characters long - the longest match wins
+Map<string, Tok> function operatorTable() {
+    Map<string, Tok> o
+    o["..."] = Tok.RANGE
+    o["**="] = Tok.POWER_ASSIGN
+    o["==="] = Tok.STRICT_EQUAL
+    o["!=="] = Tok.STRICT_NOT_EQUAL
+    o["=="] = Tok.EQUAL
+    o["!="] = Tok.NOT_EQUAL
+    o["<>"] = Tok.NOT_EQUAL_ALT
+    o["<="] = Tok.LESS_EQUAL
+    o[">="] = Tok.GREATER_EQUAL
+    o["&&"] = Tok.LOGICAL_AND
+    o["||"] = Tok.LOGICAL_OR
+    o["+="] = Tok.PLUS_ASSIGN
+    o["-="] = Tok.MINUS_ASSIGN
+    o["*="] = Tok.MULTIPLY_ASSIGN
+    o["/="] = Tok.DIVIDE_ASSIGN
+    o["%="] = Tok.MODULO_ASSIGN
+    o["**"] = Tok.POWER
+    o["++"] = Tok.INCREMENT
+    o["--"] = Tok.DECREMENT
+    o["?."] = Tok.SAFE_NAV
+    o["?["] = Tok.SAFE_INDEX
+    o["<-"] = Tok.CHANNEL_SEND
+    o["->"] = Tok.ARROW
+    o["+"] = Tok.PLUS
+    o["-"] = Tok.MINUS
+    o["*"] = Tok.MULTIPLY
+    o["/"] = Tok.DIVIDE
+    o["%"] = Tok.MODULO
+    o["<"] = Tok.LESS
+    o[">"] = Tok.GREATER
+    o["="] = Tok.ASSIGN
+    o["!"] = Tok.LOGICAL_NOT
+    o["("] = Tok.LPAREN
+    o[")"] = Tok.RPAREN
+    o["["] = Tok.LBRACKET
+    o["]"] = Tok.RBRACKET
+    o["\{"] = Tok.LBRACE
+    o["\}"] = Tok.RBRACE
+    o[","] = Tok.COMMA
+    o[":"] = Tok.COLON
+    o["."] = Tok.DOT
+    o["?"] = Tok.QUESTION
+    return o
+}
+
+// ---------------------------------------------------------------- bytes
+
+bool function isDigitByte(int c) : c >= 48 and c <= 57
+
+// A letter: ASCII, or any byte of a non-ASCII character (the Python lexer accepts every
+// Unicode letter here, and checks the name later)
+bool function isAlphaByte(int c) : (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or c >= 128
+
+bool function isNameByte(int c) : isAlphaByte(c) or isDigitByte(c) or c == 95
+
+bool function isBaseDigit(int c, int base) {
+    if base == 16 {
+        return isDigitByte(c) or (c >= 97 and c <= 102) or (c >= 65 and c <= 70)
+    }
+    if base == 2 {
+        return c == 48 or c == 49
+    }
+    if base == 8 {
+        return c >= 48 and c <= 55
+    }
+    return isDigitByte(c)
+}
+
+// The text of data[start] up to (not including) data[stop]
+string function textOf(bytes data, int start, int stop) : toString(slice(data, start, stop - start))
+
+// The column of position pos: characters (not continuation bytes) since the line start
+int function colAt(bytes data, int lineStart, int pos) {
+    int col = 1
+    for i in range(lineStart, pos) {
+        int b = data[i]
+        if b < 128 or b >= 192 {
+            col = col + 1
+        }
+    }
+    return col
+}
+
+// A line the indentation rules skip: blank, or only a comment (// or /* - and ', as the
+// Python lexer still treats a line starting with ' as a comment line there)
+bool function skipLine(bytes data, int pos) {
+    int n = len(data)
+    while pos < n and data[pos] != 10 {
+        int c = data[pos]
+        if c != 32 and c != 9 and c != 13 and c != 11 and c != 12 {
+            if c == 39 {
+                return true
+            }
+            if c == 47 and pos + 1 < n and (data[pos + 1] == 47 or data[pos + 1] == 42) {
+                return true
+            }
+            return false
+        }
+        pos = pos + 1
+    }
+    return true
+}
+
+// ---------------------------------------------------------------- literals
+
+int function skipDigits(bytes data, int pos, int base) {
+    int n = len(data)
+    while pos < n {
+        int c = data[pos]
+        if isBaseDigit(c, base) {
+            pos = pos + 1
+        } else if c == 95 and pos > 0 and isBaseDigit(data[pos - 1], base) and pos + 1 < n and isBaseDigit(data[pos + 1], base) {
+            pos = pos + 1
+        } else {
+            break
+        }
+    }
+    return pos
+}
+
+NumScan, Error function scanNumber(bytes data, int pos) {
+    int n = len(data)
+    // 0x / 0b / 0o
+    if data[pos] == 48 and pos + 1 < n {
+        int p = data[pos + 1]
+        int base = 0
+        if p == 120 or p == 88 {
+            base = 16
+        } else if p == 98 or p == 66 {
+            base = 2
+        } else if p == 111 or p == 79 {
+            base = 8
+        }
+        if base != 0 {
+            int start = pos + 2
+            int stop = skipDigits(data, start, base)
+            if stop == start {
+                return Error("a number with a base prefix needs digits after it")
+            }
+            if stop < n and (isNameByte(data[stop])) {
+                return Error(format("'{@1}' is not a digit in this literal", textOf(data, stop, stop + 1)))
+            }
+            return NumScan(Tok.INTEGER, stop)
+        }
+    }
+    int stop = skipDigits(data, pos, 10)
+    // A float: digits '.' digits - but '.' followed by a letter is a method call (255.toHex())
+    if stop < n and data[stop] == 46 and not (stop + 1 < n and (isAlphaByte(data[stop + 1]) or data[stop + 1] == 95)) {
+        stop = skipDigits(data, stop + 1, 10)
+        if stop < n and (data[stop] == 102 or data[stop] == 70 or data[stop] == 100 or data[stop] == 68) {
+            stop = stop + 1
+        }
+        return NumScan(Tok.FLOAT_LIT, stop)
+    }
+    if stop < n and (data[stop] == 76 or data[stop] == 108) {
+        stop = stop + 1
+    }
+    return NumScan(Tok.INTEGER, stop)
+}
+
+int function hexValue(int c) {
+    if isDigitByte(c) {
+        return c - 48
+    }
+    if c >= 97 and c <= 102 {
+        return c - 87
+    }
+    if c >= 65 and c <= 70 {
+        return c - 55
+    }
+    return -1
+}
+
+// An escape at data[pos] (a backslash): its text, and the position after it
+Scan, Error function scanEscape(bytes data, int pos) {
+    int n = len(data)
+    if pos + 1 >= n {
+        return Error("Unexpected end of string in escape sequence")
+    }
+    int c = data[pos + 1]
+    if c == 110 {
+        return Scan("\n", pos + 2)
+    }
+    if c == 116 {
+        return Scan("\t", pos + 2)
+    }
+    if c == 114 {
+        return Scan("\r", pos + 2)
+    }
+    if c == 48 {
+        return Scan("\0", pos + 2)
+    }
+    if c == 34 or c == 39 or c == 92 or c == 123 or c == 125 {
+        return Scan(textOf(data, pos + 1, pos + 2), pos + 2)
+    }
+    if c == 117 {
+        if pos + 6 > n {
+            return Error("Invalid \\u escape: expected exactly 4 hex digits after \\u")
+        }
+        int code = 0
+        for i in range(pos + 2, pos + 6) {
+            int digit = hexValue(data[i])
+            if digit < 0 {
+                return Error("Invalid \\u escape: expected exactly 4 hex digits after \\u")
+            }
+            code = code * 16 + digit
+        }
+        if code >= 55296 and code <= 57343 {
+            return Error("Invalid \\u escape: a UTF-16 surrogate is not a character")
+        }
+        return Scan("" + fromCharCode(code), pos + 6)
+    }
+    return Error(format("Invalid escape sequence: \\{@1}", textOf(data, pos + 1, pos + 2)))
+}
+
+// A string literal starting at data[pos] (the opening quote): its parts, split at each
+// {name} / {@N}, with escapes turned into their characters
+StrScan, Error function scanString(bytes data, int pos) {
+    int n = len(data)
+    List<StrPart> parts = []
+    string current = ""
+    int i = pos + 1
+    int run = i
+    while i < n and data[i] != 34 {
+        int c = data[i]
+        if c == 92 {
+            current = current + textOf(data, run, i)
+            Scan e = scanEscape(data, i)
+            current = current + e.text
+            i = e.stop
+            run = i
+        } else if c == 123 {
+            current = current + textOf(data, run, i)
+            parts.add(StrPart(0, current))
+            current = ""
+            i = i + 1
+            if i >= n {
+                return Error("Unexpected end of string in interpolation")
+            }
+            if data[i] == 64 {
+                i = i + 1
+                int start = i
+                while i < n and isDigitByte(data[i]) {
+                    i = i + 1
+                }
+                if i == start {
+                    return Error("Expected number after @ in positional interpolation")
+                }
+                parts.add(StrPart(2, textOf(data, start, i)))
+            } else {
+                int start = i
+                while i < n and isNameByte(data[i]) {
+                    i = i + 1
+                }
+                if i == start {
+                    return Error("Expected variable name in inline interpolation")
+                }
+                while i < n and data[i] == 46 {
+                    i = i + 1
+                    int field = i
+                    while i < n and isNameByte(data[i]) {
+                        i = i + 1
+                    }
+                    if i == field {
+                        return Error("Expected field name after '.' in interpolation")
+                    }
+                }
+                parts.add(StrPart(1, textOf(data, start, i)))
+            }
+            if i >= n or data[i] != 125 {
+                return Error("Expected \} to close interpolation")
+            }
+            i = i + 1
+            run = i
+        } else {
+            i = i + 1
+        }
+    }
+    current = current + textOf(data, run, i)
+    parts.add(StrPart(0, current))
+    if i >= n {
+        return Error("Unterminated string literal")
+    }
+    return StrScan(parts, i + 1)
+}
+
+// The bytes of the UTF-8 character starting with byte b
+int function charLength(int b) {
+    if b < 192 {
+        return 1
+    }
+    if b < 224 {
+        return 2
+    }
+    if b < 240 {
+        return 3
+    }
+    return 4
+}
+
+// A char literal at data[pos] (the opening quote): its character, and the position after
+Scan, Error function scanChar(bytes data, int pos) {
+    int n = len(data)
+    int i = pos + 1
+    if i >= n {
+        return Error("Unterminated character literal")
+    }
+    string text = ""
+    if data[i] == 92 {
+        Scan e = scanEscape(data, i)
+        text = e.text
+        i = e.stop
+    } else {
+        int size = charLength(data[i])
+        text = textOf(data, i, i + size)
+        i = i + size
+    }
+    if i >= n or data[i] != 39 {
+        return Error("Unterminated character literal")
+    }
+    return Scan(text, i + 1)
+}
+
+// The ASCII text of data[pos] .. data[pos + size - 1], or "" if any byte isn't ASCII
+string function asciiAt(bytes data, int pos, int size) {
+    if pos + size > len(data) {
+        return ""
+    }
+    for i in range(pos, pos + size) {
+        if data[i] >= 128 {
+            return ""
+        }
+    }
+    return textOf(data, pos, pos + size)
+}
+
+// The character a CHAR_LIT token's raw text ('a', '\n', '\u0041') stands for
+public string function charValue(string raw) {
+    Scan s = scanChar(toBytes(raw), 0)
+    return s.text
+}
+
+// ---------------------------------------------------------------- the lexer
+
+// An error message with its place: file:line:col: message
+string function at(string file, int line, int col, string message) : "{file}:{line}:{col}: {message}"
+
+public List<Token>, Error function tokenize(bytes data, string file) {
+    Map<string, Tok> keywords = keywordTable()
+    Map<string, Tok> operators = operatorTable()
+    List<Token> tokens = []
+    List<int> indents = [0]
+    int n = len(data)
+    int pos = 0
+    int line = 1
+    int lineStart = 0
+    int braces = 0
+    while pos < n {
+        int c = data[pos]
+        int col = colAt(data, lineStart, pos)
+        if c == 10 {
+            tokens.add(Token(Tok.NEWLINE, "\n", [], line, col))
+            pos = pos + 1
+            line = line + 1
+            lineStart = pos
+            // Indentation at the start of the next line - not inside braces, and not on a
+            // blank or comment-only line
+            if pos < n and braces == 0 and not skipLine(data, pos) {
+                int level = 0
+                while pos < n and (data[pos] == 32 or data[pos] == 9) {
+                    if data[pos] == 9 {
+                        level = level + 4
+                    } else {
+                        level = level + 1
+                    }
+                    pos = pos + 1
+                }
+                int top = indents[indents.len() - 1]
+                if level > top {
+                    indents.add(level)
+                    tokens.add(Token(Tok.INDENT, "", [], line, 1))
+                } else if level < top {
+                    while indents[indents.len() - 1] > level {
+                        indents.removeAt(indents.len() - 1)
+                        tokens.add(Token(Tok.DEDENT, "", [], line, 1))
+                    }
+                    if indents[indents.len() - 1] != level {
+                        return Error(at(file, line, 1, "Indentation doesn't match any outer level"))
+                    }
+                }
+            }
+        } else if c == 32 or c == 9 or c == 13 {
+            pos = pos + 1
+        } else if c == 47 and pos + 1 < n and data[pos + 1] == 47 {
+            // A // comment, to the end of the line
+            while pos < n and data[pos] != 10 {
+                pos = pos + 1
+            }
+        } else if c == 47 and pos + 1 < n and data[pos + 1] == 42 {
+            // A /* */ comment - as in the Python lexer, a comment over several lines leaves
+            // the column at 1 where it ends
+            int start = pos
+            int lines = 0
+            pos = pos + 2
+            while pos + 1 < n and not (data[pos] == 42 and data[pos + 1] == 47) {
+                if data[pos] == 10 {
+                    lines = lines + 1
+                }
+                pos = pos + 1
+            }
+            if pos + 1 >= n {
+                return Error(at(file, line, col, "Unterminated multi-line comment"))
+            }
+            pos = pos + 2
+            if lines > 0 {
+                line = line + lines
+                lineStart = pos
+            }
+        } else if c == 34 {
+            StrScan s, Error err = scanString(data, pos)
+            if err {
+                return Error(at(file, line, col, err.message))
+            }
+            tokens.add(Token(Tok.STRING_LIT, textOf(data, pos, s.stop), s.parts, line, col))
+            pos = s.stop
+        } else if c == 39 {
+            Scan s, Error err = scanChar(data, pos)
+            if err {
+                return Error(at(file, line, col, err.message))
+            }
+            // The raw text, quotes included, as the Python lexer keeps it - charValue decodes it
+            tokens.add(Token(Tok.CHAR_LIT, textOf(data, pos, s.stop), [], line, col))
+            pos = s.stop
+        } else if isDigitByte(c) {
+            NumScan s, Error err = scanNumber(data, pos)
+            if err {
+                return Error(at(file, line, col, err.message))
+            }
+            tokens.add(Token(s.kind, textOf(data, pos, s.stop), [], line, col))
+            pos = s.stop
+        } else if isAlphaByte(c) or c == 95 {
+            int start = pos
+            while pos < n and isNameByte(data[pos]) {
+                pos = pos + 1
+            }
+            string name = textOf(data, start, pos)
+            Tok kind = Tok.IDENTIFIER
+            if keywords.has(name) {
+                kind = keywords[name]
+            }
+            tokens.add(Token(kind, name, [], line, col))
+        } else {
+            // The longest operator or delimiter that matches
+            int size = 3
+            string op = ""
+            while size > 0 and op == "" {
+                string text = asciiAt(data, pos, size)
+                if text != "" and operators.has(text) {
+                    op = text
+                } else {
+                    size = size - 1
+                }
+            }
+            if op == "" {
+                return Error(at(file, line, col, format("Invalid character '{@1}'", textOf(data, pos, pos + charLength(c)))))
+            }
+            Tok kind = operators[op]
+            if kind == Tok.LBRACE {
+                braces = braces + 1
+            } else if kind == Tok.RBRACE {
+                if braces == 0 {
+                    return Error(at(file, line, col, "'\}' with no '\{' before it"))
+                }
+                braces = braces - 1
+            }
+            tokens.add(Token(kind, op, [], line, col))
+            pos = pos + size
+        }
+    }
+    int endCol = colAt(data, lineStart, pos)
+    while indents.len() > 1 {
+        indents.removeAt(indents.len() - 1)
+        tokens.add(Token(Tok.DEDENT, "", [], line, endCol))
+    }
+    tokens.add(Token(Tok.EOF, "", [], line, endCol))
+    return tokens
+}
+
+// ---------------------------------------------------------------- --tokens
+
+// Text written so it can be compared line by line: \ " and control characters escaped
+string function shown(string text) {
+    string s = replace(text, "\\", "\\\\")
+    s = replace(s, "\"", "\\\"")
+    s = replace(s, "\n", "\\n")
+    s = replace(s, "\t", "\\t")
+    s = replace(s, "\r", "\\r")
+    return "\"" + s + "\""
+}
+
+// One token as a line: KIND "value" line:col - a string's value is its parts, S"text"
+// V"name" P"n"
+public string function dumpToken(Token t) {
+    string value = shown(t.text)
+    if t.kind == Tok.STRING_LIT {
+        List<string> parts = []
+        for p in t.parts {
+            if p.kind == 0 {
+                parts.add("S" + shown(p.text))
+            } else if p.kind == 1 {
+                parts.add("V" + shown(p.text))
+            } else {
+                parts.add("P" + shown(p.text))
+            }
+        }
+        value = parts.join(" ")
+    }
+    return format("{@1} {@2} {@3}:{@4}", t.kind, value, t.line, t.col)
+}

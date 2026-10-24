@@ -736,3 +736,20 @@ End function
     exit_code, stdout, stderr = compile_and_run(fusion_code)
     assert exit_code == 0
     assert "Values: 10, 20, 30" in stdout
+
+
+def test_bare_return_in_void_main_ends_the_program_with_exit_code_0():
+    """`return` with no value in `void main` (found by the self-hosted compiler, 28.2)."""
+    source = ('void function main()\n'
+              '    print("before")\n'
+              '    if true\n'
+              '        return\n'
+              '    print("never")\n')
+    code, out, _ = compile_and_run(source)
+    assert code == 0 and out.strip() == 'before'
+    owning = ('void function main()\n'
+              '    string s = "kept " + "text"\n'
+              '    print(s)\n'
+              '    return\n')
+    code, out, _ = compile_and_run(owning)
+    assert code == 0 and out.strip() == 'kept text'

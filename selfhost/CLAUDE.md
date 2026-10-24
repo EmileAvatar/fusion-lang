@@ -3,6 +3,8 @@
 Built by the Python compiler (`python main.py ...`). The Python compiler stays the real one
 until self-hosting is fully independent (Task 35).
 
+- `main.fusion` - the driver: `main.exe program.fusion [--tokens]` (28.6)
+- `lexer/lexer.fusion` - source bytes -> tokens, the same tokens as the Python lexer (28.2)
 - `prototype/` - measurements for 28.1.2 (task/selfhost_subset.md, "28.1.2 results")
   - `lex_bytes.fusion` - pattern B over `bytes`: the source is read-only, a function returns
     one token, the caller collects them. The pattern the compiler uses

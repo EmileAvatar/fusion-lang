@@ -195,7 +195,10 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		[DONE] 28.1.4 `files/Builtins.md`: every built-in function (94), type class and List / Map
 			method, generated from the compiler (`check.py --builtins`, tools/builtins_doc.py);
 			the "builtins" check fails when it is out of date
-	[ ] 28.2 Lexer in Fusion
+	[DONE] 28.2 Lexer in Fusion (selfhost/lexer/lexer.fusion, about 600 lines): every token
+		kind, the three block styles, string parts, escapes, numbers in every base; `--tokens`
+		matches the Python lexer token for token on all 53 example files (tests/test_selfhost.py).
+		Found: a bare `return` in `void main` gave invalid C (fixed in the Python compiler)
 	[ ] 28.3 Parser in Fusion
 	[ ] 28.4 Checker in Fusion
 	[ ] 28.5 C code generator in Fusion

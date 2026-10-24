@@ -1,0 +1,32 @@
+// The Fusion compiler written in Fusion - the driver (Task 28.6)
+//     selfhost program.fusion [--tokens] [--runtime DIR] [--leak-check]
+import lexer
+import lexer.Token
+
+void function main(string... args) {
+    if len(args) == 0 {
+        print("usage: selfhost program.fusion [--tokens] [--runtime DIR] [--leak-check]")
+        exit(2)
+    }
+    string path = args[0]
+    bool tokensOnly = false
+    for a in args {
+        if a == "--tokens" {
+            tokensOnly = true
+        }
+    }
+    bytes data = readBytes(path)
+    List<Token> tokens, Error err = lexer.tokenize(data, path)
+    if err {
+        print(err.message)
+        exit(1)
+    }
+    if tokensOnly {
+        List<string> lines = []
+        for t in tokens {
+            lines.add(lexer.dumpToken(t))
+        }
+        print(lines.join("\n"))
+        return
+    }
+}

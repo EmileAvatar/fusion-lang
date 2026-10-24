@@ -1417,13 +1417,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         owned = self.owned_in_scopes('function') if hasattr(self, 'cleanup_scopes') else []
         leaves_finally = any(True for _ in getattr(self, 'finally_stack', None) or [])
         if not owned and not self.has_pending_temps() and not leaves_finally:
-            self.emit_line(f'return {value_code}' if value_code is not None else 'return')
+            self.emit_line(f'return {value_code}' if value_code is not None else self._bare_return())
             return ''
         if value_code is None:
             self.flush_temps()
             self.emit_finally_for_exit('function')   # a try being left runs its finally (26.3)
             self.emit_frees(owned)
-            self.emit_line('return')
+            self.emit_line(self._bare_return())
             return ''
         result = self._declare_temp('ret', self.return_c_type(return_type))
         self.emit_line(f'{result} = {value_code}')
@@ -1432,6 +1432,14 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.emit_frees(owned)
         self.emit_line(f'return {result}')
         return ''
+
+    def _bare_return(self) -> str:
+        """`return` with no value: in `void main` it is `return 0` - C's main returns an int
+        (found by the self-hosted compiler, Task 28.2)."""
+        targets = getattr(self, 'fail_targets', None)
+        if targets and targets[0].get('kind') == 'function' and targets[0].get('main'):
+            return 'return 0'
+        return 'return'
 
     @staticmethod
     def _returns_array(expr) -> bool:
