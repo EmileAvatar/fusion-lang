@@ -470,6 +470,53 @@ public string function charValue(string raw) {
     return s.text
 }
 
+// A name-shaped word: a letter or _, then letters, digits or _ (a keyword counts too - after
+// '.' any word is a field or method name)
+public bool function isWord(string text) {
+    bytes b = toBytes(text)
+    if len(b) == 0 or not (isAlphaByte(b[0]) or b[0] == 95) {
+        return false
+    }
+    for i in range(1, len(b)) {
+        if not isNameByte(b[i]) {
+            return false
+        }
+    }
+    return true
+}
+
+// The value of an INTEGER token's text: 42, 1_000, 0xFF, 0b1010, 0o17, 7L. A hex / binary /
+// octal literal is a 32-bit pattern, so 0xFFFFFFFF is -1 (as in the Python compiler)
+public int function intValue(string text) {
+    bytes b = toBytes(text)
+    int n = len(b)
+    if n > 0 and (b[n - 1] == 76 or b[n - 1] == 108) {
+        n = n - 1
+    }
+    int base = 10
+    int start = 0
+    if n > 2 and b[0] == 48 {
+        int p = b[1]
+        if p == 120 or p == 88 {
+            base = 16
+        } else if p == 98 or p == 66 {
+            base = 2
+        } else if p == 111 or p == 79 {
+            base = 8
+        }
+        if base != 10 {
+            start = 2
+        }
+    }
+    int value = 0
+    for i in range(start, n) {
+        if b[i] != 95 {
+            value = wrapAdd(wrapMul(value, base), hexValue(b[i]))
+        }
+    }
+    return value
+}
+
 // ---------------------------------------------------------------- the lexer
 
 // An error message with its place: file:line:col: message

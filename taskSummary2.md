@@ -282,4 +282,8 @@ Kept under Task 22 until the renumbering is approved.
 - Slice 1 done: hello_world compiled by the Fusion-written compiler - its C is the Python
   compiler's line for line, the program passes the leak check. Gaps logged in
   task/selfhost_report.md
-- **Next Action:** slice 2 - factorial (functions with parameters, if, return, int arithmetic)
+- Slice 2 done: the parser is complete for tier 1 (all 18 programs parse; --ast); the
+  code generator checks types in the same walk; 8 of 18 programs print the same as the
+  Python-built ones, leak-free
+- **Next Action:** slice 3 - string values and printing every type (syntax_strings,
+  syntax_interpolation, syntax_variables_and_control_flow, syntax_defaults_and_named_args)

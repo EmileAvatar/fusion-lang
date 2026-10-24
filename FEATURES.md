@@ -199,7 +199,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		kind, the three block styles, string parts, escapes, numbers in every base; `--tokens`
 		matches the Python lexer token for token on all 53 example files (tests/test_selfhost.py).
 		Found: a bare `return` in `void main` gave invalid C (fixed in the Python compiler)
-	[ ] 28.3 Parser in Fusion
+	[ ] 28.3 Parser in Fusion - complete for tier 1 (selfhost/parser/, about 750 lines; all 18
+		programs parse, `--ast` prints the tree); marked done with tier 1
 	[ ] 28.4 Checker in Fusion
 	[ ] 28.5 C code generator in Fusion
 	[ ] 28.6 Driver (main): read files, write C, call GCC

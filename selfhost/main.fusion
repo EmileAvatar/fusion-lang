@@ -1,6 +1,6 @@
 // The Fusion compiler written in Fusion - the driver (Task 28.6)
 //
-//     main.exe program.fusion [--tokens] [--runtime DIR] [--leak-check]
+//     main.exe program.fusion [--tokens | --ast] [--runtime DIR] [--leak-check]
 //
 // Writes program.c next to the source and builds program.exe with GCC. DIR holds
 // fusion_runtime.h (default: runtime, from the repo root). --tokens prints the tokens
@@ -24,11 +24,14 @@ void function main(string... args) {
     }
     string path = args[0]
     bool tokensOnly = false
+    bool astOnly = false
     bool leakCheck = false
     string runtime = "runtime"
     for i in range(1, len(args)) {
         if args[i] == "--tokens" {
             tokensOnly = true
+        } else if args[i] == "--ast" {
+            astOnly = true
         } else if args[i] == "--leak-check" {
             leakCheck = true
         } else if args[i] == "--runtime" and i + 1 < len(args) {
@@ -53,7 +56,11 @@ void function main(string... args) {
     if parseError {
         fail(path + ":" + parseError.message)
     }
-    string code, Error genError = codegen.generate(program)
+    if astOnly {
+        print(parser.show(program))
+        return
+    }
+    string code, Error genError = codegen.generate(program, path)
     if genError {
         fail(path + ":" + genError.message)
     }

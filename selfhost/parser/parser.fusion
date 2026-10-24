@@ -1,7 +1,8 @@
 // Module parser - tokens -> the syntax tree (Task 28.3)
 //
-// The tokens are a read-only parameter (never copied); each function returns the node it
-// read and the position after it (28.1.2). A syntax error is an Error: file:line:col.
+// Mirrors the Python parser (src/parser/parser.py) for the tier 1 subset. The tokens are a
+// read-only parameter (never copied); each function returns what it read and the position
+// after it (28.1.2). A syntax error is an Error with its line:col; errors bubble up.
 
 import lexer
 import lexer.Token
@@ -27,6 +28,10 @@ struct ListParsed {
 
 Tok function kindAt(List<Token> toks, int pos) : toks[pos].kind
 
+string function textAt(List<Token> toks, int pos) : toks[pos].text
+
+int function lineAt(List<Token> toks, int pos) : toks[pos].line
+
 string function expected(List<Token> toks, int pos, string what) {
     Token t = toks[pos]
     return format("{@1}:{@2}: Expected {@3}, got '{@4}'", t.line, t.col, what, t.text)
@@ -39,93 +44,544 @@ int function skipNewlines(List<Token> toks, int pos) {
     return pos
 }
 
+// The position after the expected token - or an error naming it
+int, Error function want(List<Token> toks, int pos, Tok kind, string what) {
+    if kindAt(toks, pos) != kind {
+        return Error(expected(toks, pos, what))
+    }
+    return pos + 1
+}
+
 // ---------------------------------------------------------------- types
 
 bool function isPrimitive(Tok k) {
-    return k == Tok.INT or k == Tok.FLOAT or k == Tok.DOUBLE or k == Tok.BOOL or k == Tok.CHAR or k == Tok.STRING or k == Tok.VOID or k == Tok.BYTE
+    return k == Tok.INT or k == Tok.FLOAT or k == Tok.DOUBLE or k == Tok.STRING or k == Tok.BOOL or k == Tok.CHAR or k == Tok.VOID or k == Tok.BYTE
+}
+
+TypeParsed, Error function parseFunctionType(List<Token> toks, int pos) {
+    pos = want(toks, pos, Tok.LPAREN, "'(' to start a function type")
+    List<TypeRef> params = []
+    if kindAt(toks, pos) != Tok.RPAREN {
+        TypeParsed first = parseType(toks, pos)
+        params.add(first.typ)
+        pos = first.pos
+        while kindAt(toks, pos) == Tok.COMMA {
+            TypeParsed next = parseType(toks, pos + 1)
+            params.add(next.typ)
+            pos = next.pos
+        }
+    }
+    pos = want(toks, pos, Tok.RPAREN, "')' after function type parameters")
+    if kindAt(toks, pos) != Tok.COLON and kindAt(toks, pos) != Tok.ARROW {
+        return Error(expected(toks, pos, "':' or '->' before the function type's return type"))
+    }
+    TypeParsed result = parseType(toks, pos + 1)
+    return TypeParsed(TypeRef.Func(params, result.typ), result.pos)
 }
 
 TypeParsed, Error function parseType(List<Token> toks, int pos) {
-    Token t = toks[pos]
-    if isPrimitive(t.kind) {
-        return TypeParsed(TypeRef.Prim(t.text), pos + 1)
+    Tok k = kindAt(toks, pos)
+    if k == Tok.LPAREN {
+        return parseFunctionType(toks, pos)
     }
-    if t.kind == Tok.IDENTIFIER {
-        return TypeParsed(TypeRef.Named(t.text), pos + 1)
+    TypeRef base = TypeRef.Unknown
+    if isPrimitive(k) {
+        base = TypeRef.Prim(textAt(toks, pos))
+    } else if k == Tok.IDENTIFIER {
+        string name = textAt(toks, pos)
+        while kindAt(toks, pos + 1) == Tok.DOT and kindAt(toks, pos + 2) == Tok.IDENTIFIER {
+            pos = pos + 2
+            name = name + "." + textAt(toks, pos)
+        }
+        if name == "bytes" {
+            base = TypeRef.Prim("bytes")
+        } else {
+            base = TypeRef.Named(name)
+        }
+    } else {
+        return Error(expected(toks, pos, "a type name"))
     }
-    return Error(expected(toks, pos, "a type"))
+    pos = pos + 1
+    if kindAt(toks, pos) == Tok.LBRACKET {
+        int size = -1
+        pos = pos + 1
+        if kindAt(toks, pos) != Tok.RBRACKET {
+            if kindAt(toks, pos) != Tok.INTEGER {
+                return Error(expected(toks, pos, "an array size (an integer, e.g. int[5])"))
+            }
+            size = lexer.intValue(textAt(toks, pos))
+            pos = pos + 1
+        }
+        pos = want(toks, pos, Tok.RBRACKET, "']' after the array size")
+        return TypeParsed(TypeRef.Array(base, size), pos)
+    }
+    return TypeParsed(base, pos)
+}
+
+// `Point p`, `Point[3] pts`, `money.Price p`, `Point function f()` - an identifier type
+// followed by a name (two names in a row are never an expression)
+bool function isStructTypeStart(List<Token> toks, int pos) {
+    if kindAt(toks, pos) != Tok.IDENTIFIER {
+        return false
+    }
+    int offset = pos + 1
+    while kindAt(toks, offset) == Tok.DOT and kindAt(toks, offset + 1) == Tok.IDENTIFIER {
+        offset = offset + 2
+    }
+    if kindAt(toks, offset) == Tok.LBRACKET {
+        offset = offset + 1
+        if kindAt(toks, offset) == Tok.INTEGER {
+            offset = offset + 1
+        }
+        if kindAt(toks, offset) != Tok.RBRACKET {
+            return false
+        }
+        offset = offset + 1
+    }
+    return kindAt(toks, offset) == Tok.IDENTIFIER or kindAt(toks, offset) == Tok.FUNCTION
+}
+
+// `(int) : int op = ...` - a function type followed by a name
+bool function isFunctionTypeStart(List<Token> toks, int pos) {
+    if kindAt(toks, pos) != Tok.LPAREN {
+        return false
+    }
+    TypeParsed t, Error err = parseFunctionType(toks, pos)
+    if err {
+        return false
+    }
+    return kindAt(toks, t.pos) == Tok.IDENTIFIER or kindAt(toks, t.pos) == Tok.FUNCTION
+}
+
+bool function isDeclarationStart(List<Token> toks, int pos) {
+    return isPrimitive(kindAt(toks, pos)) or isFunctionTypeStart(toks, pos) or isStructTypeStart(toks, pos)
+}
+
+// ---------------------------------------------------------------- parameters
+
+Parsed, Error function parseParam(List<Token> toks, int pos) {
+    int line = lineAt(toks, pos)
+    TypeParsed t = parseType(toks, pos)
+    TypeRef paramType = t.typ
+    pos = t.pos
+    if kindAt(toks, pos) == Tok.RANGE {
+        paramType = TypeRef.Array(paramType, -1)       // string... args
+        pos = pos + 1
+    }
+    Tok k = kindAt(toks, pos)
+    if k != Tok.IDENTIFIER and not isPrimitive(k) and k != Tok.END {
+        return Error(expected(toks, pos, "a parameter name"))
+    }
+    string name = textAt(toks, pos)
+    pos = pos + 1
+    Node defaultValue = Node.Nothing
+    if kindAt(toks, pos) == Tok.ASSIGN {
+        Parsed d = parseExpression(toks, pos + 1, false)
+        defaultValue = d.node
+        pos = d.pos
+    }
+    return Parsed(Node.Param(name, paramType, defaultValue, line), pos)
+}
+
+// Parameters up to and including ')'
+ListParsed, Error function parseParams(List<Token> toks, int pos) {
+    List<Node> params = []
+    if kindAt(toks, pos) != Tok.RPAREN {
+        Parsed first = parseParam(toks, pos)
+        params.add(first.node)
+        pos = first.pos
+        while kindAt(toks, pos) == Tok.COMMA {
+            Parsed next = parseParam(toks, pos + 1)
+            params.add(next.node)
+            pos = next.pos
+        }
+    }
+    pos = want(toks, pos, Tok.RPAREN, "')' after the parameters")
+    return ListParsed(params, pos)
 }
 
 // ---------------------------------------------------------------- expressions
 
+// `{name}` / `{a.b}` in a string - the path as Name / Member nodes
+public Node function pathNode(string path, int line) {
+    List<string> names = path.split(".")
+    Node node = Node.Name(names[0], line)
+    for i in range(1, names.len()) {
+        node = Node.Member(node, names[i], line)
+    }
+    return node
+}
+
+// One call argument: an expression, or `name = value`
+Parsed, Error function parseArgument(List<Token> toks, int pos) {
+    if kindAt(toks, pos) == Tok.IDENTIFIER and kindAt(toks, pos + 1) == Tok.ASSIGN {
+        Parsed value = parseExpression(toks, pos + 2, false)
+        return Parsed(Node.NamedArg(textAt(toks, pos), value.node, lineAt(toks, pos)), value.pos)
+    }
+    return parseExpression(toks, pos, false)
+}
+
+// After '(': the arguments up to and including ')'
 ListParsed, Error function parseArguments(List<Token> toks, int pos) {
-    // at '('
     List<Node> args = []
-    pos = pos + 1
     if kindAt(toks, pos) != Tok.RPAREN {
-        Parsed first = parseExpression(toks, pos)
+        Parsed first = parseArgument(toks, pos)
         args.add(first.node)
         pos = first.pos
         while kindAt(toks, pos) == Tok.COMMA {
-            Parsed next = parseExpression(toks, pos + 1)
+            Parsed next = parseArgument(toks, pos + 1)
             args.add(next.node)
             pos = next.pos
         }
     }
-    if kindAt(toks, pos) != Tok.RPAREN {
-        return Error(expected(toks, pos, "')' after the arguments"))
-    }
-    return ListParsed(args, pos + 1)
+    pos = want(toks, pos, Tok.RPAREN, "')' after the arguments")
+    return ListParsed(args, pos)
 }
 
-Parsed, Error function parsePrimary(List<Token> toks, int pos) {
-    Token t = toks[pos]
-    if t.kind == Tok.STRING_LIT {
-        return Parsed(Node.Str(t.parts, t.line), pos + 1)
+// After '(' - is this `(int x) : body`? A ':' right after the matching ')'
+bool function isLambdaStart(List<Token> toks, int pos) {
+    int depth = 1
+    while kindAt(toks, pos) != Tok.EOF {
+        Tok k = kindAt(toks, pos)
+        if k == Tok.LPAREN {
+            depth = depth + 1
+        } else if k == Tok.RPAREN {
+            depth = depth - 1
+            if depth == 0 {
+                return kindAt(toks, pos + 1) == Tok.COLON
+            }
+        }
+        pos = pos + 1
     }
-    if t.kind == Tok.INTEGER {
+    return false
+}
+
+// After '(': `type name, ...) : expression`
+Parsed, Error function parseLambda(List<Token> toks, int pos, int line) {
+    ListParsed params = parseParams(toks, pos)
+    pos = want(toks, params.pos, Tok.COLON, "':' after the lambda's parameters")
+    Parsed body = parseExpression(toks, pos, false)
+    return Parsed(Node.Lambda(params.nodes, body.node, line), body.pos)
+}
+
+Parsed, Error function parsePrimary(List<Token> toks, int pos, bool cond) {
+    Token t = toks[pos]
+    Tok k = t.kind
+    if k == Tok.INTEGER {
         return Parsed(Node.IntLit(t.text, t.line), pos + 1)
     }
-    if t.kind == Tok.IDENTIFIER {
+    if k == Tok.FLOAT_LIT {
+        return Parsed(Node.FloatLit(t.text, t.line), pos + 1)
+    }
+    if k == Tok.STRING_LIT {
+        return Parsed(Node.Str(t.parts, t.line), pos + 1)
+    }
+    if k == Tok.CHAR_LIT {
+        return Parsed(Node.CharLit(lexer.charValue(t.text), t.line), pos + 1)
+    }
+    if k == Tok.TRUE or k == Tok.FALSE {
+        return Parsed(Node.BoolLit(k == Tok.TRUE, t.line), pos + 1)
+    }
+    if k == Tok.LBRACKET {
+        List<Node> items = []
+        pos = pos + 1
+        if kindAt(toks, pos) != Tok.RBRACKET {
+            Parsed first = parseExpression(toks, pos, false)
+            items.add(first.node)
+            pos = first.pos
+            while kindAt(toks, pos) == Tok.COMMA and kindAt(toks, pos + 1) != Tok.RBRACKET {
+                Parsed next = parseExpression(toks, pos + 1, false)
+                items.add(next.node)
+                pos = next.pos
+            }
+            if kindAt(toks, pos) == Tok.COMMA {
+                pos = pos + 1                       // a trailing comma
+            }
+        }
+        pos = want(toks, pos, Tok.RBRACKET, "']' after the array literal")
+        return Parsed(Node.ArrayLit(items, t.line), pos)
+    }
+    if k == Tok.IDENTIFIER or isPrimitive(k) or k == Tok.END {
         return Parsed(Node.Name(t.text, t.line), pos + 1)
+    }
+    if (k == Tok.FUNC or k == Tok.FUNCTION) and kindAt(toks, pos + 1) == Tok.LPAREN {
+        return parseLambda(toks, pos + 2, t.line)
+    }
+    if k == Tok.LPAREN {
+        if isLambdaStart(toks, pos + 1) {
+            return parseLambda(toks, pos + 1, t.line)
+        }
+        Parsed inner = parseExpression(toks, pos + 1, cond)
+        pos = want(toks, inner.pos, Tok.RPAREN, "')' after the expression")
+        return Parsed(inner.node, pos)
     }
     return Error(expected(toks, pos, "an expression"))
 }
 
-Parsed, Error function parsePostfix(List<Token> toks, int pos) {
-    Parsed p = parsePrimary(toks, pos)
+// Calls f(...), indexes a[i] and fields p.x, chained
+Parsed, Error function parsePostfix(List<Token> toks, int pos, bool cond) {
+    int line = lineAt(toks, pos)
+    Parsed p = parsePrimary(toks, pos, cond)
     Node node = p.node
     pos = p.pos
-    while kindAt(toks, pos) == Tok.LPAREN {
-        int line = toks[pos].line
-        ListParsed args = parseArguments(toks, pos)
-        node = Node.Call(node, args.nodes, line)
-        pos = args.pos
+    while true {
+        Tok k = kindAt(toks, pos)
+        if k == Tok.LPAREN {
+            ListParsed args = parseArguments(toks, pos + 1)
+            node = Node.Call(node, args.nodes, line)
+            pos = args.pos
+        } else if k == Tok.LBRACKET {
+            Parsed index = parseExpression(toks, pos + 1, false)
+            pos = want(toks, index.pos, Tok.RBRACKET, "']' after the index")
+            node = Node.Index(node, index.node, line)
+        } else if k == Tok.DOT {
+            Tok m = kindAt(toks, pos + 1)
+            if m != Tok.IDENTIFIER and not lexer.isWord(textAt(toks, pos + 1)) {
+                return Error(expected(toks, pos + 1, "a field name after '.'"))
+            }
+            node = Node.Member(node, textAt(toks, pos + 1), line)
+            pos = pos + 2
+        } else {
+            break
+        }
     }
     return Parsed(node, pos)
 }
 
-public Parsed, Error function parseExpression(List<Token> toks, int pos) {
-    return parsePostfix(toks, pos)
+Parsed, Error function parseUnary(List<Token> toks, int pos, bool cond) {
+    Tok k = kindAt(toks, pos)
+    if k == Tok.MINUS or k == Tok.NOT or k == Tok.LOGICAL_NOT {
+        Parsed operand = parseUnary(toks, pos + 1, cond)
+        return Parsed(Node.Unary(textAt(toks, pos), operand.node, lineAt(toks, pos)), operand.pos)
+    }
+    return parsePostfix(toks, pos, cond)
+}
+
+Parsed, Error function parseMultiplicative(List<Token> toks, int pos, bool cond) {
+    int line = lineAt(toks, pos)
+    Parsed left = parseUnary(toks, pos, cond)
+    Node node = left.node
+    pos = left.pos
+    while kindAt(toks, pos) == Tok.MULTIPLY or kindAt(toks, pos) == Tok.DIVIDE or kindAt(toks, pos) == Tok.MODULO {
+        string op = textAt(toks, pos)
+        Parsed right = parseUnary(toks, pos + 1, cond)
+        node = Node.Binary(op, node, right.node, line)
+        pos = right.pos
+    }
+    return Parsed(node, pos)
+}
+
+Parsed, Error function parseAdditive(List<Token> toks, int pos, bool cond) {
+    int line = lineAt(toks, pos)
+    Parsed left = parseMultiplicative(toks, pos, cond)
+    Node node = left.node
+    pos = left.pos
+    while kindAt(toks, pos) == Tok.PLUS or kindAt(toks, pos) == Tok.MINUS {
+        string op = textAt(toks, pos)
+        Parsed right = parseMultiplicative(toks, pos + 1, cond)
+        node = Node.Binary(op, node, right.node, line)
+        pos = right.pos
+    }
+    return Parsed(node, pos)
+}
+
+bool function isRelational(Tok k) : k == Tok.LESS or k == Tok.GREATER or k == Tok.LESS_EQUAL or k == Tok.GREATER_EQUAL
+
+Parsed, Error function parseRelational(List<Token> toks, int pos, bool cond) {
+    int line = lineAt(toks, pos)
+    Parsed left = parseAdditive(toks, pos, cond)
+    Node node = left.node
+    pos = left.pos
+    while isRelational(kindAt(toks, pos)) {
+        string op = textAt(toks, pos)
+        Parsed right = parseAdditive(toks, pos + 1, cond)
+        node = Node.Binary(op, node, right.node, line)
+        pos = right.pos
+    }
+    return Parsed(node, pos)
+}
+
+// == != === !==, and `=` inside a condition (it compares there, like ==)
+bool function isEquality(Tok k, bool cond) {
+    if cond and k == Tok.ASSIGN {
+        return true
+    }
+    return k == Tok.EQUAL or k == Tok.NOT_EQUAL or k == Tok.STRICT_EQUAL or k == Tok.STRICT_NOT_EQUAL
+}
+
+Parsed, Error function parseEquality(List<Token> toks, int pos, bool cond) {
+    int line = lineAt(toks, pos)
+    Parsed left = parseRelational(toks, pos, cond)
+    Node node = left.node
+    pos = left.pos
+    while isEquality(kindAt(toks, pos), cond) {
+        string op = textAt(toks, pos)
+        if op == "=" {
+            op = "=="
+        }
+        Parsed right = parseRelational(toks, pos + 1, cond)
+        node = Node.Binary(op, node, right.node, line)
+        pos = right.pos
+    }
+    return Parsed(node, pos)
+}
+
+Parsed, Error function parseAnd(List<Token> toks, int pos, bool cond) {
+    int line = lineAt(toks, pos)
+    Parsed left = parseEquality(toks, pos, cond)
+    Node node = left.node
+    pos = left.pos
+    while kindAt(toks, pos) == Tok.AND or kindAt(toks, pos) == Tok.LOGICAL_AND {
+        string op = textAt(toks, pos)
+        Parsed right = parseEquality(toks, pos + 1, cond)
+        node = Node.Binary(op, node, right.node, line)
+        pos = right.pos
+    }
+    return Parsed(node, pos)
+}
+
+// An expression; cond = inside an if / while condition, where `=` compares
+public Parsed, Error function parseExpression(List<Token> toks, int pos, bool cond) {
+    int line = lineAt(toks, pos)
+    Parsed left = parseAnd(toks, pos, cond)
+    Node node = left.node
+    pos = left.pos
+    while kindAt(toks, pos) == Tok.OR or kindAt(toks, pos) == Tok.LOGICAL_OR {
+        string op = textAt(toks, pos)
+        Parsed right = parseAnd(toks, pos + 1, cond)
+        node = Node.Binary(op, node, right.node, line)
+        pos = right.pos
+    }
+    return Parsed(node, pos)
 }
 
 // ---------------------------------------------------------------- statements
 
-Parsed, Error function parseStatement(List<Token> toks, int pos) {
-    Token t = toks[pos]
-    if t.kind == Tok.RETURN {
-        Tok next = kindAt(toks, pos + 1)
-        if next == Tok.NEWLINE or next == Tok.DEDENT or next == Tok.RBRACE or next == Tok.EOF {
-            return Parsed(Node.Return(Node.Nothing, t.line), pos + 1)
+// `End <kind>` after a block in the End style - read if it is there
+int, Error function skipEnd(List<Token> toks, int pos, Tok kind, string what) {
+    if kindAt(toks, pos) == Tok.END {
+        if kindAt(toks, pos + 1) != kind {
+            return Error(expected(toks, pos + 1, "'" + what + "' after 'End'"))
         }
-        Parsed value = parseExpression(toks, pos + 1)
-        return Parsed(Node.Return(value.node, t.line), value.pos)
+        return pos + 2
     }
-    Parsed e = parseExpression(toks, pos)
-    return Parsed(Node.ExprStmt(e.node, t.line), e.pos)
+    return pos
 }
 
-// Statements until the token that closes the block (RBRACE or DEDENT)
+Parsed, Error function parseIf(List<Token> toks, int pos) {
+    int line = lineAt(toks, pos)              // at `if`
+    Parsed condition = parseExpression(toks, pos + 1, true)
+    pos = skipNewlines(toks, condition.pos)
+    Parsed then = parseBlock(toks, pos)
+    pos = then.pos
+    Node otherwise = Node.Nothing
+    if kindAt(toks, pos) == Tok.ELSE {
+        pos = skipNewlines(toks, pos + 1)
+        if kindAt(toks, pos) == Tok.IF {
+            Parsed elseIf = parseIf(toks, pos)
+            otherwise = elseIf.node
+            pos = elseIf.pos
+        } else {
+            Parsed elseBlock = parseBlock(toks, pos)
+            otherwise = elseBlock.node
+            pos = elseBlock.pos
+        }
+    }
+    pos = skipEnd(toks, pos, Tok.IF, "if")
+    return Parsed(Node.If(condition.node, then.node, otherwise, line), pos)
+}
+
+Parsed, Error function parseWhile(List<Token> toks, int pos) {
+    int line = lineAt(toks, pos)
+    Parsed condition = parseExpression(toks, pos + 1, true)
+    pos = skipNewlines(toks, condition.pos)
+    Parsed body = parseBlock(toks, pos)
+    pos = skipEnd(toks, body.pos, Tok.WHILE, "while")
+    return Parsed(Node.While(condition.node, body.node, line), pos)
+}
+
+Parsed, Error function parseFor(List<Token> toks, int pos) {
+    int line = lineAt(toks, pos)
+    if kindAt(toks, pos + 1) != Tok.IDENTIFIER {
+        return Error(expected(toks, pos + 1, "the loop variable's name"))
+    }
+    string name = textAt(toks, pos + 1)
+    pos = want(toks, pos + 2, Tok.IN, "'in' after the loop variable")
+    Parsed iterable = parseExpression(toks, pos, false)
+    pos = skipNewlines(toks, iterable.pos)
+    Parsed body = parseBlock(toks, pos)
+    pos = skipEnd(toks, body.pos, Tok.FOR, "for")
+    return Parsed(Node.For(name, iterable.node, body.node, line), pos)
+}
+
+// `int x = 5`, `const int LIMIT = 3`, `Point p`
+Parsed, Error function parseVarDecl(List<Token> toks, int pos, bool isConst) {
+    TypeParsed t = parseType(toks, pos)
+    pos = t.pos
+    if kindAt(toks, pos) != Tok.IDENTIFIER {
+        return Error(expected(toks, pos, "a variable name"))
+    }
+    string name = textAt(toks, pos)
+    int line = lineAt(toks, pos)
+    pos = pos + 1
+    Node value = Node.Nothing
+    if kindAt(toks, pos) == Tok.ASSIGN {
+        Parsed v = parseExpression(toks, pos + 1, false)
+        value = v.node
+        pos = v.pos
+    } else if isConst {
+        return Error(expected(toks, pos, "'=' - a const needs a value"))
+    }
+    return Parsed(Node.VarDecl(name, t.typ, value, isConst, line), pos)
+}
+
+bool function isBlockEnd(Tok k) {
+    return k == Tok.RBRACE or k == Tok.DEDENT or k == Tok.END or k == Tok.NEWLINE or k == Tok.EOF
+}
+
+Parsed, Error function parseStatement(List<Token> toks, int pos) {
+    Tok k = kindAt(toks, pos)
+    int line = lineAt(toks, pos)
+    if k == Tok.RETURN {
+        if isBlockEnd(kindAt(toks, pos + 1)) {
+            return Parsed(Node.Return(Node.Nothing, line), pos + 1)
+        }
+        Parsed value = parseExpression(toks, pos + 1, false)
+        return Parsed(Node.Return(value.node, line), value.pos)
+    }
+    if k == Tok.BREAK {
+        return Parsed(Node.Break(line), pos + 1)
+    }
+    if k == Tok.CONTINUE {
+        return Parsed(Node.Continue(line), pos + 1)
+    }
+    if k == Tok.IF {
+        return parseIf(toks, pos)
+    }
+    if k == Tok.WHILE {
+        return parseWhile(toks, pos)
+    }
+    if k == Tok.FOR {
+        return parseFor(toks, pos)
+    }
+    if k == Tok.LBRACE or k == Tok.INDENT {
+        return parseBlock(toks, pos)
+    }
+    if k == Tok.CONST {
+        return parseVarDecl(toks, pos + 1, true)
+    }
+    if isDeclarationStart(toks, pos) {
+        return parseVarDecl(toks, pos, false)
+    }
+    Parsed e = parseExpression(toks, pos, false)
+    if kindAt(toks, e.pos) == Tok.ASSIGN {
+        Parsed value = parseExpression(toks, e.pos + 1, false)
+        return Parsed(Node.Assign(e.node, value.node, line), value.pos)
+    }
+    return Parsed(Node.ExprStmt(e.node, line), e.pos)
+}
+
+// Statements until the token that closes the block (RBRACE or DEDENT), which is read too
 ListParsed, Error function parseStatements(List<Token> toks, int pos, Tok close) {
     List<Node> statements = []
     pos = skipNewlines(toks, pos)
@@ -134,10 +590,8 @@ ListParsed, Error function parseStatements(List<Token> toks, int pos, Tok close)
         statements.add(s.node)
         pos = skipNewlines(toks, s.pos)
     }
-    if kindAt(toks, pos) != close {
-        return Error(expected(toks, pos, "the end of the block"))
-    }
-    return ListParsed(statements, pos + 1)
+    pos = want(toks, pos, close, "the end of the block")
+    return ListParsed(statements, pos)
 }
 
 // A block in any of the three styles: { ... }, an indented block, or one statement. An
@@ -158,44 +612,182 @@ Parsed, Error function parseBlock(List<Token> toks, int pos) {
 
 // ---------------------------------------------------------------- declarations
 
+// After `function`: the name, parameters and body. A one-line `: expr` body becomes
+// a block that returns it, as in the Python parser
 Parsed, Error function parseFunction(List<Token> toks, int pos, TypeRef result) {
-    // at the name, after `function`
-    Token nameToken = toks[pos]
-    if nameToken.kind != Tok.IDENTIFIER and not isPrimitive(nameToken.kind) {
+    Tok k = kindAt(toks, pos)
+    if k != Tok.IDENTIFIER and not isPrimitive(k) {
         return Error(expected(toks, pos, "a function name"))
     }
-    pos = pos + 1
-    if kindAt(toks, pos) != Tok.LPAREN {
-        return Error(expected(toks, pos, "'(' after the function name"))
+    string name = textAt(toks, pos)
+    int line = lineAt(toks, pos)
+    pos = want(toks, pos + 1, Tok.LPAREN, "'(' after the function name")
+    ListParsed params = parseParams(toks, pos)
+    pos = skipNewlines(toks, params.pos)
+    Node body = Node.Nothing
+    if kindAt(toks, pos) == Tok.COLON {
+        pos = skipNewlines(toks, pos + 1)
+        if kindAt(toks, pos) == Tok.INDENT {
+            Parsed block = parseBlock(toks, pos)
+            body = block.node
+            pos = block.pos
+        } else {
+            int exprLine = lineAt(toks, pos)
+            Parsed e = parseExpression(toks, pos, false)
+            body = Node.Block([Node.Return(e.node, exprLine)])
+            pos = e.pos
+        }
+    } else {
+        Parsed block = parseBlock(toks, pos)
+        body = block.node
+        pos = block.pos
     }
-    List<Node> params = []
-    pos = pos + 1
-    if kindAt(toks, pos) != Tok.RPAREN {
-        return Error(expected(toks, pos, "')' - parameters come in a later slice"))
+    pos = skipEnd(toks, pos, Tok.FUNCTION, "function")
+    return Parsed(Node.Function(name, result, params.nodes, body, line), pos)
+}
+
+// After `struct`: the name and fields, in any block style
+Parsed, Error function parseStruct(List<Token> toks, int pos) {
+    if kindAt(toks, pos) != Tok.IDENTIFIER {
+        return Error(expected(toks, pos, "the struct's name after 'struct'"))
+    }
+    string name = textAt(toks, pos)
+    int line = lineAt(toks, pos)
+    pos = skipNewlines(toks, pos + 1)
+    Tok close = Tok.DEDENT
+    if kindAt(toks, pos) == Tok.LBRACE {
+        close = Tok.RBRACE
+    } else if kindAt(toks, pos) != Tok.INDENT {
+        return Error(expected(toks, pos, "the struct's fields - an indented block, or '\{' ... '\}'"))
     }
     pos = skipNewlines(toks, pos + 1)
-    Parsed body = parseBlock(toks, pos)
-    pos = body.pos
-    if kindAt(toks, pos) == Tok.END {
-        if kindAt(toks, pos + 1) != Tok.FUNCTION {
-            return Error(expected(toks, pos + 1, "'function' after 'End'"))
+    List<Node> fields = []
+    while kindAt(toks, pos) != close and kindAt(toks, pos) != Tok.EOF {
+        int fieldLine = lineAt(toks, pos)
+        TypeParsed t = parseType(toks, pos)
+        if kindAt(toks, t.pos) != Tok.IDENTIFIER {
+            return Error(expected(toks, t.pos, "a field name"))
         }
-        pos = pos + 2
+        string fieldName = textAt(toks, t.pos)
+        pos = t.pos + 1
+        Node defaultValue = Node.Nothing
+        if kindAt(toks, pos) == Tok.ASSIGN {
+            Parsed d = parseExpression(toks, pos + 1, false)
+            defaultValue = d.node
+            pos = d.pos
+        }
+        fields.add(Node.Field(fieldName, t.typ, defaultValue, fieldLine))
+        pos = skipNewlines(toks, pos)
     }
-    return Parsed(Node.Function(nameToken.text, result, params, body.node, nameToken.line), pos)
+    pos = skipNewlines(toks, want(toks, pos, close, "the end of the struct"))
+    pos = skipEnd(toks, pos, Tok.STRUCT, "struct")
+    return Parsed(Node.Struct(name, fields, line), pos)
 }
 
 public Node, Error function parseProgram(List<Token> toks) {
     List<Node> decls = []
     int pos = skipNewlines(toks, 0)
     while kindAt(toks, pos) != Tok.EOF {
-        TypeParsed t = parseType(toks, pos)
-        if kindAt(toks, t.pos) != Tok.FUNCTION {
-            return Error(expected(toks, t.pos, "'function'"))
+        if kindAt(toks, pos) == Tok.STRUCT {
+            Parsed s = parseStruct(toks, pos + 1)
+            decls.add(s.node)
+            pos = s.pos
+        } else if isDeclarationStart(toks, pos) {
+            TypeParsed t = parseType(toks, pos)
+            pos = skipNewlines(toks, t.pos)
+            pos = want(toks, pos, Tok.FUNCTION, "'function' after the type")
+            Parsed f = parseFunction(toks, pos, t.typ)
+            decls.add(f.node)
+            pos = f.pos
+        } else {
+            return Error(expected(toks, pos, "a function or a struct"))
         }
-        Parsed f = parseFunction(toks, t.pos + 1, t.typ)
-        decls.add(f.node)
-        pos = skipNewlines(toks, f.pos)
+        pos = skipNewlines(toks, pos)
     }
     return Node.Program(decls)
+}
+
+// ---------------------------------------------------------------- --ast
+
+public string function showType(TypeRef t) {
+    match t {
+        case Prim(name): return name
+        case Named(name): return name
+        case Array(element, size) {
+            if size < 0 {
+                return showType(element) + "[]"
+            }
+            return showType(element) + "[" + toString(size) + "]"
+        }
+        case Func(params, result) {
+            List<string> ps = []
+            for p in params {
+                ps.add(showType(p))
+            }
+            return "(" + ps.join(", ") + ") : " + showType(result)
+        }
+        case Unknown: return "?"
+    }
+}
+
+string function showList(List<Node> nodes) {
+    List<string> parts = []
+    for n in nodes {
+        parts.add(show(n))
+    }
+    return parts.join(" ")
+}
+
+// The tree as one line per declaration, (Kind ...) - for --ast
+public string function show(Node n) {
+    match n {
+        case Program(decls) {
+            List<string> lines = []
+            for d in decls {
+                lines.add(show(d))
+            }
+            return lines.join("\n")
+        }
+        case Function(name, result, params, body, line): return "(Function " + name + " " + showType(result) + " (" + showList(params) + ") " + show(body) + ")"
+        case Param(name, paramType, defaultValue, line): return "(Param " + showType(paramType) + " " + name + " " + show(defaultValue) + ")"
+        case Struct(name, fields, line): return "(Struct " + name + " " + showList(fields) + ")"
+        case Field(name, fieldType, defaultValue, line): return "(Field " + showType(fieldType) + " " + name + " " + show(defaultValue) + ")"
+        case Block(statements): return "(Block " + showList(statements) + ")"
+        case VarDecl(name, varType, value, isConst, line): return "(Var " + showType(varType) + " " + name + " " + show(value) + ")"
+        case Assign(target, value, line): return "(Assign " + show(target) + " " + show(value) + ")"
+        case If(condition, then, otherwise, line): return "(If " + show(condition) + " " + show(then) + " " + show(otherwise) + ")"
+        case While(condition, body, line): return "(While " + show(condition) + " " + show(body) + ")"
+        case For(name, iterable, body, line): return "(For " + name + " " + show(iterable) + " " + show(body) + ")"
+        case Return(value, line): return "(Return " + show(value) + ")"
+        case Break(line): return "(Break)"
+        case Continue(line): return "(Continue)"
+        case ExprStmt(expr, line): return show(expr)
+        case IntLit(text, line): return text
+        case FloatLit(text, line): return text
+        case BoolLit(value, line): return toString(value)
+        case CharLit(text, line): return "'" + text + "'"
+        case Str(parts, line) {
+            List<string> ps = []
+            for p in parts {
+                if p.kind == 0 {
+                    ps.add(p.text)
+                } else if p.kind == 1 {
+                    ps.add("\{" + p.text + "\}")
+                } else {
+                    ps.add("\{@" + p.text + "\}")
+                }
+            }
+            return "\"" + ps.join("") + "\""
+        }
+        case Name(name, line): return name
+        case Binary(op, left, right, line): return "(" + op + " " + show(left) + " " + show(right) + ")"
+        case Unary(op, operand, line): return "(" + op + " " + show(operand) + ")"
+        case Call(callee, args, line): return "(Call " + show(callee) + " " + showList(args) + ")"
+        case NamedArg(name, value, line): return "(= " + name + " " + show(value) + ")"
+        case Member(target, member, line): return "(. " + show(target) + " " + member + ")"
+        case Index(target, index, line): return "([] " + show(target) + " " + show(index) + ")"
+        case ArrayLit(items, line): return "[" + showList(items) + "]"
+        case Lambda(params, body, line): return "(Lambda (" + showList(params) + ") " + show(body) + ")"
+        case Nothing: return "-"
+    }
 }

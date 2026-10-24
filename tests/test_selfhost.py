@@ -76,7 +76,10 @@ def test_selfhost_lexer_makes_the_python_lexers_tokens(selfhost, name):
 
 
 # The tier 1 programs the selfhost compiler builds so far, in the order they were added
-SLICES = ['hello_world']
+SLICES = ['hello_world',
+          # slice 2: functions, parameters, if / while / for range, checked arithmetic, print
+          'factorial', 'fizzbuzz', 'max_three', 'sum_array', 'const_demo', 'calculator',
+          'syntax_functions_and_blocks']
 
 
 def run_exe(exe: Path) -> tuple:
