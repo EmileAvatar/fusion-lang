@@ -1,0 +1,201 @@
+// Module parser - tokens -> the syntax tree (Task 28.3)
+//
+// The tokens are a read-only parameter (never copied); each function returns the node it
+// read and the position after it (28.1.2). A syntax error is an Error: file:line:col.
+
+import lexer
+import lexer.Token
+import lexer.Tok
+import lexer.StrPart
+
+public struct Parsed {
+    Node node
+    int pos
+}
+
+struct TypeParsed {
+    TypeRef typ
+    int pos
+}
+
+struct ListParsed {
+    List<Node> nodes
+    int pos
+}
+
+// ---------------------------------------------------------------- tokens
+
+Tok function kindAt(List<Token> toks, int pos) : toks[pos].kind
+
+string function expected(List<Token> toks, int pos, string what) {
+    Token t = toks[pos]
+    return format("{@1}:{@2}: Expected {@3}, got '{@4}'", t.line, t.col, what, t.text)
+}
+
+int function skipNewlines(List<Token> toks, int pos) {
+    while kindAt(toks, pos) == Tok.NEWLINE {
+        pos = pos + 1
+    }
+    return pos
+}
+
+// ---------------------------------------------------------------- types
+
+bool function isPrimitive(Tok k) {
+    return k == Tok.INT or k == Tok.FLOAT or k == Tok.DOUBLE or k == Tok.BOOL or k == Tok.CHAR or k == Tok.STRING or k == Tok.VOID or k == Tok.BYTE
+}
+
+TypeParsed, Error function parseType(List<Token> toks, int pos) {
+    Token t = toks[pos]
+    if isPrimitive(t.kind) {
+        return TypeParsed(TypeRef.Prim(t.text), pos + 1)
+    }
+    if t.kind == Tok.IDENTIFIER {
+        return TypeParsed(TypeRef.Named(t.text), pos + 1)
+    }
+    return Error(expected(toks, pos, "a type"))
+}
+
+// ---------------------------------------------------------------- expressions
+
+ListParsed, Error function parseArguments(List<Token> toks, int pos) {
+    // at '('
+    List<Node> args = []
+    pos = pos + 1
+    if kindAt(toks, pos) != Tok.RPAREN {
+        Parsed first = parseExpression(toks, pos)
+        args.add(first.node)
+        pos = first.pos
+        while kindAt(toks, pos) == Tok.COMMA {
+            Parsed next = parseExpression(toks, pos + 1)
+            args.add(next.node)
+            pos = next.pos
+        }
+    }
+    if kindAt(toks, pos) != Tok.RPAREN {
+        return Error(expected(toks, pos, "')' after the arguments"))
+    }
+    return ListParsed(args, pos + 1)
+}
+
+Parsed, Error function parsePrimary(List<Token> toks, int pos) {
+    Token t = toks[pos]
+    if t.kind == Tok.STRING_LIT {
+        return Parsed(Node.Str(t.parts, t.line), pos + 1)
+    }
+    if t.kind == Tok.INTEGER {
+        return Parsed(Node.IntLit(t.text, t.line), pos + 1)
+    }
+    if t.kind == Tok.IDENTIFIER {
+        return Parsed(Node.Name(t.text, t.line), pos + 1)
+    }
+    return Error(expected(toks, pos, "an expression"))
+}
+
+Parsed, Error function parsePostfix(List<Token> toks, int pos) {
+    Parsed p = parsePrimary(toks, pos)
+    Node node = p.node
+    pos = p.pos
+    while kindAt(toks, pos) == Tok.LPAREN {
+        int line = toks[pos].line
+        ListParsed args = parseArguments(toks, pos)
+        node = Node.Call(node, args.nodes, line)
+        pos = args.pos
+    }
+    return Parsed(node, pos)
+}
+
+public Parsed, Error function parseExpression(List<Token> toks, int pos) {
+    return parsePostfix(toks, pos)
+}
+
+// ---------------------------------------------------------------- statements
+
+Parsed, Error function parseStatement(List<Token> toks, int pos) {
+    Token t = toks[pos]
+    if t.kind == Tok.RETURN {
+        Tok next = kindAt(toks, pos + 1)
+        if next == Tok.NEWLINE or next == Tok.DEDENT or next == Tok.RBRACE or next == Tok.EOF {
+            return Parsed(Node.Return(Node.Nothing, t.line), pos + 1)
+        }
+        Parsed value = parseExpression(toks, pos + 1)
+        return Parsed(Node.Return(value.node, t.line), value.pos)
+    }
+    Parsed e = parseExpression(toks, pos)
+    return Parsed(Node.ExprStmt(e.node, t.line), e.pos)
+}
+
+// Statements until the token that closes the block (RBRACE or DEDENT)
+ListParsed, Error function parseStatements(List<Token> toks, int pos, Tok close) {
+    List<Node> statements = []
+    pos = skipNewlines(toks, pos)
+    while kindAt(toks, pos) != close and kindAt(toks, pos) != Tok.EOF {
+        Parsed s = parseStatement(toks, pos)
+        statements.add(s.node)
+        pos = skipNewlines(toks, s.pos)
+    }
+    if kindAt(toks, pos) != close {
+        return Error(expected(toks, pos, "the end of the block"))
+    }
+    return ListParsed(statements, pos + 1)
+}
+
+// A block in any of the three styles: { ... }, an indented block, or one statement. An
+// `End function` (or `End if` ...) after it is read by the caller
+Parsed, Error function parseBlock(List<Token> toks, int pos) {
+    Tok k = kindAt(toks, pos)
+    if k == Tok.LBRACE or k == Tok.INDENT {
+        Tok close = Tok.DEDENT
+        if k == Tok.LBRACE {
+            close = Tok.RBRACE
+        }
+        ListParsed body = parseStatements(toks, pos + 1, close)
+        return Parsed(Node.Block(body.nodes), body.pos)
+    }
+    Parsed one = parseStatement(toks, pos)
+    return Parsed(Node.Block([one.node]), one.pos)
+}
+
+// ---------------------------------------------------------------- declarations
+
+Parsed, Error function parseFunction(List<Token> toks, int pos, TypeRef result) {
+    // at the name, after `function`
+    Token nameToken = toks[pos]
+    if nameToken.kind != Tok.IDENTIFIER and not isPrimitive(nameToken.kind) {
+        return Error(expected(toks, pos, "a function name"))
+    }
+    pos = pos + 1
+    if kindAt(toks, pos) != Tok.LPAREN {
+        return Error(expected(toks, pos, "'(' after the function name"))
+    }
+    List<Node> params = []
+    pos = pos + 1
+    if kindAt(toks, pos) != Tok.RPAREN {
+        return Error(expected(toks, pos, "')' - parameters come in a later slice"))
+    }
+    pos = skipNewlines(toks, pos + 1)
+    Parsed body = parseBlock(toks, pos)
+    pos = body.pos
+    if kindAt(toks, pos) == Tok.END {
+        if kindAt(toks, pos + 1) != Tok.FUNCTION {
+            return Error(expected(toks, pos + 1, "'function' after 'End'"))
+        }
+        pos = pos + 2
+    }
+    return Parsed(Node.Function(nameToken.text, result, params, body.node, nameToken.line), pos)
+}
+
+public Node, Error function parseProgram(List<Token> toks) {
+    List<Node> decls = []
+    int pos = skipNewlines(toks, 0)
+    while kindAt(toks, pos) != Tok.EOF {
+        TypeParsed t = parseType(toks, pos)
+        if kindAt(toks, t.pos) != Tok.FUNCTION {
+            return Error(expected(toks, t.pos, "'function'"))
+        }
+        Parsed f = parseFunction(toks, t.pos + 1, t.typ)
+        decls.add(f.node)
+        pos = skipNewlines(toks, f.pos)
+    }
+    return Node.Program(decls)
+}

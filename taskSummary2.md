@@ -279,4 +279,7 @@ Kept under Task 22 until the renumbering is approved.
 - User moved the old task-1.x-4.x files to task/archive/ (links updated)
 - 28.2 done: the lexer in Fusion matches the Python lexer on all 53 example files; a
   Python compiler bug found and fixed (bare return in void main)
-- **Next Action:** slice 1 continued - parser, codegen and driver for hello_world
+- Slice 1 done: hello_world compiled by the Fusion-written compiler - its C is the Python
+  compiler's line for line, the program passes the leak check. Gaps logged in
+  task/selfhost_report.md
+- **Next Action:** slice 2 - factorial (functions with parameters, if, return, int arithmetic)

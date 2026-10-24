@@ -1,25 +1,44 @@
 // The Fusion compiler written in Fusion - the driver (Task 28.6)
-//     selfhost program.fusion [--tokens] [--runtime DIR] [--leak-check]
+//
+//     main.exe program.fusion [--tokens] [--runtime DIR] [--leak-check]
+//
+// Writes program.c next to the source and builds program.exe with GCC. DIR holds
+// fusion_runtime.h (default: runtime, from the repo root). --tokens prints the tokens
+// instead (compared with the Python lexer's by tests/test_selfhost.py).
+
 import lexer
 import lexer.Token
+import parser
+import parser.Node
+import codegen
+
+void function fail(string message) {
+    print(message)
+    exit(1)
+}
 
 void function main(string... args) {
     if len(args) == 0 {
-        print("usage: selfhost program.fusion [--tokens] [--runtime DIR] [--leak-check]")
+        print("usage: main.exe program.fusion [--tokens] [--runtime DIR] [--leak-check]")
         exit(2)
     }
     string path = args[0]
     bool tokensOnly = false
-    for a in args {
-        if a == "--tokens" {
+    bool leakCheck = false
+    string runtime = "runtime"
+    for i in range(1, len(args)) {
+        if args[i] == "--tokens" {
             tokensOnly = true
+        } else if args[i] == "--leak-check" {
+            leakCheck = true
+        } else if args[i] == "--runtime" and i + 1 < len(args) {
+            runtime = args[i + 1]
         }
     }
-    bytes data = readBytes(path)
-    List<Token> tokens, Error err = lexer.tokenize(data, path)
-    if err {
-        print(err.message)
-        exit(1)
+
+    List<Token> tokens, Error lexError = lexer.tokenize(readBytes(path), path)
+    if lexError {
+        fail(lexError.message)
     }
     if tokensOnly {
         List<string> lines = []
@@ -28,5 +47,30 @@ void function main(string... args) {
         }
         print(lines.join("\n"))
         return
+    }
+
+    Node program, Error parseError = parser.parseProgram(tokens)
+    if parseError {
+        fail(path + ":" + parseError.message)
+    }
+    string code, Error genError = codegen.generate(program)
+    if genError {
+        fail(path + ":" + genError.message)
+    }
+
+    string base = path
+    if endsWith(path, ".fusion") {
+        base = left(path, len(path) - 7)
+    }
+    string cPath = base + ".c"
+    string exePath = base + ".exe"
+    writeText(cPath, code)
+    string flags = ""
+    if leakCheck {
+        flags = "-DFUSION_LEAK_CHECK "
+    }
+    int built = run("gcc {flags}-I\"{runtime}\" \"{cPath}\" -o \"{exePath}\" -lm")
+    if built != 0 {
+        fail("gcc failed on {cPath}")
     }
 }

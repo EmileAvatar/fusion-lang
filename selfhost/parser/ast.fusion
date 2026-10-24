@@ -1,0 +1,51 @@
+// Module parser - the syntax tree (Task 28.3)
+//
+// One enum for every kind of node, and one for types. A variant that holds the enum
+// itself is stored on the heap automatically, so the tree can be any depth.
+
+import lexer.StrPart
+
+public enum TypeRef {
+    Prim(string name)                       // int float double bool char string void byte
+    Named(string name)                      // a struct
+    Array(TypeRef element, int size)        // size -1: int[] (any size)
+    Func(List<TypeRef> params, TypeRef result)
+    Unknown
+}
+
+public enum Node {
+    Program(List<Node> decls)
+    // Declarations
+    Function(string name, TypeRef result, List<Node> params, Node body, int line)
+    Param(string name, TypeRef paramType, Node defaultValue, int line)
+    Struct(string name, List<Node> fields, int line)
+    Field(string name, TypeRef fieldType, Node defaultValue, int line)
+    // Statements
+    Block(List<Node> statements)
+    VarDecl(string name, TypeRef varType, Node value, bool isConst, int line)
+    Assign(Node target, Node value, int line)
+    If(Node condition, Node then, Node otherwise, int line)
+    While(Node condition, Node body, int line)
+    For(string name, Node iterable, Node body, int line)
+    Return(Node value, int line)
+    Break(int line)
+    Continue(int line)
+    ExprStmt(Node expr, int line)
+    // Expressions
+    IntLit(string text, int line)
+    FloatLit(string text, int line)
+    BoolLit(bool value, int line)
+    CharLit(string text, int line)                  // the character itself
+    Str(List<StrPart> parts, int line)
+    Name(string name, int line)
+    Binary(string op, Node left, Node right, int line)
+    Unary(string op, Node operand, int line)
+    Call(Node callee, List<Node> args, int line)
+    NamedArg(string name, Node value, int line)
+    Member(Node target, string member, int line)
+    Index(Node target, Node index, int line)
+    ArrayLit(List<Node> items, int line)
+    Lambda(List<Node> params, Node body, int line)
+    // No node: a missing default value, else branch, return value
+    Nothing
+}

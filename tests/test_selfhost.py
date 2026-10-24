@@ -4,7 +4,13 @@ The Python compiler builds selfhost/main.fusion once; the tests then run that ex
 - Its lexer (28.2): `--tokens` must print exactly the tokens the Python lexer makes, for
   every tier 1 program (task/selfhost_subset.md) - and for every other example too, as the
   lexer is complete.
+- The whole compiler (28.3-28.6): each program in SLICES is built by both compilers; both
+  programs must print the same and exit the same, and the selfhost-built one passes the
+  leak check (-DFUSION_LEAK_CHECK). SLICES grows one program at a time until it is tier 1.
 """
+
+import shutil
+import tempfile
 
 import json
 import subprocess
@@ -67,3 +73,34 @@ def test_selfhost_lexer_makes_the_python_lexers_tokens(selfhost, name):
     for i, (want, got) in enumerate(zip(expected, actual)):
         assert got == want, f'token {i + 1}'
     assert len(actual) == len(expected)
+
+
+# The tier 1 programs the selfhost compiler builds so far, in the order they were added
+SLICES = ['hello_world']
+
+
+def run_exe(exe: Path) -> tuple:
+    result = subprocess.run([str(exe), '--headless'], capture_output=True, timeout=60,
+                            stdin=subprocess.DEVNULL)
+    return result.returncode, result.stdout.decode('utf-8', 'replace').replace('\r\n', '\n')
+
+
+@pytest.mark.parametrize('name', SLICES)
+def test_selfhost_builds_the_program_the_python_compiler_builds(selfhost, name):
+    source = ROOT / 'examples' / f'{name}.fusion'
+    with tempfile.TemporaryDirectory() as tmp:
+        python_dir, selfhost_dir = Path(tmp) / 'python', Path(tmp) / 'selfhost'
+        python_dir.mkdir()
+        selfhost_dir.mkdir()
+        shutil.copy(source, python_dir)
+        shutil.copy(source, selfhost_dir)
+        built = subprocess.run([sys.executable, str(ROOT / 'main.py'), str(python_dir / source.name)],
+                               capture_output=True, text=True, timeout=120)
+        assert built.returncode == 0, built.stderr
+        built = subprocess.run([str(selfhost), str(selfhost_dir / source.name), '--leak-check',
+                                '--runtime', str(ROOT / 'runtime')],
+                               capture_output=True, timeout=120)
+        assert built.returncode == 0, built.stdout.decode('utf-8', 'replace')
+        expected = run_exe(python_dir / f'{name}.exe')
+        actual = run_exe(selfhost_dir / f'{name}.exe')
+    assert actual == expected     # same output and exit code - and exit 3 / 4 would be a leak
