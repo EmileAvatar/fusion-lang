@@ -56,7 +56,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     """
 
     def __init__(self, encoding: str = 'utf-8', max_length=None, safety_mode: str = 'normal',
-                 max_call_depth=None):
+                 max_call_depth=None, runtime_include=None):
         """Initialize code generator.
 
         Args:
@@ -65,8 +65,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             max_length: The project's [strings] max_length - None ("max", the default) means
                 no limit; a number makes the runtime check every string it builds and stop
                 with an error on a longer one (18.3.4b)
+            runtime_include: None (default) - the run-time is written into the C file. A
+                header name such as "fusion_runtime.h" - the file only #includes it, after
+                the settings' #defines (Task 28.1.3; the header: runtime_header_text())
         """
         self.encoding = encoding
+        self.runtime_include = runtime_include
         self.max_length = max_length
         # [safety] mode = "unsafe": whole-number arithmetic wraps instead of raising an
         # OverflowError (Task 27.2b, user decision 2026-10-17)
@@ -152,13 +156,15 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             decl.name: decl for decl in program.declarations if isinstance(decl, StructDecl)
         }
 
-        # Generate includes, then the runtime every program shares (Task 18.3.1)
-        self._generate_includes()
-        if getattr(self, 'encoding', 'utf-8') == 'ascii':
-            self.emit('#define FUSION_ASCII 1  // [strings] encoding = "ascii" (Task 18.3.2b)')
-        if getattr(self, 'max_length', None) is not None:
-            self.emit(f'#define FUSION_MAX_LENGTH {self.max_length}  // [strings] max_length (18.3.4b)')
-        self.output.extend(RUNTIME_PRELUDE.splitlines())
+        # Generate includes, then the runtime every program shares (Task 18.3.1) - or only
+        # the settings and an #include of the shared run-time header (Task 28.1.3)
+        if getattr(self, 'runtime_include', None):
+            self._generate_settings_defines()
+            self.emit(f'#include "{self.runtime_include}"')
+        else:
+            self._generate_includes()
+            self._generate_settings_defines()
+            self.output.extend(RUNTIME_PRELUDE.splitlines())
         self.emit()
 
         # Enums (Task 25) - plain ints with name helpers, before anything that holds one
@@ -305,6 +311,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """Emit closing brace and decrease indentation."""
         self.dedent()
         self.emit('}')
+
+    def _generate_settings_defines(self) -> None:
+        """The project settings the run-time reads, as #defines before it."""
+        if getattr(self, 'encoding', 'utf-8') == 'ascii':
+            self.emit('#define FUSION_ASCII 1  // [strings] encoding = "ascii" (Task 18.3.2b)')
+        if getattr(self, 'max_length', None) is not None:
+            self.emit(f'#define FUSION_MAX_LENGTH {self.max_length}  // [strings] max_length (18.3.4b)')
 
     def _generate_includes(self) -> None:
         """Generate #include directives."""
@@ -1908,3 +1921,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             + body_lines + ['}', '']
         )
         return name
+
+
+def runtime_header_text() -> str:
+    """runtime/fusion_runtime.h (Task 28.1.3): the part of every generated C file that is the
+    same for all programs - the C includes and the run-time. A program built with
+    CCodeGenerator(runtime_include=...) #includes it after its settings' #defines."""
+    lines = ['// fusion_runtime.h - the C run-time every Fusion program shares (Task 28.1.3)',
+             '// Generated from the Python compiler by: python check.py --runtime - do not edit',
+             '// A program #defines its settings (FUSION_ASCII, FUSION_MAX_LENGTH) first',
+             '#ifndef FUSION_RUNTIME_H', '#define FUSION_RUNTIME_H', '']
+    lines += [f'#include {include}' for include in sorted(CCodeGenerator().includes)]
+    lines += [''] + RUNTIME_PRELUDE.splitlines() + ['', '#endif  // FUSION_RUNTIME_H']
+    return '\n'.join(lines) + '\n'

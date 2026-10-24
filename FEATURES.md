@@ -185,7 +185,10 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 			is fast (20,000 lines in 0.05 s) - no compiler change needed. A struct copied per
 			step is slow (5,000 lines: 7.5 s); `text[i]` on a non-ASCII string is very slow
 			(52 s) - task/selfhost_subset.md "28.1.2 results"
-		[ ] 28.1.3 The C run-time as a shared file `runtime/fusion_runtime.h` (gap C)
+		[DONE] 28.1.3 The C run-time as a shared file `runtime/fusion_runtime.h` (gap C): the
+			includes + run-time every program shares (1,666 lines), written by
+			`check.py --runtime` and checked; CCodeGenerator(runtime_include=...) writes a C file
+			that only #includes it. All 45 examples print the same both ways (tier 1 is a test)
 		[DONE] 28.1.4 `files/Builtins.md`: every built-in function (94), type class and List / Map
 			method, generated from the compiler (`check.py --builtins`, tools/builtins_doc.py);
 			the "builtins" check fails when it is out of date

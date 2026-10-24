@@ -19,6 +19,7 @@ summary - full output only for what failed:
                                       build and run one example (a file or a project folder),
                                       compare with its expected output (22.10)
     python check.py --builtins        write files/Builtins.md from the compiler (28.1.4)
+    python check.py --runtime         write runtime/fusion_runtime.h from the compiler (28.1.3)
 
 Checks:
     tests     pytest (every end-to-end test already runs under the string leak check)
@@ -28,6 +29,7 @@ Checks:
     reference every ```fusion block in SYNTAX_REFERENCE.md compiles and runs (exit 0), and
               its copy in examples/ is up to date
     builtins  files/Builtins.md matches the compiler's built-in functions and methods
+    runtime   runtime/fusion_runtime.h matches the run-time the compiler writes into C files
     ascii     no non-ASCII characters in .py / .fusion files (CLAUDE.md Rule 2)
 
 Exit code 0 only if everything passed.
@@ -170,6 +172,24 @@ def write_builtins():
     for problem in problems:
         print(problem)
     return 1 if problems else 0
+
+
+def check_runtime():
+    """runtime/fusion_runtime.h is the compiler's current run-time (28.1.3)."""
+    from src.codegen.c_generator import runtime_header_text
+    path = ROOT / 'runtime' / 'fusion_runtime.h'
+    if path.exists() and path.read_text(encoding='utf-8') == runtime_header_text():
+        return True, 'up to date', ''
+    return False, 'out of date', 'runtime/fusion_runtime.h is missing or out of date - fix: python check.py --runtime'
+
+
+def write_runtime():
+    from src.codegen.c_generator import runtime_header_text
+    path = ROOT / 'runtime' / 'fusion_runtime.h'
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(runtime_header_text(), encoding='utf-8', newline='\n')
+    print('wrote runtime/fusion_runtime.h')
+    return 0
 
 
 def example_sources():
@@ -453,6 +473,8 @@ def main(argv):
         return fix_ascii()
     if '--builtins' in argv:
         return write_builtins()
+    if '--runtime' in argv:
+        return write_runtime()
     if '--example' in argv:
         index = argv.index('--example')
         return run_example(option_value(argv, '--example'), argv[index + 2:])
@@ -466,6 +488,7 @@ def run_checks(quick: bool) -> bool:
     if not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
                    ('reference', check_reference_sync), ('builtins', check_builtins),
+                   ('runtime', check_runtime),
                    ('ascii', check_ascii)]
     all_ok = True
     details = []

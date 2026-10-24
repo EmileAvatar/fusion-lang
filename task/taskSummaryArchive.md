@@ -5020,3 +5020,72 @@ compile. It gets added to the ASCII check list in `check.py`. One line in the sp
   number literals) [yes, tagged], or only what the spec already has?
 
 ---
+
+---
+
+## Task 28.1 (self-hosting subset) - sub-task plan
+
+### Plan for 28.1.1-28.1.4 - approved and done (2026-10-24)
+
+**28.1.1 `run(command)` - run another program**
+- `int run(string command)`: runs the command through the system shell (`cmd /c` on
+  Windows, `/bin/sh -c` elsewhere - C's `system()`), **waits** until it ends, and returns
+  its exit code.
+- If the shell itself can't be started, that is a new built-in error type,
+  **`ProcessError`** (an Error subtype, added at the end of the list so the existing kind
+  numbers don't change). A program that runs and fails is not an error: its exit code is
+  returned. (A command that isn't found gives the shell's own code: 9009 on Windows, 127
+  elsewhere.)
+- Layer: **std** only (not alloc / core). Security note: running programs is a capability;
+  Task 39 will be able to restrict it per project.
+- Not waiting: `run("start notepad")` on Windows. A separate `start(command)` and
+  capturing the output (`runOutput`) are left for later.
+- **Tests:**
+  - unit tests: the type, the layer, and the error type;
+  - end-to-end tests: `run("exit 3")` returns 3;
+  - run a compiled example (`hello_world.exe --headless`);
+  - **compile and run from Fusion:** `run("python main.py examples/hello_world.fusion")`,
+    then run the exe it made;
+  - by hand: `run("notepad")` opens Notepad and waits until it is closed (a window can't
+    be tested automatically).
+- Example in `SYNTAX_REFERENCE.md` (Rule 4), using `run("echo hello")`, which works on
+  every system; spec and grammar notes.
+
+**28.1.2 Shared state - measure, then decide**
+- **Corrected while building 28.1.4:** a parameter the function only **reads** is already
+  passed without a copy (`fu_count(fusion_list_string xs) { return xs.len; }`). Only a
+  parameter the function **changes** is copied when it starts. So handing the token list
+  to every parser function is cheap already, and no compiler change is needed unless the
+  measurement says otherwise.
+- A small prototype first: a lexer in Fusion tokenizing a large file (about 5,000 lines),
+  timed before and after, so the numbers decide.
+- The pattern for the compiler's code: a small struct for the changing state (the
+  position, the errors), returned from functions; the token list as a read-only parameter.
+
+**28.1.3 The C run-time as a shared file**
+- Today every generated C file contains the whole run-time (`hello_world.c`: 1,635 lines).
+- Part of it is always the same (strings, errors, checks, files). Part of it is generated
+  for the program's own types: `List<T>` helpers, and copy / free functions for structs.
+- Step 1: find the boundary in the C generator, and measure how much is fixed.
+- Step 2: the Python compiler writes the fixed part to `runtime/fusion_runtime.h`, and
+  `#include`s it, or keeps writing it inline, whichever keeps the tests simplest.
+- The Fusion compiler then writes only the include, the type helpers its program needs,
+  and the program. For tier 1 the only type helpers are structs and arrays.
+
+**28.1.4 A list of the built-in functions, kept in step automatically** (user question)
+- There is no single list today. `SYNTAX_REFERENCE.md` shows examples, and the spec
+  describes the library, but neither is complete.
+- Correction to 28.1: the compiler has **94** built-in functions (the "about 110" counted
+  struct constructions as calls). On top of these come the list and map methods.
+- Proposed: `files/Builtins.md`, **generated from the compiler itself**. Each entry has:
+  - the name;
+  - the parameters and return type;
+  - the layer (core / alloc / std);
+  - whether it can fail;
+  - the list and map methods.
+
+  `check.py` gets a check that the file matches the compiler (like the reference check),
+  so it updates whenever a builtin is added.
+
+**Order:** 28.1.4 (small) and 28.1.1, then 28.1.2, then 28.1.3. After those comes the plan
+for 28.2-28.8.

@@ -9,6 +9,10 @@ until self-hosting is fully independent (Task 35).
   - `lex_string.fusion` - the same over `string` characters (`text[i]`)
   - `lex_struct.fusion` - pattern A: one struct copied at every step (what not to do)
 
+The C it writes: the settings' #defines, `#include "fusion_runtime.h"` (`runtime/`, the
+run-time shared with the Python compiler - 28.1.3), then the program's own code. Build with
+`gcc -I runtime ...`.
+
 Rules for the compiler's code (from 28.1.2):
 - read the source as `bytes` (`readBytes`), never index a `string` in a loop
 - never return a struct holding a big list from a function called per token or node; keep
