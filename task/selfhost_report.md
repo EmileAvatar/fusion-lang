@@ -22,7 +22,7 @@ Each entry: what happened, the workaround, and what it suggests for Phase 2. Sta
 | 28.3 | A list literal can't continue on the next line, even inside its brackets | Write it on one line, or use `add` | Newlines inside `( [ {` should continue the line |
 | 28.3 | `{@N}` placeholders work only in `print` / `format`, not in `Error(...)` | `Error(format(...))` | Allow `{@N}` wherever a string is made with arguments? |
 | 28.4 | No methods on own structs: every helper is a plain function taking the struct (`genExpr(e, ctx, funcs)`), and the same context is passed to every function | Pass a `Ctx` struct and a `Map` of signatures | Methods on structs (Task 32.1) |
-| 28.4 | A `match` must list every field of a variant, even unused ones (`case Function(name, result, params, body, line)`) | List them all | Allow `case Function(name, ...)` or `_` for unused fields |
+| 28.4 | A `match` case binds all of a variant's fields or none (`case Function(name, result, params, body, line)` to use one; `case Rect` alone is allowed - verified, with a clear error) | List them all | Allow `_` for an unused field, or binding the first few |
 | 28.4 | An empty `else { }` is needed to make a `match` complete when nothing should happen | Write the empty block | Fine as it is - explicit |
 | 28.4 | A function that should be private can't be marked public if it uses a private struct - a good, clear error | - | - |
 
