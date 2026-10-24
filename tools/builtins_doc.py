@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 TOPICS = [
-    ('Program, output and input', ['print', 'format', 'exit', 'readLine', 'isEndOfInput']),
+    ('Program, output and input', ['print', 'format', 'exit', 'readLine', 'isEndOfInput', 'run']),
     ('Files', ['readText', 'readLines', 'writeText', 'appendText', 'readBytes', 'writeBytes',
                'fileExists', 'deleteFile']),
     ('Core', ['len', 'range', 'charCode', 'fromCharCode', 'toByte', 'wrapAdd', 'wrapSub',

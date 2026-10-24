@@ -67,7 +67,7 @@ MUTATING_BUILTINS = {'setInt', 'setInt16'}
 CORE_BUILTINS = {'range', 'len', 'charCode', 'fromCharCode', 'toByte', 'wrapAdd', 'wrapSub', 'wrapMul'}
 STD_BUILTINS = {'print', 'readLine', 'isEndOfInput', 'exit', 'readText', 'readLines',
                 'writeText', 'appendText', 'readBytes', 'writeBytes', 'fileExists',
-                'deleteFile'}
+                'deleteFile', 'run'}
 
 
 def builtin_layer(name: str) -> str:
@@ -294,6 +294,8 @@ class NameResolver:
             'readLine': ([], string_type),
             'isEndOfInput': ([], bool_type),
             'exit': ([int_type], void_type),
+            # Run another program, wait, its exit code (28.1.1)
+            'run': ([string_type], int_type),
             # Text and lists (18.5.3)
             'split': ([string_type, string_type], string_list),
             'join': ([string_list, string_type], string_type),

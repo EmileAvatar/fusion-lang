@@ -365,6 +365,21 @@ void function main(string... args)                // or main() with no parameter
         exit(2)                                   // end now, with an exit code
 ```
 
+#### Running another program: `run`
+
+<!-- example: syntax_run | task: 28.1.1 -->
+```fusion
+void function main()
+    print("before")
+    int code = run("echo Hello from the shell")    // waits; its output appears here
+    print("echo gave {code}")
+    print("{@1}", run("exit 3"))                  // the program's exit code comes back
+    if run("nosuchprogram_xyz") != 0              // a failing command is not an error
+        print("that command failed")
+    // run("notepad") opens Notepad and waits until it is closed (run("start notepad") doesn't wait)
+    // run("python main.py hello.fusion") compiles a Fusion program; run("hello.exe") runs it
+```
+
 #### Lists: `List<T>`
 
 <!-- example: syntax_lists | task: 18.5.1 -->

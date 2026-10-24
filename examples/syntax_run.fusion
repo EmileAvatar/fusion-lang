@@ -1,0 +1,9 @@
+void function main()
+    print("before")
+    int code = run("echo Hello from the shell")    // waits; its output appears here
+    print("echo gave {code}")
+    print("{@1}", run("exit 3"))                  // the program's exit code comes back
+    if run("nosuchprogram_xyz") != 0              // a failing command is not an error
+        print("that command failed")
+    // run("notepad") opens Notepad and waits until it is closed (run("start notepad") doesn't wait)
+    // run("python main.py hello.fusion") compiles a Fusion program; run("hello.exe") runs it

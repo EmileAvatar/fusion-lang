@@ -3631,6 +3631,15 @@ bool same = ages == other       // the same keys with equal values, in any order
   reads UTF-8
 * `exit(code)` - ends the program at once with that exit code (the "Press any key" wait
   still happens when someone is at the console)
+* `run(command)` (Task 28.1.1) - runs another program through the system shell (`cmd /c`
+  on Windows, `/bin/sh -c` elsewhere), **waits** until it ends and returns its exit code.
+  A program that runs and fails is not an error - its code comes back (a command that
+  doesn't exist gives the shell's own non-zero code). Only a shell that can't be started is
+  a `ProcessError`. Output printed before the call is flushed first, so lines stay in
+  order. On Windows the command is passed to `cmd` exactly as written, quotes included
+  (`run("\"C:/My Apps/x.exe\" \"a b\"")`). Not waiting: `run("start notepad")` on
+  Windows. Running programs will be a declared capability (Task 39). Later: capturing a
+  program's output, and a separate `start`
 
 **Files** (Task 18.5.5):
 * `readText(path)` (the whole file - it must be valid UTF-8 text; a UTF-8 byte-order mark at
@@ -3654,7 +3663,7 @@ before it:
   of an array, `toByte`, `charCode` / `fromCharCode`. For the smallest embedded devices
 * **alloc** - adds memory: text, `bytes`, `List`, `Map` and every function on them
 * **std** (the default) - adds the operating system: `print`, `readLine` / `isEndOfInput`,
-  files, `exit`, and main's arguments (`string... args`)
+  files, `exit`, `run`, and main's arguments (`string... args`)
 * Using something above the project's layer is a compile error, once per place:
   "'print' needs the std layer, but this project uses alloc ([stdlib] layer in fusion.toml)";
   in a core project any text, bytes, List or Map - a value or a declared type - is refused

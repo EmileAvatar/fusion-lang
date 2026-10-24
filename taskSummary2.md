@@ -195,4 +195,5 @@ Kept under Task 22 until the renumbering is approved.
 - User: tier 1 is the test-run target; 28.1.1-28.1.3 sub-tasks; 28.1.4 builtins list proposed
 - Plan approved (user: 28.1.4, then 28.1.1). 28.1.4 done: files/Builtins.md, generated and
   checked
-- **Next Action:** 28.1.1 run(command)
+- 28.1.1 done: run(command), ProcessError, tests, SYNTAX_REFERENCE example
+- **Next Action:** 28.1.2 shared state (measure with a lexer prototype)

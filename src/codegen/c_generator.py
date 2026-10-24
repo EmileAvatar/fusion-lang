@@ -1011,6 +1011,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'fileExists': ('fusion_fileExists', False), 'deleteFile': ('fusion_deleteFile', True),
         'readLine': ('fusion_readLine', False), 'isEndOfInput': ('fusion_isEndOfInput', False),
         'exit': ('fusion_exit', False),   # 18.5.4
+        'run': ('fusion_run', True),      # 28.1.1
         'split': ('fusion_str_split', False), 'join': ('fusion_str_join', True),   # 18.5.3
         'lines': ('fusion_str_lines', False), 'words': ('fusion_str_words', False),
         'formatMask': ('fusion_str_formatMask', False), 'digitsOnly': ('fusion_str_digitsOnly', False),

@@ -17,6 +17,7 @@ __declspec(dllimport) int __stdcall MultiByteToWideChar(unsigned int page, unsig
 __declspec(dllimport) unsigned long __stdcall GetFileAttributesW(const wchar_t* path);
 #else
 #include <sys/stat.h>
+#include <sys/wait.h>
 #endif
 // A NUL-terminated copy of a path (malloc - freed by the caller)
 static inline char* fusion_path_text(fusion_string path) {
@@ -143,5 +144,34 @@ static inline void fusion_deleteFile(fusion_string path, const char* where) {
     if (failed) fusion_file_fail(errno == ENOENT ? FUSION_KIND_FileNotFoundError : FUSION_KIND_DeleteError,
                                  where, path, "deleteFile: can't delete '%s' (%s)", p, strerror(errno));
     free(p);
+}
+// run(command) (Task 28.1.1): the command goes to the system shell (cmd /c on Windows,
+// /bin/sh -c elsewhere); waits until it ends and returns its exit code. A program that
+// runs and fails is not an error - its code comes back. Only a shell that can't be started
+// is a ProcessError. Output already printed is flushed first, so lines stay in order.
+// On Windows the whole command gets one more pair of quotes: cmd /c strips exactly that
+// pair, so a command like "C:/My Apps/x.exe" "a b" runs as written.
+static inline int fusion_run(fusion_string command, const char* where) {
+    char* c = fusion_path_text(command);
+    int code;
+    fflush(NULL);
+#ifdef _WIN32
+    char* quoted = (char*)malloc((size_t)command.len + 3);
+    quoted[0] = '"';
+    memcpy(quoted + 1, c, (size_t)command.len);
+    quoted[command.len + 1] = '"';
+    quoted[command.len + 2] = '\0';
+    wchar_t* w = fusion_wide(quoted);
+    free(quoted);
+    code = _wsystem(w);
+    free(w);
+#else
+    int status = system(c);
+    code = status == -1 ? -1 : WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
+#endif
+    if (code == -1) fusion_fail(FUSION_KIND_ProcessError, where, "run: can't start '%s' (%s)",
+                                c, strerror(errno));
+    free(c);
+    return code;
 }
 '''

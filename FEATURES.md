@@ -175,8 +175,11 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 28.1 The subset: exactly what the programs in examples/ need - measured by
 		tools/example_subset.py: three tiers (18 / 12 / 14 programs), and gaps A-C (calling GCC,
 		shared state, the C run-time) - task/selfhost_subset.md. Target: tier 1 (user)
-		[ ] 28.1.1 `run(command)`: run another program, wait, return its exit code (gap A) -
-			tested with Notepad, the examples, and compiling + running an app from Fusion
+		[DONE] 28.1.1 `run(command)`: run another program through the shell, wait, return its
+			exit code; ProcessError if the shell can't start; std layer; on Windows the command
+			goes to cmd exactly as written. Tested: exit codes, output order, a failing
+			command, compiling + running a Fusion program from Fusion (a folder with a space),
+			an example's exe, Notepad
 		[ ] 28.1.2 Shared state (gap B): measure with a lexer prototype. A parameter a
 			function only reads is already passed without a copy; one it changes is copied
 		[ ] 28.1.3 The C run-time as a shared file `runtime/fusion_runtime.h` (gap C)
