@@ -24,6 +24,15 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 28: Self-hosting phase 1 - the test run - ACTIVE (2026-10-24)
+
+Done in steps (user). 28.1 done: `task/selfhost_subset.md` - the examples fall into three
+tiers; gaps A (calling GCC), B (state without globals - structs and lists are copies),
+C (the C run-time). Waiting: the user's choice of target tier and of A-C, then the plan for
+28.2-28.8.
+
+---
+
 ## TASK 23.9: Fusion_showcase.fusion - COMPLETE (2026-10-23)
 
 files/showcase/Fusion_showcase.fusion + fusion.toml: every feature tagged [built] /
@@ -116,4 +125,5 @@ Kept under Task 22 until the renumbering is approved.
 - Task 27 complete; 27.2f done ([numbers] auto_widening, default false)
 - 23.9 done: files/showcase (Fusion_showcase.fusion + fusion.toml); user answered: files/showcase/,
   tags built / designed / idea / rejected + one-line description each
-- **Next Action:** plan Task 28 (self-hosting phase 1 - the test run) for approval
+- 28.1 done: the subset measured (task/selfhost_subset.md, tools/example_subset.py)
+- **Next Action:** user decides the target tier and gaps A-C; then plan 28.2-28.8

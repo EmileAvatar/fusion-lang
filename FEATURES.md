@@ -172,7 +172,9 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 
 #### 28 Self-hosting phase 1 - the test run (was 10) [ ]
 	[DONE] 28.0 Prerequisites: analysis (was 10.1) and language features (was 10.2, by Task 18)
-	[ ] 28.1 The subset: exactly what the programs in examples/ need
+	[DONE] 28.1 The subset: exactly what the programs in examples/ need - measured by
+		tools/example_subset.py: three tiers (18 / 12 / 14 programs), and gaps A-C (calling GCC,
+		shared state, the C run-time) - task/selfhost_subset.md
 	[ ] 28.2 Lexer in Fusion
 	[ ] 28.3 Parser in Fusion
 	[ ] 28.4 Checker in Fusion
