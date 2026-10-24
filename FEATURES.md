@@ -291,6 +291,11 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		optimization, tests, docs (was 11.2-11.13)
 
 #### 41 HIDL - hardware interface definition language (was 13) [ ]
+	Note (user, 2026-10-24): the [stdlib] layers map to hardware - core: microcontrollers with
+	no heap, bare metal (Arduino AVR, Cortex-M0; 2-64 KB RAM); alloc: microcontrollers /
+	microprocessors with a heap, no OS or a small RTOS (ESP32, Cortex-M4/M7, STM32); std: a
+	full OS (PCs, servers, Raspberry Pi on Linux). Open: an RTOS (FreeRTOS, Zephyr) has
+	threads and timers but usually no files or console - its own layer, or optional std parts
 	[ ] 41.1 Grammar & format decision
 	[ ] 41.2 Scope v1 vs. future layers
 	[ ] 41.3 Memory model reconciliation
