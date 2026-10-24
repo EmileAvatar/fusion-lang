@@ -177,11 +177,12 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		shared state, the C run-time) - task/selfhost_subset.md. Target: tier 1 (user)
 		[ ] 28.1.1 `run(command)`: run another program, wait, return its exit code (gap A) -
 			tested with Notepad, the examples, and compiling + running an app from Fusion
-		[ ] 28.1.2 Shared state (gap B): measure; a parameter a function never changes is
-			not copied (List parameters are copied today - found 2026-10-24)
+		[ ] 28.1.2 Shared state (gap B): measure with a lexer prototype. A parameter a
+			function only reads is already passed without a copy; one it changes is copied
 		[ ] 28.1.3 The C run-time as a shared file `runtime/fusion_runtime.h` (gap C)
-		[ ] 28.1.4 `files/Builtins.md`: every built-in function (94) and method, generated
-			from the compiler and checked by check.py
+		[DONE] 28.1.4 `files/Builtins.md`: every built-in function (94), type class and List / Map
+			method, generated from the compiler (`check.py --builtins`, tools/builtins_doc.py);
+			the "builtins" check fails when it is out of date
 	[ ] 28.2 Lexer in Fusion
 	[ ] 28.3 Parser in Fusion
 	[ ] 28.4 Checker in Fusion

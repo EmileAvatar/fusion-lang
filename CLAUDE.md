@@ -77,6 +77,7 @@ python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build
 python check.py --ship "msg" --claude # all checks; commit + push only if all pass (Rule 7)
 python check.py --example wordcount  # build, run, compare one example
+python check.py --builtins           # rewrite files/Builtins.md after adding a built-in
 python check.py --fix-ascii          # non-ASCII -> \uXXXX where the meaning is unchanged
 python tools/patch.py edits.py       # exact (file, old, new) edits, all or nothing
 python -m pytest tests/ -q           # tests directly
@@ -85,7 +86,8 @@ python tests/verify_examples.py      # examples directly
 
 `check.py` runs: the test suite (end-to-end tests compile with `-DFUSION_LEAK_CHECK`), the
 examples, a leak check of every example and every `SYNTAX_REFERENCE.md` program (exit 3 =
-string never freed, 4 = freed twice), and the ASCII rule.
+string never freed, 4 = freed twice), that `files/Builtins.md` matches the compiler, and the
+ASCII rule.
 
 ### Setting up a new machine
 1. Python 3.11+ (`tomllib`), and GCC on PATH (Windows: MinGW-w64, e.g.
@@ -106,6 +108,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 |---|---|
 | Status of every task/feature, postponed items | `FEATURES.md` |
 | What the language can do now, with examples | `SYNTAX_REFERENCE.md` |
+| Every built-in function and method (generated) | `files/Builtins.md` |
 | Active task plan + next action | `taskSummary2.md` |
 | Finished task detail, old sessions | `task/taskSummaryArchive.md` |
 | Not-started task write-ups | `task/taskBacklog.md` |

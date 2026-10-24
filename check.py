@@ -18,6 +18,7 @@ summary - full output only for what failed:
     python check.py --example NAME [args]
                                       build and run one example (a file or a project folder),
                                       compare with its expected output (22.10)
+    python check.py --builtins        write files/Builtins.md from the compiler (28.1.4)
 
 Checks:
     tests     pytest (every end-to-end test already runs under the string leak check)
@@ -26,6 +27,7 @@ Checks:
               -DFUSION_LEAK_CHECK and run: exit 3 = a string never freed, 4 = freed twice
     reference every ```fusion block in SYNTAX_REFERENCE.md compiles and runs (exit 0), and
               its copy in examples/ is up to date
+    builtins  files/Builtins.md matches the compiler's built-in functions and methods
     ascii     no non-ASCII characters in .py / .fusion files (CLAUDE.md Rule 2)
 
 Exit code 0 only if everything passed.
@@ -148,6 +150,26 @@ def check_reference_sync():
         problems.append('fix: python check.py --build-examples')
     return not problems, f'{len(examples)} in sync' if not problems else 'out of sync', \
         '\n'.join(problems)
+
+
+def check_builtins():
+    """files/Builtins.md is what tools/builtins_doc.py makes from the compiler (28.1.4)."""
+    from tools.builtins_doc import render
+    text, problems = render()
+    path = ROOT / 'files' / 'Builtins.md'
+    if not path.exists() or path.read_text(encoding='utf-8') != text:
+        problems.append('files/Builtins.md is missing or out of date - fix: python check.py --builtins')
+    return not problems, 'up to date' if not problems else 'out of date', '\n'.join(problems)
+
+
+def write_builtins():
+    from tools.builtins_doc import render
+    text, problems = render()
+    (ROOT / 'files' / 'Builtins.md').write_text(text, encoding='utf-8', newline='\n')
+    print('wrote files/Builtins.md')
+    for problem in problems:
+        print(problem)
+    return 1 if problems else 0
 
 
 def example_sources():
@@ -428,6 +450,8 @@ def main(argv):
         return build_examples()
     if '--fix-ascii' in argv:
         return fix_ascii()
+    if '--builtins' in argv:
+        return write_builtins()
     if '--example' in argv:
         index = argv.index('--example')
         return run_example(option_value(argv, '--example'), argv[index + 2:])
@@ -440,7 +464,8 @@ def run_checks(quick: bool) -> bool:
     checks = [('tests', check_tests)]
     if not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
-                   ('reference', check_reference_sync), ('ascii', check_ascii)]
+                   ('reference', check_reference_sync), ('builtins', check_builtins),
+                   ('ascii', check_ascii)]
     all_ok = True
     details = []
     for name, check in checks:

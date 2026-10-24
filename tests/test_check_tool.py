@@ -118,3 +118,28 @@ def test_patch_command_reads_an_edits_file(tmp_path, monkeypatch, capsys):
     assert patch.main(['edits.py']) == 0
     assert (tmp_path / 'a.txt').read_text(encoding='utf-8') == 'new\n'
     assert '1 edit(s) applied' in capsys.readouterr().out
+
+
+# ---- files/Builtins.md (Task 28.1.4)
+
+def test_builtins_doc_lists_every_function_once():
+    from tools.builtins_doc import render
+    from src.semantic import SemanticAnalyzer
+    text, problems = render()
+    assert problems == []
+    names = [n for n, s in SemanticAnalyzer().symbol_table.current_scope.symbols.items()
+             if s.symbol_type == 'function']
+    for name in names:
+        assert text.count(f'| `{name}(') == 1, name
+    assert '| Other' not in text and '#### Other' not in text   # every function has a topic
+
+
+def test_builtins_doc_escapes_bars_inside_table_cells():
+    from tools.builtins_doc import render
+    text, _ = render()
+    assert '`toHex(int \\| string, int = 0)`' in text
+
+
+def test_builtins_check_passes_on_the_committed_file():
+    ok, _, detail = check.check_builtins()
+    assert ok, detail

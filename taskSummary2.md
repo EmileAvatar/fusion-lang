@@ -59,16 +59,11 @@ whole language (user, 2026-10-24). Tiers 2 and 3 come later.
   every system; spec and grammar notes.
 
 **28.1.2 Shared state - measure, then decide**
-- Found while planning: a `List` parameter is **copied when the function starts**, even if
-  the function only reads it (`xs = fusion_list_string_copy(xs)` in the C). So handing the
-  token list to each parser function copies all the tokens on every call, which is very
-  slow for a compiler.
-- Proposed fix: **a parameter the function never changes is not copied** (it is borrowed).
-  - This is a compiler optimisation, not a language change. The meaning stays the same,
-    because the function can't change the value anyway, and the caller waits while it runs.
-  - Where the function stores the value (in a struct, a list or a return value), the copy
-    happens there, as assignments already do.
-  - Every test and example must still pass, and the leak check must stay clean.
+- **Corrected while building 28.1.4:** a parameter the function only **reads** is already
+  passed without a copy (`fu_count(fusion_list_string xs) { return xs.len; }`). Only a
+  parameter the function **changes** is copied when it starts. So handing the token list
+  to every parser function is cheap already, and no compiler change is needed unless the
+  measurement says otherwise.
 - A small prototype first: a lexer in Fusion tokenizing a large file (about 5,000 lines),
   timed before and after, so the numbers decide.
 - The pattern for the compiler's code: a small struct for the changing state (the
@@ -198,4 +193,6 @@ Kept under Task 22 until the renumbering is approved.
   tags built / designed / idea / rejected + one-line description each
 - 28.1 done: the subset measured (task/selfhost_subset.md, tools/example_subset.py)
 - User: tier 1 is the test-run target; 28.1.1-28.1.3 sub-tasks; 28.1.4 builtins list proposed
-- **Next Action:** user approves the 28.1.1-28.1.4 plan (taskSummary2.md)
+- Plan approved (user: 28.1.4, then 28.1.1). 28.1.4 done: files/Builtins.md, generated and
+  checked
+- **Next Action:** 28.1.1 run(command)
