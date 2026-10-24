@@ -38,6 +38,8 @@ void function main()
 End function
 ```
 
+`print` always ends the line it prints (there is no separate `println` yet).
+
 #### Variables, constants, control flow
 
 <!-- example: syntax_variables_and_control_flow | task: 08 -->

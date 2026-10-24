@@ -408,19 +408,53 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):
-	[ ] `elif` as an alias for `else if` (less typing)
-	[ ] `switch` as an alias for `match` - the two are interchangeable
+	[ ] `switch` and `match` interchangeable; `elif` an alias for `else if`. The preferred forms
+		(used in docs and examples) are `else if` and `switch` (user, 2026-10-24)
 	[ ] Enum values with fixed constants, built by the enum's private constructor:
 		`enum Planet { Mercury(3.7) ... }`, Planet.Mercury.gravity() / Planet.Mercury.Name
 	[ ] Several return values only when `[functions] multiple_returns = true` (off by default);
 		a function that can fail always has its Error last
 	[ ] Operator overloading, off by default - `[language] operator_overloading = true`
 	[ ] Namespaces: group related modules (several folders / libraries) under one name
-	[ ] println with a line ending: the PC's own, or set in fusion.toml (print already ends
-		the line today - to settle: print without a line ending?)
-	[ ] `loop { }` with no break / return inside is a compile error (to be confirmed)
+	[ ] println with a line ending: the PC's own, or set in fusion.toml. Kept for later (user,
+		2026-10-24); note for developers: `print` already ends the line
+	[ ] `loop`: a `loop { }` with no break / return inside is a compile error (user, 2026-10-24),
+		and the user is thinking of dropping the `loop` keyword - to review
+	[ ] Structs may hold List / Map (user, 2026-10-24); classes inside structs deferred. The core
+		rule of a struct: it always has a value (never null)
 	[ ] Open: `int?` - the spec says value types can't be null but its `?[` example uses `int?`
 		(user will check, with Task 30)
+	Showcase [idea] list - to go through one by one (files/showcase/, user 2026-10-24):
+	[ ] Import only some names from a module: `import geometry { square, circle }`
+	[ ] A whole-program setting read from fusion.toml at compile time (`config.build.mode`)
+	[ ] `++` and `--` as statements only (never inside an expression)
+	[ ] Type tests with `is` (`if s is string`) - the spec uses `is` only for null
+	[ ] `typeOf(x)` gives the type's name as text
+	[ ] A format inside `{}`: `{value:pattern}` (`{19.5:$0.00}`)
+	[ ] Raw strings: `r"C:\path"` - no escapes
+	[ ] Multi-line strings: `"""..."""`, indentation removed up to the closing quotes
+	[ ] `Set<T>`: each value once
+	[ ] Slices: a part of a list or string by range (`numbers[0...1]`)
+	[ ] Tuples: a few values without declaring a struct (`(string, int) pair = ("Ada", 36)`)
+	[ ] `if` as a value: `string size = if a > 5 then "big" else "small"`
+	[ ] Function overloading by parameter types
+	[ ] do-while: the body runs at least once
+	[ ] Guards in match: `case x if x < 0`
+	[ ] Ranges in match cases: `case 0...9`
+	[ ] `assert cond, "message"` - an AssertionError when false
+	[ ] Flag enums: values combine with `|` (`Permission.Read | Permission.Write`)
+	[ ] Copy with changes: `Point moved = a with { x = 5 }`
+	[ ] Extension methods: `extend string { ... }` adds methods to a type you didn't write
+	[ ] `?` after a call: return its error from this function at once (`loadConfig("x")?`)
+	[ ] Wait for several tasks together: `await all([...])`
+	[ ] Calling a C function by declaring it: `extern "C" int function abs(int x)`
+	[ ] Hardware descriptions: `import hardware "x.hidl" as microwave`; registers as typed
+		properties, out-of-range values compile errors (Task 41)
+	[ ] fusion.toml: `block_styles` - allow only some block styles in a project
+	[ ] fusion.toml: `[threads] pool_size = "auto"` (one per CPU core)
+	[ ] fusion.toml: `[modules] paths` - extra folders searched for imported modules
+	[ ] fusion.toml: `wait_at_exit` as a setting (today: the default, --headless turns it off)
+	(Already listed above: namespaces, operator overloading, println, map literals, loop)
 	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use
 	[POSTPONED - with each feature] More error types (Task 26 list, 2026-10-16): NetworkError /
 		TimeoutError (a network module), ParseError (JSON / data modules), CancelledError
