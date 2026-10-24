@@ -330,6 +330,11 @@ carPerson.registerCarWithGov()
 carPerson.buyInsurance()
 ```
 
+- **Members are grouped automatically:** every field of a service class (here `person` and
+  `car`) is part of the object's group service, so calls on them are routed through it.
+- **`service` in front is optional:** `service CarPerson carPerson = CarPerson(ada, honda)`
+  is allowed and does nothing more, because the class is already a service. It only shows
+  readers that this is a service.
 - **Not in a loop:** creating service-class objects inside a loop is not recommended (a
   warning).
 - **How it runs is up to the developer:** shared workers (`SHARED`), or its own thread
@@ -368,9 +373,19 @@ queue, and its worker carries it out atomically.
    }
    ```
 
-2. **Release.** When `carPerson` goes out of scope, `person` and `honda` are released, and
-   other threads can use them directly again. While the group exists, threads must send
-   their requests to it, not to the members.
+2. **Calls are re-routed automatically.** While the group exists, a request sent to a member
+   (`person.name`) is re-routed to the group as a message and queued. The group carries it
+   out atomically, and the result returns to the calling thread when it is done. Calling
+   through the group (`carPerson.getPerson().getName()`) is also routed to the group's
+   queue, and works the same way.
+
+   ```fusion
+   string a = person.name                     // re-routed to carPerson, queued, then returned
+   string b = carPerson.getPerson().getName() // the same, through the group
+   ```
+
+   **Release:** when `carPerson` goes out of scope, `person` and `honda` are released, and
+   other threads use them directly again.
 3. **Members are plain variables.** A member may itself be a service, which keeps its own
    worker (`SINGLE` or `SHARED`) for its own requests.
 4. **One owner - a hard rule.** A variable belongs to at most one service or group at a
