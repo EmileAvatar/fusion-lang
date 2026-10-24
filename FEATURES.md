@@ -334,9 +334,11 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		(default WAIT), Timeout, final, Scheduler (IMMEDIATE), Priority ("5.4.1"), Rule
 		(HIERARCHY), WorkerThreadType, ThreadPool, run - defaults in fusion.toml
 		[concurrency.defaults]; the rest are secondary settings (Coalesce, BatchSize, ...)
-	[ ] 42.15 WorkerThreadType per resource: SINGLE (its own dedicated, self-contained thread) |
-		SHARED (shared workers from a specific ThreadPool); later the default or the compiler
-		chooses
+	[ ] 42.15 WorkerThreadType per resource: AUTO (default - SHARED as more threads read it,
+		SINGLE when its work is heavy) | SINGLE (workers dedicated to this resource: one thread
+		or its own ThreadPool) | SHARED (shared workers from a specific ThreadPool); can be set
+		by hand. Coalesce is a secondary setting; custom schedulers / rules / priorities: one
+		method per class (files/Service.md)
 	[ ] 42.16 Duration literals: `500ms`, `5s`, `2min`, `1h` - an int of milliseconds for now;
 		also read from text (strings, fusion.toml). The full time module: Task 43.1
 	[ ] 42.13 The compiler checks P9 (a service handling a request calls only down the

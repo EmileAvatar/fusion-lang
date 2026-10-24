@@ -102,8 +102,8 @@ are code).
 | `Scheduler` | The order requests are carried out in | `IMMEDIATE`, `BATCHED`, or a custom scheduler | `IMMEDIATE` |
 | `Priority` | How soon its work runs, as shares of the turns | `"5.4.1"` (high 5, medium 4, low 1 in 10), or custom shares | `"5.4.1"` |
 | `Rule` | Who wins when two threads want the service | `HIERARCHY` (the senior thread), or a custom rule | `HIERARCHY` |
-| `WorkerThreadType` | Who does the service's work | `SINGLE`, `SHARED` (below) | the compiler's choice |
-| `ThreadPool` | The pool of worker threads that serves it | a pool, `ThreadPool(10)` | the program's shared pool |
+| `WorkerThreadType` | Who does the service's work | `AUTO`, `SINGLE`, `SHARED` (below) | `AUTO` |
+| `ThreadPool` | The pool of worker threads that serves it (`SHARED`: the pool it shares; `SINGLE`: its own pool) | a pool, `ThreadPool(10)` | the program's shared pool |
 | `run` | Runs several steps as one (a function, not a value) | a block | - |
 
 #### WorkerThreadType
@@ -112,21 +112,28 @@ This is set **per resource**:
 
 ```fusion
 enum WorkerThreadType {
-    SINGLE      // the service gets its own dedicated, self-contained thread
-    SHARED      // the service shares workers from a specific ThreadPool
+    AUTO        // the default: Fusion chooses, and may change its choice as the load changes
+    SINGLE      // dedicated, self-contained workers that serve only this resource
+    SHARED      // shared workers from a specific ThreadPool, also serving other services
 }
 ```
 
-- `SINGLE` suits a busy resource that should never wait for a free worker, such as a log
-  file written all the time, or a device.
-- `SHARED` suits most services. Many services share a few workers, so 100,000 services
+- **`AUTO`** (the default) decides by how the resource is used. When more threads start
+  reading it, it becomes `SHARED`. When the work is heavy, it becomes `SINGLE`.
+- **`SINGLE` does not mean one thread.** It means the workers are dedicated to this
+  resource and to nothing else. That can be one thread, or its own ThreadPool managing the
+  resource. It suits a heavy resource that should never wait for a free worker, such as a
+  log file written all the time, a device, or a large database.
+- **`SHARED`** suits most services. Many services share a few workers, so 100,000 services
   don't need 100,000 threads.
-- When it isn't set, the compiler chooses. Later, a default in `fusion.toml` can choose
-  too.
+- The developer can always set it by hand, per resource, or project-wide in `fusion.toml`
+  (`worker_thread_type`).
 
 ```fusion
 service File log = File.open("app.log")
 service(log).WorkerThreadType = WorkerThreadType.SINGLE
+
+service(log).ThreadPool = ThreadPool(2)                     // SINGLE: its own pool of 2
 
 ThreadPool dbPool = ThreadPool(10)
 service Database db = Database.open("connection string")
@@ -248,9 +255,47 @@ They never stop the program from running, and a machine that matches no level ge
 
 ---
 
+## Custom schedulers, rules and priorities
+
+Each is a class with one method (agreed 2026-10-24; more in `Concurrency.md` 3.8).
+
+```fusion
+class WritesFirst implements Scheduler {
+    // given what is waiting, return what to run next (several = run together)
+    List<Request> function next(List<Request> waiting) {
+        List<Request> writes = waiting.filter((Request r) : r.isWrite)
+        if writes.len() > 0 {
+            return [writes[0]]                  // one write at a time, before any read
+        }
+        return waiting                          // no writes: all reads together
+    }
+}
+
+class PaymentsFirst implements ContentionRule {
+    // return the thread that goes first; the other one waits or releases
+    Thread function decide(Thread a, Thread b) {
+        if a.name == "payments" {
+            return a
+        }
+        if b.name == "payments" {
+            return b
+        }
+        return Rule.HIERARCHY.decide(a, b)      // otherwise, the default
+    }
+}
+
+service(log).Scheduler = WritesFirst()
+service(db).Rule = PaymentsFirst()
+service(db).Priority = "6.3.1"                  // custom shares: high 6, medium 3, low 1
+```
+
+## Decided (2026-10-24)
+
+- **Coalesce** is a secondary setting, not part of version one.
+- **Custom schedulers, rules and priorities** use the syntax above.
+- **`WorkerThreadType`** defaults to `AUTO`: `SHARED` as more threads read the resource,
+  `SINGLE` when its work is heavy. The developer can set it by hand.
+
 ## Not decided yet
 
-- Whether coalesce is in version one, or only a secondary setting (today: secondary).
-- The syntax of custom schedulers, rules and priorities (examples: `Concurrency.md` 3.8).
-- When the compiler chooses `SINGLE` or `SHARED` by itself.
 - Units (`service(a, b, ...)`), after version one.
