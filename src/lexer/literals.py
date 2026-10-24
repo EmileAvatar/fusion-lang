@@ -29,6 +29,8 @@ ESCAPE_SEQUENCES = {
     '"': '"',    # Double quote
     "'": "'",    # Single quote
     '\\': '\\',  # Backslash
+    '{': '{',    # A literal { - not the start of an interpolation (Task 28.1.5)
+    '}': '}',    # A literal } - written \} to match
 }
 
 

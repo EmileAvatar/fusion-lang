@@ -4549,6 +4549,10 @@ An interpolated string is an ordinary string value anywhere - `string s = "x is 
 `print` would write, with the same `{@N}` rules; `{@N}` placeholders only work in the text
 given to `print` or `format`.
 
+**A literal brace** (Task 28.1.5): `\{` and `\}` - `print("\{name\} is {name}")` prints
+`{name} is Alice`. A `{` on its own always starts an interpolation, and one that isn't
+followed by a name or `@N` is an error, never silently printed as text.
+
 **Syntax 2: Positional Formatting** (`{@1}`, `{@2}`, ...)
 ```fusion
 string name = "Alice"

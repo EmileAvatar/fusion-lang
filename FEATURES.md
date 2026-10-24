@@ -189,8 +189,9 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 			includes + run-time every program shares (1,666 lines), written by
 			`check.py --runtime` and checked; CCodeGenerator(runtime_include=...) writes a C file
 			that only #includes it. All 45 examples print the same both ways (tier 1 is a test)
-		[ ] 28.1.5 `\{` and `\}` escapes: a literal brace in a string (found 2026-10-24 - `"{ "`
-			is an error and the only way is "\u007B"; the compiler writes C full of braces)
+		[DONE] 28.1.5 `\{` and `\}` escapes: a literal brace in a string or char (found
+			2026-10-24 - `"{ "` is an error, and the only way was "\u007B"; the self-hosted
+			compiler writes C full of braces)
 		[DONE] 28.1.4 `files/Builtins.md`: every built-in function (94), type class and List / Map
 			method, generated from the compiler (`check.py --builtins`, tools/builtins_doc.py);
 			the "builtins" check fails when it is out of date

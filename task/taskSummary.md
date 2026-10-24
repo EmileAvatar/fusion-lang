@@ -50,15 +50,15 @@ Build a **bare-bones compiler** that can:
 
 | Task ID | Task Name | Status | Progress | File |
 |---------|-----------|--------|----------|------|
-| 1.1 | Token Definitions & Infrastructure | 🟢 Complete | 100% | [task-1.1.md](task/task-1.1.md) |
-| 1.2 | Indentation Tracking System | 🟢 Complete | 100% | [task-1.2.md](task/task-1.2.md) |
-| 1.3 | Block Style Detection (indent/braces/End) | 🟢 Complete | 100% | [task-1.3.md](task/task-1.3.md) |
-| 1.4 | Keyword Recognition | 🟢 Complete | 100% | [task-1.4.md](task/task-1.4.md) |
-| 1.5 | Operator Tokenization | 🟢 Complete | 100% | [task-1.5.md](task/task-1.5.md) |
-| 1.6 | Literal Tokenization | 🟢 Complete | 100% | [task-1.6.md](task/task-1.6.md) |
-| 1.7 | Comment Handling | 🟢 Complete | 100% | [task-1.7.md](task/task-1.7.md) |
-| 1.8 | Error Handling & Diagnostics | 🟢 Complete | 100% | [task-1.8.md](task/task-1.8.md) |
-| 1.9 | Lexer Integration & Testing | 🟢 Complete | 100% | [task-1.9.md](task/task-1.9.md) |
+| 1.1 | Token Definitions & Infrastructure | 🟢 Complete | 100% | [task-1.1.md](task/archive/task-1.1.md) |
+| 1.2 | Indentation Tracking System | 🟢 Complete | 100% | [task-1.2.md](task/archive/task-1.2.md) |
+| 1.3 | Block Style Detection (indent/braces/End) | 🟢 Complete | 100% | [task-1.3.md](task/archive/task-1.3.md) |
+| 1.4 | Keyword Recognition | 🟢 Complete | 100% | [task-1.4.md](task/archive/task-1.4.md) |
+| 1.5 | Operator Tokenization | 🟢 Complete | 100% | [task-1.5.md](task/archive/task-1.5.md) |
+| 1.6 | Literal Tokenization | 🟢 Complete | 100% | [task-1.6.md](task/archive/task-1.6.md) |
+| 1.7 | Comment Handling | 🟢 Complete | 100% | [task-1.7.md](task/archive/task-1.7.md) |
+| 1.8 | Error Handling & Diagnostics | 🟢 Complete | 100% | [task-1.8.md](task/archive/task-1.8.md) |
+| 1.9 | Lexer Integration & Testing | 🟢 Complete | 100% | [task-1.9.md](task/archive/task-1.9.md) |
 
 **Test Results:**
 - ✅ 412 tests passing
@@ -78,12 +78,12 @@ Build a **bare-bones compiler** that can:
 
 | Task ID | Task Name | Status | Progress | File |
 |---------|-----------|--------|----------|------|
-| 2.1 | AST Node Definitions | 🟢 Complete | 100% | [task-2.1.md](task/task-2.1.md) |
-| 2.2 | Expression Parsing | 🟢 Complete | 100% | [task-2.2.md](task/task-2.2.md) |
-| 2.3 | Statement Parsing | 🟢 Complete | 100% | [task-2.3.md](task/task-2.3.md) |
-| 2.4 | Declaration Parsing | 🟢 Complete | 100% | [task-2.4.md](task/task-2.4.md) |
-| 2.5 | Type Parsing | 🟢 Complete | 100% | [task-2.5.md](task/task-2.5.md) |
-| 2.6 | Parser Integration & Testing | 🟢 Complete | 100% | [task-2.6.md](task/task-2.6.md) |
+| 2.1 | AST Node Definitions | 🟢 Complete | 100% | [task-2.1.md](task/archive/task-2.1.md) |
+| 2.2 | Expression Parsing | 🟢 Complete | 100% | [task-2.2.md](task/archive/task-2.2.md) |
+| 2.3 | Statement Parsing | 🟢 Complete | 100% | [task-2.3.md](task/archive/task-2.3.md) |
+| 2.4 | Declaration Parsing | 🟢 Complete | 100% | [task-2.4.md](task/archive/task-2.4.md) |
+| 2.5 | Type Parsing | 🟢 Complete | 100% | [task-2.5.md](task/archive/task-2.5.md) |
+| 2.6 | Parser Integration & Testing | 🟢 Complete | 100% | [task-2.6.md](task/archive/task-2.6.md) |
 
 **Estimated Total Tests:** 265 parser tests
 **Estimated Effort:** 21-27 hours total (3.5-4.5 hours per task average)
@@ -98,12 +98,12 @@ Build a **bare-bones compiler** that can:
 
 | Task ID | Task Name | Status | Progress | File |
 |---------|-----------|--------|----------|------|
-| 3.1 | Symbol Table Infrastructure | 🟢 Complete | 100% | [task-3.1.md](task/task-3.1.md) |
-| 3.2 | Type Checking System | 🟢 Complete | 100% | [task-3.2.md](task/task-3.2.md) |
-| 3.3 | Name Resolution & Scope Validation | 🟢 Complete | 100% | [task-3.3.md](task/task-3.3.md) |
-| 3.4 | Control Flow Validation | 🟢 Complete | 100% | [task-3.4.md](task/task-3.4.md) |
-| 3.5 | Entry Point Validation | 🟢 Complete | 100% | [task-3.5.md](task/task-3.5.md) |
-| 3.6 | Semantic Analyzer Integration & Testing | 🟢 Complete | 100% | [task-3.6.md](task/task-3.6.md) |
+| 3.1 | Symbol Table Infrastructure | 🟢 Complete | 100% | [task-3.1.md](task/archive/task-3.1.md) |
+| 3.2 | Type Checking System | 🟢 Complete | 100% | [task-3.2.md](task/archive/task-3.2.md) |
+| 3.3 | Name Resolution & Scope Validation | 🟢 Complete | 100% | [task-3.3.md](task/archive/task-3.3.md) |
+| 3.4 | Control Flow Validation | 🟢 Complete | 100% | [task-3.4.md](task/archive/task-3.4.md) |
+| 3.5 | Entry Point Validation | 🟢 Complete | 100% | [task-3.5.md](task/archive/task-3.5.md) |
+| 3.6 | Semantic Analyzer Integration & Testing | 🟢 Complete | 100% | [task-3.6.md](task/archive/task-3.6.md) |
 
 **Estimated Total Tests:** ~220 semantic tests
 **Estimated Effort:** 16-22 hours total
@@ -121,11 +121,11 @@ Build a **bare-bones compiler** that can:
 
 | Task ID | Task Name | Status | Progress | File |
 |---------|-----------|--------|----------|------|
-| 4.1 | C Code Generator Infrastructure | 🟢 Complete | 100% | [task-4.1.md](task/task-4.1.md) |
-| 4.2 | Expression Code Generation | 🟢 Complete | 100% | [task-4.2.md](task/task-4.2.md) |
-| 4.3 | Statement Code Generation | 🟢 Complete | 100% | [task-4.3.md](task/task-4.3.md) |
-| 4.4 | Function & Declaration Code Generation | 🟢 Complete | 100% | [task-4.4.md](task/task-4.4.md) |
-| 4.5 | Code Generator Integration & End-to-End Testing | 🟢 Complete | 100% | [task-4.5.md](task/task-4.5.md) |
+| 4.1 | C Code Generator Infrastructure | 🟢 Complete | 100% | [task-4.1.md](task/archive/task-4.1.md) |
+| 4.2 | Expression Code Generation | 🟢 Complete | 100% | [task-4.2.md](task/archive/task-4.2.md) |
+| 4.3 | Statement Code Generation | 🟢 Complete | 100% | [task-4.3.md](task/archive/task-4.3.md) |
+| 4.4 | Function & Declaration Code Generation | 🟢 Complete | 100% | [task-4.4.md](task/archive/task-4.4.md) |
+| 4.5 | Code Generator Integration & End-to-End Testing | 🟢 Complete | 100% | [task-4.5.md](task/archive/task-4.5.md) |
 
 **Estimated Total Tests:** ~150 code generation tests
 **Estimated Effort:** 18-24 hours total

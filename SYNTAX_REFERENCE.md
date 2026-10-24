@@ -93,6 +93,7 @@ void function main()
     string line = "{name} is {age}"                // a {...} string is a value anywhere
     string greeting = format("{@2}, {@1}!", "World", "Hello")   // format = print's text
     print(line + " / " + greeting)
+    print("\{name\} is written as \{name\}")      // \{ \} - a brace as text: {name} is written as {name}
 ```
 
 #### Lambdas and function values

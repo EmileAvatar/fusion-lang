@@ -38,7 +38,11 @@ whole language (user, 2026-10-24). Tiers 2 and 3 come later.
 (runtime/fusion_runtime.h), 28.1.4 files/Builtins.md. Plan and results:
 `task/taskSummaryArchive.md`, `task/selfhost_subset.md`.
 
-### Plan for 28.2-28.8: the compiler in Fusion - PLAN (awaiting approval, 2026-10-24)
+### Plan for 28.2-28.8: the compiler in Fusion - APPROVED (2026-10-24)
+
+User's answers: (1) one walk for checking and generating, for now; (2) the C it writes must
+pass the leak check; (3) any run-time error ends the program (uncaught) - OK for now;
+(4) the compiler's source uses braces, for now; (5) 28.1.5 first.
 
 **Goal:** `selfhost.exe`, a Fusion compiler written in Fusion and built by the Python
 compiler, compiles the **18 tier 1 programs**. Each program it builds prints exactly what
@@ -270,4 +274,7 @@ Kept under Task 22 until the renumbering is approved.
 - 28.1.3 done: runtime/fusion_runtime.h; all 45 examples print the same with it
 - 28.1 complete (plan archived)
 - 28.2-28.8 planned (taskSummary2.md); gap found: no literal { in strings -> 28.1.5
-- **Next Action:** user approves the 28.2-28.8 plan and answers decisions 1-5
+- Plan approved (one walk, leak-free, errors end the program, braces, 28.1.5 first)
+- 28.1.5 done: \{ and \} escapes
+- User moved the old task-1.x-4.x files to task/archive/ (links updated)
+- **Next Action:** 28.2-28.6 vertical slice 1 - hello_world through every stage

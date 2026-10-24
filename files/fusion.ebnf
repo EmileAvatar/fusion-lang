@@ -363,7 +363,9 @@ array_literal =
     (* Implemented (Task 9 v1), trailing comma allowed, exactly as written above *)
 
 escape_sequence =
-    "\\" ( "n" | "t" | "r" | "\\" | '"' | "'" | "0" ) ;
+    "\\" ( "n" | "t" | "r" | "\\" | '"' | "'" | "0" | "{" | "}" )
+    | "\\u" hex_digit hex_digit hex_digit hex_digit ;
+    (* \{ and \} - a literal brace, not an interpolation (Task 28.1.5) *)
 
 (* ========== Classes and Interfaces ========== *)
 
