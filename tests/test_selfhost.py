@@ -83,7 +83,10 @@ SLICES = ['hello_world',
           # slice 3: string values (owned, copied, freed), floats / chars / bools, format,
           # default and named arguments
           'syntax_strings', 'syntax_variables_and_control_flow', 'syntax_interpolation',
-          'syntax_defaults_and_named_args']
+          'syntax_defaults_and_named_args',
+          # slice 4: fixed arrays (checked indexes, len, int[] parameters, for over arrays),
+          # function values, function types and lambdas
+          'arrays_demo', 'functions_demo', 'syntax_lambdas']
 
 
 def run_exe(exe: Path) -> tuple:

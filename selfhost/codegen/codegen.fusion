@@ -115,6 +115,7 @@ string, Error function cType(TypeRef t) {
             return name
         }
         case Named(name): return "fu_" + name
+        case Func(params, result): return funcTypeName(t)
         else: return Error("the type " + typeName(t) + " comes in a later slice")
     }
 }
@@ -136,6 +137,15 @@ Gen, Error function convert(Gen g, TypeRef target, Ctx ctx, int line, string wha
     }
     if isPrim(target, "float") and isPrim(g.typ, "int") {
         return plain("FUSION_CHECK(float, fusion_int_to_float(" + g.code + ", " + where(ctx, line) + "))", target)
+    }
+    if isArray(target) and isArray(g.typ) and sameType(elementOf(target), elementOf(g.typ)) {
+        // int[] takes an array of any size, with its length next to it; int[3] exactly 3
+        if sizeOf(target) < 0 {
+            return plain(g.code + ", " + lengthCode(g, line), target)
+        }
+        if sizeOf(target) == sizeOf(g.typ) {
+            return g
+        }
     }
     return Error(format("{@1}: {@2} must be {@3}, got {@4}", line, what, typeName(target), typeName(g.typ)))
 }
@@ -170,7 +180,7 @@ Operands, Error function operands(List<Gen> gs) {
     List<string> frees = []
     for i in range(0, gs.len()) {
         Gen g = gs[i]
-        if not anyFresh {
+        if not anyFresh or isArray(g.typ) {
             names.add(g.code)
         } else {
             string name = "fusion_o" + toString(i + 1)
@@ -190,6 +200,298 @@ string function freeing(Operands o, string resultCType, string expr) {
         return expr
     }
     return "__extension__ (\{ " + o.decls.join("") + resultCType + " fusion_v = " + expr + "; " + o.frees.join("") + "fusion_v; \})"
+}
+
+// ---------------------------------------------------------------- arrays and function types
+
+bool function isArray(TypeRef t) {
+    match t {
+        case Array(element, size): return true
+        else: return false
+    }
+}
+
+TypeRef function elementOf(TypeRef t) {
+    match t {
+        case Array(element, size): return element
+        else: return TypeRef.Unknown
+    }
+}
+
+int function sizeOf(TypeRef t) {
+    match t {
+        case Array(element, size): return size
+        else: return -1
+    }
+}
+
+// The C code for an array's length: its size, or the hidden length an `int[]` parameter
+// carries next to it (fusion_len_<name>)
+string, Error function lengthCode(Gen g, int line) {
+    int size = sizeOf(g.typ)
+    if size >= 0 {
+        return toString(size)
+    }
+    if lexer.isWord(g.code) {
+        return "fusion_len_" + g.code
+    }
+    return Error(format("{@1}: the length of this array isn't known", line))
+}
+
+// A type's name inside a C identifier: int, fusion_string -> string, a function type as fn...
+string function mangled(TypeRef t) {
+    match t {
+        case Prim(name): return name
+        case Named(name): return name
+        case Array(element, size): return mangled(element) + "Arr"
+        case Func(params, result) {
+            List<string> ps = []
+            for p in params {
+                ps.add(mangled(p))
+            }
+            return "fn_" + ps.join("_") + "_to_" + mangled(result)
+        }
+        case Unknown: return "unknown"
+    }
+}
+
+// A function type's C typedef name: (int) : int -> fusion_fn_int_to_int
+string function funcTypeName(TypeRef t) {
+    match t {
+        case Func(params, result) {
+            List<string> ps = []
+            for p in params {
+                ps.add(mangled(p))
+            }
+            if ps.len() == 0 {
+                ps.add("void")
+            }
+            return "fusion_fn_" + ps.join("_") + "_to_" + mangled(result)
+        }
+        else: return "fusion_fn_unknown"
+    }
+}
+
+// The function types inside a type, inner ones first - each needs a typedef before use
+List<TypeRef> function funcTypesOf(TypeRef t) {
+    List<TypeRef> found = []
+    match t {
+        case Array(element, size) {
+            for f in funcTypesOf(element) {
+                found.add(f)
+            }
+        }
+        case Func(params, result) {
+            for p in params {
+                for f in funcTypesOf(p) {
+                    found.add(f)
+                }
+            }
+            for f in funcTypesOf(result) {
+                found.add(f)
+            }
+            found.add(t)
+        }
+        else {
+        }
+    }
+    return found
+}
+
+// ---------------------------------------------------------------- walking the tree
+
+// A node's children, for walks over the whole tree
+List<Node> function children(Node n) {
+    match n {
+        case Program(decls): return decls
+        case Function(name, result, params, body, line) {
+            List<Node> c = []
+            for p in params {
+                c.add(p)
+            }
+            c.add(body)
+            return c
+        }
+        case Param(name, paramType, defaultValue, line): return [defaultValue]
+        case Struct(name, fields, line): return fields
+        case Field(name, fieldType, defaultValue, line): return [defaultValue]
+        case Block(statements): return statements
+        case VarDecl(name, varType, value, isConst, line): return [value]
+        case Assign(target, value, line): return [target, value]
+        case If(condition, then, otherwise, line): return [condition, then, otherwise]
+        case While(condition, body, line): return [condition, body]
+        case For(name, iterable, body, line): return [iterable, body]
+        case Return(value, line): return [value]
+        case ExprStmt(expr, line): return [expr]
+        case Binary(op, left, right, line): return [left, right]
+        case Unary(op, operand, line): return [operand]
+        case Call(callee, args, line) {
+            List<Node> c = [callee]
+            for a in args {
+                c.add(a)
+            }
+            return c
+        }
+        case NamedArg(name, value, line): return [value]
+        case Member(target, member, line): return [target]
+        case Index(target, index, line): return [target, index]
+        case ArrayLit(items, line): return items
+        case Lambda(params, body, line) {
+            List<Node> c = []
+            for p in params {
+                c.add(p)
+            }
+            c.add(body)
+            return c
+        }
+        else: return []
+    }
+}
+
+// Every lambda in the tree, in the order written
+List<Node> function lambdasIn(Node n) {
+    List<Node> found = []
+    match n {
+        case Lambda(params, body, line): found.add(n)
+        else {
+        }
+    }
+    for c in children(n) {
+        for l in lambdasIn(c) {
+            found.add(l)
+        }
+    }
+    return found
+}
+
+// Every function type written in the tree (parameters, variables, results, fields)
+List<TypeRef> function funcTypesIn(Node n) {
+    List<TypeRef> found = []
+    TypeRef written = TypeRef.Unknown
+    match n {
+        case Param(name, paramType, defaultValue, line): written = paramType
+        case VarDecl(name, varType, value, isConst, line): written = varType
+        case Function(name, result, params, body, line): written = result
+        case Field(name, fieldType, defaultValue, line): written = fieldType
+        else {
+        }
+    }
+    for f in funcTypesOf(written) {
+        found.add(f)
+    }
+    for c in children(n) {
+        for f in funcTypesIn(c) {
+            found.add(f)
+        }
+    }
+    return found
+}
+
+// ---------------------------------------------------------------- lambdas
+
+// A lambda's C function name: its line and a hash of its text - the same lambda always
+// gets the same name, so no counter is needed
+string function lambdaName(Node lambda) {
+    bytes text = toBytes(parser.show(lambda))
+    int h = 17
+    for i in range(0, len(text)) {
+        h = wrapAdd(wrapMul(h, 31), text[i])
+    }
+    int line = 0
+    match lambda {
+        case Lambda(params, body, l): line = l
+        else {
+        }
+    }
+    return "fusion_lambda_" + toString(line) + "_" + toHex(h)
+}
+
+// A context holding only a lambda's parameters - a lambda can't use the variables around it
+Ctx function lambdaCtx(List<Node> params, Ctx outer) {
+    Map<string, TypeRef> vars
+    for p in params {
+        match p {
+            case Param(name, ptype, pdefault, line) {
+                vars[name] = ptype
+            }
+            else {
+            }
+        }
+    }
+    return Ctx(vars, outer.file, TypeRef.Unknown, false, [], 0)
+}
+
+List<TypeRef> function paramTypes(List<Node> params) {
+    List<TypeRef> types = []
+    for p in params {
+        match p {
+            case Param(name, ptype, pdefault, line): types.add(ptype)
+            else {
+            }
+        }
+    }
+    return types
+}
+
+// A lambda's type: its parameters, and the type its body works out to
+TypeRef, Error function lambdaType(Node lambda, Ctx ctx, Map<string, Sig> funcs) {
+    match lambda {
+        case Lambda(params, body, line) {
+            Gen b = genExpr(body, lambdaCtx(params, ctx), funcs)
+            return TypeRef.Func(paramTypes(params), b.typ)
+        }
+        else: return Error("not a lambda")
+    }
+}
+
+// The C function a lambda becomes
+List<string>, Error function genLambdaFunction(Node lambda, Ctx ctx, Map<string, Sig> funcs) {
+    match lambda {
+        case Lambda(params, body, line) {
+            Ctx inner = lambdaCtx(params, ctx)
+            Gen b = genExpr(body, inner, funcs)
+            return ["static " + cType(b.typ) + " " + lambdaName(lambda) + "(" + paramList(params) + ") \{", "    return " + ownedValue(b) + ";", "\}", ""]
+        }
+        else: return Error("not a lambda")
+    }
+}
+
+// len(x): a string's characters, an array's size
+Gen, Error function genLen(List<Node> args, int line, Ctx ctx, Map<string, Sig> funcs) {
+    if args.len() != 1 {
+        return Error(format("{@1}: len() takes one value", line))
+    }
+    Gen g = genExpr(args[0], ctx, funcs)
+    if isPrim(g.typ, "string") {
+        return plain("(" + g.code + ").chars", prim("int"))
+    }
+    if isArray(g.typ) {
+        return plain(lengthCode(g, line), prim("int"))
+    }
+    return Error(format("{@1}: len() of a {@2} comes in a later slice", line, typeName(g.typ)))
+}
+
+// A call through a variable holding a function: op(5)
+Gen, Error function genValueCall(string name, TypeRef t, List<Node> args, int line, Ctx ctx, Map<string, Sig> funcs) {
+    match t {
+        case Func(params, result) {
+            if args.len() != params.len() {
+                return Error(format("{@1}: {@2} takes {@3} argument(s), got {@4}", line, name, params.len(), args.len()))
+            }
+            List<Gen> values = []
+            for i in range(0, args.len()) {
+                values.add(convert(genExpr(args[i], ctx, funcs), params[i], ctx, line, "argument " + toString(i + 1) + " of " + name))
+            }
+            Operands o = operands(values)
+            string call = name + "(" + o.names.join(", ") + ")"
+            if isPrim(result, "void") {
+                return plain(freeing(o, "int", "(" + call + ", 0)"), result)
+            }
+            string ct = cType(result)
+            return Gen(freeing(o, ct, checked(ct, call)), result, isPrim(result, "string"))
+        }
+        else: return Error(format("{@1}: '{@2}' is a {@3}, not a function", line, name, typeName(t)))
+    }
 }
 
 // ---------------------------------------------------------------- expressions
@@ -353,6 +655,12 @@ Gen, Error function genCall(Node callee, List<Node> args, int line, Ctx ctx, Map
     if name == "format" {
         return genFormat(args, line, ctx, funcs)
     }
+    if name == "len" {
+        return genLen(args, line, ctx, funcs)
+    }
+    if ctx.vars.has(name) {
+        return genValueCall(name, ctx.vars[name], args, line, ctx, funcs)
+    }
     if not funcs.has(name) {
         return Error(format("{@1}: unknown function '{@2}'", line, name))
     }
@@ -434,14 +742,58 @@ Gen, Error function genExpr(Node e, Ctx ctx, Map<string, Sig> funcs) {
             return genFormatText(parts, [], line, ctx, funcs)
         }
         case Name(name, line) {
-            if not ctx.vars.has(name) {
-                return Error(format("{@1}: unknown name '{@2}'", line, name))
+            if ctx.vars.has(name) {
+                return plain(name, ctx.vars[name])
             }
-            return plain(name, ctx.vars[name])
+            if funcs.has(name) {
+                // A function used as a value
+                Sig sig = funcs[name]
+                return plain("fu_" + name, TypeRef.Func(paramTypes(sig.params), sig.result))
+            }
+            return Error(format("{@1}: unknown name '{@2}'", line, name))
+        }
+        case Lambda(params, body, line): return plain(lambdaName(e), lambdaType(e, ctx, funcs))
+        case ArrayLit(items, line) {
+            if items.len() == 0 {
+                return Error(format("{@1}: an empty array needs its type and size: int[3] xs", line))
+            }
+            Gen first = genExpr(items[0], ctx, funcs)
+            List<string> codes = []
+            for item in items {
+                codes.add(convert(genExpr(item, ctx, funcs), first.typ, ctx, line, "an array element").code)
+            }
+            return plain("(" + cType(first.typ) + "[])\{" + codes.join(", ") + "\}", TypeRef.Array(first.typ, items.len()))
+        }
+        case Index(target, index, line) {
+            Gen t = genExpr(target, ctx, funcs)
+            if not isArray(t.typ) {
+                return Error(format("{@1}: indexing a {@2} comes in a later slice", line, typeName(t.typ)))
+            }
+            Gen i = genExpr(index, ctx, funcs)
+            if not isPrim(i.typ, "int") {
+                return Error(format("{@1}: an index must be an int, got {@2}", line, typeName(i.typ)))
+            }
+            int size = sizeOf(t.typ)
+            match index {
+                case IntLit(text, litLine) {
+                    int v = lexer.intValue(text)
+                    if size >= 0 and v >= 0 and v < size {
+                        return plain(t.code + "[" + toString(v) + "]", elementOf(t.typ))    // known to be inside
+                    }
+                }
+                else {
+                }
+            }
+            return plain(t.code + "[" + checked("int", "fusion_index(" + i.code + ", " + lengthCode(t, line) + ", " + where(ctx, line) + ")") + "]", elementOf(t.typ))
         }
         case Binary(op, left, right, line): return genBinary(op, left, right, line, ctx, funcs)
         case Unary(op, operand, line) {
             Gen o = genExpr(operand, ctx, funcs)
+            match operand {
+                case IntLit(text, litLine): return plain("(-" + o.code + ")", prim("int"))
+                else {
+                }
+            }
             if op == "-" and isPrim(o.typ, "int") {
                 return plain(checked("int", "fusion_neg_int(" + o.code + ", " + where(ctx, line) + ")"), prim("int"))
             }
@@ -755,9 +1107,40 @@ Out, Error function genReturn(Node value, int line, Ctx ctx, Map<string, Sig> fu
     }
 }
 
+// `int[] xs = [1, 2, 3]` (the size from the literal), `float[3] b` (zero-filled)
+Out, Error function genArrayDecl(string name, TypeRef varType, Node value, int line, Ctx ctx, Map<string, Sig> funcs, int depth) {
+    TypeRef element = elementOf(varType)
+    int size = sizeOf(varType)
+    string init = "\{0\}"
+    match value {
+        case Nothing {
+            if size < 0 {
+                return Error(format("{@1}: '{@2}' needs a size or a value: int[3] {@2}", line, name))
+            }
+        }
+        case ArrayLit(items, litLine) {
+            if size >= 0 and size != items.len() {
+                return Error(format("{@1}: '{@2}' holds {@3} values, but the literal has {@4}", line, name, size, items.len()))
+            }
+            size = items.len()
+            List<string> codes = []
+            for item in items {
+                codes.add(convert(genExpr(item, ctx, funcs), element, ctx, line, "an element of '" + name + "'").code)
+            }
+            init = "\{" + codes.join(", ") + "\}"
+        }
+        else: return Error(format("{@1}: an array from this value comes in a later slice", line))
+    }
+    ctx.vars[name] = TypeRef.Array(element, size)
+    return Out([pad(depth) + cType(element) + " " + name + "[" + toString(size) + "] = " + init + ";"], ctx)
+}
+
 Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int depth) {
     match s {
         case VarDecl(name, varType, value, isConst, line) {
+            if isArray(varType) {
+                return genArrayDecl(name, varType, value, line, ctx, funcs, depth)
+            }
             string ct = cType(varType)
             string init = zeroValue(varType)
             match value {
@@ -813,7 +1196,19 @@ Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int de
                 else {
                 }
             }
-            return Error(format("{@1}: this for loop comes in a later slice", line))
+            Gen g = genExpr(iterable, ctx, funcs)
+            if isArray(g.typ) {
+                // Each element in turn, through a hidden index
+                Ctx inner = ctx
+                inner.vars[name] = elementOf(g.typ)
+                List<string> lines = [pad(depth) + "for (int fusion_i = 0; fusion_i < " + lengthCode(g, line) + "; fusion_i += 1) \{", pad(depth + 1) + cType(elementOf(g.typ)) + " " + name + " = " + g.code + "[fusion_i];"]
+                for l in genLoopBody(body, inner, funcs, depth + 1) {
+                    lines.add(l)
+                }
+                lines.add(pad(depth) + "\}")
+                return Out(lines, ctx)
+            }
+            return Error(format("{@1}: a for loop over a {@2} comes in a later slice", line, typeName(g.typ)))
         }
         case Return(value, line): return genReturn(value, line, ctx, funcs, depth)
         case Break(line) {
@@ -895,7 +1290,19 @@ string, Error function paramList(List<Node> params) {
     List<string> ps = []
     for p in params {
         match p {
-            case Param(name, ptype, pdefault, line): ps.add(cType(ptype) + " " + name)
+            case Param(name, ptype, pdefault, line) {
+                if isArray(ptype) {
+                    // int[]: a pointer and its length; int[3]: exactly 3, as in C
+                    string element = cType(elementOf(ptype))
+                    if sizeOf(ptype) < 0 {
+                        ps.add(element + "* " + name + ", int fusion_len_" + name)
+                    } else {
+                        ps.add(element + " " + name + "[" + toString(sizeOf(ptype)) + "]")
+                    }
+                } else {
+                    ps.add(cType(ptype) + " " + name)
+                }
+            }
             else {
             }
         }
@@ -1003,6 +1410,38 @@ public string, Error function generate(Node program, string path) {
     out.add("#define FUSION_CHECK(T, e) __extension__ (\{ T fusion_r = (e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} fusion_r; \})")
     out.add("#define FUSION_CHECK_VOID(e) do \{ (void)(e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} \} while (0)")
     out.add("")
+    // Function types (typedefs) and lambdas (lifted to C functions) - found by walking the
+    // whole tree first, as C needs them declared before use
+    Ctx top = Ctx(Map<string, TypeRef>(), file, TypeRef.Unknown, false, [], 0)
+    List<TypeRef> fnTypes = funcTypesIn(program)
+    List<Node> lambdas = lambdasIn(program)
+    for l in lambdas {
+        for f in funcTypesOf(lambdaType(l, top, funcs)) {
+            fnTypes.add(f)
+        }
+    }
+    Map<string, bool> typedefDone
+    for f in fnTypes {
+        string tn = funcTypeName(f)
+        if not typedefDone.has(tn) {
+            typedefDone[tn] = true
+            match f {
+                case Func(params, result) {
+                    List<string> ps = []
+                    for p in params {
+                        ps.add(cType(p))
+                    }
+                    if ps.len() == 0 {
+                        ps.add("void")
+                    }
+                    out.add("typedef " + cType(result) + " (*" + tn + ")(" + ps.join(", ") + ");")
+                }
+                else {
+                }
+            }
+        }
+    }
+    out.add("")
     out.add("// Forward declarations")
     for f in functions {
         match f {
@@ -1012,6 +1451,16 @@ public string, Error function generate(Node program, string path) {
         }
     }
     out.add("")
+    Map<string, bool> lambdaDone
+    for l in lambdas {
+        string ln = lambdaName(l)
+        if not lambdaDone.has(ln) {
+            lambdaDone[ln] = true
+            for line in genLambdaFunction(l, top, funcs) {
+                out.add(line)
+            }
+        }
+    }
     for f in functions {
         for l in genFunction(f, file, funcs) {
             out.add(l)

@@ -287,4 +287,6 @@ Kept under Task 22 until the renumbering is approved.
   Python-built ones, leak-free
 - Slice 3 done: string ownership (fresh vs borrowed, freed in statement expressions - no
   temporaries), floats / chars / bools, format(), default and named arguments - 12 of 18
-- **Next Action:** slice 4 - arrays (arrays_demo, functions_demo)
+- Slice 4 done: fixed arrays, function values / types, lambdas (lifted to C functions,
+  named by line + a hash of their text) - 15 of 18
+- **Next Action:** slice 5 - structs (structs_demo, syntax_structs, syntax_equality): tier 1 done
