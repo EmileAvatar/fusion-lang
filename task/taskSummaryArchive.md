@@ -5089,3 +5089,150 @@ compile. It gets added to the ASCII check list in `check.py`. One line in the sp
 
 **Order:** 28.1.4 (small) and 28.1.1, then 28.1.2, then 28.1.3. After those comes the plan
 for 28.2-28.8.
+
+---
+
+## TASK 28: Self-hosting phase 1 - the test run - ACTIVE (2026-10-24)
+
+Done in steps (user). 28.1 done: `task/selfhost_subset.md` - the examples fall into three
+tiers; gaps A (calling GCC), B (state without globals), C (the C run-time).
+
+**The test run targets tier 1** - a milestone that confirms the approach works, not the
+whole language (user, 2026-10-24). Tiers 2 and 3 come later.
+
+### 28.1 - COMPLETE (2026-10-24)
+
+28.1.1 run(command), 28.1.2 shared state measured, 28.1.3 shared C run-time
+(runtime/fusion_runtime.h), 28.1.4 files/Builtins.md. Plan and results:
+`task/taskSummaryArchive.md`, `task/selfhost_subset.md`.
+
+### Plan for 28.2-28.8: the compiler in Fusion - APPROVED (2026-10-24)
+
+User's answers: (1) one walk for checking and generating, for now; (2) the C it writes must
+pass the leak check; (3) any run-time error ends the program (uncaught) - OK for now;
+(4) the compiler's source uses braces, for now; (5) 28.1.5 first.
+
+**Goal:** `selfhost.exe`, a Fusion compiler written in Fusion and built by the Python
+compiler, compiles the **18 tier 1 programs**. Each program it builds prints exactly what
+the Python-built one prints, with the same exit code. That is the test run. The Python
+compiler stays the real compiler.
+
+**Checked before planning (2026-10-24):**
+- A syntax tree works in today's Fusion: an enum whose variants hold lists of themselves
+  (`Block(List<Node> statements)`, `Call(string callee, List<Node> args)`), `match` over it,
+  a `Map<string, Symbol>`, and a 20,000-node tree, with no leaks.
+- The Python compiler writes 996 lines of program C in total for the 18 programs (with the
+  shared header), so the C the Fusion compiler must write is small.
+- **Gap found:** a string can't contain a literal `{` (it starts an interpolation, and
+  `"{ "` is an error). The only way today is `"\u007B"`, and generated C is full of braces.
+
+**28.1.5 (first, small): `\{` and `\}` escapes in strings.** `"int main() \{"` gives
+`int main() {`. A lexer change, plus tests, a `SYNTAX_REFERENCE.md` example, and spec and
+grammar notes.
+
+**Layout** (one module per folder, as `import` already works):
+
+```text
+selfhost/
+  main.fusion            28.6 the driver
+  lexer/lexer.fusion     28.2 tokens
+  parser/ast.fusion      28.3 the tree: enum Node, enum TypeRef
+  parser/parser.fusion   28.3
+  codegen/codegen.fusion 28.4 + 28.5 checking and C generation
+```
+
+**28.2 Lexer.**
+- Reads the source as `bytes` (the 28.1.2 rule).
+- Makes the tokens for tier 1: names, keywords, numbers (including hex, binary, octal and
+  `_`), strings (with their `{name}` / `{@1}` parts), chars, operators, comments.
+- Handles all three block styles: indentation (INDENT / DEDENT), braces, and
+  `End function`.
+- Verified first, on its own: `selfhost.exe --tokens file.fusion` prints the tokens one per
+  line, and a test compares that with the Python lexer's tokens for all 18 programs.
+
+**28.3 Parser.** It builds the tree for tier 1:
+- functions (block bodies and `: expr`), parameters with defaults, structs (field defaults,
+  nesting), `const`;
+- `if` / `else if` / `else`, `while`, `for` over `range()` and arrays, `break`,
+  `continue`, `return`, assignment to `a.b.c` and `a[i]`;
+- every tier 1 operator, calls, named arguments, struct construction, array literals,
+  interpolation and lambdas.
+
+The pattern: the tokens are a read-only parameter, and each function returns a small
+result `{Node node, int pos}`. A syntax error is an `Error`, with the file, line and
+column.
+
+**28.4 + 28.5 Checker and C generator: one walk over the tree** (my recommendation). Each
+expression comes back as `{string code, TypeRef type}`, so the types are worked out where
+they are needed. The C must know whether `+` joins strings or adds ints, and how `print`
+formats each value. The checks tier 1 needs:
+- names exist;
+- types match (assignments, arguments, returns, conditions);
+- the number of arguments, and named and default arguments.
+
+The programs are all valid, so these checks catch the compiler's own mistakes too. A
+separate checker pass, like the Python compiler's, can come in Phase 2.
+
+The C it writes follows the Python compiler's output for the same program, with the
+shared header:
+- struct typedefs, with free helpers for structs holding strings;
+- checked `+ - * / %` and array indexes (`fusion_add_int`, `fusion_index`);
+- `printf` formats like the Python compiler's, so floats print identically;
+- lambdas lifted to functions, and function-type typedefs;
+- defaults and named arguments resolved at the call.
+
+**Run-time errors (a simplification):** tier 1 has no `try`, so any run-time error ends
+the program with the same message and exit code as the Python-built one (the error is
+uncaught at main). There are no `goto` chains for catching.
+
+**Memory:** strings are freed as the Python compiler frees them (temporaries after the
+statement, variables at the end of their block). `python check.py --selfhost` runs the
+programs under the leak check too (decision 2 below).
+
+**28.6 Driver.** `selfhost.exe program.fusion [--runtime DIR] [--tokens]`:
+- reads the file;
+- lexes, parses and generates;
+- writes `program.c`;
+- runs `gcc -I DIR program.c -o program.exe -lm` with `run()`;
+- exits 0 on success, or prints the error (file:line:col) and exits 1.
+
+`DIR` defaults to `runtime` (run from the repo root).
+
+**28.7 Verify: `python check.py --selfhost`.**
+1. Build `selfhost/main.fusion` with the Python compiler.
+2. For each of the 18 programs, build it with both compilers, run both, and compare the
+   output and the exit code. Also run under the leak check.
+3. Report `n/18 the same`.
+
+It is a separate option at first, because it is slow. Once it passes it can join
+`python check.py`.
+
+**28.8 Report:** `task/selfhost_report.md` - what was missing or awkward in Fusion while
+writing it, the sizes and the timings. This feeds Phase 2.
+
+**How it is built - vertical slices.**
+1. `hello_world` goes through all four stages first.
+2. Then one program at a time, in order of difficulty: factorial, max_three, fizzbuzz,
+   sum_array, const_demo, syntax_strings, syntax_interpolation,
+   syntax_variables_and_control_flow, syntax_functions_and_blocks, arrays_demo, calculator,
+   syntax_defaults_and_named_args, syntax_lambdas, functions_demo, syntax_equality,
+   syntax_structs, structs_demo.
+3. Each one adds what it needs, and is shipped once `--selfhost` passes for it.
+
+`FEATURES.md` lines 28.2-28.6 are marked done when tier 1 is complete.
+
+**Size estimate:** about 3,500-5,000 lines of Fusion, over several sessions.
+
+**Language gaps found along the way:** a workaround first. Each gap goes into the 28.8
+report. A gap that blocks progress is raised with the user before anything is added to
+the language.
+
+**Decisions for the user:**
+1. Checking and generating in **one walk** (recommended) or as two passes?
+2. Must the C it writes pass the **leak check**? Recommended: yes, done as the last step
+   for each program.
+3. The run-time error simplification (any error ends the program, as uncaught): OK for
+   the test run?
+4. The block style the compiler's own source is written in: **braces** (recommended -
+   easiest to read when there are many nested blocks), indentation, or `End`?
+5. Start with **28.1.5** (`\{` / `\}` escapes)?

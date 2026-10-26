@@ -20,6 +20,9 @@ summary - full output only for what failed:
                                       compare with its expected output (22.10)
     python check.py --builtins        write files/Builtins.md from the compiler (28.1.4)
     python check.py --runtime         write runtime/fusion_runtime.h from the compiler (28.1.3)
+    python check.py --selfhost        build the Fusion-written compiler (selfhost/), build every
+                                      tier 1 program with both compilers, compare what they
+                                      print (and the leak check), with timings (28.7)
 
 Checks:
     tests     pytest (every end-to-end test already runs under the string leak check)
@@ -181,6 +184,49 @@ def check_runtime():
     if path.exists() and path.read_text(encoding='utf-8') == runtime_header_text():
         return True, 'up to date', ''
     return False, 'out of date', 'runtime/fusion_runtime.h is missing or out of date - fix: python check.py --runtime'
+
+
+def selfhost_report():
+    """Task 28.7: the Fusion-written compiler against the Python one, program by program."""
+    import shutil
+    import time
+    from tests.test_runtime_header import TIER_1
+    started = time.perf_counter()
+    built = run([sys.executable, 'main.py', 'selfhost/main.fusion'], timeout=300)
+    if built.returncode != 0:
+        print('[FAIL] building selfhost/main.fusion:\n' + built.stdout + built.stderr)
+        return 1
+    print(f'built selfhost/main.exe in {time.perf_counter() - started:.1f} s')
+    exe = ROOT / 'selfhost' / 'main.exe'
+    same = 0
+    totals = [0.0, 0.0]
+    print(f'{"program":36} {"python":>8} {"selfhost":>9}  result')
+    for name in TIER_1:
+        with tempfile.TemporaryDirectory() as tmp:
+            folders = [Path(tmp) / 'python', Path(tmp) / 'selfhost']
+            for folder in folders:
+                folder.mkdir()
+                shutil.copy(EXAMPLES / f'{name}.fusion', folder)
+            times = []
+            t = time.perf_counter()
+            a = run([sys.executable, 'main.py', str(folders[0] / f'{name}.fusion')], timeout=120)
+            times.append(time.perf_counter() - t)
+            t = time.perf_counter()
+            b = run([str(exe), str(folders[1] / f'{name}.fusion'), '--leak-check',
+                     '--runtime', str(ROOT / 'runtime')], timeout=120)
+            times.append(time.perf_counter() - t)
+            totals = [totals[0] + times[0], totals[1] + times[1]]
+            if a.returncode != 0 or b.returncode != 0:
+                result = 'BUILD FAILED: ' + (b.stdout or a.stderr).strip().splitlines()[-1][:80]
+            else:
+                outputs = [run([str(f / f'{name}.exe'), '--headless'], timeout=60) for f in folders]
+                ok = (outputs[0].returncode, outputs[0].stdout) == (outputs[1].returncode, outputs[1].stdout)
+                same += ok
+                result = 'same' if ok else f'DIFFERENT (exit {outputs[0].returncode} / {outputs[1].returncode})'
+        print(f'{name:36} {times[0]:7.2f}s {times[1]:8.2f}s  {result}')
+    print(f'{"total":36} {totals[0]:7.2f}s {totals[1]:8.2f}s')
+    print(f'\n{same}/{len(TIER_1)} the same (output, exit code, leak check) - both times include GCC')
+    return 0 if same == len(TIER_1) else 1
 
 
 def write_runtime():
@@ -475,6 +521,8 @@ def main(argv):
         return write_builtins()
     if '--runtime' in argv:
         return write_runtime()
+    if '--selfhost' in argv:
+        return selfhost_report()
     if '--example' in argv:
         index = argv.index('--example')
         return run_example(option_value(argv, '--example'), argv[index + 2:])

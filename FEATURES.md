@@ -170,7 +170,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		style_end; tests/test_safety.py compares their C
 	[DONE] 27.5 Doc fix: the equality heading in SYNTAX_REFERENCE.md names `!==` too
 
-#### 28 Self-hosting phase 1 - the test run (was 10) [ ]
+#### 28 Self-hosting phase 1 - the test run (was 10) [DONE]
 	[DONE] 28.0 Prerequisites: analysis (was 10.1) and language features (was 10.2, by Task 18)
 	[DONE] 28.1 The subset: exactly what the programs in examples/ need - measured by
 		tools/example_subset.py: three tiers (18 / 12 / 14 programs), and gaps A-C (calling GCC,
@@ -207,9 +207,12 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		(tests/test_selfhost.py); built in 5 slices
 	[DONE] 28.6 Driver (selfhost/main.fusion): reads the file, writes C, calls GCC with run();
 		--tokens, --ast, --runtime DIR, --leak-check
-	[ ] 28.7 Verify: the Fusion-built compiler.exe compiles every example, and those programs
+	[DONE] 28.7 Verify: `check.py --selfhost` - 18/18 tier 1 programs the same (output, exit
+		code, leak check); also in tests/test_selfhost.py. (Originally:) the Fusion-built
+		compiler.exe compiles every example, and those programs
 		print the same as the Python-built ones
-	[ ] 28.8 Report: what was missing or awkward -> feeds Phase 2
+	[DONE] 28.8 Report: task/selfhost_report.md - what worked, what was awkward (12 entries),
+		six suggestions for Phase 2
 
 ---
 

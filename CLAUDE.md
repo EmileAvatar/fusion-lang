@@ -79,6 +79,7 @@ python check.py --ship "msg" --claude # all checks; commit + push only if all pa
 python check.py --example wordcount  # build, run, compare one example
 python check.py --builtins           # rewrite files/Builtins.md after adding a built-in
 python check.py --runtime            # rewrite runtime/fusion_runtime.h after changing the C run-time
+python check.py --selfhost           # the Fusion-written compiler vs the Python one, tier 1 (28.7)
 python check.py --fix-ascii          # non-ASCII -> \uXXXX where the meaning is unchanged
 python tools/patch.py edits.py       # exact (file, old, new) edits, all or nothing
 python -m pytest tests/ -q           # tests directly
