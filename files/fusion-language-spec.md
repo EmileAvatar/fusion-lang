@@ -419,7 +419,10 @@ outside `print` are 18.3.3 - see `FEATURES.md`.
 * **Encoding (Task 18.3.2b, user decision 2026-10-09):** text is Unicode, stored as UTF-8, by
   default. `len(s)` counts **characters**; `lenb(s)` counts **bytes** (for files, networks,
   databases). `s[i]`, `substring` and `indexOf` count characters. A `char` holds any Unicode
-  character (`char c = 'é'`). Plain ASCII text keeps a fast path (no scanning).
+  character (`char c = 'é'`). Plain ASCII text keeps a fast path (no scanning). Text with
+  other characters remembers the last position found (Task 44.6), so a loop over `s[i]` - or
+  `substring` - doesn't count from the start each time (a 5,000-line loop: 52 s before, 0.03
+  s after).
   A project can choose `[strings] encoding = "ascii"` in `fusion.toml` for very small or legacy
   devices: English text only (non-ASCII text is a compile error), and a `char` is one byte.
   `utf-16` and `utf-32` are named for the future but not implemented yet.

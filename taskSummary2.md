@@ -239,4 +239,6 @@ Kept under Task 22 until the renumbering is approved.
 - 44.3 done: a line break inside ( ) or [ ] continues the line (both lexers)
 - 44.4 postponed (user: option A); 44.5 done (`_` was already built - documented; end / var
   ordinary names in both lexers)
-- **Next Action:** 44.6 fast text[i] for any string
+- 44.6 done: fast text[i] (a one-entry cache in the run-time, cleared when memory is freed -
+  safer than changing the string struct); 52 s -> 0.03 s
+- **Next Action:** 44.1 module-level variables (a fusion.toml setting, on by default)

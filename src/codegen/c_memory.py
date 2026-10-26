@@ -214,6 +214,16 @@ static inline void fusion_fatal(const char* format, ...) {
     exit(1);
 }
 
+// The last character position found in a non-ASCII string (Task 44.6): the next lookup in the
+// same string continues from there, forwards or backwards, so a loop over text[i] is fast
+// instead of counting from the start every time. Only owned strings are remembered - their
+// memory goes through fusion_dealloc, which forgets the string when it is freed, so a reused
+// address can never give a stale answer. One per program (there are no threads yet).
+static const char* fusion_hint_data = 0;
+static int fusion_hint_len = 0;
+static int fusion_hint_i = 0;
+static int fusion_hint_off = 0;
+
 static inline void* fusion_alloc(size_t size) {
     void* p = malloc(size);
     if (!p) fusion_fatal("out of memory");
@@ -230,6 +240,7 @@ static inline void* fusion_alloc(size_t size) {
 }
 
 static inline void fusion_dealloc(void* p) {
+    if (p == (void*)fusion_hint_data) fusion_hint_data = 0;   // forget a freed string (44.6)
 #ifdef FUSION_LEAK_CHECK
     int i = fusion_live_count - 1;
     while (i >= 0 && fusion_live[i] != p) i--;
@@ -289,12 +300,22 @@ static inline int fusion_utf8_count(const char* data, int len) {
     for (int i = 0; i < len; i++) if ((data[i] & 0xC0) != 0x80) n++;
     return n;
 }
-// Byte offset of character number `index` (index == chars gives the end)
+// Byte offset of character number `index` (index == chars gives the end). Non-ASCII text
+// starts from the last position found in the same string when that is nearer (44.6)
 static inline int fusion_utf8_offset(fusion_string s, int index) {
     if (s.chars == s.len) return index;           // ASCII: one byte per character
-    int i = 0;
-    while (index > 0 && i < s.len) { i++; while (i < s.len && (s.data[i] & 0xC0) == 0x80) i++; index--; }
-    return i;
+    int i = 0, o = 0;
+    if (s.owned && s.data == fusion_hint_data && s.len == fusion_hint_len) {
+        if (fusion_hint_i <= index) {
+            i = fusion_hint_i; o = fusion_hint_off;  // forwards from the last position
+        } else if (fusion_hint_i - index < index) {
+            i = fusion_hint_i; o = fusion_hint_off;  // backwards, when nearer than the start
+            while (i > index) { o--; while (o > 0 && (s.data[o] & 0xC0) == 0x80) o--; i--; }
+        }
+    }
+    while (i < index && o < s.len) { o++; while (o < s.len && (s.data[o] & 0xC0) == 0x80) o++; i++; }
+    if (s.owned) { fusion_hint_data = s.data; fusion_hint_len = s.len; fusion_hint_i = i; fusion_hint_off = o; }
+    return o;
 }
 static inline fusion_char fusion_utf8_decode(const char* p) {
     unsigned char b = (unsigned char)p[0];

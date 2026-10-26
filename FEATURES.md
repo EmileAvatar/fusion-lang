@@ -236,8 +236,9 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[DONE] 44.5 `_` for an unused `match` field (already built in Task 25 - now documented and
 		tested); `end` and `var` are ordinary names (lowercase `end` closes a block only before a
 		block word) - in both lexers
-	[ ] 44.6 Fast `text[i]` for any string - the same as the "Later" item below (one non-ASCII
-		character makes each lookup count from the start)
+	[DONE] 44.6 Fast `text[i]` for any string: the run-time remembers the last position found in
+		an owned non-ASCII string (forgotten when its memory is freed); the 28.1.2 prototype:
+		52 s -> 0.03 s (5,000 lines), over 60 s -> 0.12 s (20,000)
 
 #### 29 Mutable vs. fixed strings, templated strings, string pooling (was 17) [ ]
 	[ ] 29.1 Mutable string literal syntax (in-place editing, `s[0] = 'X'`)
@@ -476,10 +477,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		(design and all 9 decisions: spec "Masking", Task 18.3.6f; built 2026-10-10)
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
-	[ ] Fast `text[i]` for any string (found in 28.1.2, 2026-10-24; scheduled as 44.6): today it is instant only
-		when the whole string is ASCII; one non-ASCII character makes each lookup count from the
-		start (a loop over 5,000 lines: 52 s instead of 0.03 s). Fix: the run-time remembers
-		the last position found and continues from there
+	[DONE] Fast `text[i]` for any string (found in 28.1.2, 2026-10-24) - done as 44.6
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):
