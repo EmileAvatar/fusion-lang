@@ -289,4 +289,6 @@ Kept under Task 22 until the renumbering is approved.
   temporaries), floats / chars / bools, format(), default and named arguments - 12 of 18
 - Slice 4 done: fixed arrays, function values / types, lambdas (lifted to C functions,
   named by line + a hash of their text) - 15 of 18
-- **Next Action:** slice 5 - structs (structs_demo, syntax_structs, syntax_equality): tier 1 done
+- Slice 5 done: structs, equality across types - **all 18 tier 1 programs print the same,
+  leak-free**: 28.3-28.6 done
+- **Next Action:** 28.7 `check.py --selfhost`, then 28.8 the report

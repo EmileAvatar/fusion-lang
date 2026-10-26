@@ -116,6 +116,12 @@ string, Error function cType(TypeRef t) {
         }
         case Named(name): return "fu_" + name
         case Func(params, result): return funcTypeName(t)
+        case Array(element, size) {
+            if size >= 0 {
+                return arrayWrapper(t)        // a returned array, inside a struct
+            }
+            return Error("an array without a size can't be a value here")
+        }
         else: return Error("the type " + typeName(t) + " comes in a later slice")
     }
 }
@@ -150,10 +156,11 @@ Gen, Error function convert(Gen g, TypeRef target, Ctx ctx, int line, string wha
     return Error(format("{@1}: {@2} must be {@3}, got {@4}", line, what, typeName(target), typeName(g.typ)))
 }
 
-// The value stored in a new place: a fresh string is taken over, any other is copied
-string function ownedValue(Gen g) {
-    if isPrim(g.typ, "string") and not g.fresh {
-        return "fusion_str_copy(" + g.code + ")"
+// The value stored in a new place: a fresh value is taken over, a borrowed one that owns
+// heap memory (a string, a struct holding one) is copied
+string function ownedValue(Gen g, Map<string, Sig> funcs) {
+    if hasHeap(g.typ, funcs) and not g.fresh {
+        return copyOf(g.typ, g.code, funcs)
     }
     return g.code
 }
@@ -187,7 +194,7 @@ Operands, Error function operands(List<Gen> gs) {
             decls.add(cType(g.typ) + " " + name + " = " + g.code + "; ")
             names.add(name)
             if g.fresh {
-                frees.add("fusion_str_free(&" + name + "); ")
+                frees.add(freeStmtOf(g.typ, name) + " ")
             }
         }
     }
@@ -237,6 +244,9 @@ string, Error function lengthCode(Gen g, int line) {
     }
     return Error(format("{@1}: the length of this array isn't known", line))
 }
+
+// The struct a returned array travels in: Point[2] -> fusion_arr_Point_2 (its .data)
+string function arrayWrapper(TypeRef t) : "fusion_arr_" + mangled(elementOf(t)) + "_" + toString(sizeOf(t))
 
 // A type's name inside a C identifier: int, fusion_string -> string, a function type as fn...
 string function mangled(TypeRef t) {
@@ -450,7 +460,7 @@ List<string>, Error function genLambdaFunction(Node lambda, Ctx ctx, Map<string,
         case Lambda(params, body, line) {
             Ctx inner = lambdaCtx(params, ctx)
             Gen b = genExpr(body, inner, funcs)
-            return ["static " + cType(b.typ) + " " + lambdaName(lambda) + "(" + paramList(params) + ") \{", "    return " + ownedValue(b) + ";", "\}", ""]
+            return ["static " + cType(b.typ) + " " + lambdaName(lambda) + "(" + paramList(params) + ") \{", "    return " + ownedValue(b, funcs) + ";", "\}", ""]
         }
         else: return Error("not a lambda")
     }
@@ -494,6 +504,240 @@ Gen, Error function genValueCall(string name, TypeRef t, List<Node> args, int li
     }
 }
 
+// ---------------------------------------------------------------- structs
+//
+// The struct table lives in the signature map passed everywhere (Fusion has no module-level
+// variables - task/selfhost_report.md): "#Point" holds Point's fields as Param nodes, and
+// "#heap:Point" is there when a Point holds strings (so it is copied and freed like one)
+
+bool function isStruct(TypeRef t, Map<string, Sig> funcs) {
+    match t {
+        case Named(name): return funcs.has("#" + name)
+        else: return false
+    }
+}
+
+string function structName(TypeRef t) {
+    match t {
+        case Named(name): return name
+        else: return ""
+    }
+}
+
+// Whether values of this type own heap memory: strings, and structs or arrays holding them
+bool function hasHeap(TypeRef t, Map<string, Sig> funcs) {
+    match t {
+        case Prim(name): return name == "string"
+        case Named(name): return funcs.has("#heap:" + name)
+        case Array(element, size): return hasHeap(element, funcs)
+        else: return false
+    }
+}
+
+// The C that frees a value of type t stored at `place` (only types that own heap memory)
+string function freeStmtOf(TypeRef t, string place) {
+    match t {
+        case Prim(name): return "fusion_str_free(&" + place + ");"
+        case Named(name): return "fusion_free_fu_" + name + "(&" + place + ");"
+        else: return ""
+    }
+}
+
+// An independent copy of a value of type t
+string function copyOf(TypeRef t, string code, Map<string, Sig> funcs) {
+    if isPrim(t, "string") {
+        return "fusion_str_copy(" + code + ")"
+    }
+    if isStruct(t, funcs) and hasHeap(t, funcs) {
+        return "fusion_copy_fu_" + structName(t) + "(" + code + ")"
+    }
+    return code
+}
+
+// A struct value: Point(3, 4), Point(y = 2, x = 1), Player("Ada") - every field may be left
+// out, and then gets its default (or zero)
+Gen, Error function structLiteral(string name, List<Node> args, int line, Ctx ctx, Map<string, Sig> funcs) {
+    Sig s = funcs["#" + name]
+    List<Node> slots = arrange(name, s, args, line, true)
+    List<string> codes = []
+    for i in range(0, slots.len()) {
+        match s.params[i] {
+            case Param(fname, ftype, fdefault, fline) {
+                match slots[i] {
+                    case Nothing: codes.add(zeroValue(ftype, ctx, funcs))
+                    case ArrayLit(items, litLine) {
+                        if not isArray(ftype) {
+                            return Error(format("{@1}: field '{@2}' of {@3} isn't an array", line, fname, name))
+                        }
+                        List<string> elements = []
+                        for item in items {
+                            elements.add(ownedValue(convert(genExpr(item, ctx, funcs), elementOf(ftype), ctx, line, "an element of '" + fname + "'"), funcs))
+                        }
+                        codes.add("\{" + elements.join(", ") + "\}")
+                    }
+                    else {
+                        Gen v = convert(genExpr(slots[i], ctx, funcs), ftype, ctx, line, "field '" + fname + "' of " + name)
+                        if isArray(ftype) {
+                            return Error(format("{@1}: an array field from this value comes in a later slice", line))
+                        }
+                        codes.add(ownedValue(v, funcs))
+                    }
+                }
+            }
+            else {
+            }
+        }
+    }
+    TypeRef t = TypeRef.Named(name)
+    return Gen("(fu_" + name + ")\{" + codes.join(", ") + "\}", t, hasHeap(t, funcs))
+}
+
+// The C declaration of one struct field (an array field keeps its size)
+string, Error function fieldDecl(string name, TypeRef t) {
+    if isArray(t) {
+        return cType(elementOf(t)) + " " + name + "[" + toString(sizeOf(t)) + "];"
+    }
+    return cType(t) + " " + name + ";"
+}
+
+// The equality test for one value of type t: a.f == b.f, or the type's own helper
+string function eqTest(TypeRef t, string a, string b) {
+    if isPrim(t, "string") {
+        return "fusion_str_eq(" + a + ", " + b + ")"
+    }
+    match t {
+        case Named(name): return "fusion_eq_fu_" + name + "(" + a + ", " + b + ")"
+        case Array(element, size): return "fusion_arr_eq_" + mangled(element) + "(" + a + ", " + toString(size) + ", " + b + ", " + toString(size) + ")"
+        else: return "(" + a + " == " + b + ")"
+    }
+}
+
+// Array equality for one element type: same length, every element equal
+string, Error function arrayEqHelper(TypeRef element) {
+    string ct = cType(element)
+    string m = mangled(element)
+    return "static inline bool fusion_arr_eq_" + m + "(const " + ct + "* a, int na, const " + ct + "* b, int nb) \{ if (na != nb) return false; for (int i = 0; i < na; i++) if (!" + eqTest(element, "a[i]", "b[i]") + ") return false; return true; \}"
+}
+
+// Typedefs and helpers for every struct, in an order where each comes after what it holds
+List<string>, Error function structSection(List<Node> structs, Map<string, Sig> funcs) {
+    List<string> out = []
+    if structs.len() == 0 {
+        return out
+    }
+    // Order: a struct after the structs its fields hold
+    List<Node> ordered = []
+    Map<string, bool> placed
+    int rounds = 0
+    while ordered.len() < structs.len() and rounds <= structs.len() {
+        for s in structs {
+            match s {
+                case Struct(name, fields, line) {
+                    if not placed.has(name) {
+                        bool ready = true
+                        for f in fields {
+                            match f {
+                                case Field(fname, ftype, fdefault, fline) {
+                                    TypeRef inner = ftype
+                                    if isArray(ftype) {
+                                        inner = elementOf(ftype)
+                                    }
+                                    string dep = structName(inner)
+                                    if dep != "" and dep != name and not placed.has(dep) {
+                                        ready = false
+                                    }
+                                }
+                                else {
+                                }
+                            }
+                        }
+                        if ready {
+                            placed[name] = true
+                            ordered.add(s)
+                        }
+                    }
+                }
+                else {
+                }
+            }
+        }
+        rounds = rounds + 1
+    }
+    if ordered.len() < structs.len() {
+        return Error("structs that hold each other in a circle can't be laid out")
+    }
+    out.add("// Structs")
+    for s in ordered {
+        match s {
+            case Struct(name, fields, line) {
+                out.add("typedef struct fu_" + name + " \{")
+                for f in fields {
+                    match f {
+                        case Field(fname, ftype, fdefault, fline): out.add("    " + fieldDecl(fname, ftype))
+                        else {
+                        }
+                    }
+                }
+                out.add("\} fu_" + name + ";")
+            }
+            else {
+            }
+        }
+    }
+    out.add("")
+    out.add("// Struct copy, cleanup and equality")
+    for s in ordered {
+        match s {
+            case Struct(name, fields, line) {
+                TypeRef t = TypeRef.Named(name)
+                if hasHeap(t, funcs) {
+                    List<string> copies = []
+                    List<string> frees = []
+                    for f in fields {
+                        match f {
+                            case Field(fname, ftype, fdefault, fline) {
+                                if hasHeap(ftype, funcs) {
+                                    if isArray(ftype) {
+                                        TypeRef el = elementOf(ftype)
+                                        string n = toString(sizeOf(ftype))
+                                        copies.add("for (int i = 0; i < " + n + "; i++) v." + fname + "[i] = " + copyOf(el, "v." + fname + "[i]", funcs) + "; ")
+                                        frees.add("for (int i = 0; i < " + n + "; i++) " + freeStmtOf(el, "v->" + fname + "[i]") + " ")
+                                    } else {
+                                        copies.add("v." + fname + " = " + copyOf(ftype, "v." + fname, funcs) + "; ")
+                                        frees.add(freeStmtOf(ftype, "v->" + fname) + " ")
+                                    }
+                                }
+                            }
+                            else {
+                            }
+                        }
+                    }
+                    out.add("static inline fu_" + name + " fusion_copy_fu_" + name + "(fu_" + name + " v) \{ " + copies.join("") + "return v; \}")
+                    out.add("static inline void fusion_free_fu_" + name + "(fu_" + name + "* v) \{ " + frees.join("") + "\}")
+                    out.add("static inline void fusion_set_fu_" + name + "(fu_" + name + "* dst, fu_" + name + " value) \{ fusion_free_fu_" + name + "(dst); *dst = value; \}")
+                }
+                List<string> tests = []
+                for f in fields {
+                    match f {
+                        case Field(fname, ftype, fdefault, fline): tests.add(eqTest(ftype, "a." + fname, "b." + fname))
+                        else {
+                        }
+                    }
+                }
+                if tests.len() == 0 {
+                    tests.add("true")
+                }
+                out.add("static inline bool fusion_eq_fu_" + name + "(fu_" + name + " a, fu_" + name + " b) \{ return " + tests.join(" && ") + "; \}")
+                out.add(arrayEqHelper(t))
+            }
+            else {
+            }
+        }
+    }
+    out.add("")
+    return out
+}
+
 // ---------------------------------------------------------------- expressions
 
 // An operation that can fail, made to stop the program if it did
@@ -532,8 +776,64 @@ Gen, Error function genBinary(string op, Node left, Node right, int line, Ctx ct
         }
         return plain("(" + l.code + " " + c + " " + r.code + ")", prim("bool"))
     }
+    if op == "===" or op == "!==" {
+        if sameType(l.typ, r.typ) {
+            // The same type: === is ==, !== is !=
+            if op == "!==" {
+                op = "!="
+            } else {
+                op = "=="
+            }
+        } else {
+            // Different types are never ===; both sides still run
+            Operands o = operands([l, r])
+            string answer = "0"
+            if op == "!==" {
+                answer = "1"
+            }
+            return plain(freeing(o, "bool", "((void)(" + o.names[0] + "), (void)(" + o.names[1] + "), " + answer + ")"), prim("bool"))
+        }
+    }
     if isPrim(l.typ, "string") and isPrim(r.typ, "string") {
         return genStringBinary(op, l, r, line)
+    }
+    if (op == "==" or op == "!=") and (isPrim(l.typ, "string") or isPrim(r.typ, "string")) and not sameType(l.typ, r.typ) {
+        // A number or a char against text: compares the value the text holds
+        Gen text = l
+        Gen other = r
+        if isPrim(r.typ, "string") {
+            text = r
+            other = l
+        }
+        string fn = ""
+        if isPrim(other.typ, "char") {
+            fn = "fusion_char_eq_str"
+        } else if isPrim(other.typ, "float") {
+            fn = "fusion_float_eq_str"
+        } else if isNumber(other.typ) {
+            fn = "fusion_double_eq_str"
+        } else {
+            return Error(format("{@1}: a {@2} can't be compared with text", line, typeName(other.typ)))
+        }
+        Operands o = operands([other, text])
+        string test = fn + "(" + o.names[0] + ", " + o.names[1] + ")"
+        if op == "!=" {
+            test = "(!" + test + ")"
+        }
+        return plain(freeing(o, "bool", test), prim("bool"))
+    }
+    if (op == "==" or op == "!=") and sameType(l.typ, r.typ) and (isStruct(l.typ, funcs) or isArray(l.typ)) {
+        string test = ""
+        Operands o = operands([l, r])
+        if isArray(l.typ) {
+            test = "fusion_arr_eq_" + mangled(elementOf(l.typ)) + "(" + l.code + ", " + lengthCode(l, line) + ", " + r.code + ", " + lengthCode(r, line) + ")"
+        } else {
+            test = "fusion_eq_fu_" + structName(l.typ) + "(" + o.names[0] + ", " + o.names[1] + ")"
+        }
+        if op == "!=" {
+            test = "(!" + test + ")"
+        }
+        return plain(freeing(o, "bool", test), prim("bool"))
     }
     bool compare = op == "<" or op == ">" or op == "<=" or op == ">=" or op == "==" or op == "!="
     if isPrim(l.typ, "int") and isPrim(r.typ, "int") {
@@ -594,7 +894,7 @@ Gen, Error function genBinary(string op, Node left, Node right, int line, Ctx ct
 
 // The arguments of a call put in parameter order: positional ones first, then named ones,
 // then the defaults of any left out
-List<Node>, Error function arrange(string name, Sig sig, List<Node> args, int line) {
+List<Node>, Error function arrange(string name, Sig sig, List<Node> args, int line, bool allOptional) {
     int n = sig.params.len()
     List<Node> slots = []
     List<bool> given = []
@@ -635,7 +935,7 @@ List<Node>, Error function arrange(string name, Sig sig, List<Node> args, int li
         }
     }
     for i in range(0, n) {
-        if not given[i] {
+        if not given[i] and not allOptional {
             match slots[i] {
                 case Nothing: return Error(format("{@1}: {@2}() needs a value for '{@3}'", line, name, names[i]))
                 else {
@@ -661,11 +961,14 @@ Gen, Error function genCall(Node callee, List<Node> args, int line, Ctx ctx, Map
     if ctx.vars.has(name) {
         return genValueCall(name, ctx.vars[name], args, line, ctx, funcs)
     }
+    if funcs.has("#" + name) {
+        return structLiteral(name, args, line, ctx, funcs)
+    }
     if not funcs.has(name) {
         return Error(format("{@1}: unknown function '{@2}'", line, name))
     }
     Sig sig = funcs[name]
-    List<Node> slots = arrange(name, sig, args, line)
+    List<Node> slots = arrange(name, sig, args, line, false)
     List<Gen> values = []
     for i in range(0, slots.len()) {
         Gen a = genExpr(slots[i], ctx, funcs)
@@ -684,7 +987,10 @@ Gen, Error function genCall(Node callee, List<Node> args, int line, Ctx ctx, Map
     }
     string ct = cType(sig.result)
     string code = freeing(o, ct, checked(ct, call))
-    return Gen(code, sig.result, isPrim(sig.result, "string"))
+    if isArray(sig.result) {
+        return plain("(" + code + ").data", sig.result)       // the array inside the wrapper
+    }
+    return Gen(code, sig.result, hasHeap(sig.result, funcs))
 }
 
 string function charLiteral(string text) {
@@ -753,6 +1059,28 @@ Gen, Error function genExpr(Node e, Ctx ctx, Map<string, Sig> funcs) {
             return Error(format("{@1}: unknown name '{@2}'", line, name))
         }
         case Lambda(params, body, line): return plain(lambdaName(e), lambdaType(e, ctx, funcs))
+        case Member(target, member, line) {
+            Gen t = genExpr(target, ctx, funcs)
+            if not isStruct(t.typ, funcs) {
+                return Error(format("{@1}: a {@2} has no field '{@3}'", line, typeName(t.typ), member))
+            }
+            if t.fresh {
+                return Error(format("{@1}: a field of a value that isn't stored comes in a later slice", line))
+            }
+            Sig s = funcs["#" + structName(t.typ)]
+            for f in s.params {
+                match f {
+                    case Param(fname, ftype, fdefault, fline) {
+                        if fname == member {
+                            return plain(t.code + "." + member, ftype)
+                        }
+                    }
+                    else {
+                    }
+                }
+            }
+            return Error(format("{@1}: {@2} has no field '{@3}'", line, structName(t.typ), member))
+        }
         case ArrayLit(items, line) {
             if items.len() == 0 {
                 return Error(format("{@1}: an empty array needs its type and size: int[3] xs", line))
@@ -887,7 +1215,7 @@ Extras, Error function extras(List<Node> args, Ctx ctx, Map<string, Sig> funcs) 
         string temp = "fusion_p" + toString(i)
         decls.add(cType(g.typ) + " " + temp + " = " + g.code + "; ")
         if g.fresh {
-            frees.add("fusion_str_free(&" + temp + "); ")
+            frees.add(freeStmtOf(g.typ, temp) + " ")
         }
         values.add(plain(temp, g.typ))
     }
@@ -960,7 +1288,7 @@ List<string> function freesFrom(Ctx ctx, int from, int depth) {
     List<string> lines = []
     int i = ctx.owned.len() - 1
     while i >= from {
-        lines.add(pad(depth) + "fusion_str_free(&" + ctx.owned[i] + ");")
+        lines.add(pad(depth) + ctx.owned[i])
         i = i - 1
     }
     return lines
@@ -1055,7 +1383,14 @@ List<string>, Error function genIf(Node condition, Node then, Node otherwise, in
 }
 
 // The value given to a variable of type `t` that has none: zero, false, ""
-string function zeroValue(TypeRef t) {
+string, Error function zeroValue(TypeRef t, Ctx ctx, Map<string, Sig> funcs) {
+    if isStruct(t, funcs) {
+        Gen s = structLiteral(structName(t), [], 0, ctx, funcs)
+        return s.code
+    }
+    if isArray(t) {
+        return "\{0\}"
+    }
     if isPrim(t, "string") {
         return "FUSION_STR(\"\")"
     }
@@ -1069,6 +1404,31 @@ string function zeroValue(TypeRef t) {
         return "0.0"
     }
     return "0"
+}
+
+// A returned array, put in its wrapper struct: from a literal, or copied from an array
+Gen, Error function arrayReturn(Node value, int line, Ctx ctx, Map<string, Sig> funcs) {
+    string wrapper = cType(ctx.result)
+    TypeRef element = elementOf(ctx.result)
+    match value {
+        case ArrayLit(items, litLine) {
+            if items.len() != sizeOf(ctx.result) {
+                return Error(format("{@1}: the function returns {@2} values, not {@3}", line, sizeOf(ctx.result), items.len()))
+            }
+            List<string> codes = []
+            for item in items {
+                codes.add(convert(genExpr(item, ctx, funcs), element, ctx, line, "a returned element").code)
+            }
+            return plain("(" + wrapper + ")\{\{" + codes.join(", ") + "\}\}", ctx.result)
+        }
+        else {
+            Gen g = genExpr(value, ctx, funcs)
+            if not sameType(g.typ, ctx.result) {
+                return Error(format("{@1}: the function returns {@2}, not {@3}", line, typeName(ctx.result), typeName(g.typ)))
+            }
+            return plain("__extension__ (\{ " + wrapper + " fusion_w; memcpy(fusion_w.data, " + g.code + ", sizeof fusion_w.data); fusion_w; \})", ctx.result)
+        }
+    }
 }
 
 Out, Error function genReturn(Node value, int line, Ctx ctx, Map<string, Sig> funcs, int depth) {
@@ -1091,12 +1451,17 @@ Out, Error function genReturn(Node value, int line, Ctx ctx, Map<string, Sig> fu
             return Out(lines, ctx)
         }
         else {
-            Gen v = convert(genExpr(value, ctx, funcs), ctx.result, ctx, line, "the returned value")
+            Gen v = plain("", prim("void"))
+            if isArray(ctx.result) {
+                v = arrayReturn(value, line, ctx, funcs)
+            } else {
+                v = convert(genExpr(value, ctx, funcs), ctx.result, ctx, line, "the returned value")
+            }
             if frees.len() == 0 {
-                return Out([pad(depth) + "return " + ownedValue(v) + ";"], ctx)
+                return Out([pad(depth) + "return " + ownedValue(v, funcs) + ";"], ctx)
             }
             // The value is worked out (and copied if it is a string) before anything is freed
-            List<string> lines = [pad(depth) + "\{", pad(depth + 1) + cType(ctx.result) + " fusion_ret = " + ownedValue(v) + ";"]
+            List<string> lines = [pad(depth) + "\{", pad(depth + 1) + cType(ctx.result) + " fusion_ret = " + ownedValue(v, funcs) + ";"]
             for f in frees {
                 lines.add(f)
             }
@@ -1129,7 +1494,19 @@ Out, Error function genArrayDecl(string name, TypeRef varType, Node value, int l
             }
             init = "\{" + codes.join(", ") + "\}"
         }
-        else: return Error(format("{@1}: an array from this value comes in a later slice", line))
+        else {
+            // A returned array: copied in
+            Gen g = genExpr(value, ctx, funcs)
+            if not isArray(g.typ) or not sameType(elementOf(g.typ), element) or (size >= 0 and sizeOf(g.typ) != size) {
+                return Error(format("{@1}: '{@2}' is {@3}, but its value is {@4}", line, name, typeName(varType), typeName(g.typ)))
+            }
+            size = sizeOf(g.typ)
+            ctx.vars[name] = TypeRef.Array(element, size)
+            return Out([pad(depth) + cType(element) + " " + name + "[" + toString(size) + "];", pad(depth) + "memcpy(" + name + ", " + g.code + ", sizeof " + name + ");"], ctx)
+        }
+    }
+    if hasHeap(element, funcs) {
+        return Error(format("{@1}: an array of values holding strings comes in a later slice", line))
     }
     ctx.vars[name] = TypeRef.Array(element, size)
     return Out([pad(depth) + cType(element) + " " + name + "[" + toString(size) + "] = " + init + ";"], ctx)
@@ -1142,14 +1519,14 @@ Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int de
                 return genArrayDecl(name, varType, value, line, ctx, funcs, depth)
             }
             string ct = cType(varType)
-            string init = zeroValue(varType)
+            string init = ""
             match value {
                 case Nothing {
-                    init = zeroValue(varType)
+                    init = zeroValue(varType, ctx, funcs)
                 }
                 else {
                     Gen v = convert(genExpr(value, ctx, funcs), varType, ctx, line, "'" + name + "'")
-                    init = ownedValue(v)
+                    init = ownedValue(v, funcs)
                 }
             }
             string prefix = ""
@@ -1157,16 +1534,22 @@ Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int de
                 prefix = "const "
             }
             ctx.vars[name] = varType
-            if isPrim(varType, "string") {
-                ctx.owned.add(name)
+            if hasHeap(varType, funcs) {
+                ctx.owned.add(freeStmtOf(varType, name))
             }
             return Out([pad(depth) + prefix + ct + " " + name + " = " + init + ";"], ctx)
         }
         case Assign(target, value, line) {
             Gen t = genExpr(target, ctx, funcs)
             Gen v = convert(genExpr(value, ctx, funcs), t.typ, ctx, line, "the value")
+            if isArray(t.typ) {
+                return Out([pad(depth) + "memcpy(" + t.code + ", " + v.code + ", sizeof " + t.code + ");"], ctx)
+            }
             if isPrim(t.typ, "string") {
-                return Out([pad(depth) + "fusion_str_set(&" + t.code + ", " + ownedValue(v) + ");"], ctx)
+                return Out([pad(depth) + "fusion_str_set(&" + t.code + ", " + ownedValue(v, funcs) + ");"], ctx)
+            }
+            if isStruct(t.typ, funcs) and hasHeap(t.typ, funcs) {
+                return Out([pad(depth) + "fusion_set_fu_" + structName(t.typ) + "(&" + t.code + ", " + ownedValue(v, funcs) + ");"], ctx)
             }
             return Out([pad(depth) + t.code + " = " + v.code + ";"], ctx)
         }
@@ -1262,15 +1645,20 @@ Out, Error function genStatement(Node s, Ctx ctx, Map<string, Sig> funcs, int de
 
 // ---------------------------------------------------------------- declarations
 
-// Whether a statement (or anything inside it) assigns to the variable `name`
+// The variable an assignment target belongs to: p in p, p.x, p.items[2].y
+string function rootName(Node target) {
+    match target {
+        case Name(n, line): return n
+        case Member(inner, member, line): return rootName(inner)
+        case Index(inner, index, line): return rootName(inner)
+        else: return ""
+    }
+}
+
+// Whether a statement (or anything inside it) assigns to the variable `name`, or a part of it
 bool function assigns(Node s, string name) {
     match s {
-        case Assign(target, value, line) {
-            match target {
-                case Name(n, nameLine): return n == name
-                else: return false
-            }
-        }
+        case Assign(target, value, line): return rootName(target) == name
         case Block(statements) {
             for st in statements {
                 if assigns(st, name) {
@@ -1334,7 +1722,7 @@ List<string>, Error function genFunction(Node f, string file, Map<string, Sig> f
                 out.add("        fusion_fail(FUSION_KIND_StackOverflowError, \"" + file + ":" + toString(line) + "\", \"" + name + "() went too deep - the stack is full (does it call itself without end?)\");")
                 string early = "return;"
                 if not isPrim(result, "void") {
-                    early = "return " + zeroValue(result) + ";"
+                    early = "return (" + cType(result) + ")\{0\};"
                 }
                 out.add("        " + early)
                 out.add("    \}")
@@ -1343,10 +1731,11 @@ List<string>, Error function genFunction(Node f, string file, Map<string, Sig> f
                 match p {
                     case Param(pname, ptype, pdefault, pline) {
                         ctx.vars[pname] = ptype
-                        // A string parameter the function changes gets its own copy
-                        if isPrim(ptype, "string") and assigns(body, pname) {
-                            out.add("    " + pname + " = fusion_str_copy(" + pname + ");")
-                            ctx.owned.add(pname)
+                        // A parameter owning heap memory that the function changes gets its
+                        // own copy (an array parameter is shared on purpose)
+                        if hasHeap(ptype, funcs) and not isArray(ptype) and assigns(body, pname) {
+                            out.add("    " + pname + " = " + copyOf(ptype, pname, funcs) + ";")
+                            ctx.owned.add(freeStmtOf(ptype, pname))
                         }
                     }
                     else {
@@ -1390,9 +1779,22 @@ public string, Error function generate(Node program, string path) {
     // Every function's signature first - a function may call one declared after it
     Map<string, Sig> funcs
     List<Node> functions = []
+    List<Node> structs = []
     Node mainFunction = Node.Nothing
     for d in decls {
         match d {
+            case Struct(name, fields, line) {
+                List<Node> params = []
+                for f in fields {
+                    match f {
+                        case Field(fname, ftype, fdefault, fline): params.add(Node.Param(fname, ftype, fdefault, fline))
+                        else {
+                        }
+                    }
+                }
+                funcs["#" + name] = Sig(TypeRef.Named(name), params)
+                structs.add(d)
+            }
             case Function(name, result, params, body, line) {
                 funcs[name] = Sig(result, params)
                 if name == "main" {
@@ -1401,14 +1803,59 @@ public string, Error function generate(Node program, string path) {
                     functions.add(d)
                 }
             }
-            else: return Error("structs come in a later slice")
+            else: return Error("this declaration comes in a later slice")
         }
     }
     functions.add(mainFunction)
+    // Which structs own heap memory: one holding a string, or a struct that does
+    for round in range(0, structs.len() + 1) {
+        for s in structs {
+            match s {
+                case Struct(name, fields, line) {
+                    for f in fields {
+                        match f {
+                            case Field(fname, ftype, fdefault, fline) {
+                                if hasHeap(ftype, funcs) {
+                                    funcs["#heap:" + name] = Sig(TypeRef.Named(name), [])
+                                }
+                            }
+                            else {
+                            }
+                        }
+                    }
+                }
+                else {
+                }
+            }
+        }
+    }
     List<string> out = ["#include \"fusion_runtime.h\"", ""]
     out.add("// A run-time error ends the program (the self-hosted compiler has no try / catch yet)")
     out.add("#define FUSION_CHECK(T, e) __extension__ (\{ T fusion_r = (e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} fusion_r; \})")
     out.add("#define FUSION_CHECK_VOID(e) do \{ (void)(e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} \} while (0)")
+    out.add("")
+    // Array equality for the built-in element types - before the structs, whose equality
+    // helpers may use them for array fields
+    for p in ["int", "float", "double", "bool", "char", "string"] {
+        out.add(arrayEqHelper(TypeRef.Prim(p)))
+    }
+    for l in structSection(structs, funcs) {
+        out.add(l)
+    }
+    // The struct each returned array travels in
+    Map<string, bool> wrapperDone
+    for f in functions {
+        match f {
+            case Function(fname, result, params, body, fline) {
+                if isArray(result) and not wrapperDone.has(arrayWrapper(result)) {
+                    wrapperDone[arrayWrapper(result)] = true
+                    out.add("typedef struct \{ " + cType(elementOf(result)) + " data[" + toString(sizeOf(result)) + "]; \} " + arrayWrapper(result) + ";")
+                }
+            }
+            else {
+            }
+        }
+    }
     out.add("")
     // Function types (typedefs) and lambdas (lifted to C functions) - found by walking the
     // whole tree first, as C needs them declared before use

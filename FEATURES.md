@@ -199,11 +199,14 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		kind, the three block styles, string parts, escapes, numbers in every base; `--tokens`
 		matches the Python lexer token for token on all 53 example files (tests/test_selfhost.py).
 		Found: a bare `return` in `void main` gave invalid C (fixed in the Python compiler)
-	[ ] 28.3 Parser in Fusion - complete for tier 1 (selfhost/parser/, about 750 lines; all 18
-		programs parse, `--ast` prints the tree); marked done with tier 1
-	[ ] 28.4 Checker in Fusion
-	[ ] 28.5 C code generator in Fusion
-	[ ] 28.6 Driver (main): read files, write C, call GCC
+	[DONE] 28.3 Parser in Fusion (selfhost/parser/, about 800 lines; `--ast` prints the tree)
+	[DONE] 28.4 Checker in Fusion - types checked in the same walk as generating (user decision:
+		one walk), in selfhost/codegen/
+	[DONE] 28.5 C code generator in Fusion (selfhost/codegen/, about 1,900 lines): all 18 tier 1
+		programs print exactly what the Python-built ones print, same exit codes, leak-free
+		(tests/test_selfhost.py); built in 5 slices
+	[DONE] 28.6 Driver (selfhost/main.fusion): reads the file, writes C, calls GCC with run();
+		--tokens, --ast, --runtime DIR, --leak-check
 	[ ] 28.7 Verify: the Fusion-built compiler.exe compiles every example, and those programs
 		print the same as the Python-built ones
 	[ ] 28.8 Report: what was missing or awkward -> feeds Phase 2

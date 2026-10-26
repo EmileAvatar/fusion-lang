@@ -25,6 +25,7 @@ Each entry: what happened, the workaround, and what it suggests for Phase 2. Sta
 | 28.4 | A `match` case binds all of a variant's fields or none (`case Function(name, result, params, body, line)` to use one; `case Rect` alone is allowed - verified, with a clear error) | List them all | Allow `_` for an unused field, or binding the first few |
 | 28.4 | An empty `else { }` is needed to make a `match` complete when nothing should happen | Write the empty block | Fine as it is - explicit |
 | 28.4 | A function that should be private can't be marked public if it uses a private struct - a good, clear error | - | - |
+| 28.5 | No module-level variables, and adding a struct-table parameter to every function would have meant ~40 signature changes | The struct table lives in the signature map already passed everywhere, under keys no function can have (`#Point`, `#heap:Point`) | Module-level variables (or a context object every function can reach) |
 | 28.5 | The tree is made of values, so a pass can't mark nodes (e.g. number each lambda); a walk over the whole tree has to return what it found, merged up through every level | A generic `children(node)` makes each walk a few lines; lambdas are named by line + a hash of their text instead of a counter | A way to give nodes an identity (an id field set by the parser), or mutable references |
 
 ## Sizes and timings
@@ -35,3 +36,4 @@ Each entry: what happened, the workaround, and what it suggests for Phase 2. Sta
 | 2 | + factorial, fizzbuzz, max_three, sum_array, const_demo, calculator, syntax_functions_and_blocks (8 of 18) | ~650 / ~720 / ~560 / ~90 |
 | 3 | + syntax_strings, syntax_variables_and_control_flow, syntax_interpolation, syntax_defaults_and_named_args (12 of 18) | ~650 / ~790 / ~930 / ~90 |
 | 4 | + arrays_demo, functions_demo, syntax_lambdas (15 of 18) | ~650 / ~790 / ~1,330 / ~90 |
+| 5 | + structs_demo, syntax_structs, syntax_equality (18 of 18 - tier 1 complete) | ~700 / ~800 / ~1,900 / ~90 |

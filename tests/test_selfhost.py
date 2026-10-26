@@ -86,7 +86,11 @@ SLICES = ['hello_world',
           'syntax_defaults_and_named_args',
           # slice 4: fixed arrays (checked indexes, len, int[] parameters, for over arrays),
           # function values, function types and lambdas
-          'arrays_demo', 'functions_demo', 'syntax_lambdas']
+          'arrays_demo', 'functions_demo', 'syntax_lambdas',
+          # slice 5: structs (fields, defaults, named construction, copies, strings inside,
+          # arrays of structs, returned arrays), equality across types - tier 1 complete
+          'structs_demo', 'syntax_structs', 'syntax_equality']
+assert sorted(SLICES) == sorted(TIER_1)
 
 
 def run_exe(exe: Path) -> tuple:
