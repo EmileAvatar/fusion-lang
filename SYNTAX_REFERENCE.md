@@ -220,6 +220,11 @@ enum Shape                                // a value may carry data
     Rect(double width, double height)
     Empty
 
+bool function isWide(Shape s)
+    match s
+        case Rect(w, _): return w > 2.0   // _ skips a value you don't need
+        else: return false
+
 double function area(Shape s)
     match s                               // the data is read only through match
         case Circle(r): return 3.14159 * r * r
@@ -230,7 +235,7 @@ void function main()
     List<Shape> shapes = [Shape.Circle(1.0), Shape.Rect(height = 3.0, width = 2.0), Shape.Empty]
     for s in shapes
         print("{s}: {@1}", formatNumber(area(s), "0.00"))   // prints the value's name
-    print("{@1}", Shape.Rect(2.0, 3.0) == shapes[1])        // compares the value and its data
+    print("{@1} {@2}", Shape.Rect(2.0, 3.0) == shapes[1], isWide(shapes[1]))   // compares the value and its data
 ```
 
 #### `match`
@@ -733,11 +738,13 @@ python check.py                   # tests, examples, leak check, ASCII, this fil
 #### Reserved words
 
 ```text
-if else for while loop end break continue return match case
+if else for while loop End break continue return match case
 function func async await
 class struct interface enum inherits implements property get set
 public private protected static virtual override abstract sealed
-var const   true false null this   and or not is in
+const   true false null this   and or not is in
 int float double string bool char byte short long void
 Unique Shared Weak   go   try catch finally throw Error
 ```
+`end` and `var` are ordinary names (Task 44.5): a lowercase `end` closes a block only right
+before a block word (`end function`), and `var` is free until type inference exists.

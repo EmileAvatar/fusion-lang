@@ -580,10 +580,10 @@ class TestEdgeCases:
     def test_all_keywords_in_sequence(self):
         """Test that all keywords are recognized."""
         keywords = [
-            "if", "else", "for", "while", "loop", "end", "break", "continue", "return",
+            "if", "else", "for", "while", "loop", "End", "break", "continue", "return",
             "function", "func", "class", "struct", "interface", "Enum",
             "public", "private", "static", "int", "float", "string", "bool",
-            "var", "const", "true", "false", "null", "import", "new"
+            "const", "true", "false", "null", "import", "new"
         ]
 
         source = " ".join(keywords)

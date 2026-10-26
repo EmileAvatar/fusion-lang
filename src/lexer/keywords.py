@@ -3,7 +3,9 @@
 This module provides keyword lookup functionality to distinguish between
 Fusion's reserved keywords and user-defined identifiers.
 
-Total Keywords: 65 (including special cases like 'Enum')
+Total Keywords: 64 (including special cases like 'Enum'). `end` and `var` are not keywords
+(Task 44.5): `var` is an ordinary name until type inference exists, and a lowercase `end`
+closes a block only directly before a block word (END_BLOCK_WORDS) - otherwise it is a name.
 """
 
 from src.lexer.token import TokenType
@@ -20,7 +22,6 @@ KEYWORDS: Dict[str, TokenType] = {
     'for': TokenType.FOR,
     'while': TokenType.WHILE,
     'loop': TokenType.LOOP,
-    'end': TokenType.END,
     'End': TokenType.END,           # Special case: capital 'E' allowed (VB.NET style)
     'break': TokenType.BREAK,
     'continue': TokenType.CONTINUE,
@@ -86,7 +87,6 @@ KEYWORDS: Dict[str, TokenType] = {
     # ============================================================
     # Variable Keywords (2)
     # ============================================================
-    'var': TokenType.VAR,
     'const': TokenType.CONST,
 
     # ============================================================
@@ -171,3 +171,8 @@ def get_keyword_type(word: str) -> TokenType:
 
 # Expose keyword count for documentation and testing
 KEYWORD_COUNT = len(KEYWORDS)
+
+# The words after which a lowercase `end` closes a block (`end function`); before anything
+# else `end` is an ordinary name (Task 44.5) - `End` is always the keyword
+END_BLOCK_WORDS = {'function', 'if', 'while', 'for', 'struct', 'enum', 'match', 'try',
+                   'unchecked', 'error', 'loop'}

@@ -9,7 +9,7 @@ from typing import List, Optional
 from .token import Token, TokenType, SourceLocation
 from .indentation import IndentationTracker
 from .block_style import BlockStyleTracker, BlockStyle
-from .keywords import is_keyword, get_keyword_type
+from .keywords import is_keyword, get_keyword_type, END_BLOCK_WORDS
 from .operators import match_operator, is_operator_char
 from .literals import (
     parse_integer, parse_based_integer, parse_float, parse_string, parse_char,
@@ -343,6 +343,17 @@ class Lexer:
             self.advance()
 
         value = self.source[start:self.pos]
+
+        # A lowercase `end` closes a block only right before a block word (Task 44.5)
+        if value == 'end':
+            rest = self.source[self.pos:].lstrip(' \t')
+            word = ''
+            for ch in rest:
+                if not (ch.isalnum() or ch == '_'):
+                    break
+                word += ch
+            if word in END_BLOCK_WORDS:
+                return Token(TokenType.END, value, loc)
 
         # Check if it's a keyword
         if is_keyword(value):

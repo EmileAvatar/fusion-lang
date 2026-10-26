@@ -61,7 +61,6 @@ Map<string, Tok> function keywordTable() {
     k["for"] = Tok.FOR
     k["while"] = Tok.WHILE
     k["loop"] = Tok.LOOP
-    k["end"] = Tok.END
     k["End"] = Tok.END
     k["break"] = Tok.BREAK
     k["continue"] = Tok.CONTINUE
@@ -103,7 +102,6 @@ Map<string, Tok> function keywordTable() {
     k["Unique"] = Tok.UNIQUE
     k["Shared"] = Tok.SHARED
     k["Weak"] = Tok.WEAK
-    k["var"] = Tok.VAR
     k["const"] = Tok.CONST
     k["true"] = Tok.TRUE
     k["false"] = Tok.FALSE
@@ -517,6 +515,24 @@ public int function intValue(string text) {
     return value
 }
 
+// The word after position pos on the same line, past spaces and tabs ("" if none)
+string function nextWord(bytes data, int pos) {
+    int n = len(data)
+    while pos < n and (data[pos] == 32 or data[pos] == 9) {
+        pos = pos + 1
+    }
+    int start = pos
+    while pos < n and isNameByte(data[pos]) {
+        pos = pos + 1
+    }
+    return textOf(data, start, pos)
+}
+
+// The words after which a lowercase `end` closes a block (as END_BLOCK_WORDS in Python)
+bool function isEndBlockWord(string w) {
+    return w == "function" or w == "if" or w == "while" or w == "for" or w == "struct" or w == "enum" or w == "match" or w == "try" or w == "unchecked" or w == "error" or w == "loop"
+}
+
 // ---------------------------------------------------------------- the lexer
 
 // An error message with its place: file:line:col: message
@@ -629,6 +645,8 @@ public List<Token>, Error function tokenize(bytes data, string file) {
             Tok kind = Tok.IDENTIFIER
             if keywords.has(name) {
                 kind = keywords[name]
+            } else if name == "end" and isEndBlockWord(nextWord(data, pos)) {
+                kind = Tok.END              // `end function` - otherwise `end` is a name (44.5)
             }
             tokens.add(Token(kind, name, [], line, col))
         } else {

@@ -3,6 +3,11 @@ enum Shape                                // a value may carry data
     Rect(double width, double height)
     Empty
 
+bool function isWide(Shape s)
+    match s
+        case Rect(w, _): return w > 2.0   // _ skips a value you don't need
+        else: return false
+
 double function area(Shape s)
     match s                               // the data is read only through match
         case Circle(r): return 3.14159 * r * r
@@ -13,4 +18,4 @@ void function main()
     List<Shape> shapes = [Shape.Circle(1.0), Shape.Rect(height = 3.0, width = 2.0), Shape.Empty]
     for s in shapes
         print("{s}: {@1}", formatNumber(area(s), "0.00"))   // prints the value's name
-    print("{@1}", Shape.Rect(2.0, 3.0) == shapes[1])        // compares the value and its data
+    print("{@1} {@2}", Shape.Rect(2.0, 3.0) == shapes[1], isWide(shapes[1]))   // compares the value and its data

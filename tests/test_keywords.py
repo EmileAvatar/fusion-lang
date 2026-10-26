@@ -18,9 +18,10 @@ class TestKeywordTable:
 
     def test_keyword_count(self):
         """Verify expected number of keywords."""
-        # 67 keywords total (including special cases: 'Enum'/'enum', 'End'/'end')
-        assert KEYWORD_COUNT == 66
-        assert len(KEYWORDS) == 66
+        # 64 keywords (including the special cases 'Enum'/'enum'); `end` and `var` are not
+        # keywords (Task 44.5)
+        assert KEYWORD_COUNT == 64
+        assert len(KEYWORDS) == 64
 
     def test_keyword_table_is_dict(self):
         """Verify KEYWORDS is a dictionary."""
@@ -57,8 +58,11 @@ class TestControlFlowKeywords:
         assert get_keyword_type('loop') == TokenType.LOOP
 
     def test_end_keyword(self):
-        assert is_keyword('end')
-        assert get_keyword_type('end') == TokenType.END
+        # `End` is the keyword; lowercase `end` only before a block word (Task 44.5 - the
+        # lexer decides that, see tests/test_contextual_words.py)
+        assert is_keyword('End')
+        assert get_keyword_type('End') == TokenType.END
+        assert not is_keyword('end')
 
     def test_break_keyword(self):
         assert is_keyword('break')
@@ -257,9 +261,9 @@ class TestMemoryKeywords:
 class TestVariableKeywords:
     """Test variable declaration keyword recognition."""
 
-    def test_var_keyword(self):
-        assert is_keyword('var')
-        assert get_keyword_type('var') == TokenType.VAR
+    def test_var_is_a_name_until_type_inference_exists(self):
+        assert not is_keyword('var')                      # Task 44.5
+        assert get_keyword_type('var') == TokenType.IDENTIFIER
 
     def test_const_keyword(self):
         assert is_keyword('const')

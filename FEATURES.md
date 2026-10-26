@@ -230,10 +230,12 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 		32.1, a fusion.toml option, off by default
 	[DONE] 44.3 A line break inside ( ) or [ ] continues the line - in both lexers (Python and
 		selfhost/); braces still open blocks
-	[ ] 44.4 An `Error` return type distinct from "can fail" (`Error function f()` today means
-		"returns nothing, can fail" - a function can't return an Error value)
-	[ ] 44.5 `_` for an unused `match` field (a case binds all fields or none today); little-used
-		reserved words (`end`, `var`) become contextual, like `error`
+	[POSTPONED - user, 2026-10-26: option A, keep the workaround] 44.4 An `Error` return type
+		distinct from "can fail" (`Error function f()` means "returns nothing, can fail" - a
+		function can't return an Error value; workaround: return the message, `Error(at(...))`)
+	[DONE] 44.5 `_` for an unused `match` field (already built in Task 25 - now documented and
+		tested); `end` and `var` are ordinary names (lowercase `end` closes a block only before a
+		block word) - in both lexers
 	[ ] 44.6 Fast `text[i]` for any string - the same as the "Later" item below (one non-ASCII
 		character makes each lookup count from the start)
 

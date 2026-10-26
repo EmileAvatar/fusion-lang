@@ -5499,6 +5499,11 @@ Description: Complete list of language keywords and operators.
 
 Description: Words that cannot be used as identifiers.
 
+**`end` and `var` are not reserved** (Task 44.5, implemented): `End` closes a block; a
+lowercase `end` does only right before a block word (`end function`, `end if`, ...) and is an
+ordinary name everywhere else. `var` is an ordinary name until type inference is built.
+In `match`, `_` skips a value: `case Rect(w, _)`.
+
 **Control Flow**:
 * `if`, `elif`, `else`
 * `match`, `case`

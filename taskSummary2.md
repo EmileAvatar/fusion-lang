@@ -237,4 +237,6 @@ Kept under Task 22 until the renumbering is approved.
 - User picked Task 44 ("so that it's easier going forward"); plan written
 - Task 44 approved (order as planned; globals a setting, on by default; methods: any function)
 - 44.3 done: a line break inside ( ) or [ ] continues the line (both lexers)
-- **Next Action:** 44.5 `_` in match, `end` / `var` as ordinary names
+- 44.4 postponed (user: option A); 44.5 done (`_` was already built - documented; end / var
+  ordinary names in both lexers)
+- **Next Action:** 44.6 fast text[i] for any string
