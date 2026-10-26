@@ -24,6 +24,81 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 44: Lessons from the self-hosting test run - PLAN (awaiting approval, 2026-10-26)
+
+The six suggestions of task/selfhost_report.md, so that writing Fusion (and the next
+self-hosting stage, Task 35) is easier. Ordered from smallest and safest to largest. Each
+lands with tests, a `SYNTAX_REFERENCE.md` example (Rule 4), spec and grammar notes. The
+Fusion-written lexer (selfhost/) follows any lexer change, because tests compare its tokens
+with the Python lexer's.
+
+**44.3 A newline inside `(` or `[` continues the line** (smallest)
+- Inside parentheses and brackets, the lexer emits no NEWLINE, INDENT or DEDENT, so long
+  calls and list literals can be written over several lines:
+  ```fusion
+  print("{@1} {@2}",
+        first,
+        second)
+  ```
+- Braces `{` stay as they are, because they open blocks.
+- The same change goes into selfhost/lexer, and the token comparison must stay identical.
+
+**44.5 `_` for an unused field; `end` and `var` become ordinary names**
+- `case Function(name, _, _, body, _)`: `_` binds nothing, and may be used any number of
+  times.
+- `End` (capital) stays the block closer. Lowercase `end` becomes an ordinary name, except
+  directly before a block keyword (`end function` keeps working, though no file uses it).
+  `var` becomes an ordinary name until type inference is built, when `var x = ...` can be
+  recognised by its shape.
+- Checked: no example or test uses lowercase `end` to close a block, or `var`.
+
+**44.6 Fast `text[i]` for any string**
+- Today, one non-ASCII character makes every `text[i]` count from the start of the string
+  (28.1.2: 52 s instead of 0.03 s).
+- The fix: a string value remembers where it was last indexed (two hidden fields: character
+  index and byte offset). The next `text[i]` on the same variable continues from there,
+  forwards or backwards, so a loop over the string is fast again.
+- Measured with the 28.1.2 lexer prototype, before and after. Every leak check and test must
+  still pass. `runtime/fusion_runtime.h` is regenerated (`check.py --runtime`).
+
+**44.1 Module-level variables** (the biggest gain)
+- A variable or constant declared outside any function:
+  ```fusion
+  const int MAX_TOKENS = 10000          // a module constant
+  int errorCount = 0                    // a module variable
+  public string version = "1.0"         // other modules can read it
+  ```
+- Private to its module unless `public`.
+- Values are set in the order written, before `main` runs. Strings and lists are freed when
+  the program ends (the leak check covers them).
+- Note for the concurrency design: a module variable shared between threads is exactly what
+  `service` exists for (Task 42). Until threads exist this is simple single-thread state.
+
+**44.2 Calling any function as a method** (instead of functions inside structs)
+- A function whose first parameter is a struct can be called on it:
+  `p.moved(1, 2)` means `moved(p, 1, 2)`. Built-in types already work this way (18.3.7).
+- Structs stay values only (no functions inside them - the default you set), so nothing
+  about structs changes. Functions inside structs remain 32.1, behind its setting.
+- A method gets a copy, as any function does: `p = p.moved(1, 2)`. Changing the caller's
+  struct in place needs references, which is a later decision.
+
+**44.4 An `Error` return type distinct from "can fail"** (smallest gain - recommend: defer)
+- In practice the workaround (`return Error(message(...))`) was short and clear. A new
+  spelling would add a second meaning to a word people already know.
+- Recommendation: mark it postponed, and revisit if it comes up again.
+
+**Order:** 44.3, 44.5, 44.6, 44.1, 44.2. Each is shipped on its own.
+
+**Decisions for the user:**
+1. Approve the order, and the five items above?
+2. 44.1: should module-level variables be a `fusion.toml` setting (`[modules] globals`,
+   allowed by default), or always allowed?
+3. 44.2: calling any function as a method (recommended), instead of functions inside
+   structs?
+4. 44.4: postpone it?
+
+---
+
 ## TASK 28: Self-hosting phase 1 - the test run - COMPLETE (2026-10-26)
 
 A Fusion compiler written in Fusion (selfhost/, ~3,500 lines) builds all 18 tier 1 programs;
@@ -154,4 +229,5 @@ Kept under Task 22 until the renumbering is approved.
 - 28.7 done: check.py --selfhost - 18/18 the same; 28.8 done: task/selfhost_report.md
 - **Task 28 complete - Phase 1 complete** (plan archived)
 - The report's six suggestions scheduled as FEATURES.md Task 44 (Phase 2)
-- **Next Action:** the user picks the next step - Task 44 (the six lessons) or Task 29 (strings)
+- User picked Task 44 ("so that it's easier going forward"); plan written
+- **Next Action:** user approves the Task 44 plan and answers decisions 1-4
