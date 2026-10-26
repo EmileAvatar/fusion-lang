@@ -532,6 +532,26 @@ void function main()
     print("{@1} {@2}", data.rawToHex(), data.toString())
 ```
 
+#### Your own functions as methods: `p.moved(1, 2)` is `moved(p, 1, 2)`
+
+<!-- example: syntax_functions_as_methods | task: 44.2 -->
+```fusion
+struct Point
+    int x
+    int y
+
+Point function moved(Point p, int dx, int dy) : Point(p.x + dx, p.y + dy)
+int function twice(int n) : n * 2
+
+void function main()
+    Point p = Point(1, 2)
+    Point q = p.moved(10, 20).moved(1, 1)     // any function, on its first argument - chained
+    print("{p.x} {p.y} -> {q.x} {q.y}")       // p is unchanged: the function got a copy
+    print("{@1}", 21.twice())                 // on built-in values too
+```
+List / Map methods (`xs.add`) and an enum's `toString` / `toInt` come first. A struct holds
+values only - a function inside a struct is a later `fusion.toml` option (off by default).
+
 #### Modules and `import` (several files - not built as a single example)
 
 ```text

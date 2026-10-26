@@ -2471,6 +2471,14 @@ void function processShip(Spaceship ship)
 
 **Status:** [PARTLY] the built-in type classes (String, Int, ...) and method syntax on built-in values are built (18.3.7); autoboxing itself: no task yet
 
+**Any function as a method** (Task 44.2, user decision 2026-10-26, implemented): `x.f(a)` is
+`f(x, a)` when the program has a function `f` whose first parameter takes `x` - a struct, a
+built-in value, a list, an enum. List / Map methods and an enum's `toString` / `toInt` come
+first; the program's own function replaces a library one of the same name, as a plain call
+does. The function gets a copy (structs are values): `p = p.moved(1, 2)`. Passing will follow
+VB.NET once classes exist: value types by value, objects by reference. Functions inside a
+struct are a later `fusion.toml` option, off by default (32.1).
+
 Description: Automatic primitive-to-object conversion for method calls.
 
 ---

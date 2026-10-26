@@ -1,0 +1,12 @@
+struct Point
+    int x
+    int y
+
+Point function moved(Point p, int dx, int dy) : Point(p.x + dx, p.y + dy)
+int function twice(int n) : n * 2
+
+void function main()
+    Point p = Point(1, 2)
+    Point q = p.moved(10, 20).moved(1, 1)     // any function, on its first argument - chained
+    print("{p.x} {p.y} -> {q.x} {q.y}")       // p is unchanged: the function got a copy
+    print("{@1}", 21.twice())                 // on built-in values too

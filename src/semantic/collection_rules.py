@@ -18,6 +18,11 @@ from .errors import SemanticError
 # parameter the function changes this way gets its own copy (as with assignment)
 MUTATING_LIST_METHODS = {'add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy'}
 MUTATING_MAP_METHODS = {'remove', 'clear'}
+# Every List / Map method - another name on a list or map may be one of the program's own
+# functions called as a method (Task 44.2)
+LIST_METHOD_NAMES = {'add', 'insert', 'removeAt', 'remove', 'clear', 'len', 'contains', 'indexOf',
+                     'join', 'slice', 'sort', 'sortBy', 'filter', 'map', 'reduce'}
+MAP_METHOD_NAMES = {'has', 'get', 'remove', 'keys', 'values', 'len', 'clear'}
 MAP_KEY_TYPES = ('string', 'int', 'char')
 _SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
 
@@ -85,6 +90,10 @@ class CollectionRulesMixin:
             return None   # String.toUpper - a type class, not a value
         receiver_type = self.visit(receiver)
         self.checked_receivers[id(receiver)] = receiver_type   # checked once
+        names = LIST_METHOD_NAMES if isinstance(receiver_type, ListType) else MAP_METHOD_NAMES
+        if isinstance(receiver_type, (ListType, MapType)) and node.callee.member not in names \
+                and self.user_method(node.callee.member, receiver_type) is not None:
+            return None   # the program's own function, called as a method (Task 44.2)
         if isinstance(receiver_type, MapType):
             self.checked_receivers.pop(id(receiver), None)
             return self._map_method_call(node, receiver, receiver_type)

@@ -218,16 +218,17 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 
 ## Phase 2 - growing the language, then a fully independent compiler
 
-#### 44 Lessons from the self-hosting test run (task/selfhost_report.md, user 2026-10-26) [ ]
+#### 44 Lessons from the self-hosting test run (task/selfhost_report.md, user 2026-10-26) [DONE]
 	The six suggestions of the Task 28 report, most useful first - each makes the next
 	self-hosting stage (Task 35) smoother. Plan first; each may become a fusion.toml setting
 	where that makes sense (FEATURES.md, top).
 	[DONE] 44.1 Module-level variables and constants (`int count = 0`, `const int LIMIT = 3`,
 		`public ...` for other modules): set in order before main, freed when main ends, can't
 		be hidden by a local name; `[modules] variables` (default true) turns variables off
-	[ ] 44.2 Any function can be called as a method on its first argument: p.moved(1, 2) is
-		moved(p, 1, 2) (user, 2026-10-26); the method gets a copy. Functions inside structs:
-		32.1, a fusion.toml option, off by default
+	[DONE] 44.2 Any function can be called as a method on its first argument: p.moved(1, 2) is
+		moved(p, 1, 2) - structs, built-in values, lists, maps, enums; list / map / enum methods
+		come first; the method gets a copy. Functions inside structs: 32.1, a fusion.toml
+		option, off by default
 	[DONE] 44.3 A line break inside ( ) or [ ] continues the line - in both lexers (Python and
 		selfhost/); braces still open blocks
 	[POSTPONED - user, 2026-10-26: option A, keep the workaround] 44.4 An `Error` return type

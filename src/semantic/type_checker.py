@@ -670,6 +670,23 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         # Unknown operator - return void for error recovery
         return PrimitiveType(location=node.location, name='void')
 
+    def user_method(self, name: str, receiver_type: TypeNode):
+        """The program's own function `name` when it can be called as a method on a value of
+        receiver_type (Task 44.2): its first parameter takes that value. Otherwise None."""
+        symbol = self.symbol_table.global_scope.lookup(name)
+        decl = getattr(symbol, 'declaration', None) if symbol is not None else None
+        if symbol is None or symbol.symbol_type != 'function' or not isinstance(decl, FunctionDecl) \
+                or not decl.parameters:
+            return None
+        first = decl.parameters[0].param_type
+        return decl if self.types_compatible(first, receiver_type) else None
+
+    def _call_as_function(self, node: CallExpr, receiver) -> None:
+        """`x.f(a)` -> `f(x, a)` for the program's own function f (Task 44.2) - checked from
+        here on as the ordinary call it is; the receiver is passed first."""
+        node.callee = IdentifierExpr(location=node.callee.location, name=node.callee.member)
+        node.arguments = [receiver] + list(node.arguments)
+
     def _rewrite_method_call(self, node: CallExpr) -> Optional[str]:
         """Turn a method call on a built-in type into the built-in call (Task 18.3.7):
         `x.f(a)` -> `f(x, a)`, `String.f(a)` -> `f(a)`. Leaves a call through a struct's
@@ -684,6 +701,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         else:
             receiver_type = self.visit(receiver)
             self.checked_receivers[id(receiver)] = receiver_type   # checked once, not again
+            # The program's own function, called as a method (Task 44.2): x.f(a) is f(x, a).
+            # A List / Map method (checked before this) and an enum's own toString / toInt come
+            # first; like a plain call, it replaces a library function of the same name. (A
+            # struct field can't hold a function, so a field never competes)
+            if self.user_method(member, receiver_type) is not None \
+                    and not (isinstance(receiver_type, EnumType) and member in ENUM_METHODS):
+                self._call_as_function(node, receiver)
+                return None
             if isinstance(receiver_type, EnumType):
                 # An enum value's methods: c.toString(), c.toInt() (Task 25.2)
                 if member not in ENUM_METHODS:
