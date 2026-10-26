@@ -377,6 +377,8 @@ class VarDeclStmt(ASTNode):
     error_name: Optional[str] = None
     error_location: Optional[Any] = None
     error_type: Optional['TypeNode'] = None   # `Ship s, FileError err` (26.10); None: Error
+    # A module-level variable other modules may use: `public int rate = 5` (Task 44.1)
+    is_public: bool = False
 
 
 @dataclass

@@ -1566,17 +1566,22 @@ class Parser:
             if self.check(TokenType.PUBLIC) or self.check(TokenType.PRIVATE):
                 raise ParserError(self.peek(), "Only one of 'public' / 'private' may be given")
             if not (self.check(TokenType.STRUCT) or self.check(TokenType.ENUM)
+                    or self.check(TokenType.CONST)
                     or self.is_error_declaration_start() or self.is_type_start()
                     or self.is_function_type_declaration_start()
                     or self.is_struct_type_declaration_start()):
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
-                                            f"an enum or a function")
+                                            f"an enum, a function or a module variable")
             decl = self.parse_declaration()
-            if not isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl)):
+            if not isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt)):
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
-                                            f"an enum or a function")
+                                            f"an enum, a function or a module variable")
             decl.is_public = modifier.type == TokenType.PUBLIC
             return decl
+
+        # A module-level constant: `const int LIMIT = 10` (Task 44.1)
+        if self.match(TokenType.CONST):
+            return self.parse_module_variable(self.parse_type(), is_const=True)
 
         # Struct declaration (Task 18.2.1)
         if self.match(TokenType.STRUCT):
@@ -1602,6 +1607,10 @@ class Parser:
                 self.advance()
                 returns_error = True
 
+            # A type and then a name: a module-level variable, `int count = 0` (Task 44.1)
+            if not returns_error and self.check(TokenType.IDENTIFIER):
+                return self.parse_module_variable(return_type, is_const=False)
+
             # Skip newlines after return type
             while self.match(TokenType.NEWLINE):
                 pass
@@ -1617,6 +1626,23 @@ class Parser:
 
         # Skip unexpected tokens (error recovery)
         raise ParserError(self.peek(), f"Unexpected token '{self.peek().value}' at top level")
+
+    def parse_module_variable(self, var_type: TypeNode, is_const: bool) -> VarDeclStmt:
+        """A variable or constant declared outside any function (Task 44.1): `int count = 0`,
+        `const int LIMIT = 10`, `public string version = "1.0"`. The type has been read."""
+        name_token = self.consume(TokenType.IDENTIFIER, "Expected the variable's name")
+        if self.check(TokenType.COMMA):
+            raise ParserError(self.peek(), "Capturing an error (`T x, err = f()`) only works "
+                                           "inside a function")
+        initializer = None
+        if self.match(TokenType.ASSIGN):
+            initializer = self.parse_expression()
+            self.reject_compare_with_single_equals()
+        elif is_const:
+            raise ParserError(name_token, "const declaration must have an initializer")
+        self.consume_statement_terminator()
+        return VarDeclStmt(location=name_token.location, var_type=var_type,
+                           name=name_token.value, initializer=initializer, is_const=is_const)
 
     def parse_struct_declaration(self) -> StructDecl:
         """Parse a struct declaration (Task 18.2.1), in any of the three block styles:

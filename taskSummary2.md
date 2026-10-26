@@ -241,4 +241,5 @@ Kept under Task 22 until the renumbering is approved.
   ordinary names in both lexers)
 - 44.6 done: fast text[i] (a one-entry cache in the run-time, cleared when memory is freed -
   safer than changing the string struct); 52 s -> 0.03 s
-- **Next Action:** 44.1 module-level variables (a fusion.toml setting, on by default)
+- 44.1 done: module-level variables and constants ([modules] variables, default true)
+- **Next Action:** 44.2 any function called as a method

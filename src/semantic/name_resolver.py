@@ -560,6 +560,13 @@ class NameResolver:
                 f"{kind} '{name}' has the same name as struct '{name}' - choose another name",
                 location
             ))
+        # A name inside a function can't hide a module variable - which one is meant would
+        # be easy to misread (Task 44.1)
+        if symbol is not None and getattr(symbol, 'module_variable', False) \
+                and self.symbol_table.current_scope is not self.symbol_table.global_scope:
+            self.errors.append(SemanticError(
+                f"{kind} '{name}' has the same name as the module variable '{name}' - choose "
+                f"another name", location))
 
     # ========================================================================
     # Pass 1: Function Registration
@@ -907,6 +914,7 @@ class NameResolver:
             # Define loop variable with int type (for range() iterables)
             # TODO: For full implementation, infer type from iterable
             int_type = PrimitiveType(location=stmt.location, name='int')
+            self.check_not_struct_name(stmt.variable, "Loop variable", stmt.location)
             loop_var_symbol = Symbol(
                 name=stmt.variable,
                 symbol_type='variable',

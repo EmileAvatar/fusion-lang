@@ -8,7 +8,7 @@ import sys
 from typing import List, Optional
 
 from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl,
-                                ErrorDecl, LiteralExpr)
+                                ErrorDecl, LiteralExpr, VarDeclStmt, ArrayType, ArrayLiteralExpr)
 from .enums import normalize_enums, check_holding_loops
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
@@ -41,7 +41,7 @@ class SemanticAnalyzer:
 
     def __init__(self, structs_config: Optional[StructsConfig] = None,
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
-                 errors_config=None, numbers_config=None):
+                 errors_config=None, numbers_config=None, modules_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -56,6 +56,8 @@ class SemanticAnalyzer:
                                         stdlib_config)
         # [numbers] auto_widening (Task 27.2f): an int used as a float
         self.type_checker.auto_widening = bool(getattr(numbers_config, 'auto_widening', False))
+        # [modules] variables (Task 44.1): module-level variables allowed (default true)
+        self.module_variables_allowed = bool(getattr(modules_config, 'variables', True))
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
@@ -134,6 +136,13 @@ class SemanticAnalyzer:
             if isinstance(decl, FunctionDecl):
                 self.name_resolver.register_function(decl)
 
+        # Module-level variables and constants (Task 44.1): checked in the order written, in
+        # the global scope - an initializer may use the functions and the module variables
+        # above it; every function sees them all
+        for decl in ast.declarations:
+            if isinstance(decl, VarDeclStmt):
+                self.check_module_variable(decl)
+
         # Pass 3: For each function, resolve + type check + control flow check
         # while inside the function scope
         for decl in ast.declarations:
@@ -196,6 +205,23 @@ class SemanticAnalyzer:
         self.errors.extend(check_error_settings(ast, self.errors_config))
         self.warnings.extend(marked_but_cannot_fail(ast))   # Task 26.7
         return len(self.errors) == 0
+
+    def check_module_variable(self, decl: VarDeclStmt) -> None:
+        """A variable or constant declared outside any function (Task 44.1)."""
+        if not decl.is_const and not self.module_variables_allowed:
+            self.errors.append(SemanticError(
+                f"Module-level variable '{decl.name}': fusion.toml sets [modules] variables = "
+                f"false (module-level constants are still allowed)", decl.location))
+        if isinstance(decl.var_type, ArrayType) and decl.initializer is not None \
+                and not isinstance(decl.initializer, ArrayLiteralExpr):
+            self.errors.append(SemanticError(
+                f"A module-level array needs a list of values ([1, 2, 3]) - '{decl.name}'",
+                decl.location))
+        self.name_resolver.resolve_var_decl(decl)
+        symbol = self.symbol_table.global_scope.symbols.get(decl.name)
+        if symbol is not None:
+            symbol.module_variable = True
+        self.type_checker.visit(decl)
 
     def check_structs_settings(self, structs: List[StructDecl]) -> None:
         """Report [structs] settings that need saying on every build (Task 18.2.1).

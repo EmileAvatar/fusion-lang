@@ -48,7 +48,7 @@ class Module:
         self.names: Dict[str, ASTNode] = {}   # top-level name -> its declaration
         for _, program in files:
             for decl in program.declarations:
-                if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl)):
+                if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt)):
                     self.names.setdefault(decl.name, decl)
 
     def qualify(self, name: str) -> str:
@@ -170,6 +170,9 @@ class ModuleLoader:
             elif isinstance(decl, ErrorDecl):
                 used = [f.field_type for f in decl.fields]
                 what = f"public error type '{decl.name}'"
+            elif isinstance(decl, VarDeclStmt):
+                used = [decl.var_type]
+                what = f"public module variable '{decl.name}'"   # Task 44.1
             else:
                 used = [f.field_type for f in decl.fields]
                 what = f"public struct '{decl.name}'"
@@ -323,7 +326,7 @@ class ModuleLoader:
                     scopes[-1].add(node.error_name)   # Ship s, Error err = ... (Task 26)
 
         for decl in program.declarations:
-            if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl)):
+            if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt)):
                 decl.name = module.qualify(decl.name)
             if isinstance(decl, ErrorDecl) and decl.parent != 'Error':
                 decl.parent = type_name(decl.parent, decl)   # the parent error type (Task 26.9)
@@ -420,6 +423,9 @@ def module_interface(module: Module) -> List[str]:
             lines.append(f'    public error {name}{parent}')   # Task 26.9
             for f in decl.fields:
                 lines.append(f'        {type_text(f.field_type, module.id)} {f.name}')
+        elif isinstance(decl, VarDeclStmt):
+            const = 'const ' if decl.is_const else ''   # a module variable (Task 44.1)
+            lines.append(f'    public {const}{type_text(decl.var_type, module.id)} {name}')
         elif isinstance(decl, EnumDecl):
             lines.append(f'    public enum {name}')         # Task 25
             for v in decl.variants:

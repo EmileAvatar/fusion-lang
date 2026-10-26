@@ -303,10 +303,23 @@ block-level (lexical) scoping (Task 12.6), so a const declared inside an `if`/`w
 block is only visible inside that block, and is never visible outside the function it's
 declared in.
 
+**Module-level variables and constants** (Task 44.1, implemented): declared outside any
+function - `const int LIMIT = 3`, `int count = 0`, `public string version = "1.0"`.
+* Set in the order written, before `main`'s own code. An initializer may use the functions
+  and the module variables above it (a function that reads a later one sees it still unset)
+* Every function of the module sees them; `public` ones are used from other modules as
+  `stats.total`, and `--interface` lists them
+* A variable, parameter or loop variable inside a function can't have a module variable's
+  name - which one is meant would be easy to misread
+* Strings, lists, maps and structs held in them are freed when the program ends
+* A module-level array needs a list of values (`int[] primes = [2, 3, 5]`)
+* `fusion.toml` `[modules] variables = false` turns module variables off; constants are
+  always allowed (user decision 2026-10-26)
+* Shared between threads, a module variable is what `service` is for (Task 42)
+
 **Not yet implemented:** type-inferred const (`const GAME_VERSION = "1.0.0"` without a type
-name), and module-level/class-level constants (`public const MAX_SPEED: float = 1000.0`,
-shown later in this document under "Classes and Objects") - those depend on class support,
-which has not been built yet.
+name), and class-level constants (`public const MAX_SPEED: float = 1000.0`, shown later in
+this document under "Classes and Objects").
 
 ---
 
@@ -4206,6 +4219,9 @@ max_length = "max"             # "max" (default) = no limit; a number = error wh
 
 [stdlib]                       # Task 18.5.6 - see "Collections (as built)" / layers
 layer = "std"                  # std (default) | alloc | core
+
+[modules]                      # Task 44.1 - see "Constants"
+variables = true               # module-level variables; constants are always allowed
 
 [numbers]                      # Task 27.2f - see "The Semantic Contract"
 auto_widening = false          # false: an int used as a float must fit exactly - a written

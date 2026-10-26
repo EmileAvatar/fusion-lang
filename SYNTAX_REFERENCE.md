@@ -63,6 +63,28 @@ void function main()
         print("count {count}, grade {grade}, ready {ready}")   // a bool prints as true / false
 ```
 
+#### Module variables and constants: shared by a module's functions
+
+<!-- example: syntax_module_variables | task: 44.1 -->
+```fusion
+const int LIMIT = 3                       // a module constant
+int count = 0                             // a module variable - every function sees it
+List<string> log = []                     // freed when the program ends
+
+void function record(string what)
+    count = count + 1
+    log.add(what)
+
+void function main()
+    for i in range(0, LIMIT)
+        record("step {i}")
+    print("{count} steps: {@1}", log.join(", "))
+```
+They are set in the order written, before `main`'s own code; an initializer may use the
+functions and the module variables above it. `public` lets other modules use one
+(`stats.total`). A name inside a function can't hide a module variable. `[modules] variables =
+false` in `fusion.toml` turns module variables off (constants stay allowed).
+
 #### Default parameters and named arguments
 
 <!-- example: syntax_defaults_and_named_args | task: 18.2.2 -->
@@ -703,6 +725,9 @@ max_length = "max"               # no limit (default); a number = longer strings
 
 [stdlib]
 layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)
+
+[modules]
+variables = true                 # module-level variables (constants are always allowed)
 
 [numbers]
 auto_widening = false            # an int used as a float must fit exactly (else an error);

@@ -35,7 +35,7 @@ def c_code(path: Path, **options) -> str:
     assert not errors, errors
     analyzer = SemanticAnalyzer(structs_config=config.structs, strings_config=config.strings,
                                 stdlib_config=config.stdlib, errors_config=config.errors,
-                                numbers_config=config.numbers)
+                                numbers_config=config.numbers, modules_config=config.modules)
     assert analyzer.analyze(program), analyzer.get_errors()
     return CCodeGenerator(encoding=config.strings.encoding,
                           max_length=config.strings.max_length,

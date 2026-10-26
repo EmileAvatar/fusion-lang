@@ -62,6 +62,13 @@ def local_c_name(name: str) -> str:
     return f'fu_{name}' if local_needs_renaming(name) else name
 
 
+def module_variable_c_name(name: str) -> str:
+    """The C name of a module-level variable (Task 44.1): `count` -> fusion_g_count, and a
+    module's `money.rate` -> fusion_g_money__rate - never the same as a local, a function
+    (fu_...) or anything in the C library."""
+    return 'fusion_g_' + name.replace('.', '__')
+
+
 def array_length_name(param_name: str) -> str:
     """Name of the hidden C parameter carrying an `int[]` parameter's length (Task 18.1.2).
 

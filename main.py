@@ -109,7 +109,8 @@ def compile_file(source_path: str) -> int:
                                 strings_config=project_config.strings,
                                 stdlib_config=project_config.stdlib,
                                 errors_config=project_config.errors,
-                                numbers_config=project_config.numbers)
+                                numbers_config=project_config.numbers,
+                                modules_config=project_config.modules)
     success = analyzer.analyze(ast)
 
     if not success:

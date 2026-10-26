@@ -13,8 +13,15 @@
 
 (* ========== Program Structure ========== *)
 
+(* A variable or constant outside any function (Task 44.1): `int count = 0`,
+   `const int LIMIT = 3`, `public string version = "1.0"` *)
+module_variable =
+    [ "public" | "private" ] ( "const" type identifier "=" expression
+                             | type identifier [ "=" expression ] ) NEWLINE ;
+
 program = {
     statement
+    | module_variable           (* Task 44.1 *)
     | function_declaration
     | class_declaration
     | struct_declaration

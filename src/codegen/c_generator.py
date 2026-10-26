@@ -26,7 +26,8 @@ from ..parser.ast_nodes import (
     ErrorDecl,
 )
 from .c_types import TypeMapperMixin
-from .c_names import mangle_function_name, array_length_name, c_member_name, local_needs_renaming
+from .c_names import (mangle_function_name, array_length_name, c_member_name, local_needs_renaming,
+                      module_variable_c_name)
 from .c_runtime import RuntimeLoweringMixin, escape_c_text
 from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
 from .c_equality import EqualityMixin, EQUALITY_OPERATORS
@@ -180,6 +181,20 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self._generate_struct_definitions(program)
         self.output.extend(self.error_type_section_lines(program))   # Task 26.9
         typedef_index = len(self.output)
+
+        # Module-level variables (Task 44.1): statics, zero-filled; main sets them first
+        self.module_variables = [d for d in program.declarations if isinstance(d, VarDeclStmt)]
+        self.global_names = {d.name: module_variable_c_name(d.name) for d in self.module_variables}
+        if self.module_variables:
+            self.emit('// Module variables (Task 44.1) - set at the start of main')
+            for decl in self.module_variables:
+                c_name = self.global_names[decl.name]
+                if isinstance(decl.var_type, ArrayType):
+                    size = decl.var_type.size
+                    self.emit(f'static {self.map_type(decl.var_type.element_type)} {c_name}[{size}];')
+                else:
+                    self.emit(f'static {self.map_type(decl.var_type)} {c_name};')
+            self.emit()
 
         # Generate forward declarations
         self._generate_forward_declarations(program)
@@ -749,6 +764,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Variable/parameter name
         """
+        # A module-level variable (Task 44.1) - its C name keeps it apart from locals and C
+        if node.name in getattr(self, 'global_names', {}):
+            return self.global_names[node.name]
         # A declared function used as a value (Task 18.1.3) - use its C name, which differs
         # from the Fusion name when it collides with a C keyword
         if isinstance(node.inferred_type, FunctionType) and node.name in getattr(self, 'function_decls', {}):
@@ -1441,6 +1459,27 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return 'return 0'
         return 'return'
 
+    def set_module_variables(self, main) -> None:
+        """At the start of main: each module variable gets its value, in the order written
+        (Task 44.1). Those owning memory (strings, lists, ...) belong to main's outermost scope,
+        so they are freed however main ends - the leak check covers them."""
+        for decl in getattr(self, 'module_variables', []):
+            c_name = self.global_names[decl.name]
+            if isinstance(decl.var_type, ArrayType):
+                if decl.initializer is not None:
+                    element = self.map_type(decl.var_type.element_type)
+                    self.emit_line(f'memcpy({c_name}, ({element}[]){self.visit(decl.initializer)}, '
+                                   f'sizeof {c_name})')
+                continue
+            if decl.initializer is not None:
+                target = IdentifierExpr(location=decl.location, name=decl.name,
+                                        inferred_type=decl.var_type)
+                self.visit(AssignmentStmt(location=decl.location, target=target,
+                                          value=decl.initializer))
+            else:
+                self.emit_line(f'{c_name} = {self._default_value_code(decl.var_type)}')
+            self.register_owned(c_name, decl.var_type, decl.location)
+
     @staticmethod
     def _returns_array(expr) -> bool:
         """True for a call to a function returning an array - whose C value is the hidden
@@ -1773,6 +1812,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             if node.name in getattr(self, 'recursive_functions', ()):
                 for line in self.stack_check_lines(node):    # endless recursion (27.2c)
                     self.emit(line)
+        if node.name == 'main':
+            self.set_module_variables(node)
         assigned = self.assigned_roots(node.body)
         for param in node.parameters:
             if param.name in assigned and not isinstance(param.param_type, ArrayType) \

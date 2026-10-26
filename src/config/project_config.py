@@ -162,6 +162,18 @@ class NumbersConfig:
 
 
 @dataclass
+class ModulesConfig:
+    """Module settings (Task 44.1, user decision 2026-10-26).
+
+    Attributes:
+        variables: Module-level variables - state shared by a module's functions (`int count
+            = 0` outside any function). Allowed by default; false makes them a compile error.
+            Module-level constants are always allowed
+    """
+    variables: bool = True
+
+
+@dataclass
 class ErrorsConfig:
     """Which ways of handling errors a project uses (Task 26.5, user decision 2026-10-09:
     both on by default, both can be turned off).
@@ -198,6 +210,7 @@ class ProjectConfig:
     stdlib: StdlibConfig = field(default_factory=StdlibConfig)
     errors: ErrorsConfig = field(default_factory=ErrorsConfig)
     numbers: NumbersConfig = field(default_factory=NumbersConfig)
+    modules: ModulesConfig = field(default_factory=ModulesConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     max_call_depth: Optional[int] = None   # [safety] max_call_depth - None: "max" (Task 27.2c)
     backend: str = DEFAULT_BACKEND
@@ -363,6 +376,21 @@ def _load_numbers_section(data: dict, config_path: str) -> NumbersConfig:
     return numbers
 
 
+def _load_modules_section(data: dict, config_path: str) -> ModulesConfig:
+    """Parse and validate the [modules] section (Task 44.1)."""
+    modules = ModulesConfig()
+    section = _require_table(data, "modules", config_path)
+    for key, value in section.items():
+        if key != "variables":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting modules.{key} (known: ['variables'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: modules.variables must be true or false, got {value!r}")
+        modules.variables = value
+    return modules
+
+
 def _load_errors_section(data: dict, config_path: str) -> ErrorsConfig:
     """Parse and validate the [errors] section (Task 26.5)."""
     errors = ErrorsConfig()
@@ -479,6 +507,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
         strings=strings,
         stdlib=_load_stdlib_section(data, config_path),
         errors=_load_errors_section(data, config_path),
+        modules=_load_modules_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),
         safety_mode=safety_mode,
         max_call_depth=max_call_depth,

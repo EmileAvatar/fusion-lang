@@ -222,9 +222,9 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	The six suggestions of the Task 28 report, most useful first - each makes the next
 	self-hosting stage (Task 35) smoother. Plan first; each may become a fusion.toml setting
 	where that makes sense (FEATURES.md, top).
-	[ ] 44.1 Module-level variables, or another way to share state between functions - the
-		biggest friction: the compiler's struct table had to ride inside the signature map.
-		A fusion.toml setting, allowed by default (user, 2026-10-26)
+	[DONE] 44.1 Module-level variables and constants (`int count = 0`, `const int LIMIT = 3`,
+		`public ...` for other modules): set in order before main, freed when main ends, can't
+		be hidden by a local name; `[modules] variables` (default true) turns variables off
 	[ ] 44.2 Any function can be called as a method on its first argument: p.moved(1, 2) is
 		moved(p, 1, 2) (user, 2026-10-26); the method gets a copy. Functions inside structs:
 		32.1, a fusion.toml option, off by default
