@@ -153,5 +153,5 @@ Kept under Task 22 until the renumbering is approved.
   leak-free**: 28.3-28.6 done
 - 28.7 done: check.py --selfhost - 18/18 the same; 28.8 done: task/selfhost_report.md
 - **Task 28 complete - Phase 1 complete** (plan archived)
-- **Next Action:** the user picks the next step - Phase 2 starts with Task 29 (strings), or
-  first the report's suggestions (module-level variables, methods on structs, ...)
+- The report's six suggestions scheduled as FEATURES.md Task 44 (Phase 2)
+- **Next Action:** the user picks the next step - Task 44 (the six lessons) or Task 29 (strings)

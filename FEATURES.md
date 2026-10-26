@@ -218,6 +218,23 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 
 ## Phase 2 - growing the language, then a fully independent compiler
 
+#### 44 Lessons from the self-hosting test run (task/selfhost_report.md, user 2026-10-26) [ ]
+	The six suggestions of the Task 28 report, most useful first - each makes the next
+	self-hosting stage (Task 35) smoother. Plan first; each may become a fusion.toml setting
+	where that makes sense (FEATURES.md, top).
+	[ ] 44.1 Module-level variables, or another way to share state between functions - the
+		biggest friction: the compiler's struct table had to ride inside the signature map
+	[ ] 44.2 Methods on structs - the same as 32.1 (every helper took the context and the
+		signature table as parameters)
+	[ ] 44.3 A newline inside ( [ { continues the line - long calls and list literals had to
+		stay on one line
+	[ ] 44.4 An `Error` return type distinct from "can fail" (`Error function f()` today means
+		"returns nothing, can fail" - a function can't return an Error value)
+	[ ] 44.5 `_` for an unused `match` field (a case binds all fields or none today); little-used
+		reserved words (`end`, `var`) become contextual, like `error`
+	[ ] 44.6 Fast `text[i]` for any string - the same as the "Later" item below (one non-ASCII
+		character makes each lookup count from the start)
+
 #### 29 Mutable vs. fixed strings, templated strings, string pooling (was 17) [ ]
 	[ ] 29.1 Mutable string literal syntax (in-place editing, `s[0] = 'X'`)
 	[ ] 29.2 Fixed (immutable) string type
@@ -243,7 +260,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
 
 #### 32 Methods on structs, then classes and interfaces (user, 2026-10-11) [ ]
-	[ ] 32.1 Methods on the program's own structs (`p.move(1, 2)`) - built-in types have them (18.3.7)
+	[ ] 32.1 Methods on the program's own structs (`p.move(1, 2)`) - built-in types have them (18.3.7);
+		also 44.2
 	[ ] 32.2 Classes, interfaces, inheritance - plan first
 		User decisions (2026-10-23, showcase review): `inherits`, with `extends` as an alias;
 		interface names need no I prefix; several constructors per class; a constructor may
@@ -452,7 +470,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		(design and all 9 decisions: spec "Masking", Task 18.3.6f; built 2026-10-10)
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
-	[ ] Fast `text[i]` for any string (found in 28.1.2, 2026-10-24): today it is instant only
+	[ ] Fast `text[i]` for any string (found in 28.1.2, 2026-10-24; scheduled as 44.6): today it is instant only
 		when the whole string is ASCII; one non-ASCII character makes each lookup count from the
 		start (a loop over 5,000 lines: 52 s instead of 0.03 s). Fix: the run-time remembers
 		the last position found and continues from there

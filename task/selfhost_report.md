@@ -74,6 +74,8 @@ The goal was a milestone, not the whole language (user, 2026-10-24). Deliberate 
 
 ## Suggestions for Phase 2 (from the table below, most useful first)
 
+Scheduled as FEATURES.md Task 44 (user, 2026-10-26).
+
 1. **Module-level variables, or another way to share state** - the biggest source of
    friction (three entries below).
 2. **Methods on structs** (Task 32.1) - every helper takes the context and the signature
