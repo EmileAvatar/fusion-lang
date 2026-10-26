@@ -77,6 +77,8 @@ class Lexer:
         # Component trackers
         self.indent_tracker = IndentationTracker(tab_width=tab_width, allow_mixed=allow_mixed)
         self.block_tracker = BlockStyleTracker()
+        # Open ( and [ - inside them a line break only continues the line (Task 44.3)
+        self.bracket_depth = 0
         self.diagnostics = DiagnosticReporter()
 
     # ============================================================
@@ -486,6 +488,12 @@ class Lexer:
             self.pos = new_pos
             self.column += chars_advanced
 
+            # Track open ( and [ (Task 44.3)
+            if token_type in (TokenType.LPAREN, TokenType.LBRACKET, TokenType.SAFE_INDEX):
+                self.bracket_depth += 1
+            elif token_type in (TokenType.RPAREN, TokenType.RBRACKET) and self.bracket_depth > 0:
+                self.bracket_depth -= 1
+
             # Track brace blocks
             if token_type == TokenType.LBRACE:
                 self.block_tracker.enter_brace_block()
@@ -528,6 +536,12 @@ class Lexer:
             # End of file
             if ch is None:
                 break
+
+            # Inside ( or [ a line break just continues the line: no NEWLINE, no
+            # indentation - so a long call or list can be written over several lines (44.3)
+            if ch == '\n' and self.bracket_depth > 0:
+                self.advance()
+                continue
 
             # Newline - handle it and process indentation on next line
             if ch == '\n':

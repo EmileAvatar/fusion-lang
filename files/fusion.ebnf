@@ -8,6 +8,9 @@
 (*       semicolons - statements are terminated by newlines.            *)
 (* ===================================================================== *)
 
+(* LINE BREAKS: inside ( ) and [ ] a line break only continues the line - the lexer makes  *)
+(* no NEWLINE, INDENT or DEDENT there (Task 44.3), so expressions may span lines.          *)
+
 (* ========== Program Structure ========== *)
 
 program = {

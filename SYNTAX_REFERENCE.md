@@ -96,6 +96,25 @@ void function main()
     print("\{name\} is written as \{name\}")      // \{ \} - a brace as text: {name} is written as {name}
 ```
 
+#### Long lines: a line break inside `( )` or `[ ]` continues the line
+
+<!-- example: syntax_long_lines | task: 44.3 -->
+```fusion
+int function total(int a, int b, int c) : a + b + c
+
+void function main()
+    int[] scores = [10,
+                    20,
+                    30]
+    print("{@1} + {@2} + {@3} = {@4}",
+          scores[0],
+          scores[1],
+          scores[2],
+          total(scores[0],
+                scores[1],
+                scores[2]))
+```
+
 #### Lambdas and function values
 
 <!-- example: syntax_lambdas | task: 18.1.3 -->

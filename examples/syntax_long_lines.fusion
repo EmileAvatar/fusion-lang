@@ -1,0 +1,13 @@
+int function total(int a, int b, int c) : a + b + c
+
+void function main()
+    int[] scores = [10,
+                    20,
+                    30]
+    print("{@1} + {@2} + {@3} = {@4}",
+          scores[0],
+          scores[1],
+          scores[2],
+          total(scores[0],
+                scores[1],
+                scores[2]))

@@ -955,6 +955,10 @@ End function
 
 Description: Multiple ways to pass arguments for flexibility.
 
+**Long lines** (Task 44.3, implemented): inside `( )` and `[ ]` a line break only continues
+the line - no statement ends there and indentation isn't counted - so a long call or list
+can be written over several lines. Braces `{ }` still open blocks.
+
 * **Positional Arguments**: Standard calling
 
 ```

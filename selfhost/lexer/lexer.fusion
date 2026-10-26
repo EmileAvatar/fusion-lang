@@ -532,10 +532,15 @@ public List<Token>, Error function tokenize(bytes data, string file) {
     int line = 1
     int lineStart = 0
     int braces = 0
+    int brackets = 0                // open ( and [: a line break inside them continues the line (44.3)
     while pos < n {
         int c = data[pos]
         int col = colAt(data, lineStart, pos)
-        if c == 10 {
+        if c == 10 and brackets > 0 {
+            pos = pos + 1
+            line = line + 1
+            lineStart = pos
+        } else if c == 10 {
             tokens.add(Token(Tok.NEWLINE, "\n", [], line, col))
             pos = pos + 1
             line = line + 1
@@ -642,6 +647,11 @@ public List<Token>, Error function tokenize(bytes data, string file) {
                 return Error(at(file, line, col, format("Invalid character '{@1}'", textOf(data, pos, pos + charLength(c)))))
             }
             Tok kind = operators[op]
+            if kind == Tok.LPAREN or kind == Tok.LBRACKET or kind == Tok.SAFE_INDEX {
+                brackets = brackets + 1
+            } else if (kind == Tok.RPAREN or kind == Tok.RBRACKET) and brackets > 0 {
+                brackets = brackets - 1
+            }
             if kind == Tok.LBRACE {
                 braces = braces + 1
             } else if kind == Tok.RBRACE {

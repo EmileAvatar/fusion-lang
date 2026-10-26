@@ -24,7 +24,12 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
-## TASK 44: Lessons from the self-hosting test run - PLAN (awaiting approval, 2026-10-26)
+## TASK 44: Lessons from the self-hosting test run - APPROVED (2026-10-26)
+
+User's answers: (1) proceed in the planned order; (2) module-level variables are a
+fusion.toml setting, allowed by default; (3) any function can be called as a method;
+functions inside structs become a fusion.toml option, off by default; (4) 44.4 to be
+explained in more detail before deciding.
 
 The six suggestions of task/selfhost_report.md, so that writing Fusion (and the next
 self-hosting stage, Task 35) is easier. Ordered from smallest and safest to largest. Each
@@ -230,4 +235,6 @@ Kept under Task 22 until the renumbering is approved.
 - **Task 28 complete - Phase 1 complete** (plan archived)
 - The report's six suggestions scheduled as FEATURES.md Task 44 (Phase 2)
 - User picked Task 44 ("so that it's easier going forward"); plan written
-- **Next Action:** user approves the Task 44 plan and answers decisions 1-4
+- Task 44 approved (order as planned; globals a setting, on by default; methods: any function)
+- 44.3 done: a line break inside ( ) or [ ] continues the line (both lexers)
+- **Next Action:** 44.5 `_` in match, `end` / `var` as ordinary names

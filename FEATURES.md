@@ -223,11 +223,13 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	self-hosting stage (Task 35) smoother. Plan first; each may become a fusion.toml setting
 	where that makes sense (FEATURES.md, top).
 	[ ] 44.1 Module-level variables, or another way to share state between functions - the
-		biggest friction: the compiler's struct table had to ride inside the signature map
-	[ ] 44.2 Methods on structs - the same as 32.1 (every helper took the context and the
-		signature table as parameters)
-	[ ] 44.3 A newline inside ( [ { continues the line - long calls and list literals had to
-		stay on one line
+		biggest friction: the compiler's struct table had to ride inside the signature map.
+		A fusion.toml setting, allowed by default (user, 2026-10-26)
+	[ ] 44.2 Any function can be called as a method on its first argument: p.moved(1, 2) is
+		moved(p, 1, 2) (user, 2026-10-26); the method gets a copy. Functions inside structs:
+		32.1, a fusion.toml option, off by default
+	[DONE] 44.3 A line break inside ( ) or [ ] continues the line - in both lexers (Python and
+		selfhost/); braces still open blocks
 	[ ] 44.4 An `Error` return type distinct from "can fail" (`Error function f()` today means
 		"returns nothing, can fail" - a function can't return an Error value)
 	[ ] 44.5 `_` for an unused `match` field (a case binds all fields or none today); little-used
@@ -263,6 +265,8 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 	[ ] 32.1 Methods on the program's own structs (`p.move(1, 2)`) - built-in types have them (18.3.7);
 		also 44.2
 	[ ] 32.2 Classes, interfaces, inheritance - plan first
+		Passing (user, 2026-10-26, as in VB.NET): value types (primitives, structs) by value - a
+		copy; objects (class instances) by reference. Until classes exist, everything is a copy
 		User decisions (2026-10-23, showcase review): `inherits`, with `extends` as an alias;
 		interface names need no I prefix; several constructors per class; a constructor may
 		call another (private ones too) with this(...); constructors calling each other in a
