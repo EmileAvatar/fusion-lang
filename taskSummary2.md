@@ -24,66 +24,11 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
-## TASK 29: Strings - editing, fixed, templates, pooling - ACTIVE (approved 2026-10-27)
+## TASK 29: Strings - COMPLETE (2026-10-27)
 
-**Answers (user, 2026-10-27):** 1. prefix table agreed; 2. templates use `t"..."`;
-3. 29.4 pooling postponed (to Task 38). 29.1 done.
-
-Source: FEATURES.md Task 29, backlog write-up (task/taskBacklog.md "TASK 29"),
-FutureFeatures.md "Mutable vs. Fixed Strings". User notes 2026-10-27: pooling off by default;
-`p"Andrew"` forces pooling; changing a pooled variable changes only that variable; prefixes
-`m"` mutable, `f"` fixed, `a"` ASCII-only (embedded / legacy calls).
-
-**What is true today (checked 2026-10-27):**
-- Strings are values: `b = a` gives an independent copy; changing `b` never changes `a`
-- A literal is stored once in the exe and shared by every variable that holds it until that
-  variable gets new text (owned = 0, never freed; GCC merges equal literals). So literals are
-  already "pooled" for free - `p"Andrew"` would change nothing
-- `const string name = "Andrew"` works (locals and module constants): never changes
-- `s[0] = 'X'` is a compile error; `[strings] encoding = "ascii"` exists (whole project)
-- Struct fields: `[structs] string_mutable` / `string_storage = "owned"` ("pooled" reserved)
-
-**Prefix review (recommendations):**
-
-| Prefix | Meaning proposed | Recommendation |
-|---|---|---|
-| `m"..."` | mutable | Reject - a plain string already is; two spellings for one thing |
-| `f"..."` | fixed | Reject - `const string` already does it; `f"` reads as "formatted" to Python / C# users; fixed-ness belongs to the variable, not the text |
-| `a"..."` | ASCII only | Postpone to `extern` / legacy calls (FEATURES Later) - the project setting covers embedded; a per-call ASCII conversion belongs at the call boundary, since run-time values cross it too |
-| `p"..."` | pooled | Reject on literals (already shared); pooling matters for text built at run time -> `pool(s)` (29.4) |
-| `r"..."` | raw, no escapes | Already in FEATURES Later - worth adding (Windows paths) |
-| `"""..."""` | multi-line | Already in FEATURES Later |
-| `b"..."` | bytes literal | Idea - FEATURES Later |
-
-**Sub-tasks:**
-- **29.1 In-place editing** `s[i] = c` on a string variable: bounds-checked (IndexError); a
-  literal-held string is copied first (the literal never changes); a char of a different byte
-  width rebuilds the text; the hint cache (44.6) is cleared. Not allowed on `const`
-- **29.2 Fixed strings = `const`** (no new type): `s[i] = c` on a const is a compile error;
-  struct fields keep `string_mutable`. Document; spec + SYNTAX_REFERENCE
-- **29.3 Templated strings** (user design 2026-10-27, no `t"` prefix):
-  `template string greet = "Hello {@1}, you are {@2}"` - `template` marks the string
-  constant and makes it an internal function: `string function greet(@1, @2)` whose body is
-  the interpolated text. `greet("Ann", 30)` calls it. Each `{@N}` takes any printable value;
-  the argument count comes from the highest `{@N}` (a gap such as `{@1} {@3}` is a compile
-  error). `{name}` is ordinary interpolation, read when the template is called; an unknown
-  name is a compile error. Local and module-level. `template` is a modifier word kept open
-  for other uses later (contextual, so it still works as a name). Built by lifting a
-  function around `format()` - no new run-time
-- **29.4 String pooling** - setting `[strings] pooling = false` (default) and a built-in
-  `pool(s)`: equal run-time text shares one copy (a reference count, copy-on-write on edit,
-  freed when the last one goes). Never visible to a correct program. This adds a count to
-  every string in the run-time and the self-hosted compiler's output - the biggest part;
-  could be **postponed** until a profile shows the need (backlog note)
-- 29.5 secure strings: stays postponed (fusionlib.Crypto)
-- **29.6** examples, spec "String Implementation", Builtins.md, FEATURES
-
-**Questions:**
-1. Prefixes: agree with the table (no `m"` / `f"` / `p"`; `a"` later with extern)?
-2. 29.3 syntax: `template greet = "..."` (new keyword) or `t"..."` prefix
-   (`greet = t"Hello {@1}"`, like Python 3.14's t-strings)?
-3. 29.4: build now, or postpone to Task 38 (memory model - Shared is the same reference
-   count) / until a profile shows the need?
+s[i] = c (29.1), fixed strings = const (29.2), string templates `template string greet =
+"..."` (29.3), examples and docs (29.6); 29.4 pooling postponed to Task 38, 29.5 secure
+strings postponed (fusionlib.Crypto). Plan: task/taskSummaryArchive.md.
 
 ---
 
@@ -245,5 +190,6 @@ Kept under Task 22 until the renumbering is approved.
   function; option A (local templates expanded where called) + 4b (passed as a function value)
 - 29.3 done: src/semantic/templates.py expands every use before analysis; names inside {...}
   now report the string's line (was 1:1); the module loader keeps templates per module
-- **Next Action:** 29.6 (examples, spec, Builtins) - then Task 29 is complete (29.4 / 29.5
-  postponed)
+- 29.6 done (examples syntax_string_put / syntax_templates, spec); **Task 29 complete** (29.4,
+  29.5 postponed; FEATURES lines and plan archived)
+- **Next Action:** the user picks the next step - Task 30 (nullable values) is next in order

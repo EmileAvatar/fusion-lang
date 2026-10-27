@@ -51,23 +51,10 @@ are in `task/featuresArchive.md`.
 
 ## Phase 2 - growing the language, then a fully independent compiler
 
-#### 29 Mutable vs. fixed strings, templated strings, string pooling (was 17) [ ]
-	[DONE] 29.0 Prefixes decided (user, 2026-10-27): no `m"` (a plain string can change), no `f"`
-		(`const string` is fixed), no `p"` (literals are already stored once); `a"` (ASCII) -
-		with `extern` calls (Later); templates: `template string greet = "..."` (29.3)
-	[DONE] 29.1 Changing a character in place: `s[i] = c` - that variable's text only, index
-		checked, a wider character moves the rest (tests/test_string_put.py)
-	[DONE] 29.2 Fixed strings = `const string` (no new type): `s[i] = c` on one - or on a string
-		inside a const struct / array - is a compile error; a copy can change (spec "Constants")
-	[DONE] 29.3 String templates: `template string greet = "Hello {@1} - {city}"`, then
-		`greet("Ann")` - a fixed text that works as a function (no `t"` prefix, user
-		2026-10-27); values counted at compile time; {name} read when called (a local template
-		is expanded where it is called); passed where a function type is written (4b); private
-		to its module (tests/test_templates.py)
+#### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED]
 	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
 		needs a reference count, as Task 38's Shared does (`[structs] string_storage =
 		"pooled"` waits for this)
-	[ ] 29.6 Examples, spec "String Implementation", Builtins.md
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
 #### 30 Nullable values & safe navigation (`?.`, `?[`, `.length`) (was 14) [ ]
