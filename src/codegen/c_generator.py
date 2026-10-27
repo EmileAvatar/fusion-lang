@@ -1364,6 +1364,14 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                    f'{self.visit(node.target.index)}, {self.visit(node.value)}, {self._where(node)})')
             self.emit_line(self.checked_code(put, None))   # out of range: an error (Task 26.4)
             return ''
+        # s[i] = c - one character of a stored string, in place (Task 29.1)
+        if isinstance(node.target, IndexExpr) and self._is_string(node.target.array):
+            text = node.target.array
+            text_code = self.list_lvalue(text) if self.goes_through_list(text) else self.visit(text)
+            put = (f'fusion_str_put(&{text_code}, {self.visit(node.target.index)}, '
+                   f'{self.visit(node.value)}, {self._where(node)})')
+            self.emit_line(self.checked_code(put, None))
+            return ''
 
         # target is an lvalue-producing expression - IdentifierExpr ("x") or IndexExpr
         # ("arr[i]") - both generate valid C lvalue syntax via their own visitor; through a

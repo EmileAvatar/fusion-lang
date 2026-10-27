@@ -52,10 +52,18 @@ are in `task/featuresArchive.md`.
 ## Phase 2 - growing the language, then a fully independent compiler
 
 #### 29 Mutable vs. fixed strings, templated strings, string pooling (was 17) [ ]
-	[ ] 29.1 Mutable string literal syntax (in-place editing, `s[0] = 'X'`)
-	[ ] 29.2 Fixed (immutable) string type
-	[ ] 29.3 Templated fixed strings
-	[ ] 29.4 String pooling as a project setting (`[structs] string_storage = "pooled"` waits for this)
+	[DONE] 29.0 Prefixes decided (user, 2026-10-27): no `m"` (a plain string can change), no `f"`
+		(`const string` is fixed), no `p"` (literals are already stored once); `a"` (ASCII) -
+		with `extern` calls (Later); templates use `t"..."`
+	[DONE] 29.1 Changing a character in place: `s[i] = c` - that variable's text only, index
+		checked, a wider character moves the rest (tests/test_string_put.py)
+	[ ] 29.2 Fixed strings = `const string` (no new type): `s[i] = c` on one is an error; docs
+	[ ] 29.3 Templated strings: `greet = t"Hello {@1}"`, then `greet("Ann")` - argument count
+		checked at compile time
+	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
+		needs a reference count, as Task 38's Shared does (`[structs] string_storage =
+		"pooled"` waits for this)
+	[ ] 29.6 Examples, spec "String Implementation", Builtins.md
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
 #### 30 Nullable values & safe navigation (`?.`, `?[`, `.length`) (was 14) [ ]

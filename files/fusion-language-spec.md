@@ -455,8 +455,13 @@ outside `print` are 18.3.3 - see `FEATURES.md`.
        strings built while the program runs use memory
      * Function parameters borrow the caller's string (no copy); a function that assigns
        to a parameter works on its own copy, so the caller's string never changes
-     * Strings are replaced, never edited in place (`s[0] = 'X'` and mutable/fixed strings
-       are Task 29)
+     * One character can be changed in place: `s[i] = c` (Task 29.1) - only in that
+       variable's own text (a copy made before, the literal and a caller's string are
+       unchanged); the index is checked (IndexError); a character of another byte width
+       moves the rest. A `const string` is fixed (29.2): `s[i] = c` on it is a compile
+       error. String literal prefixes `m"` / `f"` / `p"` were considered and rejected
+       (2026-10-27): a plain string already can change, `const` already fixes one, and
+       literals are already stored once
 
 * **Planned (advanced, after MVP - user decision 2026-10-09):** these remain part of
   Fusion's design and will be added on top of the simple value model above, which is what

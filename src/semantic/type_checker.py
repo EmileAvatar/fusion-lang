@@ -2052,11 +2052,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         element_type = self.visit(target)
 
         if self._is_string_type(getattr(target.array, 'inferred_type', None)):
-            self.errors.append(SemanticError(
-                "A string can't be changed in place yet (Task 17) - build a new string "
-                "instead, e.g. with substring() and +",
-                node.location))
-            self.visit(node.value)
+            self._check_string_put(node, element_type)
             return
 
         # The array may be a variable, or a field of one (`p.scores[0] = 1`, Task 18.2.3)
@@ -2080,6 +2076,32 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
                 f"{self.type_to_string(element_type)}{hint}",
                 node.location
             ))
+
+    def _check_string_put(self, node: AssignmentStmt, element_type) -> None:
+        """`s[i] = c` changes one character of a stored string (Task 29.1): the string must
+        be held by a variable (or its field / element) that isn't const, and the value is a
+        char."""
+        target: IndexExpr = node.target
+        root = self._root_variable(target.array)
+        symbol = self.symbol_table.lookup(root.name) if root is not None else None
+        if root is None:
+            self.errors.append(SemanticError(
+                "Only a stored string can be changed in place - keep it in a variable first",
+                node.location))
+        elif symbol and symbol.is_constant:
+            self.errors.append(SemanticError(
+                f"Cannot change a character of constant '{root.name}' - a const string is "
+                f"fixed", node.location))
+        elif isinstance(target.array, MemberExpr) and not self.structs_config.string_mutable:
+            self.errors.append(SemanticError(
+                f"String field '{target.array.member}' can't be changed after the struct is "
+                f"created - the project sets [structs] string_mutable = false",
+                node.location))
+        value_type = self.visit(node.value)
+        if not self.types_compatible(element_type, value_type):
+            self.errors.append(SemanticError(
+                f"Cannot assign {self.type_to_string(value_type)} to a character of a string "
+                f"- s[i] holds a char ('X')", node.location))
 
     def _check_member_assignment(self, node: AssignmentStmt) -> None:
         """Check assignment to a struct field: point.x = value (Task 18.2.1)

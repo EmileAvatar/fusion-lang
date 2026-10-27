@@ -24,6 +24,64 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 29: Strings - editing, fixed, templates, pooling - ACTIVE (approved 2026-10-27)
+
+**Answers (user, 2026-10-27):** 1. prefix table agreed; 2. templates use `t"..."`;
+3. 29.4 pooling postponed (to Task 38). 29.1 done.
+
+Source: FEATURES.md Task 29, backlog write-up (task/taskBacklog.md "TASK 29"),
+FutureFeatures.md "Mutable vs. Fixed Strings". User notes 2026-10-27: pooling off by default;
+`p"Andrew"` forces pooling; changing a pooled variable changes only that variable; prefixes
+`m"` mutable, `f"` fixed, `a"` ASCII-only (embedded / legacy calls).
+
+**What is true today (checked 2026-10-27):**
+- Strings are values: `b = a` gives an independent copy; changing `b` never changes `a`
+- A literal is stored once in the exe and shared by every variable that holds it until that
+  variable gets new text (owned = 0, never freed; GCC merges equal literals). So literals are
+  already "pooled" for free - `p"Andrew"` would change nothing
+- `const string name = "Andrew"` works (locals and module constants): never changes
+- `s[0] = 'X'` is a compile error; `[strings] encoding = "ascii"` exists (whole project)
+- Struct fields: `[structs] string_mutable` / `string_storage = "owned"` ("pooled" reserved)
+
+**Prefix review (recommendations):**
+
+| Prefix | Meaning proposed | Recommendation |
+|---|---|---|
+| `m"..."` | mutable | Reject - a plain string already is; two spellings for one thing |
+| `f"..."` | fixed | Reject - `const string` already does it; `f"` reads as "formatted" to Python / C# users; fixed-ness belongs to the variable, not the text |
+| `a"..."` | ASCII only | Postpone to `extern` / legacy calls (FEATURES Later) - the project setting covers embedded; a per-call ASCII conversion belongs at the call boundary, since run-time values cross it too |
+| `p"..."` | pooled | Reject on literals (already shared); pooling matters for text built at run time -> `pool(s)` (29.4) |
+| `r"..."` | raw, no escapes | Already in FEATURES Later - worth adding (Windows paths) |
+| `"""..."""` | multi-line | Already in FEATURES Later |
+| `b"..."` | bytes literal | Idea - FEATURES Later |
+
+**Sub-tasks:**
+- **29.1 In-place editing** `s[i] = c` on a string variable: bounds-checked (IndexError); a
+  literal-held string is copied first (the literal never changes); a char of a different byte
+  width rebuilds the text; the hint cache (44.6) is cleared. Not allowed on `const`
+- **29.2 Fixed strings = `const`** (no new type): `s[i] = c` on a const is a compile error;
+  struct fields keep `string_mutable`. Document; spec + SYNTAX_REFERENCE
+- **29.3 Templated strings**: `template greet = "Hello {@1}, you are {@2}"`, then
+  `greet("Ann", 30)` returns the filled string. Argument count checked at compile time
+  (from the highest `{@N}`; a gap such as `{@1} {@3}` is a compile error). Built as a lifted
+  function around `format()` - no new run-time. Module-level and local
+- **29.4 String pooling** - setting `[strings] pooling = false` (default) and a built-in
+  `pool(s)`: equal run-time text shares one copy (a reference count, copy-on-write on edit,
+  freed when the last one goes). Never visible to a correct program. This adds a count to
+  every string in the run-time and the self-hosted compiler's output - the biggest part;
+  could be **postponed** until a profile shows the need (backlog note)
+- 29.5 secure strings: stays postponed (fusionlib.Crypto)
+- **29.6** examples, spec "String Implementation", Builtins.md, FEATURES
+
+**Questions:**
+1. Prefixes: agree with the table (no `m"` / `f"` / `p"`; `a"` later with extern)?
+2. 29.3 syntax: `template greet = "..."` (new keyword) or `t"..."` prefix
+   (`greet = t"Hello {@1}"`, like Python 3.14's t-strings)?
+3. 29.4: build now, or postpone to Task 38 (memory model - Shared is the same reference
+   count) / until a profile shows the need?
+
+---
+
 ## TASK 44: Lessons from the self-hosting test run - COMPLETE (2026-10-26)
 
 Long lines inside ( ) [ ] (44.3), `end` / `var` as names and `_` documented (44.5), fast
@@ -173,4 +231,7 @@ Kept under Task 22 until the renumbering is approved.
 - 44.2 done: any function as a method (p.moved(1, 2)); Task 44 complete (44.4 postponed)
 - FEATURES.md: every [DONE] task and item moved to task/featuresArchive.md (user, 2026-10-27);
   it keeps only open and postponed ones; check.py --status counts done from the archive
-- **Next Action:** the user picks the next step - Task 29 (strings) starts Phase 2 proper
+- User picked Task 29; plan written (prefix review + 29.1-29.6, 3 questions)
+- Task 29 approved (no m/f/p prefixes, t"..." templates, pooling postponed to 38)
+- 29.1 done: s[i] = c (fusion_str_put; copies, literals and callers' strings unchanged)
+- **Next Action:** 29.2 (const string = fixed: docs + tests), then 29.3 (t"..." templates)

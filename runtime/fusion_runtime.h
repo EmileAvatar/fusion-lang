@@ -385,6 +385,25 @@ static inline fusion_char fusion_str_at(fusion_string s, int i, const char* wher
     return fusion_utf8_decode(s.data + fusion_utf8_offset(s, i));
 }
 
+// s[i] = c - edits the string in place (Task 29.1). Text from the source is copied first, so
+// the literal itself never changes; a character of another byte width moves the rest
+static inline void fusion_str_put(fusion_string* s, int i, fusion_char c, const char* where) {
+    if (i < 0 || i >= s->chars) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the string (length %d)", i, s->chars); return; }
+    char buf[4];
+    int n = fusion_utf8_encode(c, buf);
+    int from = fusion_utf8_offset(*s, i);
+    int old = fusion_utf8_offset(*s, i + 1) - from;
+    if (s->owned && n == old) { memcpy(s->data + from, buf, (size_t)n); return; }
+    int len = s->len - old + n;
+    char* out = (char*)fusion_alloc((size_t)len + 1);
+    memcpy(out, s->data, (size_t)from);
+    memcpy(out + from, buf, (size_t)n);
+    memcpy(out + from + n, s->data + from + old, (size_t)(s->len - from - old));
+    out[len] = '\0';
+    if (s->owned) fusion_dealloc(s->data);
+    s->data = out; s->len = len; s->owned = 1;
+}
+
 static inline fusion_string fusion_str_substring(fusion_string s, int start, int count, const char* where) {
     if (start < 0 || count < 0 || start > s.chars || count > s.chars - start) {
         fusion_fail(FUSION_KIND_IndexError, where, "substring(start %d, count %d) is outside the string (length %d)", start, count, s.chars);

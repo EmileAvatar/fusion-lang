@@ -302,6 +302,24 @@ void function main()
     print("{@1} {@2}", a == "apple", a < b)   // compares text; < > alphabetical
 ```
 
+#### Changing a character: `s[i] = c`
+
+<!-- example: syntax_string_put | task: 29.1 -->
+```fusion
+void function main()
+    string a = "Andrew"
+    string b = a                        // an independent copy
+    b[0] = 'X'                          // changes b's own text only
+    string word = "cafe"
+    word[3] = '\u00e9'                  // a wider character: the rest moves along
+    print("{a} {b} {word}")
+    const string fixed = "Ann"          // a const string is fixed: fixed[0] = 'X' is an error
+    try
+        b[10] = 'z'                     // every index is checked: an IndexError
+    catch IndexError e
+        print("{e}")
+```
+
 #### String operations (each returns a new string)
 
 <!-- example: syntax_string_operations | task: 18.3.2 -->

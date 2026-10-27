@@ -337,7 +337,7 @@ def test_run_time_errors(statement, message):
 
 @pytest.mark.parametrize("body, message", [
     ('string s = "a" + 5', "Can't join a string and int with '+' - use interpolation"),
-    ('string s = "a"\ns[0] = \'b\'', "A string can't be changed in place yet (Task 17)"),
+    ('string s = "a"\ns[0] = "b"', "s[i] holds a char"),   # s[i] = c itself is Task 29.1
     ('int n = len(5)', "Function 'len' expects an array, a string or bytes, got int"),
     ('string t = toString([1])', "Function 'toString' expects a single value"),
     ('char c = "abc"["x"]', "String index must be int, got string"),
