@@ -1,0 +1,17 @@
+void function main()
+    int count = 3
+    int errors = 0
+    int found = -1                       // "not found"
+    bool ready = true
+    if count and ready                   // count > 0 - the default, "positive"
+        print("go")
+    if not errors
+        print("no errors")
+    if found                             // -1 is false with "positive" (true with "nonzero")
+        print("found")
+    else
+        print("not found")
+    int left = 3
+    while left                           // while left > 0
+        left = left - 1
+    print("{left}")                      // bool b = count stays an error: write count > 0

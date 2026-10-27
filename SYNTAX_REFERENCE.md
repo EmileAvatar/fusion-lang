@@ -138,6 +138,29 @@ void function main()
     show(welcome, "Di")                 // passed where a function type is written
 ```
 
+#### Numbers as conditions: `if count` (`[conditions] numbers`)
+
+<!-- example: syntax_number_conditions | task: 30.9 -->
+```fusion
+void function main()
+    int count = 3
+    int errors = 0
+    int found = -1                       // "not found"
+    bool ready = true
+    if count and ready                   // count > 0 - the default, "positive"
+        print("go")
+    if not errors
+        print("no errors")
+    if found                             // -1 is false with "positive" (true with "nonzero")
+        print("found")
+    else
+        print("not found")
+    int left = 3
+    while left                           // while left > 0
+        left = left - 1
+    print("{left}")                      // bool b = count stays an error: write count > 0
+```
+
 #### The conditional operator: `(condition) ? a : b`
 
 <!-- example: syntax_conditional | task: 30.7 -->
@@ -814,6 +837,10 @@ layer = "std"                    # std (default) | alloc (no OS: no print, files
 
 [modules]
 variables = true                 # module-level variables (constants are always allowed)
+
+[conditions]
+numbers = "positive"             # if / while count: count > 0 (default); "nonzero": count != 0;
+                                 # "off": a condition must be a bool
 
 [numbers]
 auto_widening = false            # an int used as a float must fit exactly (else an error);

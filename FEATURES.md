@@ -75,10 +75,11 @@ are in `task/featuresArchive.md`.
 		name comes first (tests/test_length_sugar.py)
 	[DONE] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value; only
 		the chosen value runs; strings always fresh (tests/test_conditional_operator.py)
-	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
+	[DONE] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
 		negatives false) / "nonzero" / "off" (user, 2026-10-27). Only in `if` / `while`
 		conditions (and / or / not inside them); `count == true` follows the setting,
 		`count === true` is false, `bool b = count` is always an error
+		(tests/test_number_conditions.py)
 	[ ] 30.6 Docs & examples (SYNTAX_REFERENCE, spec status lines)
 	[POSTPONED to 32] 30.2 On class objects: the `?.` guard (not run on null, false in an `if`),
 		`??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a plain

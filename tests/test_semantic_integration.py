@@ -444,12 +444,13 @@ def test_if_condition_not_bool():
     """Test error for if condition that's not boolean."""
     source = """
 void function main()
-    if 42
+    if "42"
         print("test")
 End function
 """
     analyzer = analyze_source(source)
     errors = analyzer.get_errors()
+    # (a number is a valid condition by default - Task 30.9 - so a string is used here)
     # 2 errors: from type_checker and control_flow_validator
     assert len(errors) == 2
     assert all("bool" in str(e).lower() or "condition" in str(e).lower() for e in errors)

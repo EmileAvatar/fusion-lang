@@ -455,8 +455,8 @@ def test_call_non_function_error(type_checker, symbol_table, location):
 
 def test_if_condition_must_be_bool(type_checker, location):
     """Test if condition must be bool."""
-    # Test with int condition (should error)
-    condition = LiteralExpr(value=5, type_hint='int', location=location)
+    # Test with a char condition (should error - a number is fine by default, Task 30.9)
+    condition = LiteralExpr(value='x', type_hint='char', location=location)
     then_branch = BlockStmt(statements=[], location=location)
     if_stmt = IfStmt(condition=condition, then_branch=then_branch, else_branch=None, location=location)
     type_checker.visit_IfStmt(if_stmt)

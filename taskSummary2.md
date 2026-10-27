@@ -447,4 +447,7 @@ Kept under Task 22 until the renumbering is approved.
   lists allow duplicates, maps don't
 - 30.8 done: .len / .length with or without brackets (type checker rewrite to len)
 - 30.7 done: (c) ? a : b (ConditionalExpr; a string result is always owned)
-- **Next Action:** 30.9 (numbers as conditions - [conditions] numbers)
+- 30.9 done: [conditions] numbers (a number in an if / while condition becomes n > 0 or
+  n != 0 in the type checker)
+- **Next Action:** 30.6 (docs and examples) - then Task 30 is complete for now (30.2, 30.3
+  wait for Task 32; 30.10 for Task 45)

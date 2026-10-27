@@ -42,7 +42,8 @@ class SemanticAnalyzer:
 
     def __init__(self, structs_config: Optional[StructsConfig] = None,
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
-                 errors_config=None, numbers_config=None, modules_config=None):
+                 errors_config=None, numbers_config=None, modules_config=None,
+                 conditions_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -57,6 +58,8 @@ class SemanticAnalyzer:
                                         stdlib_config)
         # [numbers] auto_widening (Task 27.2f): an int used as a float
         self.type_checker.auto_widening = bool(getattr(numbers_config, 'auto_widening', False))
+        # [conditions] numbers (Task 30.9): numbers in if / while conditions
+        self.type_checker.number_conditions = getattr(conditions_config, 'numbers', 'positive')
         # [modules] variables (Task 44.1): module-level variables allowed (default true)
         self.module_variables_allowed = bool(getattr(modules_config, 'variables', True))
         self.control_flow_validator = ControlFlowValidator()

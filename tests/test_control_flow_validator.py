@@ -658,7 +658,7 @@ def test_if_with_int_condition():
     body = BlockStmt(location=make_location(), statements=[
         IfStmt(
             location=make_location(),
-            condition=LiteralExpr(location=make_location(), value=5, type_hint="int"),
+            condition=LiteralExpr(location=make_location(), value="x", type_hint="string"),
             then_branch=BlockStmt(location=make_location(), statements=[]),
             else_branch=None
         )
@@ -675,7 +675,7 @@ def test_if_with_int_condition():
 
     assert len(errors) == 1
     assert "If condition must be bool" in errors[0].message
-    assert "got int" in errors[0].message
+    assert "got string" in errors[0].message   # a number is fine by default (Task 30.9)
 
 
 def test_while_with_bool_condition():
@@ -705,7 +705,7 @@ def test_while_with_int_condition():
     body = BlockStmt(location=make_location(), statements=[
         WhileStmt(
             location=make_location(),
-            condition=LiteralExpr(location=make_location(), value=5, type_hint="int"),
+            condition=LiteralExpr(location=make_location(), value="x", type_hint="string"),
             body=BlockStmt(location=make_location(), statements=[])
         )
     ])
@@ -721,7 +721,7 @@ def test_while_with_int_condition():
 
     assert len(errors) == 1
     assert "While condition must be bool" in errors[0].message
-    assert "got int" in errors[0].message
+    assert "got string" in errors[0].message   # a number is fine by default (Task 30.9)
 
 
 def test_for_with_bool_condition():

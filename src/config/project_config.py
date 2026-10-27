@@ -162,6 +162,22 @@ class NumbersConfig:
 
 
 @dataclass
+class ConditionsConfig:
+    """Numbers as conditions (Task 30.9, user decisions 2026-10-27).
+
+    Attributes:
+        numbers: "positive" (default) - in an `if` / `while` condition a number is true when
+            above zero (zero and negatives false); "nonzero" - true when not zero (C, Python,
+            JavaScript); "off" - a condition must be a bool. Only conditions: `bool b =
+            count` is always an error
+    """
+    numbers: str = "positive"
+
+
+CONDITION_NUMBERS = ("positive", "nonzero", "off")
+
+
+@dataclass
 class ModulesConfig:
     """Module settings (Task 44.1, user decision 2026-10-26).
 
@@ -211,6 +227,7 @@ class ProjectConfig:
     errors: ErrorsConfig = field(default_factory=ErrorsConfig)
     numbers: NumbersConfig = field(default_factory=NumbersConfig)
     modules: ModulesConfig = field(default_factory=ModulesConfig)
+    conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     max_call_depth: Optional[int] = None   # [safety] max_call_depth - None: "max" (Task 27.2c)
     backend: str = DEFAULT_BACKEND
@@ -391,6 +408,22 @@ def _load_modules_section(data: dict, config_path: str) -> ModulesConfig:
     return modules
 
 
+def _load_conditions_section(data: dict, config_path: str) -> ConditionsConfig:
+    """Parse and validate the [conditions] section (Task 30.9)."""
+    conditions = ConditionsConfig()
+    section = _require_table(data, "conditions", config_path)
+    for key, value in section.items():
+        if key != "numbers":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting conditions.{key} (known: ['numbers'])")
+        if value not in CONDITION_NUMBERS:
+            raise ProjectConfigError(
+                f"{config_path}: conditions.numbers must be one of {list(CONDITION_NUMBERS)}, "
+                f"got {value!r}")
+        conditions.numbers = value
+    return conditions
+
+
 def _load_errors_section(data: dict, config_path: str) -> ErrorsConfig:
     """Parse and validate the [errors] section (Task 26.5)."""
     errors = ErrorsConfig()
@@ -508,6 +541,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
         stdlib=_load_stdlib_section(data, config_path),
         errors=_load_errors_section(data, config_path),
         modules=_load_modules_section(data, config_path),
+        conditions=_load_conditions_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),
         safety_mode=safety_mode,
         max_call_depth=max_call_depth,

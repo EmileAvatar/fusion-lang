@@ -109,7 +109,7 @@ Should `if count` work when `count` is a number? Languages disagree:
 | Ruby, Lua | true | true | true |
 | Java, C#, Go, Rust, Swift, Kotlin | not allowed: a condition must be a bool | | |
 
-Fusion makes it a setting (user, 2026-10-27):
+Fusion makes it a setting (user, 2026-10-27) - **built (Task 30.9)**:
 
 ```toml
 [conditions]

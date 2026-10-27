@@ -89,6 +89,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         self.allowed_array_calls = set()
         # Receivers of method calls, already checked - id -> type (Task 18.3.7)
         self.checked_receivers = {}
+        # [conditions] numbers (Task 30.9): "positive" / "nonzero" / "off"
+        self.number_conditions = 'positive'
 
     def check_program(self, program: ProgramNode) -> List[SemanticError]:
         """Type check entire program.
@@ -2336,6 +2338,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         Args:
             node: If statement node
         """
+        node.condition = self.numbers_as_bool(node.condition)     # `if count` (Task 30.9)
         condition_type = self.condition_type(node, 'condition')   # `if err` (Task 26)
         if not self.is_bool_type(condition_type):
             self.errors.append(SemanticError(
@@ -2347,6 +2350,44 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         self.visit(node.then_branch)
         if node.else_branch:
             self.visit(node.else_branch)
+
+    def numbers_as_bool(self, condition):
+        """Numbers as conditions (Task 30.9, [conditions] numbers): in an `if` / `while`
+        condition - and inside its `and` / `or` / `not` - a number becomes `n > 0`
+        ("positive", the default) or `n != 0` ("nonzero"); `count == true` compares by the same
+        rule. "off": nothing changes, and a number is the usual "must be bool" error. Only
+        conditions - `bool b = count` stays an error. Returns the (possibly new) condition."""
+        if self.number_conditions not in ('positive', 'nonzero'):
+            return condition
+        if isinstance(condition, BinaryExpr) and condition.operator in ('and', 'or', '&&', '||'):
+            condition.left = self.numbers_as_bool(condition.left)
+            condition.right = self.numbers_as_bool(condition.right)
+            return condition
+        if isinstance(condition, UnaryExpr) and condition.operator in ('not', '!'):
+            condition.operand = self.numbers_as_bool(condition.operand)
+            return condition
+        if isinstance(condition, BinaryExpr) and condition.operator in ('==', '!='):
+            # `count == true` - the number side by the same rule (`===` stays strict)
+            left, right = self._typed_once(condition.left), self._typed_once(condition.right)
+            if self.is_bool_type(right) and self.is_numeric_type(left):
+                condition.left = self._number_test(condition.left)
+            elif self.is_bool_type(left) and self.is_numeric_type(right):
+                condition.right = self._number_test(condition.right)
+            return condition
+        if self.is_numeric_type(self._typed_once(condition)):
+            return self._number_test(condition)
+        return condition
+
+    def _typed_once(self, expr):
+        """An expression's type, remembered so checking it again doesn't repeat its errors."""
+        result = self.visit(expr)
+        self.checked_receivers[id(expr)] = result
+        return result
+
+    def _number_test(self, expr) -> BinaryExpr:
+        operator = '>' if self.number_conditions == 'positive' else '!='
+        return BinaryExpr(location=expr.location, left=expr, operator=operator,
+                          right=LiteralExpr(location=expr.location, value=0, type_hint='int'))
 
     def visit_WidenExpr(self, node) -> TypeNode:
         self.visit(node.operand)
@@ -2366,6 +2407,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         Args:
             node: While statement node
         """
+        node.condition = self.numbers_as_bool(node.condition)     # `while left` (Task 30.9)
         condition_type = self.condition_type(node, 'condition')   # `while not err` (Task 26)
         if not self.is_bool_type(condition_type):
             self.errors.append(SemanticError(

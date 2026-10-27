@@ -2105,7 +2105,7 @@ Direction d2 = Direction.fromValue(0)
 
 ## Control Flow
 
-**Status:** [PARTLY] if / else if / else, while, for over ranges, arrays, lists and maps, break, continue, return are built (01-04, 18.5.1); `=` compares inside a condition (18.3.5); `match` built (25.3); `switch` / `elif` as aliases (FEATURES Later); the conditional operator `(c) ? a : b` built (30.7); numbers as conditions [PLANNED 30.9]; loop labels and loop safety limits: no task yet
+**Status:** [PARTLY] if / else if / else, while, for over ranges, arrays, lists and maps, break, continue, return are built (01-04, 18.5.1); `=` compares inside a condition (18.3.5); `match` built (25.3); `switch` / `elif` as aliases (FEATURES Later); the conditional operator `(c) ? a : b` built (30.7); numbers as conditions built (30.9); loop labels and loop safety limits: no task yet
 
 Description: Natural language constructs for program flow with safety features.
 
@@ -2118,8 +2118,9 @@ Description: Clear and readable branching with multiple comparison operators.
 * **Preferred forms** (user, 2026-10-24): `else if` and `switch` are used in docs and
   examples; `elif` is an alias for `else if`, and `match` / `switch` are interchangeable
   (aliases planned - FEATURES Later)
-* **A condition** must be a bool today; numbers as conditions become a setting (Task 30.9,
-  see "Null Handling": `[conditions] numbers = "positive"` by default)
+* **A condition** is a bool - or a number, by the project's setting (Task 30.9, built; see
+  "Null Handling"): `[conditions] numbers = "positive"` by default, so `if count` means
+  `if count > 0`
 * **The conditional operator** (Task 30.7, built) - one line, gives a value:
   `string size = (count > 5) ? "big" : "small"`. Only the chosen value runs; both values
   have one type (not an array, for now); nests to the right
@@ -2525,7 +2526,8 @@ numbers = "positive"   # default: positive is true; zero and negatives are false
 ```
 
 With `"positive"`, -1 ("not found", "not set") and 0 ("empty") are both false. The editor
-shows the project's choice as a hint (Task 36.7). Today a condition must be a bool.
+shows the project's choice as a hint (Task 36.7). **Built (Task 30.9)**: a number in a
+condition becomes `n > 0` ("positive") or `n != 0` ("nonzero") while compiling.
 
 Where numbers count as true / false (user, 2026-10-27) - only when the setting is not "off":
 - in an `if` or `while` condition, including `and` / `or` / `not` inside it:
@@ -4272,6 +4274,10 @@ layer = "std"                  # std (default) | alloc | core
 
 [modules]                      # Task 44.1 - see "Constants"
 variables = true               # module-level variables; constants are always allowed
+
+[conditions]                   # Task 30.9 - see "Null Handling" / numbers as conditions
+numbers = "positive"           # positive (default): if / while count is count > 0;
+                               # nonzero: count != 0 (C, Python); off: bool only
 
 [numbers]                      # Task 27.2f - see "The Semantic Contract"
 auto_widening = false          # false: an int used as a float must fit exactly - a written
