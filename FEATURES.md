@@ -57,30 +57,9 @@ are in `task/featuresArchive.md`.
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
-#### 30 Nulls, empty values, number conditions, the conditional operator (was 14) [ ]
-	Design: Nullable_Values.md and spec "Null Handling" (user decisions 2026-10-27). Only class
-	objects can be null, so the null guard itself waits for classes (Task 32); what doesn't
-	need classes is built now.
-	[DONE] 30.0 Bug (found 2026-10-27): `int numbers[]` was read silently as a plain int and an
-		empty list, and `int x = 5 print(x)` as two statements - a statement must now end its
-		line (or block); the C-style array form gives a clear error until 30.10
-		(tests/test_statement_end.py)
-	[DONE] 30.1 The model decided (user, 2026-10-27): only class objects can be null; strings,
-		arrays, List, Map never null (empty by default); `?.` guard, `??`, checks, number
-		conditions - Nullable_Values.md, spec "Null Handling"
+#### 30 Nulls - the postponed parts (30.0, 30.1, 30.6-30.9 done 2026-10-27: task/featuresArchive.md) [POSTPONED]
 	[POSTPONED to 45] 30.10 Empty arrays: `int[] numbers` and `int numbers[]` both declare an
 		empty array, length 0 (user, 2026-10-27) - only useful once arrays can grow
-	[DONE] 30.8 `.len` and `.length`, with or without brackets, on strings, bytes, arrays, lists
-		and maps - the same as len(x); a struct field or the program's own function of that
-		name comes first (tests/test_length_sugar.py)
-	[DONE] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value; only
-		the chosen value runs; strings always fresh (tests/test_conditional_operator.py)
-	[DONE] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
-		negatives false) / "nonzero" / "off" (user, 2026-10-27). Only in `if` / `while`
-		conditions (and / or / not inside them); `count == true` follows the setting,
-		`count === true` is false, `bool b = count` is always an error
-		(tests/test_number_conditions.py)
-	[ ] 30.6 Docs & examples (SYNTAX_REFERENCE, spec status lines)
 	[POSTPONED to 32] 30.2 On class objects: the `?.` guard (not run on null, false in an `if`),
 		`??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a plain
 		`.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)

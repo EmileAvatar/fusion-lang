@@ -244,3 +244,26 @@ From Later / advanced (after MVP):
 		is expanded where it is called); passed where a function type is written (4b); private
 		to its module (tests/test_templates.py)
 	[DONE] 29.6 Examples (syntax_string_put, syntax_templates), spec "String Implementation" / "Constants", no new built-ins
+
+#### 30 Nulls, empty values, number conditions, the conditional operator (was 14) [DONE]
+	Design: Nullable_Values.md and spec "Null Handling" (user decisions 2026-10-27). Only class
+	objects can be null, so the null guard itself waits for classes (Task 32); what doesn't
+	need classes is built now.
+	[DONE] 30.0 Bug (found 2026-10-27): `int numbers[]` was read silently as a plain int and an
+		empty list, and `int x = 5 print(x)` as two statements - a statement must now end its
+		line (or block); the C-style array form gives a clear error until 30.10
+		(tests/test_statement_end.py)
+	[DONE] 30.1 The model decided (user, 2026-10-27): only class objects can be null; strings,
+		arrays, List, Map never null (empty by default); `?.` guard, `??`, checks, number
+		conditions - Nullable_Values.md, spec "Null Handling"
+	[DONE] 30.8 `.len` and `.length`, with or without brackets, on strings, bytes, arrays, lists
+		and maps - the same as len(x); a struct field or the program's own function of that
+		name comes first (tests/test_length_sugar.py)
+	[DONE] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value; only
+		the chosen value runs; strings always fresh (tests/test_conditional_operator.py)
+	[DONE] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
+		negatives false) / "nonzero" / "off" (user, 2026-10-27). Only in `if` / `while`
+		conditions (and / or / not inside them); `count == true` follows the setting,
+		`count === true` is false, `bool b = count` is always an error
+		(tests/test_number_conditions.py)
+	[DONE] 30.6 Docs & examples - shipped with each part: SYNTAX_REFERENCE (syntax_length, syntax_conditional, syntax_number_conditions), spec, Nullable_Values.md, Arrays.md
