@@ -121,6 +121,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Commands we repeat / could automate | `task/automation.md` |
 | Full language design | `files/fusion-language-spec.md` (grep it) |
 | Grammar | `files/fusion.ebnf` |
+| Null design: `?.`, `??`, number conditions, truth tables | `Nullable_Values.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |
 | Compiler source | `src/` - `src/CLAUDE.md` explains the pipeline; each subfolder's `CLAUDE.md` has one line per file |
 | Tests / examples | `tests/`, `examples/` |
@@ -141,6 +142,7 @@ When a language feature or spec changes, update every affected file without aski
 | String interpolation | language spec, `SYNTAX_REFERENCE.md`, examples |
 | Standard library module | language spec |
 | A concurrency idea, design decision, trap, principle or real-world case | `Concurrency.md` (full write-up), `Concurrency_Traps.md` (the overview tables) and `files/Service.md` (the `service` reference) - keep them in step; schedule any new feature in `FEATURES.md` Task 42 |
+| A null-handling decision (`?.`, `??`, nullable types, number conditions) | `Nullable_Values.md` (decisions log + tables); schedule in `FEATURES.md` Task 30 |
 | A source file added, renamed or given a new job | that folder's `CLAUDE.md` (one line per file) |
 
 ---

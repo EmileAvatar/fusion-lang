@@ -173,7 +173,11 @@ Table 2 - a class. `Person p = new Person("Jake")`; `Person pep` (never set = nu
 | `x?.getSpouse()?.getName()` | name, or null if no spouse | same | same | null |
 | `x.getSpouse().getName()`, no spouse | NullError | NullError | NullError | NullError |
 
-**Open, next session:**
+**Answered (user, 2026-10-27):** 1. warn; 2. warn (`??` is only for where a value is
+expected and none may come); 3. strings always default to "" and are never null - unless
+`[strings] nullable = true` (default false). Full write-up: `Nullable_Values.md` (root).
+
+**Was open:**
 1. With null, `>= 18` is false and `< 18` is false too - so `!(x >= 18)` is not the same as
    `x < 18`. Keep that (SQL works this way), or warn when a guarded `?.` value is compared?
 2. `s?.length() ?? 0` never uses the 0 (-1 is not null) - warn there?
