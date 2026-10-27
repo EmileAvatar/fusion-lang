@@ -103,8 +103,8 @@ session to match these):**
 - Numbers as conditions - DECIDED (user, 2026-10-27): a `fusion.toml` setting with three
   options, e.g. `[conditions] numbers = "nonzero"` (default - 0 false, any other number
   true, as C / C++ / Python / JavaScript), `"positive"` (zero and negatives false),
-  `"off"` (a condition must be a bool - today's behaviour). Default = closest to most
-  languages, so developers from them feel at home. (Other languages: C / C++ / Python / JS /
+  `"off"` (a condition must be a bool - today's behaviour). (Default changed to
+  `"positive"` - see "Decided" below.) (Other languages: C / C++ / Python / JS /
   Perl - 0 false, others true; Ruby / Lua - every number true; Java / C# / Go / Rust /
   Swift / Kotlin - bool only.) Trap to document: `if indexOf(s, "x")` - -1 (not found) is true
 - `?.` is a guard (user, 2026-10-27): on null it doesn't error or crash; inside an `if` the
@@ -125,6 +125,60 @@ session to match these):**
 - Also supported: the conditional operator `(condition) ? valueIfTrue : valueIfFalse`
 - **To do:** update the spec (`files/fusion-language-spec.md`) with every change made so far
   (check Tasks 29 / 44 and earlier decisions are all reflected) - noted 2026-10-27
+
+- **Decided (user, 2026-10-27, answers to the 3 open points):**
+  1. Default is `"positive"` (zero and negatives false) - the user's own model; options stay
+     `"positive"` (default) / `"nonzero"` / `"off"`. IDE note (Task 36): show developers how
+     number conditions are set for the project, as a hint
+  2. `?.` guards a null **object**: the method is not run and nothing errors; in an `if` the
+     condition is false. Plain `.` on a null object is a NullError (only a catch handles it).
+     A comparison with a guarded null is false, so `!(pep?.getAge() >= 18)` is true
+  3. Only `string.length()` and `array.length` give -1 through `?.` on null; every other
+     member / method gives null (or, with plain `.`, a NullError)
+
+**Truth tables (draft, 2026-10-27 - default `[conditions] numbers = "positive"`):**
+
+Table 1 - string and array length. `s` is a string, `a` an int array:
+
+| Expression | s / a is null | s = "" / a = [] | s = "abc" / a = [1, 2, 3] |
+|---|---|---|---|
+| `s.length()` / `a.length` | NullError | 0 | 3 |
+| `s?.length()` / `a?.length` | -1 | 0 | 3 |
+| `if s?.length()` - "positive" (default) | false | false | true |
+| `if s?.length()` - "nonzero" | **true** (-1) | false | true |
+| `if s?.length()` - "off" | compile error | compile error | compile error |
+| `if s?.length() > 0` | false | false | true |
+| `if !(s?.length() > 0)` | true | true | false |
+| `if s?.length() >= 0` | false | true | true |
+| `s?.length() ?? 0` | -1 (never null, so ?? is never used) | 0 | 3 |
+| `s?.null` / `s == null` / `s is null` | true | false | false |
+| `!s?.null` | false | true | true |
+
+Table 2 - a class. `Person p = new Person("Jake")`; `Person pep` (never set = null);
+`getAge()` returns an int, `getSpouse()` returns a Person or null:
+
+| Expression | age 30 | age 10 | age 0 | pep (null) |
+|---|---|---|---|---|
+| `x.getAge()` | 30 | 10 | 0 | NullError - only a catch handles it |
+| `x?.getAge()` | 30 | 10 | 0 | null (getAge not run) |
+| `if x?.getAge() >= 18` | true | false | false | false |
+| `if !(x?.getAge() >= 18)` | false | true | true | true |
+| `if x?.getAge() < 18` | false | true | true | **false** (see open 1) |
+| `if x?.getAge()` - "positive" (default) | true | true | false | false |
+| `if x?.getAge()` - "nonzero" | true | true | false | false |
+| `x?.getAge() ?? -1` | 30 | 10 | 0 | -1 |
+| `(x?.getAge()) ? x.getAge() : -1` | 30 | 10 | **-1** (0 is false) | -1 |
+| `x?.null` / `x == null` / `x is null` | false | false | false | true |
+| `!x?.null` | true | true | true | false |
+| `x?.getSpouse()?.getName()` | name, or null if no spouse | same | same | null |
+| `x.getSpouse().getName()`, no spouse | NullError | NullError | NullError | NullError |
+
+**Open, next session:**
+1. With null, `>= 18` is false and `< 18` is false too - so `!(x >= 18)` is not the same as
+   `x < 18`. Keep that (SQL works this way), or warn when a guarded `?.` value is compared?
+2. `s?.length() ?? 0` never uses the 0 (-1 is not null) - warn there?
+3. Strings and arrays become nullable: does `string s` with no value start as null or ""
+   (today "")? Same for arrays
 
 ### Backlog write-up (moved from task/taskBacklog.md, 2026-10-27, verbatim)
 

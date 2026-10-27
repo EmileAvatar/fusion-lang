@@ -67,8 +67,8 @@ are in `task/featuresArchive.md`.
 	[ ] 30.5 Beyond arrays (stretch)
 	[ ] 30.6 Docs & examples
 	[ ] 30.7 The conditional operator `(condition) ? a : b` (user, 2026-10-27)
-	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "nonzero" (default) /
-		"positive" / "off" (user, 2026-10-27)
+	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
+		negatives false) / "nonzero" / "off" (user, 2026-10-27)
 	[ ] 30.8 `.len` and `.length` on strings, arrays, lists (user, 2026-10-27: both - len is
 		quick typing)
 
@@ -122,6 +122,8 @@ are in `task/featuresArchive.md`.
 		(user, 2026-10-23; Concurrency.md section 3.3 H - design later)
 	[ ] 36.5 Later: a language server (LSP) - errors as you type, go to definition, completion -
 		built on the self-hosted compiler, one server for every editor
+	[ ] 36.6 A hint showing how number conditions are set for the project (`[conditions]
+		numbers`, Task 30.9) - e.g. on `if count` (user, 2026-10-27)
 
 #### 37 Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) [ ]
 	[ ] 37.1 Stdlib runtime lowering decision (was 15.2)
