@@ -66,6 +66,9 @@ are in `task/featuresArchive.md`.
 	[ ] 30.4 Runtime null-check codegen
 	[ ] 30.5 Beyond arrays (stretch)
 	[ ] 30.6 Docs & examples
+	[ ] 30.7 The conditional operator `(condition) ? a : b` (user, 2026-10-27)
+	[ ] 30.8 `.len` and `.length` on strings, arrays, lists (user, 2026-10-27: both - len is
+		quick typing)
 
 #### 31 Config file in any format: fusion.toml / .yaml / .json / .ini (was 20) [ ]
 	[ ] 31.1 One loader per format, one shared schema

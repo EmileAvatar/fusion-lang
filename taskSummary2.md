@@ -24,6 +24,176 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 30: Nullable values and safe navigation - PLAN (awaiting approval)
+
+Source: FEATURES.md Task 30, backlog write-up (below, moved from task/taskBacklog.md), spec
+"Type System" / "Nullability Rules" / "Null Handling" / "Array Safe Navigation", FEATURES
+Later "Open: `int?`" (user will check with Task 30), memory "no silent changes".
+
+**What is true today (checked 2026-10-27):**
+- Nothing can be null: int / float / bool / char, strings, arrays, structs, List and Map are
+  all values; a `string s` with no value is "" (empty), a struct always has its fields
+- `null` exists only as a word: `string s = null` is "Cannot assign void to string"
+- `m["missing"]` is a KeyError; `m.get(k, default)` gives a default - no null needed
+- `arr.length` is an error (only `len(arr)` / `xs.len()`); `!` already means `not`
+- The spec is older than the value model: it says strings and objects can be null by default
+  (`str?.null`), and the backlog says `arr?.length` returns 0 silently
+
+**Proposed model (to approve):** no value is ever null unless its type says so.
+- `T?` - "a T, or nothing": `int?`, `string?`, `Person?`, `int[]?`, `List<int>?` - and
+  classes later the same way (`Ship` never null, `Ship?` may be). Like Swift, Kotlin, C#'s
+  nullable reference types. The spec's "strings / objects are nullable by default" changes
+- `null` is assignable only to a `T?`; a `T?` with no initializer starts as null
+- Checking: `x == null` / `x != null`, also written `x is null` / `x is not null`
+- Narrowing: inside `if x != null` (and after `if x == null` + return / break / continue),
+  x is a plain T - no extra syntax; elsewhere using a `T?` where a T is needed is a
+  compile error
+- `x ?? fallback` - the value, or the fallback when null (explicit, never a silent 0)
+- `x?.field`, `x?.method()`, `x?[i]` - null when x is null, otherwise the result; the result
+  is a `T?` (so `arr?.length ?? 0` reads "0 if missing" - chosen, not silent)
+- `x!` - "I know it's there": a NullError at run time if it is null (named, file:line,
+  catchable) - the escape hatch where the compiler can't see a check
+- NullError: a new built-in error type (subtype of Error, Task 26 list)
+- In C: a `T?` is a small struct {has, value}; strings / lists inside are freed only when set
+
+**Sub-tasks:**
+- 30.1 The model: spec sections rewritten (Type System table, Null Handling, Array Safe
+  Navigation), grammar, decisions recorded
+- 30.2 `T?` types, `null`, `== null` / `is null`, `T?` in variables, parameters, returns,
+  struct fields, List / Map elements; C representation; leak-free
+- 30.3 Narrowing (flow analysis): `if x != null` makes x a T inside; a `T?` used as a T
+  elsewhere is a compile error; `??`
+- 30.4 Safe navigation `?.` / `?[` (result `T?`), `x!` with NullError (30.1b)
+- 30.5 `.length` on arrays, strings, lists (= `len(x)`) - backlog item; optional, small
+- 30.6 Examples, SYNTAX_REFERENCE, Builtins.md (if any built-in changes)
+- Not in Task 30: classes (32), `Weak<T>.lock()` returning `T?` (38) - both reuse this
+
+**Questions:**
+1. Model: no value is null unless its type has `?` (int?, string?, Person?, int[]?) -
+   including strings, so the spec's "strings / objects nullable by default" changes. Agree?
+2. Checking: `x == null` and `x is null` (both), and drop the spec's `x?.null`?
+3. Using a `T?` as a T without a check: a compile error (recommended), with `x!` as the
+   run-time-checked escape (NullError) - or allowed everywhere with a run-time NullError
+   (the backlog's "hybrid")? Could be a setting: `[nulls] unchecked = "error"` (default) /
+   `"runtime"`
+4. `?.` / `?[` give null, never a silent 0 - `arr?.length ?? 0` when 0 is wanted (the
+   backlog said `arr?.length` returns 0 silently; your "no silent changes" rule says
+   otherwise). Agree?
+5. 30.5 `.length` as a property - include it, or leave `len(x)` / `.len()` as the only way?
+
+**User notes and answers (2026-10-27, end of session - the plan above is revised next
+session to match these):**
+- `?` is NOT part of a type: `string? nickname` is not valid. `?` is used on a variable when
+  calling a function / reading a member of it: `nickname?.length()` gives 0 when nickname is
+  not set, e.g. `if nickname?.length() > 5` (0 when empty). It tells the compiler: if the
+  value is not null use it, otherwise no error - it is for null checking. `?` calls the
+  function or member of the variable's type (the T class type)
+- Null applies only to strings (special: a value and a class with methods) and class types
+  (Q1)
+- Checking null: `==`, `===`, `is null`; `x?.null` stays as quick typing - true when x is
+  null; `!x?.null` - not null (sugar) (Q2)
+- No `x!`; `!x?.null` instead - option (a): an unchecked use is a compile error (Q3)
+- Q4 "yes" (no silent 0) - **to confirm next session:** the note above says
+  `nickname?.length()` returns 0 when not set; which one holds for `?.`
+- Support both `.len` and `.length` - `len` is quick typing (Q5)
+- Also supported: the conditional operator `(condition) ? valueIfTrue : valueIfFalse`
+- **To do:** update the spec (`files/fusion-language-spec.md`) with every change made so far
+  (check Tasks 29 / 44 and earlier decisions are all reflected) - noted 2026-10-27
+
+### Backlog write-up (moved from task/taskBacklog.md, 2026-10-27, verbatim)
+
+#### Original: TASK 30 (was 14): Nullable Arrays & Safe Navigation
+
+**Goal:** Let arrays (and eventually other reference-like types) be nullable, with
+`arr.length`/`arr?.length` and `arr?[i]` behaving safely instead of crashing unpredictably -
+the richer null-safety design the user asked for while scoping Task 9, split out because it's
+a language-wide feature, not an array-specific one.
+**Status:** Not Started (proposed breakdown only, not yet approved for implementation - same
+status convention as Tasks 12/13). **Unblocked as of 2026-09-13** - Task 12.7 is now complete;
+this task still needs its own scoping approval before implementation begins, per Rule 1.
+**Priority:** MEDIUM (no urgency stated)
+**Blocked By:** ~~Task 12.7~~ - COMPLETE (2026-09-13). Task 12.7 decided `Weak<T>.lock()`
+returns a nullable value that must be checked, which is the same null-handling shape this task
+needs for `arr?.length`/`arr?[i]` - the two features should share one null-flow-analysis
+design (noted in Task 12.7's own writeup), not two independent ones.
+**Estimated Effort:** TBD - needs its own sub-plan once approved for scoping
+**Source:** Arose from scoping Task 9 (2026-09-13) - the user asked for `arr.length` with
+null-checking, `arr?.length` returning 0 silently on null, and a hybrid null-safety model:
+compile-time error where the compiler can prove an array is null before use, a runtime crash
+with a clear message where it can't prove it, and `?.`/`?[` as the way to opt out of both (get
+0 back instead). The user also noted this might eventually be configurable per-project
+(ties to Task 12.12's project configuration system). Notably, `files/fusion-language-spec.md`
+already describes this exact design for strings and arrays under "Array Safe Navigation" and
+"Null Safety" (e.g. "`string?.length` returns 0 if null") - this task is about actually
+building it, starting with arrays.
+
+#### Sub-tasks (NOT YET APPROVED - proposed breakdown only)
+
+##### 14.1: Nullability Model Decision
+- [ ] Decide whether arrays become a nullable reference type (pointer + length) or whether
+      nullability is a separate wrapper/modifier applicable to multiple types
+- [ ] Decide how `null` (currently type-checks as `void`, not wired to any real type) becomes
+      assignable to nullable array types
+- [ ] Resolve alongside Task 12.7's `Unique`/`Shared`/`Weak` design - a nullable array's
+      ownership story needs to fit that same model, not a separate one
+- [ ] Get user decision; record as an ADR alongside Task 12.7's memory model spec
+
+##### 14.2: Compile-Time Null-Flow Analysis
+- [ ] Track definite-null / maybe-null / definite-non-null state through straight-line code
+      (at minimum; branch-merging is a further decision)
+- [ ] Compile-time error when `.length`/indexing is used on a provably-null array without a
+      preceding `?.`/`?[`
+- [ ] Write semantic tests for provably-null and provably-safe cases
+
+##### 14.3: `.` / `?.` / `?[` Parser Support
+- [ ] Add member-access (`.` identifier) and safe-navigation (`?.` identifier, `?[`
+      expression `]`) postfix parsing - doesn't exist in the parser at all today
+- [ ] `arr.length` lowers to the same thing `len(arr)` does (both should stay available and
+      behave identically per the user's "give devs both, don't lock into one way" request)
+
+##### 14.4: Runtime Null-Check Codegen
+- [ ] For accesses that can't be proven safe at compile time: emit a null check that crashes
+      with a clear message on null (matches the user's "crash the app with clear error
+      message" requirement)
+- [ ] For `?.`/`?[` accesses: emit a null check that evaluates to 0 instead of crashing (no
+      warning - matches the user's "we don't execute the function and return a 0" description)
+- [ ] Regression tests: provably-null (compile error), runtime-null via non-provable path
+      (crash with message), `?.`/`?[` on null (0, no crash)
+
+##### 14.5: Extend Beyond Arrays (stretch)
+- [ ] `string?.length` is already described in the language spec alongside arrays - evaluate
+      applying the same mechanism to strings once arrays prove it out
+- [ ] Note for future classes/objects: this mechanism should generalize, not be
+      array-specific plumbing
+
+##### 14.6: Documentation & Examples
+- [ ] Update `files/fusion-language-spec.md`'s "Array Safe Navigation"/"Null Safety" sections
+      from aspirational to actually-implemented, with the real semantics decided above
+- [ ] Example program demonstrating `.length` vs `len()` vs `?.length` vs `?[i]`
+- [ ] Update `files/fusion.ebnf`'s postfix production (already has the grammar drafted -
+      confirm it still matches what got built)
+
+**Success Criteria:**
+- Arrays can be null; `null` is assignable to a nullable array type
+- `.length` and `len(arr)` both exist and behave identically
+- A provably-null `.length`/index access is a compile-time error
+- A non-provably-null access that turns out null at runtime crashes with a clear message
+- `?.length`/`?[i]` on null returns 0 without crashing, silently (no warning)
+- No behavior regressions to Task 9's existing non-nullable array support
+
+**Deliverables:**
+- Nullability decision recorded (ADR, alongside Task 12.7)
+- Compile-time null-flow analysis pass
+- `.`/`?.`/`?[` parser support
+- Runtime null-check codegen
+- Updated language spec matching actual behavior
+
+**Explicitly NOT scheduled now:** this task is future work. Task 12.7 is now complete, so
+its blocker is cleared, but no implementation, grammar design, or parser work should begin
+until the user re-opens this task for scoping approval - same convention as Tasks 12/13.
+
+---
+
 ## TASK 29: Strings - COMPLETE (2026-10-27)
 
 s[i] = c (29.1), fixed strings = const (29.2), string templates `template string greet =
@@ -192,4 +362,7 @@ Kept under Task 22 until the renumbering is approved.
   now report the string's line (was 1:1); the module loader keeps templates per module
 - 29.6 done (examples syntax_string_put / syntax_templates, spec); **Task 29 complete** (29.4,
   29.5 postponed; FEATURES lines and plan archived)
-- **Next Action:** the user picks the next step - Task 30 (nullable values) is next in order
+- Task 30 planned (model: `T?` opt-in, narrowing, `??`, `?.` / `?[`, `x!`; 5 questions)
+- User answered the Task 30 questions and added notes (in the plan); session closed
+- **Next Action:** revise the Task 30 plan to the user's notes (confirm `?.` gives 0 or
+  null), get approval; also update the spec with every change so far
