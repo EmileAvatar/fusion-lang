@@ -429,4 +429,10 @@ Kept under Task 22 until the renumbering is approved.
   "positive" by default; spec updated with every change so far (user request)
 - Task 30 started: 30.0 done (a statement must end its line - the int numbers[] bug); plan
   revised to the settled design (30.2 / 30.3 postponed to 32)
-- **Next Action:** the user answers the 3 Task 30 questions; then 30.10
+- Task 30 answers: 1. both `.len` / `.length` - with and without brackets, `length` is sugar
+  for `len`; 3. order OK; 2. explained (numbers in and / or / not) - waiting
+- Question 2 answered (user, 2026-10-27): numbers as bool only when the setting allows it
+  (on by default - "positive"); only in `if` / `while` conditions (with and / or / not);
+  `count == true` follows the setting, `count === true` is false, `bool b = count` always an
+  error
+- **Next Action:** 30.10 (empty arrays)

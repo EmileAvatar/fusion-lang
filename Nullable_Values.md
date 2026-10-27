@@ -118,6 +118,15 @@ numbers = "positive"   # default: positive is true; zero and negatives are false
                        # "off": a condition must be a bool (Java, C#, Go, Rust, Swift)
 ```
 
+**Where numbers count as true / false (user, 2026-10-27) - only when the setting is not "off"**:
+- in an `if` or `while` condition, including `and` / `or` / `not` inside it:
+  `if count and ready`, `if not errors`
+- `count == true` / `count == false` compares by the same rule (0 false; 1, 2, 1000 true)
+- `count === true` is always false - a number is not a bool (the compiler already warns that
+  `===` on two different types is always false)
+- `bool b = count` is always an error, whatever the setting - write `bool b = count > 0`
+- `and` / `or` always give a bool
+
 - **Why `"positive"`:** -1 is the usual "not found / not set" value (`indexOf`, `?.length()`),
   so with this default `if s?.length()` and `if p?.getAge()` are false for "missing",
   "empty" and "not born yet" alike
@@ -229,4 +238,5 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 | 2026-10-27 | `string?.length()` / `array?.length` on null give -1; everything else gives null |
 | 2026-10-27 | `[conditions] numbers` = "positive" (default) / "nonzero" / "off"; an editor hint shows the setting (36.6) |
 | 2026-10-27 | Warnings: a guarded value in a comparison; `??` after `?.length()` |
+| 2026-10-27 | Numbers as bool only in `if` / `while` conditions (with and / or / not); `count == true` follows the setting; `count === true` false; `bool b = count` always an error |
 | 2026-10-27 | `.len` and `.length` both; the conditional operator `(c) ? a : b` |

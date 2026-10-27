@@ -2524,6 +2524,15 @@ numbers = "positive"   # default: positive is true; zero and negatives are false
 With `"positive"`, -1 ("not found", "not set") and 0 ("empty") are both false. The editor
 shows the project's choice as a hint (Task 36.6). Today a condition must be a bool.
 
+Where numbers count as true / false (user, 2026-10-27) - only when the setting is not "off":
+- in an `if` or `while` condition, including `and` / `or` / `not` inside it:
+  `if count and ready`, `if not errors`
+- `count == true` / `count == false` compares by the same rule (0 false; 1, 2, 1000 true)
+- `count === true` is always false - a number is not a bool (the compiler already warns that
+  `===` on two different types is always false)
+- `bool b = count` is always an error, whatever the setting - write `bool b = count > 0`
+- `and` / `or` always give a bool
+
 ---
 
 ### Strict Mode (replaced)

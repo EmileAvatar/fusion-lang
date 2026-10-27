@@ -74,7 +74,9 @@ are in `task/featuresArchive.md`.
 		len is quick typing)
 	[ ] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value
 	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
-		negatives false) / "nonzero" / "off" (user, 2026-10-27)
+		negatives false) / "nonzero" / "off" (user, 2026-10-27). Only in `if` / `while`
+		conditions (and / or / not inside them); `count == true` follows the setting,
+		`count === true` is false, `bool b = count` is always an error
 	[ ] 30.6 Docs & examples (SYNTAX_REFERENCE, spec status lines)
 	[POSTPONED to 32] 30.2 On class objects: the `?.` guard (not run on null, false in an `if`),
 		`??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a plain
