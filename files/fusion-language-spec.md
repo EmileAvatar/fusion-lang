@@ -183,7 +183,7 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
 
 ## Data Types and Variables
 
-**Status:** [PARTLY] int, float, double, bool, char, string, byte / bytes, const and fixed-size arrays are built (01-04, 08, 09, 18.3); every array index is checked - outside the array is an IndexError (27.1); nullability [PLANNED 30]; type-inferred const, `long` and other sized types: no task yet
+**Status:** [PARTLY] int, float, double, bool, char, string, byte / bytes, const and fixed-size arrays are built (01-04, 08, 09, 18.3); every array index is checked - outside the array is an IndexError (27.1); strings can be changed in place, `s[i] = c`, and a const string is fixed (29.1-29.2); nullability [PLANNED 30 - designed 2026-10-27, `Nullable_Values.md`]; type-inferred const, `long` and other sized types: no task yet
 
 Description: Type system combining static typing with clear null safety rules.
 
@@ -192,24 +192,31 @@ Description: Type system combining static typing with clear null safety rules.
 ### Type Categories
 
 Description: Fusion distinguishes between value types and reference types for null safety.
+Full design: `Nullable_Values.md` (user decisions 2026-10-27, Task 30 - planned).
 
 * **Value Types**: Cannot be null, always have a value
      * Primitives: byte, ubyte, short, ushort, int, uint, long, ulong
      * Floating point: float, double, decimal
      * Boolean: bool
      * Character: char
-     * Structs: All value-type structs
-     * Note: Syntax like `int?` does NOT exist
+     * Structs: All value-type structs (a struct is never null - user, 2026-10-24)
+     * **Strings, arrays, `List` and `Map`**: values with methods - never null, empty when not
+       set (`""`, `[]`, no keys); an empty one has length 0. A project can allow null type
+       by type: `[strings]` / `[arrays]` / `[lists]` / `[maps]` `nullable = true` (default
+       false)
+     * Note: Syntax like `int?` / `string?` does NOT exist - `?` is used on a variable
+       (`x?.method()`), never in a type
 
-* **Reference Types**: Can be null, must be checked before use
-     * Objects: All class instances
-     * String: Special case (class but treated as value type for convenience)
+* **Reference Types**: Can be null, must be checked or guarded before use
+     * Objects: All class instances (Task 32)
 
 ---
 
 ### Complete Type Specifications
 
-Description: All built-in types with their properties and capabilities.
+Description: All built-in types with their properties and capabilities. How values are
+written in the source - hex, binary, octal, digit separators, durations, money, ... - is a
+proposal in `files/Literals.md` (not designed yet).
 
 Type | Default | Min | Max | Autobox Class | Safe Cast To
 ---|---|---|---|---|---
@@ -239,8 +246,13 @@ Type Category | Can Be Null? | Check Method | Example
 ---|---|---|---
 Value Types | NO | N/A (always has value) | `int x` is never null
 Structs | NO | N/A (always has value) | `Vector3 v` is never null
-String | YES | `str?.null` or `str is null` | `if str?.null then handle`
-Objects | YES | `obj?.null` or `obj is null` | `if ship?.null then handle`
+String, array, List, Map | NO by default (a `nullable` setting allows it) | `s.length() == 0` for empty | `string s` is `""`
+Objects | YES | `obj == null`, `obj === null`, `obj is null`, `obj?.null` (quick typing); `!obj?.null` = not null | `if ship?.null` then handle
+
+Using a possibly-null object: `obj?.method()` is a guard - on null the method is not run and
+nothing errors (in an `if`, the condition is false); `obj?.method() ?? fallback` gives a
+default; plain `obj.method()` on null is a NullError. Truth tables and when to use `?.`:
+`Nullable_Values.md`.
 
 ---
 
@@ -281,7 +293,8 @@ int count          // 0
 string name        // ""
 bool flag          // false
 float speed        // 0.0f
-Spaceship ship     // null (reference type)
+Spaceship ship     // null (a class object - reference type)
+int[] scores       // [] - arrays, lists and maps are never null by default
 ```
 
 ---
@@ -408,13 +421,11 @@ team.scores = podium()     // an array field too
   per-element assignment, or assigning an array a function returns (`arr = make()`), is
   supported, since a plain C array isn't reassignable that way
 - Dynamic/resizable arrays (no `malloc`-backed growth yet - fixed-size only)
-- Bounds checking (indexing out of range is undefined behavior, same as in C, for now)
-- Nullable arrays, `arr.length` (property syntax), `arr?.length` / `arr?[i]` (safe
-  navigation) - see "Array Safe Navigation" and "Null Safety" later in this document,
-  which already describe the intended design; building it requires deciding Fusion's
-  nullability/memory model first (Task 12.7), so it's tracked as its own future task rather
-  than bundled into Task 9's array launch. `len(arr)` is the only way to get an array's
-  size for now.
+- Bounds checking - built since then: every index is checked, outside the array is an
+  IndexError (Task 27.1)
+- `arr.length` / `arr.len` (property syntax, both - Task 30.8) and null-safe access
+  (`arr?.length`, only when `[arrays] nullable = true`) - Task 30, planned; see "Null
+  Handling". `len(arr)` is the way to get an array's size for now.
 
 ---
 
@@ -1310,7 +1321,10 @@ Spaceship, Error function loadAndValidateShip(string filename)
 
 ## Classes and Objects
 
-**Status:** [PLANNED 32] (methods on structs first, then classes)
+**Status:** [PLANNED 32] (methods on structs first, then classes). Decided in the showcase
+review (user, 2026-10-23/24, FEATURES Later): operator overloading off by default
+(`[language] operator_overloading`); several return values only with `[functions]
+multiple_returns = true`; class objects are the only values that can be null (Task 30)
 
 Description: Object-oriented programming with modern features and clear syntax.
 
@@ -1700,7 +1714,7 @@ class GameObject implements IMovable, IDamageable
 
 ## Structures and Value Types
 
-**Status:** [DONE 18.2] fields, value semantics, nesting, string / list fields; methods on structs [PLANNED 32]
+**Status:** [DONE 18.2] fields, value semantics, nesting, string / list fields; methods on structs [PLANNED 32]. Settings decided (user, 2026-10-24): a struct is never null; `[structs]` holding List / Map on (built), functions on structs off by default (32.1), classes inside structs off by default
 
 Description: Lightweight value types for copying data around an application and reading or
 changing it conveniently.
@@ -2068,7 +2082,7 @@ Direction d2 = Direction.fromValue(0)
 
 ## Control Flow
 
-**Status:** [PARTLY] if / else if / else, while, for over ranges, arrays, lists and maps, break, continue, return are built (01-04, 18.5.1); `=` compares inside a condition (18.3.5); `match` [PLANNED 25]; loop labels and loop safety limits: no task yet
+**Status:** [PARTLY] if / else if / else, while, for over ranges, arrays, lists and maps, break, continue, return are built (01-04, 18.5.1); `=` compares inside a condition (18.3.5); `match` built (25.3); `switch` / `elif` as aliases (FEATURES Later); numbers as conditions and the conditional operator `(c) ? a : b` [PLANNED 30.7, 30.9]; loop labels and loop safety limits: no task yet
 
 Description: Natural language constructs for program flow with safety features.
 
@@ -2076,8 +2090,15 @@ Description: Natural language constructs for program flow with safety features.
 
 ### Conditionals
 
-user added comment: can be match or switch
 Description: Clear and readable branching with multiple comparison operators.
+
+* **Preferred forms** (user, 2026-10-24): `else if` and `switch` are used in docs and
+  examples; `elif` is an alias for `else if`, and `match` / `switch` are interchangeable
+  (aliases planned - FEATURES Later)
+* **A condition** must be a bool today; numbers as conditions become a setting (Task 30.9,
+  see "Null Handling": `[conditions] numbers = "positive"` by default)
+* **The conditional operator** (Task 30.7, planned) - one line, gives a value:
+  `string size = (count > 5) ? "big" : "small"`
 
 * **Comparison Operators**
 
@@ -2392,89 +2413,102 @@ end loop
 
 ## Null Handling
 
-**Status:** [PLANNED 30]
+**Status:** [PLANNED 30] - designed 2026-10-27 (user decisions). Full write-up with truth
+tables and when (not) to use `?.`: `Nullable_Values.md`.
 
-Description: Type-based null safety preventing null reference errors.
+Description: No value is null unless it can be, and a missing object never crashes the
+program by surprise. The problem it solves: in Java, C#, C, JavaScript and Python any
+object may be null and using it crashes - far from where it was left unset. It matters most
+for data from outside: a JSON object whose field is `null`, a database row, user input, a
+class object that was never created.
 
 ---
 
 ### Core Principles
 
-* **Value types**: Cannot be null, always have a value
-* **Reference types**: Can be null, must be checked before use
-* **Compiler enforcement**: Strict mode forces null checks
+* **Only class objects can be null** (Task 32). Numbers, bools, chars and structs are
+  values; strings, arrays, `List` and `Map` are values too - never null, empty when not
+  set (`""`, `[]`), length 0 when empty
+* **A project may allow null** for strings, arrays, lists or maps when "not set yet" must
+  differ from "empty": `[strings]` / `[arrays]` / `[lists]` / `[maps]` `nullable = true`
+  (default false)
+* **`?` is never part of a type** (no `int?`, `string?`): it is used on a variable, as a
+  guard - `x?.method()`
+* **Nothing changes silently**: a default is always one written in the code (`??`)
 
 ---
 
 ### Null Checking Methods
 
-Description: Multiple ways to check and handle null values.
+Description: Three ways to handle a value that might be null - check first, guard, or let it
+fail.
 
-* **Check if Null**
+* **Check if null** - `==`, `===`, `is null`, and `x?.null` as quick typing; `!x?.null`
+  means "not null"
 
 ```
 Spaceship ship = getShip()
 
-// Method 1: Using ?.null
-if ship?.null
-    print("Ship is null")
+if ship?.null                    // the same as: if ship == null / if ship is null
+    print("No ship")
     return
 
-// Method 2: Using is null
-if ship is null
-    print("Ship is null")
-    return
-
-// Safe to use ship here
-ship.start()
+ship.start()                     // safe: checked above
 ```
 
-* **Safe Navigation Operator**
+* **Guard with `?.`** - on a null object the method is not run and nothing errors. The
+  result is null; inside an `if` the condition is false, so the else block runs - also
+  for a comparison
 
 ```
-// Returns none if ship is null, otherwise returns the property
-string name = ship?.name
+Person pep                       // never set: null
 
-// Chain safely
-string captainName = ship?.captain?.name
+if pep?.getAge() >= 18           // no error: false, the else block runs
+    print("old enough")
+else
+    print("not old enough, or unknown")
 
-// With default value
-string name = ship?.name ?? "Unknown"
+if !(pep?.getAge() >= 18)        // true: runs
+    print("ask for ID")
+
+string captainName = ship?.getCaptain()?.getName() ?? "Unknown"   // a chain
 ```
 
-* **String Special Case**
-
-```
-string text = getString()
-
-// Returns 0 if null or empty
-int len = text?.length
-
-// Safe operations
-string upper = text?.toUpper() ?? ""
-```
+* **Default with `??`** - only where a value is expected and none may come:
+  `someObject?.someMethod() ?? value`
+* **Plain `.`** - `pep.getAge()` on null is a **NullError** (an Error subtype, Task 26):
+  only a `catch` handles it. Use it where missing would be a bug
+* **Length through `?.`** - `string?.length()` and `array?.length` give -1 on a null string
+  or array (only with the `nullable` settings on); an empty one gives 0. Every other member
+  or method gives null
+* **No `x!`** ("I know it isn't null") - write `if !x?.null` instead
+* **Warnings**: a guarded value in a comparison (with null, `>= 18` and `< 18` are both
+  false, so `!(x >= 18)` is not `x < 18`); `??` after `?.length()` (-1 is not null, so the
+  default is never used)
 
 ---
 
-### Strict Mode
+### Numbers as conditions
 
-Description: Compiler enforces null checks for function parameters.
+`if count` with a number: a `fusion.toml` setting (Task 30.9, user 2026-10-27):
 
+```toml
+[conditions]
+numbers = "positive"   # default: positive is true; zero and negatives are false
+                       # "nonzero": 0 false, other numbers true (C, Python, JavaScript)
+                       # "off": a condition must be a bool (Java, C#, Go, Rust, Swift)
 ```
-// With strict mode enabled, this generates automatic null check
-void function processShip(Spaceship ship)
-    // Compiler adds: if ship?.null then error("Ship cannot be null")
-    ship.start()
-    ship.move(forward, speed)
 
-// Manual null handling
-void function processShip(Spaceship ship)
-    if ship?.null
-        print("Cannot process null ship")
-        return
-    
-    ship.start()
-```
+With `"positive"`, -1 ("not found", "not set") and 0 ("empty") are both false. The editor
+shows the project's choice as a hint (Task 36.6). Today a condition must be a bool.
+
+---
+
+### Strict Mode (replaced)
+
+The earlier "strict mode" (the compiler adding null checks to every parameter) is replaced
+by the rules above: only class objects can be null, a plain `.` on null is a NullError with
+file and line, and `?.` is the guard where missing is normal.
 
 ---
 
@@ -2540,50 +2574,10 @@ int max = numbers.max()               // 5
 int[] doubled = numbers.map(lambda x: x * 2)
 ```
 
-* **Array Safe Navigation with `?.`**
-
-```
-int[]? nullableArray = getArray()
-
-// Safe array access
-int? first = nullableArray?[0]        // Returns null if array is null
-int len = nullableArray?.length ?? 0   // Returns 0 if null
-
-// Safe method calls
-int? sum = nullableArray?.sum()        // Returns null if array is null
-int[]? doubled = nullableArray?.map(lambda x: x * 2)
-
-// Chaining safe operations
-int[]? filtered = nullableArray?.filter(lambda x: x > 10)
-int? max = filtered?.max()
-
-// Must handle null manually
-if nullableArray?.null
-    print("Array is null!")
-else
-    for item in nullableArray
-        process(item)
-    end loop
-```
-
-**Note on ?. Operator**
-
-* The `?.` operator is optional for objects and arrays
-* User can choose to use it for safety
-* If used, must manually handle the none/null result afterwards
-* Without it, accessing null reference causes runtime error (or compile error in strict mode)
-
-```
-// With ?. - manual handling required
-Spaceship ship = getShip()
-string name = ship?.name  // Returns none if ship is null
-if name is null
-    print("Ship or name is null")
-
-// Without ?. - runtime/compile error if null
-Spaceship ship = getShip()
-string name = ship.name   // Error if ship is null!
-```
+* **Arrays and null:** arrays are never null by default (`[arrays] nullable = false`), so
+  `numbers.length` is always safe - 0 for an empty array. With `nullable = true`,
+  `numbers?.length` is -1 on a null array and `numbers?[0]` is null; see "Null Handling"
+  and `Nullable_Values.md` (Task 30, planned)
 
 ---
 
@@ -2777,7 +2771,10 @@ Raw Pointers | Embedded/FFI only | High | Maximum
 
 ## Threading and Concurrency Model
 
-**Status:** [DESIGN] no task yet
+**Status:** [DESIGN] FEATURES.md Task 42. The current design, newer than this section:
+`Concurrency.md` (terms, traps, the model, other languages), `Concurrency_Traps.md` (overview
+tables) and `files/Service.md` (the `service` keyword: a shared resource becomes a service
+instead of every caller locking it). Where they differ from this section, they win
 
 Description: Hybrid concurrency model supporting both message passing and shared memory.
 
@@ -3547,7 +3544,7 @@ float function calculateDistance(float x1, float y1, float x2, float y2)
 
 ## Async and Concurrency
 
-**Status:** [DESIGN] no task yet
+**Status:** [DESIGN] FEATURES.md Task 42 - see `Concurrency.md` and `files/Service.md`
 
 Description: Built-in support for asynchronous programming.
 
@@ -4372,7 +4369,7 @@ Spaceship ship = SpaceshipEngine.createShip("Enterprise")
 
 ## Standard Library
 
-**Status:** [PARTLY] strings, bytes, collections, files and console are built (18.3, 18.5); math, text formats and the rest: no task yet
+**Status:** [PARTLY] strings, bytes, collections, files and console are built (18.3, 18.5), and `run(command)` runs another program (28.1.1); math, text formats and the rest: no task yet. Every built-in function and method, generated from the compiler: `files/Builtins.md`
 
 Description: Comprehensive built-in library for common tasks and formats.
 
@@ -5737,10 +5734,11 @@ Operator | Description | Example
 Operator | Description | Example
 ---|---|---
 `.` | Member access | `object.property`
-`?.` | Safe navigation | `object?.property`
-`??` | Null coalescing | `value ?? default`
+`?.` | Null guard (Task 30): not run on null, no error | `object?.method()`
+`??` | Default when null (Task 30) | `object?.method() ?? default`
+`? :` | Conditional operator (Task 30.7) | `(count > 5) ? "big" : "small"`
 `[]` | Array/index access | `array[0]`
-`?[]` | Safe array access | `array?[0]`
+`?[]` | Null-guarded index (only with `[arrays] nullable = true`) | `array?[0]`
 `()` | Function call / grouping | `function(args)`
 `...` | Spread/variadic/range | `1...10`, `int... args`
 `::` | Scope resolution | `Module::Class`
@@ -5769,7 +5767,8 @@ Priority | Operators | Associativity
 12 | `and`, `&&` | Left-to-right
 13 | `or`, `||` | Left-to-right
 14 | `??` | Left-to-right
-15 | `=`, `+=`, `-=`, `*=`, `/=`, `%=` | Right-to-left
+15 | `? :` (conditional) | Right-to-left
+16 | `=`, `+=`, `-=`, `*=`, `/=`, `%=` | Right-to-left
 
 **Use parentheses for clarity**: When in doubt, use `()` to make order explicit.
 
@@ -5849,11 +5848,9 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 ### Array Safe Navigation
 
-* **Safe Access**: `array?[0]` returns null if array is null
-* **Safe Methods**: `array?.sum()`, `array?.map()`
-* **Chaining**: `array?.filter()?.max()`
-* **Manual Handling**: Programmer must handle null afterward
-* **Optional Use**: Can use `?.` or not (user choice)
+* **Never null by default**: arrays, lists, maps and strings are empty, not null
+* **With `nullable = true`**: `array?.length` is -1 on null, `array?[0]` is null
+* Task 30, planned - `Nullable_Values.md`
 
 ---
 
@@ -5878,11 +5875,13 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 ### Null Safety
 
-* **Value Types**: Cannot be null, always have value
-* **Objects**: Must check with `?.null` or `is null`
-* **Safe Navigation**: `object?.property` returns none if null
-* **Strict Mode**: Compiler enforces null checks
-* **String Safety**: `string?.length` returns 0 if null
+* **Only class objects can be null**; strings, arrays, lists, maps, structs and numbers
+  never are (unless a `nullable` setting allows it)
+* **Check**: `== null`, `=== null`, `is null`, `x?.null`; `!x?.null` = not null
+* **Guard**: `object?.method()` - not run on null, no error, false in an `if`
+* **Default**: `object?.method() ?? value`
+* **Plain `.` on null**: NullError, caught with `catch`
+* **Numbers as conditions**: `[conditions] numbers` = "positive" (default) / "nonzero" / "off"
 
 ---
 

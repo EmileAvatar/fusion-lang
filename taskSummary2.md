@@ -450,5 +450,9 @@ Kept under Task 22 until the renumbering is approved.
   29.5 postponed; FEATURES lines and plan archived)
 - Task 30 planned (model: `T?` opt-in, narrowing, `??`, `?.` / `?[`, `x!`; 5 questions)
 - User answered the Task 30 questions and added notes (in the plan); session closed
-- **Next Action:** revise the Task 30 plan to the user's notes (confirm `?.` gives 0 or
-  null), get approval; also update the spec with every change so far
+- Task 30 design settled (Nullable_Values.md): only class objects null; strings / arrays /
+  lists / maps never null (nullable settings, default false); ?. guard, ??, number conditions
+  "positive" by default; spec updated with every change so far (user request)
+- **Next Action:** rewrite the Task 30 sub-task plan to the settled design (most of it waits
+  for classes, Task 32 - decide what to build now: conditional operator, .len / .length,
+  number conditions), get approval

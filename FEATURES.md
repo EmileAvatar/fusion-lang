@@ -273,10 +273,10 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 Kept in Fusion's design, deliberately postponed - the simple version comes first.
 	[POSTPONED to 29.4] String pool (shared storage for identical text) - when pooling is on,
 		strings are pooled and mutable strings use a StringBuilder internally (user note 2026-10-09)
-	[POSTPONED to 29] StringBuilder for fast repeated appends (internal for mutable strings)
+	[POSTPONED to 38] StringBuilder for fast repeated appends (internal for mutable strings)
 	[POSTPONED to 38] Garbage collection as a project-selectable memory strategy
 	[POSTPONED to 38] Unique<T> / Shared<T> / Weak<T> (decided in 12.7, not built)
-	[POSTPONED to 29] Copy-on-write string sharing, in-place string editing
+	[POSTPONED to 38] Copy-on-write string sharing (in-place editing, s[i] = c, done in 29.1)
 	[POSTPONED to 32] Methods on structs (`p.move(1, 2)`) - user-defined classes; methods on
 		built-in types are done (18.3.7)
 	[POSTPONED to 18.3] Closures (lambdas using outer variables) - need string ownership first
@@ -308,8 +308,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		has a value, so it may hold an empty List / Map / string but never null. In
 		fusion.toml [structs]: holding List / Map (on by default - built), functions on
 		structs (off by default, Task 32.1), classes inside structs (off by default)
-	[ ] Open: `int?` - the spec says value types can't be null but its `?[` example uses `int?`
-		(user will check, with Task 30)
+	[DONE] Open: `int?` - decided with Task 30 (user, 2026-10-27): no `T?` types at all; `?` is
+		used on a variable (`x?.method()`), and only class objects can be null (Nullable_Values.md)
 	Showcase [idea] list - to go through one by one (files/showcase/, user 2026-10-24):
 	[ ] Import only some names from a module: `import geometry { square, circle }`
 	[ ] A whole-program setting read from fusion.toml at compile time (`config.build.mode`)

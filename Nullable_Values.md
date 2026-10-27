@@ -24,6 +24,9 @@ The problems:
 - **Any value might be missing**, and nothing in the code says which ones
 - **The crash comes far from the cause**: the value was left unset somewhere else
 - **Checking everywhere is noisy**: `if person != null and person.address != null and ...`
+- **Data from outside can always be missing**: a JSON object whose field is `null`, a
+  database row with an empty column, a value the user never entered, a file that wasn't
+  there. The program can't promise these values exist - it can only handle them safely
 - **"Missing" is often faked with magic values** (-1, "", 0), and one gets mistaken for a
   real value
 
@@ -188,6 +191,9 @@ int; `getSpouse()` returns a Person, or null when there is none.
 | Search result | `found = people.find("Ann")` then `found?.getEmail() ?? "-"` | "not found" is a normal answer |
 | UI / reports | `print(user?.getName() ?? "guest")` | show something sensible, never crash |
 | Permission checks | `if user?.isAdmin()` | no user means no permission - false is the safe answer |
+| JSON and other outside data | `if order?.getCustomer()?.getEmail()?.length() > 0` | a JSON field may be `null` or missing; the guard keeps the program running |
+| User input | `string city = form?.getField("city") ?? "unknown"` | the user may leave a field empty or the form may not be sent |
+| A class that failed to load | `report?.print()` | the report object may never have been created - nothing to print, no crash |
 
 #### Don't use `?.` when missing is a bug
 
