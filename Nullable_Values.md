@@ -131,7 +131,7 @@ numbers = "positive"   # default: positive is true; zero and negatives are false
   so with this default `if s?.length()` and `if p?.getAge()` are false for "missing",
   "empty" and "not born yet" alike
 - **Watch out for:** developers from C, Python or JavaScript expect -1 to be true. The
-  editor will show how the project sets number conditions, as a hint (Task 36.6)
+  editor will show how the project sets number conditions, as a hint (Task 36.7)
 - **Trap under `"nonzero"`:** `if indexOf(s, "x")` is true for -1 ("not found")
 
 ---
@@ -236,7 +236,7 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 | 2026-10-27 | `??` gives a default when a value is expected and none is there |
 | 2026-10-27 | Checks: `==`, `===`, `is null`; `x?.null` / `!x?.null` as quick typing; no `x!` |
 | 2026-10-27 | `string?.length()` / `array?.length` on null give -1; everything else gives null |
-| 2026-10-27 | `[conditions] numbers` = "positive" (default) / "nonzero" / "off"; an editor hint shows the setting (36.6) |
+| 2026-10-27 | `[conditions] numbers` = "positive" (default) / "nonzero" / "off"; an editor hint shows the setting (36.7) |
 | 2026-10-27 | Warnings: a guarded value in a comparison; `??` after `?.length()` |
 | 2026-10-27 | Numbers as bool only in `if` / `while` conditions (with and / or / not); `count == true` follows the setting; `count === true` false; `bool b = count` always an error |
 | 2026-10-27 | `.len` and `.length` both; the conditional operator `(c) ? a : b` |

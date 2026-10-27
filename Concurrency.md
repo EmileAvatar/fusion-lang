@@ -1379,6 +1379,18 @@ Scheduled in `FEATURES.md` Task 42:
 - **42.12:** cluster threads across several servers. This is later, probably outside Fusion's
   first scope, and handled by a separate cluster framework.
 
+### 3.12 Collections and threads (user, 2026-10-27)
+
+Arrays, lists and maps get thread safety built in, so the common cases need no lock written
+by hand (FEATURES.md 42.17, 45.8; `Arrays.md`):
+- **Arrays** grow and shrink only at their end, so one atomic lock around "add at the end" /
+  "remove the last" is enough - taken implicitly, never written in the code
+- **Lists and maps** can change anywhere, so they are served like a small service (P1): a
+  shared thread, or a dedicated one for a busy list or map, does the adding, reading and
+  removing; callers send requests
+- Open: which is the default for lists and maps (shared or dedicated), and the setting that
+  chooses
+
 ### 3.11 Version one of `service` (agreed 2026-10-24)
 
 The full reference, with every setting and the `fusion.toml` defaults: `files/Service.md`.

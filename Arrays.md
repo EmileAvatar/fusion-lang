@@ -72,9 +72,9 @@ ever moves to another position.
 int numbers[]              // [] - empty, length 0 (also written int[] numbers)
 numbers.add(4)             // [4]     - index 0, length 1
 numbers.add(6)             // [4, 6]
-numbers.removeLast()       // [4]     (name to be decided)
-int[] more = numbers + [7, 8]        // combining arrays: [4, 7, 8]
-int[] part = more.slice(1, 3)        // [7, 8] - a copy; more is unchanged
+numbers.removeLast()       // [4]     (pop() is the same - quick typing)
+int[] more = numbers + [7, 8]        // a + b: b's items after a's -> [4, 7, 8]
+int[] part = more.slice(1, 2)        // [7, 8] - a copy; more is unchanged
 ```
 
 Like JavaScript's `slice`, taking a part never changes the original:
@@ -85,8 +85,14 @@ const result = fruits.slice(1, 3);   // ['banana', 'mango']
 console.log(fruits);                 // unchanged
 ```
 
-(JavaScript's `slice(1, 3)` means "from 1 up to 3"; Fusion's list `slice(start, count)`
-means "count items from start" - the array version will use the same rule as lists.)
+(JavaScript's `slice(1, 3)` means "from 1 up to 3"; Fusion's `slice(start, count)` means
+"count items from start", and `sliceAt(start, end)` means "from start to end" - see section 7.)
+
+**Looping while it changes** (planned): adding or removing at the end inside `for x in numbers`
+is allowed - the loop sees the new length, so no temporary copy is needed.
+
+**Threads** (planned, Task 42): adding or removing at the end is thread-safe by itself - an
+implicit atomic lock (`Concurrency.md` 3.12).
 
 **Use an array when:**
 - you collect values in arrival order and read them back by position - readings from a
@@ -127,6 +133,11 @@ All methods: `add`, `insert`, `removeAt`, `remove`, `clear`, `len`, `contains`, 
   will hold 10,000 items doesn't grow 10,000 times
 - **A kept sort order**: a list can be told its order once (for example by name), and every
   item added goes into its sorted place
+- **Changing it while looping**: today adding or removing inside `for x in list` is a
+  ModifiedWhileLoopingError (never a skipped item). A setting will allow it for a list
+  (or a map) that needs it - so no temporary copy is needed
+- **Threads** (Task 42): a list or map is served by a shared or its own thread for adding,
+  reading and removing (`Concurrency.md` 3.12)
 
 **Use a List when:**
 - items come and go anywhere - a to-do list, a playlist, players joining and leaving
@@ -157,7 +168,16 @@ for name in ages                    // keys, in the order they were added
 ```
 
 All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also written
-`Dictionary<K, V>`.
+`Dictionary<K, V>`. Keys today: `string`, `int` or `char`.
+
+#### Planned (user, 2026-10-27)
+
+- **Values of any type**
+- **Keys**: a non-empty fixed string (never pooled - its text can't change under the map), or
+  a whole number 0 or above (`byte`, `int`: 0, 140, 15661 - never a float, whose rounding
+  makes equal-looking keys differ)
+- **Your own hashing and key rules**: a map can bring its own hash function and its own
+  key condition - for example "only non-empty strings" or "ints only"
 
 **Use a Map when:**
 - you look values up by a key - prices by product code, settings by name, users by id
@@ -188,7 +208,35 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
 
 ---
 
-## 7. Decisions log
+## 7. Copying a part, and the slice / splice confusion
+
+| Method | Gives | Example on `[10, 20, 30, 40]` |
+|---|---|---|
+| `slice(start, count)` | a copy of count items from start; a count past the end gives up to the end; a start outside is an IndexError | `slice(1, 2)` -> `[20, 30]`; `slice(2, 99)` -> `[30, 40]` |
+| `sliceAt(start, end)` | a copy from start to end (both included); start after end -> the items in reverse | `sliceAt(1, 2)` -> `[20, 30]`; `sliceAt(3, 1)` -> `[40, 30, 20]` |
+
+Both leave the original unchanged. (Whether `end` is included is to be confirmed - the
+examples above include it.)
+
+**Why slice and splice confuse people:** in JavaScript they differ by one letter but do
+opposite things - `slice` copies a part and leaves the array alone; `splice` cuts items out
+(and can insert new ones) and **changes** the array. Fusion has no `splice`. Clearer names,
+to decide:
+
+| Instead of | Suggested name | Reads as |
+|---|---|---|
+| `slice` (copy, original unchanged) | keep `slice`, or `copyPart` / `part` | "give me a copy of this part" |
+| `splice` - removing a run of items | `removeRange(start, count)` | says it changes the list |
+| `splice` - inserting several items | `insertAll(at, items)` | like `insert`, for many |
+| `splice` - replacing a run | `replaceRange(start, count, items)` | says what it does |
+
+The rule behind the names: a method that **changes** the collection says so with a verb
+(`remove`, `insert`, `replace`); a method that **copies** returns a new one and leaves the
+original alone.
+
+---
+
+## 8. Decisions log
 
 | Date | Decision |
 |---|---|
@@ -197,3 +245,8 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
 | 2026-10-27 | `int numbers[]` and `int[] numbers` declare an empty array - waits for growing arrays (FEATURES.md Task 45) |
 | 2026-10-27 | Lists: capacity and a growth buffer, and a kept sort order (planned) |
 | 2026-10-27 | Taking a part (`slice`) gives a copy; the original is unchanged |
+| 2026-10-27 | `a + b` combines arrays; `removeLast()` removes the last item, `pop()` is quick typing for it |
+| 2026-10-27 | `slice(start, count)`: a count past the end stops at the end; a start outside is an IndexError. `sliceAt(start, end)`: start after end gives the items in reverse |
+| 2026-10-27 | Arrays: changing at the end while looping is allowed (the loop sees the new length). Lists / maps: a setting allows it; otherwise ModifiedWhileLoopingError |
+| 2026-10-27 | Threads: an array's add / remove at the end takes an implicit atomic lock; a list or map is served by a shared or dedicated thread |
+| 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |

@@ -437,4 +437,7 @@ Kept under Task 22 until the renumbering is approved.
   error
 - 30.10 postponed to new Task 45 (arrays that grow at the end - user: an empty array is for
   adding to later); Arrays.md written (single values, arrays, lists, maps)
+- Collections decisions recorded (Arrays.md, FEATURES 45 / Later / 42.17, Concurrency.md
+  3.12): a + b, removeLast / pop, slice / sliceAt, looping while changing, thread safety,
+  map keys; slice / splice names - suggestions in Arrays.md section 7, user to pick
 - **Next Action:** 30.8 (.len / .length)

@@ -35,6 +35,9 @@ Manual locking is a last resort.
 | P9 | Services Never Block on Each Other | While handling a request, a service calls only down the hierarchy, or sends without waiting |
 | P10 | Visible Concurrency | Editor tools and compiler warnings show who touches what |
 
+Collections (Concurrency.md 3.12): an array's add / remove at the end takes an implicit
+atomic lock; a List or Map is served by a shared or dedicated thread (P1 in small).
+
 A deadlock needs four conditions at once (Coffman, 1971): mutual exclusion, hold and wait,
 no preemption, and circular wait. P2 breaks **hold and wait**, and P3 breaks **no
 preemption** and **circular wait**.

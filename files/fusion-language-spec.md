@@ -2522,7 +2522,7 @@ numbers = "positive"   # default: positive is true; zero and negatives are false
 ```
 
 With `"positive"`, -1 ("not found", "not set") and 0 ("empty") are both false. The editor
-shows the project's choice as a hint (Task 36.6). Today a condition must be a bool.
+shows the project's choice as a hint (Task 36.7). Today a condition must be a bool.
 
 Where numbers count as true / false (user, 2026-10-27) - only when the setting is not "off":
 - in an `if` or `while` condition, including `and` / `or` / `not` inside it:

@@ -91,9 +91,15 @@ are in `task/featuresArchive.md`.
 	[ ] 45.1 Each array knows its own length at run time (like a List), so an array can be
 		replaced by one of another size (`numbers = make()`, `numbers = [1, 2, 3]`)
 	[ ] 45.2 Empty arrays: `int[] numbers` and `int numbers[]` (was 30.10)
-	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, remove the last item (name to decide)
-	[ ] 45.4 Combine arrays: `a + b` (or a method - to decide)
-	[ ] 45.5 `slice` - a copy of a part; the original is unchanged (same rule as List.slice)
+	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, `numbers.removeLast()` (`pop()` as
+		quick typing) - user, 2026-10-27
+	[ ] 45.4 Combine arrays: `a + b` gives a new array with b's items after a's (user, 2026-10-27)
+	[ ] 45.5 Copying a part: `slice(start, count)` and `sliceAt(start, end)` - the same rules as
+		List (see Later: "List slice"); the original is unchanged
+	[ ] 45.7 Changing an array while looping over it is allowed: the loop sees the new length
+		(user, 2026-10-27) - no temporary copy needed
+	[ ] 45.8 Adding / removing at the end is thread-safe by itself (an atomic lock) - with
+		Task 42 (user, 2026-10-27)
 	[ ] 45.6 Docs and examples: Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
 
 #### 31 Config file in any format: fusion.toml / .yaml / .json / .ini (was 20) [ ]
@@ -146,7 +152,7 @@ are in `task/featuresArchive.md`.
 		(user, 2026-10-23; Concurrency.md section 3.3 H - design later)
 	[ ] 36.5 Later: a language server (LSP) - errors as you type, go to definition, completion -
 		built on the self-hosted compiler, one server for every editor
-	[ ] 36.6 A hint showing how number conditions are set for the project (`[conditions]
+	[ ] 36.7 A hint showing how number conditions are set for the project (`[conditions]
 		numbers`, Task 30.9) - e.g. on `if count` (user, 2026-10-27)
 
 #### 37 Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) [ ]
@@ -261,6 +267,10 @@ are in `task/featuresArchive.md`.
 		also read from text (strings, fusion.toml). The full time module: Task 43.1
 	[ ] 42.13 The compiler checks P9 (a service handling a request calls only down the
 		hierarchy, or sends without waiting) across modules - to be designed
+	[ ] 42.17 Collections and threads (user, 2026-10-27 - Concurrency.md 3.12): an array's
+		add / remove at the end is thread-safe by itself (an atomic lock, 45.8); a List or
+		Map is served by a shared or its own (dedicated) thread for adding, reading and
+		removing - like a small service
 	(The thread view in the editor: 36.6. The service reference: files/Service.md)
 
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
@@ -319,6 +329,18 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] Lists (user, 2026-10-27 - Arrays.md): add many at once (another list, a group of
 		values); capacity and a growth buffer that can be set; a kept sort order (every
 		added item goes into its sorted place)
+	[ ] List slice (user, 2026-10-27): `slice(start, count)` - a count past the end gives the items
+		up to the end (today an IndexError); a start outside the list is an IndexError.
+		`sliceAt(start, end)` - from start to end; when start is after end, the items come
+		from start back to end (reversed). Better names for slice / splice: to decide
+		(Arrays.md section 7)
+	[ ] Changing a List / Map while looping (user, 2026-10-27): a setting per list / map (or
+		project) allows adding / removing inside the loop; when not allowed it stays a
+		ModifiedWhileLoopingError (today's rule, 27.2e) - saves a temporary copy
+	[ ] Map keys (user, 2026-10-27): values of any type; keys a non-empty fixed string (never
+		pooled) or a whole number 0 or above (byte, int - no floats). A map can bring its own
+		hash function and key rules (e.g. only non-empty strings, or ints only). Today: keys
+		are string, int or char
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):
