@@ -230,5 +230,8 @@ Kept under Task 22 until the renumbering is approved.
   n != 0 in the type checker)
 - 30.6 done (shipped with each part); **Task 30 complete for now** - FEATURES lines and plan
   archived; 30.2 / 30.3 wait for Task 32, 30.10 for Task 45
-- **Next Action:** the user picks the next step - Task 31 (config in any format) is next in
-  order; Task 45 (growing arrays) and Task 32 (classes) carry the postponed parts
+- Enums recheck (user, 2026-10-27): enums are reference types like classes - `Status s` with no
+  value is null, not the first value (today: the first value). Recorded as 30.11, docs updated;
+  open: build now or with Task 32, match on null
+- **Next Action:** the user answers the 30.11 questions; or picks the next task (31 next in
+  order)

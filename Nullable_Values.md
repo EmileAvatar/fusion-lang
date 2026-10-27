@@ -50,6 +50,7 @@ unless the code allows it, and `?.` reads through a possibly-missing value safel
 | **string** | **No** - unless the project allows it | `""` | a value with methods; a setting can allow null (below) |
 | **array, List, Map** | **No** - unless the project allows it | empty (`[]`, no keys) | like strings (user, 2026-10-27); see `Arrays.md` |
 | class object (Task 32) | **Yes** | null | objects are references |
+| **enum** | **Yes** | null - **not** the first value (user, 2026-10-27) | treated as a reference type, like a class: an unset `Status s` must not silently mean `OK` |
 
 **Strings, arrays, lists and maps** (user, 2026-10-27) are values: never null, and empty
 when not set. Empty is a real value with a real length: `"".length()` is 0 (no
@@ -232,6 +233,7 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 |---|---|
 | 2026-10-27 | Null only for class objects (and strings when `[strings] nullable = true`; default false - a string is a value, default "") |
 | 2026-10-27 | Arrays, List and Map are like strings: never null, empty by default; `[arrays]` / `[lists]` / `[maps]` `nullable` (default false); `"".length()` and `[].length()` are 0 |
+| 2026-10-27 | Enums are treated as reference types like classes: `Status s` with no value is null, not the first value (today it is the first value - to change) |
 | 2026-10-27 | `?.` is a guard: a null object's method is not run, no error; in an `if` it is false |
 | 2026-10-27 | `??` gives a default when a value is expected and none is there |
 | 2026-10-27 | Checks: `==`, `===`, `is null`; `x?.null` / `!x?.null` as quick typing; no `x!` |

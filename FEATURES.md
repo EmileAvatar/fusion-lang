@@ -63,6 +63,12 @@ are in `task/featuresArchive.md`.
 	[POSTPONED to 32] 30.2 On class objects: the `?.` guard (not run on null, false in an `if`),
 		`??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a plain
 		`.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
+	[ ] 30.11 Enums can be null (user, 2026-10-27): an enum is treated as a reference type like a
+		class - `Status s` with no value is null, not the first value (today: the first value,
+		Task 25). Using a null enum (toString, toInt, match) is a NullError; `== null`,
+		`?.null`, `?.toString() ?? x`. Then the "first value can't hold the enum" rule (25.5)
+		can go. Open: build now (enums exist) or with 30.2 in Task 32; what `match` does on
+		null
 	[POSTPONED to 32] 30.3 `nullable` settings for strings / arrays / lists / maps (default
 		false) and `?.length()` giving -1 on a null one - only useful with 30.2
 
@@ -353,7 +359,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		fusion.toml [structs]: holding List / Map (on by default - built), functions on
 		structs (off by default, Task 32.1), classes inside structs (off by default)
 	[DONE] Open: `int?` - decided with Task 30 (user, 2026-10-27): no `T?` types at all; `?` is
-		used on a variable (`x?.method()`), and only class objects can be null (Nullable_Values.md)
+		used on a variable (`x?.method()`), and only class objects and enums can be null
+		(Nullable_Values.md)
 	Showcase [idea] list - to go through one by one (files/showcase/, user 2026-10-24):
 	[ ] Import only some names from a module: `import geometry { square, circle }`
 	[ ] A whole-program setting read from fusion.toml at compile time (`config.build.mode`)

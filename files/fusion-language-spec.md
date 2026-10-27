@@ -1912,8 +1912,9 @@ that hold themselves (25.5); the properties / next() / fromValue below stay desi
 is what an expression tree or a compiler's syntax tree needs. Such a field is stored on the
 heap but is still a value: a copy is a deep copy, `==` compares the whole tree, everything
 is freed automatically. Two rules: the **first** value can't hold the enum (a variable
-given no value starts as the first one), and a value can't hold itself through other types
-(enum A holds struct S holds A) - hold it in a List instead
+given no value starts as the first one - this rule goes once an unset enum is null, see
+below), and a value can't hold itself through other types (enum A holds struct S holds A) -
+hold it in a List instead
 
 Example program using all of it: `examples/expressions/` - a `Token` enum with data, a
 tokenizer using `match` on chars, a parser building an `Expr` tree (`Binary(char op, Expr
@@ -1929,6 +1930,12 @@ deeply, freed automatically, `==` compares the value and its data. Printing and 
 give the value's name only; `toInt` its number. `values()` / `fromString` and use as a Map
 key are for enums without data. A variable given no value starts as the first value with
 its data at the defaults. In C it is a struct: a `tag` and every value's fields
+
+**Enums can be null (user decision 2026-10-27 - planned, replaces the "first value" default
+above):** an enum is treated as a reference type, like a class: `Status s` with no value is
+**null**, not the first value (`OK`). It never silently means a value nobody chose. Null
+handling as for class objects ("Null Handling", `Nullable_Values.md`): `s == null`,
+`s?.null`, `s?.toString() ?? "unset"`; a plain `s.toString()` on null is a NullError
 
 **`match` as built (Task 25.3, user decisions 2026-10-12):** `match value` then `case`
 lines, indented, in braces, or closed by `End match`. A case lists one or more values
@@ -2452,7 +2459,8 @@ class object that was never created.
 
 ### Core Principles
 
-* **Only class objects can be null** (Task 32). Numbers, bools, chars and structs are
+* **Only class objects and enums can be null** (Task 32; enums - user, 2026-10-27: `Status s`
+  with no value is null, not the first value). Numbers, bools, chars and structs are
   values; strings, arrays, `List` and `Map` are values too - never null, empty when not
   set (`""`, `[]`), length 0 when empty
 * **A project may allow null** for strings, arrays, lists or maps when "not set yet" must
@@ -2543,7 +2551,7 @@ Where numbers count as true / false (user, 2026-10-27) - only when the setting i
 ### Strict Mode (replaced)
 
 The earlier "strict mode" (the compiler adding null checks to every parameter) is replaced
-by the rules above: only class objects can be null, a plain `.` on null is a NullError with
+by the rules above: only class objects and enums can be null, a plain `.` on null is a NullError with
 file and line, and `?.` is the guard where missing is normal.
 
 ---
@@ -5915,7 +5923,7 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 ### Null Safety
 
-* **Only class objects can be null**; strings, arrays, lists, maps, structs and numbers
+* **Only class objects and enums can be null**; strings, arrays, lists, maps, structs and numbers
   never are (unless a `nullable` setting allows it)
 * **Check**: `== null`, `=== null`, `is null`, `x?.null`; `!x?.null` = not null
 * **Guard**: `object?.method()` - not run on null, no error, false in an `if`
