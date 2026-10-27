@@ -94,11 +94,13 @@ are in `task/featuresArchive.md`.
 	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, `numbers.removeLast()` (`pop()` as
 		quick typing) - user, 2026-10-27
 	[ ] 45.4 Combine arrays: `a + b + c + d` - a new array, each one's items in turn; all of
-		the same type (user, 2026-10-27). Lists the same; maps: duplicate keys - to decide
+		the same type (user, 2026-10-27). Lists the same. Maps use `add(otherMap)` instead
+		(see Later: "Map keys")
 	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` /
 		`sliceAt` as quick typing) - the same rules as List (see Later: "List slice")
-	[ ] 45.9 `foreach item in collection` (arrays, lists, maps): adding / removing that
-		collection inside is a compile error; `continue` / `break` allowed (user, 2026-10-27)
+	[ ] 45.9 `foreach (string item in names)` over arrays, lists and maps - the item's type is
+		the collection's; adding / removing that collection inside is a compile error;
+		`continue` / `break` allowed (user, 2026-10-27)
 	[ ] 45.7 Changing an array while looping over it is allowed: the loop sees the new length
 		(user, 2026-10-27) - no temporary copy needed
 	[ ] 45.8 Adding / removing at the end is thread-safe by itself (an atomic lock) - with
@@ -122,6 +124,9 @@ are in `task/featuresArchive.md`.
 		interface names need no I prefix; several constructors per class; a constructor may
 		call another (private ones too) with this(...); constructors calling each other in a
 		circle are a compile error
+	[ ] 32.4 A `Collection` interface (user, 2026-10-27 - Arrays.md section 6): arrays, lists and
+		maps implement it; `foreach` works on any class that does, and the class decides its
+		own rules (adding / removing while looping, threads, special actions)
 	[ ] 32.3 Example (was 16.2: classes, interfaces & enums)
 
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ]
@@ -337,15 +342,15 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		as quick typing; a count past the end gives the items up to the end (today an
 		IndexError); a start outside the list is an IndexError. `copyPartAt(start, end)`
 		(`sliceAt`): end included, stops at the end, start after end gives the items reversed.
-		Open: the user's examples count from 1 - Fusion counts from 0 (Arrays.md section 8).
-		Also `+` for lists (`a + b + c`)
+		Positions count from 0. Also `+` for lists (`a + b + c`)
 	[ ] Changing a List / Map while looping (user, 2026-10-27): a setting per list / map (or
 		project) allows adding / removing inside the loop; when not allowed it stays a
 		ModifiedWhileLoopingError (today's rule, 27.2e) - saves a temporary copy
 	[ ] Map keys (user, 2026-10-27): values of any type; keys a non-empty fixed string (never
 		pooled) or a whole number 0 or above (byte, int - no floats). A map can bring its own
 		hash function and key rules (e.g. only non-empty strings, or ints only). Today: keys
-		are string, int or char
+		are string, int or char. Combining: `m.add(otherMap)` (no `+`); a setting on the map
+		decides a key already there - replace by default (user, 2026-10-27)
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):

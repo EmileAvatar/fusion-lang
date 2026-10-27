@@ -20,6 +20,7 @@ Decisions by the user, 2026-10-27. Status marks: **built** (works today) and **p
 | Add | - | at the end: `a.add(4)` (planned) | anywhere: `add`, `insert` | `m[key] = value` |
 | Remove | - | from the end (planned) | anywhere: `removeAt`, `remove` | `m.remove(key)` |
 | Reorder / sort | - | no | `sort`, `sortBy` (a kept sort order planned) | keeps the order keys were added |
+| Duplicates | - | allowed | allowed | **no**: each key once (adding it again replaces the value, by default) |
 | Copying `b = a` | a copy | an independent copy | an independent copy | an independent copy |
 | Cost of adding | - | cheap at the end | cheap at the end, slower in the middle (later items move up) | cheap |
 | Status | built | built (fixed size); growing planned | built | built |
@@ -187,9 +188,11 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
   makes equal-looking keys differ)
 - **Your own hashing and key rules**: a map can bring its own hash function and its own
   key condition - for example "only non-empty strings" or "ints only"
-- **Combining**: `Map<string, int> all = a + b + c` (same types). **Open:** when two maps have
-  the same key - the later one wins (as Python's `a | b` and JavaScript's spread), or an
-  error?
+- **No duplicate keys**: each key appears once (a List allows duplicates, a Map never)
+- **Combining maps uses `add`, not `+`** (user, 2026-10-27): `ages.add(moreAges)` adds every
+  key of another map. When a key is already there, a setting on the map decides - by default
+  the incoming value **replaces** the old one ("Ann" from `moreAges` replaces "Ann" in
+  `ages`)
 
 **Use a Map when:**
 - you look values up by a key - prices by product code, settings by name, users by id
@@ -211,13 +214,14 @@ adding or removing items of that collection inside a `foreach` is a **compile er
 skips to the next item and `break` leaves the loop.
 
 ```fusion
-foreach item in collection           // also written: foreach (item in collection) { ... }
+foreach (string item in names)       // the item's type is the collection's - also written
+                                     // without brackets: foreach string item in names
     if item.isHidden()
         continue                     // skip this one
     if item.isLast()
         break                        // stop
     print(item)
-    // collection.add(x) or collection.remove(x) here: a compile error
+    // names.add(x) or names.remove(x) here: a compile error
 ```
 
 | | `for x in collection` | `foreach x in collection` |
@@ -225,8 +229,12 @@ foreach item in collection           // also written: foreach (item in collectio
 | Adding / removing inside | arrays: allowed (the loop sees the new length); lists / maps: a setting, otherwise ModifiedWhileLoopingError at run time | always a **compile error** |
 | Use it when | the loop must change the collection | reading only - the code says so, and the compiler checks it |
 
-(`var` in `foreach (var item in collection)`, as in C#, waits for type inference; until then
-the item's type comes from the collection, as in `for x in`.)
+**Future - the Collection interface** (user, 2026-10-27, with classes and interfaces, Task 32):
+`foreach` works on anything that implements a `Collection` interface. Arrays, lists and maps
+implement it; a class of your own can too, and decide its own rules - whether adding or
+removing while looping is allowed, how it handles threads, or any special action that
+collection needs. The compile error above is the rule of the built-in arrays, lists and
+maps.
 
 ---
 
@@ -256,20 +264,16 @@ typing (familiar from JavaScript and Python). The same for the start-to-end form
 | `copyPart(start, count)` (or `slice`) | a copy of count items from start; a count past the end stops at the end; a start outside is an IndexError |
 | `copyPartAt(start, end)` (or `sliceAt`) | a copy from start to end, **both included**; an end past the end stops at the end; a start outside is an IndexError; start after end gives the items in reverse |
 
-The user's examples (2026-10-27) on `int[] someArray = [20, 30]`:
+Positions count from **0**, as everywhere in Fusion (user, 2026-10-27): the first item is at
+index 0. On `int[] someArray = [20, 30]`:
 
 | Call | Gives |
 |---|---|
-| `sliceAt(1, 2)` | `[20, 30]` |
-| `sliceAt(1, 3)` | `[20, 30]` - stops at the end |
-| `sliceAt(2, 3)` | `[30]` |
-| `sliceAt(3, 4)` | an IndexError - the start is outside |
-
-**Open:** these examples count from **1** (position 1 is 20). Everything else in Fusion
-counts from **0**, as C, Java, C#, JavaScript and Python do - `someArray[0]` is 20,
-`xs.insert(0, ...)`, `slice(0, 2)`. Counted from 0 the same calls would be `sliceAt(0, 1)`
--> `[20, 30]`, `sliceAt(0, 2)` -> `[20, 30]`, `sliceAt(1, 2)` -> `[30]`, `sliceAt(2, 3)` ->
-IndexError. To confirm which.
+| `sliceAt(0, 1)` | `[20, 30]` |
+| `sliceAt(0, 2)` | `[20, 30]` - stops at the end |
+| `sliceAt(1, 2)` | `[30]` |
+| `sliceAt(2, 3)` | an IndexError - the start is outside |
+| `sliceAt(1, 0)` | `[30, 20]` - start after end: reversed |
 
 Both leave the original unchanged.
 
@@ -305,7 +309,10 @@ original alone.
 | 2026-10-27 | Arrays: changing at the end while looping is allowed (the loop sees the new length). Lists / maps: a setting allows it; otherwise ModifiedWhileLoopingError |
 | 2026-10-27 | Threads: an array's add / remove at the end takes an implicit atomic lock; a list or map is served by a shared or dedicated thread |
 | 2026-10-27 | `copyPart` / `copyPartAt` (with `slice` / `sliceAt` as quick typing); `end` included; an end past the end stops there; a start outside is an IndexError |
-| 2026-10-27 | Combine any number at once: `A + B + C + D` - arrays, lists and maps, all of the same type |
+| 2026-10-27 | Combine any number at once: `A + B + C + D` - arrays and lists, all of the same type. Maps use `add(otherMap)`, not `+`; a setting on the map decides a key already there - replace by default |
+| 2026-10-27 | Positions count from 0 in `copyPart` / `copyPartAt` too |
+| 2026-10-27 | Duplicates: arrays and lists allow them; a map's keys never repeat |
+| 2026-10-27 | `foreach (string item in names)` - the item's type is the collection's. Future: a `Collection` interface (Task 32) - arrays, lists, maps and your own classes implement it, and a class decides its own looping / thread rules |
 | 2026-10-27 | `foreach` over arrays, lists and maps: adding / removing inside is a compile error; `continue` and `break` allowed |
 | 2026-10-27 | Lists / maps and threads: shared by default, `[collections] threads = "shared"`, `shared_threads = 10` |
 | 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |

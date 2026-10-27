@@ -442,6 +442,7 @@ Kept under Task 22 until the renumbering is approved.
   map keys; slice / splice names - suggestions in Arrays.md section 7, user to pick
 - More collections decisions (user): copyPart (slice as sugar), sliceAt end included, A + B +
   C + D, foreach (no add / remove - compile error), lists / maps shared threads (10) by
-  default; CLAUDE.md naming rule. Open: sliceAt examples count from 1 (Fusion counts from 0);
-  map + map with the same key
+  default; CLAUDE.md naming rule. Then: positions from 0; maps combine with add() (same key:
+  replace by default, a map setting); foreach (Type item in c); Collection interface (32.4);
+  lists allow duplicates, maps don't
 - **Next Action:** 30.8 (.len / .length)
