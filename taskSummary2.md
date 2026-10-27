@@ -176,6 +176,8 @@ Table 2 - a class. `Person p = new Person("Jake")`; `Person pep` (never set = nu
 **Answered (user, 2026-10-27):** 1. warn; 2. warn (`??` is only for where a value is
 expected and none may come); 3. strings always default to "" and are never null - unless
 `[strings] nullable = true` (default false). Full write-up: `Nullable_Values.md` (root).
+Arrays, List and Map are the same (user, 2026-10-27): never null, empty by default,
+`nullable` settings default false; `"".length()` and `[].length()` are 0.
 
 **Was open:**
 1. With null, `>= 18` is false and `< 18` is false too - so `!(x >= 18)` is not the same as

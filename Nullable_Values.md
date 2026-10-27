@@ -45,16 +45,27 @@ unless the code allows it, and `?.` reads through a possibly-missing value safel
 | int, float, bool, char, byte | No | 0 / false / '\0' | values |
 | struct | No | every field's default | a value type (user, 2026-10-24) |
 | **string** | **No** - unless the project allows it | `""` | a value with methods; a setting can allow null (below) |
-| array, List, Map | Open - proposed: like strings (never null by default) | empty | to confirm |
+| **array, List, Map** | **No** - unless the project allows it | empty (`[]`, no keys) | like strings (user, 2026-10-27) |
 | class object (Task 32) | **Yes** | null | objects are references |
 
-**Strings** (user, 2026-10-27): a string is a value with the default `""`, and never null.
-A project that needs "not set yet" to differ from "set to empty" can switch it on:
+**Strings, arrays, lists and maps** (user, 2026-10-27) are values: never null, and empty
+when not set. Empty is a real value with a real length: `"".length()` is 0 (no
+characters), `[].length()` is 0 (no items). A project that needs "not set yet" to differ
+from "set to empty" can allow null, type by type:
 
 ```toml
 [strings]
-nullable = false     # default - a string is never null; true: an unset string is null
+nullable = false     # default - never null; true: an unset string is null
+[arrays]
+nullable = false     # the same for arrays
+[lists]
+nullable = false     # List<T>
+[maps]
+nullable = false     # Map<K, V>
 ```
+
+(Section names follow the existing `[strings]` / `[structs]` style; final names are fixed
+when Task 30 is built.)
 
 ---
 
@@ -80,8 +91,8 @@ Person pep                      // never set: null
 - **The conditional operator** works on one line and gives a value:
   `int age = (person?.getAge()) ? person.getAge() : -1`
 - **Length on a null:** `string?.length()` and `array?.length` give -1 when the string or
-  array is null (only when nullable strings or arrays are switched on). Every other member
-  or method gives null
+  array is null (only when nullable strings or arrays are switched on). An empty one gives
+  0. Every other member or method gives null
 
 ---
 
@@ -120,7 +131,8 @@ Default settings: `[conditions] numbers = "positive"`.
 #### Table 1: string and array length
 
 `s` is a string, `a` an int array. The null column only applies when the project sets
-`[strings] nullable = true` (arrays: open, see section 2).
+`[strings] nullable = true` / `[arrays] nullable = true` - by default they are never null,
+and an empty one has length 0.
 
 | Expression | null | `""` / `[]` | `"abc"` / `[1, 2, 3]` | Use case |
 |---|---|---|---|---|
@@ -196,7 +208,6 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 
 ## 7. Open points
 
-- Arrays, List, Map: never null by default like strings (proposed), with a setting?
 - The exact warning rules (section 5) - decided when Task 30.3 is built
 - Classes (Task 32) and `Weak<T>.lock()` (Task 38) use this model
 
@@ -205,6 +216,7 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 | Date | Decision |
 |---|---|
 | 2026-10-27 | Null only for class objects (and strings when `[strings] nullable = true`; default false - a string is a value, default "") |
+| 2026-10-27 | Arrays, List and Map are like strings: never null, empty by default; `[arrays]` / `[lists]` / `[maps]` `nullable` (default false); `"".length()` and `[].length()` are 0 |
 | 2026-10-27 | `?.` is a guard: a null object's method is not run, no error; in an `if` it is false |
 | 2026-10-27 | `??` gives a default when a value is expected and none is there |
 | 2026-10-27 | Checks: `==`, `===`, `is null`; `x?.null` / `!x?.null` as quick typing; no `x!` |
