@@ -74,6 +74,7 @@ numbers.add(4)             // [4]     - index 0, length 1
 numbers.add(6)             // [4, 6]
 numbers.removeLast()       // [4]     (pop() is the same - quick typing)
 int[] more = numbers + [7, 8]        // a + b: b's items after a's -> [4, 7, 8]
+int[] all = a + b + c + d            // any number at once - all of the same type
 int[] part = more.slice(1, 2)        // [7, 8] - a copy; more is unchanged
 ```
 
@@ -137,7 +138,15 @@ All methods: `add`, `insert`, `removeAt`, `remove`, `clear`, `len`, `contains`, 
   ModifiedWhileLoopingError (never a skipped item). A setting will allow it for a list
   (or a map) that needs it - so no temporary copy is needed
 - **Threads** (Task 42): a list or map is served by a shared or its own thread for adding,
-  reading and removing (`Concurrency.md` 3.12)
+  reading and removing (`Concurrency.md` 3.12). Shared by default:
+
+```toml
+[collections]
+threads = "shared"     # default: lists and maps share a pool of threads; "dedicated": each
+                       # busy list / map gets its own thread
+shared_threads = 10    # default: the pool's size
+```
+- **Combining**: `List<int> all = a + b + c` - the same as arrays; for maps see section 5
 
 **Use a List when:**
 - items come and go anywhere - a to-do list, a playlist, players joining and leaving
@@ -178,6 +187,9 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
   makes equal-looking keys differ)
 - **Your own hashing and key rules**: a map can bring its own hash function and its own
   key condition - for example "only non-empty strings" or "ints only"
+- **Combining**: `Map<string, int> all = a + b + c` (same types). **Open:** when two maps have
+  the same key - the later one wins (as Python's `a | b` and JavaScript's spread), or an
+  error?
 
 **Use a Map when:**
 - you look values up by a key - prices by product code, settings by name, users by id
@@ -192,7 +204,33 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
 
 ---
 
-## 6. Choosing - examples
+## 6. foreach - looping without changing (planned, user 2026-10-27)
+
+`foreach` goes over an array, list or map like `for x in`, but **promises not to change it**:
+adding or removing items of that collection inside a `foreach` is a **compile error**. `continue`
+skips to the next item and `break` leaves the loop.
+
+```fusion
+foreach item in collection           // also written: foreach (item in collection) { ... }
+    if item.isHidden()
+        continue                     // skip this one
+    if item.isLast()
+        break                        // stop
+    print(item)
+    // collection.add(x) or collection.remove(x) here: a compile error
+```
+
+| | `for x in collection` | `foreach x in collection` |
+|---|---|---|
+| Adding / removing inside | arrays: allowed (the loop sees the new length); lists / maps: a setting, otherwise ModifiedWhileLoopingError at run time | always a **compile error** |
+| Use it when | the loop must change the collection | reading only - the code says so, and the compiler checks it |
+
+(`var` in `foreach (var item in collection)`, as in C#, waits for type inference; until then
+the item's type comes from the collection, as in `for x in`.)
+
+---
+
+## 7. Choosing - examples
 
 | Need | Use | Why |
 |---|---|---|
@@ -208,15 +246,32 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
 
 ---
 
-## 7. Copying a part, and the slice / splice confusion
+## 8. Copying a part, and the slice / splice confusion
 
-| Method | Gives | Example on `[10, 20, 30, 40]` |
-|---|---|---|
-| `slice(start, count)` | a copy of count items from start; a count past the end gives up to the end; a start outside is an IndexError | `slice(1, 2)` -> `[20, 30]`; `slice(2, 99)` -> `[30, 40]` |
-| `sliceAt(start, end)` | a copy from start to end (both included); start after end -> the items in reverse | `sliceAt(1, 2)` -> `[20, 30]`; `sliceAt(3, 1)` -> `[40, 30, 20]` |
+**Names (user, 2026-10-27):** `copyPart` - it says what it does; `slice` stays as quick
+typing (familiar from JavaScript and Python). The same for the start-to-end form.
 
-Both leave the original unchanged. (Whether `end` is included is to be confirmed - the
-examples above include it.)
+| Method | Gives |
+|---|---|
+| `copyPart(start, count)` (or `slice`) | a copy of count items from start; a count past the end stops at the end; a start outside is an IndexError |
+| `copyPartAt(start, end)` (or `sliceAt`) | a copy from start to end, **both included**; an end past the end stops at the end; a start outside is an IndexError; start after end gives the items in reverse |
+
+The user's examples (2026-10-27) on `int[] someArray = [20, 30]`:
+
+| Call | Gives |
+|---|---|
+| `sliceAt(1, 2)` | `[20, 30]` |
+| `sliceAt(1, 3)` | `[20, 30]` - stops at the end |
+| `sliceAt(2, 3)` | `[30]` |
+| `sliceAt(3, 4)` | an IndexError - the start is outside |
+
+**Open:** these examples count from **1** (position 1 is 20). Everything else in Fusion
+counts from **0**, as C, Java, C#, JavaScript and Python do - `someArray[0]` is 20,
+`xs.insert(0, ...)`, `slice(0, 2)`. Counted from 0 the same calls would be `sliceAt(0, 1)`
+-> `[20, 30]`, `sliceAt(0, 2)` -> `[20, 30]`, `sliceAt(1, 2)` -> `[30]`, `sliceAt(2, 3)` ->
+IndexError. To confirm which.
+
+Both leave the original unchanged.
 
 **Why slice and splice confuse people:** in JavaScript they differ by one letter but do
 opposite things - `slice` copies a part and leaves the array alone; `splice` cuts items out
@@ -225,7 +280,7 @@ to decide:
 
 | Instead of | Suggested name | Reads as |
 |---|---|---|
-| `slice` (copy, original unchanged) | keep `slice`, or `copyPart` / `part` | "give me a copy of this part" |
+| `slice` (copy, original unchanged) | **`copyPart`** (chosen), `slice` as quick typing | "give me a copy of this part" |
 | `splice` - removing a run of items | `removeRange(start, count)` | says it changes the list |
 | `splice` - inserting several items | `insertAll(at, items)` | like `insert`, for many |
 | `splice` - replacing a run | `replaceRange(start, count, items)` | says what it does |
@@ -236,7 +291,7 @@ original alone.
 
 ---
 
-## 8. Decisions log
+## 9. Decisions log
 
 | Date | Decision |
 |---|---|
@@ -249,4 +304,8 @@ original alone.
 | 2026-10-27 | `slice(start, count)`: a count past the end stops at the end; a start outside is an IndexError. `sliceAt(start, end)`: start after end gives the items in reverse |
 | 2026-10-27 | Arrays: changing at the end while looping is allowed (the loop sees the new length). Lists / maps: a setting allows it; otherwise ModifiedWhileLoopingError |
 | 2026-10-27 | Threads: an array's add / remove at the end takes an implicit atomic lock; a list or map is served by a shared or dedicated thread |
+| 2026-10-27 | `copyPart` / `copyPartAt` (with `slice` / `sliceAt` as quick typing); `end` included; an end past the end stops there; a start outside is an IndexError |
+| 2026-10-27 | Combine any number at once: `A + B + C + D` - arrays, lists and maps, all of the same type |
+| 2026-10-27 | `foreach` over arrays, lists and maps: adding / removing inside is a compile error; `continue` and `break` allowed |
+| 2026-10-27 | Lists / maps and threads: shared by default, `[collections] threads = "shared"`, `shared_threads = 10` |
 | 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |

@@ -440,4 +440,8 @@ Kept under Task 22 until the renumbering is approved.
 - Collections decisions recorded (Arrays.md, FEATURES 45 / Later / 42.17, Concurrency.md
   3.12): a + b, removeLast / pop, slice / sliceAt, looping while changing, thread safety,
   map keys; slice / splice names - suggestions in Arrays.md section 7, user to pick
+- More collections decisions (user): copyPart (slice as sugar), sliceAt end included, A + B +
+  C + D, foreach (no add / remove - compile error), lists / maps shared threads (10) by
+  default; CLAUDE.md naming rule. Open: sliceAt examples count from 1 (Fusion counts from 0);
+  map + map with the same key
 - **Next Action:** 30.8 (.len / .length)

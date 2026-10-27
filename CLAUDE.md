@@ -161,6 +161,11 @@ When a language feature or spec changes, update every affected file without aski
   `fusion.toml` where that makes sense, with a safe default (e.g. `[structs]`: holding
   List / Map on, functions on structs off, classes inside structs off). Reviewing an idea
   means deciding: a setting, a fixed rule, or discarded (FEATURES.md, top)
+- **Method names say what they do (user, 2026-10-27):** a verb where possible -
+  `copyPart`, `removeLast`, `removeRange`, `insertAll`; a method that changes the
+  collection says so, one that copies leaves the original alone. A short familiar name may
+  be added as quick typing (sugar) for the clear one: `slice` / `copyPart`, `pop` /
+  `removeLast`, `len()` / `length()`
 - **Guiding rule:** a simple working language first, advanced features after
   (`FutureFeaturesCaution.md`). Security principle: never trust code
 - **Repository is public** on GitHub (`EmileAvatar/fusion-lang`); history was scrubbed of a

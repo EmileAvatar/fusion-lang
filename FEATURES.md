@@ -93,9 +93,12 @@ are in `task/featuresArchive.md`.
 	[ ] 45.2 Empty arrays: `int[] numbers` and `int numbers[]` (was 30.10)
 	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, `numbers.removeLast()` (`pop()` as
 		quick typing) - user, 2026-10-27
-	[ ] 45.4 Combine arrays: `a + b` gives a new array with b's items after a's (user, 2026-10-27)
-	[ ] 45.5 Copying a part: `slice(start, count)` and `sliceAt(start, end)` - the same rules as
-		List (see Later: "List slice"); the original is unchanged
+	[ ] 45.4 Combine arrays: `a + b + c + d` - a new array, each one's items in turn; all of
+		the same type (user, 2026-10-27). Lists the same; maps: duplicate keys - to decide
+	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` /
+		`sliceAt` as quick typing) - the same rules as List (see Later: "List slice")
+	[ ] 45.9 `foreach item in collection` (arrays, lists, maps): adding / removing that
+		collection inside is a compile error; `continue` / `break` allowed (user, 2026-10-27)
 	[ ] 45.7 Changing an array while looping over it is allowed: the loop sees the new length
 		(user, 2026-10-27) - no temporary copy needed
 	[ ] 45.8 Adding / removing at the end is thread-safe by itself (an atomic lock) - with
@@ -270,7 +273,8 @@ are in `task/featuresArchive.md`.
 	[ ] 42.17 Collections and threads (user, 2026-10-27 - Concurrency.md 3.12): an array's
 		add / remove at the end is thread-safe by itself (an atomic lock, 45.8); a List or
 		Map is served by a shared or its own (dedicated) thread for adding, reading and
-		removing - like a small service
+		removing - like a small service. `[collections] threads = "shared"` (default) /
+		"dedicated", `shared_threads = 10` (default)
 	(The thread view in the editor: 36.6. The service reference: files/Service.md)
 
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
@@ -329,11 +333,12 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] Lists (user, 2026-10-27 - Arrays.md): add many at once (another list, a group of
 		values); capacity and a growth buffer that can be set; a kept sort order (every
 		added item goes into its sorted place)
-	[ ] List slice (user, 2026-10-27): `slice(start, count)` - a count past the end gives the items
-		up to the end (today an IndexError); a start outside the list is an IndexError.
-		`sliceAt(start, end)` - from start to end; when start is after end, the items come
-		from start back to end (reversed). Better names for slice / splice: to decide
-		(Arrays.md section 7)
+	[ ] List copyPart (user, 2026-10-27): rename `slice` to `copyPart(start, count)`, `slice` kept
+		as quick typing; a count past the end gives the items up to the end (today an
+		IndexError); a start outside the list is an IndexError. `copyPartAt(start, end)`
+		(`sliceAt`): end included, stops at the end, start after end gives the items reversed.
+		Open: the user's examples count from 1 - Fusion counts from 0 (Arrays.md section 8).
+		Also `+` for lists (`a + b + c`)
 	[ ] Changing a List / Map while looping (user, 2026-10-27): a setting per list / map (or
 		project) allows adding / removing inside the loop; when not allowed it stays a
 		ModifiedWhileLoopingError (today's rule, 27.2e) - saves a temporary copy

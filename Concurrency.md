@@ -1388,8 +1388,15 @@ by hand (FEATURES.md 42.17, 45.8; `Arrays.md`):
 - **Lists and maps** can change anywhere, so they are served like a small service (P1): a
   shared thread, or a dedicated one for a busy list or map, does the adding, reading and
   removing; callers send requests
-- Open: which is the default for lists and maps (shared or dedicated), and the setting that
-  chooses
+- Default (user, 2026-10-27): **shared** - lists and maps share a pool of 10 threads;
+  `"dedicated"` gives a busy list or map its own:
+
+```toml
+[collections]
+threads = "shared"     # default: lists and maps share a pool of threads; "dedicated": each
+                       # busy list / map gets its own thread
+shared_threads = 10    # default: the pool's size
+```
 
 ### 3.11 Version one of `service` (agreed 2026-10-24)
 
