@@ -93,8 +93,12 @@ session to match these):**
 - Checking null: `==`, `===`, `is null`; `x?.null` stays as quick typing - true when x is
   null; `!x?.null` - not null (sugar) (Q2)
 - No `x!`; `!x?.null` instead - option (a): an unchecked use is a compile error (Q3)
-- Q4 "yes" (no silent 0) - **to confirm next session:** the note above says
-  `nickname?.length()` returns 0 when not set; which one holds for `?.`
+- Q4 "yes" (no silent 0). Follow-up (user, 2026-10-27): on a null string
+  `nickname?.length()` gives **-1** (never a real length, so not a silent 0); numeric arrays:
+  not decided yet. `??` gives a default when the value is null:
+  `nickname?.length() ?? 0`. **Open, next session:** if `?.length()` gives -1, `??` never
+  sees a null there - decide whether `?.` gives null (then `?? -1` / `?? 0` picks the value)
+  or -1 (then `??` is for `?.` on other members / functions)
 - Support both `.len` and `.length` - `len` is quick typing (Q5)
 - Also supported: the conditional operator `(condition) ? valueIfTrue : valueIfFalse`
 - **To do:** update the spec (`files/fusion-language-spec.md`) with every change made so far
