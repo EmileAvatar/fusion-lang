@@ -100,6 +100,14 @@ session to match these):**
   sees a null there - decide whether `?.` gives null (then `?? -1` / `?? 0` picks the value)
   or -1 (then `??` is for `?.` on other members / functions)
 - Support both `.len` and `.length` - `len` is quick typing (Q5)
+- Numbers as conditions (user idea, 2026-10-27): zero or negative = false, positive = true,
+  so `if nickname?.length()` is false for -1 (null) and 0 (empty). Today a condition must be
+  a bool ("If condition must be bool, got int"). Other languages: C / C++ / Python /
+  JavaScript / Perl - 0 false, any other number (negatives too) true; Ruby / Lua - every
+  number true (0 too); Java / C# / Go / Rust / Swift / Kotlin - no numbers as conditions.
+  No mainstream language makes negatives false. Trap: `if indexOf(s, "x")` is false both
+  for "not found" (-1) and "found at 0". **Open, next session:** a setting (e.g.
+  `[conditions] numbers = false` by default) or keep conditions bool-only
 - Also supported: the conditional operator `(condition) ? valueIfTrue : valueIfFalse`
 - **To do:** update the spec (`files/fusion-language-spec.md`) with every change made so far
   (check Tasks 29 / 44 and earlier decisions are all reflected) - noted 2026-10-27
