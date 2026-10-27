@@ -220,7 +220,7 @@ proposal in `files/Literals.md` (not designed yet).
 
 Type | Default | Min | Max | Autobox Class | Safe Cast To
 ---|---|---|---|---|---
-byte | 0 | 0 | 255 | Byte | short, int, long, float, double
+byte | 0 (0x00) | 0 | 255 | Byte | short, int, long, float, double
 sbyte | 0 | -128 | 127 | SByte | short, int, long, float, double
 bytes | empty | - | - | - | - (raw byte array, see "Raw bytes")
 short | 0 | -32,768 | 32,767 | Short | int, long, float, double
@@ -235,6 +235,28 @@ decimal | 0.0 | ±1.0 x 10^-28 | ±7.9 x 10^28 | Decimal | (highest precision)
 bool | false | false | true | Boolean | int (0 or 1)
 char | '\0' | U+0000 | U+10FFFF | Char | int, string
 string | "" | (empty) | (memory limit) | String | (no casting from)
+money | 0 | (to be designed) | (to be designed) | Money | written out only (see below)
+array `T[]` | `[]` (empty, length 0) | - | - | - | -
+`List<T>` | empty (length 0) | - | - | - | -
+`Map<K, V>` | empty (no keys) | - | - | - | -
+
+* **money** (planned - user, 2026-10-27; design notes in `files/Literals.md` "Money"): a
+  strict decimal type for currency only, like COBOL - exact digits, nothing lost by a
+  conversion. Default 0. Conversions to and from `decimal`, `float` and `int` are always
+  written out; to `int` it rounds half away from zero by default (19.5 -> 20, -19.5 -> -20),
+  other rounding modes chosen from an enum
+* **Strings, arrays, lists and maps** are objects with methods but are treated as value
+  types (user, 2026-10-27): never null, empty when declared without a value, length 0 (see
+  "Null Handling")
+
+```
+int[] numbers          // [] - an empty array, length 0 (both forms - planned, Task 30.10;
+int numbers[]          //      today int[] needs a size or a list of values)
+List<string> shoppingList   // empty list, length 0
+Map<string, int> ages       // empty map
+byte b                 // 0x00
+money total            // 0 (planned)
+```
 
 ---
 

@@ -67,6 +67,9 @@ are in `task/featuresArchive.md`.
 	[ ] 30.5 Beyond arrays (stretch)
 	[ ] 30.6 Docs & examples
 	[ ] 30.7 The conditional operator `(condition) ? a : b` (user, 2026-10-27)
+	[ ] 30.10 Empty arrays: `int[] numbers` and `int numbers[]` both declare an empty array,
+		length 0 (user, 2026-10-27). Today `int[] numbers` needs a size or values, and
+		`int numbers[]` is wrongly read as a plain int - fix that first (found 2026-10-27)
 	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
 		negatives false) / "nonzero" / "off" (user, 2026-10-27)
 	[ ] 30.8 `.len` and `.length` on strings, arrays, lists (user, 2026-10-27: both - len is
@@ -289,6 +292,11 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		JSON/HTML escaping, validating UTF-8 from files and networks
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
+	[ ] money type (user, 2026-10-24 / 10-27): strict decimal for currency, default 0, written-out
+		conversions, rounding half away from zero + a rounding-mode enum (files/Literals.md
+		"Money", spec "Complete Type Specifications")
+	[ ] Short names `list` / `map` for `List<T>` / `Map<K, V>` (user's note 2026-10-27 wrote
+		`list shoppinglist`, `map aMapVariable`) - to decide: aliases, and the element type
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):
