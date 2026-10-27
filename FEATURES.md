@@ -67,6 +67,8 @@ are in `task/featuresArchive.md`.
 	[ ] 30.5 Beyond arrays (stretch)
 	[ ] 30.6 Docs & examples
 	[ ] 30.7 The conditional operator `(condition) ? a : b` (user, 2026-10-27)
+	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "nonzero" (default) /
+		"positive" / "off" (user, 2026-10-27)
 	[ ] 30.8 `.len` and `.length` on strings, arrays, lists (user, 2026-10-27: both - len is
 		quick typing)
 

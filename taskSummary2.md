@@ -100,14 +100,28 @@ session to match these):**
   sees a null there - decide whether `?.` gives null (then `?? -1` / `?? 0` picks the value)
   or -1 (then `??` is for `?.` on other members / functions)
 - Support both `.len` and `.length` - `len` is quick typing (Q5)
-- Numbers as conditions (user idea, 2026-10-27): zero or negative = false, positive = true,
-  so `if nickname?.length()` is false for -1 (null) and 0 (empty). Today a condition must be
-  a bool ("If condition must be bool, got int"). Other languages: C / C++ / Python /
-  JavaScript / Perl - 0 false, any other number (negatives too) true; Ruby / Lua - every
-  number true (0 too); Java / C# / Go / Rust / Swift / Kotlin - no numbers as conditions.
-  No mainstream language makes negatives false. Trap: `if indexOf(s, "x")` is false both
-  for "not found" (-1) and "found at 0". **Open, next session:** a setting (e.g.
-  `[conditions] numbers = false` by default) or keep conditions bool-only
+- Numbers as conditions - DECIDED (user, 2026-10-27): a `fusion.toml` setting with three
+  options, e.g. `[conditions] numbers = "nonzero"` (default - 0 false, any other number
+  true, as C / C++ / Python / JavaScript), `"positive"` (zero and negatives false),
+  `"off"` (a condition must be a bool - today's behaviour). Default = closest to most
+  languages, so developers from them feel at home. (Other languages: C / C++ / Python / JS /
+  Perl - 0 false, others true; Ruby / Lua - every number true; Java / C# / Go / Rust /
+  Swift / Kotlin - bool only.) Trap to document: `if indexOf(s, "x")` - -1 (not found) is true
+- `?.` is a guard (user, 2026-10-27): on null it doesn't error or crash; inside an `if` the
+  condition is false, so the else block runs - also for a comparison:
+  `if person?.getAge() >= 18 ... else ...` runs else when person is null
+- `??` gives the default when `?.` meets null: `someClass?.someMethod() ?? value`
+- The conditional operator `(condition) ? a : b` - one line, gives a value:
+  `int age = (person?.getAge()) ? person.getAge() : -1`
+- **Open, next session (found when writing these down):**
+  1. With the default `"nonzero"`, -1 is **true**: `if person?.getAge()` runs the "old
+     enough" block when getAge() returns -1, and `if nickname?.length()` is true when
+     length() gives -1 for null. The user's example comments expect -1 -> false (that is
+     `"positive"`). Either `?.` on null gives null (always false, whatever the setting) and
+     -1 is never used for "missing", or the default becomes `"positive"`
+  2. "returns error": `?.` on a function that fails - does the guard also catch the error
+     (false block), or does the error still travel (Task 26)?
+  3. `(person?.getAge()) ? ... : -1` - an age of 0 is false under `"nonzero"`, so it gives -1
 - Also supported: the conditional operator `(condition) ? valueIfTrue : valueIfFalse`
 - **To do:** update the spec (`files/fusion-language-spec.md`) with every change made so far
   (check Tasks 29 / 44 and earlier decisions are all reflected) - noted 2026-10-27
