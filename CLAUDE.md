@@ -122,6 +122,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Full language design | `files/fusion-language-spec.md` (grep it) |
 | Grammar | `files/fusion.ebnf` |
 | Null design: `?.`, `??`, number conditions, truth tables | `Nullable_Values.md` |
+| Single values, arrays, lists, maps: what each does, when (not) to use it | `Arrays.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |
 | Compiler source | `src/` - `src/CLAUDE.md` explains the pipeline; each subfolder's `CLAUDE.md` has one line per file |
 | Tests / examples | `tests/`, `examples/` |

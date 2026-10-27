@@ -48,7 +48,7 @@ unless the code allows it, and `?.` reads through a possibly-missing value safel
 | int, float, bool, char, byte | No | 0 / false / '\0' | values |
 | struct | No | every field's default | a value type (user, 2026-10-24) |
 | **string** | **No** - unless the project allows it | `""` | a value with methods; a setting can allow null (below) |
-| **array, List, Map** | **No** - unless the project allows it | empty (`[]`, no keys) | like strings (user, 2026-10-27) |
+| **array, List, Map** | **No** - unless the project allows it | empty (`[]`, no keys) | like strings (user, 2026-10-27); see `Arrays.md` |
 | class object (Task 32) | **Yes** | null | objects are references |
 
 **Strings, arrays, lists and maps** (user, 2026-10-27) are values: never null, and empty

@@ -68,8 +68,8 @@ are in `task/featuresArchive.md`.
 	[DONE] 30.1 The model decided (user, 2026-10-27): only class objects can be null; strings,
 		arrays, List, Map never null (empty by default); `?.` guard, `??`, checks, number
 		conditions - Nullable_Values.md, spec "Null Handling"
-	[ ] 30.10 Empty arrays: `int[] numbers` and `int numbers[]` both declare an empty array,
-		length 0 (user, 2026-10-27)
+	[POSTPONED to 45] 30.10 Empty arrays: `int[] numbers` and `int numbers[]` both declare an
+		empty array, length 0 (user, 2026-10-27) - only useful once arrays can grow
 	[ ] 30.8 `.len` and `.length` on strings, arrays, lists and maps (user, 2026-10-27: both -
 		len is quick typing)
 	[ ] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value
@@ -83,6 +83,18 @@ are in `task/featuresArchive.md`.
 		`.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
 	[POSTPONED to 32] 30.3 `nullable` settings for strings / arrays / lists / maps (default
 		false) and `?.length()` giving -1 on a null one - only useful with 30.2
+
+#### 45 Arrays that grow at the end (user, 2026-10-27 - Arrays.md) [ ]
+	Today an array's size is fixed when it is made, and the compiler must know it. An array
+	will grow and shrink at its end only (an item never moves position); a List changes
+	anywhere.
+	[ ] 45.1 Each array knows its own length at run time (like a List), so an array can be
+		replaced by one of another size (`numbers = make()`, `numbers = [1, 2, 3]`)
+	[ ] 45.2 Empty arrays: `int[] numbers` and `int numbers[]` (was 30.10)
+	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, remove the last item (name to decide)
+	[ ] 45.4 Combine arrays: `a + b` (or a method - to decide)
+	[ ] 45.5 `slice` - a copy of a part; the original is unchanged (same rule as List.slice)
+	[ ] 45.6 Docs and examples: Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
 
 #### 31 Config file in any format: fusion.toml / .yaml / .json / .ini (was 20) [ ]
 	[ ] 31.1 One loader per format, one shared schema
@@ -304,6 +316,9 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] money type (user, 2026-10-24 / 10-27): strict decimal for currency, default 0, written-out
 		conversions, rounding half away from zero + a rounding-mode enum (files/Literals.md
 		"Money", spec "Complete Type Specifications")
+	[ ] Lists (user, 2026-10-27 - Arrays.md): add many at once (another list, a group of
+		values); capacity and a growth buffer that can be set; a kept sort order (every
+		added item goes into its sorted place)
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):

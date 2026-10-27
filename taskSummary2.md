@@ -435,4 +435,6 @@ Kept under Task 22 until the renumbering is approved.
   (on by default - "positive"); only in `if` / `while` conditions (with and / or / not);
   `count == true` follows the setting, `count === true` is false, `bool b = count` always an
   error
-- **Next Action:** 30.10 (empty arrays)
+- 30.10 postponed to new Task 45 (arrays that grow at the end - user: an empty array is for
+  adding to later); Arrays.md written (single values, arrays, lists, maps)
+- **Next Action:** 30.8 (.len / .length)
