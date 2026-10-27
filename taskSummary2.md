@@ -445,4 +445,5 @@ Kept under Task 22 until the renumbering is approved.
   default; CLAUDE.md naming rule. Then: positions from 0; maps combine with add() (same key:
   replace by default, a map setting); foreach (Type item in c); Collection interface (32.4);
   lists allow duplicates, maps don't
-- **Next Action:** 30.8 (.len / .length)
+- 30.8 done: .len / .length with or without brackets (type checker rewrite to len)
+- **Next Action:** 30.7 (the conditional operator)

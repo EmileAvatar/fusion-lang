@@ -570,6 +570,22 @@ void function main()
     print("{@1} {@2}", data.rawToHex(), data.toString())
 ```
 
+#### Length: `len` and `length`, with or without brackets
+
+<!-- example: syntax_length | task: 30.8 -->
+```fusion
+void function main()
+    string name = "Ada"
+    int[] scores = [90, 75, 60]
+    List<string> tags = ["new", "sale"]
+    Map<string, int> stock
+    stock["apples"] = 3
+    print("{@1} {@2} {@3} {@4}", len(name), name.len(), name.length(), name.length)
+    print("{@1} {@2} {@3}", scores.length, tags.len, stock.length())   // all the same as len(x)
+    if name.length > 2
+        print("long name")
+```
+
 #### Your own functions as methods: `p.moved(1, 2)` is `moved(p, 1, 2)`
 
 <!-- example: syntax_functions_as_methods | task: 44.2 -->

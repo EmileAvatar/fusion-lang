@@ -70,8 +70,9 @@ are in `task/featuresArchive.md`.
 		conditions - Nullable_Values.md, spec "Null Handling"
 	[POSTPONED to 45] 30.10 Empty arrays: `int[] numbers` and `int numbers[]` both declare an
 		empty array, length 0 (user, 2026-10-27) - only useful once arrays can grow
-	[ ] 30.8 `.len` and `.length` on strings, arrays, lists and maps (user, 2026-10-27: both -
-		len is quick typing)
+	[DONE] 30.8 `.len` and `.length`, with or without brackets, on strings, bytes, arrays, lists
+		and maps - the same as len(x); a struct field or the program's own function of that
+		name comes first (tests/test_length_sugar.py)
 	[ ] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value
 	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
 		negatives false) / "nonzero" / "off" (user, 2026-10-27). Only in `if` / `while`

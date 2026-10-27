@@ -445,9 +445,9 @@ team.scores = podium()     // an array field too
 - Dynamic/resizable arrays (no `malloc`-backed growth yet - fixed-size only)
 - Bounds checking - built since then: every index is checked, outside the array is an
   IndexError (Task 27.1)
-- `arr.length` / `arr.len` (property syntax, both - Task 30.8) and null-safe access
-  (`arr?.length`, only when `[arrays] nullable = true`) - Task 30, planned; see "Null
-  Handling". `len(arr)` is the way to get an array's size for now.
+- `arr.length` / `arr.len`, with or without brackets - built (Task 30.8): the same as
+  `len(arr)`, also on strings, bytes, lists and maps. Null-safe access (`arr?.length`, only
+  when `[arrays] nullable = true`) - Task 30, planned; see "Null Handling"
 
 ---
 
@@ -469,7 +469,8 @@ outside `print` are 18.3.3 - see `FEATURES.md`.
   too-long values with an error. Paged strings (loading only part of a huge string) are a
   later, advanced feature
 * **Encoding (Task 18.3.2b, user decision 2026-10-09):** text is Unicode, stored as UTF-8, by
-  default. `len(s)` counts **characters**; `lenb(s)` counts **bytes** (for files, networks,
+  default. `len(s)` counts **characters** (also written `s.len()`, `s.length()`, `s.len`,
+  `s.length` - Task 30.8, `length` is quick typing for `len`); `lenb(s)` counts **bytes** (for files, networks,
   databases). `s[i]`, `substring` and `indexOf` count characters. A `char` holds any Unicode
   character (`char c = 'é'`). Plain ASCII text keeps a fast path (no scanning). Text with
   other characters remembers the last position found (Task 44.6), so a loop over `s[i]` - or

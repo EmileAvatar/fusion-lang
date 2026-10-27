@@ -1,0 +1,10 @@
+void function main()
+    string name = "Ada"
+    int[] scores = [90, 75, 60]
+    List<string> tags = ["new", "sale"]
+    Map<string, int> stock
+    stock["apples"] = 3
+    print("{@1} {@2} {@3} {@4}", len(name), name.len(), name.length(), name.length)
+    print("{@1} {@2} {@3}", scores.length, tags.len, stock.length())   // all the same as len(x)
+    if name.length > 2
+        print("long name")

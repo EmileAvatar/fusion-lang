@@ -1228,6 +1228,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         Valid as both an rvalue and an assignment lvalue.
         """
+        if getattr(node, 'length_call', None) is not None:
+            return self.visit(node.length_call)       # x.length, x.len (Task 30.8)
         object_type = getattr(node.object, 'inferred_type', None)
         if type(object_type).__name__ == 'ErrorType' and node.member == 'kind':
             return f'fusion_error_kind_text({self.visit(node.object)})'   # err.kind (26.10)

@@ -934,6 +934,31 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             ))
         return result
 
+    LENGTH_NAMES = ('len', 'length')
+
+    def _has_length(self, value_type) -> bool:
+        """Whether `.len` / `.length` work on a value of this type (Task 30.8)."""
+        return isinstance(value_type, (ArrayType, ListType, MapType)) or (
+            isinstance(value_type, PrimitiveType) and value_type.name in ('string', 'bytes'))
+
+    def _length_sugar(self, node: CallExpr) -> None:
+        """`x.length()` / `x.len()` on a string, bytes, array, list or map is `len(x)` (Task 30.8 -
+        length is quick typing for len). The program's own `length` / `len` function, called as
+        a method (44.2), comes first."""
+        member, receiver = node.callee.member, node.callee.object
+        if isinstance(receiver, IdentifierExpr) and self.symbol_table.lookup(receiver.name) is None:
+            return                                    # String.len - a type class, not a value
+        receiver_type = self.visit(receiver)
+        self.checked_receivers[id(receiver)] = receiver_type   # checked once, not again
+        if not self._has_length(receiver_type) or self.user_method(member, receiver_type) is not None:
+            return
+        if isinstance(receiver_type, (ListType, MapType)):
+            node.callee.member = 'len'                # the List / Map method
+        else:
+            node.callee = IdentifierExpr(location=node.callee.location, name='len')
+            node.arguments = [receiver]
+            node.is_method = True
+
     def _visit_call(self, node: CallExpr) -> TypeNode:
         """Check function call argument types.
 
@@ -943,6 +968,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         Returns:
             Return type of the function
         """
+        if isinstance(node.callee, MemberExpr) and node.callee.member in self.LENGTH_NAMES \
+                and not node.arguments:
+            self._length_sugar(node)
         # xs.add(5) - a List method (Task 18.5.1)
         if isinstance(node.callee, MemberExpr):
             result = self._collection_method_call(node)
@@ -1832,6 +1860,16 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         if isinstance(object_type, ErrorType):
             return self.error_member_type(node, object_type)   # err.message, err.path (Task 26)
         struct = self.struct_declaration(object_type)
+        if struct is None and node.member in self.LENGTH_NAMES and self._has_length(object_type):
+            # `x.length` / `x.len` without brackets (Task 30.8): checked as the call x.len(),
+            # which the generator emits in this node's place
+            call = CallExpr(location=node.location,
+                            callee=MemberExpr(location=node.location, object=node.object,
+                                              member=node.member),
+                            arguments=[])
+            self.checked_receivers[id(node.object)] = object_type
+            node.length_call = call
+            return self.visit(call)
         if struct is None:
             self.errors.append(SemanticError(
                 f"Cannot read field '{node.member}' of a value of type "
