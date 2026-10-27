@@ -171,4 +171,6 @@ Kept under Task 22 until the renumbering is approved.
   safer than changing the string struct); 52 s -> 0.03 s
 - 44.1 done: module-level variables and constants ([modules] variables, default true)
 - 44.2 done: any function as a method (p.moved(1, 2)); Task 44 complete (44.4 postponed)
+- FEATURES.md: every [DONE] task and item moved to task/featuresArchive.md (user, 2026-10-27);
+  it keeps only open and postponed ones; check.py --status counts done from the archive
 - **Next Action:** the user picks the next step - Task 29 (strings) starts Phase 2 proper

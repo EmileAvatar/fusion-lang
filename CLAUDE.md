@@ -24,14 +24,16 @@ files and chat; never in `.py`, `.c`, `.h`, `.fusion`, config, JSON or YAML. Use
 `[FAIL]`, `[WARN]`, `# TODO` instead. `check.py` enforces this.
 
 ### Rule 3: Tracking - where status and detail go
-- **`FEATURES.md`** - the status of every task and feature, one line each:
-  `[ ]` open, `[DONE]`, `[POSTPONED to X]` (waits for task X or a missing feature).
+- **`FEATURES.md`** - the status of every open and postponed task and feature, one line each:
+  `[ ]` open, `[POSTPONED to X]` (waits for task X or a missing feature). When a task is
+  complete, its `[DONE]` lines move to `task/featuresArchive.md` (verbatim, same session).
   Tasks are `#### NN Title [status]`; sub-tasks are one tab + `[status] NN.N`; parts two
   tabs. Postponed advanced features are listed there too
 - **`taskSummary2.md`** - a working file only: the active task's detailed plan, the next
   action, the latest session note
 - **`task/taskSummaryArchive.md`** - when a task **or a sub-task** is complete, move its
-  detail there verbatim (same session), leaving its line in `FEATURES.md` as `[DONE]`
+  detail there verbatim (same session); its `FEATURES.md` lines, marked `[DONE]`, move to
+  `task/featuresArchive.md` when the whole task is complete
 - **`task/taskBacklog.md`** - write-ups of tasks not started yet; a task's section moves
   back to `taskSummary2.md` when it becomes active
 - Detail of *what* changed is in git commit messages and tests - don't repeat it in notes
@@ -108,7 +110,8 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 
 | What | Where |
 |---|---|
-| Status of every task/feature, postponed items | `FEATURES.md` |
+| Status of every open task/feature, postponed items | `FEATURES.md` |
+| Finished tasks and items (their FEATURES.md lines) | `task/featuresArchive.md` |
 | What the language can do now, with examples | `SYNTAX_REFERENCE.md` |
 | Every built-in function and method (generated) | `files/Builtins.md` |
 | Active task plan + next action | `taskSummary2.md` |

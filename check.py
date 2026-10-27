@@ -415,11 +415,15 @@ def show_status():
     features = (ROOT / 'FEATURES.md').read_text(encoding='utf-8').splitlines()
     open_items = [line.strip() for line in features if line.strip().startswith('[ ]')]
     postponed = [line for line in features if '[POSTPONED' in line]
-    done = [line for line in features if '[DONE]' in line]
-    print(f'FEATURES.md: {len(done)} done, {len(open_items)} open, {len(postponed)} postponed')
-    active = [line.strip() for line in features
-              if line.strip().startswith('[ ]') and re.match(r'\[ \] (22|25|26|27|28)\.', line.strip())]
-    for line in active:
+    # Finished items live in task/featuresArchive.md (archived 2026-10-27)
+    archive = ROOT / 'task' / 'featuresArchive.md'
+    archived = archive.read_text(encoding='utf-8').splitlines() if archive.exists() else []
+    done = [line for line in archived + features if line.strip().startswith('[DONE]')
+            or (line.startswith('#### ') and line.rstrip().endswith('[DONE]'))]
+    print(f'FEATURES.md: {len(done)} done (task/featuresArchive.md), {len(open_items)} open, '
+          f'{len(postponed)} postponed')
+    # The next open sub-tasks, in the order FEATURES.md lists them
+    for line in [item for item in open_items if re.match(r'\[ \] \d+\.', item)][:8]:
         print('  ' + line)
     summary = (ROOT / 'taskSummary2.md').read_text(encoding='utf-8').splitlines()
     for line in reversed(summary):
