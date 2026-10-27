@@ -382,6 +382,23 @@ class VarDeclStmt(ASTNode):
 
 
 @dataclass
+class TemplateDecl(ASTNode):
+    """A string template (Task 29.3): `template string greet = "Hello {@1}, from {shop}"`.
+
+    A fixed text that works as a function: greet("Ann") fills {@1} from its arguments and
+    reads {shop} when called. src/semantic/templates.py expands every use before the rest of
+    the compiler runs, so no later stage sees this node.
+
+    Attributes:
+        name: The template's name
+        text: The string literal (LiteralExpr or InterpolatedStringExpr)
+    """
+    name: str
+    text: ASTNode
+    is_public: bool = False     # templates are private to their module for now
+
+
+@dataclass
 class AssignmentStmt(ASTNode):
     """Assignment statement: x = value
 

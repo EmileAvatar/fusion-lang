@@ -10,6 +10,7 @@ from typing import List, Optional
 from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl,
                                 ErrorDecl, LiteralExpr, VarDeclStmt, ArrayType, ArrayLiteralExpr)
 from .enums import normalize_enums, check_holding_loops
+from .templates import expand_templates
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -84,6 +85,12 @@ class SemanticAnalyzer:
         # Clear previous results
         self.errors.clear()
         self.warnings.clear()
+
+        # Pass 0: string templates (Task 29.3) - every use becomes a format() call or a
+        # lambda, before anything else looks at the program
+        template_errors, template_warnings, template_spots = expand_templates(ast)
+        self.errors.extend(template_errors)
+        self.warnings.extend(template_warnings)
 
         # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
         # nothing after this mistakes an enum for a struct
@@ -204,6 +211,18 @@ class SemanticAnalyzer:
         # Ways of handling errors the project turned off (Task 26.5)
         self.errors.extend(check_error_settings(ast, self.errors_config))
         self.warnings.extend(marked_but_cannot_fail(ast))   # Task 26.7
+        # A template called in several places repeats its text's errors - report each once;
+        # where a template use was wrong, what follows from it isn't reported again (29.3)
+        follow_on = {str(e.location) for e in template_errors}
+        kept, seen = [], set()
+        for error in self.errors:
+            where = str(error.location)
+            if error in template_errors or (where not in follow_on and where not in template_spots):
+                kept.append(error)
+            elif where in template_spots and where not in follow_on and str(error) not in seen:
+                seen.add(str(error))
+                kept.append(error)
+        self.errors[:] = kept
         return len(self.errors) == 0
 
     def check_module_variable(self, decl: VarDeclStmt) -> None:

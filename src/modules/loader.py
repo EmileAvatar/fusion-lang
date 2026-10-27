@@ -26,6 +26,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from src.parser.ast_nodes import (
     ASTNode, ProgramNode, ImportDecl, FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt,
+    TemplateDecl,
     BlockStmt,
     ForStmt, LambdaExpr, IdentifierExpr, MemberExpr, StructType, PrimitiveType, ArrayType,
     FunctionType, LiteralExpr,
@@ -48,7 +49,8 @@ class Module:
         self.names: Dict[str, ASTNode] = {}   # top-level name -> its declaration
         for _, program in files:
             for decl in program.declarations:
-                if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt)):
+                if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt,
+                                     TemplateDecl)):
                     self.names.setdefault(decl.name, decl)
 
     def qualify(self, name: str) -> str:
@@ -320,13 +322,14 @@ class ModuleLoader:
             for f in dataclass_fields(node):
                 if f.name not in _SKIP_FIELDS:
                     walk(getattr(node, f.name), scopes)
-            if isinstance(node, VarDeclStmt) and scopes:
+            if isinstance(node, (VarDeclStmt, TemplateDecl)) and scopes:
                 scopes[-1].add(node.name)       # visible from the next statement on
                 if node.error_name:
                     scopes[-1].add(node.error_name)   # Ship s, Error err = ... (Task 26)
 
         for decl in program.declarations:
-            if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt)):
+            if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl,
+                                               VarDeclStmt, TemplateDecl)):
                 decl.name = module.qualify(decl.name)
             if isinstance(decl, ErrorDecl) and decl.parent != 'Error':
                 decl.parent = type_name(decl.parent, decl)   # the parent error type (Task 26.9)

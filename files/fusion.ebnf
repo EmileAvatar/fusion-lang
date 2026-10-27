@@ -22,6 +22,7 @@ module_variable =
 program = {
     statement
     | module_variable           (* Task 44.1 *)
+    | template_declaration      (* Task 29.3 *)
     | function_declaration
     | class_declaration
     | struct_declaration
@@ -156,6 +157,7 @@ brace_block =
 
 statement =
     variable_declaration
+    | template_declaration      (* Task 29.3 *)
     | lambda_declaration
     | assignment
     | if_statement
@@ -173,6 +175,11 @@ variable_declaration =
     type_name identifier [ "=" expression ]    (* Explicit type required *)
     | type_name identifier "," [ "Error" ] identifier "=" expression   (* capture, Task 26 *)
     | "const" type_name identifier "=" expression ;  (* Constants must be initialized *)
+
+(* Task 29.3: a fixed text that works as a function - greet("Ann", 30) fills its {@N}.
+   `template` is a contextual word: special only before "string" and a name *)
+template_declaration =
+    "template" "string" identifier "=" string_literal ;
 
 assignment =
     identifier assignment_operator expression ;

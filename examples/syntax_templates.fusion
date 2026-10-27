@@ -1,0 +1,14 @@
+const string SHOP = "Ann's Cafe"
+template string welcome = "Welcome to {SHOP}, {@1}!"     // works like a function
+
+void function show((string) -> string line, string who)
+    print(line(who))
+
+void function main()
+    string city = "Paris"
+    template string greet = "Hello {@1}, you are {@2} - {city}"
+    print(greet("Ann", 30))             // {@1} {@2} filled; {city} read when called
+    city = "Rome"
+    print(greet("Bob", 2))
+    print(welcome("Cy"))
+    show(welcome, "Di")                 // passed where a function type is written

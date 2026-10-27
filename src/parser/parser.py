@@ -879,7 +879,9 @@ class Parser:
                 lexer = Lexer(part_value, token.location.filename)
                 expr_tokens = lexer.tokenize()
                 expr_parser = Parser(expr_tokens)
-                segments.append(StringExprPart(expression=expr_parser.parse_expression()))
+                expr = expr_parser.parse_expression()
+                self.place_at(expr, token.location)
+                segments.append(StringExprPart(expression=expr))
 
         # No interpolation? Return simple literal
         if not has_interpolation:
@@ -979,6 +981,10 @@ class Parser:
         # Check if it's a const declaration
         if self.check(TokenType.CONST):
             return self.parse_const_declaration()
+
+        # `template string greet = "Hello {@1}"` (Task 29.3)
+        if self.is_template_start():
+            return self.parse_template_declaration()
 
         # Check if it's a variable declaration (starts with type)
         if (self.is_type_start() or self.is_function_type_declaration_start()
@@ -1583,6 +1589,10 @@ class Parser:
         if self.match(TokenType.CONST):
             return self.parse_module_variable(self.parse_type(), is_const=True)
 
+        # A module-level string template (Task 29.3)
+        if self.is_template_start():
+            return self.parse_template_declaration()
+
         # Struct declaration (Task 18.2.1)
         if self.match(TokenType.STRUCT):
             return self.parse_struct_declaration()
@@ -1701,6 +1711,38 @@ class Parser:
             self.consume(TokenType.STRUCT, "Expected 'struct' after 'End'")
 
         return StructDecl(location=struct_token.location, name=name_token.value, fields=fields)
+
+    @classmethod
+    def place_at(cls, node, location) -> None:
+        """Give a name parsed from inside a string's {...} the string's own position - its
+        own lexer starts at line 1, so errors pointed at 1:1 (Task 29.3)."""
+        if isinstance(node, ASTNode):
+            node.location = location
+            for value in vars(node).values():
+                if isinstance(value, ASTNode):
+                    cls.place_at(value, location)
+
+    def is_template_start(self) -> bool:
+        """`template string greet = ...` - `template` is only special before a type and a
+        name, so it still works as a variable name (and stays free for other uses later)."""
+        return (self.check(TokenType.IDENTIFIER) and self.peek().value == 'template'
+                and self.peek(1).type == TokenType.STRING
+                and self.peek(2).type == TokenType.IDENTIFIER)
+
+    def parse_template_declaration(self) -> TemplateDecl:
+        """`template string greet = "Hello {@1}, you are {@2}"` (Task 29.3): the text must be
+        written in the source - it is the body of the function the template becomes."""
+        location = self.advance().location          # `template`
+        self.advance()                              # `string`
+        name_token = self.consume(TokenType.IDENTIFIER, "Expected the template's name")
+        self.consume(TokenType.ASSIGN, "Expected '=' and the template's text")
+        text = self.parse_expression()
+        if not (isinstance(text, InterpolatedStringExpr)
+                or (isinstance(text, LiteralExpr) and text.type_hint == 'string')):
+            raise ParserError(name_token, "A template's text must be a string written in the "
+                                          "source: template string greet = \"Hello {@1}\"")
+        self.consume_statement_terminator()
+        return TemplateDecl(location=location, name=name_token.value, text=text)
 
     def is_error_declaration_start(self) -> bool:
         """`error FileError` - not `error function f()` or a variable called error."""

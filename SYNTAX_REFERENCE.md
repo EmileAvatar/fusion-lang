@@ -118,6 +118,26 @@ void function main()
     print("\{name\} is written as \{name\}")      // \{ \} - a brace as text: {name} is written as {name}
 ```
 
+#### String templates: `template string greet = "Hello {@1}"`
+
+<!-- example: syntax_templates | task: 29.3 -->
+```fusion
+const string SHOP = "Ann's Cafe"
+template string welcome = "Welcome to {SHOP}, {@1}!"     // works like a function
+
+void function show((string) -> string line, string who)
+    print(line(who))
+
+void function main()
+    string city = "Paris"
+    template string greet = "Hello {@1}, you are {@2} - {city}"
+    print(greet("Ann", 30))             // {@1} {@2} filled; {city} read when called
+    city = "Rome"
+    print(greet("Bob", 2))
+    print(welcome("Cy"))
+    show(welcome, "Di")                 // passed where a function type is written
+```
+
 #### Long lines: a line break inside `( )` or `[ ]` continues the line
 
 <!-- example: syntax_long_lines | task: 44.3 -->
@@ -811,3 +831,4 @@ Unique Shared Weak   go   try catch finally throw Error
 ```
 `end` and `var` are ordinary names (Task 44.5): a lowercase `end` closes a block only right
 before a block word (`end function`), and `var` is free until type inference exists.
+`template` (Task 29.3) is special only before `string` and a name; otherwise it is a name too.

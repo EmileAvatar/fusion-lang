@@ -4626,6 +4626,36 @@ print("{@2}, {@1}", "first", "second")   // second, first
   leave one out on purpose (its function calls still run)
 * A general `format(...)` returning a string waits for runtime strings (Task 18.3)
 
+**String templates (Task 29.3, implemented - user design 2026-10-27):** a fixed text that
+works as a function - write it once, fill it in many times:
+
+```fusion
+const string SHOP = "Ann's"
+template string welcome = "Welcome to {SHOP}, {@1}!"     // module-level
+
+void function main()
+    string city = "Paris"
+    template string greet = "Hello {@1}, you are {@2} - {city}"   // inside a function
+    print(greet("Ann", 30))          // Hello Ann, you are 30 - Paris
+    (string) -> string f = welcome   // a template is a function value
+```
+* `template string name = "..."` marks the text constant and makes it an internal function:
+  `greet` is like `string function greet(@1, @2)` whose body is the interpolated text. Every
+  call reuses it; no `t"..."` prefix (decided 2026-10-27)
+* Each `{@N}` takes any printable value; the number of values is the highest `{@N}`, checked
+  at compile time (a gap such as `{@1} {@3}` is an error); values are given in order, not by
+  name
+* `{name}` is ordinary interpolation, read **when the template is called**; an unknown name
+  is a compile error. A template inside a function is expanded where it is called, so it
+  can use that function's variables. A module-level template may use module variables and
+  constants only
+* Passing a template on (4b): where a function type is written - a parameter
+  `(string) -> string line`, a variable - it becomes a function value. A local template
+  that uses the function's own variables can't be passed on (that needs closures)
+* Templates are private to their module; an unused one is a warning
+* `template` is special only before `string` and a name - it is still usable as an ordinary
+  name, and the word is kept free for other kinds of templates later
+
 **Example Usage**:
 ```fusion
 import Fusion.Core

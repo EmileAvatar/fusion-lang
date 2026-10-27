@@ -61,10 +61,15 @@ FutureFeatures.md "Mutable vs. Fixed Strings". User notes 2026-10-27: pooling of
   width rebuilds the text; the hint cache (44.6) is cleared. Not allowed on `const`
 - **29.2 Fixed strings = `const`** (no new type): `s[i] = c` on a const is a compile error;
   struct fields keep `string_mutable`. Document; spec + SYNTAX_REFERENCE
-- **29.3 Templated strings**: `template greet = "Hello {@1}, you are {@2}"`, then
-  `greet("Ann", 30)` returns the filled string. Argument count checked at compile time
-  (from the highest `{@N}`; a gap such as `{@1} {@3}` is a compile error). Built as a lifted
-  function around `format()` - no new run-time. Module-level and local
+- **29.3 Templated strings** (user design 2026-10-27, no `t"` prefix):
+  `template string greet = "Hello {@1}, you are {@2}"` - `template` marks the string
+  constant and makes it an internal function: `string function greet(@1, @2)` whose body is
+  the interpolated text. `greet("Ann", 30)` calls it. Each `{@N}` takes any printable value;
+  the argument count comes from the highest `{@N}` (a gap such as `{@1} {@3}` is a compile
+  error). `{name}` is ordinary interpolation, read when the template is called; an unknown
+  name is a compile error. Local and module-level. `template` is a modifier word kept open
+  for other uses later (contextual, so it still works as a name). Built by lifting a
+  function around `format()` - no new run-time
 - **29.4 String pooling** - setting `[strings] pooling = false` (default) and a built-in
   `pool(s)`: equal run-time text shares one copy (a reference count, copy-on-write on edit,
   freed when the last one goes). Never visible to a correct program. This adds a count to
@@ -236,4 +241,9 @@ Kept under Task 22 until the renumbering is approved.
 - 29.1 done: s[i] = c (fusion_str_put; copies, literals and callers' strings unchanged)
 - Comparison with other languages added to Notes/Program lang Compare.txt (user request)
 - 29.2 done: const string = fixed (inside const structs / arrays too); spec "Constants"
-- **Next Action:** 29.3 (t"..." templates) - design details to confirm with the user first
+- 29.3 design: user dropped t"..." - `template string greet = "..."` becomes an internal
+  function; option A (local templates expanded where called) + 4b (passed as a function value)
+- 29.3 done: src/semantic/templates.py expands every use before analysis; names inside {...}
+  now report the string's line (was 1:1); the module loader keeps templates per module
+- **Next Action:** 29.6 (examples, spec, Builtins) - then Task 29 is complete (29.4 / 29.5
+  postponed)
