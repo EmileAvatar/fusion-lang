@@ -1023,6 +1023,12 @@ class Parser:
         name_token = self.consume(TokenType.IDENTIFIER, "Expected variable name")
         name = name_token.value
         location = name_token.location
+        if self.check(TokenType.LBRACKET):
+            # C-style `int numbers[]` - planned (Task 30.10); it used to be read silently as a
+            # plain int followed by an empty list (Task 30.0)
+            raise ParserError(self.peek(), f"Write the array type before the name: "
+                                           f"{getattr(var_type, "name", "T")}[] {name} (the C-style "
+                                           f"'{name}[]' is planned)")
 
         # `Ship s, Error err = loadShip(f)` - capture the call's error (Task 26)
         error_name, error_location, error_type = None, None, None
@@ -1448,7 +1454,13 @@ class Parser:
         Newlines and semicolons are optional in many contexts.
         In Fusion, statements are typically terminated by newlines or block boundaries.
         """
-        # Consume any newline tokens (optional)
+        # A statement ends the line, or its block: `int x = 5 print(x)` and `int n[]` used to be
+        # read silently as two statements (Task 30.0)
+        if not (self.check(TokenType.NEWLINE) or self.check(TokenType.RBRACE)
+                or self.check(TokenType.DEDENT) or self.check(TokenType.END)
+                or self.is_at_end()):
+            raise ParserError(self.peek(), f"Expected the end of the line after this statement, "
+                                           f"found '{self.peek().value}' - one statement per line")
         while self.match(TokenType.NEWLINE):
             pass  # Skip newlines
 

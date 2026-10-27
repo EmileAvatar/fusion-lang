@@ -24,62 +24,36 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
-## TASK 30: Nullable values and safe navigation - PLAN (awaiting approval)
+## TASK 30: Nulls, empty values, number conditions, conditional operator - ACTIVE (2026-10-27)
 
-Source: FEATURES.md Task 30, backlog write-up (below, moved from task/taskBacklog.md), spec
-"Type System" / "Nullability Rules" / "Null Handling" / "Array Safe Navigation", FEATURES
-Later "Open: `int?`" (user will check with Task 30), memory "no silent changes".
+**Design settled** (user decisions 2026-10-27 - `Nullable_Values.md`, spec "Null Handling"):
+only class objects can be null; strings, arrays, List and Map are never null (empty by
+default, `nullable` settings default false); `?.` is a guard, `??` a default, number
+conditions a setting ("positive" by default). The null guard needs class objects, so it
+moves to Task 32 (30.2, 30.3); the rest is built now.
 
-**What is true today (checked 2026-10-27):**
-- Nothing can be null: int / float / bool / char, strings, arrays, structs, List and Map are
-  all values; a `string s` with no value is "" (empty), a struct always has its fields
-- `null` exists only as a word: `string s = null` is "Cannot assign void to string"
-- `m["missing"]` is a KeyError; `m.get(k, default)` gives a default - no null needed
-- `arr.length` is an error (only `len(arr)` / `xs.len()`); `!` already means `not`
-- The spec is older than the value model: it says strings and objects can be null by default
-  (`str?.null`), and the backlog says `arr?.length` returns 0 silently
-
-**Proposed model (to approve):** no value is ever null unless its type says so.
-- `T?` - "a T, or nothing": `int?`, `string?`, `Person?`, `int[]?`, `List<int>?` - and
-  classes later the same way (`Ship` never null, `Ship?` may be). Like Swift, Kotlin, C#'s
-  nullable reference types. The spec's "strings / objects are nullable by default" changes
-- `null` is assignable only to a `T?`; a `T?` with no initializer starts as null
-- Checking: `x == null` / `x != null`, also written `x is null` / `x is not null`
-- Narrowing: inside `if x != null` (and after `if x == null` + return / break / continue),
-  x is a plain T - no extra syntax; elsewhere using a `T?` where a T is needed is a
-  compile error
-- `x ?? fallback` - the value, or the fallback when null (explicit, never a silent 0)
-- `x?.field`, `x?.method()`, `x?[i]` - null when x is null, otherwise the result; the result
-  is a `T?` (so `arr?.length ?? 0` reads "0 if missing" - chosen, not silent)
-- `x!` - "I know it's there": a NullError at run time if it is null (named, file:line,
-  catchable) - the escape hatch where the compiler can't see a check
-- NullError: a new built-in error type (subtype of Error, Task 26 list)
-- In C: a `T?` is a small struct {has, value}; strings / lists inside are freed only when set
-
-**Sub-tasks:**
-- 30.1 The model: spec sections rewritten (Type System table, Null Handling, Array Safe
-  Navigation), grammar, decisions recorded
-- 30.2 `T?` types, `null`, `== null` / `is null`, `T?` in variables, parameters, returns,
-  struct fields, List / Map elements; C representation; leak-free
-- 30.3 Narrowing (flow analysis): `if x != null` makes x a T inside; a `T?` used as a T
-  elsewhere is a compile error; `??`
-- 30.4 Safe navigation `?.` / `?[` (result `T?`), `x!` with NullError (30.1b)
-- 30.5 `.length` on arrays, strings, lists (= `len(x)`) - backlog item; optional, small
-- 30.6 Examples, SYNTAX_REFERENCE, Builtins.md (if any built-in changes)
-- Not in Task 30: classes (32), `Weak<T>.lock()` returning `T?` (38) - both reuse this
+**Revised sub-tasks (order):**
+- 30.0 DONE - bug: a statement must end its line (`int numbers[]`, `int x = 5 print(x)` were
+  read silently as two statements)
+- 30.10 Empty arrays: `int[] numbers` / `int numbers[]` - an empty array, length 0. Arrays
+  are fixed-size, so an empty one gets values only by being replaced (`numbers = make()`,
+  which already works); a growing collection is a List
+- 30.8 `.len` and `.length` on strings, arrays, lists, maps (= `len(x)`)
+- 30.7 The conditional operator `(condition) ? a : b` (`?` lexed so `?.` / `??` still fit
+  later)
+- 30.9 `[conditions] numbers` = "positive" (default) / "nonzero" / "off" - an int (or
+  other number) as an `if` / `while` condition; `and` / `or` / `not` with numbers too
+- 30.6 Docs, examples, spec status lines
+- Postponed to 32: 30.2 the guard and checks on class objects, NullError, warnings; 30.3 the
+  `nullable` settings and `?.length()` = -1
 
 **Questions:**
-1. Model: no value is null unless its type has `?` (int?, string?, Person?, int[]?) -
-   including strings, so the spec's "strings / objects nullable by default" changes. Agree?
-2. Checking: `x == null` and `x is null` (both), and drop the spec's `x?.null`?
-3. Using a `T?` as a T without a check: a compile error (recommended), with `x!` as the
-   run-time-checked escape (NullError) - or allowed everywhere with a run-time NullError
-   (the backlog's "hybrid")? Could be a setting: `[nulls] unchecked = "error"` (default) /
-   `"runtime"`
-4. `?.` / `?[` give null, never a silent 0 - `arr?.length ?? 0` when 0 is wanted (the
-   backlog said `arr?.length` returns 0 silently; your "no silent changes" rule says
-   otherwise). Agree?
-5. 30.5 `.length` as a property - include it, or leave `len(x)` / `.len()` as the only way?
+1. `.len` / `.length`: with brackets (`s.length()`, as lists have `xs.len()` today),
+   without (`a.length`), or both?
+2. 30.9 changes today's rule (a condition must be a bool) to "positive" by default - so
+   `if count` compiles where it was an error. Also allow numbers with `and` / `or` /
+   `not` (`if count and ready`)?
+3. Order as above?
 
 **User notes and answers (2026-10-27, end of session - the plan above is revised next
 session to match these):**
@@ -453,6 +427,6 @@ Kept under Task 22 until the renumbering is approved.
 - Task 30 design settled (Nullable_Values.md): only class objects null; strings / arrays /
   lists / maps never null (nullable settings, default false); ?. guard, ??, number conditions
   "positive" by default; spec updated with every change so far (user request)
-- **Next Action:** rewrite the Task 30 sub-task plan to the settled design (most of it waits
-  for classes, Task 32 - decide what to build now: conditional operator, .len / .length,
-  number conditions), get approval
+- Task 30 started: 30.0 done (a statement must end its line - the int numbers[] bug); plan
+  revised to the settled design (30.2 / 30.3 postponed to 32)
+- **Next Action:** the user answers the 3 Task 30 questions; then 30.10

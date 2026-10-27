@@ -57,23 +57,30 @@ are in `task/featuresArchive.md`.
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
-#### 30 Nullable values & safe navigation (`?.`, `?[`, `.length`) (was 14) [ ]
-	[ ] 30.1 Nullability model decision
-	[ ] 30.1b NullError: using a value that holds nothing (the "divide by null" case) - an Error
-		subtype (Task 26 error list, 2026-10-16)
-	[ ] 30.2 Compile-time null-flow analysis
-	[ ] 30.3 `.` / `?.` / `?[` parser support (the `.` part exists since 18.2.1)
-	[ ] 30.4 Runtime null-check codegen
-	[ ] 30.5 Beyond arrays (stretch)
-	[ ] 30.6 Docs & examples
-	[ ] 30.7 The conditional operator `(condition) ? a : b` (user, 2026-10-27)
+#### 30 Nulls, empty values, number conditions, the conditional operator (was 14) [ ]
+	Design: Nullable_Values.md and spec "Null Handling" (user decisions 2026-10-27). Only class
+	objects can be null, so the null guard itself waits for classes (Task 32); what doesn't
+	need classes is built now.
+	[DONE] 30.0 Bug (found 2026-10-27): `int numbers[]` was read silently as a plain int and an
+		empty list, and `int x = 5 print(x)` as two statements - a statement must now end its
+		line (or block); the C-style array form gives a clear error until 30.10
+		(tests/test_statement_end.py)
+	[DONE] 30.1 The model decided (user, 2026-10-27): only class objects can be null; strings,
+		arrays, List, Map never null (empty by default); `?.` guard, `??`, checks, number
+		conditions - Nullable_Values.md, spec "Null Handling"
 	[ ] 30.10 Empty arrays: `int[] numbers` and `int numbers[]` both declare an empty array,
-		length 0 (user, 2026-10-27). Today `int[] numbers` needs a size or values, and
-		`int numbers[]` is wrongly read as a plain int - fix that first (found 2026-10-27)
+		length 0 (user, 2026-10-27)
+	[ ] 30.8 `.len` and `.length` on strings, arrays, lists and maps (user, 2026-10-27: both -
+		len is quick typing)
+	[ ] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value
 	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
 		negatives false) / "nonzero" / "off" (user, 2026-10-27)
-	[ ] 30.8 `.len` and `.length` on strings, arrays, lists (user, 2026-10-27: both - len is
-		quick typing)
+	[ ] 30.6 Docs & examples (SYNTAX_REFERENCE, spec status lines)
+	[POSTPONED to 32] 30.2 On class objects: the `?.` guard (not run on null, false in an `if`),
+		`??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a plain
+		`.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
+	[POSTPONED to 32] 30.3 `nullable` settings for strings / arrays / lists / maps (default
+		false) and `?.length()` giving -1 on a null one - only useful with 30.2
 
 #### 31 Config file in any format: fusion.toml / .yaml / .json / .ini (was 20) [ ]
 	[ ] 31.1 One loader per format, one shared schema
@@ -295,8 +302,6 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] money type (user, 2026-10-24 / 10-27): strict decimal for currency, default 0, written-out
 		conversions, rounding half away from zero + a rounding-mode enum (files/Literals.md
 		"Money", spec "Complete Type Specifications")
-	[ ] Short names `list` / `map` for `List<T>` / `Map<K, V>` (user's note 2026-10-27 wrote
-		`list shoppinglist`, `map aMapVariable`) - to decide: aliases, and the element type
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):
