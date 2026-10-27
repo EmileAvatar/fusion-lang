@@ -234,4 +234,6 @@ Kept under Task 22 until the renumbering is approved.
 - User picked Task 29; plan written (prefix review + 29.1-29.6, 3 questions)
 - Task 29 approved (no m/f/p prefixes, t"..." templates, pooling postponed to 38)
 - 29.1 done: s[i] = c (fusion_str_put; copies, literals and callers' strings unchanged)
-- **Next Action:** 29.2 (const string = fixed: docs + tests), then 29.3 (t"..." templates)
+- Comparison with other languages added to Notes/Program lang Compare.txt (user request)
+- 29.2 done: const string = fixed (inside const structs / arrays too); spec "Constants"
+- **Next Action:** 29.3 (t"..." templates) - design details to confirm with the user first

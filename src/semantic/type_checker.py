@@ -2089,9 +2089,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
                 "Only a stored string can be changed in place - keep it in a variable first",
                 node.location))
         elif symbol and symbol.is_constant:
-            self.errors.append(SemanticError(
-                f"Cannot change a character of constant '{root.name}' - a const string is "
-                f"fixed", node.location))
+            if root is target.array:
+                message = (f"Cannot change a character of constant '{root.name}' - a const "
+                           f"string is fixed")
+            else:
+                message = (f"Cannot change a string inside constant '{root.name}' - "
+                           f"everything in a const is fixed")
+            self.errors.append(SemanticError(message, node.location))
         elif isinstance(target.array, MemberExpr) and not self.structs_config.string_mutable:
             self.errors.append(SemanticError(
                 f"String field '{target.array.member}' can't be changed after the struct is "

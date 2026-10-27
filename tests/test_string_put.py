@@ -77,6 +77,29 @@ def test_a_const_string_is_fixed():
     assert "constant 's'" in message and 'fixed' in message
 
 
+def test_a_module_constant_string_is_fixed():
+    message = errors_of('const string GREETING = "Hello"\n\n'
+                        + main('GREETING[0] = \'J\''))
+    assert "constant 'GREETING' - a const string is fixed" in message
+
+
+def test_a_string_inside_a_const_struct_or_array_is_fixed():
+    message = errors_of('struct Person\n    string name\n\n'
+                        + main('const Person p = Person("ann")\n'
+                               'p.name[0] = \'A\'\n'
+                               'const string[2] names = ["ab", "cd"]\n'
+                               'names[0][0] = \'X\''))
+    assert "inside constant 'p'" in message and "inside constant 'names'" in message
+
+
+def test_a_copy_of_a_const_string_can_change():
+    lines = run('const string GREETING = "Hello"\n\n'
+                + main('string copy = GREETING\n'
+                       'copy[0] = \'J\'\n'
+                       'print("{GREETING} {copy}")'))
+    assert lines == ['Hello Jello']
+
+
 def test_the_value_must_be_a_char():
     message = errors_of(main('string s = "abc"\n'
                              's[0] = "X"'))

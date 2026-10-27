@@ -303,6 +303,12 @@ block-level (lexical) scoping (Task 12.6), so a const declared inside an `if`/`w
 block is only visible inside that block, and is never visible outside the function it's
 declared in.
 
+**Fixed strings are `const` strings** (Task 29.2, user decision 2026-10-27 - no separate
+fixed type or `f"..."` prefix): a `const string` never changes - neither replaced nor
+edited in place (`s[i] = c` is a compile error), and the same holds for a string inside a
+const struct or array. Fixed-ness belongs to the variable, not the text: a copy of a const
+string (`string copy = GREETING`) is an ordinary string and can be changed.
+
 **Module-level variables and constants** (Task 44.1, implemented): declared outside any
 function - `const int LIMIT = 3`, `int count = 0`, `public string version = "1.0"`.
 * Set in the order written, before `main`'s own code. An initializer may use the functions

@@ -57,7 +57,8 @@ are in `task/featuresArchive.md`.
 		with `extern` calls (Later); templates use `t"..."`
 	[DONE] 29.1 Changing a character in place: `s[i] = c` - that variable's text only, index
 		checked, a wider character moves the rest (tests/test_string_put.py)
-	[ ] 29.2 Fixed strings = `const string` (no new type): `s[i] = c` on one is an error; docs
+	[DONE] 29.2 Fixed strings = `const string` (no new type): `s[i] = c` on one - or on a string
+		inside a const struct / array - is a compile error; a copy can change (spec "Constants")
 	[ ] 29.3 Templated strings: `greet = t"Hello {@1}"`, then `greet("Ann")` - argument count
 		checked at compile time
 	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
