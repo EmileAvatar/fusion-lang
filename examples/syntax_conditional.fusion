@@ -1,0 +1,6 @@
+void function main()
+    int count = 7
+    string size = (count > 5) ? "big" : "small"      // one line, gives a value
+    int band = (count > 100) ? 3 : (count > 5) ? 2 : 1
+    print("{size} {band}")
+    print((count % 2 == 0) ? "even" : "odd")          // only the chosen value runs

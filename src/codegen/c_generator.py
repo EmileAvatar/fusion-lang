@@ -18,7 +18,7 @@ from ..parser.ast_nodes import (
     ASTNode, ProgramNode, FunctionDecl, ParameterDecl,
     PrimitiveType, ArrayType, FunctionType, StructType, StructDecl,
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, InterpolatedStringExpr,
-    CallExpr, LambdaExpr, NamedArgument,
+    CallExpr, LambdaExpr, NamedArgument, ConditionalExpr,
     ArrayLiteralExpr, IndexExpr, MemberExpr,
     ExpressionStmt, VarDeclStmt, AssignmentStmt, IfStmt,
     WhileStmt, ForStmt, ReturnStmt, BreakStmt, ContinueStmt,
@@ -869,6 +869,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         # Add parentheses for clarity
         return f'({left} {c_op} {right})'
+
+    def visit_ConditionalExpr(self, node: ConditionalExpr) -> str:
+        """`(c) ? a : b` -> C's own `?:` (Task 30.7). A string (or other managed) result: both
+        values are made owned - a borrowed one is copied - so the result is always a fresh
+        value, stored or freed after the statement like any other."""
+        result_type = node.inferred_type
+        condition = self.visit(node.condition)
+        if not self.is_managed(result_type):
+            return f'({condition} ? {self.visit(node.then_value)} : {self.visit(node.else_value)})'
+        code = (f'({condition} ? {self.owned_value(node.then_value, result_type)} : '
+                f'{self.owned_value(node.else_value, result_type)})')
+        return code if id(node) in self.consumed else self.fresh_temporary(code, result_type)
 
     def visit_UnaryExpr(self, node: UnaryExpr) -> str:
         """Generate C code for unary expression.

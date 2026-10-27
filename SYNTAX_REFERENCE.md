@@ -138,6 +138,18 @@ void function main()
     show(welcome, "Di")                 // passed where a function type is written
 ```
 
+#### The conditional operator: `(condition) ? a : b`
+
+<!-- example: syntax_conditional | task: 30.7 -->
+```fusion
+void function main()
+    int count = 7
+    string size = (count > 5) ? "big" : "small"      // one line, gives a value
+    int band = (count > 100) ? 3 : (count > 5) ? 2 : 1
+    print("{size} {band}")
+    print((count % 2 == 0) ? "even" : "odd")          // only the chosen value runs
+```
+
 #### Long lines: a line break inside `( )` or `[ ]` continues the line
 
 <!-- example: syntax_long_lines | task: 44.3 -->

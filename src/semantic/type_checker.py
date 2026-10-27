@@ -12,7 +12,7 @@ from src.parser.ast_nodes import (
     LiteralExpr, IdentifierExpr, BinaryExpr, UnaryExpr, CallExpr, LambdaExpr, NamedArgument,
     InterpolatedStringExpr, StringExprPart, StringPositionalPart, ArrayLiteralExpr, IndexExpr, MemberExpr,
     StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
-    ListType, MapType, NewCollectionExpr,
+    ListType, MapType, NewCollectionExpr, ConditionalExpr,
     EnumType, EnumValueExpr, EnumStaticCall, ErrorType, ErrorActiveExpr, WidenExpr,
 )
 from src.config.project_config import StructsConfig, StringsConfig
@@ -872,6 +872,28 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         if isinstance(left, FunctionType) or isinstance(right, FunctionType):
             return "functions can't be compared"
         return "these types never compare equal"
+
+    def visit_ConditionalExpr(self, node: ConditionalExpr) -> TypeNode:
+        """`(c) ? a : b` (Task 30.7): the condition is a bool, and both values have one type -
+        the result's. An array can't be one of the values yet (an array is returned inside a
+        hidden struct in C)."""
+        condition_type = self.visit(node.condition)
+        if not self.is_bool_type(condition_type):
+            self.errors.append(SemanticError(
+                f"The condition of '? :' must be bool, got {self.type_to_string(condition_type)}",
+                node.condition.location))
+        then_type = self.visit(node.then_value)
+        else_type = self._visit_value_for(then_type, node.else_value)
+        if isinstance(then_type, ArrayType) or isinstance(else_type, ArrayType):
+            self.errors.append(SemanticError(
+                "'? :' can't give an array yet - use an if / else", node.location))
+            return then_type
+        if not (self.types_compatible(then_type, else_type) and self.types_compatible(else_type, then_type)):
+            self.errors.append(SemanticError(
+                f"The two values of '? :' must have the same type, got "
+                f"{self.type_to_string(then_type)} and {self.type_to_string(else_type)}",
+                node.location))
+        return then_type
 
     def visit_UnaryExpr(self, node: UnaryExpr) -> TypeNode:
         """Check unary operation type.

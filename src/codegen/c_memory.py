@@ -32,6 +32,7 @@ from ..parser.ast_nodes import (
     ASTNode, AssignmentStmt, MemberExpr, IndexExpr, IdentifierExpr, CallExpr, LiteralExpr,
     BinaryExpr, InterpolatedStringExpr,
     ArrayLiteralExpr, LambdaExpr, PrimitiveType, ArrayType, StructType, StructDecl, ListType, MapType, NewCollectionExpr,
+    ConditionalExpr,
 )
 from .c_names import mangle_function_name
 from .c_strings import STRING_LIBRARY
@@ -653,6 +654,9 @@ class MemoryManagementMixin:
             return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, InterpolatedStringExpr):
             return True  # "x is {x}" builds a new string (18.3.3)
+        if isinstance(expr, ConditionalExpr):
+            # (c) ? a : b - each value is made owned, so the result always is (Task 30.7)
+            return self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, ArrayLiteralExpr):
             # [0x6B, 0x69] stored as bytes, [1, 2] stored as a List - both are built (18.3.8, 18.5.1)
             return self._is_bytes(expr) or isinstance(getattr(expr, 'inferred_type', None), ListType)

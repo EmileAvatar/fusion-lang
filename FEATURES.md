@@ -73,7 +73,8 @@ are in `task/featuresArchive.md`.
 	[DONE] 30.8 `.len` and `.length`, with or without brackets, on strings, bytes, arrays, lists
 		and maps - the same as len(x); a struct field or the program's own function of that
 		name comes first (tests/test_length_sugar.py)
-	[ ] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value
+	[DONE] 30.7 The conditional operator `(condition) ? a : b` - one line, gives a value; only
+		the chosen value runs; strings always fresh (tests/test_conditional_operator.py)
 	[ ] 30.9 Numbers as conditions: `[conditions] numbers` = "positive" (default - zero and
 		negatives false) / "nonzero" / "off" (user, 2026-10-27). Only in `if` / `while`
 		conditions (and / or / not inside them); `count == true` follows the setting,

@@ -446,4 +446,5 @@ Kept under Task 22 until the renumbering is approved.
   replace by default, a map setting); foreach (Type item in c); Collection interface (32.4);
   lists allow duplicates, maps don't
 - 30.8 done: .len / .length with or without brackets (type checker rewrite to len)
-- **Next Action:** 30.7 (the conditional operator)
+- 30.7 done: (c) ? a : b (ConditionalExpr; a string result is always owned)
+- **Next Action:** 30.9 (numbers as conditions - [conditions] numbers)

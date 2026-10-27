@@ -2105,7 +2105,7 @@ Direction d2 = Direction.fromValue(0)
 
 ## Control Flow
 
-**Status:** [PARTLY] if / else if / else, while, for over ranges, arrays, lists and maps, break, continue, return are built (01-04, 18.5.1); `=` compares inside a condition (18.3.5); `match` built (25.3); `switch` / `elif` as aliases (FEATURES Later); numbers as conditions and the conditional operator `(c) ? a : b` [PLANNED 30.7, 30.9]; loop labels and loop safety limits: no task yet
+**Status:** [PARTLY] if / else if / else, while, for over ranges, arrays, lists and maps, break, continue, return are built (01-04, 18.5.1); `=` compares inside a condition (18.3.5); `match` built (25.3); `switch` / `elif` as aliases (FEATURES Later); the conditional operator `(c) ? a : b` built (30.7); numbers as conditions [PLANNED 30.9]; loop labels and loop safety limits: no task yet
 
 Description: Natural language constructs for program flow with safety features.
 
@@ -2120,8 +2120,10 @@ Description: Clear and readable branching with multiple comparison operators.
   (aliases planned - FEATURES Later)
 * **A condition** must be a bool today; numbers as conditions become a setting (Task 30.9,
   see "Null Handling": `[conditions] numbers = "positive"` by default)
-* **The conditional operator** (Task 30.7, planned) - one line, gives a value:
-  `string size = (count > 5) ? "big" : "small"`
+* **The conditional operator** (Task 30.7, built) - one line, gives a value:
+  `string size = (count > 5) ? "big" : "small"`. Only the chosen value runs; both values
+  have one type (not an array, for now); nests to the right
+  (`(a) ? 1 : (b) ? 2 : 3`). The condition is a bool (numbers as conditions: Task 30.9)
 
 * **Comparison Operators**
 
@@ -5768,7 +5770,7 @@ Operator | Description | Example
 `.` | Member access | `object.property`
 `?.` | Null guard (Task 30): not run on null, no error | `object?.method()`
 `??` | Default when null (Task 30) | `object?.method() ?? default`
-`? :` | Conditional operator (Task 30.7) | `(count > 5) ? "big" : "small"`
+`? :` | Conditional operator (Task 30.7, built) | `(count > 5) ? "big" : "small"`
 `[]` | Array/index access | `array[0]`
 `?[]` | Null-guarded index (only with `[arrays] nullable = true`) | `array?[0]`
 `()` | Function call / grouping | `function(args)`

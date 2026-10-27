@@ -96,6 +96,23 @@ class BinaryExpr(ASTNode):
 
 
 @dataclass
+class ConditionalExpr(ASTNode):
+    """The conditional operator (Task 30.7): `(count > 5) ? "big" : "small"` - one line, gives
+    the first value when the condition holds, else the second. Only the chosen one runs.
+
+    Attributes:
+        condition: The condition (a bool)
+        then_value: The value when it holds
+        else_value: The value when it doesn't
+        inferred_type: The type both values share (set by the type checker)
+    """
+    condition: ASTNode
+    then_value: ASTNode
+    else_value: ASTNode
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class UnaryExpr(ASTNode):
     """Unary expression: op operand
 

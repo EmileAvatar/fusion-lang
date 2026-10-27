@@ -149,7 +149,22 @@ class Parser:
         Returns:
             Expression AST node
         """
-        return self.parse_or()
+        return self.parse_conditional()
+
+    def parse_conditional(self) -> ASTNode:
+        """The conditional operator (Task 30.7): `condition ? a : b`, usually written with the
+        condition in brackets - `(count > 5) ? "big" : "small"`. Lowest precedence; nests to
+        the right: `a ? b : c ? d : e` is `a ? b : (c ? d : e)`."""
+        condition = self.parse_or()
+        if not self.check(TokenType.QUESTION):
+            return condition
+        question = self.advance()
+        then_value = self.parse_conditional()
+        self.consume(TokenType.COLON, "Expected ':' between the two values of '? :' - "
+                                      "(condition) ? a : b")
+        else_value = self.parse_conditional()
+        return ConditionalExpr(location=question.location, condition=condition,
+                               then_value=then_value, else_value=else_value)
 
     def parse_or(self) -> ASTNode:
         """Parse logical OR: expr or expr, expr || expr

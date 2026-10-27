@@ -269,7 +269,11 @@ unchecked_statement = "unchecked" block [ "End" "unchecked" ] ;
 (* ========== Expressions ========== *)
 
 expression =
-    logical_or ;
+    conditional ;
+
+(* Task 30.7: (condition) ? a : b - nests to the right *)
+conditional =
+    logical_or [ "?" conditional ":" conditional ] ;
 
 logical_or =
     logical_and { ( "or" | "||" ) logical_and } ;
