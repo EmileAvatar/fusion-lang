@@ -66,8 +66,9 @@ void function render()
   compiler **warns**
 - `unsafe` is only for memory, assembly and devices - where precise control is absolutely
   needed (raw performance, security)
-- **Project-wide** (user, 2026-10-28): `[safety] mode = "safe"` (the default) or `"unsafe"` -
-  only when the whole project needs it
+- **Project-wide** (user, 2026-10-28): `[safety] mode = "safe"` (the default), `"strict"` -
+  absolute strictness, for security or where no undetermined behaviour is allowed: what would
+  be a warning is an error - or `"unsafe"`, only when the whole project needs it
 - **Whole-number overflow is separate:** `OverflowWrap` (default false) - `byte 255 + 1` is an
   OverflowError; with `OverflowWrap = true` it gives 0. This replaces today's `[safety] mode =
   "unsafe"`, which only made arithmetic wrap (Task 27.2b). `unchecked { }` stays: overflow
@@ -219,16 +220,17 @@ Car car = copy(honda)         // a deep copy - or shallow when [memory] copy = "
 
 ```fusion
 class Car
-    private nocopy Database database     // the copy uses the SAME database as the original
-    private noshare Logbook log          // the copy always gets its OWN logbook - no link back
+    private nocopy Database database     // a database can't be copied - so neither can a Car
+    private noshare Logbook log          // never shared - a copy always gets its own logbook
 ```
 
-| Modifier | Means | When the car is copied (`byVal`, `copy`, `copyDeep`) | An error |
+| Modifier | Means | When the object holding it is copied (`byVal`, `copy`, `copyDeep`) | An error |
 |---|---|---|---|
-| `nocopy` | the value is never copied - only its reference is shared | the copy shares the same database as the original | copying the field's value itself: `copy(car.database)`, `byVal` on it |
-| `noshare` | the reference is never shared - it must be copied | the copy gets its own copy of the field - even when `[memory] copy = "shallow"` | sharing it: handing the field's object to another holder by reference |
+| `nocopy` | the value can never be copied (a database, a file lock) | **not possible** - a class with a `nocopy` field can't be copied at all; it can only be shared (`byRef`) | any copy of the object, or of the field (user, 2026-10-28) |
+| `noshare` | the reference is never shared - it must be copied | the copy gets its own copy of the field - even when `[memory] copy = "shallow"` | handing the field's object to another holder by reference |
 
-- `nocopy` and `noshare` together are a compile error (question 1)
+- A class may have `nocopy` fields and `noshare` fields; **one field can't be both** -
+  `private nocopy noshare Database db` is a compile error
 - Both are for special cases - to be used sparingly
 - **Later:** classes that are naturally `nocopy` - a file lock, a database connection, a lock,
   a thread - get it by default (Tasks 42, 43)
@@ -441,11 +443,11 @@ double_free = "ignore"      # deallocate on something already freed: ignore | er
 copy = "deep"               # byVal / copy(): deep (default) | shallow
 
 [safety]
-mode = "safe"               # safe (default) | unsafe (the whole project) - today "normal" /
-                            # "strict" / "unsafe" (unsafe = arithmetic wraps) - renamed
+mode = "safe"               # safe (default) | strict (warnings are errors) | unsafe (the whole
+                            # project) - today "normal" (= safe) / "strict" / "unsafe" (= wrap)
 
 [numbers]
-OverflowWrap = false        # false (default): 255 + 1 in a byte is an OverflowError; true: 0
+overflowWrap = false        # false (default): 255 + 1 in a byte is an OverflowError; true: 0
 
 [diagnostics]
 leak_check = "dev"          # dev (report while developing) | log (log in the app) | off
@@ -455,23 +457,8 @@ leak_check = "dev"          # dev (report while developing) | log (log in the ap
 
 ## 11. Questions still open
 
-1. **`nocopy` / `noshare` - checking the reading in section 4b.** Two notes read differently:
-   the `noshare Database` example says "a compile error if you try to use byVal to copy the
-   object", and "copy / copyDeep error out if they try to share a nocopy variable". Section 4b
-   takes the summary as the rule: `nocopy` = the value is never copied, the copy shares it;
-   `noshare` = never shared, the copy always gets its own. So copying the whole car is fine
-   either way - only copying a `nocopy` field's value, or sharing a `noshare` field's object,
-   is an error. Right?
-2. **"Can't be used together":** on the same field (recommended - they contradict), or not in
-   the same class at all?
-3. **The setting's name:** `OverflowWrap` as written, in the `[numbers]` section? (The other
-   settings are written in lower case with `_` - `overflow_wrap` - except
-   `fusionSettingFormat`)
-4. **`[safety] mode = "strict"`** (designed, not built: forced null checks, ...): keep it as a
-   third value, or drop it?
-5. **Existing projects:** a `fusion.toml` with `mode = "normal"` or `mode = "unsafe"` (wrapping)
-   - accept `normal` as `safe`, and give a clear error for the old `unsafe` meaning ("now
-   `OverflowWrap = true`")?
+None on lifetime for now. The settings changes this brought (camelCase names, `overflowWrap`,
+`[safety] mode`) are a small task of their own - see taskSummary2.md (32.0).
 
 ---
 
@@ -492,6 +479,7 @@ leak_check = "dev"          # dev (report while developing) | log (log in the ap
 | 2026-10-28 | `unsafe`: only memory, assembly and devices - precise control (raw performance, security) |
 | 2026-10-28 | Overflow: `OverflowWrap` (default false - 255 + 1 in a byte is an error; true - 0). `[safety] mode = "safe"` (default) / `"unsafe"` (the whole project) |
 | 2026-10-28 | `[memory] copy = "deep"` (default) / `"shallow"`; `copyDeep(x)` always deep, `copy(x)` follows the setting |
-| 2026-10-28 | Field modifiers `nocopy` (never copied - the copy shares it; e.g. a database connection) and `noshare` (never shared - always copied); not together; used sparingly; file locks, connections, locks, threads `nocopy` by default later |
+| 2026-10-28 | Field modifiers `nocopy` (the value can never be copied - a class with one can't be copied at all, only shared; e.g. a database) and `noshare` (never shared - always copied); not both on one field; used sparingly; file locks, connections, locks, threads `nocopy` by default later |
+| 2026-10-28 | `[safety] mode`: safe (default) / strict (warnings become errors - security, no undetermined behaviour) / unsafe; `overflowWrap` in `[numbers]` |
 | 2026-10-28 | Leaks: warned in development; the leak check can be off or built into the app; a published app logs, never shows debug messages to the customer |
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |

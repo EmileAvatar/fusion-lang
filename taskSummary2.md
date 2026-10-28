@@ -133,6 +133,21 @@ print(e)                                 // Person's fields first, then Employee
    **Object_Lifetime.md** (5 questions there)
 
 **More sub-tasks:**
+- **32.0 Settings housekeeping (user, 2026-10-28) - built code, so planned first:**
+  - Setting names in **camelCase** (professional look): `tabWidth`, `allowMixed`,
+    `allowUnicodeIdentifiers`, `maxNestingDepth`, `stringWarnLength`, `holdCollections`,
+    `maxLength`, `autoWidening`, `maxCallDepth`, `waitAtExit`, ... - read **case-insensitively**
+    (`tabwidth`, `TabWidth` work too). The template, loader, docs, tests, showcase, examples
+  - `[numbers] overflowWrap` (default false) takes over arithmetic wrapping from `[safety] mode
+    = "unsafe"`
+  - `[safety] mode`: `safe` (default; `normal` still accepted), `strict` (warnings become
+    errors), `unsafe` (the whole project - memory / assembly; nothing more yet). The old
+    `mode = "unsafe"` that wrapped arithmetic: a clear error - "now `[numbers] overflowWrap =
+    true`"
+  - Questions: (a) old names with `_` (`tab_width`) - still accepted (matching ignores case and
+    `_`, recommended - no project breaks; new files are written in camelCase), or camelCase
+    only? (b) `strict`: every warning becomes an error (recommended - simple, like a C
+    compiler's -Werror), or a chosen list?
 - 32.10 Object lifetime (mini-task): every case in Object_Lifetime.md, each with a test - run
   before classes (32.2) so the counting is right from the start. Three strategies (MANUAL /
   OWNERSHIP / GC) as `[memory] strategy`; `free` / `deallocate`; leak reporting; the full
@@ -406,4 +421,6 @@ Kept under Task 22 until the renumbering is approved.
 - More answers: OverflowWrap (default false) replaces [safety] mode = "unsafe" (arithmetic);
   [safety] mode = "safe" / "unsafe"; [memory] copy deep; copy() / copyDeep(); nocopy / noshare
   field modifiers
-- **Next Action:** the user answers Object_Lifetime.md section 11 (5 questions); then Task 32
+- Answers: nocopy - a class with one can't be copied; not both on one field; settings camelCase,
+  read case-insensitively; strict = warnings become errors; safe default - 32.0 planned
+- **Next Action:** the user answers 32.0's two questions; then 32.0, then 32.1
