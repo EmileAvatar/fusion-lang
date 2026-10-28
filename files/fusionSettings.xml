@@ -8,6 +8,9 @@
   writes a new fusion.toml from it (every setting at its default, each with its comment)
   when a project has no settings file.
 
+  Names are camelCase; a settings file may write them in any case and with _ (tab_width,
+  tabWidth and TABWIDTH are the same setting - Task 32.0).
+
   Types:
     bool        true or false
     int         a whole number, at least min
@@ -31,45 +34,45 @@
   </section>
 
   <section name="indentation" description="How the source is indented">
-    <setting name="tab_width" type="int" min="1" default="4" task="12.12">
+    <setting name="tabWidth" type="int" min="1" default="4" task="12.12">
       <description>How many spaces a tab counts as</description>
     </setting>
-    <setting name="allow_mixed" type="bool" default="true" task="12.12">
+    <setting name="allowMixed" type="bool" default="true" task="12.12">
       <description>Allow tabs and spaces mixed in one file's indentation</description>
     </setting>
   </section>
 
   <section name="source" description="What the source text may contain">
-    <setting name="allow_unicode_identifiers" type="bool" default="false" task="19.6">
+    <setting name="allowUnicodeIdentifiers" type="bool" default="false" task="19.6">
       <description>Allow letters beyond ASCII in names (a security risk: look-alike letters)</description>
     </setting>
   </section>
 
   <section name="structs" description="Struct rules">
-    <setting name="max_nesting_depth" type="int" min="1" default="3" task="18.2.3">
+    <setting name="maxNestingDepth" type="int" min="1" default="3" task="18.2.3">
       <description>How deeply structs may hold structs (1 = no struct inside another)</description>
     </setting>
-    <setting name="warn_nesting_depth" type="int" min="0" default="3" task="18.2.3">
+    <setting name="warnNestingDepth" type="int" min="0" default="3" task="18.2.3">
       <description>Warn from this depth (0 = never warn)</description>
     </setting>
-    <setting name="string_storage" type="choice" default="owned" task="18.2">
+    <setting name="stringStorage" type="choice" default="owned" task="18.2">
       <description>How a string field holds its text</description>
       <value>owned</value>
       <value reserved="true">pooled</value>
     </setting>
-    <setting name="string_mutable" type="bool" default="true" task="18.2">
+    <setting name="stringMutable" type="bool" default="true" task="18.2">
       <description>A string field can be changed after the struct is made</description>
     </setting>
-    <setting name="string_warn_length" type="int" min="0" default="64" task="18.2">
+    <setting name="stringWarnLength" type="int" min="0" default="64" task="18.2">
       <description>Warn when a string field's text is longer than this (0 = never warn)</description>
     </setting>
-    <setting name="hold_collections" type="bool" default="true" task="18.5">
+    <setting name="holdCollections" type="bool" default="true" task="18.5">
       <description>A struct field may be a List or a Map; false makes such a field an error</description>
     </setting>
   </section>
 
   <section name="strings" description="Strings">
-    <setting name="max_length" type="int-or-max" min="1" default="max" task="18.3.4b">
+    <setting name="maxLength" type="int-or-max" min="1" default="max" task="18.3.4b">
       <description>The longest a string may be, in characters - longer is an error, never cut</description>
     </setting>
     <setting name="encoding" type="choice" default="utf-8" task="18.3.2b">
@@ -100,8 +103,11 @@
   </section>
 
   <section name="numbers" description="Numbers">
-    <setting name="auto_widening" type="bool" default="false" task="27.2f">
+    <setting name="autoWidening" type="bool" default="false" task="27.2f">
       <description>An int used as a float widens automatically (with a warning); false: it must fit exactly</description>
+    </setting>
+    <setting name="overflowWrap" type="bool" default="false" task="32.0">
+      <description>Whole-number + - * wraps around (a byte: 255 + 1 is 0); false: it is an OverflowError</description>
     </setting>
   </section>
 
@@ -121,19 +127,19 @@
   </section>
 
   <section name="safety" description="Safety">
-    <setting name="mode" type="choice" default="normal" task="27.2b">
-      <description>normal; strict; unsafe (whole-number arithmetic wraps around)</description>
-      <value>normal</value>
+    <setting name="mode" type="choice" default="safe" task="32.0">
+      <description>safe; strict: every warning is an error (security, no undetermined behaviour); unsafe: the whole project may take direct control (memory, assembly, devices)</description>
+      <value>safe</value>
       <value>strict</value>
       <value>unsafe</value>
     </setting>
-    <setting name="max_call_depth" type="int-or-max" min="1" default="max" task="27.2c">
+    <setting name="maxCallDepth" type="int-or-max" min="1" default="max" task="27.2c">
       <description>How deep calls may go; max: endless recursion is caught by stack use alone</description>
     </setting>
   </section>
 
   <section name="build" description="What the built program does">
-    <setting name="wait_at_exit" type="bool" default="false" task="23.7">
+    <setting name="waitAtExit" type="bool" default="false" task="23.7">
       <description>Wait for a key before the window closes, so the output can be read - for development, examples and testing, or an app that shows its details to the customer (never with --headless)</description>
     </setting>
   </section>

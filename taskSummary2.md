@@ -144,10 +144,9 @@ print(e)                                 // Person's fields first, then Employee
     errors), `unsafe` (the whole project - memory / assembly; nothing more yet). The old
     `mode = "unsafe"` that wrapped arithmetic: a clear error - "now `[numbers] overflowWrap =
     true`"
-  - Questions: (a) old names with `_` (`tab_width`) - still accepted (matching ignores case and
-    `_`, recommended - no project breaks; new files are written in camelCase), or camelCase
-    only? (b) `strict`: every warning becomes an error (recommended - simple, like a C
-    compiler's -Werror), or a chosen list?
+  - Answers (user, 2026-10-28): `_` may be used and is ignored (a reading aid some people
+    prefer) - `tab_width`, `tabWidth`, `TABWIDTH` are the same; new files are written in
+    camelCase. `strict`: every warning becomes an error. Approved - build it now
 - 32.10 Object lifetime (mini-task): every case in Object_Lifetime.md, each with a test - run
   before classes (32.2) so the counting is right from the start. Three strategies (MANUAL /
   OWNERSHIP / GC) as `[memory] strategy`; `free` / `deallocate`; leak reporting; the full
@@ -423,4 +422,9 @@ Kept under Task 22 until the renumbering is approved.
   field modifiers
 - Answers: nocopy - a class with one can't be copied; not both on one field; settings camelCase,
   read case-insensitively; strict = warnings become errors; safe default - 32.0 planned
-- **Next Action:** the user answers 32.0's two questions; then 32.0, then 32.1
+- 32.0 approved (camelCase, `_` ignored, strict = warnings are errors); Car nocopy + noshare
+  example recorded (Object_Lifetime.md - 1 question)
+- 32.0 done: camelCase settings read ignoring case and _; overflowWrap; safety safe / strict /
+  unsafe (normal accepted, old unsafe warns); strict = warnings are errors
+- **Next Action:** the user answers Object_Lifetime.md section 11 (1 question) / approves Task
+  32; then 32.1

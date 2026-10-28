@@ -260,14 +260,14 @@ class SemanticAnalyzer:
                         self.errors.append(SemanticError(
                             f"Field '{f.name}' of struct '{struct.name}' is a "
                             f"{'List' if isinstance(f.field_type, ListType) else 'Map'} - the "
-                            f"project sets [structs] hold_collections = false", f.location))
+                            f"project sets [structs] holdCollections = false", f.location))
         has_string_field = any(
             isinstance(f.field_type, PrimitiveType) and f.field_type.name == 'string'
             for s in structs for f in s.fields
         )
         if self.structs_config.string_storage == 'pooled' and has_string_field:
             self.errors.append(SemanticError(
-                'fusion.toml sets [structs] string_storage = "pooled", which is not '
+                'fusion.toml sets [structs] stringStorage = "pooled", which is not '
                 'implemented yet (Task 17) - use "owned"',
                 location
             ))

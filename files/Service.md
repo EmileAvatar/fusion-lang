@@ -198,38 +198,38 @@ with them.
 
 ```toml
 [concurrency]
-resource_as_service = true     # files, sockets, pipes and databases are services
-max_unit_warn = 5              # service(a, b, ...) with more names: a warning
-max_unit = 32                  # more than this: a compile error
+resourceAsService = true     # files, sockets, pipes and databases are services
+maxUnitWarn = 5              # service(a, b, ...) with more names: a warning
+maxUnit = 32                  # more than this: a compile error
 
 [concurrency.defaults]         # only the prime settings
 mailbox = 12
-when_full = "WAIT"             # WAIT | ERROR
+whenFull = "WAIT"             # WAIT | ERROR
 scheduler = "IMMEDIATE"        # IMMEDIATE | BATCHED | the name of a custom scheduler
 rule = "HIERARCHY"             # HIERARCHY | the name of a custom rule
 priority = "5.4.1"             # high 5, medium 4, low 1 in 10 - or custom shares
-worker_thread_type = "AUTO"    # AUTO (the compiler chooses) | SINGLE | SHARED
-thread_pool = 8                # workers in the shared pool
+workerThreadType = "AUTO"    # AUTO (the compiler chooses) | SINGLE | SHARED
+threadPool = 8                # workers in the shared pool
 
 [concurrency.timeouts]         # example timeouts the program can use, and override per thread
-database_query = "30s"
-database_connect = "30s"
-http_request = "100s"
-socket_read = "60s"
-file_lock = "5s"
+databaseQuery = "30s"
+databaseConnect = "30s"
+httpRequest = "100s"
+socketRead = "60s"
+fileLock = "5s"
 
 [concurrency.traps]            # warning | error
-two_resources = "warning"
-shared_variable = "warning"
-missing_timeout = "error"
+twoResources = "warning"
+sharedVariable = "warning"
+missingTimeout = "error"
 
 [concurrency.machine.min]      # embedded, or memory unknown: the lowest settings
-default_pool_size = 1
-default_mailbox = 4
+defaultPoolSize = 1
+defaultMailbox = 4
 [concurrency.machine.small]    # used below 8 GB
-when_memory_below = "8GB"
-default_pool_size = 2
-default_mailbox = 12
+whenMemoryBelow = "8GB"
+defaultPoolSize = 2
+defaultMailbox = 12
 ```
 
 #### Example timeouts

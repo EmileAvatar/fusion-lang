@@ -55,6 +55,8 @@ def compile_file(source_path: str) -> int:
         return 1
     for message in project_config.messages:
         print(f"  [OK] Settings: {message}", file=sys.stderr)
+    for warning in project_config.warnings:
+        print(f"Settings warning: {warning}", file=sys.stderr)
     if project_config.source_path:
         print(f"  [OK] Settings from {os.path.basename(project_config.source_path)}", file=sys.stderr)
 
@@ -128,6 +130,15 @@ def compile_file(source_path: str) -> int:
     if analyzer.get_warnings():
         analyzer.print_diagnostics()
 
+    # [safety] mode = "strict" (Task 32.0): every warning is an error - absolute strictness
+    if project_config.safety_mode == 'strict':
+        count = (len(analyzer.get_warnings()) + len(lexer.diagnostics.warnings)
+                 + len(project_config.warnings))
+        if count:
+            print(f"\n{count} warning(s) - errors in strict mode ([safety] mode = \"strict\")",
+                  file=sys.stderr)
+            return 1
+
     print(f"  [OK] Semantic analysis passed", file=sys.stderr)
 
     # Code generation
@@ -136,7 +147,8 @@ def compile_file(source_path: str) -> int:
                                max_length=project_config.strings.max_length,
                                safety_mode=project_config.safety_mode,
                                max_call_depth=project_config.max_call_depth,
-                               wait_at_exit=project_config.build.wait_at_exit)
+                               wait_at_exit=project_config.build.wait_at_exit,
+                               overflow_wrap=project_config.numbers.overflow_wrap)
     try:
         c_code = generator.generate(ast)
     except Exception as e:

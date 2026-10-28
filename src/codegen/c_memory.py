@@ -354,7 +354,7 @@ static inline fusion_char_buf fusion_char_text(fusion_char c) {
 static const char* fusion_at = NULL;   // "file:line" of the statement running now
 static inline void fusion_check_length(fusion_string* r) {
     if (r->chars > FUSION_MAX_LENGTH)
-        fusion_fail(FUSION_KIND_StringTooLongError, fusion_at, "a string of %d characters is longer than max_length %d ([strings] in fusion.toml)", r->chars, FUSION_MAX_LENGTH);
+        fusion_fail(FUSION_KIND_StringTooLongError, fusion_at, "a string of %d characters is longer than maxLength %d ([strings] in fusion.toml)", r->chars, FUSION_MAX_LENGTH);
 }
 #define FUSION_CHECK_LENGTH(r) fusion_check_length(&(r))
 #else

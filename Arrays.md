@@ -145,7 +145,7 @@ All methods: `add`, `insert`, `removeAt`, `remove`, `clear`, `len`, `contains`, 
 [collections]
 threads = "shared"     # default: lists and maps share a pool of threads; "dedicated": each
                        # busy list / map gets its own thread
-shared_threads = 10    # default: the pool's size
+sharedThreads = 10    # default: the pool's size
 ```
 - **Combining**: `List<int> all = a + b + c` - the same as arrays; for maps see section 5
 

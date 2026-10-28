@@ -139,7 +139,7 @@ static inline float fusion_int_to_float(int x, const char* where) {
     float f = (float)x;
     if ((double)f != (double)x) {
         fusion_fail(FUSION_KIND_PrecisionError, where, "%d can't be stored exactly in a float "
-                    "(it would become %.0f) - use a double, or set [numbers] auto_widening = true",
+                    "(it would become %.0f) - use a double, or set [numbers] autoWidening = true",
                     x, (double)f);
     }
     return f;
@@ -310,7 +310,7 @@ class ErrorsMixin:
                ['    ' + line for line in self._fail_action(self.fail_targets[0])] + ['}']
 
     def depth_wrapper_lines(self, node, c_name: str, body_name: str) -> list:
-        """[safety] max_call_depth = a number: the function counts its calls (Task 27.2c)."""
+        """[safety] maxCallDepth = a number: the function counts its calls (Task 27.2c)."""
         return_type = self.return_c_type(node.return_type)
         params = self._c_parameter_list(node.parameters)
         names = []
@@ -321,7 +321,7 @@ class ErrorsMixin:
         call = f'{body_name}({", ".join(names)})'
         void = return_type == 'void'
         message = escape_c_text(f"{node.name.split('.')[-1]}() went past "
-                                f"[safety] max_call_depth = {self.max_call_depth} calls", '"')
+                                f"[safety] maxCallDepth = {self.max_call_depth} calls", '"')
         lines = [f'{return_type} {c_name}({params}) {{',
                  f'    if (fusion_call_depth >= {self.max_call_depth}) {{',
                  f'        fusion_fail(FUSION_KIND_StackOverflowError, {self._where(node)}, "{message}");']
@@ -473,8 +473,9 @@ class ErrorsMixin:
         return all(getattr(getattr(o, 'inferred_type', None), 'name', None) in whole for o in operands)
 
     def wraps(self, node) -> bool:
-        """Arithmetic that wraps around: unsafe mode, or inside an unchecked block."""
-        return getattr(self, 'safety_mode', 'normal') == 'unsafe' or getattr(node, 'unchecked', False)
+        """Arithmetic that wraps around: [numbers] overflowWrap (Task 32.0 - it was [safety]
+        mode = "unsafe"), or inside an unchecked block."""
+        return getattr(self, 'overflow_wrap', False) or getattr(node, 'unchecked', False)
 
     @staticmethod
     def constant_value(node):
@@ -526,7 +527,7 @@ class ErrorsMixin:
         return not (type(right).__name__ == 'LiteralExpr' and right.value not in (0, -1))
 
     def _makes_limited_string(self, node) -> bool:
-        """With [strings] max_length set, a new string can be too long."""
+        """With [strings] maxLength set, a new string can be too long."""
         kind = getattr(node, 'inferred_type', None)
         return getattr(self, 'max_length', None) is not None and isinstance(kind, PrimitiveType) \
             and kind.name == 'string' and (not isinstance(node, BinaryExpr) or node.operator == '+')

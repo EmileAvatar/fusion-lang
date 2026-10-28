@@ -159,7 +159,7 @@ def test_char_literal_surrogate_rejected():
 # ============================================================
 
 def test_non_ascii_identifier_rejected_by_default():
-    with pytest.raises(LexerError, match="allow_unicode_identifiers"):
+    with pytest.raises(LexerError, match="allowUnicodeIdentifiers"):
         lex(f"int {CYRILLIC_A}ge = 5\n")
 
 

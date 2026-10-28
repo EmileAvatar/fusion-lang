@@ -14,7 +14,8 @@ from src.semantic import SemanticAnalyzer
 from src.codegen import CCodeGenerator
 
 
-def compile_and_run(fusion_code: str, safety_mode: str = 'normal') -> tuple[int, str, str]:
+def compile_and_run(fusion_code: str, safety_mode: str = 'safe',
+                    overflow_wrap: bool = False) -> tuple[int, str, str]:
     """Compile Fusion code and run the executable.
 
     Args:
@@ -42,7 +43,8 @@ def compile_and_run(fusion_code: str, safety_mode: str = 'normal') -> tuple[int,
         success = analyzer.analyze(ast)
         assert success, f"Semantic errors: {analyzer.get_errors()}"
 
-        generator = CCodeGenerator(safety_mode=safety_mode)   # [safety] mode (Task 27.2b)
+        # [safety] mode; [numbers] overflowWrap (Task 32.0 - it was [safety] mode = "unsafe")
+        generator = CCodeGenerator(safety_mode=safety_mode, overflow_wrap=overflow_wrap)
         c_code = generator.generate(ast)
 
         # Write C code

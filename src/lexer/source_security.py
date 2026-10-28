@@ -108,7 +108,7 @@ def check_identifier(name: str, allow_unicode: bool) -> Optional[str]:
                     f"identifier '{name}' contains non-ASCII character {describe_char(ch)}. "
                     f"Identifiers are ASCII-only by default, because look-alike characters "
                     f"from other scripts can make two different names appear identical. Set "
-                    f"[source] allow_unicode_identifiers = true in fusion.toml to allow "
+                    f"[source] allowUnicodeIdentifiers = true in fusion.toml to allow "
                     f"Unicode identifiers"
                 )
         return None

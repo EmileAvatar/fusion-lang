@@ -767,7 +767,7 @@ void function main()
     print("{@1} {@2}", wrapAdd(big, 1), big.wrapMul(2))   // wrapping on purpose
     print("{@1} {@2}", hash("x"), 60 * 60 * 24)            // written numbers: no check
 ```
-`[safety] mode = "unsafe"` in fusion.toml makes all `+ - *` wrap (array bounds stay checked).
+`[numbers] overflowWrap = true` in fusion.toml makes all `+ - *` wrap (array bounds stay checked).
 
 #### Custom error types
 
@@ -877,15 +877,15 @@ fusionSettingFormat = "TOML"     # TOML / YAML / JSON / INI - change it and the 
                                  # rewrites the file in that format (the old one kept as .bak)
 
 [indentation]
-tab_width = 4
-allow_mixed = true
+tabWidth = 4
+allowMixed = true
 
 [source]
-allow_unicode_identifiers = false
+allowUnicodeIdentifiers = false
 
 [strings]
 encoding = "utf-8"               # utf-8 (default) | ascii - also named: utf-16, utf-32 (future)
-max_length = "max"               # no limit (default); a number = longer strings are an error
+maxLength = "max"               # no limit (default); a number = longer strings are an error
 
 [stdlib]
 layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)
@@ -898,7 +898,8 @@ numbers = "positive"             # if / while count: count > 0 (default); "nonze
                                  # "off": a condition must be a bool
 
 [numbers]
-auto_widening = false            # an int used as a float must fit exactly (else an error);
+overflowWrap = false             # true: whole-number + - * wraps (255 + 1 in a byte is 0)
+autoWidening = false            # an int used as a float must fit exactly (else an error);
                                  # true: it widens automatically, with a warning
 
 [errors]
@@ -906,20 +907,20 @@ returns = true                   # T, Error function / capturing errors (default
 exceptions = true                # try / catch / finally / throw (default on)
 
 [structs]
-max_nesting_depth  = 3
-warn_nesting_depth = 3
-string_storage     = "owned"
-string_mutable     = true
-string_warn_length = 64
-hold_collections   = true        # a struct field may be a List / Map; false: an error
+maxNestingDepth  = 3
+warnNestingDepth = 3
+stringStorage     = "owned"
+stringMutable     = true
+stringWarnLength = 64
+holdCollections   = true        # a struct field may be a List / Map; false: an error
 
 [build]
-wait_at_exit = false             # true: wait for a key before the window closes (development,
+waitAtExit = false             # true: wait for a key before the window closes (development,
                                  # examples, testing) - examples/fusion.toml turns it on
 
 [safety]
-mode = "normal"                  # normal | strict (reserved) | unsafe: + - * wrap instead of OverflowError
-max_call_depth = "max"           # endless recursion: caught by stack use; a number also counts
+mode = "safe"                    # safe (default) | strict (every warning is an error) | unsafe
+maxCallDepth = "max"           # endless recursion: caught by stack use; a number also counts
                                  # calls (memory-constrained devices) - a StackOverflowError
 
 [backend]

@@ -53,7 +53,7 @@ are in `task/featuresArchive.md`.
 
 #### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED]
 	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
-		needs a reference count, as Task 38's Shared does (`[structs] string_storage =
+		needs a reference count, as Task 38's Shared does (`[structs] stringStorage =
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
@@ -95,6 +95,10 @@ are in `task/featuresArchive.md`.
 	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
 
 #### 32 Methods on structs, then classes and interfaces (user, 2026-10-11) [ ]
+	[DONE] 32.0 Settings housekeeping (tests/test_settings_formats.py) - user, 2026-10-28: names in camelCase, read case-insensitively,
+		`_` ignored (`tab_width` = `tabWidth`); `[numbers] overflowWrap` (default false) takes
+		over arithmetic wrapping from `[safety] mode = "unsafe"`; `[safety] mode` = safe
+		(default; `normal` accepted) / strict (every warning is an error) / unsafe
 	[ ] 32.1 Methods on the program's own structs (`p.move(1, 2)`) - built-in types have them (18.3.7);
 		also 44.2
 	[ ] 32.2 Classes, interfaces, inheritance - plan first
@@ -216,7 +220,7 @@ are in `task/featuresArchive.md`.
 	[ ] 42.4 `service(x).final = { ... }` - extra clean-up; leaving scope always releases every
 		associated resource (like try-with-resources)
 	[ ] 42.5 Resources as services by default: files, sockets, pipes, databases
-		(`[concurrency] resource_as_service = true`; direct access only in unsafe mode)
+		(`[concurrency] resourceAsService = true`; direct access only in unsafe mode)
 	[ ] 42.6 Settings that fit the machine: built-in defaults < fusion.toml < the program's
 		defaults < service(x) in code. Levels from MIN (embedded or unknown memory) up, e.g.
 		2GB as low end. Runs on any machine: never blocks the program or errors - a machine
@@ -342,9 +346,9 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		(used in docs and examples) are `else if` and `switch` (user, 2026-10-24)
 	[ ] Enum values with fixed constants, built by the enum's private constructor:
 		`enum Planet { Mercury(3.7) ... }`, Planet.Mercury.gravity() / Planet.Mercury.Name
-	[ ] Several return values only when `[functions] multiple_returns = true` (off by default);
+	[ ] Several return values only when `[functions] multipleReturns = true` (off by default);
 		a function that can fail always has its Error last
-	[ ] Operator overloading, off by default - `[language] operator_overloading = true`
+	[ ] Operator overloading, off by default - `[language] operatorOverloading = true`
 	[ ] Namespaces: group related modules (several folders / libraries) under one name
 	[ ] println with a line ending: the PC's own, or set in fusion.toml. Kept for later (user,
 		2026-10-24); note for developers: `print` already ends the line
@@ -384,11 +388,11 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] Hardware descriptions: `import hardware "x.hidl" as microwave`; registers as typed
 		properties, out-of-range values compile errors (Task 41)
 	[ ] fusion.toml: `block_styles` - allow only some block styles in a project
-	[ ] fusion.toml: `[threads] pool_size = "auto"` (one per CPU core)
+	[ ] fusion.toml: `[threads] poolSize = "auto"` (one per CPU core)
 	[ ] fusion.toml: `[modules] paths` - extra folders searched for imported modules
-	[DONE] fusion.toml: `[build] wait_at_exit` - default false (user, 2026-10-28: for development,
+	[DONE] fusion.toml: `[build] waitAtExit` - default false (user, 2026-10-28: for development,
 		examples and testing; examples/fusion.toml turns it on); --headless never waits
-	[DONE] `[structs] hold_collections` (default true) - the struct setting decided 2026-10-24
+	[DONE] `[structs] holdCollections` (default true) - the struct setting decided 2026-10-24
 	(Already listed above: namespaces, operator overloading, println, map literals, loop)
 	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use
 	[POSTPONED - with each feature] More error types (Task 26 list, 2026-10-16): NetworkError /

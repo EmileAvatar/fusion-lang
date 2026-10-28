@@ -359,18 +359,18 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             problem = (f"{value.value} can't be stored exactly in a float (a float holds whole "
                        f"numbers exactly only up to 16,777,216) - use a double")
             if getattr(self, 'auto_widening', False):
-                self.warnings.append(SemanticError(problem + " ([numbers] auto_widening = true)",
+                self.warnings.append(SemanticError(problem + " ([numbers] autoWidening = true)",
                                                    value.location))
             else:
                 self.errors.append(SemanticError(
-                    problem + ", or set [numbers] auto_widening = true", value.location))
+                    problem + ", or set [numbers] autoWidening = true", value.location))
             return
         if value_type.name == 'byte':
             return                   # 0-255 always fits
         if getattr(self, 'auto_widening', False):
             self.warnings.append(SemanticError(
                 "An int becomes a float here and may lose precision above 16,777,216 "
-                "([numbers] auto_widening = true)", value.location))
+                "([numbers] autoWidening = true)", value.location))
             return
         # Checked while running: the node becomes WidenExpr(the value), in place
         import copy
@@ -447,7 +447,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         if warn_length and length > warn_length:
             self.warnings.append(SemanticError(
                 f"String for field '{field.name}' of struct '{struct_name}' has {length} "
-                f"characters (the project's string_warn_length guideline is {warn_length}) - "
+                f"characters (the project's stringWarnLength guideline is {warn_length}) - "
                 f"kept in full",
                 value.location
             ))
@@ -489,7 +489,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             self.checked_literals.add(id(node))
             self.errors.append(SemanticError(
                 f"String has {len(str(node.value))} characters, more than the project's "
-                f"max_length of {max_length} ([strings] in fusion.toml)", node.location))
+                f"maxLength of {max_length} ([strings] in fusion.toml)", node.location))
 
         # A project using ascii encoding can only hold ASCII text (Task 18.3.2b)
         if self.strings_config.encoding == 'ascii' and node.type_hint in ('string', 'char'):
@@ -1608,14 +1608,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
                 self.errors.append(SemanticError(
                     f"Struct '{struct.name}' is nested {depth} levels deep "
                     f"({' -> '.join(path)}) - the project allows {max_depth} "
-                    f"([structs] max_nesting_depth in fusion.toml)",
+                    f"([structs] maxNestingDepth in fusion.toml)",
                     struct.location
                 ))
             elif warn_depth and warn_depth <= depth <= max_depth and child_depth < warn_depth:
                 self.warnings.append(SemanticError(
                     f"Struct '{struct.name}' is nested {depth} levels deep "
                     f"({' -> '.join(path)}) - the project warns from {warn_depth} levels "
-                    f"([structs] warn_nesting_depth in fusion.toml)",
+                    f"([structs] warnNestingDepth in fusion.toml)",
                     struct.location
                 ))
 
@@ -2182,7 +2182,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         elif isinstance(target.array, MemberExpr) and not self.structs_config.string_mutable:
             self.errors.append(SemanticError(
                 f"String field '{target.array.member}' can't be changed after the struct is "
-                f"created - the project sets [structs] string_mutable = false",
+                f"created - the project sets [structs] stringMutable = false",
                 node.location))
         value_type = self.visit(node.value)
         if not self.types_compatible(element_type, value_type):
@@ -2245,7 +2245,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
                 and not self.structs_config.string_mutable:
             self.errors.append(SemanticError(
                 f"String field '{field.name}' of struct '{struct.name}' can't be changed after "
-                f"the struct is created - the project sets [structs] string_mutable = false",
+                f"the struct is created - the project sets [structs] stringMutable = false",
                 node.location
             ))
 

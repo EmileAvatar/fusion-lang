@@ -220,14 +220,23 @@ Car car = copy(honda)         // a deep copy - or shallow when [memory] copy = "
 
 ```fusion
 class Car
+    // a nocopy field AND a noshare field: a Car can be neither copied nor shared -
+    // copying it or sharing it is a compile error
     private nocopy Database database     // a database can't be copied - so neither can a Car
-    private noshare Logbook log          // never shared - a copy always gets its own logbook
+    private noshare Logbook log          // never shared - so a Car can't be shared either
+    private nocopy noshare Settings set  // a compile error - one field can't be both
+
+    // allowed - a method decides what it hands out:
+    public Database function shareDB()
+        return database                  // shares the database's reference
+    public Logbook function copyLogbook()
+        return copy(log)                 // a copy of the logbook
 ```
 
 | Modifier | Means | When the object holding it is copied (`byVal`, `copy`, `copyDeep`) | An error |
 |---|---|---|---|
 | `nocopy` | the value can never be copied (a database, a file lock) | **not possible** - a class with a `nocopy` field can't be copied at all; it can only be shared (`byRef`) | any copy of the object, or of the field (user, 2026-10-28) |
-| `noshare` | the reference is never shared - it must be copied | the copy gets its own copy of the field - even when `[memory] copy = "shallow"` | handing the field's object to another holder by reference |
+| `noshare` | the reference is never shared - it must be copied | the copy gets its own copy of the field - even when `[memory] copy = "shallow"`; and a class with a `noshare` field can't itself be shared | handing the field's object to another holder by reference |
 
 - A class may have `nocopy` fields and `noshare` fields; **one field can't be both** -
   `private nocopy noshare Database db` is a compile error
@@ -438,8 +447,8 @@ void function main()
 [memory]
 strategy = "ownership"      # ownership (default) | gc | manual
 gc = "multi-core"           # single-core | multi-core | off - the GC implementation
-gc_thread = "shared"        # shared (default) | dedicated
-double_free = "ignore"      # deallocate on something already freed: ignore | error
+gcThread = "shared"        # shared (default) | dedicated
+doubleFree = "ignore"      # deallocate on something already freed: ignore | error
 copy = "deep"               # byVal / copy(): deep (default) | shallow
 
 [safety]
@@ -450,15 +459,20 @@ mode = "safe"               # safe (default) | strict (warnings are errors) | un
 overflowWrap = false        # false (default): 255 + 1 in a byte is an OverflowError; true: 0
 
 [diagnostics]
-leak_check = "dev"          # dev (report while developing) | log (log in the app) | off
+leakCheck = "dev"          # dev (report while developing) | log (log in the app) | off
 ```
 
 ---
 
 ## 11. Questions still open
 
-None on lifetime for now. The settings changes this brought (camelCase names, `overflowWrap`,
-`[safety] mode`) are a small task of their own - see taskSummary2.md (32.0).
+1. **A class that can be neither copied nor shared** (a `nocopy` field and a `noshare` field)
+   has exactly one holder. Can it still be **passed to a function** (borrowed, as every
+   parameter is), and **moved** - `Car b = a` when `a` is not used afterwards, or returned
+   from a function (as Rust allows)? Or only used where it was made?
+
+The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mode`) are task
+32.0 - see taskSummary2.md.
 
 ---
 
@@ -481,5 +495,6 @@ None on lifetime for now. The settings changes this brought (camelCase names, `o
 | 2026-10-28 | `[memory] copy = "deep"` (default) / `"shallow"`; `copyDeep(x)` always deep, `copy(x)` follows the setting |
 | 2026-10-28 | Field modifiers `nocopy` (the value can never be copied - a class with one can't be copied at all, only shared; e.g. a database) and `noshare` (never shared - always copied); not both on one field; used sparingly; file locks, connections, locks, threads `nocopy` by default later |
 | 2026-10-28 | `[safety] mode`: safe (default) / strict (warnings become errors - security, no undetermined behaviour) / unsafe; `overflowWrap` in `[numbers]` |
+| 2026-10-28 | A class with a `nocopy` field can't be copied; with a `noshare` field it can't be shared; with both, neither. A method may still hand out a `nocopy` field's reference (`return database`) or a copy of a `noshare` field (`return copy(log)`) |
 | 2026-10-28 | Leaks: warned in development; the leak check can be off or built into the app; a published app logs, never shows debug messages to the customer |
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |

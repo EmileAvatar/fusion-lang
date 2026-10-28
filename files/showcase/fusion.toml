@@ -20,21 +20,21 @@ fusionSettingFormat = "TOML"
 
 [indentation]
 # [built] Spaces per tab
-tab_width = 4
+tabWidth = 4
 # [built] Mixed tabs and spaces: a warning (true) or an error (false)
-allow_mixed = true
+allowMixed = true
 # [idea] Allow only some block styles in this project: indent, end, braces
-block_styles = ["indent", "end", "braces"]
+blockStyles = ["indent", "end", "braces"]
 
 [source]
 # [built] Identifiers ASCII-only unless turned on (look-alike letter defense)
-allow_unicode_identifiers = false
+allowUnicodeIdentifiers = false
 
 [strings]
 # [built] utf-8 or ascii; [designed] utf-16 / utf-32
 encoding = "utf-8"
 # [built] "max" = no limit; a number = a longer string is a StringTooLongError
-max_length = "max"
+maxLength = "max"
 # [rejected] A "mutable" switch - a string variable can always be changed in place (s[i] = c,
 # Task 29.1); a const string is fixed (29.2)
 # [designed] Identical text stored once (Task 29.4 - postponed to Task 38)
@@ -44,7 +44,9 @@ nullable = false
 
 [numbers]
 # [built] false: an int used as a float must fit exactly (else PrecisionError); true: a warning
-auto_widening = false
+autoWidening = false
+# [built] Whole-number + - * wraps (a byte: 255 + 1 is 0); false: an OverflowError (Task 32.0)
+overflowWrap = false
 
 [errors]
 # [built] T, Error function / capturing errors
@@ -52,20 +54,20 @@ returns = true
 # [built] try / catch / finally / throw
 exceptions = true
 # [designed] Every error carries a stack trace
-stack_traces = true
+stackTraces = true
 
 [structs]
 # [built] Deepest struct nesting allowed, and the depth that warns
-max_nesting_depth = 3
-warn_nesting_depth = 3
+maxNestingDepth = 3
+warnNestingDepth = 3
 # [built] "owned" - each struct holds its own strings; [designed] "pooled" (Task 29)
-string_storage = "owned"
+stringStorage = "owned"
 # [built] false: string fields can't change after construction
-string_mutable = true
+stringMutable = true
 # [built] Warn when a string field is longer than this (0 = never)
-string_warn_length = 64
+stringWarnLength = 64
 # [built] A struct field may be a List or Map (false: such a field is an error)
-hold_collections = true
+holdCollections = true
 # [designed] Functions on structs (Task 32.1) / classes inside structs - off by default
 functions = false
 classes = false
@@ -83,35 +85,35 @@ nullable = false
 # [designed] Lists and maps share a pool of threads ("shared") or get their own
 # ("dedicated") (Task 42.17)
 threads = "shared"
-shared_threads = 10
+sharedThreads = 10
 
 [functions]
 # [designed] Several return values per function (user, 2026-10-23: off unless allowed);
 # a function that can fail always has its Error last
-multiple_returns = false
+multipleReturns = false
 
 [language]
 # [idea] Operator overloading (+ on your own types) - only for exceptional cases (user)
-operator_overloading = false
+operatorOverloading = false
 
 [console]
 # [idea] The line ending println uses: "system" (the PC's own) | "lf" | "crlf"
-line_ending = "system"
+lineEnding = "system"
 
 [stdlib]
 # [built] std (everything) | alloc (no OS: no print, no files) | core (no heap)
 layer = "std"
 
 [safety]
-# [built] normal | unsafe (+ - * wrap instead of OverflowError); [designed] strict
-mode = "normal"
+# [built] safe (default) | strict (every warning is an error) | unsafe (the whole project)
+mode = "safe"
 # [built] Endless recursion: "max" = caught by stack use; a number also counts calls
-max_call_depth = "max"
+maxCallDepth = "max"
 # [rejected] Turning off array bounds checks - they stay on even in unsafe mode (Task 27.1)
 # [designed] strict mode: null checks forced, Weak<T> is an error, callbacks limited
-null_checks = "strict"
+nullChecks = "strict"
 # [designed] Loop protection: the most passes a loop may make (0 = no limit)
-max_iterations = 0
+maxIterations = 0
 
 [memory]
 # [designed] gc (automatic) | smart (Unique / Shared / Weak) | manual (raw pointers) (Task 38)
@@ -122,7 +124,7 @@ strategy = "smart"
 # [designed] Threads allowed at all (off for small devices)
 enabled = true
 # [idea] Size of the thread pool ("auto" = one per CPU core)
-pool_size = "auto"
+poolSize = "auto"
 
 [modules]
 # [built] Module-level variables (module constants are always allowed) (Task 44.1)
@@ -130,7 +132,7 @@ variables = true
 # [idea] Extra folders searched for imported modules
 paths = ["lib", "vendor"]
 # [designed] Libraries must declare what they may do (files, network, ...) (Task 39)
-require_capabilities = true
+requireCapabilities = true
 
 [backend]
 # [built] "c"; [designed] "llvm" (Task 40)
@@ -147,7 +149,7 @@ optimize = "none"
 output = "exe"
 # [built] Wait for a key before the window closes, so the output can be read - for
 # development, examples and testing (default false; --headless never waits)
-wait_at_exit = false
+waitAtExit = false
 
 [docs]
 # [designed] Make documentation from /** */ comments

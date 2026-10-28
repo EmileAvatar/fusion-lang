@@ -769,7 +769,7 @@ File trace = File.open("trace.log", mailbox = 1000, whenFull = Full.WAIT)
 
 ```toml
 [concurrency]
-resource_as_service = true      # the default
+resourceAsService = true      # the default
 ```
 
 - `true` (the default): every file, socket, pipe and database is a service, even in a
@@ -835,16 +835,16 @@ program from running and never cause an error. A machine that matches no level g
 
 ```toml
 [concurrency]
-max_unit_warn = 5                        # service(a, b, ...) with more names: a warning
-max_unit = 32                            # more than this: a compile error
+maxUnitWarn = 5                        # service(a, b, ...) with more names: a warning
+maxUnit = 32                            # more than this: a compile error
 
 [concurrency.machine.min]                # embedded, or memory unknown: the lowest settings
-default_pool_size = 1
-default_mailbox = 16
+defaultPoolSize = 1
+defaultMailbox = 16
 [concurrency.machine.small]              # used when the machine has less than 8 GB
-when_memory_below = "8GB"
-default_pool_size = 2
-default_mailbox = 100
+whenMemoryBelow = "8GB"
+defaultPoolSize = 2
+defaultMailbox = 100
 ```
 
 The syntax: `service <type> <name>` declares a service, and `service(<list of names>)`
@@ -900,9 +900,9 @@ Each thread, task and request states a timeout:
 
 ```toml
 [concurrency.traps]
-two_resources = "warning"     # warning | error
-shared_variable = "warning"
-missing_timeout = "error"
+twoResources = "warning"     # warning | error
+sharedVariable = "warning"
+missingTimeout = "error"
 ```
 
 #### H. Editor tools: a stack of threads
@@ -1395,7 +1395,7 @@ by hand (FEATURES.md 42.17, 45.8; `Arrays.md`):
 [collections]
 threads = "shared"     # default: lists and maps share a pool of threads; "dedicated": each
                        # busy list / map gets its own thread
-shared_threads = 10    # default: the pool's size
+sharedThreads = 10    # default: the pool's size
 ```
 
 ### 3.11 Version one of `service` (agreed 2026-10-24)

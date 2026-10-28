@@ -31,7 +31,7 @@ def test_no_config_file_returns_defaults(tmp_path):
 
     assert config.indentation.tab_width == 4
     assert config.indentation.allow_mixed is True
-    assert config.safety_mode == "normal"
+    assert config.safety_mode == "safe"
     assert config.backend == "c"
     assert config.source_path is None
 
@@ -132,7 +132,7 @@ def test_valid_backend_c(tmp_path):
 
 
 def test_partial_config_keeps_other_defaults(tmp_path):
-    """Setting only tab_width must not disturb allow_mixed/safety_mode/backend defaults."""
+    """Setting only tabWidth must not disturb allowMixed/safety_mode/backend defaults."""
     source_path = tmp_path / "hello.fusion"
     source_path.write_text("")
     (tmp_path / "fusion.toml").write_text("[indentation]\ntab_width = 3\n")
@@ -141,7 +141,7 @@ def test_partial_config_keeps_other_defaults(tmp_path):
 
     assert config.indentation.tab_width == 3
     assert config.indentation.allow_mixed is True
-    assert config.safety_mode == "normal"
+    assert config.safety_mode == "safe"
     assert config.backend == "c"
 
 
@@ -154,7 +154,7 @@ def test_empty_config_file_is_all_defaults(tmp_path):
 
     assert config == ProjectConfig(
         indentation=IndentationConfig(),
-        safety_mode="normal",
+        safety_mode="safe",
         backend="c",
         source_path=str(tmp_path / "fusion.toml"),
     )
@@ -188,7 +188,7 @@ def test_invalid_tab_width_raises(tmp_path, bad_value):
     source_path.write_text("")
     (tmp_path / "fusion.toml").write_text(f"[indentation]\ntab_width = {bad_value}\n")
 
-    with pytest.raises(ProjectConfigError, match="tab_width must be a positive integer"):
+    with pytest.raises(ProjectConfigError, match="tabWidth must be a positive integer"):
         load_project_config(str(source_path))
 
 
@@ -197,7 +197,7 @@ def test_invalid_allow_mixed_raises(tmp_path):
     source_path.write_text("")
     (tmp_path / "fusion.toml").write_text('[indentation]\nallow_mixed = "yes"\n')
 
-    with pytest.raises(ProjectConfigError, match="allow_mixed must be a boolean"):
+    with pytest.raises(ProjectConfigError, match="allowMixed must be a boolean"):
         load_project_config(str(source_path))
 
 
@@ -288,7 +288,7 @@ def test_source_allow_unicode_identifiers_must_be_boolean(tmp_path):
     source_path = tmp_path / "hello.fusion"
     source_path.write_text("")
     (tmp_path / "fusion.toml").write_text('[source]\nallow_unicode_identifiers = "yes"\n')
-    with pytest.raises(ProjectConfigError, match="allow_unicode_identifiers must be a boolean"):
+    with pytest.raises(ProjectConfigError, match="allowUnicodeIdentifiers must be a boolean"):
         load_project_config(str(source_path))
 
 
@@ -328,8 +328,8 @@ def test_structs_defaults(tmp_path):
 def test_structs_all_keys(tmp_path):
     structs = _load_with(tmp_path, (
         "[structs]\nmax_nesting_depth = 1\nwarn_nesting_depth = 0\n"
-        'string_storage = "pooled"\nstring_mutable = false\n'
-        "string_warn_length = 128\n"
+        'stringStorage = "pooled"\nstring_mutable = false\n'
+        "stringWarnLength = 128\n"
     )).structs
     assert (structs.max_nesting_depth, structs.warn_nesting_depth) == (1, 0)
     assert structs.string_storage == "pooled"
@@ -338,13 +338,13 @@ def test_structs_all_keys(tmp_path):
 
 
 @pytest.mark.parametrize("toml_text, message", [
-    ("[structs]\nmax_nesting_depth = 0\n", "max_nesting_depth must be an integer of at least 1"),
-    ("[structs]\nmax_nesting_depth = true\n", "max_nesting_depth must be an integer"),
-    ("[structs]\nwarn_nesting_depth = -1\n", "warn_nesting_depth must be an integer of at least 0"),
-    ('[structs]\nstring_storage = "inline"\n', "string_storage must be one of"),
-    ('[structs]\nstring_mutable = "no"\n', "string_mutable must be a boolean"),
-    ("[structs]\nstring_warn_length = 1.5\n", "string_warn_length must be an integer"),
-    ("[structs]\nstring_max_length = 50\n", r"has moved to \[strings\] max_length"),
+    ("[structs]\nmax_nesting_depth = 0\n", "maxNestingDepth must be an integer of at least 1"),
+    ("[structs]\nmax_nesting_depth = true\n", "maxNestingDepth must be an integer"),
+    ("[structs]\nwarn_nesting_depth = -1\n", "warnNestingDepth must be an integer of at least 0"),
+    ('[structs]\nstring_storage = "inline"\n', "stringStorage must be one of"),
+    ('[structs]\nstring_mutable = "no"\n', "stringMutable must be a boolean"),
+    ("[structs]\nstring_warn_length = 1.5\n", "stringWarnLength must be an integer"),
+    ("[structs]\nstring_max_length = 50\n", r"has moved to \[strings\] maxLength"),
     ("[structs]\nstring_max_lenght = 10\n", "unknown setting structs.string_max_lenght"),
     ("structs = 5\n", r"\[structs\] must be a table"),
 ])
@@ -375,13 +375,13 @@ def test_structs_config_changes_compiler_behaviour(tmp_path):
 
     result = compile_it()
     assert result.returncode == 0, result.stderr
-    assert "has 100 characters (the project's string_warn_length guideline is 64)" in result.stderr
+    assert "has 100 characters (the project's stringWarnLength guideline is 64)" in result.stderr
 
     (tmp_path / "fusion.toml").write_text(
         "[structs]\nstring_warn_length = 10\n[strings]\nmax_length = 20\n")
     result = compile_it()
     assert result.returncode != 0
-    assert "String has 100 characters, more than the project's max_length of 20" in result.stderr
+    assert "String has 100 characters, more than the project's maxLength of 20" in result.stderr
 
 
 def test_nesting_depth_config_changes_compiler_behaviour(tmp_path):
@@ -439,9 +439,9 @@ def test_strings_encoding_ascii(tmp_path):
     ('[strings]\nencodng = "ascii"\n', "unknown setting strings.encodng"),
     ('[strings]\nmax_length = "64 * 64"\n', r"write 64 \* 64 as 4096"),
     ('[strings]\nmax_length = 0\n', "must be \"max\" \\(no limit\\) or a"),
-    ('[strings]\nmax_length = "max memory"\n', "strings.max_length must be"),
+    ('[strings]\nmax_length = "max memory"\n', "strings.maxLength must be"),
     ('[strings]\ntoo_long = "warn"\n', "unknown setting strings.too_long"),
-    ('[structs]\nstring_warn_length = 100\n[strings]\nmax_length = 50\n', "can't be larger than strings.max_length"),
+    ('[structs]\nstring_warn_length = 100\n[strings]\nmax_length = 50\n', "can't be larger than strings.maxLength"),
 ])
 def test_strings_invalid_values(tmp_path, toml_text, message):
     with pytest.raises(ProjectConfigError, match=message):

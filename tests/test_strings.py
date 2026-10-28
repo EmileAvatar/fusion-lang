@@ -510,7 +510,7 @@ def test_interpolation_errors(body, message):
 # ============================================================
 
 def run_with_limit(source: str, limit):
-    """Compile with a [strings] max_length (None = "max") under the leak check, run, and
+    """Compile with a [strings] maxLength (None = "max") under the leak check, run, and
     return (exit code, stdout lines, stderr)."""
     from src.codegen import CCodeGenerator
     from src.semantic import SemanticAnalyzer
@@ -571,7 +571,7 @@ def test_a_longer_string_is_a_run_time_error_never_a_cut(statement):
     code, out, err = run_with_limit(ECHO + NOTE + main(f'print("before")\n{statement}\nprint("after")'), 10)
     assert code == 1 and out == ["before"]
     assert "Runtime error at test.fusion:" in err
-    assert "characters is longer than max_length 10 ([strings] in fusion.toml)" in err
+    assert "characters is longer than maxLength 10 ([strings] in fusion.toml)" in err
 
 
 def test_limit_counts_characters_not_bytes():
@@ -587,5 +587,5 @@ def test_source_text_over_the_limit_is_a_compile_error():
     from src.config import StringsConfig
     analyzer = SemanticAnalyzer(strings_config=StringsConfig(max_length=5))
     assert not analyzer.analyze(parse(main('string s = "abcdefgh"')))
-    assert any("String has 8 characters, more than the project's max_length of 5" in str(e)
+    assert any("String has 8 characters, more than the project's maxLength of 5" in str(e)
                for e in analyzer.get_errors())

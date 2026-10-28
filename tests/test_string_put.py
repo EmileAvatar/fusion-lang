@@ -117,4 +117,4 @@ def test_a_fixed_string_field_when_the_project_says_so():
                         + main('Person p = Person("ann")\n'
                                'p.name[0] = \'A\''),
                         StructsConfig(string_mutable=False))
-    assert 'string_mutable = false' in message
+    assert 'stringMutable = false' in message

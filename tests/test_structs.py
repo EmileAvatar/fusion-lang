@@ -276,13 +276,13 @@ def test_short_string_no_warning():
 def test_long_string_kept_in_full_with_warning():
     text = 'x' * 210
     source = BOOK + main(f'Book b = Book("{text}")')
-    assert "has 210 characters (the project's string_warn_length guideline is 64) - kept in full" \
+    assert "has 210 characters (the project's stringWarnLength guideline is 64) - kept in full" \
         in warnings_of(source)
     assert f'"{text}"' in generate_c(source)
 
 
 def test_no_length_limit_by_default():
-    """Strings have no length limit unless the project sets [strings] max_length (18.3.4b)."""
+    """Strings have no length limit unless the project sets [strings] maxLength (18.3.4b)."""
     source = BOOK + main(f'Book b = Book("{"y" * 5000}")')
     assert f'"{"y" * 5000}"' in generate_c(source)
 
@@ -290,7 +290,7 @@ def test_no_length_limit_by_default():
 def test_custom_warn_length():
     config = StructsConfig(string_warn_length=5)
     source = BOOK + main('Book b = Book("123456")')
-    assert "has 6 characters (the project's string_warn_length guideline is 5)" in \
+    assert "has 6 characters (the project's stringWarnLength guideline is 5)" in \
         warnings_of(source, config)
 
 
@@ -313,7 +313,7 @@ def test_immutable_string_fields():
 
 
 def test_pooled_storage_not_implemented_yet():
-    assert 'string_storage = "pooled", which is not implemented yet (Task 17)' in errors_of(
+    assert 'stringStorage = "pooled", which is not implemented yet (Task 17)' in errors_of(
         BOOK + main('Book b = Book("a")'), StructsConfig(string_storage='pooled'))
 
 

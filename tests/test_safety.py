@@ -168,7 +168,7 @@ def test_unsafe_mode_wraps_and_keeps_bounds_checks():
         'try\n'
         '    print("{@1}", a[big + 3])\n'
         'catch e\n'
-        '    print("{e.kind}")'), safety_mode='unsafe')
+        '    print("{e.kind}")'), overflow_wrap=True)   # was [safety] mode = "unsafe" (32.0)
     assert exit_code == 0, stderr
     assert stdout.splitlines() == ['-2147483648 -2', 'IndexError']
 
@@ -226,7 +226,7 @@ def test_call_depth_mode_counts_calls():
         run = subprocess.run([exe, '--headless'], capture_output=True, text=True,
                              stdin=subprocess.DEVNULL, timeout=30)
     assert run.returncode == 0, run.stderr
-    assert 'down() went past [safety] max_call_depth = 500 calls' in run.stdout
+    assert 'down() went past [safety] maxCallDepth = 500 calls' in run.stdout
 
 
 def test_only_functions_that_can_recurse_are_checked():
@@ -245,7 +245,7 @@ def test_max_call_depth_in_fusion_toml(tmp_path):
     (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = "max"\n')
     assert load_project_config(source).max_call_depth is None
     (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = 0\n')
-    with pytest.raises(ProjectConfigError, match='max_call_depth must be "max" or a whole number'):
+    with pytest.raises(ProjectConfigError, match='maxCallDepth must be "max" or a whole number'):
         load_project_config(source)
 
 
@@ -466,7 +466,7 @@ def test_an_int_that_does_not_fit_a_float_is_an_error_by_default():
             'print("{@1}", values.len())')
     ) == ['1000.000000 500.000000', 'false',
           "PrecisionError: 16777217 can't be stored exactly in a float (it would become "
-          "16777216) - use a double, or set [numbers] auto_widening = true", '2']
+          "16777216) - use a double, or set [numbers] autoWidening = true", '2']
 
 
 def test_a_written_number_that_does_not_fit_is_a_compile_error():

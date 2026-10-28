@@ -19,9 +19,9 @@ from src.config.settings_files import default_settings, read_template
 SAME = {
     'fusion.toml': '[indentation]\ntab_width = 2\n[strings]\nmax_length = 100\n'
                    'encoding = "ascii"\n[conditions]\nnumbers = "nonzero"\n',
-    'fusion.yaml': 'indentation:\n  tab_width: 2\nstrings:\n  max_length: 100\n'
+    'fusion.yaml': 'indentation:\n  tabWidth: 2\nstrings:\n  maxLength: 100\n'
                    '  encoding: "ascii"\nconditions:\n  numbers: "nonzero"\n',
-    'fusion.json': '{"indentation": {"tab_width": 2}, "strings": {"max_length": 100, '
+    'fusion.json': '{"indentation": {"tabWidth": 2}, "strings": {"maxLength": 100, '
                    '"encoding": "ascii"}, "conditions": {"numbers": "nonzero"}}',
     'fusion.ini': '; legacy settings\n[indentation]\ntab_width = 2\n[strings]\nmax_length = 100\n'
                   'encoding = ascii\n[conditions]\nnumbers = "nonzero"\n',
@@ -45,7 +45,7 @@ def test_the_same_settings_in_every_format(tmp_path, name):
 
 
 def test_yml_is_yaml_too(tmp_path):
-    assert load(tmp_path, 'fusion.yml', 'indentation:\n  tab_width: 3\n').indentation.tab_width == 3
+    assert load(tmp_path, 'fusion.yml', 'indentation:\n  tabWidth: 3\n').indentation.tab_width == 3
 
 
 def test_ini_values_become_bools_numbers_and_text(tmp_path):
@@ -56,7 +56,7 @@ def test_ini_values_become_bools_numbers_and_text(tmp_path):
 
 
 def test_ini_yes_is_not_a_bool(tmp_path):
-    with pytest.raises(ProjectConfigError, match='allow_mixed must be a boolean'):
+    with pytest.raises(ProjectConfigError, match='allowMixed must be a boolean'):
         load(tmp_path, 'fusion.ini', '[indentation]\nallow_mixed = yes\n')
 
 
@@ -74,11 +74,11 @@ def test_broken_files_name_the_file(tmp_path):
 def test_without_pyyaml_a_clear_message(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, 'yaml', None)
     with pytest.raises(ProjectConfigError, match='needs the PyYAML package - pip install pyyaml'):
-        load(tmp_path, 'fusion.yaml', 'indentation:\n  tab_width: 3\n')
+        load(tmp_path, 'fusion.yaml', 'indentation:\n  tabWidth: 3\n')
 
 
 def test_toml_wins_when_there_are_two(tmp_path):
-    (tmp_path / 'fusion.json').write_text('{"indentation": {"tab_width": 8}}')
+    (tmp_path / 'fusion.json').write_text('{"indentation": {"tabWidth": 8}}')
     config = load(tmp_path, 'fusion.toml', '[indentation]\ntab_width = 2\n')
     assert config.indentation.tab_width == 2 and config.source_path.endswith('fusion.toml')
 
@@ -121,7 +121,7 @@ def test_every_template_value_is_accepted_and_reserved_ones_are_not(tmp_path):
             text = f'[{s.section}]\n{s.name} = "{value}"\n'
             load(tmp_path, 'fusion.toml', text)
         for value in s.reserved:
-            if (s.section, s.name) == ('structs', 'string_storage'):
+            if (s.section, s.name) == ('structs', 'stringStorage'):
                 continue      # "pooled" is refused later, by the struct checks (Task 29.4)
             with pytest.raises(ProjectConfigError):
                 load(tmp_path, 'fusion.toml', f'[{s.section}]\n{s.name} = "{value}"\n')
@@ -158,3 +158,53 @@ def test_wait_at_exit_is_off_by_default_and_a_define_when_on(tmp_path):
         return CCodeGenerator(**settings).generate(program)
     assert '#define FUSION_WAIT_AT_EXIT' not in c_code()
     assert '#define FUSION_WAIT_AT_EXIT 1' in c_code(wait_at_exit=True)
+
+
+# ---------------------------------------------------------------- Task 32.0
+
+@pytest.mark.parametrize('written', ['tabWidth', 'tab_width', 'TABWIDTH', 'Tab_Width'])
+def test_names_ignore_case_and_underscores(tmp_path, written):
+    assert load(tmp_path, 'fusion.toml', f'[Indentation]\n{written} = 3\n').indentation.tab_width == 3
+
+
+def test_the_same_setting_twice_is_an_error(tmp_path):
+    with pytest.raises(ProjectConfigError, match='tabWidth is set twice'):
+        load(tmp_path, 'fusion.toml', '[indentation]\ntab_width = 3\ntabWidth = 2\n')
+
+
+def test_safety_modes_and_the_old_names(tmp_path):
+    assert ProjectConfig().safety_mode == 'safe'
+    assert load(tmp_path, 'fusion.toml', '[safety]\nmode = "normal"\n').safety_mode == 'safe'
+    assert load(tmp_path, 'fusion.toml', '[safety]\nmode = "strict"\n').safety_mode == 'strict'
+    config = load(tmp_path, 'fusion.toml', '[safety]\nmode = "unsafe"\n')
+    assert config.safety_mode == 'unsafe'
+    assert any('no longer makes arithmetic wrap' in w for w in config.warnings)
+
+
+def test_overflow_wrap_setting(tmp_path):
+    from tests.test_end_to_end import compile_and_run
+    assert load(tmp_path, 'fusion.toml', '').numbers.overflow_wrap is False
+    assert load(tmp_path, 'fusion.toml', '[numbers]\noverflowWrap = true\n').numbers.overflow_wrap
+    program = 'void function main()\n    int n = 2147483647\n    n = n + 1\n    print("{n}")\n'
+    code, out, err = compile_and_run(program, overflow_wrap=True)
+    assert code == 0 and out.strip() == '-2147483648'
+    code, out, err = compile_and_run(program)
+    assert code != 0 and "doesn't fit in an int" in err      # an OverflowError by default
+
+
+def test_strict_mode_turns_warnings_into_errors(tmp_path):
+    import os
+    import subprocess
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    (tmp_path / 'app.fusion').write_text('template string unused = "x"\n\n'
+                                         'void function main()\n    print("hi")\n')
+    (tmp_path / 'fusion.toml').write_text('[safety]\nmode = "strict"\n')
+    strict = subprocess.run([sys.executable, os.path.join(root, 'main.py'),
+                             str(tmp_path / 'app.fusion'), '--no-new-config'],
+                            capture_output=True, text=True, cwd=tmp_path)
+    assert strict.returncode == 1 and 'errors in strict mode' in strict.stderr
+    (tmp_path / 'fusion.toml').write_text('[safety]\nmode = "safe"\n')
+    safe = subprocess.run([sys.executable, os.path.join(root, 'main.py'),
+                           str(tmp_path / 'app.fusion'), '--no-new-config'],
+                          capture_output=True, text=True, cwd=tmp_path)
+    assert safe.returncode == 0, safe.stderr

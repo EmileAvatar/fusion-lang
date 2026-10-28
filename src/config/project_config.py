@@ -27,14 +27,14 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .settings_files import (SettingsFileError, convert, create_default_file, find_in_folder,
-                             format_of, read_settings, FORMAT_FILES)
+                             format_of, read_settings, read_template, FORMAT_FILES)
 
 
 CONFIG_FILENAME = "fusion.toml"
 
 DEFAULT_TAB_WIDTH = 4
 DEFAULT_ALLOW_MIXED = True
-DEFAULT_SAFETY_MODE = "normal"
+DEFAULT_SAFETY_MODE = "safe"
 DEFAULT_BACKEND = "c"
 
 # Identifiers are ASCII-only by default to block homoglyph attacks (Task 19.6) - a project
@@ -44,7 +44,9 @@ DEFAULT_ALLOW_UNICODE_IDENTIFIERS = False
 # "strict" is referenced by files/fusion-language-spec.md (e.g. Weak<T> causing a compile
 # error in strict mode) but not enforced by any pass yet - accepted here so a project can
 # already declare its intent, same status as the Unique/Shared/Weak keywords.
-VALID_SAFETY_MODES = ("normal", "strict", "unsafe")   # unsafe: arithmetic wraps (27.2b)
+# safe (default); strict: every warning is an error; unsafe: the whole project may take direct
+# control (memory, assembly, devices - Task 32.0, user 2026-10-28). "normal" is the old "safe"
+VALID_SAFETY_MODES = ("safe", "strict", "unsafe")
 
 # "llvm" is Task 11's planned backend - not implemented yet, so not accepted as a value
 # until that lands. Keeping the set explicit (rather than accepting anything) means a typo
@@ -163,6 +165,7 @@ class NumbersConfig:
             warning
     """
     auto_widening: bool = False
+    overflow_wrap: bool = False   # overflowWrap (Task 32.0): whole-number + - * wraps around
 
 
 @dataclass
@@ -253,6 +256,7 @@ class ProjectConfig:
     source_path: Optional[str] = None
     settings_format: str = "TOML"   # [project] fusionSettingFormat (Task 31)
     messages: list = field(default_factory=list)   # created / converted - main.py prints them
+    warnings: list = field(default_factory=list)   # main.py prints them (errors in strict mode)
 
 
 def find_config_file(source_path: str) -> Optional[str]:
@@ -287,11 +291,11 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
     structs = StructsConfig()
     section = _require_table(data, "structs", config_path)
 
-    known = {"max_nesting_depth", "warn_nesting_depth", "string_storage", "string_mutable",
-             "string_warn_length", "hold_collections"}
+    known = {"maxNestingDepth", "warnNestingDepth", "stringStorage", "stringMutable",
+             "stringWarnLength", "holdCollections"}
     if "string_max_length" in section:
         raise ProjectConfigError(
-            f"{config_path}: structs.string_max_length has moved to [strings] max_length (it now "
+            f"{config_path}: structs.string_max_length has moved to [strings] maxLength (it now "
             f"limits every string, and defaults to \"max\" = no limit)")
     for key in section:
         if key not in known:
@@ -299,50 +303,50 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
                 f"{config_path}: unknown setting structs.{key} (known: {sorted(known)})"
             )
 
-    if "max_nesting_depth" in section:
-        value = section["max_nesting_depth"]
+    if "maxNestingDepth" in section:
+        value = section["maxNestingDepth"]
         if not _is_int(value) or value < 1:
             raise ProjectConfigError(
-                f"{config_path}: structs.max_nesting_depth must be an integer of at least 1 "
+                f"{config_path}: structs.maxNestingDepth must be an integer of at least 1 "
                 f"(1 = no struct inside another struct), got {value!r}"
             )
         structs.max_nesting_depth = value
-    if "warn_nesting_depth" in section:
-        value = section["warn_nesting_depth"]
+    if "warnNestingDepth" in section:
+        value = section["warnNestingDepth"]
         if not _is_int(value) or value < 0:
             raise ProjectConfigError(
-                f"{config_path}: structs.warn_nesting_depth must be an integer of at least 0 "
+                f"{config_path}: structs.warnNestingDepth must be an integer of at least 0 "
                 f"(0 = never warn), got {value!r}"
             )
         structs.warn_nesting_depth = value
-    if "string_storage" in section:
-        value = section["string_storage"]
+    if "stringStorage" in section:
+        value = section["stringStorage"]
         if value not in VALID_STRING_STORAGE:
             raise ProjectConfigError(
-                f"{config_path}: structs.string_storage must be one of "
+                f"{config_path}: structs.stringStorage must be one of "
                 f"{list(VALID_STRING_STORAGE)}, got {value!r}"
             )
         structs.string_storage = value
-    if "string_mutable" in section:
-        value = section["string_mutable"]
+    if "stringMutable" in section:
+        value = section["stringMutable"]
         if not isinstance(value, bool):
             raise ProjectConfigError(
-                f"{config_path}: structs.string_mutable must be a boolean, got {value!r}"
+                f"{config_path}: structs.stringMutable must be a boolean, got {value!r}"
             )
         structs.string_mutable = value
-    if "string_warn_length" in section:
-        value = section["string_warn_length"]
+    if "stringWarnLength" in section:
+        value = section["stringWarnLength"]
         if not _is_int(value) or value < 0:
             raise ProjectConfigError(
-                f"{config_path}: structs.string_warn_length must be an integer of at least 0 "
+                f"{config_path}: structs.stringWarnLength must be an integer of at least 0 "
                 f"(0 = never warn), got {value!r}"
             )
         structs.string_warn_length = value
-    if "hold_collections" in section:
-        value = section["hold_collections"]
+    if "holdCollections" in section:
+        value = section["holdCollections"]
         if not isinstance(value, bool):
             raise ProjectConfigError(
-                f"{config_path}: structs.hold_collections must be a boolean, got {value!r}")
+                f"{config_path}: structs.holdCollections must be a boolean, got {value!r}")
         structs.hold_collections = value
     return structs
 
@@ -351,20 +355,20 @@ def _load_strings_section(data: dict, config_path: str) -> StringsConfig:
     """Parse and validate the [strings] section (Task 18.3.2b)."""
     strings = StringsConfig()
     section = _require_table(data, "strings", config_path)
-    known = {"encoding", "max_length"}
+    known = {"encoding", "maxLength"}
     for key in section:
         if key not in known:
             raise ProjectConfigError(
                 f"{config_path}: unknown setting strings.{key} (known: {sorted(known)})")
-    if "max_length" in section:
-        value = section["max_length"]
+    if "maxLength" in section:
+        value = section["maxLength"]
         if value == MAX_LENGTH_UNLIMITED:
             strings.max_length = None
         elif _is_int(value) and value >= 1:
             strings.max_length = value
         else:
             raise ProjectConfigError(
-                f"{config_path}: strings.max_length must be \"{MAX_LENGTH_UNLIMITED}\" (no limit) or a "
+                f"{config_path}: strings.maxLength must be \"{MAX_LENGTH_UNLIMITED}\" (no limit) or a "
                 f"positive number of characters (TOML can't calculate, so write 64 * 64 as "
                 f"4096), got {value!r}")
 
@@ -404,13 +408,17 @@ def _load_numbers_section(data: dict, config_path: str) -> NumbersConfig:
     numbers = NumbersConfig()
     section = _require_table(data, "numbers", config_path)
     for key, value in section.items():
-        if key != "auto_widening":
+        if key not in ("autoWidening", "overflowWrap"):
             raise ProjectConfigError(
-                f"{config_path}: unknown setting numbers.{key} (known: ['auto_widening'])")
+                f"{config_path}: unknown setting numbers.{key} (known: ['autoWidening', "
+                f"'overflowWrap'])")
         if not isinstance(value, bool):
             raise ProjectConfigError(
-                f"{config_path}: numbers.auto_widening must be true or false, got {value!r}")
-        numbers.auto_widening = value
+                f"{config_path}: numbers.{key} must be true or false, got {value!r}")
+        if key == "autoWidening":
+            numbers.auto_widening = value
+        else:
+            numbers.overflow_wrap = value   # 255 + 1 in a byte: 0 instead of an OverflowError
     return numbers
 
 
@@ -434,12 +442,12 @@ def _load_build_section(data: dict, config_path: str) -> BuildConfig:
     build = BuildConfig()
     section = _require_table(data, "build", config_path)
     for key, value in section.items():
-        if key != "wait_at_exit":
+        if key != "waitAtExit":
             raise ProjectConfigError(
-                f"{config_path}: unknown setting build.{key} (known: ['wait_at_exit'])")
+                f"{config_path}: unknown setting build.{key} (known: ['waitAtExit'])")
         if not isinstance(value, bool):
             raise ProjectConfigError(
-                f"{config_path}: build.wait_at_exit must be true or false, got {value!r}")
+                f"{config_path}: build.waitAtExit must be true or false, got {value!r}")
         build.wait_at_exit = value
     return build
 
@@ -473,6 +481,37 @@ def _load_errors_section(data: dict, config_path: str) -> ErrorsConfig:
                 f"{config_path}: errors.{key} must be true or false, got {value!r}")
         setattr(errors, key, value)
     return errors
+
+
+def _canonical_names(data: dict, config_path: str) -> dict:
+    """Setting names are camelCase, but read ignoring case and `_` (Task 32.0, user
+    2026-10-28): `tab_width`, `tabWidth` and `TABWIDTH` are the same setting. Each known
+    section and setting gets the master template's name; an unknown one keeps its own (and is
+    reported by its section's checks). The same setting written twice is an error."""
+    sections, settings = read_template()
+    section_names = {_folded(name): name for name in sections}
+    keys = {}
+    for s in settings:
+        keys.setdefault(s.section, {})[_folded(s.name)] = s.name
+    result = {}
+    for section, values in data.items():
+        name = section_names.get(_folded(section), section) if isinstance(section, str) else section
+        if not isinstance(values, dict):
+            result[name] = values
+            continue
+        known = keys.get(name, {})
+        out = result.setdefault(name, {})
+        for key, value in values.items():
+            canonical = known.get(_folded(key), key) if isinstance(key, str) else key
+            if canonical in out:
+                raise ProjectConfigError(
+                    f"{config_path}: {name}.{canonical} is set twice (names ignore case and _)")
+            out[canonical] = value
+    return result
+
+
+def _folded(name: str) -> str:
+    return name.replace("_", "").lower()
 
 
 def _load_project_section(data: dict, config_path: str) -> Optional[str]:
@@ -514,34 +553,36 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         data = read_settings(config_path)
     except SettingsFileError as e:
         raise ProjectConfigError(str(e)) from e
+    data = _canonical_names(data, config_path)          # tab_width = tabWidth (Task 32.0)
+    warnings = []
     wanted_format = _load_project_section(data, config_path)
 
     indentation = IndentationConfig()
     indent_section = _require_table(data, "indentation", config_path)
-    if "tab_width" in indent_section:
-        tab_width = indent_section["tab_width"]
+    if "tabWidth" in indent_section:
+        tab_width = indent_section["tabWidth"]
         if not isinstance(tab_width, int) or isinstance(tab_width, bool) or tab_width < 1:
             raise ProjectConfigError(
-                f"{config_path}: indentation.tab_width must be a positive integer, "
+                f"{config_path}: indentation.tabWidth must be a positive integer, "
                 f"got {tab_width!r}"
             )
         indentation.tab_width = tab_width
-    if "allow_mixed" in indent_section:
-        allow_mixed = indent_section["allow_mixed"]
+    if "allowMixed" in indent_section:
+        allow_mixed = indent_section["allowMixed"]
         if not isinstance(allow_mixed, bool):
             raise ProjectConfigError(
-                f"{config_path}: indentation.allow_mixed must be a boolean, "
+                f"{config_path}: indentation.allowMixed must be a boolean, "
                 f"got {allow_mixed!r}"
             )
         indentation.allow_mixed = allow_mixed
 
     source = SourceConfig()
     source_section = _require_table(data, "source", config_path)
-    if "allow_unicode_identifiers" in source_section:
-        allow_unicode = source_section["allow_unicode_identifiers"]
+    if "allowUnicodeIdentifiers" in source_section:
+        allow_unicode = source_section["allowUnicodeIdentifiers"]
         if not isinstance(allow_unicode, bool):
             raise ProjectConfigError(
-                f"{config_path}: source.allow_unicode_identifiers must be a boolean, "
+                f"{config_path}: source.allowUnicodeIdentifiers must be a boolean, "
                 f"got {allow_unicode!r}"
             )
         source.allow_unicode_identifiers = allow_unicode
@@ -550,13 +591,21 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
     strings = _load_strings_section(data, config_path)
     if strings.max_length is not None and structs.string_warn_length > strings.max_length:
         raise ProjectConfigError(
-            f"{config_path}: structs.string_warn_length ({structs.string_warn_length}) can't be "
-            f"larger than strings.max_length ({strings.max_length})")
+            f"{config_path}: structs.stringWarnLength ({structs.string_warn_length}) can't be "
+            f"larger than strings.maxLength ({strings.max_length})")
 
     safety_mode = DEFAULT_SAFETY_MODE
     safety_section = _require_table(data, "safety", config_path)
     if "mode" in safety_section:
         mode = safety_section["mode"]
+        if isinstance(mode, str):
+            mode = mode.lower()
+        if mode == "normal":
+            mode = "safe"                     # the old name (before Task 32.0)
+        if mode == "unsafe":
+            # Before Task 32.0 "unsafe" made whole-number arithmetic wrap - now overflowWrap
+            warnings.append(f"{config_path}: safety.mode = \"unsafe\" no longer makes "
+                            f"arithmetic wrap - set [numbers] overflowWrap = true for that")
         if mode not in VALID_SAFETY_MODES:
             raise ProjectConfigError(
                 f"{config_path}: safety.mode must be one of {list(VALID_SAFETY_MODES)}, "
@@ -567,17 +616,17 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
     # recursion is caught by stack use alone; a number also counts calls, for
     # memory-constrained devices (tuned by profiling)
     max_call_depth = None
-    if "max_call_depth" in safety_section:
-        depth = safety_section["max_call_depth"]
+    if "maxCallDepth" in safety_section:
+        depth = safety_section["maxCallDepth"]
         if depth != "max" and (isinstance(depth, bool) or not isinstance(depth, int) or depth < 1):
             raise ProjectConfigError(
-                f"{config_path}: safety.max_call_depth must be \"max\" or a whole number of 1 or "
+                f"{config_path}: safety.maxCallDepth must be \"max\" or a whole number of 1 or "
                 f"more, got {depth!r}")
         max_call_depth = None if depth == "max" else depth
     for key in safety_section:
-        if key not in ("mode", "max_call_depth"):
+        if key not in ("mode", "maxCallDepth"):
             raise ProjectConfigError(
-                f"{config_path}: unknown setting safety.{key} (known: ['mode', 'max_call_depth'])")
+                f"{config_path}: unknown setting safety.{key} (known: ['mode', 'maxCallDepth'])")
 
     backend = DEFAULT_BACKEND
     backend_section = _require_table(data, "backend", config_path)
@@ -607,6 +656,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         source_path=config_path,
         settings_format=wanted_format or format_of(config_path),
         messages=messages,
+        warnings=warnings,
     )
     if wanted_format is not None and wanted_format != format_of(config_path):
         # fusionSettingFormat names another format: write the settings in it, keep the old

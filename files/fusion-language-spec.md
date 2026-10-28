@@ -85,7 +85,7 @@ that wants non-English identifiers opts in:
 ```toml
 # fusion.toml
 [source]
-allow_unicode_identifiers = true
+allowUnicodeIdentifiers = true
 ```
 
 Even with the opt-in, an identifier is still rejected if it mixes letters from look-alike
@@ -140,7 +140,7 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
 
 #### Numbers
 * `int` is 32 bits. `+ - *` and unary `-` that don't fit raise an OverflowError (`[safety]
-  mode = "unsafe"`, `unchecked` blocks and `wrapAdd` / `wrapSub` / `wrapMul` wrap instead -
+  mode = "unsafe"` (now `[numbers] overflowWrap = true`, Task 32.0), `unchecked` blocks and `wrapAdd` / `wrapSub` / `wrapMul` wrap instead -
   always defined, never C's undefined behaviour)
 * `/` on whole numbers rounds toward zero (`-7 / 2` is -3); `%` takes the sign of the left
   side (`-7 % 2` is -1). Dividing a whole number by 0 is a DivideByZeroError;
@@ -149,7 +149,7 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
 * An int used as a double is always exact. An int used as a **float** (stored, passed,
   returned, or beside a float in `+ - * / %` or a comparison) must fit exactly - a float
   holds whole numbers exactly only up to 16,777,216 (Task 27.2f, user decision 2026-10-17):
-  with `[numbers] auto_widening = false` (the default) a written number that doesn't fit is a
+  with `[numbers] autoWidening = false` (the default) a written number that doesn't fit is a
   compile error and any other value is checked while running - a **PrecisionError** (an
   ArithmeticError); with `true` it widens automatically and every place gets a warning.
   Nothing is narrowed silently - a narrowing conversion is a function (`toByte`, `toInt` of
@@ -165,7 +165,7 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
   element. Replacing an element's value is fine. A list made just for the loop can't be
   changed by anyone, so it isn't checked
 * A function that calls itself without end raises a StackOverflowError (stack use; or
-  `[safety] max_call_depth`)
+  `[safety] maxCallDepth`)
 
 #### Errors
 * Any function can fail; an error nobody captures or catches bubbles up and stops the
@@ -460,7 +460,7 @@ Description: Strings are **values**, like structs (decided 2026-10-09, Task 18.3
 outside `print` are 18.3.3 - see `FEATURES.md`.
 
 * **Length (Task 18.3.4b, user decisions 2026-10-09):** strings grow as large as the machine
-  allows - there is no limit by default (`[strings] max_length = "max"`). A project for a
+  allows - there is no limit by default (`[strings] maxLength = "max"`). A project for a
   memory-constrained device or app can set a number of characters; a string longer than that
   is always an **error**, never cut: a compile error for text written in the source, a
   run-time error (naming the file and line) for text built while the program runs. A silent
@@ -579,7 +579,7 @@ bool same = name == "Enterprise"   // true - compares the text
        arithmetic on bytes gives an int (as in C#): `byte b = d[0] + 1` is an error
      * `bytes` is a growable array of bytes. Like a string it is a value - a copy is
        independent, it's freed automatically, it works in struct fields and arrays - but it
-       holds **any** bytes (no text rules, no `[strings] max_length`) and is **edited in
+       holds **any** bytes (no text rules, no `[strings] maxLength`) and is **edited in
        place**: `b[2] = 0x69`. A function that edits a `bytes` parameter edits its own copy
      * Making: `bytes b` (empty), `bytes b = [0x6B, 0x69]` (an array literal becomes bytes
        when it is stored straight into a bytes variable), `newBytes(n, fill = 0)`,
@@ -1348,7 +1348,7 @@ Spaceship, Error function loadAndValidateShip(string filename)
 
 **Status:** [PLANNED 32] (methods on structs first, then classes). Decided in the showcase
 review (user, 2026-10-23/24, FEATURES Later): operator overloading off by default
-(`[language] operator_overloading`); several return values only with `[functions]
+(`[language] operatorOverloading`); several return values only with `[functions]
 multiple_returns = true`; class objects are the only values that can be null (Task 30)
 
 Description: Object-oriented programming with modern features and clear syntax.
@@ -1865,7 +1865,7 @@ const Point ORIGIN = Point(0, 0)   // no field of a const struct can be changed
 
 Description: A `string` field holds its own value and can be changed - not pooled, by
 default. It can hold anything from a book title to a full product description - strings
-have no length limit unless the project sets one (`[strings] max_length`, see "String
+have no length limit unless the project sets one (`[strings] maxLength`, see "String
 Implementation"). Controlled per project in `fusion.toml`'s `[structs]` section (see
 "Project Configuration"):
 
@@ -3270,7 +3270,7 @@ ValueError: RangeError (toByte(300), negative counts, base), UnknownValueError (
 LookupError: IndexError (s[9], xs[9], b[9], slice ...), KeyError (m["missing"])
 FileError (path): FileNotFoundError, PermissionError, FileReadError, FileWriteError,
                   FileTooLargeError, DeleteError - chosen by why the system said no
-LimitError: StringTooLongError ([strings] max_length), ResultTooLargeError (over 2 GB)
+LimitError: StringTooLongError ([strings] maxLength), ResultTooLargeError (over 2 GB)
 ```
 Added by Task 27: OverflowError and PrecisionError (ArithmeticError), StackOverflowError
 (LimitError), ModifiedWhileLoopingError (ValueError). Added by Task 30.11: NullError (Error) -
@@ -3282,7 +3282,7 @@ itself (directly, through others, or through a function value) checks the stack 
 when it is nearly full - the limit comes from the real stack size - it raises a
 **StackOverflowError** (a LimitError) instead of crashing; every frame then unwinds and frees
 what it holds, so it can be caught or captured like any error. Functions that can't recurse
-get no check. For memory-constrained devices `[safety] max_call_depth = 10000` also counts
+get no check. For memory-constrained devices `[safety] maxCallDepth = 10000` also counts
 calls (tune the number by profiling); the default "max" uses stack use alone.
 
 **Whole-number overflow (Tasks 27.2b, 27.2d, user decisions 2026-10-17):** int `+ - *`,
@@ -3291,7 +3291,8 @@ ArithmeticError) - never a silently changed value (C, Go and Java wrap; Fusion c
 Swift). In C each is GCC's overflow builtin: the operation and one jump; arithmetic made only
 of written numbers (`60 * 60 * 24`) isn't checked. Wrapping on purpose (hashes, checksums):
 `wrapAdd(a, b)`, `wrapSub`, `wrapMul` (methods too: `a.wrapMul(b)`), or an `unchecked` block
-whose `+ - *` wrap. `[safety] mode = "unsafe"` makes every `+ - *` wrap. Wrapping is always
+whose `+ - *` wrap. `[numbers] overflowWrap = true` makes every `+ - *` wrap (Task 32.0 - it was
+`[safety] mode = "unsafe"`). Wrapping is always
 defined (unsigned arithmetic) - never C's undefined behaviour. Array bounds checks are never
 turned off.
 
@@ -3305,7 +3306,7 @@ can add its own
 **Every run-time error is an Error (Task 26.4, user decision 2026-10-16: all of them):** an
 index out of range (strings, lists, bytes), a missing Map key, text that isn't a number,
 a file that won't open, an invalid pattern, `Enum.fromString` with an unknown name, a
-string over `[strings] max_length`, ... can be captured or caught like any other error;
+string over `[strings] maxLength`, ... can be captured or caught like any other error;
 `err.where` says where it happened. One nobody handles stops the program at the end of main
 with `Runtime error at main.fusion:12: ...`, as before. Only running out of memory (and a
 List past 536,870,911 elements) still stops at once. In C, a runtime function reports with
@@ -4265,6 +4266,8 @@ the concept and the implementation. This section is the config-format ADR that c
 `fusion.yaml` (or `.yml`), `fusion.json` and `fusion.ini` are alternatives - for a company
 that standardises on YAML, or INI for legacy hardware and software. All four give the same
 settings and are checked by the same rules.
+* **Names (Task 32.0):** camelCase (`tabWidth`, `maxCallDepth`), read ignoring case and `_` -
+  `tab_width`, `tabWidth` and `TABWIDTH` are the same setting; one written twice is an error
 * **The master template:** `files/fusionSettings.xml` lists every setting, the values it can
   have, its default and what it does. It is read only; a project's settings file carries its
   choices, based on it
@@ -4318,16 +4321,16 @@ implemented" status as the `Unique`/`Shared`/`Weak` keywords (see "Memory Manage
 # fusion.toml - optional, place next to your .fusion source file (or in the cwd)
 
 [indentation]
-tab_width = 4        # spaces per tab (default: 4)
-allow_mixed = true   # allow mixed tabs/spaces with a warning instead of an error (default: true)
+tabWidth = 4        # spaces per tab (default: 4)
+allowMixed = true   # allow mixed tabs/spaces with a warning instead of an error (default: true)
 
 [source]
-allow_unicode_identifiers = false   # identifiers ASCII-only by default (homoglyph defense) -
+allowUnicodeIdentifiers = false   # identifiers ASCII-only by default (homoglyph defense) -
                                     # see "Source Text Rules" under Syntax Overview
 
 [strings]                      # Tasks 18.3.2b / 18.3.4b - see "String Implementation"
 encoding = "utf-8"             # utf-8 (default) | ascii; utf-16 / utf-32 reserved (future)
-max_length = "max"             # "max" (default) = no limit; a number = error when exceeded
+maxLength = "max"             # "max" (default) = no limit; a number = error when exceeded
 
 [stdlib]                       # Task 18.5.6 - see "Collections (as built)" / layers
 layer = "std"                  # std (default) | alloc | core
@@ -4340,7 +4343,9 @@ numbers = "positive"           # positive (default): if / while count is count >
                                # nonzero: count != 0 (C, Python); off: bool only
 
 [numbers]                      # Task 27.2f - see "The Semantic Contract"
-auto_widening = false          # false: an int used as a float must fit exactly - a written
+overflowWrap = false          # true: whole-number + - * wraps (a byte: 255 + 1 is 0) -
+                               # false (default): an OverflowError (Task 32.0)
+autoWidening = false          # false: an int used as a float must fit exactly - a written
                                # number that doesn't is a compile error, a value a
                                # PrecisionError; true: widens automatically, with a warning
 
@@ -4349,20 +4354,21 @@ returns = true                 # false: T, Error function / return Error / captu
 exceptions = true              # false: try / catch / finally / throw are errors
 
 [structs]                      # Task 18.2 - see "Structures and Value Types"
-max_nesting_depth  = 3         # deepest struct nesting (1 = no struct inside a struct)
-warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = never)
-string_storage     = "owned"   # each struct holds its own string value; "pooled" reserved (Task 29)
-string_mutable     = true      # false = string fields can't be changed after construction
-string_warn_length = 64        # guideline: warn when a string field is longer (0 = never warn)
-hold_collections   = true      # a struct field may be a List / Map; false: an error
+maxNestingDepth  = 3         # deepest struct nesting (1 = no struct inside a struct)
+warnNestingDepth = 3         # warn when a struct reaches this depth (0 = never)
+stringStorage     = "owned"   # each struct holds its own string value; "pooled" reserved (Task 29)
+stringMutable     = true      # false = string fields can't be changed after construction
+stringWarnLength = 64        # guideline: warn when a string field is longer (0 = never warn)
+holdCollections   = true      # a struct field may be a List / Map; false: an error
 
 [build]
-wait_at_exit = false           # true: wait for a key before the window closes (dev / examples)
+waitAtExit = false           # true: wait for a key before the window closes (dev / examples)
 
 [safety]
-mode = "normal"      # "unsafe": whole-number + - * wrap instead of raising OverflowError
+mode = "safe"        # safe (default) | strict (every warning is an error - security, no
+                     # undetermined behaviour) | unsafe (the whole project - memory, assembly)
                      # (Task 27.2b); bounds checks stay. "strict" is reserved
-max_call_depth = "max"   # Task 27.2c: "max" - endless recursion is caught by stack use; a
+maxCallDepth = "max"   # Task 27.2c: "max" - endless recursion is caught by stack use; a
                          # number also counts calls, for memory-constrained devices
 
 [backend]
