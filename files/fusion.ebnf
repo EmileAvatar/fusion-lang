@@ -217,8 +217,8 @@ match_statement =
     "match" expression { NEWLINE }
     ( INDENT match_cases DEDENT [ "End" "match" ]
     | "{" match_cases "}" ) ;
-    (* Implemented (Task 25.3). An if / else-if chain, not a C switch: no fall-through,
-       and break / continue in a case act on the loop around the match *)
+    (* Implemented (Task 25.3). No fall-through. break in a case ends the match;
+       continue acts on the loop around it (Task 30.12) *)
 
 match_cases = match_case { match_case } [ "else" case_body ] ;
 
@@ -229,7 +229,8 @@ case_body = ":" statement | block ;
 pattern =
     identifier [ "(" identifier { "," identifier } ")" ]   (* an enum value, bare *)
     | identifier { "." identifier }                       (* an error type, Task 26.10 *)
-    | [ "-" ] literal ;                                    (* int, byte, char, string *)
+    | [ "-" ] literal                                      (* int, byte, char, string *)
+    | "null" ;                                             (* at most one (Task 30.12) *)
     (* On an enum every value needs a case unless there is an else (missing ones are named
        in the error); on an int / byte / char / string an else is required. A value can't
        be handled twice. The ( names ) get copies of an enum value's data, in field order;

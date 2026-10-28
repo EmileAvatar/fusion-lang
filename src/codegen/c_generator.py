@@ -1710,6 +1710,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        # Inside a match, break ends the match (Task 30.12): finally blocks opened inside it
+        # run, what its cases own is freed, then a jump to its end
+        target = next((s for s in reversed(getattr(self, 'cleanup_scopes', []))
+                       if s['kind'] in ('loop', 'match')), None)
+        if target is not None and target['kind'] == 'match':
+            self.emit_finally_for_exit('match', from_depth=target['finally_depth'])
+            self.emit_frees(self.owned_in_scopes('match'))
+            target['used'] = True
+            self.emit_line(f"goto {target['label']}")
+            return ''
         # Leaving the loop: a try being left runs its finally (26.3); free what the body owns
         self.emit_finally_for_exit('loop')
         if hasattr(self, 'cleanup_scopes'):

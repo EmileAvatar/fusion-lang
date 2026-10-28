@@ -272,4 +272,6 @@ Kept under Task 22 until the renumbering is approved.
   ends a match, continue acts on the loop); approved
 - 30.11 done: null enums (IsNullExpr for == null / is null / ?.null; FUSION_ENUM_NULL;
   NullError; a covering match with no else raises it on null; toString / print give "null")
-- **Next Action:** 30.12 (case null; break ends a match)
+- 30.12 done: case null (any type, one per match); break ends a match (end label, frees,
+  finally); continue acts on the loop
+- **Next Action:** 30.13 (fall match)

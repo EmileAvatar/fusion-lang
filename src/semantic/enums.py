@@ -257,6 +257,26 @@ class EnumRulesMixin:
         value can't be handled twice. Sets node.exhaustive - the validator reads it."""
         subject_type = self.visit(node.subject)
         node.exhaustive = node.else_body is not None
+        # case null (Task 30.12): at most one, on any value (a library may hand over a null);
+        # the checks below see the other patterns only
+        nulls = [p for case in node.cases for p in case.patterns if p.is_null]
+        node.has_null_case = bool(nulls)
+        if len(nulls) > 1:
+            self.errors.append(SemanticError("A match can have only one 'case null'",
+                                             nulls[1].location))
+        if nulls and type(subject_type).__name__ == 'ErrorType':
+            self.errors.append(SemanticError(
+                "An Error is never null - test it with 'if err' / 'if not err'", nulls[0].location))
+        all_patterns = [case.patterns for case in node.cases]
+        for case in node.cases:
+            case.patterns = [p for p in case.patterns if not p.is_null]
+        try:
+            self._check_cases_by_type(node, subject_type)
+        finally:
+            for case, patterns in zip(node.cases, all_patterns):
+                case.patterns = patterns
+
+    def _check_cases_by_type(self, node: MatchStmt, subject_type) -> None:
         if isinstance(subject_type, EnumType):
             self._check_enum_cases(node, subject_type.declaration)
         elif type(subject_type).__name__ == 'ErrorType':

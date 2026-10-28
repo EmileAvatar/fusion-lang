@@ -1353,8 +1353,11 @@ class Parser:
         return self.parse_block_statement()
 
     def parse_match_pattern(self) -> MatchPattern:
-        """`Red`, `Number(n)` (an enum value - its bare name) or a constant: 42, -1, 'x', "go"."""
+        """`Red`, `Number(n)` (an enum value - its bare name) or a constant: 42, -1, 'x', "go";
+        or `null` (Task 30.12)."""
         location = self.peek().location
+        if self.match(TokenType.NULL):
+            return MatchPattern(location=location, is_null=True)
         if self.check(TokenType.IDENTIFIER):
             name = self.advance().value
             dotted = False

@@ -209,7 +209,7 @@ class ControlFlowValidator:
             stmt: Statement node to validate
         """
         if isinstance(stmt, BreakStmt):
-            if self.in_loop == 0:
+            if self.in_loop == 0 and getattr(self, 'in_match', 0) == 0:   # a match too (30.12)
                 self.errors.append(SemanticError(
                     "Break statement outside loop",
                     stmt.location
@@ -242,9 +242,11 @@ class ControlFlowValidator:
                 self.validate_statement(stmt.else_branch)
 
         elif isinstance(stmt, MatchStmt):
-            # break / continue in a case act on the loop around the match (Task 25.3)
+            # break ends the match; continue acts on the loop around it (Task 30.12)
+            self.in_match = getattr(self, 'in_match', 0) + 1
             for body in self._match_bodies(stmt):
                 self.validate_statement(body)
+            self.in_match -= 1
 
         elif isinstance(stmt, (TryStmt, UncheckedStmt)):
             for body in self._try_bodies(stmt):

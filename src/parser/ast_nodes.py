@@ -516,6 +516,7 @@ class MatchPattern(ASTNode):
     bindings: List[str] = field(default_factory=list)
     value: Optional[ASTNode] = None
     dotted: bool = False      # `case files.FileError` - an error type from a module (26.10)
+    is_null: bool = False     # `case null` (Task 30.12)
 
 
 @dataclass
@@ -528,7 +529,7 @@ class MatchCase(ASTNode):
 @dataclass
 class MatchStmt(ASTNode):
     """match subject / case ... / else ... (Task 25.3). No fall-through: exactly one case
-    (or the else) runs. On an enum every value must be covered unless there is an `else`;
+    (or the else) runs; `break` ends the match, `case null` takes a null (Task 30.12). On an enum every value must be covered unless there is an `else`;
     on an int, char or string an `else` is required.
 
     Attributes:

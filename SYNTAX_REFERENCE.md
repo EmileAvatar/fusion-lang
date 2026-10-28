@@ -304,8 +304,9 @@ void function main()
         print("set: {s}")
     s = null
     match s
+        case null: print("not set")            // at most one; without it, null goes to else
         case OK: print("ok")
-        else: print("not OK (null too)")       // null equals no case value
+        else: print("something else")
     try
         int n = s.toInt()                      // null has no number
     catch NullError e
@@ -359,7 +360,7 @@ void function main()
             case '+', '-' {
                 print("operator")
             }
-            case '7': continue            // break / continue act on the loop
+            case '7': continue            // continue acts on the loop; break ends the match
             else: print("other")          // on an int, char or string: else is required
         }
 ```

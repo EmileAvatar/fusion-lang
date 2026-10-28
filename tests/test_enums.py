@@ -262,14 +262,18 @@ def test_match_on_int_char_and_string():
     )) == ['zero', 'small', 'minus one', 'other 7', 'operator', 'letter', 'moving', 'halt']
 
 
-def test_break_and_continue_in_a_case_act_on_the_loop():
+def test_break_ends_the_match_and_continue_acts_on_the_loop():
+    # Task 30.12 (user, 2026-10-28): break belongs to the match, as in a switch; before,
+    # it left the loop
     assert run_ok(main(
-        'for n in range(0, 10)\n'
+        'for n in range(0, 6)\n'
         '    match n\n'
         '        case 1: continue\n'
         '        case 4: break\n'
-        '        else: print("{n}")'
-    )) == ['0', '2', '3']
+        '        else: print("{n}")\n'
+        '    if n == 4\n'
+        '        print("after 4")'
+    )) == ['0', '2', '3', 'after 4', '5']
 
 
 def test_a_temporary_string_subject_is_freed():

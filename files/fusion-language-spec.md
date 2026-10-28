@@ -1949,8 +1949,15 @@ On an enum the cases name values bare (`case Red`, never `case Color.Red`) and e
 must be covered unless there is an `else` - the error names the missing ones; an `else`
 after every value is a warning. On an int, byte, char or string the cases are constants and
 an `else` is required. A value handled twice is an error. Exactly one case runs - no
-fall-through - and `break` / `continue` inside a case act on the loop around the match. A
+fall-through. `break` inside a case ends the match (as in a switch); `continue` acts on the
+loop around it (Task 30.12, user 2026-10-28 - before, `break` left the loop). A
 match whose every case returns (and that covers everything) ends a function
+
+**`case null` (Task 30.12, built):** at most one per match, on any value - a library or
+module may hand over a null, and strings may be nullable by a setting. A null equals no
+case value: it goes to `case null`, else to `else`. A match on an enum that covers every
+value with no `else` and no `case null` raises a NullError on null. `case OK, null` shares a
+case like any values
 
 **As built (Task 25.2, user decisions 2026-10-12):**
 * `enum` (or `Enum`) at top level, `public enum` for other modules. Forms: one line after

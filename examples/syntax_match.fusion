@@ -14,6 +14,6 @@ void function main()
             case '+', '-' {
                 print("operator")
             }
-            case '7': continue            // break / continue act on the loop
+            case '7': continue            // continue acts on the loop; break ends the match
             else: print("other")          // on an int, char or string: else is required
         }

@@ -69,10 +69,10 @@ are in `task/featuresArchive.md`.
 		`s?.null` / `!s?.null`; using a null enum (toString, toInt, its data) is a NullError
 		(a new built-in error type); the "first value can't hold the enum" rule (25.5) goes.
 		`s?.toString() ?? x` waits for 30.2
-	[ ] 30.12 `case null` in a `match` (user, 2026-10-28): at most one, on any type (a library may
+	[DONE] 30.12 `case null` in a `match` (tests/test_case_null.py) - user, 2026-10-28: at most one, on any type (a library may
 		send a null). A null never equals a case value: it goes to `case null`, else to
 		`else`, else nothing runs - never a NullError. `break` inside any `match` ends the
-		match; `continue` acts on the loop (today `break` leaves the loop - to change)
+		match; `continue` acts on the loop (it used to leave the loop)
 	[ ] 30.13 `fall match` (user, 2026-10-28): falls through - after the matching case, the next
 		cases' code runs too, until a `break` (as C / Java / C# `switch` do). A plain `match`
 		never falls through

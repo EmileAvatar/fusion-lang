@@ -15,8 +15,8 @@ so copying, freeing, == and storing reuse the struct code.
 
     Token.Number(42)  ->  (fu_Token){0, 42, ""}
 
-A match (Task 25.3) becomes an if / else-if chain, not a C switch - so `break` and
-`continue` in a case still act on the loop around the match:
+A match (Task 25.3) becomes an if / else-if chain, not a C switch. `continue` in a case
+acts on the loop around it; `break` jumps to the match's end label (Task 30.12):
 
     fusion_val_1 = <subject>;                                the subject, evaluated once
     fusion_val_2 = (fusion_val_1 == 0 || ...) ? 1 : ... : 0;  which case runs
@@ -243,10 +243,14 @@ class EnumsMixin:
         subject_type = node.subject.inferred_type
         held = self.data_struct(subject_type) is not None and self.is_fresh(node.subject) \
             and self.is_managed(subject_type)
+        # The match's own scope: `break` in a case jumps to its end label (Task 30.12)
+        self.match_count = getattr(self, 'match_count', 0) + 1
+        self.push_scope('match')
+        self.cleanup_scopes[-1].update(label=f'fusion_match_end_{self.match_count}', used=False,
+                                       finally_depth=len(getattr(self, 'finally_stack', None) or []))
         if held:
             # A new value with data (a call's result): kept in an owned local while the
             # cases read its data, freed when the match ends - or by a return / break
-            self.push_scope('block')
             subject = self._declare_temp('match', self.map_type(subject_type))
             self.emit_line(f'{subject} = {self.owned_value(node.subject, subject_type)}')
             self.register_owned(subject, subject_type)
@@ -265,7 +269,7 @@ class EnumsMixin:
         # Every value has a case: the last one runs whenever the others don't - so C
         # (and GCC's "end of non-void function" check) sees that one always runs
         covers_all = node.else_body is None and getattr(node, 'exhaustive', False)
-        if covers_all and self.can_be_null_enum(subject_type):
+        if covers_all and self.can_be_null_enum(subject_type) and not getattr(node, 'has_null_case', False):
             # Every value has a case, but null has none and there is no else: a NullError
             # (Task 30.11) - checked first, so C still sees one case always run
             test = (f'{subject}.tag' if self.data_struct(subject_type) is not None else subject)
@@ -291,8 +295,9 @@ class EnumsMixin:
             self.visit(node.else_body)
             self.dedent()
         self.emit('}')
-        if held:
-            self.pop_scope()
+        if self.cleanup_scopes[-1]['used']:
+            self.emit(f"{self.cleanup_scopes[-1]['label']}:;")
+        self.pop_scope()
         return ''
 
     def _case_body(self, case, subject: str, subject_type) -> None:
@@ -320,6 +325,12 @@ class EnumsMixin:
         return next(f.field_type for f in struct.fields if f.name == name)
 
     def _pattern_test(self, subject: str, subject_type, pattern) -> str:
+        if pattern.is_null:
+            # case null (Task 30.12) - only an enum can be null today
+            if not self.can_be_null_enum(subject_type):
+                return '0'
+            test = f'{subject}.tag' if self.data_struct(subject_type) is not None else subject
+            return f'{test} == FUSION_ENUM_NULL'
         if type(subject_type).__name__ == 'ErrorType':
             # case FileError: that type or a subtype (Task 26.10); case Error: any error
             number = self.error_kind_number(getattr(pattern, 'error_declaration', None))

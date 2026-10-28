@@ -395,7 +395,9 @@ class ErrorsMixin:
             return True
         if isinstance(node, ThrowStmt) or getattr(node, 'raises', False):
             return True    # throw, or `return Error(...)` in any function (Task 26.7)
-        if type(node).__name__ == 'MatchStmt' and node.else_body is None                 and getattr(node, 'exhaustive', False)                 and self.can_be_null_enum(getattr(node.subject, 'inferred_type', None)):
+        if type(node).__name__ == 'MatchStmt' and node.else_body is None \
+                and getattr(node, 'exhaustive', False) and not getattr(node, 'has_null_case', False) \
+                and self.can_be_null_enum(getattr(node.subject, 'inferred_type', None)):
             return True    # a null enum has no case and no else: a NullError (Task 30.11)
         if type(node).__name__ == 'ForStmt' and isinstance(
                 getattr(node.iterable, 'inferred_type', None), (ListType, MapType)) and \
@@ -890,7 +892,8 @@ class ErrorsMixin:
         self.dedent()
         self.emit('}')
 
-    def emit_finally_for_exit(self, leaving: str, error_pending: bool = False) -> None:
+    def emit_finally_for_exit(self, leaving: str, error_pending: bool = False,
+                              from_depth: int = None) -> None:
         """Before a return (leaving 'function') or a break / continue (leaving 'loop'):
         run the finally of every try being left, innermost first. While one runs, it is no
         longer "being left", and errors in it go to the targets outside its try."""
@@ -898,6 +901,8 @@ class ErrorsMixin:
             return
         loops = self._loop_count()
         entries = [e for e in self.finally_stack if leaving == 'function' or e['loops'] == loops]
+        if from_depth is not None:
+            entries = self.finally_stack[from_depth:]     # break leaving a match (30.12)
         if not entries:
             return
         saved_stack, saved_targets = self.finally_stack, self.fail_targets
