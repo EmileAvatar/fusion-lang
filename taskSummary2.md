@@ -134,7 +134,9 @@ print(e)                                 // Person's fields first, then Employee
 
 **More sub-tasks:**
 - 32.10 Object lifetime (mini-task): every case in Object_Lifetime.md, each with a test - run
-  before classes (32.2) so the counting is right from the start
+  before classes (32.2) so the counting is right from the start. Three strategies (MANUAL /
+  OWNERSHIP / GC) as `[memory] strategy`; `free` / `deallocate`; leak reporting; the full
+  example there becomes a test program
 - 32.11 `[source] case_sensitive` (default true); off: the compiler lists names that differ
   only in case
 - 32.12 Commas after struct fields / multi-line enum values are ignored
@@ -390,5 +392,8 @@ Kept under Task 22 until the renumbering is approved.
   counting); testing rule: with and without null checks - 4 follow-up questions
 - Follow-ups answered (case_sensitive setting; commas ignored; implements + extends /
   includes for structs; object lifetime - a mini-task, Object_Lifetime.md written)
-- **Next Action:** the user answers Object_Lifetime.md's 5 questions / approves Task 32; then
-  32.1
+- Object_Lifetime.md rewritten (user, 2026-10-28): three memory strategies (MANUAL / OWNERSHIP /
+  GC, a setting; GC implementations, its thread), free (unsafe) vs deallocate (safe), a full
+  function / class / module example, answers 1-5 recorded; 6 new questions there. Nothing
+  built until it is 150% sure
+- **Next Action:** the user answers Object_Lifetime.md section 8 (6 questions); then Task 32
