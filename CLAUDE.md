@@ -12,11 +12,14 @@ short. Status, features and plans live elsewhere (see "Where things are").
 
 ### Rule 1: Plan first, then act
 1. At session start run `python check.py --status` (open items + next action)
-2. For any new work, write a detailed plan in `taskSummary2.md`
+2. For any new work, write a detailed plan in `taskSummary2.md` - including a **Settings**
+   line: which project settings the task adds or changes (or "none"). Every new or changed
+   setting goes into `files/fusionSettings.xml` (user, 2026-10-28)
 3. Show the plan to the user and get approval
 4. Only then implement it
 5. After each sub-task: update its line in `FEATURES.md`, write at most a few lines in
-   `taskSummary2.md`, and run `python check.py`
+   `taskSummary2.md`, add or update any setting it needs in `files/fusionSettings.xml`, and
+   run `python check.py`
 
 ### Rule 2: No emojis in code files
 Emojis and other non-ASCII characters cause encoding errors (cp1252 vs UTF-8). OK in `*.md`
@@ -146,6 +149,7 @@ When a language feature or spec changes, update every affected file without aski
 | Standard library module | language spec |
 | A concurrency idea, design decision, trap, principle or real-world case | `Concurrency.md` (full write-up), `Concurrency_Traps.md` (the overview tables) and `files/Service.md` (the `service` reference) - keep them in step; schedule any new feature in `FEATURES.md` Task 42 |
 | A null-handling decision (`?.`, `??`, nullable types, number conditions) | `Nullable_Values.md` (decisions log + tables); schedule in `FEATURES.md` Task 30 |
+| A project setting added or changed (`fusion.toml` / `.yaml` / `.json` / `.ini`) | `files/fusionSettings.xml` (the master template - its type, values, default, description, task), `src/config/project_config.py`, spec "Project Configuration", `SYNTAX_REFERENCE.md` settings section - `tests/test_settings_formats.py` checks template and compiler agree |
 | A source file added, renamed or given a new job | that folder's `CLAUDE.md` (one line per file) |
 
 ---
