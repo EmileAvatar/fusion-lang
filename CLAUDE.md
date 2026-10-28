@@ -173,6 +173,10 @@ When a language feature or spec changes, update every affected file without aski
   collection says so, one that copies leaves the original alone. A short familiar name may
   be added as quick typing (sugar) for the clear one: `slice` / `copyPart`, `pop` /
   `removeLast`, `len()` / `length()`
+- **Program to an interface, not an implementation (user, 2026-10-28):** code - Fusion's own
+  and its libraries - uses an interface where it makes sense (`List`, `Collection`), so the
+  implementation behind it can change later; an array is one fixed implementation, a `List`
+  has a default one (never null) that can be swapped (the Dependency Inversion Principle)
 - **Guiding rule:** a simple working language first, advanced features after
   (`FutureFeaturesCaution.md`). Security principle: never trust code
 - **Repository is public** on GitHub (`EmileAvatar/fusion-lang`); history was scrubbed of a

@@ -24,6 +24,74 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 32: Classes and interfaces - PLAN (awaiting approval)
+
+User (2026-10-28): "code to an interface, not a concrete type" - the principle has a name:
+**"Program to an interface, not an implementation"** (the Gang of Four's *Design Patterns*,
+1994); in SOLID it is the **Dependency Inversion Principle** (the D). Java's
+`List<String> names = new ArrayList<>()` is the classic example: code uses `List`, and the
+implementation behind it can change. `foreach` works on anything that implements a
+`Collection` interface (Java: `Iterable`). An array has one fixed implementation; a `List`
+has a default implementation (never null) and can be given another.
+
+Already decided (FEATURES 32): objects by reference, value types copied; `inherits` (alias
+`extends`); interface names need no `I` prefix; several constructors; `this(...)`; a circle of
+constructors is an error; class objects can be null (30.2: `?.`, `??`, NullError).
+
+**Proposed Fusion syntax (to approve):**
+```
+interface Shape                          // a contract: what, not how
+    float function area()
+
+class Circle implements Shape
+    float radius
+    constructor(float r)
+        radius = r
+    float function area() : 3.14159 * radius * radius
+
+void function report(Shape s)            // coded to the interface: any Shape works
+    print("{@1}", s.area())
+
+List<string> names                       // List is an interface: the default implementation,
+                                         // never null
+List<string> jobs = LinkedList<string>() // another implementation - same interface
+foreach (string n in names)              // anything that implements Collection
+```
+
+**Sub-tasks (order):**
+- 32.1 Methods on structs (`p.move(1, 2)`; 44.2 already calls functions as methods)
+- 32.2 Classes: fields, methods, constructors (several, `this(...)`), objects by reference,
+  null by default, `this`; freed when the last reference goes (needs the memory model -
+  reference counting, Task 38's Shared - or a simpler first step: decide in the plan)
+- 32.5 Interfaces: `interface`, `implements` (several), an interface as a type for variables,
+  parameters, lists; calls go to the object's own method (in C: a table of function pointers
+  per class - a "vtable"); a class missing a method is a compile error
+- 30.2 (from Task 30) the null guard on objects: `?.`, `??`, `== null`, NullError
+- 32.4 The `Collection` interface and `foreach` (45.9): arrays, List and Map implement it; a
+  class of your own can, and decides its own looping rules
+- 32.6 `List` as an interface: a default implementation (never null), other implementations
+  chosen where declared (`= LinkedList<string>()`); the array stays one fixed implementation
+- 32.7 Inheritance: `inherits` / `extends`, `override`, calling the parent's method
+- 32.3 Example program (classes, interfaces, enums)
+- **Settings:** `[structs] functions` (32.1, default false - decided 2026-10-24); possibly a
+  project-wide default List implementation (question 4)
+- Note: an interface of the program's own with a type parameter (`Repository<T>`) needs
+  generics (Task 33); the built-in `Collection<T>` / `List<T>` can come first
+
+**Questions:**
+1. `implements` written out (Java, C#, Swift, Rust - recommended: clear, and the compiler can
+   name a missing method), or "has the methods = implements" automatically (Go, TypeScript)?
+2. Default methods in an interface (a method with a body, Java 8 / C# 8 - the spec has one):
+   now or later (recommended: later)?
+3. Can a struct implement an interface (C#, Swift, Go: yes - the struct is copied into the
+   interface value), or classes only (Java - recommended first)?
+4. List implementations: which besides the default - LinkedList? Chosen where declared only,
+   or also a project-wide default in fusion.toml (`[collections] list = "array"`)?
+5. Freeing objects: reference counting (Swift, Python - freed when the last reference goes,
+   recommended; cycles need Weak, Task 38) or wait for Task 38's memory model?
+
+---
+
 ## TASK 31: The settings file in four formats - COMPLETE (2026-10-28)
 
 fusion.toml (default), fusion.yaml / .json / .ini; the master template files/fusionSettings.xml;
@@ -263,4 +331,8 @@ Kept under Task 22 until the renumbering is approved.
   delete, TOML > YAML > JSON > INI, create fusion.toml if none) - 3 follow-up questions
 - Follow-ups answered (keep a .bak; create from an XML master template, config.fusion later;
   `[project] fusionSettingFormat`); 31.1-31.4 done
-- **Next Action:** the user picks the next step (31.5 waits for strict mode / a 2nd backend)
+- Settings audit: [structs] hold_collections, [build] wait_at_exit (default false) added;
+  showcase updated; CLAUDE.md rules (XML once built; showcase after every task)
+- Task 32 planned (user: program to an interface; Collection + foreach; List as an
+  interface with a default implementation) - 5 questions
+- **Next Action:** the user answers the Task 32 questions / approves
