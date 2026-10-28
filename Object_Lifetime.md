@@ -256,6 +256,20 @@ class Car
   that class must implement `Cloneable` too - its `clone()` recreates the `nocopy` fields
 - **Rule of thumb:** `nocopy` -> the class implements `Cloneable`, and `clone()` recreates that
   field; `noshare` -> the field becomes `copy(field)` automatically, and the copy is used
+- **`copy(a)` / `byVal a` / `byValue a`** (both spellings work): when `a`'s class implements
+  `Cloneable` **and** has a `nocopy` field, its `clone()` is used; otherwise it is a normal copy
+  (deep, or shallow by `[memory] copy`)
+- **A `nocopy` field gets a new value only in a constructor or in `clone()`** - e.g. a new
+  `Database`; `copy(car.database)` anywhere is a compile error
+- **A `noshare` field can't be handed out:** `return engine` is a compile error - write
+  `return copy(engine)`; handing out a value from it is fine (`return engine.make`)
+- **Structs:** copied by default (`byVal`); a function may take one `byRef` and change the
+  caller's struct. Assigning by reference (`structB = byRef structA`) is a compile error - a
+  struct is only copied - unless a setting allows it (`[structs] allowReference = false` by
+  default)
+- **Objects inside a struct** (a List / array of a class in a struct): a struct is for values
+  you can copy, so `[structs] shareableListBehaviour = "cloneable"` (default) - the class must
+  implement `Cloneable`; `"none"` - objects aren't allowed in a struct
 
 ```fusion
 interface Cloneable
@@ -266,8 +280,11 @@ class Car implements Cloneable
     private noshare Logbook log          // a copied Car gets copy(log) automatically
     string name
     public Car function clone()          // the class decides how a copy is made
-        Car c = Car(name)                // a new Car - its constructor opens its own database
-        return c                         // (log is copied by the compiler - noshare)
+        Car chevy = new Car(name)        // a new Car
+        // ... copy the other values over
+        chevy.database = new Database("connection string")   // the nocopy field: a new one -
+                                         // only here (or in a constructor)
+        return chevy                     // (log is copied by the compiler - noshare)
 
 Car a = Car("Honda")
 Car b = a                    // shares - one Car
@@ -285,14 +302,16 @@ field.
 |---|---|---|---|---|---|
 | `b = a` | a copy | shared - one object | shared | shared | shared |
 | pass to a function `f(a)` | a copy | borrowed (shared) - `f` may change it | borrowed | borrowed | borrowed |
-| `f(byRef a)` | **error?** (structs can't be referenced - question 2) | shared (the default) | shared | shared | shared |
-| `f(byVal a)` / `b = byVal a` | a copy | a copy (deep by default) | **compile error** | `a.clone()` | a copy; the `noshare` field copied |
+| `f(byRef a)` | the caller's struct - `f` may change it | shared (the default) | shared | shared | shared |
+| `b = byRef a` | **compile error** (unless `[structs] allowReference = true`) | shared | shared | shared | shared |
+| `f(byVal a)` / `b = byVal a` (or `byValue`) | a copy | a copy (deep by default) | **compile error** | `a.clone()` | a copy; the `noshare` field copied |
 | `copy(a)` | a copy | a copy (deep, or shallow by `[memory] copy`) | **compile error** | `a.clone()` | a copy; the `noshare` field copied - even when shallow |
 | `copyDeep(a)` | a copy | a deep copy | **compile error** | `a.clone()` | a deep copy |
 | `f(readonly a)` | a copy, read only | borrowed, read only | borrowed, read only | borrowed, read only | borrowed, read only |
 | `return a` | a copy | moves to the caller | moves | moves | moves |
 | `list.add(a)` | the list holds a copy | the list shares it | shares | shares | shares |
-| copy a list of them (`byVal list`, `copy(list)`) | each element copied | each element copied (deep by default - question 3) | **compile error** | each element's `clone()` | each element copied |
+| copy a list of them (`byVal list`, `copy(list)`) | each element copied | each element copied (deep by default) | **compile error** | each element's `clone()` | each element copied |
+| put in a struct's List / array | a copy | only if the class is `Cloneable` (`shareableListBehaviour = "cloneable"`), or never (`"none"`) | the same | allowed (`Cloneable`) | the same as a class |
 | `a = null`, scope ends | (a value - freed with its holder) | count -1 | count -1 | count -1 | count -1 |
 
 #### Truth table 2: a field inside an enclosing object `E`
@@ -304,8 +323,8 @@ Columns: the kind of field.
 | `E` is shared (`b = e`, `f(e)`) | part of `E` - shared with it | shared with `E` | shared with `E` | shared with `E` |
 | `E` is copied, `[memory] copy = "deep"` | copied | copied (deep) | **error** - unless `E` is `Cloneable` (then `E.clone()` decides) | copied - `copy(field)` |
 | `E` is copied, `[memory] copy = "shallow"` | copied | shared with the original | **error** - unless `E` is `Cloneable` | copied anyway - `copy(field)` |
-| A method hands the field out: `return field` | a copy | shared | shared (`shareDB()`) | question 4 |
-| `copy(e.field)` | a copy | a copy | question 5 | a copy |
+| A method hands the field out: `return field` | a copy | shared | shared (`shareDB()`) | **compile error** - write `return copy(field)`; `return field.make` (a value from it) is fine |
+| `copy(e.field)` | a copy | a copy | **compile error** - a new one only in a constructor or `clone()` | a copy |
 | `E` is freed | freed with `E` | count -1 | count -1 | count -1 |
 
 
@@ -418,7 +437,7 @@ void function main()
 | U3 | Stored in a field | `engine = Engine("V8")`, `this.owner = p` | |
 | U4 | Stored in a collection | `cars.add(c)`, `list[0] = c`, `map["k"] = c` | each element is a holder |
 | U5 | Returned to a caller who stores it | `Car c = garage.leave(0)` | moves to the caller - no extra count |
-| U6 | A collection copied (`byVal`) | the copy refers to the **same** objects - each +1 | |
+| U6 | A collection copied (`byVal`) | each element copied (deep by default) - the copies start at 1 | replaces "the copy refers to the same objects" (user, 2026-10-28) |
 | U7 | A struct holding an object copied | only if `[structs] classes` is on (off by default) | +1 per object |
 | U8 | Passed as an argument | `garage.park(toyota)` | borrowed - no change while the call runs; +1 only where the function stores it |
 | U9 | `this` stored or returned by a method | `list.add(this)`, `return this` | +1 where it is stored |
@@ -534,19 +553,8 @@ leakCheck = "dev"          # dev (report while developing) | log (log in the app
 
 ## 11. Questions still open
 
-1. **`byVal` or `byValue`?** Your last note writes `byValue variable`; earlier notes `byVal`.
-   One of them, or both (`byValue` written out, `byVal` as quick typing)?
-2. **Structs "can't be referenced":** so `f(byRef s)` on a struct is a compile error? (An `int`
-   may be passed `byRef` - decided earlier - so is a struct the one value type that can't?)
-3. **Copying a list of objects:** truth table 1 copies each element (deep - your `Cloneable`
-   rule for lists). An earlier answer said a copied collection refers to the same objects
-   (section 7, U6). Deep copy of the elements replaces that?
-4. **A `noshare` field handed out by a method** (`return log`): shared (noshare only matters
-   when the enclosing object is copied), or a copy?
-5. **`copy(car.database)` - copying a `nocopy` field directly:** a compile error, or allowed when
-   the field's own class (Database) implements `Cloneable`?
-6. **`Cloneable` and `[memory] copy = "shallow"`:** `copy(a)` on a `Cloneable` class always calls
-   `clone()` (the class decides), whatever the setting?
+None - the truth tables are settled (user, 2026-10-28). Reviewing them once more before Task
+32 starts is still welcome.
 
 The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mode`) are task
 32.0 - see taskSummary2.md.
@@ -563,7 +571,7 @@ The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mo
 | 2026-10-28 | `free(x)`: unsafe, raw, at once. `deallocate(x)`: safe - checks the count; the default way, used by the compiler and the GC. Using a variable after either: a compile error, always. `x = null` leaves the variable usable |
 | 2026-10-28 | Passing: value types (int, decimal, string, structs) by value; class objects, arrays, lists, maps by reference (lists become references, still never null). Modifiers `readonly` (no change - compile error), `byRef`, `byVal` |
 | 2026-10-28 | Constructors: `constructor(...)` the default, `Car(...)` quick typing; `new` optional; private constructors, a private static constructor, static const objects made only inside the class (a factory) |
-| 2026-10-28 | Copying a collection that holds objects: the copy refers to the same objects |
+| 2026-10-28 | Copying a collection that holds objects: the copy refers to the same objects - **replaced** the same day: each element is copied (deep by default) |
 | 2026-10-28 | After free / deallocate: the object is marked freed; the compiler finds where it was given to - a use in the same block is a compile error, elsewhere a run-time error; `?.` treats a freed object as null (no error). A freed variable may get a new object |
 | 2026-10-28 | Lists, arrays, maps are references: `b = a` shares, `b = byVal a` copies; a struct assigned is copied (byVal), its lists too. `readonly` / `byRef` / `byVal`: parameters only for now |
 | 2026-10-28 | `byVal` on an object copies everything (deep - the engine inside the car too); `byRef` shares |
@@ -572,6 +580,7 @@ The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mo
 | 2026-10-28 | `[memory] copy = "deep"` (default) / `"shallow"`; `copyDeep(x)` always deep, `copy(x)` follows the setting |
 | 2026-10-28 | Field modifiers `nocopy` (the value can never be copied - a class with one can't be copied at all, only shared; e.g. a database) and `noshare` (never shared - always copied); not both on one field; used sparingly; file locks, connections, locks, threads `nocopy` by default later |
 | 2026-10-28 | `[safety] mode`: safe (default) / strict (warnings become errors - security, no undetermined behaviour) / unsafe; `overflowWrap` in `[numbers]` |
+| 2026-10-28 | `byValue` / `byVal` both. Structs: copied; `byRef` as a parameter (the function may change the caller's struct); `structB = byRef structA` an error unless `[structs] allowReference`. Objects in a struct's list: `[structs] shareableListBehaviour` = cloneable (default) / none. A `noshare` field can't be handed out (`return copy(field)`; a value from it is fine). A `nocopy` field is set only in a constructor or `clone()`. `copy(a)` uses `clone()` when the class is `Cloneable` and has a `nocopy` field; otherwise a normal copy |
 | 2026-10-28 | A class with a `nocopy` field can't be copied - unless it implements `Cloneable`: then `copy(x)` / `byVal x` call its `clone()`, which recreates the field. A `noshare` field is copied automatically when the enclosing object is copied (it doesn't stop sharing). A class that can't be copied can still be passed to functions (borrowed). Structs are always copied. A list of a `nocopy` class needs that class to be `Cloneable` to be copied. A method may hand out a `nocopy` field's reference (`return database`) or a copy of a `noshare` field (`return copy(log)`) |
 | 2026-10-28 | Leaks: warned in development; the leak check can be off or built into the app; a published app logs, never shows debug messages to the customer |
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |

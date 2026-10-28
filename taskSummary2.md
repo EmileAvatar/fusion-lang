@@ -428,4 +428,7 @@ Kept under Task 22 until the renumbering is approved.
   unsafe (normal accepted, old unsafe warns); strict = warnings are errors
 - Cloneable rules + two truth tables (structs / classes / nocopy / Cloneable / noshare; fields
   inside an enclosing object) - Object_Lifetime.md 4b; 6 questions
-- **Next Action:** go through the truth tables with the user (6 questions); then 32.1
+- Truth tables settled (byValue / byVal; structs byRef as a parameter, [structs] allowReference,
+  shareableListBehaviour; noshare can't be handed out; nocopy set only in constructor / clone;
+  clone() only with nocopy) - no open questions
+- **Next Action:** the user approves Task 32 to start; then 32.1 (methods on structs)
