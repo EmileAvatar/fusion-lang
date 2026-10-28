@@ -751,6 +751,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return f'FUSION_STRU("{escaped}", {len(text)})'
 
         elif type_hint == 'null':
+            if self.can_be_null_enum(getattr(node, 'inferred_type', None)):
+                return self.enum_null_code(node.inferred_type)   # an enum's null (30.11)
             return 'NULL'
 
         return '0'  # Fallback
@@ -1100,8 +1102,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             code = self.visit(arguments[0])
             # Its name (static text, never freed) or its number (Tasks 25.2, 25.4)
             if name == 'toString':
-                return self.enum_text_code(first_type, code)
-            return f'(({code}).tag)' if self.data_struct(first_type) is not None else f'((int)({code}))'
+                return self.enum_text_code(first_type, code)        # null: "null" (30.11)
+            number = f'({code}).tag' if self.data_struct(first_type) is not None else f'(int)({code})'
+            # null has no number: a NullError (Task 30.11)
+            return self.checked_code(f'fusion_enum_toInt({number}, {self._where(node)})', 'int')
         if name == 'toString':
             if self._is_bytes(arguments[0]):
                 c_function, needs_where = 'fusion_bytes_toString', True   # must be text (18.3.8)

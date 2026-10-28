@@ -63,6 +63,7 @@ BUILTIN_ERROR_TYPES = [
     ('ModifiedWhileLoopingError', 'ValueError', False, None),   # Task 27.2e
     ('PrecisionError', 'ArithmeticError', False, None),         # Task 27.2f
     ('ProcessError', 'Error', False, None),                     # Task 28.1.1 - run()
+    ('NullError', 'Error', False, None),                        # Task 30.11
 ]
 BUILTIN_ERROR_NAMES = [name for name, _, _, _ in BUILTIN_ERROR_TYPES]
 

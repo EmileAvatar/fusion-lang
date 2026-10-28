@@ -23,6 +23,9 @@ from src.parser.ast_nodes import (
 )
 from .errors import SemanticError
 
+# The number that means "no value" (Task 30.11) - FUSION_ENUM_NULL in the C run-time
+ENUM_NULL = -2147483647
+
 # Calls on the enum itself, Color.values() - a value can't have one of these names
 ENUM_STATICS = ('values', 'fromString')
 
@@ -114,6 +117,9 @@ def check_enum_declaration(enum: EnumDecl) -> List[SemanticError]:
             errors.append(SemanticError(
                 f"'{variant.name}' can't be a value of enum '{enum.name}' - "
                 f"{enum.name}.{variant.name}() is built in", where))
+        if variant.value == ENUM_NULL:
+            errors.append(SemanticError(
+                f"{variant.value} is kept for null - give '{variant.name}' another number", where))
         if variant.value in numbers and variant.name not in names:
             errors.append(SemanticError(
                 f"'{variant.name}' and '{numbers[variant.value]}' in enum '{enum.name}' both "
@@ -150,12 +156,8 @@ def _check_variant_fields(enum: EnumDecl, variant) -> List[SemanticError]:
             errors.append(SemanticError(
                 f"Field '{f.name}' of '{variant.name}' can't be an array - use a List",
                 f.location))
-        if getattr(kind, 'name', None) == enum.name and type(kind).__name__ in ('EnumType', 'StructType') \
-                and variant is enum.variants[0]:
-            errors.append(SemanticError(
-                f"The first value of enum '{enum.name}' can't hold a {enum.name} - a {enum.name} "
-                f"given no value starts as the first one; put a value without it first",
-                f.location))
+    # (The first value may hold the enum too since Task 30.11: a variable given no value is
+    # null, not the first value)
     return errors
 
 

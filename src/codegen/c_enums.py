@@ -29,6 +29,7 @@ from dataclasses import dataclass, fields as dataclass_fields, is_dataclass
 from src.parser.ast_nodes import (EnumDecl, EnumStaticCall, EnumType, EnumValueExpr, ListType,
                                   LiteralExpr, MatchStmt, PrimitiveType, StructDecl, StructField,
                                   StructType, TypeNode)
+from src.semantic.enums import ENUM_NULL
 from .c_names import mangle_function_name, local_c_name
 from .c_runtime import escape_c_text
 
@@ -52,10 +53,9 @@ class EnumsMixin:
         for enum in [d for d in program.declarations if isinstance(d, EnumDecl)]:
             if not any(v.fields for v in enum.variants):
                 continue
-            first = enum.variants[0].value
-            tag = StructField(location=enum.location, name='tag',
+            tag = StructField(location=enum.location, name='tag',     # unset: null (30.11)
                               field_type=PrimitiveType(location=enum.location, name='int'),
-                              default_value=LiteralExpr(location=enum.location, value=first,
+                              default_value=LiteralExpr(location=enum.location, value=ENUM_NULL,
                                                         type_hint='int'))
             fields = [tag] + [StructField(location=f.location, name=f'{v.name}__{f.name}',
                                           field_type=f.field_type)
@@ -155,8 +155,8 @@ class EnumsMixin:
         return f'({value})' if value < 0 else str(value)
 
     def enum_default_value(self, type_node: EnumType) -> int:
-        """A value nobody gave: the enum's first value."""
-        return type_node.declaration.variants[0].value
+        """A value nobody gave: null (Task 30.11 - it was the first value)."""
+        return ENUM_NULL
 
     def enum_section_lines(self, enums) -> list:
         """The typedef and helpers of every enum - right after the runtime, before the list
@@ -166,7 +166,8 @@ class EnumsMixin:
             c = mangle_function_name(enum.name)
             data = getattr(enum, 'struct_decl', None) is not None   # a struct (Task 25.4)
             lines += [f'// enum {enum.name} (Task 25)'] + ([] if data else [f'typedef int {c};'])
-            lines += [f'static inline fusion_string {c}__text(int v) {{', '    switch (v) {']
+            lines += [f'static inline fusion_string {c}__text(int v) {{', '    switch (v) {',
+                      '        case FUSION_ENUM_NULL: return FUSION_STR("null");']   # 30.11
             for variant in enum.variants:
                 text = escape_c_text(variant.name, '"')
                 lines.append(f'        case {self.enum_number(variant.value)}: '
@@ -185,6 +186,24 @@ class EnumsMixin:
                       f'{escape_c_text(enum.name, chr(34))}", s.len, s.data);',
                       f'    return {self.enum_number(enum.variants[0].value)};', '}', '']
         return lines
+
+    def enum_null_code(self, type_node) -> str:
+        """null as a value of an enum (Task 30.11)."""
+        struct = self.data_struct(type_node)
+        if struct is None:
+            return 'FUSION_ENUM_NULL'
+        tag = LiteralExpr(location=struct.location, value=ENUM_NULL, type_hint='int')
+        return self._struct_initializer(struct, [tag] + [None] * (len(struct.fields) - 1))
+
+    def visit_IsNullExpr(self, node) -> str:
+        """x == null / x is null / x?.null (Task 30.11)."""
+        code = self.visit(node.operand)
+        if not getattr(node, 'can_be_null', False):
+            return f'((void)({code}), {1 if node.negated else 0})'   # never null (a warning)
+        operator = '!=' if node.negated else '=='
+        if self.data_struct(node.operand.inferred_type) is not None:
+            return f'(({code}).tag {operator} FUSION_ENUM_NULL)'
+        return f'(({code}) {operator} FUSION_ENUM_NULL)'
 
     def visit_EnumValueExpr(self, node: EnumValueExpr) -> str:
         number = node.declaration.variant(node.member).value
@@ -246,6 +265,17 @@ class EnumsMixin:
         # Every value has a case: the last one runs whenever the others don't - so C
         # (and GCC's "end of non-void function" check) sees that one always runs
         covers_all = node.else_body is None and getattr(node, 'exhaustive', False)
+        if covers_all and self.can_be_null_enum(subject_type):
+            # Every value has a case, but null has none and there is no else: a NullError
+            # (Task 30.11) - checked first, so C still sees one case always run
+            test = (f'{subject}.tag' if self.data_struct(subject_type) is not None else subject)
+            name = escape_c_text(getattr(subject_type, 'name', 'enum'), '"')
+            self.emit(f'if ({test} == FUSION_ENUM_NULL) {{')
+            self.indent()
+            self.emit_line(self.checked_code(f'fusion_null_fail({self._where(node)}, "a match '
+                                             f'on a null {name} with no case for null")', None))
+            self.dedent()
+            self.emit('}')
         for number, case in enumerate(node.cases, 1):
             if covers_all and number == len(node.cases):
                 self.emit('{' if number == 1 else '} else {')
@@ -301,6 +331,9 @@ class EnumsMixin:
             return f'{subject}.tag == {number}' if struct is not None else f'{subject} == {number}'
         return self.value_equality(subject, subject_type, self.visit(pattern.value),
                                    pattern.value.inferred_type)
+
+    def can_be_null_enum(self, type_node) -> bool:
+        return isinstance(type_node, EnumType) or self.data_struct(type_node) is not None
 
     def enum_text_code(self, type_node, code: str) -> str:
         """An enum value's name as a (static, never freed) fusion_string - for an enum with

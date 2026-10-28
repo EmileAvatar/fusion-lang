@@ -233,7 +233,8 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 |---|---|
 | 2026-10-27 | Null only for class objects (and strings when `[strings] nullable = true`; default false - a string is a value, default "") |
 | 2026-10-27 | Arrays, List and Map are like strings: never null, empty by default; `[arrays]` / `[lists]` / `[maps]` `nullable` (default false); `"".length()` and `[].length()` are 0 |
-| 2026-10-27 | Enums are treated as reference types like classes: `Status s` with no value is null, not the first value (today it is the first value - to change) |
+| 2026-10-27 | Enums are treated as reference types like classes: `Status s` with no value is null, not the first value - **built 2026-10-28 (Task 30.11)** |
+| 2026-10-28 | A null in a `match` equals no case value: it goes to `case null` (30.12), else to `else`; no else and every value covered: a NullError. Printing a null enum prints `null`. `break` inside a `match` ends the match; `continue` acts on the loop (30.12) |
 | 2026-10-27 | `?.` is a guard: a null object's method is not run, no error; in an `if` it is false |
 | 2026-10-27 | `??` gives a default when a value is expected and none is there |
 | 2026-10-27 | Checks: `==`, `===`, `is null`; `x?.null` / `!x?.null` as quick typing; no `x!` |

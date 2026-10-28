@@ -395,6 +395,8 @@ class ErrorsMixin:
             return True
         if isinstance(node, ThrowStmt) or getattr(node, 'raises', False):
             return True    # throw, or `return Error(...)` in any function (Task 26.7)
+        if type(node).__name__ == 'MatchStmt' and node.else_body is None                 and getattr(node, 'exhaustive', False)                 and self.can_be_null_enum(getattr(node.subject, 'inferred_type', None)):
+            return True    # a null enum has no case and no else: a NullError (Task 30.11)
         if type(node).__name__ == 'ForStmt' and isinstance(
                 getattr(node.iterable, 'inferred_type', None), (ListType, MapType)) and \
                 type(node.iterable).__name__ in ('IdentifierExpr', 'MemberExpr', 'IndexExpr'):

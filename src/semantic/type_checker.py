@@ -329,6 +329,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             return self._check_bytes_literal(value)
         if isinstance(expected, ListType) and isinstance(value, ArrayLiteralExpr):
             return self._check_list_literal(value, expected)
+        if isinstance(value, LiteralExpr) and value.type_hint == 'null':
+            # null (Task 30.11): an enum can hold it (class objects later, Task 32)
+            if not isinstance(expected, EnumType):
+                self.errors.append(SemanticError(
+                    f"A {self.type_to_string(expected)} can't be null - only an enum (and class "
+                    f"objects, later) can", value.location))
+            value.inferred_type = expected
+            return expected
         result = self.visit(value)
         self.widen_to_float(value, result, expected)
         return result
@@ -874,6 +882,19 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         if isinstance(left, FunctionType) or isinstance(right, FunctionType):
             return "functions can't be compared"
         return "these types never compare equal"
+
+    def visit_IsNullExpr(self, node) -> TypeNode:
+        """`x == null`, `x is null`, `x?.null` (Task 30.11). Only an enum can be null today
+        (class objects with Task 32); on anything else the answer is always the same - a
+        warning, not an error, since a library may still hand over a null one day."""
+        operand_type = self.visit(node.operand)
+        node.can_be_null = isinstance(operand_type, EnumType)
+        if not node.can_be_null and not (isinstance(operand_type, PrimitiveType)
+                                         and operand_type.name == 'void'):
+            self.warnings.append(SemanticError(
+                f"A {self.type_to_string(operand_type)} is never null - this test is always "
+                f"{'true' if node.negated else 'false'}", node.location))
+        return PrimitiveType(location=node.location, name='bool')
 
     def visit_ConditionalExpr(self, node: ConditionalExpr) -> TypeNode:
         """`(c) ? a : b` (Task 30.7): the condition is a bool, and both values have one type -

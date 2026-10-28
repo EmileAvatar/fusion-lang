@@ -402,7 +402,7 @@ def test_function_variable_must_be_initialized():
 
 def test_function_variable_null_rejected():
     message = errors_of('void function main()\n    (int) : int op = null\n')
-    assert "Cannot assign" in message
+    assert "can't be null - only an enum" in message      # Task 30.11
 
 
 def test_lambda_return_type_mismatch_rejected():

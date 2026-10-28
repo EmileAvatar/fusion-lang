@@ -14,7 +14,7 @@ from src.parser.ast_nodes import (
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
     EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt, ErrorType, ErrorMakeExpr, ErrorDecl,
     ErrorActiveExpr, TryStmt, ThrowStmt, UncheckedStmt,
-    ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES, ConditionalExpr
+    ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES, ConditionalExpr, IsNullExpr
 )
 from .symbol_table import SymbolTable
 from .symbol import Symbol
@@ -1001,6 +1001,8 @@ class NameResolver:
             self.resolve_expression(expr.left)
             self.resolve_expression(expr.right)
         elif isinstance(expr, UnaryExpr):
+            self.resolve_expression(expr.operand)
+        elif isinstance(expr, IsNullExpr):               # Task 30.11
             self.resolve_expression(expr.operand)
         elif isinstance(expr, ConditionalExpr):          # Task 30.7
             self.resolve_expression(expr.condition)

@@ -57,18 +57,25 @@ are in `task/featuresArchive.md`.
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
-#### 30 Nulls - the postponed parts (30.0, 30.1, 30.6-30.9 done 2026-10-27: task/featuresArchive.md) [POSTPONED]
+#### 30 Nulls - enums now, the rest postponed (30.0, 30.1, 30.6-30.9 done 2026-10-27: task/featuresArchive.md) [ ]
 	[POSTPONED to 45] 30.10 Empty arrays: `int[] numbers` and `int numbers[]` both declare an
 		empty array, length 0 (user, 2026-10-27) - only useful once arrays can grow
 	[POSTPONED to 32] 30.2 On class objects: the `?.` guard (not run on null, false in an `if`),
 		`??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a plain
 		`.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
-	[ ] 30.11 Enums can be null (user, 2026-10-27): an enum is treated as a reference type like a
-		class - `Status s` with no value is null, not the first value (today: the first value,
-		Task 25). Using a null enum (toString, toInt, match) is a NullError; `== null`,
-		`?.null`, `?.toString() ?? x`. Then the "first value can't hold the enum" rule (25.5)
-		can go. Open: build now (enums exist) or with 30.2 in Task 32; what `match` does on
-		null
+	[DONE] 30.11 Enums can be null (tests/test_null_enums.py) - user, 2026-10-27/28: an enum is treated as a reference type
+		like a class - `Status s` with no value is null, not the first value (today: the first
+		value, Task 25). `s = null`, `== null` / `!= null` / `=== null` / `is null`,
+		`s?.null` / `!s?.null`; using a null enum (toString, toInt, its data) is a NullError
+		(a new built-in error type); the "first value can't hold the enum" rule (25.5) goes.
+		`s?.toString() ?? x` waits for 30.2
+	[ ] 30.12 `case null` in a `match` (user, 2026-10-28): at most one, on any type (a library may
+		send a null). A null never equals a case value: it goes to `case null`, else to
+		`else`, else nothing runs - never a NullError. `break` inside any `match` ends the
+		match; `continue` acts on the loop (today `break` leaves the loop - to change)
+	[ ] 30.13 `fall match` (user, 2026-10-28): falls through - after the matching case, the next
+		cases' code runs too, until a `break` (as C / Java / C# `switch` do). A plain `match`
+		never falls through
 	[POSTPONED to 32] 30.3 `nullable` settings for strings / arrays / lists / maps (default
 		false) and `?.length()` giving -1 on a null one - only useful with 30.2
 

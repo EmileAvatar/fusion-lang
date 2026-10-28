@@ -389,6 +389,16 @@ static inline fusion_char fusion_str_at(fusion_string s, int i, const char* wher
     return fusion_utf8_decode(s.data + fusion_utf8_offset(s, i));
 }
 
+// An enum with no value (Task 30.11): a number no enum value may use
+#define FUSION_ENUM_NULL (-2147483647)
+static inline void fusion_null_fail(const char* where, const char* what) {
+    fusion_fail(FUSION_KIND_NullError, where, "%s", what);
+}
+static inline int fusion_enum_toInt(int v, const char* where) {
+    if (v == FUSION_ENUM_NULL) { fusion_null_fail(where, "toInt() on a null enum value - it has no number"); return 0; }
+    return v;
+}
+
 // s[i] = c - edits the string in place (Task 29.1). Text from the source is copied first, so
 // the literal itself never changes; a character of another byte width moves the rest
 static inline void fusion_str_put(fusion_string* s, int i, fusion_char c, const char* where) {

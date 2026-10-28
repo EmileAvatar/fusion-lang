@@ -288,6 +288,30 @@ void function main()
     print("{@1} {@2}", votes[Color.Red], Pixel(1).color)
 ```
 
+#### Enums can be null: an unset enum is `null`
+
+<!-- example: syntax_null_enums | task: 30.11 -->
+```fusion
+enum Status
+    OK
+    NotFound
+
+void function main()
+    Status s                                   // no value given: null, not OK
+    print("{s} {@1} {@2}", s == null, s?.null)  // also: s is null, s === null
+    s = Status.NotFound
+    if s is not null                           // also: s != null, !s?.null
+        print("set: {s}")
+    s = null
+    match s
+        case OK: print("ok")
+        else: print("not OK (null too)")       // null equals no case value
+    try
+        int n = s.toInt()                      // null has no number
+    catch NullError e
+        print("{e}")
+```
+
 #### Enums with data
 
 <!-- example: syntax_enum_data | task: 25.4 -->

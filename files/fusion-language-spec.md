@@ -1911,10 +1911,9 @@ that hold themselves (25.5); the properties / next() / fromValue below stay desi
 `Add(Expr left, Expr right)` - or a List of it - `Call(string name, List<Expr> args)`. That
 is what an expression tree or a compiler's syntax tree needs. Such a field is stored on the
 heap but is still a value: a copy is a deep copy, `==` compares the whole tree, everything
-is freed automatically. Two rules: the **first** value can't hold the enum (a variable
-given no value starts as the first one - this rule goes once an unset enum is null, see
-below), and a value can't hold itself through other types (enum A holds struct S holds A) -
-hold it in a List instead
+is freed automatically. One rule: a value can't hold itself through other types (enum A
+holds struct S holds A) - hold it in a List instead. (The first value may hold the enum too
+since Task 30.11 - an unset variable is null, not the first value)
 
 Example program using all of it: `examples/expressions/` - a `Token` enum with data, a
 tokenizer using `match` on chars, a parser building an `Expr` tree (`Binary(char op, Expr
@@ -1928,14 +1927,20 @@ data is read **only** through `match`: `case Number(n)` gives `n` a copy of the 
 skips one; a case listing several values can't name data). A value is a value: copied
 deeply, freed automatically, `==` compares the value and its data. Printing and `toString`
 give the value's name only; `toInt` its number. `values()` / `fromString` and use as a Map
-key are for enums without data. A variable given no value starts as the first value with
-its data at the defaults. In C it is a struct: a `tag` and every value's fields
+key are for enums without data. A variable given no value is null (Task 30.11). In C it is
+a struct: a `tag` and every value's fields
 
-**Enums can be null (user decision 2026-10-27 - planned, replaces the "first value" default
-above):** an enum is treated as a reference type, like a class: `Status s` with no value is
-**null**, not the first value (`OK`). It never silently means a value nobody chose. Null
-handling as for class objects ("Null Handling", `Nullable_Values.md`): `s == null`,
-`s?.null`, `s?.toString() ?? "unset"`; a plain `s.toString()` on null is a NullError
+**Enums can be null (Task 30.11, built - user decisions 2026-10-27/28):** an enum is treated
+as a reference type, like a class: `Status s` with no value - a variable, a struct field, an
+array element - is **null**, not the first value (`OK`). It never silently means a value
+nobody chose.
+* Tests: `s == null`, `s != null`, `s === null`, `s is null`, `s is not null`, `s?.null`
+  (quick typing for "is null"), `!s?.null`; `s = null`; `s == Status.OK` is simply false
+* Printing and `toString` give `null`; `toInt` on null is a **NullError** (it has no number)
+* `match`: null equals no case value - it goes to `else`. A match that covers every value but
+  has no `else` raises a NullError on null (`case null` - Task 30.12)
+* In C null is the number -2147483647 (`FUSION_ENUM_NULL`) - an enum value can't use it
+* Not yet: `s?.toString() ?? "unset"` (the general null guard, Task 30.2)
 
 **`match` as built (Task 25.3, user decisions 2026-10-12):** `match value` then `case`
 lines, indented, in braces, or closed by `End match`. A case lists one or more values
@@ -2459,8 +2464,8 @@ class object that was never created.
 
 ### Core Principles
 
-* **Only class objects and enums can be null** (Task 32; enums - user, 2026-10-27: `Status s`
-  with no value is null, not the first value). Numbers, bools, chars and structs are
+* **Only class objects and enums can be null** (class objects: Task 32; enums: built, Task
+  30.11 - `Status s` with no value is null, not the first value). Numbers, bools, chars and structs are
   values; strings, arrays, `List` and `Map` are values too - never null, empty when not
   set (`""`, `[]`), length 0 when empty
 * **A project may allow null** for strings, arrays, lists or maps when "not set yet" must
@@ -3245,8 +3250,9 @@ FileError (path): FileNotFoundError, PermissionError, FileReadError, FileWriteEr
 LimitError: StringTooLongError ([strings] max_length), ResultTooLargeError (over 2 GB)
 ```
 Added by Task 27: OverflowError and PrecisionError (ArithmeticError), StackOverflowError
-(LimitError), ModifiedWhileLoopingError (ValueError).
-Not catchable: out of memory, a List past 536,870,911 elements. Later: NullError (30.1b).
+(LimitError), ModifiedWhileLoopingError (ValueError). Added by Task 30.11: NullError (Error) -
+using a null value: `toInt()` on a null enum, a match on a null enum with no case for it.
+Not catchable: out of memory, a List past 536,870,911 elements.
 
 **Endless recursion (Task 27.2c, user decisions 2026-10-17):** a function that can call
 itself (directly, through others, or through a function value) checks the stack on entry:

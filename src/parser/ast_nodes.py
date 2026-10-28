@@ -96,6 +96,21 @@ class BinaryExpr(ASTNode):
 
 
 @dataclass
+class IsNullExpr(ASTNode):
+    """A null test (Task 30.11): `x == null`, `x === null`, `x is null`, `x?.null` - and with
+    negated, `x != null`, `x !== null`, `x is not null`, `!x?.null` reads as not(...).
+
+    Attributes:
+        operand: The value tested
+        negated: True for "is not null"
+        inferred_type: Always bool once checked
+    """
+    operand: ASTNode
+    negated: bool = False
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class ConditionalExpr(ASTNode):
     """The conditional operator (Task 30.7): `(count > 5) ? "big" : "small"` - one line, gives
     the first value when the condition holds, else the second. Only the chosen one runs.

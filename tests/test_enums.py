@@ -92,14 +92,14 @@ def test_parameters_return_values_and_defaults():
         '        return Light.Yellow\n'
         '    return Light.Red\n'
         + main(
-            'Light l\n'                                    # no value given: the first one
+            'Light l\n'                                    # no value given: null (Task 30.11)
             'Status s\n'
             'Lamp lamp = Lamp("hall", Status.Fail)\n'
             'Status[2] codes\n'
             'print("{l} {s} {@1} {@2} {@3} {@4}", lamp.light, lamp.status, codes[1], next(next(l)))\n'
             'lamp.light = next(lamp.light)\n'
             'print("{@1}", lamp.light)')
-    ) == ['Red OK Yellow Fail OK Yellow', 'Red']
+    ) == ['null null Yellow Fail null Green', 'Red']   # next(null) is Red: not Red / Green
 
 
 def test_values_from_string_lists_and_maps():
@@ -372,13 +372,13 @@ def test_data_values_are_copied_compared_and_freed():
             'Token b = a\n'
             'a = Token.Number(1)\n'
             'Slot slot = Slot(b, 2)\n'
-            'Token none\n'                          # no value given: the first value, Number(0)
+            'Token none\n'                          # no value given: null (Task 30.11)
             'print("{@1} {@2} {@3}", b == Token.Word("x!"), a == b, a != Token.Number(2))\n'
             'print("{@1} {@2} {none}", slot.token == b, none == Token.Number(0))\n'
             'match word("y")\n'
             '    case Word(w): print(w)\n'
             '    else: print("?")')
-    ) == ['true false true', 'true true Number', 'y!']
+    ) == ['true false true', 'true false null', 'y!']
 
 
 def test_a_return_inside_a_case_frees_the_matched_value():
@@ -431,7 +431,6 @@ def test_data_errors(body, message):
     ('enum E\n    A(int x, int x)\n', "'A' of enum 'E' has two fields named 'x'"),
     ('enum E\n    A(int x = 1)\n', "can't have a default value"),
     ('enum E\n    A(int[3] x)\n', "can't be an array - use a List"),
-    ('enum E\n    A(E inner)\n    B\n', "The first value of enum 'E' can't hold a E"),
 ])
 def test_data_declaration_errors(source, message):
     assert message in errors_of(source + main('print("x")'))

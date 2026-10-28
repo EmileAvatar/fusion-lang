@@ -243,6 +243,12 @@ class Parser:
             if operator == '=':
                 operator = '=='  # `if x = 2` compares by value, the same as `==`
             right = self.parse_relational()
+            if self.is_null_literal(right) or self.is_null_literal(expr):
+                # x == null / x != null (also ===, !==): a null test (Task 30.11)
+                tested = expr if self.is_null_literal(right) else right
+                expr = IsNullExpr(location=expr.location, operand=tested,
+                                  negated=operator in ('!=', '!=='))
+                continue
             expr = BinaryExpr(
                 location=expr.location,
                 left=expr,
@@ -250,7 +256,18 @@ class Parser:
                 right=right
             )
 
+        # x is null / x is not null (Task 30.11) - `is` with a type comes later
+        if self.check(TokenType.IS):
+            self.advance()
+            negated = self.match(TokenType.NOT)
+            self.consume(TokenType.NULL, "Only 'is null' and 'is not null' exist so far")
+            expr = IsNullExpr(location=expr.location, operand=expr, negated=negated)
+
         return expr
+
+    @staticmethod
+    def is_null_literal(node) -> bool:
+        return isinstance(node, LiteralExpr) and node.type_hint == 'null'
 
     def parse_relational(self) -> ASTNode:
         """Parse relational: expr < expr, expr > expr, expr <= expr, expr >= expr
@@ -356,6 +373,14 @@ class Parser:
 
         # Handle chained postfix operators: func()(), arr[i][j], arr[i](), etc.
         while True:
+            if self.check(TokenType.SAFE_NAV):
+                # x?.null - quick typing for "x is null" (Task 30.11); other x?.member: 30.2
+                if self.peek(1).type != TokenType.NULL:
+                    raise ParserError(self.peek(), "'?.' before a member or method is planned "
+                                                   "(Task 30.2) - today only x?.null works")
+                self.advance(); self.advance()
+                expr = IsNullExpr(location=expr.location, operand=expr)
+                continue
             if self.match(TokenType.LPAREN):
                 arguments = []
 

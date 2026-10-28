@@ -152,6 +152,7 @@ static int fusion_failed = 0;
 #define FUSION_KIND_ModifiedWhileLoopingError 26
 #define FUSION_KIND_PrecisionError 27
 #define FUSION_KIND_ProcessError 28
+#define FUSION_KIND_NullError 29
 static inline void fusion_raise_text(int kind, void* extra, const char* where, const char* text, int len);
 static inline void* fusion_errdata_fu_FileError_new(fusion_string path);
 static void* fusion_errdata_fu_FileError_copy(void* p);
@@ -383,6 +384,16 @@ static inline fusion_string fusion_char_concat_str(fusion_char c, fusion_string 
 static inline fusion_char fusion_str_at(fusion_string s, int i, const char* where) {
     if (i < 0 || i >= s.chars) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the string (length %d)", i, s.chars); return 0; }
     return fusion_utf8_decode(s.data + fusion_utf8_offset(s, i));
+}
+
+// An enum with no value (Task 30.11): a number no enum value may use
+#define FUSION_ENUM_NULL (-2147483647)
+static inline void fusion_null_fail(const char* where, const char* what) {
+    fusion_fail(FUSION_KIND_NullError, where, "%s", what);
+}
+static inline int fusion_enum_toInt(int v, const char* where) {
+    if (v == FUSION_ENUM_NULL) { fusion_null_fail(where, "toInt() on a null enum value - it has no number"); return 0; }
+    return v;
 }
 
 // s[i] = c - edits the string in place (Task 29.1). Text from the source is copied first, so
@@ -1631,6 +1642,7 @@ static const fusion_error_kind fusion_builtin_kinds[] = {
     {"ModifiedWhileLoopingError", 8, NULL, NULL},
     {"PrecisionError", 1, NULL, NULL},
     {"ProcessError", 0, NULL, NULL},
+    {"NullError", 0, NULL, NULL},
 };
 static const fusion_error_kind* fusion_error_kinds = fusion_builtin_kinds;
 // Is an error of type `kind` a `target` (that type or one of its subtypes)? (Task 26.9)

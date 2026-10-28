@@ -281,9 +281,12 @@ logical_or =
 logical_and =
     equality { ( "and" | "&&" ) equality } ;
 
+(* x == null, x != null (also === / !==) and x is null / x is not null are null tests
+   (Task 30.11); `is` with a type comes later *)
 equality =
-    comparison { ( "==" | "!=" | "===" | "!==" | "<>" | "is" | "is" "not"
-                 | "=" (* only inside a condition *) ) comparison } ;
+    comparison { ( "==" | "!=" | "===" | "!==" | "<>"
+                 | "=" (* only inside a condition *) ) comparison }
+    [ "is" [ "not" ] "null" ] ;
 
 comparison =
     range { ( "<" | ">" | "<=" | ">=" ) range } ;
@@ -314,9 +317,9 @@ postfix =
                                               name.toUpper(), 255.toHex(), String.toUpper(name)
                                               (Task 18.3.7). A "." followed by a letter ends a
                                               number literal *)
-        | "?." identifier                  (* Safe navigation - not yet implemented *)
+        | "?." "null"                      (* x?.null - "x is null" (Task 30.11) *)
+        | "?." identifier                  (* the null guard on a member / method - Task 30.2 *)
         | "++" | "--"                      (* Post increment/decrement - not yet implemented *)
-        | "?" "." "null"                   (* Null check - not yet implemented *)
     } ;
     (* Arrays are not nullable in Task 9 v1, so "?[", "?.", and null-check don't apply
        to arrays yet, and "." is only for struct fields (arr.length is Task 14) - see the deferred nullability task noted under Task 9 in
