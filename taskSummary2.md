@@ -396,4 +396,8 @@ Kept under Task 22 until the renumbering is approved.
   GC, a setting; GC implementations, its thread), free (unsafe) vs deallocate (safe), a full
   function / class / module example, answers 1-5 recorded; 6 new questions there. Nothing
   built until it is 150% sure
-- **Next Action:** the user answers Object_Lifetime.md section 8 (6 questions); then Task 32
+- Object_Lifetime.md updated (user, 2026-10-28): OWNERSHIP default, GC optional (also made in
+  code), all three at once; `unsafe` functions / blocks; free (unsafe) vs deallocate (safe), use
+  after either a compile error; lists / arrays / maps become references (never null);
+  readonly / byRef / byVal; constructor forms, private / static constructors, factories
+- **Next Action:** the user answers Object_Lifetime.md section 11 (5 questions); then Task 32
