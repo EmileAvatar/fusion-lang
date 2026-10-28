@@ -27,7 +27,8 @@ the generated `.c`, and the working `.exe`. (Once Fusion is self-hosted: `.fusio
   the date it was first added)
 - **`#run.bat`** - generated: runs every `.exe` with `--headless` and no input (`< nul`), each under a
   `---- name.exe ----` header, then pauses once so the console stays open. Double-click it
-  to see everything run. (Run on its own, a program waits for a key before it closes)
+  to see everything run. (Run on its own, a program waits for a key before it closes - `examples/fusion.toml` sets
+  `[build] wait_at_exit = true`; programs elsewhere close at once by default)
 - **`project_config_demo/`** - a manual demo of `fusion.toml` changing compiler behaviour
 
 ## Rules

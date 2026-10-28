@@ -149,7 +149,8 @@ When a language feature or spec changes, update every affected file without aski
 | Standard library module | language spec |
 | A concurrency idea, design decision, trap, principle or real-world case | `Concurrency.md` (full write-up), `Concurrency_Traps.md` (the overview tables) and `files/Service.md` (the `service` reference) - keep them in step; schedule any new feature in `FEATURES.md` Task 42 |
 | A null-handling decision (`?.`, `??`, nullable types, number conditions) | `Nullable_Values.md` (decisions log + tables); schedule in `FEATURES.md` Task 30 |
-| A project setting added or changed (`fusion.toml` / `.yaml` / `.json` / `.ini`) | `files/fusionSettings.xml` (the master template - its type, values, default, description, task), `src/config/project_config.py`, spec "Project Configuration", `SYNTAX_REFERENCE.md` settings section - `tests/test_settings_formats.py` checks template and compiler agree |
+| A project setting added or changed (`fusion.toml` / `.yaml` / `.json` / `.ini`) | **Once the feature is built** (not before): `files/fusionSettings.xml` (the master template - its type, values, default, description, task), `src/config/project_config.py`, spec "Project Configuration", `SYNTAX_REFERENCE.md` settings section - `tests/test_settings_formats.py` checks template and compiler agree |
+| A task done (any new, changed or newly decided setting) | `files/showcase/fusion.toml` - every setting a finished Fusion will have, tagged [built] / [designed] / [idea] / [rejected] (user, 2026-10-28) |
 | A source file added, renamed or given a new job | that folder's `CLAUDE.md` (one line per file) |
 
 ---

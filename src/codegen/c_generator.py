@@ -57,7 +57,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     """
 
     def __init__(self, encoding: str = 'utf-8', max_length=None, safety_mode: str = 'normal',
-                 max_call_depth=None, runtime_include=None):
+                 max_call_depth=None, runtime_include=None, wait_at_exit=False):
         """Initialize code generator.
 
         Args:
@@ -72,6 +72,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         self.encoding = encoding
         self.runtime_include = runtime_include
+        self.wait_at_exit = wait_at_exit      # [build] wait_at_exit (default false)
         self.max_length = max_length
         # [safety] mode = "unsafe": whole-number arithmetic wraps instead of raising an
         # OverflowError (Task 27.2b, user decision 2026-10-17)
@@ -333,6 +334,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.emit('#define FUSION_ASCII 1  // [strings] encoding = "ascii" (Task 18.3.2b)')
         if getattr(self, 'max_length', None) is not None:
             self.emit(f'#define FUSION_MAX_LENGTH {self.max_length}  // [strings] max_length (18.3.4b)')
+        if getattr(self, 'wait_at_exit', False):
+            self.emit('#define FUSION_WAIT_AT_EXIT 1  // [build] wait_at_exit = true')
 
     def _generate_includes(self) -> None:
         """Generate #include directives."""

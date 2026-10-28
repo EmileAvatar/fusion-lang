@@ -135,7 +135,8 @@ def compile_file(source_path: str) -> int:
     generator = CCodeGenerator(encoding=project_config.strings.encoding,
                                max_length=project_config.strings.max_length,
                                safety_mode=project_config.safety_mode,
-                               max_call_depth=project_config.max_call_depth)
+                               max_call_depth=project_config.max_call_depth,
+                               wait_at_exit=project_config.build.wait_at_exit)
     try:
         c_code = generator.generate(ast)
     except Exception as e:

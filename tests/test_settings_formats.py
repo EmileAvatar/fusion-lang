@@ -88,7 +88,7 @@ def test_no_file_creates_fusion_toml_with_every_default(tmp_path):
     assert (tmp_path / 'fusion.toml').exists() and config.messages
     again = load_project_config(str(tmp_path / 'app.fusion'))
     for name in ('indentation', 'source', 'structs', 'strings', 'stdlib', 'errors', 'numbers',
-                 'modules', 'conditions', 'safety_mode', 'max_call_depth', 'backend'):
+                 'modules', 'conditions', 'build', 'safety_mode', 'max_call_depth', 'backend'):
         assert getattr(again, name) == getattr(ProjectConfig(), name), name
 
 
@@ -127,4 +127,34 @@ def test_every_template_value_is_accepted_and_reserved_ones_are_not(tmp_path):
                 load(tmp_path, 'fusion.toml', f'[{s.section}]\n{s.name} = "{value}"\n')
     data, _ = default_settings()
     assert set(data) == {'project', 'indentation', 'source', 'structs', 'strings', 'stdlib',
-                         'errors', 'numbers', 'modules', 'conditions', 'safety', 'backend'}
+                         'errors', 'numbers', 'modules', 'conditions', 'build', 'safety',
+                         'backend'}
+
+
+PROGRAM = 'void function main()\n    print("x")\n'
+
+
+def test_structs_hold_collections_can_be_turned_off(tmp_path):
+    from src.config import StructsConfig
+    from tests.test_structs import errors_of
+    assert load(tmp_path, 'fusion.toml', '').structs.hold_collections is True
+    config = load(tmp_path, 'fusion.toml', '[structs]\nhold_collections = false\n')
+    assert config.structs.hold_collections is False
+    message = errors_of('struct Team\n    List<string> members\n    Map<string, int> score\n\n'
+                        + PROGRAM, StructsConfig(hold_collections=False))
+    assert "Field 'members' of struct 'Team' is a List" in message
+    assert "Field 'score' of struct 'Team' is a Map" in message
+
+
+def test_wait_at_exit_is_off_by_default_and_a_define_when_on(tmp_path):
+    from src.codegen import CCodeGenerator
+    from src.lexer import Lexer
+    from src.parser.parser import Parser
+    assert load(tmp_path, 'fusion.toml', '').build.wait_at_exit is False
+    assert load(tmp_path, 'fusion.toml', '[build]\nwait_at_exit = true\n').build.wait_at_exit
+
+    def c_code(**settings):
+        program = Parser(Lexer(PROGRAM, 't').tokenize()).parse_program()
+        return CCodeGenerator(**settings).generate(program)
+    assert '#define FUSION_WAIT_AT_EXIT' not in c_code()
+    assert '#define FUSION_WAIT_AT_EXIT 1' in c_code(wait_at_exit=True)

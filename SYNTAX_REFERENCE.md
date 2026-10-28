@@ -911,6 +911,11 @@ warn_nesting_depth = 3
 string_storage     = "owned"
 string_mutable     = true
 string_warn_length = 64
+hold_collections   = true        # a struct field may be a List / Map; false: an error
+
+[build]
+wait_at_exit = false             # true: wait for a key before the window closes (development,
+                                 # examples, testing) - examples/fusion.toml turns it on
 
 [safety]
 mode = "normal"                  # normal | strict (reserved) | unsafe: + - * wrap instead of OverflowError

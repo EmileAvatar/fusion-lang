@@ -386,7 +386,9 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] fusion.toml: `block_styles` - allow only some block styles in a project
 	[ ] fusion.toml: `[threads] pool_size = "auto"` (one per CPU core)
 	[ ] fusion.toml: `[modules] paths` - extra folders searched for imported modules
-	[ ] fusion.toml: `wait_at_exit` as a setting (today: the default, --headless turns it off)
+	[DONE] fusion.toml: `[build] wait_at_exit` - default false (user, 2026-10-28: for development,
+		examples and testing; examples/fusion.toml turns it on); --headless never waits
+	[DONE] `[structs] hold_collections` (default true) - the struct setting decided 2026-10-24
 	(Already listed above: namespaces, operator overloading, println, map literals, loop)
 	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use
 	[POSTPONED - with each feature] More error types (Task 26 list, 2026-10-16): NetworkError /

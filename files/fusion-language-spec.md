@@ -510,11 +510,13 @@ outside `print` are 18.3.3 - see `FEATURES.md`.
   (Method-call syntax, `name.toUpper()`, arrived with Task 18.3.7 - see "Built-in type
   classes")
 
-* **When a program ends** (user request 2026-10-11): a compiled program waits for a key
-  ("Press any key to close...", on stderr) before its window closes - so a program started
-  by double-clicking it doesn't vanish before its output, or a run-time error, can be read.
-  Run it with `--headless` to close at once (scripts, servers, `examples/#run.bat`). It
-  never waits when its input or output is redirected (pipes, files, tests)
+* **When a program ends** (user requests 2026-10-11, 2026-10-28): with `[build]
+  wait_at_exit = true` a compiled program waits for a key ("Press any key to close...", on
+  stderr) before its window closes - so a program started by double-clicking it doesn't
+  vanish before its output, or a run-time error, can be read. **Off by default**: it is for
+  development, the examples (`examples/fusion.toml` turns it on) and testing - or an app
+  that should show its details to the customer. `--headless` closes at once, and it never
+  waits when its input or output is redirected (pipes, files, tests)
 
 * **Names in the generated C** (Task 18.4.1, closes 15.8): a Fusion name never collides
   with C or with the runtime - functions and struct types get a `fu_` prefix in C (`add` ->
@@ -4352,6 +4354,10 @@ warn_nesting_depth = 3         # warn when a struct reaches this depth (0 = neve
 string_storage     = "owned"   # each struct holds its own string value; "pooled" reserved (Task 29)
 string_mutable     = true      # false = string fields can't be changed after construction
 string_warn_length = 64        # guideline: warn when a string field is longer (0 = never warn)
+hold_collections   = true      # a struct field may be a List / Map; false: an error
+
+[build]
+wait_at_exit = false           # true: wait for a key before the window closes (dev / examples)
 
 [safety]
 mode = "normal"      # "unsafe": whole-number + - * wrap instead of raising OverflowError

@@ -5,14 +5,18 @@
 #   [idea]      not designed yet                 [rejected]  decided against
 # Every setting is optional; the value shown is the default. A misspelled key or a bad value
 # is an error, never silently ignored [built].
-# [designed] The same settings may also be written as fusion.yaml / .json / .ini (Task 31);
-# two config files in one place is an error.
+# [built] The same settings may also be written as fusion.yaml / .json / .ini (Task 31); in a
+# folder TOML is used first, then YAML, JSON, INI. Every built setting, its values and default:
+# files/fusionSettings.xml (the master template).
 
 # [designed] The project itself: name, version, the file that holds main
 [project]
 name = "showcase"
 version = "0.1.0"
 main = "Fusion_showcase.fusion"
+# [built] The format of this file: TOML | YAML | JSON | INI - change it and the next compile
+# rewrites the file in that format, keeping the old one as a .bak (Task 31)
+fusionSettingFormat = "TOML"
 
 [indentation]
 # [built] Spaces per tab
@@ -31,10 +35,12 @@ allow_unicode_identifiers = false
 encoding = "utf-8"
 # [built] "max" = no limit; a number = a longer string is a StringTooLongError
 max_length = "max"
-# [designed] Strings can be changed in place (Task 29)
-mutable = true
-# [designed] Identical text stored once (Task 29)
+# [rejected] A "mutable" switch - a string variable can always be changed in place (s[i] = c,
+# Task 29.1); a const string is fixed (29.2)
+# [designed] Identical text stored once (Task 29.4 - postponed to Task 38)
 pooling = false
+# [designed] Strings may be null (default false - "" instead) (Task 30.3)
+nullable = false
 
 [numbers]
 # [built] false: an int used as a float must fit exactly (else PrecisionError); true: a warning
@@ -58,6 +64,26 @@ string_storage = "owned"
 string_mutable = true
 # [built] Warn when a string field is longer than this (0 = never)
 string_warn_length = 64
+# [built] A struct field may be a List or Map (false: such a field is an error)
+hold_collections = true
+# [designed] Functions on structs (Task 32.1) / classes inside structs - off by default
+functions = false
+classes = false
+
+[conditions]
+# [built] A number as a condition: positive (above zero is true) | nonzero (C, Python) | off
+numbers = "positive"
+
+[arrays]
+# [designed] Arrays may be null (default false - [] instead) (Task 30.3); they grow at the
+# end (Task 45)
+nullable = false
+
+[collections]
+# [designed] Lists and maps share a pool of threads ("shared") or get their own
+# ("dedicated") (Task 42.17)
+threads = "shared"
+shared_threads = 10
 
 [functions]
 # [designed] Several return values per function (user, 2026-10-23: off unless allowed);
@@ -99,6 +125,8 @@ enabled = true
 pool_size = "auto"
 
 [modules]
+# [built] Module-level variables (module constants are always allowed) (Task 44.1)
+variables = true
 # [idea] Extra folders searched for imported modules
 paths = ["lib", "vendor"]
 # [designed] Libraries must declare what they may do (files, network, ...) (Task 39)
@@ -117,9 +145,9 @@ mode = "debug"
 optimize = "none"
 # [designed] exe | lib (a DLL / shared library)
 output = "exe"
-# [idea] Wait for a key before the window closes (built as the default, --headless turns
-# it off - not yet a setting)
-wait_at_exit = true
+# [built] Wait for a key before the window closes, so the output can be read - for
+# development, examples and testing (default false; --headless never waits)
+wait_at_exit = false
 
 [docs]
 # [designed] Make documentation from /** */ comments

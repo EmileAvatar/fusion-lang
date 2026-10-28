@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Sat Oct 17 05:28:48 SAST 2026
+**Date:** Wed Oct 28 17:48:06 SAST 2026
 **Total Examples:** 19
 
 ## Summary
@@ -83,13 +83,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -155,13 +155,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -246,13 +246,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -336,13 +336,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -424,13 +424,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -498,13 +498,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -566,13 +566,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -667,13 +667,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -750,13 +750,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -818,13 +818,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -886,13 +886,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -968,13 +968,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -1054,13 +1054,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -1152,13 +1152,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -1224,13 +1224,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -1296,13 +1296,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -1368,13 +1368,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -1436,13 +1436,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 
@@ -1514,13 +1514,13 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
-#define FUSION_IS_CONSOLE(f) _isatty(_fileno(f))
-#else
 ... (truncated)
 ```
 

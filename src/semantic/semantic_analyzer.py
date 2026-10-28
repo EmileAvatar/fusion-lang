@@ -8,7 +8,8 @@ import sys
 from typing import List, Optional
 
 from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveType, EnumDecl,
-                                ErrorDecl, LiteralExpr, VarDeclStmt, ArrayType, ArrayLiteralExpr)
+                                ErrorDecl, LiteralExpr, VarDeclStmt, ArrayType, ArrayLiteralExpr,
+                                ListType, MapType)
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
@@ -252,6 +253,14 @@ class SemanticAnalyzer:
           an error only when the program actually has a string field it would apply to
         """
         location = structs[0].location if structs else None
+        if not self.structs_config.hold_collections:
+            for struct in structs:
+                for f in struct.fields:
+                    if isinstance(f.field_type, (ListType, MapType)):
+                        self.errors.append(SemanticError(
+                            f"Field '{f.name}' of struct '{struct.name}' is a "
+                            f"{'List' if isinstance(f.field_type, ListType) else 'Map'} - the "
+                            f"project sets [structs] hold_collections = false", f.location))
         has_string_field = any(
             isinstance(f.field_type, PrimitiveType) and f.field_type.name == 'string'
             for s in structs for f in s.fields

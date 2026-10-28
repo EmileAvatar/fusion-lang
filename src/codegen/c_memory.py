@@ -78,8 +78,10 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #endif
 // Waiting before the window closes (user request 2026-10-11): a program started by
 // double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Not when run with --headless, and not when no one
-// is at the console (input or output redirected - tests, scripts, pipes)
+// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
+// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
+// testing); never with --headless or when no one is at the console (redirected - tests,
+// scripts, pipes)
 #ifdef _WIN32
 #include <conio.h>
 #include <io.h>
@@ -88,6 +90,7 @@ __declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
 #include <unistd.h>
 #define FUSION_IS_CONSOLE(f) isatty(fileno(f))
 #endif
+#ifdef FUSION_WAIT_AT_EXIT
 static void fusion_wait_for_key(void) {
     fflush(stdout);
     fprintf(stderr, "\nPress any key to close...");
@@ -98,6 +101,7 @@ static void fusion_wait_for_key(void) {
     getchar();
 #endif
 }
+#endif
 // Endless recursion (Task 27.2c, user decision 2026-10-17): where the stack starts, and how
 // much of it the program's own functions may use - the rest is left for the runtime
 static char* fusion_stack_base = NULL;
@@ -137,8 +141,12 @@ static inline void fusion_init(int argc, char** argv) {
     SetConsoleCP(65001);   // typed input as UTF-8 too (readLine, Task 18.5.4)
 #endif
     for (int i = 1; i < argc; i++) if (strcmp(argv[i], "--headless") == 0) headless = true;
+#ifdef FUSION_WAIT_AT_EXIT
     if (!headless && FUSION_IS_CONSOLE(stdin) && FUSION_IS_CONSOLE(stdout))
         atexit(fusion_wait_for_key);
+#else
+    (void)headless;
+#endif
 }
 
 // Errors (Task 26): an error travels in fusion_err while fusion_failed is set - declared

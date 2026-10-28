@@ -110,12 +110,15 @@ class StructsConfig:
         string_mutable: False makes a string field unchangeable after construction.
         string_warn_length: Warn when a string field holds more characters than this
             (0 = never warn). The string is still kept in full.
+        hold_collections: A struct field may be a List or Map (user decision 2026-10-24: on
+            by default, since it is built); False makes such a field a compile error.
     """
     max_nesting_depth: int = DEFAULT_MAX_NESTING_DEPTH
     warn_nesting_depth: int = DEFAULT_WARN_NESTING_DEPTH
     string_storage: str = DEFAULT_STRING_STORAGE
     string_mutable: bool = DEFAULT_STRING_MUTABLE
     string_warn_length: int = DEFAULT_STRING_WARN_LENGTH
+    hold_collections: bool = True
 
 
 @dataclass
@@ -160,6 +163,20 @@ class NumbersConfig:
             warning
     """
     auto_widening: bool = False
+
+
+@dataclass
+class BuildConfig:
+    """What the built program does (user decision 2026-10-28).
+
+    Attributes:
+        wait_at_exit: True - the program waits for a key before its window closes, so its
+            output (or an error) can be read when it was started by double-clicking - for
+            development, the examples and testing, or an app that should show its details to
+            the customer. False (the default) - it closes at once, as a finished app should.
+            --headless and redirected input / output never wait
+    """
+    wait_at_exit: bool = False
 
 
 @dataclass
@@ -229,6 +246,7 @@ class ProjectConfig:
     numbers: NumbersConfig = field(default_factory=NumbersConfig)
     modules: ModulesConfig = field(default_factory=ModulesConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
+    build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     max_call_depth: Optional[int] = None   # [safety] max_call_depth - None: "max" (Task 27.2c)
     backend: str = DEFAULT_BACKEND
@@ -270,7 +288,7 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
     section = _require_table(data, "structs", config_path)
 
     known = {"max_nesting_depth", "warn_nesting_depth", "string_storage", "string_mutable",
-             "string_warn_length"}
+             "string_warn_length", "hold_collections"}
     if "string_max_length" in section:
         raise ProjectConfigError(
             f"{config_path}: structs.string_max_length has moved to [strings] max_length (it now "
@@ -320,6 +338,12 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
                 f"(0 = never warn), got {value!r}"
             )
         structs.string_warn_length = value
+    if "hold_collections" in section:
+        value = section["hold_collections"]
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: structs.hold_collections must be a boolean, got {value!r}")
+        structs.hold_collections = value
     return structs
 
 
@@ -403,6 +427,21 @@ def _load_modules_section(data: dict, config_path: str) -> ModulesConfig:
                 f"{config_path}: modules.variables must be true or false, got {value!r}")
         modules.variables = value
     return modules
+
+
+def _load_build_section(data: dict, config_path: str) -> BuildConfig:
+    """Parse and validate the [build] section."""
+    build = BuildConfig()
+    section = _require_table(data, "build", config_path)
+    for key, value in section.items():
+        if key != "wait_at_exit":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting build.{key} (known: ['wait_at_exit'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: build.wait_at_exit must be true or false, got {value!r}")
+        build.wait_at_exit = value
+    return build
 
 
 def _load_conditions_section(data: dict, config_path: str) -> ConditionsConfig:
@@ -560,6 +599,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         errors=_load_errors_section(data, config_path),
         modules=_load_modules_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
+        build=_load_build_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),
         safety_mode=safety_mode,
         max_call_depth=max_call_depth,

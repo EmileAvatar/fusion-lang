@@ -63,6 +63,9 @@
     <setting name="string_warn_length" type="int" min="0" default="64" task="18.2">
       <description>Warn when a string field's text is longer than this (0 = never warn)</description>
     </setting>
+    <setting name="hold_collections" type="bool" default="true" task="18.5">
+      <description>A struct field may be a List or a Map; false makes such a field an error</description>
+    </setting>
   </section>
 
   <section name="strings" description="Strings">
@@ -126,6 +129,12 @@
     </setting>
     <setting name="max_call_depth" type="int-or-max" min="1" default="max" task="27.2c">
       <description>How deep calls may go; max: endless recursion is caught by stack use alone</description>
+    </setting>
+  </section>
+
+  <section name="build" description="What the built program does">
+    <setting name="wait_at_exit" type="bool" default="false" task="23.7">
+      <description>Wait for a key before the window closes, so the output can be read - for development, examples and testing, or an app that shows its details to the customer (never with --headless)</description>
     </setting>
   </section>
 
