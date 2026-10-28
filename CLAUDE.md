@@ -49,6 +49,11 @@ When a language feature lands: add a short example to `SYNTAX_REFERENCE.md` (it 
 example program in `examples/` - see `examples/CLAUDE.md`), or a fuller demo program in
 `examples/` with its expected output in `tests/verify_examples.py`.
 
+### Rule 4b: Test with and without null checks
+From 2026-10-28 (user): a feature where a value can be null is tested both ways - without a
+check, the null is a NullError that a `catch` handles correctly; with `?.` / `?.null` /
+`case null`, the code runs on as intended.
+
 ### Rule 5: Headings in tracking and reference files
 In `FEATURES.md`, `SYNTAX_REFERENCE.md` and similar files, `##` is only for **major
 sections**. Tasks and headings inside a major section use `####` - easier to read.

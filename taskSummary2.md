@@ -24,21 +24,36 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
-## TASK 32: Classes and interfaces - PLAN (awaiting approval)
+## TASK 32: Classes and interfaces - PLAN (decisions 2026-10-28; awaiting final approval)
 
 User (2026-10-28): "code to an interface, not a concrete type" - the principle has a name:
 **"Program to an interface, not an implementation"** (the Gang of Four's *Design Patterns*,
 1994); in SOLID it is the **Dependency Inversion Principle** (the D). Java's
-`List<String> names = new ArrayList<>()` is the classic example: code uses `List`, and the
-implementation behind it can change. `foreach` works on anything that implements a
-`Collection` interface (Java: `Iterable`). An array has one fixed implementation; a `List`
-has a default implementation (never null) and can be given another.
+`List<String> names = new ArrayList<>()` is the classic example. `foreach` works on anything
+that implements a `Collection` interface (Java: `Iterable`). An array has one fixed
+implementation; a `List` has a default implementation (never null) and can be given another.
 
 Already decided (FEATURES 32): objects by reference, value types copied; `inherits` (alias
-`extends`); interface names need no `I` prefix; several constructors; `this(...)`; a circle of
-constructors is an error; class objects can be null (30.2: `?.`, `??`, NullError).
+`extends`) for classes; interface names need no `I` prefix; several constructors;
+`this(...)`; a circle of constructors is an error; class objects can be null (30.2).
 
-**Proposed Fusion syntax (to approve):**
+**Decisions (user, 2026-10-28):**
+1. `implements` is written out - clear and familiar (Java, C#)
+2. Default methods in an interface (a method with a body): built now, as a setting, **off by
+   default** - `[interfaces] default_methods = false`
+3. A struct does **not** implement an interface - it only holds values. But a struct can
+   build on another struct: it gets that struct's fields and adds its own (below)
+4. Collection implementations (which `List` / `Map` kinds besides the defaults): a mini-task
+   of its own - study Java's and other languages' collections, pick the best cases. They
+   live in Fusion modules (fusionlib), not in the compiler; a few core ones are built in
+   (arrays, List, Map)
+5. Freeing objects: when it goes out of scope, like Rust (the default) - **and** reference
+   counting: an object is freed when the last reference to it goes (at the end of the scope
+   of the last variable holding it). The basics now; Task 38 continues (Weak for cycles, ...)
+6. **Testing rule from now on: test with and without null checking** - a null without a check
+   is a NullError that a `catch` handles; with `?.` the code runs on (CLAUDE.md)
+
+**Classes and interfaces (proposed syntax):**
 ```
 interface Shape                          // a contract: what, not how
     float function area()
@@ -50,45 +65,74 @@ class Circle implements Shape
     float function area() : 3.14159 * radius * radius
 
 void function report(Shape s)            // coded to the interface: any Shape works
-    print("{@1}", s.area())
+    print("{@1}", s.area())              // s null: a NullError (catchable)
+
+void function report2(Shape s)           // the same, with null checking
+    print("{@1}", s?.area())             // s null: area() is not run; prints null
 
 List<string> names                       // List is an interface: the default implementation,
                                          // never null
-List<string> jobs = LinkedList<string>() // another implementation - same interface
 foreach (string n in names)              // anything that implements Collection
 ```
 
+**Structs building on structs (user's example, put in Fusion's form):**
+```
+struct Person
+    string name
+    string id
+    string tel
+
+struct Employee implements Person        // gets name, id, tel - and adds its own fields
+    string employeeID
+    string tel                           // the same name as Person's: a warning; both kept
+
+Employee e
+e.name = "Jeff"                          // only Person has name - no prefix needed
+e.Person.tel = "082-000-0000"            // Person's tel (the private number)
+e.Employee.tel = "011-000-0000"          // Employee's own tel (the office number)
+print(e)                                 // Person's fields first, then Employee's, with commas
+```
+- Two fields with the same name: both kept, a **warning**; reading `e.tel` without the
+  struct's name is an **error** ("say e.Person.tel or e.Employee.tel") - never a silent pick
+- `print(e)` / `"{e}"` - a whole struct printed: the inner struct's fields first, comma
+  separated (today printing a whole struct is an error - new)
+- Commas: today fields are one per line, no commas (`string Name,` is a parse error)
+
 **Sub-tasks (order):**
-- 32.1 Methods on structs (`p.move(1, 2)`; 44.2 already calls functions as methods)
+- 32.1 Methods on structs (`p.move(1, 2)`); `[structs] functions` setting (default off -
+  decided 2026-10-24)
+- 32.8 Structs building on structs (`implements`), same-name fields, printing a whole struct
 - 32.2 Classes: fields, methods, constructors (several, `this(...)`), objects by reference,
-  null by default, `this`; freed when the last reference goes (needs the memory model -
-  reference counting, Task 38's Shared - or a simpler first step: decide in the plan)
-- 32.5 Interfaces: `interface`, `implements` (several), an interface as a type for variables,
-  parameters, lists; calls go to the object's own method (in C: a table of function pointers
-  per class - a "vtable"); a class missing a method is a compile error
-- 30.2 (from Task 30) the null guard on objects: `?.`, `??`, `== null`, NullError
-- 32.4 The `Collection` interface and `foreach` (45.9): arrays, List and Map implement it; a
-  class of your own can, and decides its own looping rules
-- 32.6 `List` as an interface: a default implementation (never null), other implementations
-  chosen where declared (`= LinkedList<string>()`); the array stays one fixed implementation
-- 32.7 Inheritance: `inherits` / `extends`, `override`, calling the parent's method
-- 32.3 Example program (classes, interfaces, enums)
-- **Settings:** `[structs] functions` (32.1, default false - decided 2026-10-24); possibly a
-  project-wide default List implementation (question 4)
+  null by default, `this`; freed by scope and reference counting (decision 5)
+- 30.2 (from Task 30) the null guard: `?.`, `??`, `== null`, NullError - tested both ways
+- 32.5 Interfaces: `interface`, `implements` (several), an interface as a type (variables,
+  parameters, lists); the object's own method runs (in C: a table of function pointers per
+  class); a missing method is a compile error; default methods behind the setting
+- 32.4 The `Collection` interface and `foreach` (45.9): arrays, List, Map implement it; a class
+  of your own can, and decides its own looping rules
+- 32.6 `List` as an interface with a default implementation (never null)
+- 32.9 Mini-task: collection implementations - study Java / C# / Rust / Go / Python, choose
+  (for fusionlib); the core ones built in
+- 32.7 Inheritance: `inherits` / `extends`, `override`, the parent's method
+- 32.3 Example program (classes, interfaces, structs building on structs, enums)
+- **Settings:** `[structs] functions` (32.1, default false), `[interfaces] default_methods`
+  (32.5, default false) - into files/fusionSettings.xml when built; showcase updated
 - Note: an interface of the program's own with a type parameter (`Repository<T>`) needs
   generics (Task 33); the built-in `Collection<T>` / `List<T>` can come first
 
 **Questions:**
-1. `implements` written out (Java, C#, Swift, Rust - recommended: clear, and the compiler can
-   name a missing method), or "has the methods = implements" automatically (Go, TypeScript)?
-2. Default methods in an interface (a method with a body, Java 8 / C# 8 - the spec has one):
-   now or later (recommended: later)?
-3. Can a struct implement an interface (C#, Swift, Go: yes - the struct is copied into the
-   interface value), or classes only (Java - recommended first)?
-4. List implementations: which besides the default - LinkedList? Chosen where declared only,
-   or also a project-wide default in fusion.toml (`[collections] list = "array"`)?
-5. Freeing objects: reference counting (Swift, Python - freed when the last reference goes,
-   recommended; cycles need Weak, Task 38) or wait for Task 38's memory model?
+1. Your example writes `employee.name` but the field is `Name` - names are case-sensitive in
+   Fusion (as in Java / C#), so these are two different names. Keep case-sensitive?
+2. Commas between struct fields: keep one field per line with no commas (recommended - like
+   statements), or allow commas too (optional, for people used to C / JSON)?
+3. `struct Employee implements Person`: for interfaces, `implements` means "promises these
+   methods"; for structs it means "gets these fields" (in Go this is called embedding, in C#
+   / Java `extends`). Keep `implements` for both, or use `extends` (or `includes`) for structs
+   so the two meanings don't mix?
+4. Freeing (decision 5) in practice: every object has a count of the variables holding it;
+   a scope ending lowers the count, and at zero the object is freed - so an object only one
+   variable holds is freed exactly when that scope ends (Rust's rule), a shared one when the
+   last holder goes (Swift's rule). OK?
 
 ---
 
@@ -335,4 +379,7 @@ Kept under Task 22 until the renumbering is approved.
   showcase updated; CLAUDE.md rules (XML once built; showcase after every task)
 - Task 32 planned (user: program to an interface; Collection + foreach; List as an
   interface with a default implementation) - 5 questions
-- **Next Action:** the user answers the Task 32 questions / approves
+- Task 32 answers (implements; default methods as a setting, off; structs build on structs,
+  not interfaces; collection implementations a mini-task, in fusionlib; scope + reference
+  counting); testing rule: with and without null checks - 4 follow-up questions
+- **Next Action:** the user answers the 4 follow-up questions; then 32.1
