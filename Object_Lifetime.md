@@ -65,8 +65,13 @@ void function render()
 - `free` / `deallocate` belong in `unsafe` code or a MANUAL project: used anywhere else, the
   compiler **warns**
 - `unsafe` is only for memory, assembly and devices - where precise control is absolutely
-  needed (raw performance, security). It is separate from `unchecked { }` and `[safety] mode`
-  (whole-number arithmetic that wraps - question 1)
+  needed (raw performance, security)
+- **Project-wide** (user, 2026-10-28): `[safety] mode = "safe"` (the default) or `"unsafe"` -
+  only when the whole project needs it
+- **Whole-number overflow is separate:** `OverflowWrap` (default false) - `byte 255 + 1` is an
+  OverflowError; with `OverflowWrap = true` it gives 0. This replaces today's `[safety] mode =
+  "unsafe"`, which only made arithmetic wrap (Task 27.2b). `unchecked { }` stays: overflow
+  wraps inside that one block
 
 #### The two ways to free by hand
 
@@ -194,14 +199,40 @@ the copy shares the engine) and make a deep copy something you ask for:
 - **Cost:** copying a big object tree takes time and memory - it should be visible in the code
   (`byVal` written out, never by accident)
 
-**Proposed setting** (it decides between Fusion's deep default and the shallow copy other
-languages use):
+**The setting** (Fusion's deep default, or the shallow copy other languages use):
 
 ```toml
 [memory]
 copy = "deep"        # byVal on an object: deep (default - everything copied, user 2026-10-28)
                      # | shallow (only the object itself; what it holds is shared - Java, C#)
 ```
+
+**Decided (user, 2026-10-28):** deep is the default; `[memory] copy = "shallow"` is the option.
+Either way the developer can ask for a copy by name:
+
+```fusion
+Car car = copyDeep(honda)     // always a deep copy
+Car car = copy(honda)         // a deep copy - or shallow when [memory] copy = "shallow"
+```
+
+#### `nocopy` and `noshare` - fields that must not be copied, or must not be shared
+
+```fusion
+class Car
+    private nocopy Database database     // the copy uses the SAME database as the original
+    private noshare Logbook log          // the copy always gets its OWN logbook - no link back
+```
+
+| Modifier | Means | When the car is copied (`byVal`, `copy`, `copyDeep`) | An error |
+|---|---|---|---|
+| `nocopy` | the value is never copied - only its reference is shared | the copy shares the same database as the original | copying the field's value itself: `copy(car.database)`, `byVal` on it |
+| `noshare` | the reference is never shared - it must be copied | the copy gets its own copy of the field - even when `[memory] copy = "shallow"` | sharing it: handing the field's object to another holder by reference |
+
+- `nocopy` and `noshare` together are a compile error (question 1)
+- Both are for special cases - to be used sparingly
+- **Later:** classes that are naturally `nocopy` - a file lock, a database connection, a lock,
+  a thread - get it by default (Tasks 42, 43)
+
 
 ## 5. The rule for OWNERSHIP (the counting)
 
@@ -407,6 +438,14 @@ strategy = "ownership"      # ownership (default) | gc | manual
 gc = "multi-core"           # single-core | multi-core | off - the GC implementation
 gc_thread = "shared"        # shared (default) | dedicated
 double_free = "ignore"      # deallocate on something already freed: ignore | error
+copy = "deep"               # byVal / copy(): deep (default) | shallow
+
+[safety]
+mode = "safe"               # safe (default) | unsafe (the whole project) - today "normal" /
+                            # "strict" / "unsafe" (unsafe = arithmetic wraps) - renamed
+
+[numbers]
+OverflowWrap = false        # false (default): 255 + 1 in a byte is an OverflowError; true: 0
 
 [diagnostics]
 leak_check = "dev"          # dev (report while developing) | log (log in the app) | off
@@ -416,16 +455,23 @@ leak_check = "dev"          # dev (report while developing) | log (log in the ap
 
 ## 11. Questions still open
 
-1. **`[safety] mode = "unsafe"`** - a project setting from Task 27.2b where whole-number `+ - *`
-   wraps around instead of raising an OverflowError. Now that `unsafe` means memory /
-   assembly / devices, the same word for arithmetic is confusing. Rename it (e.g. `[safety]
-   mode = "wrapping"`, or `[numbers] overflow = "wrap"`)? `unchecked { }` (the same, for one
-   block) can stay - its name already says "arithmetic not checked"
-2. **Deep copies of things that must not be copied** (a file, a connection, a lock): an error
-   when such an object is copied `byVal`, and how does a class say it is one (e.g. `class
-   Connection nocopy`)?
-3. **The `[memory] copy` setting:** deep (your rule) as the default, shallow as the option for
-   developers used to Java / C#?
+1. **`nocopy` / `noshare` - checking the reading in section 4b.** Two notes read differently:
+   the `noshare Database` example says "a compile error if you try to use byVal to copy the
+   object", and "copy / copyDeep error out if they try to share a nocopy variable". Section 4b
+   takes the summary as the rule: `nocopy` = the value is never copied, the copy shares it;
+   `noshare` = never shared, the copy always gets its own. So copying the whole car is fine
+   either way - only copying a `nocopy` field's value, or sharing a `noshare` field's object,
+   is an error. Right?
+2. **"Can't be used together":** on the same field (recommended - they contradict), or not in
+   the same class at all?
+3. **The setting's name:** `OverflowWrap` as written, in the `[numbers]` section? (The other
+   settings are written in lower case with `_` - `overflow_wrap` - except
+   `fusionSettingFormat`)
+4. **`[safety] mode = "strict"`** (designed, not built: forced null checks, ...): keep it as a
+   third value, or drop it?
+5. **Existing projects:** a `fusion.toml` with `mode = "normal"` or `mode = "unsafe"` (wrapping)
+   - accept `normal` as `safe`, and give a clear error for the old `unsafe` meaning ("now
+   `OverflowWrap = true`")?
 
 ---
 
@@ -444,5 +490,8 @@ leak_check = "dev"          # dev (report while developing) | log (log in the ap
 | 2026-10-28 | Lists, arrays, maps are references: `b = a` shares, `b = byVal a` copies; a struct assigned is copied (byVal), its lists too. `readonly` / `byRef` / `byVal`: parameters only for now |
 | 2026-10-28 | `byVal` on an object copies everything (deep - the engine inside the car too); `byRef` shares |
 | 2026-10-28 | `unsafe`: only memory, assembly and devices - precise control (raw performance, security) |
+| 2026-10-28 | Overflow: `OverflowWrap` (default false - 255 + 1 in a byte is an error; true - 0). `[safety] mode = "safe"` (default) / `"unsafe"` (the whole project) |
+| 2026-10-28 | `[memory] copy = "deep"` (default) / `"shallow"`; `copyDeep(x)` always deep, `copy(x)` follows the setting |
+| 2026-10-28 | Field modifiers `nocopy` (never copied - the copy shares it; e.g. a database connection) and `noshare` (never shared - always copied); not together; used sparingly; file locks, connections, locks, threads `nocopy` by default later |
 | 2026-10-28 | Leaks: warned in development; the leak check can be off or built into the app; a published app logs, never shows debug messages to the customer |
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |

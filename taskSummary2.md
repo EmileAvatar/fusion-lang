@@ -403,4 +403,7 @@ Kept under Task 22 until the renumbering is approved.
 - More answers: freed objects marked (compile error in the same block, run-time elsewhere, `?.`
   treats freed as null); lists references, `byVal` copies; deep copy for byVal on objects
   (other languages compared - Object_Lifetime.md 4b)
-- **Next Action:** the user answers Object_Lifetime.md section 11 (3 questions); then Task 32
+- More answers: OverflowWrap (default false) replaces [safety] mode = "unsafe" (arithmetic);
+  [safety] mode = "safe" / "unsafe"; [memory] copy deep; copy() / copyDeep(); nocopy / noshare
+  field modifiers
+- **Next Action:** the user answers Object_Lifetime.md section 11 (5 questions); then Task 32
