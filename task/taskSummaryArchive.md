@@ -5609,3 +5609,36 @@ building it, starting with arrays.
 **Explicitly NOT scheduled now:** this task is future work. Task 12.7 is now complete, so
 its blocker is cleared, but no implementation, grammar design, or parser work should begin
 until the user re-opens this task for scoping approval - same convention as Tasks 12/13.
+
+---
+
+## TASK 30 (reopened 2026-10-28): null enums, `case null`, `fall match` - COMPLETE (2026-10-28)
+
+User (2026-10-28): build null enums now; a `match` can have one `case null`; add `fall match`
+(falls through until `break`). Today: an unset enum is its first value; `match` never falls
+through (each case runs only its own code; `break` / `continue` act on the loop around it).
+
+- **30.11 Null enums.** In C an enum value is a struct with a `tag`; null is a tag no value
+  uses (-1). An unset enum variable, struct field or module variable starts as null.
+  `s = null`; `s == null`, `!=`, `===`, `is null`, `s?.null`, `!s?.null`; `s == Status.OK` is
+  just false when s is null. Using a null enum - `toString`, `toInt`, its data through
+  `match` - is a **NullError** (new built-in error type, catchable, file:line). The 25.5 rule
+  "the first value can't hold the enum" goes. Not now: `s?.toString() ?? x` (the general
+  `?.` guard, 30.2 - Task 32)
+- **30.12 `case null`.** At most one per `match`, on any type (see answer 1)
+- **30.13 `fall match x`.** Like C's `switch`: the matching case runs, then the following
+  cases' code, until `break` (or the end). `else` falls through like any case. Same rules
+  as `match` otherwise (every value covered, or an `else`)
+- Docs: spec "Enumerations" / "match", Nullable_Values.md (enum row, decisions log),
+  SYNTAX_REFERENCE examples, grammar (`fall match`, `case null`)
+
+**Answers (user, 2026-10-28) - approved:**
+1. No NullError in a `match`: comparing null with a case value (`case "Monday"`) is simply
+   false, and the match carries on normally - null goes to `case null` if there is one,
+   else to `else`, else nothing runs. `case null` is allowed on any type, strings too: an
+   external library or module may send a null, and strings may be nullable by a setting
+2. Printing a null enum prints the text `null`
+3. `break` belongs to `match`: inside any `match` (and `fall match`) `break` ends the match;
+   `continue` still acts on the loop around it ("loops use break and continue, match only
+   uses break" - the familiar `switch` meaning). This changes today's `match`, where `break`
+   leaves the loop (one test, test_enums.py, relies on it; no example)

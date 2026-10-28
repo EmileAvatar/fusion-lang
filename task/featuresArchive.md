@@ -267,3 +267,18 @@ From Later / advanced (after MVP):
 		`count === true` is false, `bool b = count` is always an error
 		(tests/test_number_conditions.py)
 	[DONE] 30.6 Docs & examples - shipped with each part: SYNTAX_REFERENCE (syntax_length, syntax_conditional, syntax_number_conditions), spec, Nullable_Values.md, Arrays.md
+
+From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
+	[DONE] 30.11 Enums can be null (tests/test_null_enums.py) - user, 2026-10-27/28: an enum is treated as a reference type
+		like a class - `Status s` with no value is null, not the first value (today: the first
+		value, Task 25). `s = null`, `== null` / `!= null` / `=== null` / `is null`,
+		`s?.null` / `!s?.null`; using a null enum (toString, toInt, its data) is a NullError
+		(a new built-in error type); the "first value can't hold the enum" rule (25.5) goes.
+		`s?.toString() ?? x` waits for 30.2
+	[DONE] 30.12 `case null` in a `match` (tests/test_case_null.py) - user, 2026-10-28: at most one, on any type (a library may
+		send a null). A null never equals a case value: it goes to `case null`, else to
+		`else`, else nothing runs - never a NullError. `break` inside any `match` ends the
+		match; `continue` acts on the loop (it used to leave the loop)
+	[DONE] 30.13 `fall match` (tests/test_fall_match.py) - user, 2026-10-28: falls through - after the matching case, the next
+		cases' code runs too, until a `break` (as C / Java / C# `switch` do). A plain `match`
+		never falls through
