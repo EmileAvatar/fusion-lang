@@ -400,4 +400,7 @@ Kept under Task 22 until the renumbering is approved.
   code), all three at once; `unsafe` functions / blocks; free (unsafe) vs deallocate (safe), use
   after either a compile error; lists / arrays / maps become references (never null);
   readonly / byRef / byVal; constructor forms, private / static constructors, factories
-- **Next Action:** the user answers Object_Lifetime.md section 11 (5 questions); then Task 32
+- More answers: freed objects marked (compile error in the same block, run-time elsewhere, `?.`
+  treats freed as null); lists references, `byVal` copies; deep copy for byVal on objects
+  (other languages compared - Object_Lifetime.md 4b)
+- **Next Action:** the user answers Object_Lifetime.md section 11 (3 questions); then Task 32

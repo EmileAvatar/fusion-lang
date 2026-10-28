@@ -64,8 +64,9 @@ void function render()
   control of a device (combined with HIDL where needed)
 - `free` / `deallocate` belong in `unsafe` code or a MANUAL project: used anywhere else, the
   compiler **warns**
-- (Fusion already has `unchecked { }` - arithmetic that wraps, Task 27.2d - and `[safety] mode
-  = "unsafe"` for the whole project; question 1 below)
+- `unsafe` is only for memory, assembly and devices - where precise control is absolutely
+  needed (raw performance, security). It is separate from `unchecked { }` and `[safety] mode`
+  (whole-number arithmetic that wraps - question 1)
 
 #### The two ways to free by hand
 
@@ -75,7 +76,12 @@ void function render()
 | `free(x)` | **unsafe** - raw | frees the memory at once, whatever holds it; freeing twice can crash or corrupt memory | hardware, embedded - exact control over when memory goes |
 
 - **After `free(x)` or `deallocate(x)`, using `x` is a compile error - always.** The memory is
-  gone and can't be used again
+  gone and can't be used again. `x` may be given a new object afterwards (as after `x = null`)
+- **Other variables holding the same object** (`Car b = a; free(a)`): the object is marked
+  freed. The compiler looks for every place `a` was given to, across the project; using `b` in
+  the same block after the free is a **compile error**; anywhere else it is a **run-time error**
+  when it happens (the mark is checked). `b?.name` is the guard here: a freed object counts as
+  null, so it runs on without an error (user, 2026-10-28)
 - **`x = null` is different:** the variable can be used again - for a new object
 - **`double_free`** - what `deallocate` does when it is given something already freed (for
   example, freed in another function): `"ignore"` (default - nothing happens) or `"error"`
@@ -101,6 +107,12 @@ void function render()
 | `readonly` | the function may read but never change it - any change is a compile error | - |
 | `byRef` | the function may change the caller's variable or object | reference types (classes, arrays, lists, maps) - implicit |
 | `byVal` | the function gets a copy; the caller's value never changes | value types (int, string, decimal, structs) - implicit |
+
+- `byVal` and `byRef` also work where a value is assigned: `List<int> b = byVal a` makes a copy;
+  `List<int> b = a` shares the list (it is a reference)
+- A struct assigned to another is copied (`byVal`, implicitly) - so a List inside it is copied
+  too
+- `readonly`, `byRef`, `byVal` on parameters only for now (user, 2026-10-28)
 
 ```fusion
 public void function addMoney(readonly BankAccount account, money amount)
@@ -142,6 +154,54 @@ Car mine = Car.HONDA
 - Also a **private static constructor** - code the class runs once, to set up its statics
 
 ---
+
+## 4b. Copying an object that holds objects (`byVal` and `byRef`)
+
+A `Car` holds an `Engine`. What does a copy of the car hold?
+
+```fusion
+Car carA = Car("Honda")                  // carA holds Engine "V8"
+Car carB = byRef carA                    // the same car (the default for objects)
+carB.getEngine().kind = "V6"             // carA's engine is now V6 too - one car, one engine
+Car carC = byVal carA                    // a copy: a new car AND a new engine
+carC.getEngine().kind = "V12"            // carA's engine stays V6
+```
+
+**Decided (user, 2026-10-28):** `byVal` copies **everything** - the car and the engine inside it
+(a *deep copy*). `byRef` shares - changing the engine through `carB` changes the one engine.
+
+**How other languages do it** - most copy only the top object by default (a *shallow copy*:
+the copy shares the engine) and make a deep copy something you ask for:
+
+| Language | Assigning an object | A copy | The objects inside a copy |
+|---|---|---|---|
+| Java | shares (a reference) | `clone()` | shared (shallow) unless the class writes its own deep clone |
+| C# | shares | `MemberwiseClone()`, a record's `with` | shared (shallow) |
+| C++ | copies (value semantics) | the copy constructor | values copied; pointers shared - unless you write the copy constructor |
+| Rust | moves (the old name can't be used) | `.clone()` | each field cloned - deep for owned fields, shared for `Rc` |
+| Swift | classes share, structs copy | (structs) | a class held by a struct is shared |
+| Go | structs copy | assignment | pointers, slices, maps inside are shared |
+| Python | shares | `copy.copy` / `copy.deepcopy` | shallow / deep - you choose |
+| JavaScript | shares | `{...obj}` / `structuredClone(obj)` | shallow / deep - you choose |
+
+**What a deep copy has to get right** (why most languages don't make it the default):
+- **Cycles:** a car whose engine points back to the car - a naive deep copy never ends. Fix: copy
+  each object once, and keep the shape (as Python's `deepcopy` does)
+- **Shared parts:** two wheels sharing one hub - the copy should share one copied hub too
+- **Things that must not be copied:** an open file, a database connection, a lock, a thread -
+  copying them is wrong or impossible. Such a class needs a way to say so (an error when copied
+  by value, or it is shared instead)
+- **Cost:** copying a big object tree takes time and memory - it should be visible in the code
+  (`byVal` written out, never by accident)
+
+**Proposed setting** (it decides between Fusion's deep default and the shallow copy other
+languages use):
+
+```toml
+[memory]
+copy = "deep"        # byVal on an object: deep (default - everything copied, user 2026-10-28)
+                     # | shallow (only the object itself; what it holds is shared - Java, C#)
+```
 
 ## 5. The rule for OWNERSHIP (the counting)
 
@@ -356,22 +416,16 @@ leak_check = "dev"          # dev (report while developing) | log (log in the ap
 
 ## 11. Questions still open
 
-1. **`unsafe` and the existing words:** `unchecked { }` (arithmetic wraps, Task 27.2d) and
-   `[safety] mode = "unsafe"` (whole project: arithmetic wraps) already exist. Keep all three
-   (`unsafe` for memory / assembly / devices, `unchecked` for arithmetic), or let an `unsafe`
-   block also wrap arithmetic?
-2. **After a raw `free(x)`, other variables holding the same object** (`Car b = a; free(a);
-   b.name`) - the compiler can't always see them. A run-time check in development builds
-   (each freed object marked; a use is an error naming the place), and nothing in a release
-   build (raw speed)?
-3. **A freed variable given a new object** - `deallocate(honda)` then `honda = Car("New")`: is
-   that allowed (like after `honda = null`), with only reading it before a new value an
-   error?
-4. **Lists as references** changes how they work today: `List<int> b = a` then `b.add(1)` -
-   `a` changes too (Java, C#, Python). A struct holding a List: when the struct is copied,
-   does the copy share the list or get its own (`byVal`)?
-5. **`readonly` beyond parameters:** also `readonly` fields and variables (`readonly List<int>
-   days = [...]`), or parameters only?
+1. **`[safety] mode = "unsafe"`** - a project setting from Task 27.2b where whole-number `+ - *`
+   wraps around instead of raising an OverflowError. Now that `unsafe` means memory /
+   assembly / devices, the same word for arithmetic is confusing. Rename it (e.g. `[safety]
+   mode = "wrapping"`, or `[numbers] overflow = "wrap"`)? `unchecked { }` (the same, for one
+   block) can stay - its name already says "arithmetic not checked"
+2. **Deep copies of things that must not be copied** (a file, a connection, a lock): an error
+   when such an object is copied `byVal`, and how does a class say it is one (e.g. `class
+   Connection nocopy`)?
+3. **The `[memory] copy` setting:** deep (your rule) as the default, shallow as the option for
+   developers used to Java / C#?
 
 ---
 
@@ -386,5 +440,9 @@ leak_check = "dev"          # dev (report while developing) | log (log in the ap
 | 2026-10-28 | Passing: value types (int, decimal, string, structs) by value; class objects, arrays, lists, maps by reference (lists become references, still never null). Modifiers `readonly` (no change - compile error), `byRef`, `byVal` |
 | 2026-10-28 | Constructors: `constructor(...)` the default, `Car(...)` quick typing; `new` optional; private constructors, a private static constructor, static const objects made only inside the class (a factory) |
 | 2026-10-28 | Copying a collection that holds objects: the copy refers to the same objects |
+| 2026-10-28 | After free / deallocate: the object is marked freed; the compiler finds where it was given to - a use in the same block is a compile error, elsewhere a run-time error; `?.` treats a freed object as null (no error). A freed variable may get a new object |
+| 2026-10-28 | Lists, arrays, maps are references: `b = a` shares, `b = byVal a` copies; a struct assigned is copied (byVal), its lists too. `readonly` / `byRef` / `byVal`: parameters only for now |
+| 2026-10-28 | `byVal` on an object copies everything (deep - the engine inside the car too); `byRef` shares |
+| 2026-10-28 | `unsafe`: only memory, assembly and devices - precise control (raw performance, security) |
 | 2026-10-28 | Leaks: warned in development; the leak check can be off or built into the app; a published app logs, never shows debug messages to the customer |
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |
