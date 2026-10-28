@@ -282,3 +282,15 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 	[DONE] 30.13 `fall match` (tests/test_fall_match.py) - user, 2026-10-28: falls through - after the matching case, the next
 		cases' code runs too, until a `break` (as C / Java / C# `switch` do). A plain `match`
 		never falls through
+
+#### 31 Config file in any format: fusion.toml / .yaml / .json / .ini (was 20) [DONE]
+	fusion.toml stays the default; the others are alternatives (a company that uses YAML,
+	INI for legacy hardware / software). User decisions 2026-10-28: taskSummary2.md
+	[DONE] 31.1 One reader per format, one set of checks (PyYAML for YAML while the compiler is
+		Python; INI true / false only) - src/config/settings_files.py
+	[DONE] 31.2 Finding the file: TOML first, then YAML, JSON, INI; none - a fusion.toml is
+		written from the master template files/fusionSettings.xml (--no-new-config /
+		FUSION_NO_NEW_CONFIG=1 turn it off). `[project] fusionSettingFormat` names the
+		format; changing it rewrites the file and keeps the old one as .bak
+	[DONE] 31.3 Tests (tests/test_settings_formats.py)
+	[DONE] 31.4 Docs: spec "Project Configuration", SYNTAX_REFERENCE, CLAUDE.md, requirements

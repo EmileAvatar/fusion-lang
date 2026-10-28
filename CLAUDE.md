@@ -74,6 +74,7 @@ GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
 ```text
 python main.py program.fusion        # compile -> program.c and program.exe (fusion.toml optional)
 python main.py main.fusion --interface [module]   # public interface of the modules it imports
+python main.py program.fusion --no-new-config     # don't write a fusion.toml when there is none
 python check.py                      # all checks, short summary (about 25 s)
 python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build
@@ -121,6 +122,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Commands we repeat / could automate | `task/automation.md` |
 | Full language design | `files/fusion-language-spec.md` (grep it) |
 | Grammar | `files/fusion.ebnf` |
+| Every project setting, its values and default (master template, read only) | `files/fusionSettings.xml` |
 | Null design: `?.`, `??`, number conditions, truth tables | `Nullable_Values.md` |
 | Single values, arrays, lists, maps: what each does, when (not) to use it | `Arrays.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |

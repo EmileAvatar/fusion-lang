@@ -61,8 +61,10 @@ DEMO_TASKS = {'arrays_demo': '09', 'const_demo': '08'}
 def run(cmd, **kwargs):
     # Empty input: a program that reads input (readLine, Task 18.5.4) sees its end at once
     # instead of waiting for the console
+    # FUSION_NO_NEW_CONFIG: compiling never writes a fusion.toml into the repo (Task 31)
+    env = dict(os.environ, FUSION_NO_NEW_CONFIG='1')
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, encoding='utf-8',
-                          errors='replace', stdin=subprocess.DEVNULL, **kwargs)
+                          errors='replace', stdin=subprocess.DEVNULL, env=env, **kwargs)
 
 
 # ---------------------------------------------------------------- individual checks

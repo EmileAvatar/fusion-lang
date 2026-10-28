@@ -867,7 +867,15 @@ void function main()
 
 #### Project settings - `fusion.toml` (optional, next to the source file)
 
+`fusion.toml` is the default; `fusion.yaml`, `fusion.json` or `fusion.ini` work too (Task 31).
+With no settings file, the compiler writes a `fusion.toml` with every setting at its default.
+Every setting and its values: `files/fusionSettings.xml`.
+
 ```toml
+[project]
+fusionSettingFormat = "TOML"     # TOML / YAML / JSON / INI - change it and the next compile
+                                 # rewrites the file in that format (the old one kept as .bak)
+
 [indentation]
 tab_width = 4
 allow_mixed = true

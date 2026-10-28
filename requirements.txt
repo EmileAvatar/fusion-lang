@@ -1,5 +1,8 @@
 # Fusion Compiler Dependencies
 
+# Reading a fusion.yaml settings file (Task 31) - only YAML projects need it
+pyyaml>=6.0
+
 # Testing
 pytest>=7.4.0
 pytest-cov>=4.1.0

@@ -24,6 +24,14 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 31: The settings file in four formats - COMPLETE (2026-10-28)
+
+fusion.toml (default), fusion.yaml / .json / .ini; the master template files/fusionSettings.xml;
+a new fusion.toml when there is none; `[project] fusionSettingFormat` changes the format (.bak kept).
+31.5 (enforce [safety] / [backend]) and 31.6 (config.fusion) postponed. Plan: task/taskSummaryArchive.md.
+
+---
+
 ## TASK 30 (reopened 2026-10-28) - COMPLETE
 
 Null enums (30.11), `case null` and `break` ending a match (30.12), `fall match` (30.13).
@@ -249,5 +257,10 @@ Kept under Task 22 until the renumbering is approved.
 - 30.12 done: case null (any type, one per match); break ends a match (end label, frees,
   finally); continue acts on the loop
 - 30.13 done: fall match (sequential ifs on the chosen case number; break to the end label)
-- **Next Action:** the user picks the next step - Task 31 (config in any format) is next in
-  order; Task 45 (growing arrays) and Task 32 (classes) carry the postponed parts
+- Task 31 planned (user: fusion.toml stays the default; YAML / JSON / INI are alternatives) -
+  3 questions
+- Task 31 answered (PyYAML for now; INI true / false only; a format setting, convert and
+  delete, TOML > YAML > JSON > INI, create fusion.toml if none) - 3 follow-up questions
+- Follow-ups answered (keep a .bak; create from an XML master template, config.fusion later;
+  `[project] fusionSettingFormat`); 31.1-31.4 done
+- **Next Action:** the user picks the next step (31.5 waits for strict mode / a 2nd backend)

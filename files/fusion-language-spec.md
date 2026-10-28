@@ -4259,7 +4259,30 @@ configurability (see "Language Philosophy"), but the compiler previously hardcod
 indentation settings directly in the lexer with no way to override them - a real gap between
 the concept and the implementation. This section is the config-format ADR that closes it.
 
-**Format decision:** an optional `fusion.toml` file, using TOML - chosen over YAML (would
+**Four formats (Task 31, built - user decisions 2026-10-28):** `fusion.toml` is the default;
+`fusion.yaml` (or `.yml`), `fusion.json` and `fusion.ini` are alternatives - for a company
+that standardises on YAML, or INI for legacy hardware and software. All four give the same
+settings and are checked by the same rules.
+* **The master template:** `files/fusionSettings.xml` lists every setting, the values it can
+  have, its default and what it does. It is read only; a project's settings file carries its
+  choices, based on it
+* **Finding the file:** next to the source file, then in the current folder; in a folder the
+  first of TOML, YAML, JSON, INI is used. **No settings file at all:** the compiler writes a
+  new `fusion.toml` from the template - every setting at its default, each with a comment
+  (`--no-new-config`, or `FUSION_NO_NEW_CONFIG=1`, turns that off for build scripts)
+* **Changing format:** `[project] fusionSettingFormat = "TOML"` (TOML / YAML / JSON / INI).
+  Set it to another format and the next compile writes the settings in that format (with
+  the template's comments) and keeps the old file as a backup (`fusion.toml.bak`) - only one
+  settings file is active. Your own comments live on in the backup
+* **INI** holds only text: `true` / `false` (nothing else) become true / false, whole numbers
+  become numbers, `"quoted"` or bare text stays text. **YAML** reads a bare `no` / `off` as
+  false (the "Norway problem") - quote text values; a wrong type is reported
+* **Reading:** Python's own readers for TOML, JSON and INI, PyYAML for YAML (`safe_load` -
+  never runs code from the file; needed only by a YAML project). Fusion's own readers - also
+  for XML and CSV, and recovering from small mistakes - come with its data-formats module
+  (FEATURES.md 43.2); a dedicated `config.fusion` program will create settings files
+
+**Format decision (2026-09-13, extended by Task 31 above):** an optional `fusion.toml` file, using TOML - chosen over YAML (would
 need a new dependency; the project has none today) and a custom Fusion-native format (would
 mean writing and maintaining a whole new parser for no real benefit). Python 3.11's stdlib
 `tomllib` parses it with zero added dependency.

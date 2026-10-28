@@ -43,14 +43,20 @@ def compile_file(source_path: str) -> int:
         print(f"Error reading file: {e}", file=sys.stderr)
         return 1
 
-    # Project configuration (Task 12.12) - optional fusion.toml next to the source file
-    # or in the current directory; falls back to the compiler's previous hardcoded
-    # defaults if absent, so existing single-file projects are unaffected.
+    # Project settings (Tasks 12.12, 31) - fusion.toml (or .yaml / .json / .ini) next to the
+    # source file or in the current directory. None anywhere: a new fusion.toml is written,
+    # every setting at its default - unless --no-new-config or FUSION_NO_NEW_CONFIG=1 (build
+    # scripts and the test runs, which must not write files)
+    create = '--no-new-config' not in sys.argv[2:] and os.environ.get('FUSION_NO_NEW_CONFIG') != '1'
     try:
-        project_config = load_project_config(source_path)
+        project_config = load_project_config(source_path, create_missing=create)
     except ProjectConfigError as e:
         print(f"Project configuration error: {e}", file=sys.stderr)
         return 1
+    for message in project_config.messages:
+        print(f"  [OK] Settings: {message}", file=sys.stderr)
+    if project_config.source_path:
+        print(f"  [OK] Settings from {os.path.basename(project_config.source_path)}", file=sys.stderr)
 
     # Lexical analysis
     print(f"[1/3] Lexical analysis...", file=sys.stderr)
@@ -208,6 +214,8 @@ def main():
         print("Usage: fusion <source.fusion>", file=sys.stderr)
         print("       fusion <source.fusion> --interface [module]   "
               "(the public interface of the modules it imports)", file=sys.stderr)
+        print("       --no-new-config   don't write a fusion.toml when the project has no "
+              "settings file", file=sys.stderr)
         return 1
 
     source_path = sys.argv[1]

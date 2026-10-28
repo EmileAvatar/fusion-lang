@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Fusion project settings - the MASTER TEMPLATE (Task 31, user decision 2026-10-28).
+
+  READ ONLY. Every setting a project can make, the values it can have, its default and what
+  it does. A project's own settings file (fusion.toml by default; fusion.yaml, fusion.json or
+  fusion.ini instead) carries that project's choices, based on this template. The compiler
+  writes a new fusion.toml from it (every setting at its default, each with its comment)
+  when a project has no settings file.
+
+  Types:
+    bool        true or false
+    int         a whole number, at least min
+    choice      one of the <value>s; a value marked reserved is named for the future and is
+                an error today
+    int-or-max  "max" (no limit) or a whole number of at least min
+
+  Adding a setting: add it here and to the compiler (src/config/project_config.py) - the tests
+  check that the two agree.
+-->
+<fusionSettings version="1">
+
+  <section name="project" description="The settings file itself">
+    <setting name="fusionSettingFormat" type="choice" default="TOML" task="31">
+      <description>The format of this settings file. Change it and the next compile writes the settings in the new format and keeps the old file as a backup (.bak) - only one settings file is active</description>
+      <value>TOML</value>
+      <value>YAML</value>
+      <value>JSON</value>
+      <value>INI</value>
+    </setting>
+  </section>
+
+  <section name="indentation" description="How the source is indented">
+    <setting name="tab_width" type="int" min="1" default="4" task="12.12">
+      <description>How many spaces a tab counts as</description>
+    </setting>
+    <setting name="allow_mixed" type="bool" default="true" task="12.12">
+      <description>Allow tabs and spaces mixed in one file's indentation</description>
+    </setting>
+  </section>
+
+  <section name="source" description="What the source text may contain">
+    <setting name="allow_unicode_identifiers" type="bool" default="false" task="19.6">
+      <description>Allow letters beyond ASCII in names (a security risk: look-alike letters)</description>
+    </setting>
+  </section>
+
+  <section name="structs" description="Struct rules">
+    <setting name="max_nesting_depth" type="int" min="1" default="3" task="18.2.3">
+      <description>How deeply structs may hold structs (1 = no struct inside another)</description>
+    </setting>
+    <setting name="warn_nesting_depth" type="int" min="0" default="3" task="18.2.3">
+      <description>Warn from this depth (0 = never warn)</description>
+    </setting>
+    <setting name="string_storage" type="choice" default="owned" task="18.2">
+      <description>How a string field holds its text</description>
+      <value>owned</value>
+      <value reserved="true">pooled</value>
+    </setting>
+    <setting name="string_mutable" type="bool" default="true" task="18.2">
+      <description>A string field can be changed after the struct is made</description>
+    </setting>
+    <setting name="string_warn_length" type="int" min="0" default="64" task="18.2">
+      <description>Warn when a string field's text is longer than this (0 = never warn)</description>
+    </setting>
+  </section>
+
+  <section name="strings" description="Strings">
+    <setting name="max_length" type="int-or-max" min="1" default="max" task="18.3.4b">
+      <description>The longest a string may be, in characters - longer is an error, never cut</description>
+    </setting>
+    <setting name="encoding" type="choice" default="utf-8" task="18.3.2b">
+      <description>How text is stored</description>
+      <value>utf-8</value>
+      <value>ascii</value>
+      <value reserved="true">utf-16</value>
+      <value reserved="true">utf-32</value>
+    </setting>
+  </section>
+
+  <section name="stdlib" description="The standard library">
+    <setting name="layer" type="choice" default="std" task="18.5.6">
+      <description>std: everything; alloc: no operating system (no print, files); core: no memory allocation</description>
+      <value>std</value>
+      <value>alloc</value>
+      <value>core</value>
+    </setting>
+  </section>
+
+  <section name="errors" description="Ways of handling errors">
+    <setting name="returns" type="bool" default="true" task="26.5">
+      <description>Error returns: T, Error function and capturing T x, err = f()</description>
+    </setting>
+    <setting name="exceptions" type="bool" default="true" task="26.5">
+      <description>try / catch / finally / throw</description>
+    </setting>
+  </section>
+
+  <section name="numbers" description="Numbers">
+    <setting name="auto_widening" type="bool" default="false" task="27.2f">
+      <description>An int used as a float widens automatically (with a warning); false: it must fit exactly</description>
+    </setting>
+  </section>
+
+  <section name="modules" description="Modules">
+    <setting name="variables" type="bool" default="true" task="44.1">
+      <description>Module-level variables (module constants are always allowed)</description>
+    </setting>
+  </section>
+
+  <section name="conditions" description="Conditions in if and while">
+    <setting name="numbers" type="choice" default="positive" task="30.9">
+      <description>A number as a condition - positive: above zero is true; nonzero: not zero is true (C, Python); off: a condition must be a bool</description>
+      <value>positive</value>
+      <value>nonzero</value>
+      <value>off</value>
+    </setting>
+  </section>
+
+  <section name="safety" description="Safety">
+    <setting name="mode" type="choice" default="normal" task="27.2b">
+      <description>normal; strict; unsafe (whole-number arithmetic wraps around)</description>
+      <value>normal</value>
+      <value>strict</value>
+      <value>unsafe</value>
+    </setting>
+    <setting name="max_call_depth" type="int-or-max" min="1" default="max" task="27.2c">
+      <description>How deep calls may go; max: endless recursion is caught by stack use alone</description>
+    </setting>
+  </section>
+
+  <section name="backend" description="What the compiler produces">
+    <setting name="target" type="choice" default="c" task="40">
+      <description>c: C compiled by GCC</description>
+      <value>c</value>
+      <value reserved="true">llvm</value>
+    </setting>
+  </section>
+
+</fusionSettings>

@@ -26,7 +26,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional
 
-import tomllib
+from .settings_files import (SettingsFileError, convert, create_default_file, find_in_folder,
+                             format_of, read_settings, FORMAT_FILES)
 
 
 CONFIG_FILENAME = "fusion.toml"
@@ -232,6 +233,8 @@ class ProjectConfig:
     max_call_depth: Optional[int] = None   # [safety] max_call_depth - None: "max" (Task 27.2c)
     backend: str = DEFAULT_BACKEND
     source_path: Optional[str] = None
+    settings_format: str = "TOML"   # [project] fusionSettingFormat (Task 31)
+    messages: list = field(default_factory=list)   # created / converted - main.py prints them
 
 
 def find_config_file(source_path: str) -> Optional[str]:
@@ -243,16 +246,10 @@ def find_config_file(source_path: str) -> Optional[str]:
     be solving a problem that doesn't exist yet. Revisit if/when Fusion gains a real
     multi-file project structure.
     """
+    # Task 31: fusion.toml, fusion.yaml / .yml, fusion.json or fusion.ini - in each folder the
+    # first of TOML, YAML, JSON, INI wins
     source_dir = os.path.dirname(os.path.abspath(source_path))
-    candidate = os.path.join(source_dir, CONFIG_FILENAME)
-    if os.path.isfile(candidate):
-        return candidate
-
-    cwd_candidate = os.path.join(os.getcwd(), CONFIG_FILENAME)
-    if os.path.isfile(cwd_candidate):
-        return cwd_candidate
-
-    return None
+    return find_in_folder(source_dir) or find_in_folder(os.getcwd())
 
 
 def _require_table(data: dict, key: str, config_path: str) -> dict:
@@ -439,7 +436,26 @@ def _load_errors_section(data: dict, config_path: str) -> ErrorsConfig:
     return errors
 
 
-def load_project_config(source_path: str) -> ProjectConfig:
+def _load_project_section(data: dict, config_path: str) -> Optional[str]:
+    """Parse and validate the [project] section (Task 31): fusionSettingFormat, the format the
+    settings file should have - None when not set (the file keeps its format)."""
+    section = _require_table(data, "project", config_path)
+    for key in section:
+        if key != "fusionSettingFormat":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting project.{key} (known: ['fusionSettingFormat'])")
+    if "fusionSettingFormat" not in section:
+        return None
+    value = section["fusionSettingFormat"]
+    fmt = value.upper() if isinstance(value, str) else value
+    if fmt not in FORMAT_FILES:
+        raise ProjectConfigError(
+            f"{config_path}: project.fusionSettingFormat must be one of {list(FORMAT_FILES)}, "
+            f"got {value!r}")
+    return fmt
+
+
+def load_project_config(source_path: str, create_missing: bool = False) -> ProjectConfig:
     """Load project configuration for compiling `source_path`.
 
     Returns an all-defaults ProjectConfig if no fusion.toml is found next to the source
@@ -448,16 +464,18 @@ def load_project_config(source_path: str) -> ProjectConfig:
     value.
     """
     config_path = find_config_file(source_path)
-    if config_path is None:
-        return ProjectConfig()
-
+    messages = []
     try:
-        with open(config_path, "rb") as f:
-            data = tomllib.load(f)
-    except tomllib.TOMLDecodeError as e:
-        raise ProjectConfigError(f"Invalid TOML in {config_path}: {e}") from e
-    except OSError as e:
-        raise ProjectConfigError(f"Could not read {config_path}: {e}") from e
+        if config_path is None:
+            if not create_missing:
+                return ProjectConfig()
+            # No settings file anywhere: a new fusion.toml from the master template (Task 31)
+            config_path = create_default_file(os.path.dirname(os.path.abspath(source_path)))
+            messages.append(f"created {os.path.basename(config_path)} - every setting at its default")
+        data = read_settings(config_path)
+    except SettingsFileError as e:
+        raise ProjectConfigError(str(e)) from e
+    wanted_format = _load_project_section(data, config_path)
 
     indentation = IndentationConfig()
     indent_section = _require_table(data, "indentation", config_path)
@@ -533,7 +551,7 @@ def load_project_config(source_path: str) -> ProjectConfig:
             )
         backend = target
 
-    return ProjectConfig(
+    config = ProjectConfig(
         indentation=indentation,
         source=source,
         structs=structs,
@@ -547,4 +565,18 @@ def load_project_config(source_path: str) -> ProjectConfig:
         max_call_depth=max_call_depth,
         backend=backend,
         source_path=config_path,
+        settings_format=wanted_format or format_of(config_path),
+        messages=messages,
     )
+    if wanted_format is not None and wanted_format != format_of(config_path):
+        # fusionSettingFormat names another format: write the settings in it, keep the old
+        # file as a backup - only one settings file is active (Task 31)
+        try:
+            new_path = convert(config_path, data, wanted_format)
+        except (SettingsFileError, OSError) as e:
+            raise ProjectConfigError(f"Could not change {config_path} to {wanted_format}: {e}") from e
+        messages.append(f"now in {os.path.basename(new_path)} (fusionSettingFormat = "
+                        f"{wanted_format}); the old file is kept as "
+                        f"{os.path.basename(config_path)}.bak")
+        config.source_path = new_path
+    return config

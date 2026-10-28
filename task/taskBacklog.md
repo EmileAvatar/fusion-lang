@@ -782,59 +782,6 @@ reasoning: `FutureFeaturesCaution.md` sections 3-5.
 **Scheduling:** 19.6 done (2026-10-07). 19.1-19.5 need Task 18.4 (`import`) first; 19.7 needs
 `fusionlib.AI`.
 
-## TASK 31 (was 20): Multi-Format Project Configuration
-
-**Goal:** Accept the project configuration file in any of four interchangeable formats -
-`fusion.toml`, `fusion.yaml`, `fusion.json`, or `fusion.ini` - so older applications and
-tooling that can only produce JSON or INI (or prefer YAML) can still configure a Fusion
-project.
-**Status:** Not Started (decided by the user 2026-10-07; detailed plan still needs approval
-before implementation, per Rule 1)
-**Priority:** MEDIUM - small and self-contained; not blocked by anything
-**Source:** User decision (2026-10-07). This extends Task 12.12, which chose TOML-only. TOML
-stays the documented default; the other three become equally valid alternatives.
-
-### Sub-tasks
-
-#### 20.1: One Loader Per Format, One Shared Schema
-- [ ] Each format gets a small loader that produces the **same in-memory dictionary**; the
-      existing validation in `src/config/project_config.py` then runs unchanged on it, so all
-      four formats are guaranteed to mean exactly the same thing
-- [ ] TOML (`tomllib`), JSON (`json`), and INI (`configparser`) are all in Python's standard
-      library - no new dependencies
-- [ ] **YAML needs a third-party package (PyYAML)** - the one format that adds a dependency.
-      Recommend loading it lazily, only when a project actually uses `fusion.yaml`, with a
-      clear error if PyYAML isn't installed - so projects that don't use YAML never need it
-- [ ] INI stores every value as text, so its loader must convert types (`"4"` -> 4,
-      `"true"` -> true) before validation. Nested sections map onto INI section names
-      (`[imports.policy]` works as a literal section name)
-- [ ] Known YAML pitfall to guard against: older YAML parsers read unquoted `no`/`yes`/`on`/
-      `off` as booleans (the "Norway problem" - the country code `NO` becomes `false`). The
-      shared validation step catches wrong types, but the docs should recommend quoting
-
-#### 20.2: Discovery and Ambiguity
-- [ ] Look for all four names (source directory first, then the current directory, as today)
-- [ ] **Recommend: if more than one config file is found in the same place, stop with an
-      error** ("found fusion.toml and fusion.json - keep only one") rather than silently
-      picking one by precedence - two configs that disagree is exactly the kind of silent
-      surprise Fusion avoids
-- [ ] Error messages name the specific file and format that failed
-
-#### 20.3: Tests
-- [ ] The same configuration written in all four formats produces an identical result
-- [ ] Format-specific edge cases: INI type conversion, YAML booleans, JSON syntax errors,
-      missing PyYAML
-- [ ] Ambiguity error when two config files exist
-
-#### 20.4: Documentation
-- [ ] Language spec "Project Configuration" section, CLAUDE.md Quick Syntax Reference,
-      README, and `examples/project_config_demo/` (show at least one non-TOML variant)
-
-**Success Criteria:** all four formats load identically through one shared validation path;
-TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
-
----
-
 ## TASK 26 (was 21): Error Handling (Go-style error returns + try/catch)
 
 **Goal:** Let Fusion programs report and handle errors - both ways the spec describes,

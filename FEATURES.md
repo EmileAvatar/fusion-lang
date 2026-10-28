@@ -89,11 +89,9 @@ are in `task/featuresArchive.md`.
 		Task 42 (user, 2026-10-27)
 	[ ] 45.6 Docs and examples: Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
 
-#### 31 Config file in any format: fusion.toml / .yaml / .json / .ini (was 20) [ ]
-	[ ] 31.1 One loader per format, one shared schema
-	[ ] 31.2 Discovery and ambiguity (two config files = error)
-	[ ] 31.3 Tests
-	[ ] 31.4 Docs
+#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED]
+	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
+		settings file from the master template (user, 2026-10-28)
 	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
 
 #### 32 Methods on structs, then classes and interfaces (user, 2026-10-11) [ ]
@@ -270,6 +268,10 @@ are in `task/featuresArchive.md`.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
 		zones; epochs; durations and time calculations (a Math sub-module, user). Duration
 		literals map to int milliseconds until then (42.16)
+	[ ] 43.2 Data formats module (user, 2026-10-28): read and write TOML, JSON, YAML, INI, XML,
+		CSV (and others) in Fusion itself - recovering from broken settings and minor syntax
+		mistakes where that is safe. Replaces the compiler's Python readers (Task 31) once
+		the compiler is written in Fusion - a big task, after Fusion modules exist
 
 ---
 
