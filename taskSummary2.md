@@ -426,5 +426,6 @@ Kept under Task 22 until the renumbering is approved.
   example recorded (Object_Lifetime.md - 1 question)
 - 32.0 done: camelCase settings read ignoring case and _; overflowWrap; safety safe / strict /
   unsafe (normal accepted, old unsafe warns); strict = warnings are errors
-- **Next Action:** the user answers Object_Lifetime.md section 11 (1 question) / approves Task
-  32; then 32.1
+- Cloneable rules + two truth tables (structs / classes / nocopy / Cloneable / noshare; fields
+  inside an enclosing object) - Object_Lifetime.md 4b; 6 questions
+- **Next Action:** go through the truth tables with the user (6 questions); then 32.1

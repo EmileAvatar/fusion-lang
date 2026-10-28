@@ -220,10 +220,9 @@ Car car = copy(honda)         // a deep copy - or shallow when [memory] copy = "
 
 ```fusion
 class Car
-    // a nocopy field AND a noshare field: a Car can be neither copied nor shared -
-    // copying it or sharing it is a compile error
-    private nocopy Database database     // a database can't be copied - so neither can a Car
-    private noshare Logbook log          // never shared - so a Car can't be shared either
+    // a nocopy field: a Car can't be copied - unless Car implements Cloneable (below)
+    private nocopy Database database     // a database can't be copied
+    private noshare Logbook log          // when a Car is copied, the log is copied too
     private nocopy noshare Settings set  // a compile error - one field can't be both
 
     // allowed - a method decides what it hands out:
@@ -235,12 +234,81 @@ class Car
 
 | Modifier | Means | When the object holding it is copied (`byVal`, `copy`, `copyDeep`) | An error |
 |---|---|---|---|
-| `nocopy` | the value can never be copied (a database, a file lock) | **not possible** - a class with a `nocopy` field can't be copied at all; it can only be shared (`byRef`) | any copy of the object, or of the field (user, 2026-10-28) |
-| `noshare` | the reference is never shared - it must be copied | the copy gets its own copy of the field - even when `[memory] copy = "shallow"`; and a class with a `noshare` field can't itself be shared | handing the field's object to another holder by reference |
+| `nocopy` | the value can never be copied (a database, a file lock) | **an error** - unless the class implements `Cloneable`: then its `clone()` makes the copy and recreates the field | copying the object without `Cloneable` |
+| `noshare` | when the enclosing object is copied, this field is copied too | the copy gets `copy(field)` automatically - even when `[memory] copy = "shallow"` | - (it doesn't stop sharing) |
 
 - A class may have `nocopy` fields and `noshare` fields; **one field can't be both** -
   `private nocopy noshare Database db` is a compile error
 - Both are for special cases - to be used sparingly
+
+#### The rules (user, 2026-10-28)
+
+- **`nocopy`** - copying the object that holds it (`copy(x)`, `byVal x`) is a compile error,
+  **unless its class implements the `Cloneable` interface**: then the copy calls the class's
+  own `clone()`, which recreates the `nocopy` field (e.g. opens a new database connection)
+- **`noshare`** - only matters when the enclosing object is copied: the compiler then copies
+  that field automatically - `copy(field)` - without the developer doing it by hand. It does
+  not stop the enclosing object being shared
+- **A class that can't be copied can still be passed to functions** (borrowed, like Rust) - the
+  function can call its methods; only `copy(...)` / `byVal` on it is an error
+- **Structs are always copied** - a value, never a reference
+- **A List or array of a class with a `nocopy` field:** copying the list copies each element, so
+  that class must implement `Cloneable` too - its `clone()` recreates the `nocopy` fields
+- **Rule of thumb:** `nocopy` -> the class implements `Cloneable`, and `clone()` recreates that
+  field; `noshare` -> the field becomes `copy(field)` automatically, and the copy is used
+
+```fusion
+interface Cloneable
+    Cloneable function clone()
+
+class Car implements Cloneable
+    private nocopy Database database     // copying a Car calls clone()
+    private noshare Logbook log          // a copied Car gets copy(log) automatically
+    string name
+    public Car function clone()          // the class decides how a copy is made
+        Car c = Car(name)                // a new Car - its constructor opens its own database
+        return c                         // (log is copied by the compiler - noshare)
+
+Car a = Car("Honda")
+Car b = a                    // shares - one Car
+Car c = copy(a)              // a.clone(): a new Car with its own database, and copy(a.log)
+void function drive(Car car) // borrowed - drive can call car's methods
+```
+
+#### Truth table 1: copying and sharing a whole value
+
+Columns: a **struct**; a **class** with no special fields; a class with a **`nocopy`** field
+that is **not** `Cloneable`; the same class **with** `Cloneable`; a class with a **`noshare`**
+field.
+
+| Operation | struct | class | class: `nocopy` | class: `nocopy` + `Cloneable` | class: `noshare` |
+|---|---|---|---|---|---|
+| `b = a` | a copy | shared - one object | shared | shared | shared |
+| pass to a function `f(a)` | a copy | borrowed (shared) - `f` may change it | borrowed | borrowed | borrowed |
+| `f(byRef a)` | **error?** (structs can't be referenced - question 2) | shared (the default) | shared | shared | shared |
+| `f(byVal a)` / `b = byVal a` | a copy | a copy (deep by default) | **compile error** | `a.clone()` | a copy; the `noshare` field copied |
+| `copy(a)` | a copy | a copy (deep, or shallow by `[memory] copy`) | **compile error** | `a.clone()` | a copy; the `noshare` field copied - even when shallow |
+| `copyDeep(a)` | a copy | a deep copy | **compile error** | `a.clone()` | a deep copy |
+| `f(readonly a)` | a copy, read only | borrowed, read only | borrowed, read only | borrowed, read only | borrowed, read only |
+| `return a` | a copy | moves to the caller | moves | moves | moves |
+| `list.add(a)` | the list holds a copy | the list shares it | shares | shares | shares |
+| copy a list of them (`byVal list`, `copy(list)`) | each element copied | each element copied (deep by default - question 3) | **compile error** | each element's `clone()` | each element copied |
+| `a = null`, scope ends | (a value - freed with its holder) | count -1 | count -1 | count -1 | count -1 |
+
+#### Truth table 2: a field inside an enclosing object `E`
+
+Columns: the kind of field.
+
+| When ... | a struct field | an object field (plain) | a `nocopy` field | a `noshare` field |
+|---|---|---|---|---|
+| `E` is shared (`b = e`, `f(e)`) | part of `E` - shared with it | shared with `E` | shared with `E` | shared with `E` |
+| `E` is copied, `[memory] copy = "deep"` | copied | copied (deep) | **error** - unless `E` is `Cloneable` (then `E.clone()` decides) | copied - `copy(field)` |
+| `E` is copied, `[memory] copy = "shallow"` | copied | shared with the original | **error** - unless `E` is `Cloneable` | copied anyway - `copy(field)` |
+| A method hands the field out: `return field` | a copy | shared | shared (`shareDB()`) | question 4 |
+| `copy(e.field)` | a copy | a copy | question 5 | a copy |
+| `E` is freed | freed with `E` | count -1 | count -1 | count -1 |
+
+
 - **Later:** classes that are naturally `nocopy` - a file lock, a database connection, a lock,
   a thread - get it by default (Tasks 42, 43)
 
@@ -466,10 +534,19 @@ leakCheck = "dev"          # dev (report while developing) | log (log in the app
 
 ## 11. Questions still open
 
-1. **A class that can be neither copied nor shared** (a `nocopy` field and a `noshare` field)
-   has exactly one holder. Can it still be **passed to a function** (borrowed, as every
-   parameter is), and **moved** - `Car b = a` when `a` is not used afterwards, or returned
-   from a function (as Rust allows)? Or only used where it was made?
+1. **`byVal` or `byValue`?** Your last note writes `byValue variable`; earlier notes `byVal`.
+   One of them, or both (`byValue` written out, `byVal` as quick typing)?
+2. **Structs "can't be referenced":** so `f(byRef s)` on a struct is a compile error? (An `int`
+   may be passed `byRef` - decided earlier - so is a struct the one value type that can't?)
+3. **Copying a list of objects:** truth table 1 copies each element (deep - your `Cloneable`
+   rule for lists). An earlier answer said a copied collection refers to the same objects
+   (section 7, U6). Deep copy of the elements replaces that?
+4. **A `noshare` field handed out by a method** (`return log`): shared (noshare only matters
+   when the enclosing object is copied), or a copy?
+5. **`copy(car.database)` - copying a `nocopy` field directly:** a compile error, or allowed when
+   the field's own class (Database) implements `Cloneable`?
+6. **`Cloneable` and `[memory] copy = "shallow"`:** `copy(a)` on a `Cloneable` class always calls
+   `clone()` (the class decides), whatever the setting?
 
 The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mode`) are task
 32.0 - see taskSummary2.md.
@@ -495,6 +572,6 @@ The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mo
 | 2026-10-28 | `[memory] copy = "deep"` (default) / `"shallow"`; `copyDeep(x)` always deep, `copy(x)` follows the setting |
 | 2026-10-28 | Field modifiers `nocopy` (the value can never be copied - a class with one can't be copied at all, only shared; e.g. a database) and `noshare` (never shared - always copied); not both on one field; used sparingly; file locks, connections, locks, threads `nocopy` by default later |
 | 2026-10-28 | `[safety] mode`: safe (default) / strict (warnings become errors - security, no undetermined behaviour) / unsafe; `overflowWrap` in `[numbers]` |
-| 2026-10-28 | A class with a `nocopy` field can't be copied; with a `noshare` field it can't be shared; with both, neither. A method may still hand out a `nocopy` field's reference (`return database`) or a copy of a `noshare` field (`return copy(log)`) |
+| 2026-10-28 | A class with a `nocopy` field can't be copied - unless it implements `Cloneable`: then `copy(x)` / `byVal x` call its `clone()`, which recreates the field. A `noshare` field is copied automatically when the enclosing object is copied (it doesn't stop sharing). A class that can't be copied can still be passed to functions (borrowed). Structs are always copied. A list of a `nocopy` class needs that class to be `Cloneable` to be copied. A method may hand out a `nocopy` field's reference (`return database`) or a copy of a `noshare` field (`return copy(log)`) |
 | 2026-10-28 | Leaks: warned in development; the leak check can be off or built into the app; a published app logs, never shows debug messages to the customer |
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |
