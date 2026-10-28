@@ -120,19 +120,25 @@ print(e)                                 // Person's fields first, then Employee
 - Note: an interface of the program's own with a type parameter (`Repository<T>`) needs
   generics (Task 33); the built-in `Collection<T>` / `List<T>` can come first
 
-**Questions:**
-1. Your example writes `employee.name` but the field is `Name` - names are case-sensitive in
-   Fusion (as in Java / C#), so these are two different names. Keep case-sensitive?
-2. Commas between struct fields: keep one field per line with no commas (recommended - like
-   statements), or allow commas too (optional, for people used to C / JSON)?
-3. `struct Employee implements Person`: for interfaces, `implements` means "promises these
-   methods"; for structs it means "gets these fields" (in Go this is called embedding, in C#
-   / Java `extends`). Keep `implements` for both, or use `extends` (or `includes`) for structs
-   so the two meanings don't mix?
-4. Freeing (decision 5) in practice: every object has a count of the variables holding it;
-   a scope ending lowers the count, and at zero the object is freed - so an object only one
-   variable holds is freed exactly when that scope ends (Rust's rule), a shared one when the
-   last holder goes (Swift's rule). OK?
+**Follow-up answers (user, 2026-10-28):**
+1. Names stay case-sensitive - and a setting: `[source] case_sensitive = true` (default).
+   false: `name` and `Name` are the same name. Its description warns to choose it with care;
+   when off, the compiler lists every group of names that differ only in case
+2. No commas: a comma after a struct field (or after a value of a multi-line enum) is
+   ignored - people may be used to typing one. A struct is always written over several lines;
+   only an enum may be one line, without commas (`enum Light: Red Yellow Green`)
+3. `implements` for structs too; `extends` and `includes` as quick-typing alternatives
+4. Yes - and every way an object gains or loses a reference must be listed and handled: a
+   mini-task of its own (32.10), very important to get right - the catalogue:
+   **Object_Lifetime.md** (5 questions there)
+
+**More sub-tasks:**
+- 32.10 Object lifetime (mini-task): every case in Object_Lifetime.md, each with a test - run
+  before classes (32.2) so the counting is right from the start
+- 32.11 `[source] case_sensitive` (default true); off: the compiler lists names that differ
+  only in case
+- 32.12 Commas after struct fields / multi-line enum values are ignored
+- **Settings (added):** `[source] case_sensitive`
 
 ---
 
@@ -382,4 +388,7 @@ Kept under Task 22 until the renumbering is approved.
 - Task 32 answers (implements; default methods as a setting, off; structs build on structs,
   not interfaces; collection implementations a mini-task, in fusionlib; scope + reference
   counting); testing rule: with and without null checks - 4 follow-up questions
-- **Next Action:** the user answers the 4 follow-up questions; then 32.1
+- Follow-ups answered (case_sensitive setting; commas ignored; implements + extends /
+  includes for structs; object lifetime - a mini-task, Object_Lifetime.md written)
+- **Next Action:** the user answers Object_Lifetime.md's 5 questions / approves Task 32; then
+  32.1

@@ -133,6 +133,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Every project setting, its values and default (master template, read only) | `files/fusionSettings.xml` |
 | Null design: `?.`, `??`, number conditions, truth tables | `Nullable_Values.md` |
 | Single values, arrays, lists, maps: what each does, when (not) to use it | `Arrays.md` |
+| When a class object is freed: every way it gains or loses a reference | `Object_Lifetime.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |
 | Compiler source | `src/` - `src/CLAUDE.md` explains the pipeline; each subfolder's `CLAUDE.md` has one line per file |
 | Tests / examples | `tests/`, `examples/` |
