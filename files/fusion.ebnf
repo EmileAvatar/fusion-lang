@@ -214,7 +214,7 @@ end_else_block =
     newline { statement } "End" "if" ;
 
 match_statement =
-    "match" expression { NEWLINE }
+    [ "fall" ] "match" expression { NEWLINE }     (* fall: falls through until break (30.13) *)
     ( INDENT match_cases DEDENT [ "End" "match" ]
     | "{" match_cases "}" ) ;
     (* Implemented (Task 25.3). No fall-through. break in a case ends the match;

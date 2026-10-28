@@ -1953,6 +1953,20 @@ fall-through. `break` inside a case ends the match (as in a switch); `continue` 
 loop around it (Task 30.12, user 2026-10-28 - before, `break` left the loop). A
 match whose every case returns (and that covers everything) ends a function
 
+**`fall match` (Task 30.13, built - user 2026-10-28):** falls through, like a C / Java / C#
+`switch` - the matching case runs, then each case below it, until a `break`; the `else` runs
+when nothing matched, and is fallen into too. A case can't read a value's data (it may be
+reached from the case above). `fall` is a word only right before `match`.
+
+```
+fall match level
+    case High: out = out + "H"      // High: H, then M, then L
+    case Mid: out = out + "M"
+    case Low
+        out = out + "L"
+        break                       // stop falling
+```
+
 **`case null` (Task 30.12, built):** at most one per match, on any value - a library or
 module may hand over a null, and strings may be nullable by a setting. A null equals no
 case value: it goes to `case null`, else to `else`. A match on an enum that covers every

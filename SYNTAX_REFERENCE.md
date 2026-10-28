@@ -365,6 +365,28 @@ void function main()
         }
 ```
 
+#### `fall match`: falls through until `break`
+
+<!-- example: syntax_fall_match | task: 30.13 -->
+```fusion
+enum Level
+    Low
+    Mid
+    High
+
+void function main()
+    Level level = Level.Mid
+    fall match level                     // like a switch: the next cases run too
+        case High: print("check the roof")
+        case Mid: print("check the windows")
+        case Low
+            print("check the door")
+            break                        // stop falling
+    match level                          // a plain match never falls through
+        case High: print("high")
+        else: print("not high")
+```
+
 #### Strings (values, freed automatically)
 
 <!-- example: syntax_strings | task: 18.3.1 -->

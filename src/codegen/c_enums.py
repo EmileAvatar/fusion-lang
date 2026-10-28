@@ -280,25 +280,49 @@ class EnumsMixin:
                                              f'on a null {name} with no case for null")', None))
             self.dedent()
             self.emit('}')
-        for number, case in enumerate(node.cases, 1):
-            if covers_all and number == len(node.cases):
-                self.emit('{' if number == 1 else '} else {')
-            else:
-                self.emit(f'{keyword} ({chosen} == {number}) {{')
-            self.indent()
-            self._case_body(case, subject, subject_type)
-            self.dedent()
-            keyword = '} else if'
-        if node.else_body is not None:
-            self.emit('} else {')
-            self.indent()
-            self.visit(node.else_body)
-            self.dedent()
-        self.emit('}')
+        if node.falls:
+            self._fall_cases(node, chosen, covers_all)
+        else:
+            for number, case in enumerate(node.cases, 1):
+                if covers_all and number == len(node.cases):
+                    self.emit('{' if number == 1 else '} else {')
+                else:
+                    self.emit(f'{keyword} ({chosen} == {number}) {{')
+                self.indent()
+                self._case_body(case, subject, subject_type)
+                self.dedent()
+                keyword = '} else if'
+            if node.else_body is not None:
+                self.emit('} else {')
+                self.indent()
+                self.visit(node.else_body)
+                self.dedent()
+            self.emit('}')
         if self.cleanup_scopes[-1]['used']:
             self.emit(f"{self.cleanup_scopes[-1]['label']}:;")
         self.pop_scope()
         return ''
+
+    def _fall_cases(self, node, chosen: str, covers_all: bool) -> None:
+        """`fall match` (Task 30.13): the matching case runs, then each case below it, until a
+        break (which jumps to the match's end) - and the else, which also runs when nothing
+        matched. When every value has a case, the last one always runs (null was checked
+        first), so C sees it too."""
+        for number, case in enumerate(node.cases, 1):
+            if covers_all and number == len(node.cases):
+                self.emit('{')
+            else:
+                self.emit(f'if ({chosen} != 0 && {chosen} <= {number}) {{')
+            self.indent()
+            self.visit(case.body)
+            self.dedent()
+            self.emit('}')
+        if node.else_body is not None:
+            self.emit('{')
+            self.indent()
+            self.visit(node.else_body)
+            self.dedent()
+            self.emit('}')
 
     def _case_body(self, case, subject: str, subject_type) -> None:
         """A case's body - after `case Number(n)`, n holds a copy of the value's data."""

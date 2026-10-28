@@ -540,6 +540,7 @@ class MatchStmt(ASTNode):
     subject: ASTNode
     cases: List[MatchCase]
     else_body: Optional['BlockStmt'] = None
+    falls: bool = False       # `fall match`: falls through until break (Task 30.13)
 
 
 @dataclass

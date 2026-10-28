@@ -274,4 +274,6 @@ Kept under Task 22 until the renumbering is approved.
   NullError; a covering match with no else raises it on null; toString / print give "null")
 - 30.12 done: case null (any type, one per match); break ends a match (end label, frees,
   finally); continue acts on the loop
-- **Next Action:** 30.13 (fall match)
+- 30.13 done: fall match (sequential ifs on the chosen case number; break to the end label)
+- **Next Action:** the user picks the next step - Task 31 (config in any format) is next in
+  order; Task 45 (growing arrays) and Task 32 (classes) carry the postponed parts

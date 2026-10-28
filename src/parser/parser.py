@@ -974,9 +974,17 @@ class Parser:
         if self.match(TokenType.FOR):
             return self.parse_for_statement()
 
-        # match (Task 25.3)
+        # match (Task 25.3); `fall match` falls through until break (Task 30.13) - `fall` is
+        # a word only right before `match`
         if self.match(TokenType.MATCH):
             return self.parse_match_statement()
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'fall' \
+                and self.peek(1).type == TokenType.MATCH:
+            self.advance()
+            self.advance()
+            statement = self.parse_match_statement()
+            statement.falls = True
+            return statement
 
         # unchecked block (Task 27.2d) - `unchecked` is a word only before a block
         if self.check(TokenType.IDENTIFIER) and self.peek().value == 'unchecked' \

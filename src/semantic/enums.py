@@ -267,6 +267,15 @@ class EnumRulesMixin:
         if nulls and type(subject_type).__name__ == 'ErrorType':
             self.errors.append(SemanticError(
                 "An Error is never null - test it with 'if err' / 'if not err'", nulls[0].location))
+        if node.falls:
+            # fall match (Task 30.13): a case can be reached from the one above it, so it
+            # can't name a value's data - only the value it matched has that data
+            for case in node.cases:
+                for pattern in case.patterns:
+                    if pattern.bindings:
+                        self.errors.append(SemanticError(
+                            "A 'fall match' can't read a value's data - a case may be reached "
+                            "from the one above it; use 'match'", pattern.location))
         all_patterns = [case.patterns for case in node.cases]
         for case in node.cases:
             case.patterns = [p for p in case.patterns if not p.is_null]

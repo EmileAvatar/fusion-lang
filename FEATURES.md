@@ -73,7 +73,7 @@ are in `task/featuresArchive.md`.
 		send a null). A null never equals a case value: it goes to `case null`, else to
 		`else`, else nothing runs - never a NullError. `break` inside any `match` ends the
 		match; `continue` acts on the loop (it used to leave the loop)
-	[ ] 30.13 `fall match` (user, 2026-10-28): falls through - after the matching case, the next
+	[DONE] 30.13 `fall match` (tests/test_fall_match.py) - user, 2026-10-28: falls through - after the matching case, the next
 		cases' code runs too, until a `break` (as C / Java / C# `switch` do). A plain `match`
 		never falls through
 	[POSTPONED to 32] 30.3 `nullable` settings for strings / arrays / lists / maps (default
