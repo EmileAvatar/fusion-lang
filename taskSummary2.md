@@ -24,6 +24,10 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 ---
 
+## TASK 46: `let` / `var`, `match` as a value, `write` - COMPLETE (2026-10-29)
+
+Plan and answers: task/taskSummaryArchive.md. Tests: tests/test_let_var_match.py.
+
 ## TASK 32: Classes and interfaces - PLAN (decisions 2026-10-28; awaiting final approval)
 
 User (2026-10-28): "code to an interface, not a concrete type" - the principle has a name:

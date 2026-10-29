@@ -86,10 +86,12 @@ class TokenType(Enum):
     WEAK = auto()
 
     # ============================================================
-    # KEYWORDS - Variables (2 tokens)
+    # KEYWORDS - Variables (3 tokens) - let / var: the type comes from the value (Task 46)
     # ============================================================
     VAR = auto()
+    LET = auto()
     CONST = auto()
+    SERVICE = auto()        # reserved for services (Task 42), 2026-10-29
 
     # ============================================================
     # KEYWORDS - Literals (4 tokens)
@@ -237,7 +239,7 @@ _KEYWORD_TYPES: Set[TokenType] = {
     TokenType.UNIQUE, TokenType.SHARED, TokenType.WEAK,
 
     # Variables
-    TokenType.VAR, TokenType.CONST,
+    TokenType.VAR, TokenType.LET, TokenType.CONST, TokenType.SERVICE,
 
     # Literals
     TokenType.TRUE, TokenType.FALSE, TokenType.NULL, TokenType.THIS,

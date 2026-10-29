@@ -167,7 +167,7 @@ class RuntimeLoweringMixin:
             return f'fusion_error_text({code})'   # its message (Task 26)
         return code
 
-    def _generate_print_call(self, node: CallExpr) -> str:
+    def _generate_print_call(self, node: CallExpr, newline: bool = True) -> str:
         """Generate code for print() built-in function.
 
         Args:
@@ -176,8 +176,9 @@ class RuntimeLoweringMixin:
         Returns:
             printf() call
         """
+        end = '\\n' if newline else ''      # write(...) doesn't end the line (Task 46.3)
         if len(node.arguments) == 0:
-            return 'printf("\\n")'
+            return f'printf("{end}")' if newline else '0'
 
         arg = node.arguments[0]
 
@@ -185,14 +186,14 @@ class RuntimeLoweringMixin:
         # the text (Task 18.2.2b)
         if isinstance(arg, InterpolatedStringExpr):
             assignments, positional = self._print_argument_codes(arg, node.arguments[1:])
-            call = self._generate_interpolated_print(arg, positional)
+            call = self._generate_interpolated_print(arg, positional, newline)
             return f'({", ".join(assignments + [call])})' if assignments else call
 
         # Handle plain string literals - the text becomes printf's format string, so any
         # literal '%' must be doubled (see escape_printf_text)
         if isinstance(arg, LiteralExpr) and arg.type_hint == 'string':
             escaped = escape_c_text(escape_printf_text(str(arg.value)), '"')
-            return f'printf("{escaped}\\n")'
+            return f'printf("{escaped}{end}")'
 
         # For other types, use the format specifier matching the expression's actual type
         # (print() is currently declared string-only in the symbol table, so this path is
@@ -200,7 +201,7 @@ class RuntimeLoweringMixin:
         # still must not guess)
         arg_code = self._printf_argument(arg, self.visit(arg))
         format_spec = self._format_specifier_for_expr(arg)
-        return f'printf("{format_spec}\\n", {arg_code})'
+        return f'printf("{format_spec}{end}", {arg_code})'
 
     def _generate_len_call(self, node: CallExpr) -> str:
         """Generate code for len() built-in function.
@@ -289,7 +290,8 @@ class RuntimeLoweringMixin:
                                self._format_specifier_for_expr(extra)))
         return assignments, positional
 
-    def _generate_interpolated_print(self, node: InterpolatedStringExpr, positional=None) -> str:
+    def _generate_interpolated_print(self, node: InterpolatedStringExpr, positional=None,
+                                     newline: bool = True) -> str:
         """Generate printf for interpolated string.
 
         Args:
@@ -301,7 +303,8 @@ class RuntimeLoweringMixin:
             printf() with format string and arguments
         """
         format_str, args = self._build_interpolation_format(node, positional)
-        format_str += '\\n'
+        if newline:
+            format_str += '\\n'
 
         if args:
             args_str = ', ' + ', '.join(args)

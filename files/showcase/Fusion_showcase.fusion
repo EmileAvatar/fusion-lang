@@ -88,7 +88,7 @@ void function variables() {
     string name
     // [built] A local constant - assigning to it again is a compile error
     const float PI = 3.14159
-    // [designed] var: the type comes from the value
+    // [built] var: the type comes from the value (Task 46.1; let: set once)
     var speed = 299792.458
     // [designed] Several variables of one type in one line
     int x = 1, y = 2, z = 3

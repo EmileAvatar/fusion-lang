@@ -1,0 +1,19 @@
+struct Point
+    int x
+    int y
+
+int function grow(let int start, var int step)   // let: can't change in here; var: can
+    step = step * 2
+    return start + step
+
+void function main()
+    let name = "Ann"                    // string - set once, never changes
+    var count = 0                       // int - can change, stays an int
+    count = count + 2
+    let home = Point(1, 2)              // nothing inside a let can change: home.x = 5 is an error
+    let size                            // no value yet: set exactly once, on every path
+    if count > 1
+        size = "big"
+    else
+        size = "small"
+    print("{name} {count} {home.x} {size} {@1}", grow(1, 3))   // Ann 2 1 big 7

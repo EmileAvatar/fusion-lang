@@ -4,7 +4,7 @@
   documented and tested here)
 - `End` closes a block; a lowercase `end` does only right before a block word (`end
   function`) and is an ordinary name everywhere else
-- `var` is an ordinary name until type inference exists
+- `var` was an ordinary name until type inference (Task 46 reserved it, with let and service)
 """
 
 from src.lexer import Lexer
@@ -24,10 +24,11 @@ def test_end_closes_a_block_only_before_a_block_word():
     assert types_of('End struct\n', 'End') == [TokenType.END]
 
 
-def test_end_and_var_as_names_in_a_program():
+def test_end_as_a_name_in_a_program():
+    # `var` was a name too until Task 46 reserved it
     body = ('int end = 10\n'
-            'int var = 5\n'
-            'print("{@1}", end - var)')
+            'int five = 5\n'
+            'print("{@1}", end - five)')
     code, out, err = compile_and_run(main(body))
     assert code == 0, err
     assert out.strip().splitlines()[0] == '5'

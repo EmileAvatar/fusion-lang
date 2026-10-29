@@ -294,3 +294,10 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 		format; changing it rewrites the file and keeps the old one as .bak
 	[DONE] 31.3 Tests (tests/test_settings_formats.py)
 	[DONE] 31.4 Docs: spec "Project Configuration", SYNTAX_REFERENCE, CLAUDE.md, requirements
+
+#### 46 `let` / `var`, `match` as a value, `write` (user, 2026-10-29) [DONE 2026-10-29]
+	[DONE] 46.1 `let` (set once, may be later; never changes) and `var` (can change) - the type
+		comes from the value; as parameters with a written type
+	[DONE] 46.2 `match` gives a value: `match n { 6, 7 : "Weekend", _ : "Weekday" }`; no fall through
+	[DONE] 46.3 `write(...)` - print without ending the line (console only, flushed)
+	tests/test_let_var_match.py

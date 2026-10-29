@@ -14,7 +14,8 @@ from src.parser.ast_nodes import (
     StructDecl, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
     EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt, ErrorType, ErrorMakeExpr, ErrorDecl,
     ErrorActiveExpr, TryStmt, ThrowStmt, UncheckedStmt,
-    ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES, ConditionalExpr, IsNullExpr
+    ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES, ConditionalExpr, IsNullExpr,
+    MatchExpr,
 )
 from .symbol_table import SymbolTable
 from .symbol import Symbol
@@ -65,7 +66,7 @@ MUTATING_BUILTINS = {'setInt', 'setInt16'}
 # built-in's layer is the lowest a project must allow to use it. Every built-in not listed
 # here is "alloc" (it takes or makes text, bytes, lists or maps)
 CORE_BUILTINS = {'range', 'len', 'charCode', 'fromCharCode', 'toByte', 'wrapAdd', 'wrapSub', 'wrapMul'}
-STD_BUILTINS = {'print', 'readLine', 'isEndOfInput', 'exit', 'readText', 'readLines',
+STD_BUILTINS = {'print', 'write', 'readLine', 'isEndOfInput', 'exit', 'readText', 'readLines',
                 'writeText', 'appendText', 'readBytes', 'writeBytes', 'fileExists',
                 'deleteFile', 'run'}
 
@@ -86,7 +87,7 @@ CLASS_STATICS = {'Int': {'parseInt', 'fromHex', 'fromBinary', 'fromOctal'},
                  'Char': {'fromCharCode'},
                  'Bytes': {'newBytes', 'hexToRaw', 'toBytes'}}
 # Plain functions only - never methods
-NOT_METHODS = {'print', 'range', 'format'}
+NOT_METHODS = {'print', 'write', 'range', 'format'}
 
 
 def builtin_defaults(name: str, parameter_count: int) -> list:
@@ -156,6 +157,9 @@ class NameResolver:
 
         try:
             self.symbol_table.define(print_symbol)
+            # write(...) - print without ending the line (Task 46.3)
+            self.symbol_table.define(Symbol(name='write', symbol_type='function',
+                                            data_type=print_type, location=builtin_loc))
         except SemanticError:
             # Ignore if already defined (shouldn't happen)
             pass
@@ -730,7 +734,8 @@ class NameResolver:
                 name=param.name,
                 symbol_type='parameter',
                 data_type=param.param_type,
-                location=param.location
+                location=param.location,
+                is_constant=param.is_let       # `let int a` (Task 46.1)
             )
             self.symbol_table.define(symbol)
 
@@ -811,7 +816,8 @@ class NameResolver:
                 stmt.location
             ))
 
-        self.resolve_type(stmt.var_type)
+        if stmt.var_type is not None:
+            self.resolve_type(stmt.var_type)
         self.check_not_struct_name(stmt.name, "Variable", stmt.location)
 
         # First resolve initializer (if any)
@@ -820,16 +826,17 @@ class NameResolver:
 
         # Then define the variable
         try:
-            # Check if this is a const declaration
-            is_const = stmt.is_const
+            # Check if this is a const declaration - or a `let`, fixed once set (Task 46.1)
+            is_const = stmt.is_const or stmt.inferred == 'let'
 
             symbol = Symbol(
                 name=stmt.name,
-                symbol_type='constant' if is_const else 'variable',
-                data_type=stmt.var_type,
+                symbol_type='constant' if stmt.is_const else 'variable',
+                data_type=stmt.var_type,          # a let / var: None until its value is checked
                 location=stmt.location,
                 is_constant=is_const
             )
+            symbol.declaration = stmt
             self.symbol_table.define(symbol)
             if stmt.error_name is not None:            # Ship s, Error err = ... (Task 26)
                 self.check_not_struct_name(stmt.error_name, "Variable", stmt.error_location)
@@ -1008,6 +1015,15 @@ class NameResolver:
             self.resolve_expression(expr.condition)
             self.resolve_expression(expr.then_value)
             self.resolve_expression(expr.else_value)
+        elif isinstance(expr, MatchExpr):                # Task 46.2 - an enum case is a bare name
+            self.resolve_expression(expr.subject)
+            for case in expr.cases:
+                for pattern in case.patterns:
+                    if pattern.value is not None:
+                        self.resolve_expression(pattern.value)
+                self.resolve_expression(case.value)
+            if expr.else_body is not None:
+                self.resolve_expression(expr.else_body)
         elif isinstance(expr, CallExpr):
             self.resolve_call(expr)
         elif isinstance(expr, LambdaExpr):

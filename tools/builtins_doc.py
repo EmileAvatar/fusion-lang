@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 TOPICS = [
-    ('Program, output and input', ['print', 'format', 'exit', 'readLine', 'isEndOfInput', 'run']),
+    ('Program, output and input', ['print', 'write', 'format', 'exit', 'readLine', 'isEndOfInput', 'run']),
     ('Files', ['readText', 'readLines', 'writeText', 'appendText', 'readBytes', 'writeBytes',
                'fileExists', 'deleteFile']),
     ('Core', ['len', 'range', 'charCode', 'fromCharCode', 'toByte', 'wrapAdd', 'wrapSub',
@@ -45,6 +45,7 @@ TOPICS = [
 # name -> (call, returns)
 SPECIAL = {
     'print': ('print(string text, any...)', 'void'),
+    'write': ('write(string text, any...)', 'void'),
     'format': ('format(string text, any...)', 'string'),
     'len': ('len(string | array | bytes)', 'int'),
     'range': ('range(int from, int to, int step = 1)', 'the numbers, for a loop'),

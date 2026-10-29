@@ -1,0 +1,4 @@
+void function main()
+    write("1 + 2 = ")                   // the line stays open
+    write("{@1}", 1 + 2)
+    print("")                           // ends it

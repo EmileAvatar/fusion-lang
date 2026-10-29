@@ -85,9 +85,12 @@ KEYWORDS: Dict[str, TokenType] = {
     'Weak': TokenType.WEAK,         # Capital W required
 
     # ============================================================
-    # Variable Keywords (2)
+    # Variable Keywords (3) - let / var reserved again for Task 46 (user, 2026-10-29)
     # ============================================================
     'const': TokenType.CONST,
+    'let': TokenType.LET,
+    'var': TokenType.VAR,
+    'service': TokenType.SERVICE,   # reserved for services (Task 42)
 
     # ============================================================
     # Literal Keywords (4)

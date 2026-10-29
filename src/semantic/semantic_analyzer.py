@@ -13,6 +13,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .struct_parents import expand_struct_parents
+from .inferred import check_set_once
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -220,6 +221,9 @@ class SemanticAnalyzer:
         # Return success if no errors
         # Ways of handling errors the project turned off (Task 26.5)
         self.errors.extend(check_error_settings(ast, self.errors_config))
+        # A let / var declared without a value: set before read, a let once (Task 46.1)
+        known = {(str(e), str(e.location)) for e in self.errors}
+        self.errors.extend(e for e in check_set_once(ast) if (str(e), str(e.location)) not in known)
         self.warnings.extend(marked_but_cannot_fail(ast))   # Task 26.7
         # A template called in several places repeats its text's errors - report each once;
         # where a template use was wrong, what follows from it isn't reported again (29.3)
@@ -237,7 +241,7 @@ class SemanticAnalyzer:
 
     def check_module_variable(self, decl: VarDeclStmt) -> None:
         """A variable or constant declared outside any function (Task 44.1)."""
-        if not decl.is_const and not self.module_variables_allowed:
+        if not decl.is_const and decl.inferred != 'let' and not self.module_variables_allowed:
             self.errors.append(SemanticError(
                 f"Module-level variable '{decl.name}': fusion.toml sets [modules] variables = "
                 f"false (module-level constants are still allowed)", decl.location))

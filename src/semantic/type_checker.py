@@ -23,6 +23,7 @@ from .collection_rules import CollectionRulesMixin
 from .enums import EnumRulesMixin, ENUM_METHODS
 from .error_rules import ErrorRulesMixin
 from .struct_parents import StructParentRulesMixin, flat_field_names
+from .inferred import InferredRulesMixin, set_later, not_yet_set
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
                             TYPE_CLASSES, CLASS_STATICS, NOT_METHODS,
                             builtin_defaults)
@@ -46,7 +47,8 @@ def field_default(field: StructField):
     return None
 
 
-class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructParentRulesMixin):
+class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructParentRulesMixin,
+                  InferredRulesMixin):
     """Type checks the AST using visitor pattern.
 
     Validates type compatibility in expressions, assignments, function calls,
@@ -548,6 +550,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     f"value yet",
                     node.location
                 ))
+        if symbol.data_type is None:
+            # a let / var whose first value comes later (Task 46.1)
+            self.errors.append(SemanticError(not_yet_set(node.name), node.location))
+            return PrimitiveType(location=node.location, name='void')
         return symbol.data_type
 
     def _check_function_type_supported(self, type_node: TypeNode, location) -> None:
@@ -1129,7 +1135,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         # print(text, ...) - extra arguments fill {@1}, {@2}, ... placeholders (Task 18.2.2b);
         # format(text, ...) builds the same text as a string (18.3.3)
-        if func_name in ('print', 'format') and node.arguments:
+        if func_name in ('print', 'write', 'format') and node.arguments:
             return self._check_print_call(node, func_type, func_name)
 
         # Check argument count
@@ -1984,6 +1990,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Args:
             node: Variable declaration statement node
         """
+        if node.inferred and not self.check_inferred_declaration(node):
+            return      # `let x` / `var x` with no value yet, or a value with no type (46.1)
         self._check_collection_type(node.var_type, node.location)   # Task 18.5
         if isinstance(node.var_type, ErrorType) and node.initializer is not None \
                 and node.error_name is None:
@@ -2125,11 +2133,16 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             ))
             return
 
+        if symbol.data_type is None and isinstance(getattr(symbol, 'declaration', None), VarDeclStmt):
+            self.first_value(node, symbol)     # `let total` ... `total = 100` (Task 46.1)
+            return
+        later = set_later(symbol)              # its one assignment - check_set_once checks it
+
         if isinstance(symbol.data_type, ArrayType):
             # A whole array can be replaced by one a function returns (Task 18.2.4) - copied
             # element by element. From another array variable it still isn't supported
             if isinstance(node.value, CallExpr):
-                if symbol.is_constant:
+                if symbol.is_constant and not later:
                     self.errors.append(SemanticError(
                         f"Cannot assign to constant: '{target_name}'", node.location))
                 self._allow_array_call(node.value)
@@ -2145,11 +2158,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             ))
             return
 
-        if symbol.is_constant:
-            self.errors.append(SemanticError(
-                f"Cannot assign to constant: '{target_name}'",
-                node.location
-            ))
+        if symbol.is_constant and not later:
+            if symbol.symbol_type == 'parameter':        # `let int a` (Task 46.1)
+                message = f"'{target_name}' is a let parameter - it can't change in the function"
+            elif getattr(getattr(symbol, 'declaration', None), 'inferred', None) == 'let':
+                message = f"'{target_name}' is a let - it can't change once set"
+            else:
+                message = f"Cannot assign to constant: '{target_name}'"
+            self.errors.append(SemanticError(message, node.location))
 
         value_type = self._visit_value_for(symbol.data_type, node.value)
         if not self.types_compatible(symbol.data_type, value_type):

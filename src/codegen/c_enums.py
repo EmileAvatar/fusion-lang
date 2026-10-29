@@ -303,6 +303,42 @@ class EnumsMixin:
         self.pop_scope()
         return ''
 
+    def visit_MatchExpr(self, node) -> str:
+        """A match that gives a value (Task 46.2) - C's own `?:`, one test per case:
+
+            (fusion_val_3 = n, (fusion_val_3 == 6 || fusion_val_3 == 7) ? "Weekend" : "Weekday")
+
+        The subject is read once. A string (or other managed) result: every value is made
+        owned, as `?:` does (Task 30.7). With no `_` the last case is the fallback - every
+        value has a case; a null enum with no null case is a NullError, as in a statement."""
+        subject_type, result_type = node.subject.inferred_type, node.inferred_type
+        subject = self._declare_temp('val', self.map_type(subject_type))
+        managed = self.is_managed(result_type)
+
+        def value(expr):
+            return self.owned_value(expr, result_type) if managed else self.visit(expr)
+
+        tests = [' || '.join(self._pattern_test(subject, subject_type, p) for p in case.patterns)
+                 for case in node.cases]
+        values = [value(case.value) for case in node.cases]
+        if node.else_body is not None:
+            code = value(node.else_body)
+        else:
+            code, tests, values = values[-1], tests[:-1], values[:-1]
+            if self.can_be_null_enum(subject_type) and not getattr(node, 'has_null_case', False):
+                test = f'{subject}.tag' if self.data_struct(subject_type) is not None else subject
+                name = escape_c_text(getattr(subject_type, 'name', 'enum'), '"')
+                fail = self.checked_code(f'fusion_null_fail({self._where(node)}, "a match on a '
+                                         f'null {name} with no case for null")', None)
+                code = (f'({test} == FUSION_ENUM_NULL ? ({fail}, '
+                        f'{self._default_value_code(result_type)}) : {code})')
+        for test, choice in zip(reversed(tests), reversed(values)):
+            code = f'({test}) ? {choice} : {code}'
+        code = f'({subject} = {self.visit(node.subject)}, {code})'
+        if managed and id(node) not in self.consumed:
+            return self.fresh_temporary(code, result_type)
+        return code
+
     def _fall_cases(self, node, chosen: str, covers_all: bool) -> None:
         """`fall match` (Task 30.13): the matching case runs, then each case below it, until a
         break (which jumps to the match's end) - and the else, which also runs when nothing

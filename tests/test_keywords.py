@@ -18,10 +18,10 @@ class TestKeywordTable:
 
     def test_keyword_count(self):
         """Verify expected number of keywords."""
-        # 64 keywords (including the special cases 'Enum'/'enum'); `end` and `var` are not
-        # keywords (Task 44.5)
-        assert KEYWORD_COUNT == 64
-        assert len(KEYWORDS) == 64
+        # 67 keywords (including the special cases 'Enum'/'enum'); `end` is not a keyword
+        # (Task 44.5); let, var and service are (Task 46, 2026-10-29)
+        assert KEYWORD_COUNT == 67
+        assert len(KEYWORDS) == 67
 
     def test_keyword_table_is_dict(self):
         """Verify KEYWORDS is a dictionary."""
@@ -261,9 +261,11 @@ class TestMemoryKeywords:
 class TestVariableKeywords:
     """Test variable declaration keyword recognition."""
 
-    def test_var_is_a_name_until_type_inference_exists(self):
-        assert not is_keyword('var')                      # Task 44.5
-        assert get_keyword_type('var') == TokenType.IDENTIFIER
+    def test_let_var_and_service_are_reserved(self):
+        # var was a name until type inference (44.5); reserved with let and service (Task 46)
+        assert get_keyword_type('var') == TokenType.VAR
+        assert get_keyword_type('let') == TokenType.LET
+        assert get_keyword_type('service') == TokenType.SERVICE
 
     def test_const_keyword(self):
         assert is_keyword('const')

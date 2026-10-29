@@ -1008,6 +1008,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             # Special handling for built-in functions
             if func_name == 'print':
                 return self._generate_print_call(node)
+            if func_name == 'write':
+                # print without ending the line, shown at once (Task 46.3)
+                return f'({self._generate_print_call(node, newline=False)}, fflush(stdout))'
             if func_name == 'len':
                 return self._generate_len_call(node)
             if func_name == 'format' and node.callee_declaration is None:

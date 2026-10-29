@@ -3,17 +3,18 @@
 **Generated from the compiler** by `python check.py --builtins` (Task 28.1.4) - do not edit by hand.
 `python check.py` fails when this file no longer matches the compiler.
 
-95 functions, 15 List methods, 7 Map methods. Examples of each are in `SYNTAX_REFERENCE.md`.
+96 functions, 15 List methods, 7 Map methods. Examples of each are in `SYNTAX_REFERENCE.md`.
 
 - **Layer:** the lowest `[stdlib] layer` that allows it - `core` (no heap), `alloc` (no operating system), `std` (everything)
 - **Fails:** it can raise an error (catch it with `try`, or capture it); any function that makes text can also fail with StringTooLongError when `[strings] max_length` is set
-- **Methods:** a function can also be called as a method on its first argument - `name.trim()` is `trim(name)` - and through its type class - `String.trim(name)` (not `format`, `print`, `range`)
+- **Methods:** a function can also be called as a method on its first argument - `name.trim()` is `trim(name)` - and through its type class - `String.trim(name)` (not `format`, `print`, `range`, `write`)
 
 #### Program, output and input
 
 | Function | Returns | Layer | Fails |
 |---|---|---|---|
 | `print(string text, any...)` | `void` | std |  |
+| `write(string text, any...)` | `void` | std |  |
 | `format(string text, any...)` | `string` | alloc |  |
 | `exit(int)` | `void` | std |  |
 | `readLine()` | `string` | std |  |

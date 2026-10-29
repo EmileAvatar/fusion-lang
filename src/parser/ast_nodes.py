@@ -411,6 +411,9 @@ class VarDeclStmt(ASTNode):
     error_type: Optional['TypeNode'] = None   # `Ship s, FileError err` (26.10); None: Error
     # A module-level variable other modules may use: `public int rate = 5` (Task 44.1)
     is_public: bool = False
+    # `let x = ...` / `var x = ...` (Task 46.1): the type comes from the value - var_type is
+    # None until the type checker fills it in. 'let': set once, never changes; 'var': can change
+    inferred: Optional[str] = None
 
 
 @dataclass
@@ -517,6 +520,33 @@ class MatchPattern(ASTNode):
     value: Optional[ASTNode] = None
     dotted: bool = False      # `case files.FileError` - an error type from a module (26.10)
     is_null: bool = False     # `case null` (Task 30.12)
+
+
+@dataclass
+class MatchArm(ASTNode):
+    """`6, 7 : "Weekend"` - one case of a match that gives a value (Task 46.2)."""
+    patterns: List[MatchPattern]
+    value: ASTNode
+
+
+@dataclass
+class MatchExpr(ASTNode):
+    """A match that gives a value - form A (Task 46.2, user decisions 2026-10-29):
+
+        string day = match n { 6, 7 : "Weekend", _ : "Weekday" }
+
+    Each case is one value (no code - a function call may fetch it); `_` or `else` is
+    anything else; never falls through; every possible value must be covered.
+
+    Attributes:
+        subject: The value matched
+        cases: The cases, in order
+        else_body: The value for anything else (`_` / `else`), or None
+    """
+    subject: ASTNode
+    cases: List[MatchArm]
+    else_body: Optional[ASTNode] = None
+    inferred_type: Optional['TypeNode'] = None
 
 
 @dataclass
@@ -641,6 +671,7 @@ class ParameterDecl(ASTNode):
     default_value: Optional[ASTNode]
     is_variadic: bool = False   # `string... args` - main's arguments (Task 18.5.4)
     by_ref: bool = False        # the caller's value itself, not a copy - a method's `this` (32.1)
+    is_let: bool = False        # `let int a` - can't be changed inside the function (Task 46.1)
 
 
 @dataclass

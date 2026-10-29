@@ -61,7 +61,7 @@ parameter_list =
     parameter { "," parameter } [ "," ] ;  (* Trailing comma allowed *)
 
 parameter =
-    type_name identifier [ "=" expression ] ;
+    [ "let" | "var" ] type_name identifier [ "=" expression ] ;   (* let: can't change, 46.1 *)
 
 (* Main function entry point - Optional for programs, not required for libraries *)
 (* Standard signature convention for executable programs *)
@@ -174,7 +174,10 @@ statement =
 variable_declaration =
     type_name identifier [ "=" expression ]    (* Explicit type required *)
     | type_name identifier "," [ "Error" ] identifier "=" expression   (* capture, Task 26 *)
-    | "const" type_name identifier "=" expression ;  (* Constants must be initialized *)
+    | "const" type_name identifier "=" expression    (* Constants must be initialized *)
+    | ( "let" | "var" ) identifier [ "=" expression ] ;
+    (* Task 46.1: the type comes from the value; let is set once and never changes, var can
+       change. Without a value: set before it is read on every path, a let exactly once *)
 
 (* Task 29.3: a fixed text that works as a function - greet("Ann", 30) fills its {@N}.
    `template` is a contextual word: special only before "string" and a name *)
@@ -220,7 +223,17 @@ match_statement =
     (* Implemented (Task 25.3). No fall-through. break in a case ends the match;
        continue acts on the loop around it (Task 30.12) *)
 
-match_cases = match_case { match_case } [ "else" case_body ] ;
+match_cases = match_case { match_case } [ ( "else" | "_" | "case" "_" ) case_body ] ;
+
+(* Task 46.2 - form A: a match that gives a value. One value per case (no code; a call may
+   fetch it), every value covered, never falls through; "_" (preferred) or "else" for the
+   rest. Form B is match_statement above, which can't be assigned *)
+match_expression =
+    "match" expression { NEWLINE }
+    ( "{" match_value_case { ( "," | NEWLINE ) match_value_case } "}"
+    | INDENT match_value_case { NEWLINE match_value_case } DEDENT ) ;
+
+match_value_case = ( pattern { "," pattern } | "_" | "else" ) ":" expression ;
 
 match_case = "case" pattern { "," pattern } case_body ;
 
@@ -332,6 +345,7 @@ primary =
     | identifier
     | "(" expression ")"
     | lambda_expression
+    | match_expression                    (* Task 46.2 *)
     | "this"
     | "null"
     | "cast" "<" type_name ">" "(" expression ")" ;

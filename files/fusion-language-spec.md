@@ -294,15 +294,32 @@ float speed = 299792.458
 Spaceship ship = Spaceship("Enterprise", 100.0)
 ```
 
-* **Type Inference**: Less verbose
-     * Format: `var varName = value`
-     * Use when: Type obvious from value
-     * Example: `var count = 10`
+* **Type Inference (Task 46.1, built)**: the type comes from the value
+     * `let name = value` - set once, never changes. On a struct, string, List or array it
+       is const and read only: nothing inside can change either (a compile error)
+     * `var name = value` - can change; its type can't
+     * Without a value (`let total`, `var later`) the first value gives the type. On every
+       path it must be set before it is read, and a `let` exactly once - not twice, and not
+       inside a loop it was declared outside of
+     * `const` stays: a value fixed where it is written; a `let` may be set later, while running
+     * Parameters: `function f(let int a, var int b)` - `let` can't change inside the function,
+       `var` can (the default). The type is written; one taken from each caller is generics
+       (Task 33)
+     * A value with no type of its own can't give one: `let x = null`, `let xs = []` - write
+       the type instead
+     * A module-level `let` / `var` needs its value where it is declared; a module-level
+       `let` is allowed like a constant (`[modules] variables` doesn't apply)
+     * `let`, `var` (and `service`, for Task 42) are reserved words
 
 ```
-var name = "Starship"
+let name = "Starship"
 var speed = 299792.458
-var position = Vector3(10, 20, 30)
+let position = Vector3(10, 20, 30)
+let total                    // set once below, on every path
+if big
+    total = 100
+else
+    total = 1
 ```
 
 * **Declaration Without Initial Value**: Uses default
@@ -5746,7 +5763,7 @@ Description: Words that cannot be used as identifiers.
 
 **`end` and `var` are not reserved** (Task 44.5, implemented): `End` closes a block; a
 lowercase `end` does only right before a block word (`end function`, `end if`, ...) and is an
-ordinary name everywhere else. `var` is an ordinary name until type inference is built.
+ordinary name everywhere else. `let`, `var` and `service` are reserved (Task 46, 2026-10-29).
 In `match`, `_` skips a value: `case Rect(w, _)`.
 
 **Control Flow**:

@@ -395,7 +395,7 @@ class EnumRulesMixin:
         if node.else_body is None and missing:
             self.errors.append(SemanticError(
                 f"This match on {decl.name} doesn't handle {', '.join(missing)} - add a case "
-                f"for {'it' if len(missing) == 1 else 'them'}, or an else", node.location))
+                f"for {'it' if len(missing) == 1 else 'them'}, or an else (or _)", node.location))
         elif node.else_body is not None and not missing:
             self.warnings.append(SemanticError(
                 f"The else of this match never runs - every value of {decl.name} has its own "
@@ -448,8 +448,8 @@ class EnumRulesMixin:
                 seen.add(key)
         if node.else_body is None:
             self.errors.append(SemanticError(
-                f"A match on {subject_type.name} needs an else - its values can't all be "
-                f"listed", node.location))
+                f"A match on {subject_type.name} needs an else (or _) - its values can't all "
+                f"be listed", node.location))
 
     def _check_enum_construction(self, node: EnumStaticCall, decl: EnumDecl, variant) -> None:
         """Token.Number(42) or Token.Number(value = 42) - one argument per field (Task 25.4)."""

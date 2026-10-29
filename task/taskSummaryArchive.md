@@ -5820,3 +5820,82 @@ print(e)                                 // Person's fields first, then Employee
   (print) / `Line.a.x` (CSV heading); List too; a " inside a string doubled in CSV; no
   newline after the last row
 - **Settings:** none
+
+---
+
+## TASK 46: `let` / `var`, `match` as a value, `write` - COMPLETE (2026-10-29)
+
+A detour before 32.10.
+
+**46.1 `let` and `var` - the type comes from the value**
+```
+let name = readLine()          // string - set once, never changes again
+var count = 0                  // int - can change, but stays an int
+let total                      // no value yet: set exactly once later
+if big
+    total = 100
+else
+    total = 1                  // its type comes from this first value
+```
+- `let`: set once, then it can never change. The value may come later (from a function or a
+  branch): every path must set it exactly once before it is read - a compile error otherwise
+- `var`: its type comes from its first value; it can change afterwards, the type can't
+- For a value type (number, string, struct, List, array) `let` fixes the whole value -
+  `p.x = 5` on a `let p` is an error (like `const`). For a class object (32.2) `let` fixes
+  which object it holds; the object itself can still change unless it is `readonly`
+- `const` stays: a value fixed where it is written; `let` may be set later, while running
+- As parameters: `function f(let int a, var int b)` - `let` can't be assigned inside the
+  function, `var` can (today's default). A parameter with no type written (`let a`) takes its
+  type from each caller - that is generics (Task 33), so it waits until then (question 1)
+- `let` and `var` become reserved words (question 4)
+
+**46.2 `match` gives a value**
+```
+string day = match n { 6, 7 : "Weekend", _ : "Weekday" }
+let size = match count
+    0 : "none"
+    1, 2, 3 : "few"
+    _ : "many"
+```
+- Each case: one or more test values, `:`, the value; `_` is "anything else" (also `else`?
+  question 2). `:` rather than `=>` - easier to type (user)
+- Every possible value must be covered (`_`, or every enum value); every case gives a value of
+  the same type - the variable's type, or the type `let` / `var` take
+- Works on the same subjects as `match` (int, char, string, enum; `case null` on an enum)
+- No fall through: `fall match` can't give a value - a compile error
+- Allowed where a value goes: a declaration, an assignment, `return`, an argument (the brace
+  form on one line)
+
+**46.3 `write(...)` - print without ending the line**
+```
+write("Name: ")                // the cursor stays on this line
+string name = readLine()
+write("{@1} + {@2} = ", a, b)
+print(a + b)
+```
+- The same arguments as `print` ({@1} placeholders); no newline. It flushes the output, so a
+  prompt shows before readLine waits
+- `print` and `write` are for the console only; files, sockets and the like have their own
+  functions (`writeText`, `appendText`, ... and later modules). `print` does not write to a
+  file - only the shell can redirect a program's output (`program.exe > out.txt`)
+
+**Answers (user, 2026-10-29) - "proceed":**
+1. A `let` / `var` parameter has its type written (`f(let int a, var int b)`); no type
+   written waits for generics (Task 33)
+2. Two forms of `match`, never mixed:
+   - **Form A - a value** (assigned, returned, passed): must give a value on every path
+     (compile error otherwise); `_` and `else` both mean "anything else" (`_` preferred); no
+     fall through; commas for several values in one case; each case is one value only - no
+     code, though a function call may fetch the value; no `case` word
+   - **Form B - a statement** (today's `match` / `fall match`): not assigned; runs code, no
+     value needed; `fall match` falls through until `break`; commas for several values
+     (`case 2, 4, 6: work()`); `_` or `else` (`else` preferred); can't be assigned directly
+3. `let` on a struct, string, List or array is const and read only - changing anything
+   inside is a compile error
+4. `let`, `var` and `service` become reserved words
+
+**Settings:** none (type inference is what most languages do - Familiar defaults); `let` /
+`var` / match values / `write` are always on.
+
+**Tests:** each piece with and without null where a value can be null (an enum subject: `case
+null` gives a value; no `case null` -> NullError caught by `catch`).

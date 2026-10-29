@@ -387,6 +387,63 @@ void function main()
         else: print("not high")
 ```
 
+#### `let` and `var`: the type comes from the value
+
+<!-- example: syntax_let_var | task: 46.1 -->
+```fusion
+struct Point
+    int x
+    int y
+
+int function grow(let int start, var int step)   // let: can't change in here; var: can
+    step = step * 2
+    return start + step
+
+void function main()
+    let name = "Ann"                    // string - set once, never changes
+    var count = 0                       // int - can change, stays an int
+    count = count + 2
+    let home = Point(1, 2)              // nothing inside a let can change: home.x = 5 is an error
+    let size                            // no value yet: set exactly once, on every path
+    if count > 1
+        size = "big"
+    else
+        size = "small"
+    print("{name} {count} {home.x} {size} {@1}", grow(1, 3))   // Ann 2 1 big 7
+```
+
+#### `match` that gives a value
+
+<!-- example: syntax_match_value | task: 46.2 -->
+```fusion
+enum Light: Red Yellow Green
+
+void function main()
+    int n = 7
+    string day = match n { 6, 7 : "Weekend", _ : "Weekday" }
+    let size = match n
+        0 : "none"
+        1, 2, 3 : "few"
+        _ : "many"
+    Light l = Light.Green
+    let action = match l { Red, Yellow : "stop", Green : "go" }   // every value: no _ needed
+    print("{day} {size} {action}")      // Weekend many go
+```
+One value per case - no code, though a function call may fetch it; every possible value
+covered; it never falls through. `_` and `else` both mean "anything else" (`_` preferred
+here, `else` in a match statement, which takes `_` too).
+
+#### `write`: print without ending the line
+
+<!-- example: syntax_write | task: 46.3 -->
+```fusion
+void function main()
+    write("1 + 2 = ")                   // the line stays open
+    write("{@1}", 1 + 2)
+    print("")                           // ends it
+```
+`print` and `write` are for the console only - files have `writeText`, `appendText`.
+
 #### Strings (values, freed automatically)
 
 <!-- example: syntax_strings | task: 18.3.1 -->

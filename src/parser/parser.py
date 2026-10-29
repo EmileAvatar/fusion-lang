@@ -455,6 +455,14 @@ class Parser:
         Raises:
             ParserError: If token is not a valid primary expression
         """
+        # A match that gives a value (Task 46.2) - it never falls through
+        if self.match(TokenType.MATCH):
+            return self.parse_match_value()
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'fall' \
+                and self.peek(1).type == TokenType.MATCH:
+            raise ParserError(self.peek(), "A match that gives a value can't fall through - "
+                                           "'fall match' is a statement")
+
         # Integer literal
         if self.match(TokenType.INTEGER):
             token = self.previous()
@@ -672,6 +680,17 @@ class Parser:
         Returns:
             ParameterDecl AST node
         """
+        # `let int a` - can't be changed inside the function; `var int a` - can (the
+        # default) - Task 46.1. The type is written: one from each caller is generics (33)
+        is_let = False
+        if self.check(TokenType.LET) or self.check(TokenType.VAR):
+            keyword = self.advance()
+            is_let = keyword.type == TokenType.LET
+            if self.check(TokenType.IDENTIFIER) and self.peek(1).type in (
+                    TokenType.COMMA, TokenType.RPAREN, TokenType.ASSIGN):
+                raise ParserError(self.peek(), f"Give the parameter's type: {keyword.value} int "
+                                               f"{self.peek().value} - a type taken from each "
+                                               f"caller comes with generics (Task 33)")
         # Parse type (for now, just expect identifier for type name)
         param_type = self.parse_type()
         # `string... args` - any number of values, as an array (Task 18.5.4)
@@ -694,6 +713,7 @@ class Parser:
 
         return ParameterDecl(
             location=param_type.location,
+            is_let=is_let,
             is_variadic=variadic,
             param_type=param_type,
             name=name,
@@ -1035,6 +1055,10 @@ class Parser:
         if self.check(TokenType.CONST):
             return self.parse_const_declaration()
 
+        # `let x = 5` / `var x = 5` - the type comes from the value (Task 46.1)
+        if self.check(TokenType.LET) or self.check(TokenType.VAR):
+            return self.parse_inferred_declaration()
+
         # `template string greet = "Hello {@1}"` (Task 29.3)
         if self.is_template_start():
             return self.parse_template_declaration()
@@ -1119,6 +1143,28 @@ class Parser:
             error_location=error_location,
             error_type=error_type
         )
+
+    def parse_inferred_declaration(self) -> VarDeclStmt:
+        """`let name = readLine()` / `var count = 0` (Task 46.1): the type comes from the
+        value. `let` is set once and never changes - the value may come later (`let total`,
+        then `total = ...` on every path); `var` can change, its type can't."""
+        keyword = self.advance()
+        if self.is_type_start() and self.peek(1).type == TokenType.IDENTIFIER:
+            raise ParserError(self.peek(), f"'{keyword.value}' takes its type from the value - "
+                                           f"write {keyword.value} {self.peek(1).value} = ..., or "
+                                           f"give the type instead: {self.peek().value} "
+                                           f"{self.peek(1).value} = ...")
+        name_token = self.consume(TokenType.IDENTIFIER, f"Expected the name after '{keyword.value}'")
+        if self.check(TokenType.LBRACKET):
+            raise ParserError(self.peek(), f"'{keyword.value}' takes its type from the value - "
+                                           f"write {keyword.value} {name_token.value} = [1, 2, 3]")
+        initializer = None
+        if self.match(TokenType.ASSIGN):
+            initializer = self.parse_expression()
+            self.reject_compare_with_single_equals()   # Task 27.2
+        self.consume_statement_terminator()
+        return VarDeclStmt(location=name_token.location, var_type=None, name=name_token.value,
+                           initializer=initializer, inferred=keyword.value)
 
     def parse_const_declaration(self) -> ASTNode:
         """Parse const declaration: const int x = 5
@@ -1277,9 +1323,15 @@ class Parser:
                 break
             if else_body is not None:
                 raise ParserError(self.peek(), "'else' must be the last part of a match")
-            if self.match(TokenType.ELSE):
+            if self.match(TokenType.ELSE) or self._match_anything_else():
                 else_body = self.parse_case_body()
                 continue
+            if self.check(TokenType.IDENTIFIER) or self.check(TokenType.INTEGER) \
+                    or self.check(TokenType.STRING) or self.check(TokenType.CHAR):
+                raise ParserError(self.peek(), "Each part of a match statement starts with "
+                                               "'case' - a match without 'case' gives a value, "
+                                               "and is assigned: string s = match n { 1 : \"a\", "
+                                               "_ : \"b\" }")
             case_token = self.consume(TokenType.CASE, "Expected 'case' or 'else' inside 'match'")
             patterns = [self.parse_match_pattern()]
             while self.match(TokenType.COMMA):
@@ -1296,6 +1348,79 @@ class Parser:
             raise ParserError(match_token, "A match needs at least one 'case'")
         return MatchStmt(location=match_token.location, subject=subject, cases=cases,
                          else_body=else_body)
+
+    def _match_anything_else(self) -> bool:
+        """`_` (or `case _`) where `else` may go - "anything else" (Task 46.2)."""
+        ends = (TokenType.COLON, TokenType.NEWLINE, TokenType.LBRACE, TokenType.INDENT)
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == '_' \
+                and self.peek(1).type in ends:
+            self.advance()
+            return True
+        if self.check(TokenType.CASE) and self.peek(1).type == TokenType.IDENTIFIER \
+                and self.peek(1).value == '_' and self.peek(2).type in ends:
+            self.advance()
+            self.advance()
+            return True
+        return False
+
+    def parse_match_value(self) -> MatchExpr:
+        """A match that gives a value - form A (Task 46.2):
+
+            match n { 6, 7 : "Weekend", _ : "Weekday" }        match count
+                                                                   0 : "none"
+                                                                   _ : "some"
+
+        Each case: values, `:`, one value. `_` or `else` for anything else. The MATCH token
+        has already been consumed."""
+        match_token = self.previous()
+        subject = self.parse_expression()
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.match(TokenType.LBRACE):
+            closing = TokenType.RBRACE
+        elif self.match(TokenType.INDENT):
+            closing = TokenType.DEDENT
+        else:
+            raise ParserError(self.peek(), "Expected the cases of the match - "
+                                           "{ 1 : \"one\", _ : \"other\" }, or an indented block")
+        skip = (TokenType.NEWLINE, TokenType.INDENT, TokenType.DEDENT) \
+            if closing == TokenType.RBRACE else (TokenType.NEWLINE,)
+        cases, else_value = [], None
+        while True:
+            while self.match(*skip):
+                pass
+            if self.check(closing) or self.is_at_end():
+                break
+            if else_value is not None:
+                raise ParserError(self.peek(), "'_' (or else) must be the last case of a match")
+            if self.check(TokenType.CASE):
+                raise ParserError(self.peek(), "A match that gives a value has no 'case' - "
+                                               "write 6, 7 : \"Weekend\"; a match with 'case' is "
+                                               "a statement and can't be assigned")
+            location = self.peek().location
+            if self.match(TokenType.ELSE) or self._match_anything_else():
+                self.consume(TokenType.COLON, "Expected ':' and the value")
+                else_value = self.parse_expression()
+            else:
+                patterns = [self.parse_match_pattern()]
+                while self.match(TokenType.COMMA):
+                    patterns.append(self.parse_match_pattern())
+                self.consume(TokenType.COLON, "Expected ':' and the value after the case's values")
+                cases.append(MatchArm(location=location, patterns=patterns,
+                                      value=self.parse_expression()))
+            if self.check(TokenType.COMMA):
+                self.advance()
+            elif not (self.check(closing) or self.check(TokenType.NEWLINE)
+                      or (closing == TokenType.RBRACE and self.check(TokenType.DEDENT))):
+                raise ParserError(self.peek(), "A case of a match value is one value - no code; "
+                                               "a function call can fetch it")
+        self.consume(closing, "Expected the end of the match")
+        if closing == TokenType.DEDENT:
+            self.block_value_end = self.current     # the line ended with the block
+        if not cases and else_value is None:
+            raise ParserError(match_token, "A match needs at least one case")
+        return MatchExpr(location=match_token.location, subject=subject, cases=cases,
+                         else_body=else_value)
 
     def parse_try_statement(self) -> ASTNode:
         """Parse try / catch err / finally (Task 26.3), indented, braced or closed by
@@ -1514,7 +1639,7 @@ class Parser:
         # read silently as two statements (Task 30.0)
         if not (self.check(TokenType.NEWLINE) or self.check(TokenType.RBRACE)
                 or self.check(TokenType.DEDENT) or self.check(TokenType.END)
-                or self.is_at_end()):
+                or self.is_at_end() or getattr(self, 'block_value_end', None) == self.current):
             raise ParserError(self.peek(), f"Expected the end of the line after this statement, "
                                            f"found '{self.peek().value}' - one statement per line")
         while self.match(TokenType.NEWLINE):
@@ -1656,6 +1781,10 @@ class Parser:
                                             f"an enum, a function or a module variable")
             decl.is_public = modifier.type == TokenType.PUBLIC
             return decl
+
+        # A module-level `let` / `var` (Task 46.1)
+        if self.check(TokenType.LET) or self.check(TokenType.VAR):
+            return self.parse_inferred_declaration()
 
         # A module-level constant: `const int LIMIT = 10` (Task 44.1)
         if self.match(TokenType.CONST):

@@ -672,6 +672,9 @@ class MemoryManagementMixin:
             return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, InterpolatedStringExpr):
             return True  # "x is {x}" builds a new string (18.3.3)
+        if type(expr).__name__ == 'MatchExpr':
+            # a match value (Task 46.2): each value made owned, as with (c) ? a : b
+            return self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, ConditionalExpr):
             # (c) ? a : b - each value is made owned, so the result always is (Task 30.7)
             return self.is_managed(getattr(expr, 'inferred_type', None))
