@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fusion Types</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --panel: #ffffff;
+    --text: #1d1d1f;
+    --muted: #5f6368;
+    --line: #e2e2de;
+    --head: #efefea;
+    --accent: #2f6fd6;
+    --built: #1f8a4c;
+    --built-bg: #e3f4ea;
+    --planned: #a15c00;
+    --planned-bg: #fbeedb;
+    --designed: #6b4bc4;
+    --designed-bg: #ece6fb;
+    --code-bg: #f0f0ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16171a;
+      --panel: #1f2024;
+      --text: #e8e8ea;
+      --muted: #a0a3aa;
+      --line: #33353b;
+      --head: #26282d;
+      --accent: #7aa7f5;
+      --built: #6fd39a;
+      --built-bg: #1b3326;
+      --planned: #f0b46a;
+      --planned-bg: #3a2c19;
+      --designed: #b9a3f5;
+      --designed-bg: #2c2540;
+      --code-bg: #2a2c31;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1200px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 36px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  table { border-collapse: collapse; width: 100%; min-width: 960px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    background: var(--head);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    position: sticky;
+    top: 0;
+  }
+  tr.group td {
+    background: var(--head);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.type code { font-weight: 700; font-size: 14px; }
+  code {
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 13px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  td.num { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13px; white-space: nowrap; }
+  td.notes { color: var(--muted); font-size: 13px; min-width: 260px; }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .built { color: var(--built); background: var(--built-bg); }
+  .planned { color: var(--planned); background: var(--planned-bg); }
+  .designed { color: var(--designed); background: var(--designed-bg); }
+  .kind-value { color: var(--accent); font-weight: 600; }
+  .kind-ref { color: var(--designed); font-weight: 600; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+  dt { font-weight: 600; }
+  dd { margin: 0; color: var(--muted); }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  ol { margin: 0; padding-left: 20px; }
+  ol li { margin: 4px 0; }
+  footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+  @media (max-width: 600px) {
+    h1 { font-size: 22px; }
+    dl { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Fusion Types</h1>
+  <p class="lead">Every type in Fusion: its default value, range and size, as the compiler stores it
+  in C today. Sizes are in bytes on a 64-bit machine (Windows / Linux, GCC). A reference is a
+  pointer: the object or block itself lives on the heap.</p>
+
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th><th>Kind</th><th>Default</th><th>Min</th><th>Max</th>
+        <th>Size</th><th>Can be null</th><th>Status</th><th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="group"><td colspan="9">Whole numbers</td></tr>
+      <tr>
+        <td class="type"><code>int</code></td><td class="kind-value">value</td>
+        <td class="num">0</td><td class="num">-2,147,483,648</td><td class="num">2,147,483,647</td>
+        <td class="num">4</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Past min / max: an OverflowError. <code>[numbers] overflowWrap = true</code> wraps instead.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>byte</code></td><td class="kind-value">value</td>
+        <td class="num">0x00</td><td class="num">0</td><td class="num">255</td>
+        <td class="num">1</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Takes a literal 0-255; any other int needs <code>toByte(n)</code>, which checks the range.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>short</code></td><td class="kind-value">value</td>
+        <td class="num">0</td><td class="num">-32,768</td><td class="num">32,767</td>
+        <td class="num">2</td><td>no</td><td><span class="badge planned">planned</span></td>
+        <td class="notes">A reserved word only - not built yet.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>long</code></td><td class="kind-value">value</td>
+        <td class="num">0</td><td class="num">-9,223,372,036,854,775,808</td><td class="num">9,223,372,036,854,775,807</td>
+        <td class="num">8</td><td>no</td><td><span class="badge planned">planned</span></td>
+        <td class="notes">A reserved word only - not built yet.</td>
+      </tr>
+
+      <tr class="group"><td colspan="9">Fractions</td></tr>
+      <tr>
+        <td class="type"><code>float</code></td><td class="kind-value">value</td>
+        <td class="num">0.0</td><td class="num">-3.4028235e38</td><td class="num">3.4028235e38</td>
+        <td class="num">4</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">About 7 digits. Whole numbers exact only up to 16,777,216.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>double</code></td><td class="kind-value">value</td>
+        <td class="num">0.0</td><td class="num">-1.7976931348623157e308</td><td class="num">1.7976931348623157e308</td>
+        <td class="num">8</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">About 15-16 digits. Whole numbers exact up to 9,007,199,254,740,992.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>money</code></td><td class="kind-value">value</td>
+        <td class="num">0</td><td class="num">-</td><td class="num">-</td>
+        <td class="num">-</td><td>no</td><td><span class="badge designed">designed</span></td>
+        <td class="notes">Exact decimal. Size and range still to decide: whole cents in 64 bits, or a true decimal.</td>
+      </tr>
+
+      <tr class="group"><td colspan="9">Other values</td></tr>
+      <tr>
+        <td class="type"><code>bool</code></td><td class="kind-value">value</td>
+        <td class="num">false</td><td class="num">false</td><td class="num">true</td>
+        <td class="num">1</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Prints as true / false.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>char</code></td><td class="kind-value">value</td>
+        <td class="num">'\0'</td><td class="num">U+0000</td><td class="num">U+10FFFF</td>
+        <td class="num">4</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Any Unicode character. 1 byte with <code>[strings] encoding = "ascii"</code>.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>void</code></td><td>-</td>
+        <td class="num">-</td><td class="num">-</td><td class="num">-</td>
+        <td class="num">0</td><td>-</td><td><span class="badge built">built</span></td>
+        <td class="notes">Only as a return type: the function gives no value.</td>
+      </tr>
+
+      <tr class="group"><td colspan="9">Text</td></tr>
+      <tr>
+        <td class="type"><code>string</code></td><td class="kind-value">value</td>
+        <td class="num">""</td><td class="num">0 characters</td><td class="num">2,147,483,647 bytes</td>
+        <td class="num">24</td><td>no*</td><td><span class="badge built">built</span></td>
+        <td class="notes">24 = the handle (pointer, length, characters, owned); the text is on the heap. <code>[strings] maxLength</code> sets a lower limit.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>bytes</code></td><td class="kind-value">value</td>
+        <td class="num">empty</td><td class="num">0 bytes</td><td class="num">2,147,483,647 bytes</td>
+        <td class="num">24</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Raw bytes - the same handle as a string.</td>
+      </tr>
+
+      <tr class="group"><td colspan="9">Collections</td></tr>
+      <tr>
+        <td class="type"><code>T[n]</code> array</td><td class="kind-value">value</td>
+        <td class="num">each element's default</td><td class="num">-</td><td class="num">fixed when made</td>
+        <td class="num">n &times; T</td><td>no*</td><td><span class="badge built">built</span></td>
+        <td class="notes">Fixed size today. Grows at the end and becomes a shared reference with Task 45.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>List&lt;T&gt;</code></td><td class="kind-ref">ref</td>
+        <td class="num">empty</td><td class="num">0 elements</td><td class="num">536,870,911 elements</td>
+        <td class="num">8</td><td>no*</td><td><span class="badge built">built</span></td>
+        <td class="notes">A shared, counted block: 24 bytes + the elements. Copied inside a struct; <code>byVal</code> copies.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>Map&lt;K, V&gt;</code></td><td class="kind-ref">ref</td>
+        <td class="num">empty</td><td class="num">0 entries</td><td class="num">-</td>
+        <td class="num">8</td><td>no*</td><td><span class="badge built">built</span></td>
+        <td class="notes">A shared, counted block: 48 bytes + the entries. Keys: string, int, char, enum.</td>
+      </tr>
+
+      <tr class="group"><td colspan="9">Your own types</td></tr>
+      <tr>
+        <td class="type"><code>struct</code></td><td class="kind-value">value</td>
+        <td class="num">each field's default</td><td class="num">-</td><td class="num">-</td>
+        <td class="num">its fields</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Size = its fields + padding. Copied on assignment, its Lists and Maps too.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>class</code></td><td class="kind-ref">ref</td>
+        <td class="num">null</td><td class="num">-</td><td class="num">-</td>
+        <td class="num">8</td><td>yes</td><td><span class="badge built">built</span></td>
+        <td class="notes">The object: a 4-byte count + its fields, on the heap. Freed when the last holder lets go.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>enum</code></td><td class="kind-value">value</td>
+        <td class="num">null</td><td class="num">first value</td><td class="num">last value</td>
+        <td class="num">4</td><td>yes</td><td><span class="badge built">built</span></td>
+        <td class="notes">An int inside; null is -2,147,483,647. An enum with data: a tag + its fields.</td>
+      </tr>
+      <tr>
+        <td class="type"><code>Error</code></td><td class="kind-value">value</td>
+        <td class="num">no error</td><td class="num">-</td><td class="num">-</td>
+        <td class="num">-</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">message, code, where - plus a custom error type's own fields.</td>
+      </tr>
+      <tr>
+        <td class="type">function <code>(int) : int</code></td><td class="kind-ref">ref</td>
+        <td class="num">none</td><td class="num">-</td><td class="num">-</td>
+        <td class="num">8</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">A pointer to a function; must be given one when declared.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="lead" style="margin-top:10px">* A <code>nullable</code> setting per type will allow null
+  (<code>[strings]</code>, <code>[arrays]</code>, <code>[lists]</code>, <code>[maps]</code> - planned, Task 30.3).</p>
+
+  <h2>What the columns mean</h2>
+  <div class="card">
+    <dl>
+      <dt>Kind</dt><dd><b>value</b>: copied on assignment. <b>ref</b>: shared, and freed when the last place holding it lets go (Object_Lifetime.md).</dd>
+      <dt>Default</dt><dd>What a variable holds when it is declared without a value.</dd>
+      <dt>Min / Max</dt><dd>The range - for text and collections, the size limit.</dd>
+      <dt>Size</dt><dd>What the variable itself takes, in bytes. For a reference, the 8-byte pointer.</dd>
+      <dt>Can be null</dt><dd>Without any setting.</dd>
+      <dt>Status</dt><dd><b>built</b>: works today. <b>designed</b>: decided, not built. <b>planned</b>: on the task list.</dd>
+    </dl>
+  </div>
+
+  <h2>Open points this table brought up</h2>
+  <div class="card">
+    <ol>
+      <li><code>short</code> and <code>long</code> are reserved words but not built - using one gives no clear "not built yet" error.</li>
+      <li><code>money</code> needs a size and range: whole cents in 64 bits, or a true decimal type.</li>
+      <li>An enum whose values carry fixed data (like a table of these types) would need a new syntax.</li>
+    </ol>
+  </div>
+
+  <footer>Fusion compiler - type reference, 2026-10-29. Generated by hand from src/codegen/c_types.py and the C run-time; update it when a type changes.</footer>
+</main>
+</body>
+</html>

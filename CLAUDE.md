@@ -123,6 +123,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Finished tasks and items (their FEATURES.md lines) | `task/featuresArchive.md` |
 | What the language can do now, with examples | `SYNTAX_REFERENCE.md` |
 | Every built-in function and method (generated) | `files/Builtins.md` |
+| Every type: default, range, size, status (open in a browser; update by hand) | `files/FusionTypes.html` |
 | Active task plan + next action | `taskSummary2.md` |
 | Finished task detail, old sessions | `task/taskSummaryArchive.md` |
 | Not-started task write-ups | `task/taskBacklog.md` |
