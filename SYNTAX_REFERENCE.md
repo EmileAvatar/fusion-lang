@@ -674,8 +674,11 @@ void function main()
     print("{@1} {@2} {@3}", first.items.len(), second.items.len(), first.log.len())   // 1 2 2
 ```
 Rule of thumb: in a struct a List / Map is copied (`byVal`) unless the field says `byRef`;
-everywhere else it is shared (`byRef`) unless written `byVal`. Never null - just empty.
-Maps work the same way. Arrays follow once they can grow (Task 45).
+everywhere else it is shared (`byRef`) unless written `byVal`. Never null - just empty
+(`xs = null` is an error). Maps work the same way. Arrays follow once they can grow (Task 45).
+
+`xs.toList()` gives a copy of a List (`xs.toList(false)`: the same list, shared), and
+`scores.toList()` a new List from a one-dimensional array.
 
 #### Maps: `Map<K, V>` (also written `Dictionary<K, V>`)
 

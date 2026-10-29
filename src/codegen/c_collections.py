@@ -188,6 +188,13 @@ class CollectionsMixin:
                 f'for (int i = 0; i < count; i++) r->data[i] = {copy("l->data[start + i]")};',
                 'r->len = count;',
                 'return r;'],
+            # an array's toList() - a new list with copies of the elements (Task 32.10a.1)
+            f'{name} {name}_copyFrom(const {T}* items, int n)': [
+                f'{name} r = {name}_new();',
+                f'{name}_grow(r, n);',
+                f'for (int i = 0; i < n; i++) r->data[i] = {clone("items[i]")};',
+                'r->len = n;',
+                'return r;'],
             f'{name} {name}_filter({name} l, bool (*keep)({T}))': [
                 f'{name} r = {name}_new();',
                 f'for (int i = 0; i < l->len; i++) if (keep(l->data[i])) {name}_add(r, {copy("l->data[i]")});',
@@ -298,6 +305,12 @@ class CollectionsMixin:
             expr = inner
         return False
 
+    def array_to_list_code(self, node) -> str:
+        """`scores.toList()` on an array - a new List with copies of the elements."""
+        receiver = node.callee.object
+        items, count = self._array_operand(receiver, receiver.inferred_type)
+        return f'{self.list_c_name(node.list_type)}_copyFrom({items}, {count})'
+
     def list_method_code(self, node) -> str:
         """C for `xs.method(args)` (Task 18.5.1)."""
         method, list_type = node.list_method, node.list_type
@@ -323,6 +336,11 @@ class CollectionsMixin:
             return f'({target})->len'
         if method == 'slice':
             return f'{name}_slice({target}, {self.visit(args[0])}, {self.visit(args[1])}, {where})'
+        if method == 'toList':
+            # a copy (deep, as byVal) - or with false the same list, shared (Task 32.10a.1)
+            if not args:
+                return f'{name}_clone({target})'
+            return f'({self.visit(args[0])} ? {name}_clone({target}) : {name}_retain({target}))'
         if method == 'filter':
             return f'{name}_filter({target}, {self.visit(args[0])})'
         if method == 'join':

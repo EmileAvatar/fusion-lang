@@ -112,6 +112,10 @@ are in `task/featuresArchive.md`.
 		[DONE] 32.10a Lists and Maps are references with a count (tests/test_shared_collections.py):
 			shared in normal code, copied in a struct; `byVal` copies, a `byRef` field shares
 			(user, 2026-10-29 - truth table in Arrays.md section 1)
+		[DONE] 32.10a.1 `toList(copy = true)` on a List (false: shared) and a one-dimensional
+			array (a copy); null on an array / List / Map names the planned nullable setting
+		[ ] toList on arrays of more dimensions - revisit with multi-dimensional arrays (user,
+			2026-10-29)
 		[ ] 32.10b Minimal classes: fields, methods, constructor, objects by reference, null
 		[ ] 32.10c The catalogue (U / D / R / T / O, collections of objects) - a test each
 		[ ] 32.10d Cycles: the leak check reports them; a warning where a class can hold itself

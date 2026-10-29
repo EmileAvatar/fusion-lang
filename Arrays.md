@@ -342,5 +342,6 @@ original alone.
 | 2026-10-27 | `foreach (string item in names)` - the item's type is the collection's. Future: a `Collection` interface (Task 32) - arrays, lists, maps and your own classes implement it, and a class decides its own looping / thread rules |
 | 2026-10-27 | `foreach` over arrays, lists and maps: adding / removing inside is a compile error; `continue` and `break` allowed |
 | 2026-10-27 | Lists / maps and threads: shared by default, `[collections] threads = "shared"`, `shared_threads = 10` |
+| 2026-10-29 | `toList(copy = true)` on a List and an array; setting an array / List / Map to null is an error unless its nullable setting allows it |
 | 2026-10-29 | Arrays, Lists and Maps are references (shared) in normal code - a variable, parameter, class field, element - and copied inside a struct; `byVal` copies in normal code, `byRef` shares in a struct field. Never null, just empty |
 | 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |

@@ -335,7 +335,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return self._check_list_literal(value, expected)
         if isinstance(value, LiteralExpr) and value.type_hint == 'null':
             # null (Task 30.11): an enum can hold it (class objects later, Task 32)
-            if not isinstance(expected, EnumType):
+            if isinstance(expected, (ListType, MapType, ArrayType)):
+                self.errors.append(SemanticError(self.null_collection(expected), value.location))
+            elif not isinstance(expected, EnumType):
                 self.errors.append(SemanticError(
                     f"A {self.type_to_string(expected)} can't be null - only an enum (and class "
                     f"objects, later) can", value.location))
@@ -344,6 +346,15 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         result = self.visit(value)
         self.widen_to_float(value, result, expected)
         return self.as_parent_part(value, result, expected) or result
+
+    def null_collection(self, expected) -> str:
+        """An array, List or Map is never null - empty instead (user, 2026-10-27 / 29)."""
+        section = ('arrays' if isinstance(expected, ArrayType)
+                   else 'lists' if isinstance(expected, ListType) else 'maps')
+        empty = '' if isinstance(expected, ArrayType) else ' - clear() empties it'
+        kind = {'arrays': 'an array', 'lists': 'a List', 'maps': 'a Map'}[section]
+        return (f"{self.type_to_string(expected)} can't be null - {kind} is empty when declared"
+                f"{empty}. [{section}] nullable = true will allow null (planned, Task 30.3)")
 
     _FLOAT_EXACT = 16777216   # 2^24: every whole number up to here fits a float exactly
 
@@ -1083,6 +1094,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if isinstance(node.callee, MemberExpr) and node.callee.member in self.LENGTH_NAMES \
                 and not node.arguments:
             self._length_sugar(node)
+        # an array's toList() - a List copy (Task 32.10a.1)
+        if isinstance(node.callee, MemberExpr) and node.callee.member == 'toList':
+            result = self.array_to_list_call(node)
+            if result is not None:
+                return result
         # x.toCSV() on a struct, or an array or List of them (Task 32.13)
         if isinstance(node.callee, MemberExpr) and node.callee.member == 'toCSV':
             result = self.csv_call(node)
@@ -2071,6 +2087,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             node: Variable declaration statement node (node.var_type is an ArrayType)
         """
         array_type: ArrayType = node.var_type
+        if isinstance(node.initializer, LiteralExpr) and node.initializer.type_hint == 'null':
+            self.errors.append(SemanticError(self.null_collection(array_type),
+                                             node.initializer.location))
+            return
 
         if not node.initializer:
             if array_type.size is None:
@@ -2175,6 +2195,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return
         later = set_later(symbol)              # its one assignment - check_set_once checks it
 
+        if isinstance(symbol.data_type, ArrayType) and isinstance(node.value, LiteralExpr) \
+                and node.value.type_hint == 'null':
+            self.errors.append(SemanticError(self.null_collection(symbol.data_type),
+                                             node.value.location))
+            return
         if isinstance(symbol.data_type, ArrayType):
             # A whole array can be replaced by one a function returns (Task 18.2.4) - copied
             # element by element. From another array variable it still isn't supported

@@ -1003,6 +1003,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self.map_method_code(node)
         if getattr(node, 'csv', None):
             return self.csv_code(node)            # x.toCSV() (Task 32.13)
+        if getattr(node, 'array_to_list', False):
+            return self.array_to_list_code(node)  # an array's toList() (Task 32.10a.1)
 
         # A struct constructor, Point(3, 4) (Task 18.2.1) - resolved_arguments has every
         # field, with omitted ones filled in from their defaults by the type checker

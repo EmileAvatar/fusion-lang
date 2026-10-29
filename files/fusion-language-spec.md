@@ -3761,7 +3761,12 @@ variable, a parameter, an element - `b = a`, passing and returning share the sam
 it is freed when its last holder lets go; `byVal a` (or `byValue a`) makes a deep copy, and a
 `byVal List<int> xs` parameter gets one. **Inside a struct** it is copied with the struct,
 unless the field is written `byRef`. It is never null - empty when declared. A Map works the
-same way. Arrays follow once they can grow (Task 45); until then they are copied. Built-in generic
+same way. Arrays follow once they can grow (Task 45); until then they are copied.
+
+`xs.toList(copy = true)` (Task 32.10a.1): a List's copy, or with `false` the same list,
+shared; on a one-dimensional array, a new List with copies of its elements (sharing needs
+arrays on the heap - Task 45). Both are revisited with multi-dimensional arrays. `null` is an
+error on an array, List or Map until `[arrays]` / `[lists]` / `[maps] nullable = true` (Task 30.3). Built-in generic
 types - user-written generics come later, with classes. In C each element type has its own
 small set of functions, made only when used, so there is no boxing and no speed cost.
 

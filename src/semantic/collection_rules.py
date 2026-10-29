@@ -9,7 +9,7 @@ declaration, so `[1, 2, 3]` stored as List<int> is a list literal, and `for x in
 from typing import Optional
 
 from src.parser.ast_nodes import (
-    ASTNode, ArrayLiteralExpr, CallExpr, MemberExpr, IdentifierExpr, IndexExpr, LambdaExpr,
+    ASTNode, ArrayLiteralExpr, CallExpr, MemberExpr, IdentifierExpr, IndexExpr, LambdaExpr, LiteralExpr,
     PrimitiveType, ArrayType, FunctionType, ListType, MapType, NewCollectionExpr, EnumType,
 )
 from .errors import SemanticError
@@ -21,13 +21,45 @@ MUTATING_MAP_METHODS = {'remove', 'clear'}
 # Every List / Map method - another name on a list or map may be one of the program's own
 # functions called as a method (Task 44.2)
 LIST_METHOD_NAMES = {'add', 'insert', 'removeAt', 'remove', 'clear', 'len', 'contains', 'indexOf',
-                     'join', 'slice', 'sort', 'sortBy', 'filter', 'map', 'reduce'}
+                     'join', 'slice', 'sort', 'sortBy', 'filter', 'map', 'reduce', 'toList'}
 MAP_METHOD_NAMES = {'has', 'get', 'remove', 'keys', 'values', 'len', 'clear'}
 MAP_KEY_TYPES = ('string', 'int', 'char')
 _SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
 
 
 class CollectionRulesMixin:
+    def array_to_list_call(self, node: CallExpr) -> Optional[ASTNode]:
+        """`scores.toList()` on an array: a new List with copies of its elements (Task
+        32.10a.1). Sharing (`toList(false)`) waits until arrays live on the heap (Task 45);
+        an array of arrays waits for multi-dimensional arrays. None if not an array."""
+        receiver = node.callee.object
+        if isinstance(receiver, IdentifierExpr) and self.symbol_table.lookup(receiver.name) is None:
+            return None
+        receiver_type = self.visit(receiver)
+        self.checked_receivers[id(receiver)] = receiver_type
+        if not isinstance(receiver_type, ArrayType) or self.user_method('toList', receiver_type):
+            return None
+        self.checked_receivers.pop(id(receiver), None)
+        element = receiver_type.element_type
+        if isinstance(element, ArrayType):
+            self.errors.append(SemanticError(
+                "toList works on a one-dimensional array for now - arrays of arrays come later",
+                node.location))
+        if len(node.arguments) > 1:
+            self.errors.append(SemanticError("toList takes one value: copy (true when left out)",
+                                             node.location))
+        elif node.arguments:
+            given = node.arguments[0]
+            self.visit(given)
+            if not (isinstance(given, LiteralExpr) and given.value is True):
+                self.errors.append(SemanticError(
+                    "An array's toList always copies for now - it can't share the array as a "
+                    "List until arrays can grow (Task 45); leave the value out", given.location))
+        node.array_to_list = True
+        node.list_type = ListType(location=node.location, element_type=element)
+        self._check_collection_type(node.list_type, node.location)
+        return node.list_type
+
     """List rules for the TypeChecker (Task 18.5.1)."""
 
     # ------------------------------------------------------------------ types and literals
@@ -141,6 +173,14 @@ class CollectionRulesMixin:
             if want(1):
                 check(args[0], int_type, 'The position')
             return void
+        if method == 'toList':
+            # xs.toList() - a copy (deep, as byVal); xs.toList(false) - the same list, shared
+            # (Task 32.10a.1, user 2026-10-29)
+            if len(args) > 1:
+                want(1)
+            elif args:
+                check(args[0], bool_type, 'copy')
+            return receiver_type
         if method in ('clear', 'len'):
             want(0)
             return void if method == 'clear' else int_type

@@ -55,6 +55,7 @@ SPECIAL = {
 # (call, returns, can fail, what it does) - List<T> methods (Task 18.5.1)
 LIST_METHODS = [
     ('add(T x)', 'void', False, 'add at the end'),
+    ('toList(bool copy = true)', 'List<T>', False, 'a copy (deep, as byVal); toList(false): the same list, shared'),
     ('insert(int at, T x)', 'void', True, 'insert before position at (IndexError)'),
     ('removeAt(int at)', 'void', True, 'remove the element at a position (IndexError)'),
     ('remove(T x)', 'bool', False, 'remove the first element equal to x; false if none'),

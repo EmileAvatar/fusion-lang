@@ -103,3 +103,42 @@ def test_a_list_freed_when_the_last_holder_lets_go():
 ])
 def test_byref_errors(source, message):
     assert message in errors_of(source)
+
+
+def test_tolist_copies_or_shares():
+    # Task 32.10a.1 (user, 2026-10-29): toList(copy = true)
+    lines = run('struct P\n    string name\n\n'
+                + main('List<string> a = ["x"]\n'
+                       'List<string> b = a.toList()\n'
+                       'List<string> c = a.toList(false)\n'
+                       'bool share = true\n'
+                       'List<string> d = a.toList(not share)\n'
+                       'b.add("only b")\n'
+                       'c.add("a and c")\n'
+                       'print("{@1} {@2} {@3} {@4}", a.len(), b.len(), c.len(), d.len())\n'
+                       'int[3] nums = [1, 2, 3]\n'
+                       'List<int> fromArray = nums.toList()\n'
+                       'fromArray.add(4)\n'
+                       'print("{@1} {@2}", fromArray.len(), nums[0])\n'
+                       'P[2] people = [P("Ann"), P("Bo")]\n'
+                       'List<P> ps = people.toList(true)\n'
+                       'ps[0].name = "changed"\n'
+                       'print("{@1} {@2}", ps[0].name, people[0].name)\n'
+                       'List<List<int>> grid = [[1]]\n'
+                       'List<List<int>> g2 = grid.toList()\n'
+                       'g2[0].add(2)\n'
+                       'print("{@1}", grid[0].len())'))
+    assert lines == ['2 2 2 2', '4 1', 'changed Ann', '1']
+
+
+@pytest.mark.parametrize('code, message', [
+    ('int[2] a = [1, 2]\nList<int> x = a.toList(false)', "An array's toList always copies for now"),
+    ('int[3] n = null', "int[3] can't be null - an array is empty when declared. [arrays] nullable"),
+    ('int[2] a = [1, 2]\na = null', "int[2] can't be null - an array is empty when declared"),
+    ('List<int> l = null', "List<int> can't be null - a List is empty when declared - clear() "
+                           "empties it. [lists] nullable = true will allow null (planned"),
+    ('Map<string, int> m\nm = null', "Map<string, int> can't be null - a Map is empty when "
+                                      "declared - clear() empties it. [maps] nullable"),
+])
+def test_tolist_and_null_errors(code, message):
+    assert message in errors_of(main(code))
