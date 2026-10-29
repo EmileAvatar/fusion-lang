@@ -174,7 +174,7 @@
         <td class="type"><code>money</code></td><td class="kind-value">value</td>
         <td class="num">0</td><td class="num">-9,223,372,036,854,775,808</td><td class="num">9,223,372,036,854,775,807</td>
         <td class="num">8</td><td>no</td><td><span class="badge planned">planned</span></td>
-        <td class="notes">A signed 64-bit whole number of the currency's minor units - for USD / ZAR, cents: 12345 is $123.45 or R123.45 (JPY: whole yen). Exact on every device: rounding, discounts and tax follow fixed rules (Task 47.2.2).
+        <td class="notes">A signed 64-bit whole number of the currency's minor units - for USD / ZAR, cents: 12345 is $123.45 or R123.45; JPY the same, in whole steps of 100 (&yen;1 is 100); KWD in thousandths (1 KWD is 1000). Exact on every device: rounding, discounts and tax follow fixed rules (Task 47.2.2).
         Exact whole-number arithmetic with overflow checking - not a decimal. The number only, no
         currency: the Currency module decides what a unit means and converts (Task 47.2).</td>
       </tr>

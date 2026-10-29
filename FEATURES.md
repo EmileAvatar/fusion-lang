@@ -64,10 +64,13 @@ are in `task/featuresArchive.md`.
 	[ ] 47.2 `money`: a `long` counting a currency's minor units - kind value, default 0, min /
 		max as long, 8 bytes, never null; exact whole-number arithmetic with overflow checking -
 		not a decimal, never a float. Plan the literal / printing form first
-		[ ] 47.2.1 Minor units, not cents (user, 2026-10-29): `money` holds a whole number only;
-			what one unit means is the Currency module's (43.3) - USD / ZAR: cents ($1 is 100,
-			12345 is R123.45), JPY: whole yen, BHD: thousandths. The core stays small; the
-			currency system can change on its own
+		[ ] 47.2.1 Minor units (user, 2026-10-29): `money` is a signed 64-bit whole number -
+			always cents, or the currency's own minor unit where it has a smaller one; what a
+			unit means is the Currency module's (43.3). USD / ZAR (2 decimal places): $1 is 100,
+			12345 is R123.45. JPY (0 decimal places): stored the same way, ¥1 is 100 - always a
+			whole multiple of 100 (100, 200 ... 900), so it never has a fraction. KWD (3
+			decimal places): 1 KWD is 1000. The core stays small; the currency system can
+			change on its own
 		[ ] 47.2.2 Exact on every device: rules for everything that makes a fraction - rounding,
 			percentages (deals, discounts), tax, splitting an amount (R100 / 3) - so a
 			calculation gives the same result on any CPU, OS or platform. Whole-number steps
@@ -337,7 +340,10 @@ are in `task/featuresArchive.md`.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
 		zones; epochs; durations and time calculations (a Math sub-module, user). Duration
 		literals map to int milliseconds until then (42.16)
-	[ ] 43.3 Currency module (user, 2026-10-29): currencies and conversion for `money` (47.2).
+	[ ] 43.3 Currency module (user, 2026-10-29): how `money` (47.2) is used per currency -
+		currency definitions with their decimal places (USD 2, JPY 0, KWD 3) and so their
+		units (USD 100, JPY 100 in whole steps, KWD 1000), formatting, parsing, and exchange-
+		rate conversion with rates the developer supplies.
 		Hard rule: it never fetches prices or rates from an external API - the developer
 		using it fetches the rates and gives them to it (see CLAUDE.md project notes)
 	[ ] 43.2 Data formats module (user, 2026-10-28): read and write TOML, JSON, YAML, INI, XML,
