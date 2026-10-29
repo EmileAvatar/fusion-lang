@@ -108,7 +108,7 @@ are in `task/featuresArchive.md`.
 	[ ] 32.10 Object lifetime (mini-task, before 32.2): every case in Object_Lifetime.md with a
 		test. OWNERSHIP first, always (user, 2026-10-29 - no crashes, no leaks); count references,
 		but skip the counting where the compiler proves a single owner (Swift / Lobster -
-		Notes/Program lang Compare.txt, Rust videos)
+		Notes/Program lang Compare.md, Rust videos)
 	[DONE] 32.8 Structs building on structs (tests/test_struct_parents.py): `implements`
 		(`extends` / `includes`); an Employee goes where a Person is expected (a copy of its
 		Person part); Person's methods work on it; same-name fields warn, `e.Person.tel`;
@@ -314,7 +314,7 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 ## Later / advanced (after MVP)
 
 Kept in Fusion's design, deliberately postponed - the simple version comes first.
-	From the Rust videos (user, 2026-10-29 - Notes/Program lang Compare.txt):
+	From the Rust videos (user, 2026-10-29 - Notes/Program lang Compare.md):
 	[ ] Errors for tools and AI agents: every error in one form (line, what failed, a `fix:`
 		hint), and an optional machine-readable output (`--errors json`)
 	[POSTPONED - needs `extern`] A Fusion library other programs load: a `.dll` / `.so` with a
