@@ -68,9 +68,11 @@ are in `task/featuresArchive.md`.
 			always cents, or the currency's own minor unit where it has a smaller one; what a
 			unit means is the Currency module's (43.3). USD / ZAR (2 decimal places): $1 is 100,
 			12345 is R123.45. JPY (0 decimal places): stored the same way, ¥1 is 100 - always a
-			whole multiple of 100 (100, 200 ... 900), so it never has a fraction. KWD (3
-			decimal places): 1 KWD is 1000. The core stays small; the currency system can
-			change on its own
+			whole multiple of 100 (100, 200 ... 900), so it never has a fraction: the smallest
+			amount above zero is 100 (¥1), then 0, and the largest below zero is -100 (-¥1).
+			KWD (3 decimal places): 1 KWD is 1000. `money` itself is just a long, whatever the
+			currency - the Currency module's code enforces each currency's steps (user,
+			2026-10-29). The core stays small; the currency system can change on its own
 		[ ] 47.2.2 Exact on every device: rules for everything that makes a fraction - rounding,
 			percentages (deals, discounts), tax, splitting an amount (R100 / 3) - so a
 			calculation gives the same result on any CPU, OS or platform. Whole-number steps
