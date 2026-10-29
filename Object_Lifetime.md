@@ -10,6 +10,10 @@ model). Status: **being designed** (user decisions 2026-10-28). Nothing here is 
 
 ## 1. Three memory strategies (a project setting)
 
+**OWNERSHIP is always the first choice (user, 2026-10-29):** memory stability - no crashes
+where they can be avoided, and no leaks, which cause instability and security holes. GC and
+MANUAL are there for the cases that need them.
+
 | Strategy | Like | How an object is freed | For |
 |---|---|---|---|
 | **OWNERSHIP** (scope) - **the default** | Rust (+ reference counting, as Swift) | when the last place holding it lets go - at once, usually when a scope ends | most programs: no pauses, no manual work |
@@ -340,6 +344,9 @@ Columns: the kind of field.
 - An object only one variable holds is freed exactly when that variable's scope ends
   (Rust's rule); an object several places hold is freed when the last one lets go (Swift's)
 - Freeing an object lets go of everything it holds - its fields, in turn (a cascade)
+- **No counting where it isn't needed (2026-10-29):** where the compiler can prove an object
+  has one owner (made, used and dropped, or handed on once), it skips the count - the cost of
+  counting is paid only for objects really shared (as Swift and Lobster do)
 
 **Places that hold an object:**
 
@@ -584,3 +591,4 @@ The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mo
 | 2026-10-28 | A class with a `nocopy` field can't be copied - unless it implements `Cloneable`: then `copy(x)` / `byVal x` call its `clone()`, which recreates the field. A `noshare` field is copied automatically when the enclosing object is copied (it doesn't stop sharing). A class that can't be copied can still be passed to functions (borrowed). Structs are always copied. A list of a `nocopy` class needs that class to be `Cloneable` to be copied. A method may hand out a `nocopy` field's reference (`return database`) or a copy of a `noshare` field (`return copy(log)`) |
 | 2026-10-28 | Leaks: warned in development; the leak check can be off or built into the app; a published app logs, never shows debug messages to the customer |
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |
+| 2026-10-29 | OWNERSHIP is always the first choice - no crashes, no leaks (they cause instability and security holes). Counting is skipped where the compiler proves a single owner |

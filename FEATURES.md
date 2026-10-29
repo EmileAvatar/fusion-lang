@@ -105,6 +105,10 @@ are in `task/featuresArchive.md`.
 		plain `.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
 	[ ] 30.3 (from Task 30) `nullable` settings for strings / arrays / lists / maps (default
 		false) and `?.length()` giving -1 on a null one - only useful with 30.2
+	[ ] 32.10 Object lifetime (mini-task, before 32.2): every case in Object_Lifetime.md with a
+		test. OWNERSHIP first, always (user, 2026-10-29 - no crashes, no leaks); count references,
+		but skip the counting where the compiler proves a single owner (Swift / Lobster -
+		Notes/Program lang Compare.txt, Rust videos)
 	[DONE] 32.8 Structs building on structs (tests/test_struct_parents.py): `implements`
 		(`extends` / `includes`); an Employee goes where a Person is expected (a copy of its
 		Person part); Person's methods work on it; same-name fields warn, `e.Person.tel`;
@@ -310,6 +314,13 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 ## Later / advanced (after MVP)
 
 Kept in Fusion's design, deliberately postponed - the simple version comes first.
+	From the Rust videos (user, 2026-10-29 - Notes/Program lang Compare.txt):
+	[ ] Errors for tools and AI agents: every error in one form (line, what failed, a `fix:`
+		hint), and an optional machine-readable output (`--errors json`)
+	[POSTPONED - needs `extern`] A Fusion library other programs load: a `.dll` / `.so` with a
+		C interface, so Python and other languages can call Fusion code
+	[POSTPONED - after the compiler no longer needs Python] `console` - one tool (not named
+		cargo): `console build / run / test / add` (packages)
 	[POSTPONED to 29.4] String pool (shared storage for identical text) - when pooling is on,
 		strings are pooled and mutable strings use a StringBuilder internally (user note 2026-10-09)
 	[POSTPONED to 38] StringBuilder for fast repeated appends (internal for mutable strings)

@@ -131,7 +131,8 @@ task/taskSummaryArchive.md (Task 32.8); `typeOf` and converting back are in 32.7
     prefer) - `tab_width`, `tabWidth`, `TABWIDTH` are the same; new files are written in
     camelCase. `strict`: every warning becomes an error. Approved - build it now
 - 32.10 Object lifetime (mini-task): every case in Object_Lifetime.md, each with a test - run
-  before classes (32.2) so the counting is right from the start. Three strategies (MANUAL /
+  before classes (32.2) so the counting is right from the start. OWNERSHIP first, always (user,
+  2026-10-29); skip the counting where the compiler proves a single owner (Swift / Lobster). Three strategies (MANUAL /
   OWNERSHIP / GC) as `[memory] strategy`; `free` / `deallocate`; leak reporting; the full
   example there becomes a test program
 - 32.11 `[source] case_sensitive` (default true); off: the compiler lists names that differ

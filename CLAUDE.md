@@ -139,7 +139,9 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Tests / examples | `tests/`, `examples/` |
 
 Folders: `taskSummary2.md`, `FEATURES.md`, `SYNTAX_REFERENCE.md` stay in the root; docs in
-`files/`; tests in `tests/`; no `docs/` folder until the compiler goes live.
+`files/`; tests in `tests/`; no `docs/` folder until the compiler goes live. `Notes/` is for
+our internal discussion (reviews, sources); `files/` is for developers who need to understand
+the language and its code (user, 2026-10-29).
 
 ---
 
@@ -183,6 +185,9 @@ When a language feature or spec changes, update every affected file without aski
   and its libraries - uses an interface where it makes sense (`List`, `Collection`), so the
   implementation behind it can change later; an array is one fixed implementation, a `List`
   has a default one (never null) that can be swapped (the Dependency Inversion Principle)
+- **Memory: OWNERSHIP first, always (user, 2026-10-29):** memory stability - no crashes where
+  avoidable, no leaks (they cause instability and security holes); GC / MANUAL only where a
+  project needs them (`Object_Lifetime.md`)
 - **Guiding rule:** a simple working language first, advanced features after
   (`FutureFeaturesCaution.md`). Security principle: never trust code
 - **Repository is public** on GitHub (`EmileAvatar/fusion-lang`); history was scrubbed of a
