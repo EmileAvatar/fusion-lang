@@ -57,6 +57,19 @@ are in `task/featuresArchive.md`.
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
+#### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ]
+	After Task 32 and 36.0. The type table: files/FusionTypes.html
+	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow
+		checked like int) and `short` (16-bit) - reserved words today, not built
+	[ ] 47.2 `money`: a `long` counting the smallest unit (cents) - `$1` is 100, R123.45 is 12345;
+		kind value, default 0, min / max as long, 8 bytes, never null; exact whole-number
+		arithmetic with overflow checking - not a decimal. The number only, no currency: the
+		Currency module (43.x) converts. Plan the literal / printing form first
+	[ ] 47.3 An enum whose values carry fixed data (Java's `enum Planet(double mass)`):
+		`EARTH(5.976e24)`, read with a method for each field (`Planet.EARTH.mass()`); the data
+		is const and byVal, set once; the constructor is always private. An enum is always
+		const and static - `const static enum Planet` is accepted and changes nothing
+
 #### 45 Arrays that grow at the end (user, 2026-10-27 - Arrays.md) [ ]
 	Today an array's size is fixed when it is made, and the compiler must know it. An array
 	will grow and shrink at its end only (an item never moves position); a List changes
@@ -163,6 +176,9 @@ are in `task/featuresArchive.md`.
 
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]
 	(user request 2026-10-11 - after self-hosting, when the syntax has settled)
+	[ ] 36.0 First small version - right after Task 32 (user, 2026-10-29): VS Code and Sublime
+		Text / TextMate (macOS too) - keywords, types, numbers, strings with {name} / {@1},
+		chars, comments, function names; installed by copying a folder (no marketplace)
 	[ ] 36.1 One shared TextMate grammar (fusion.tmLanguage) - VS Code, Sublime Text, JetBrains
 		IDEs (TextMate bundles), Atom-family editors and GitHub all read this format
 	[ ] 36.2 VS Code extension: the grammar, `.fusion` file icon, comment / bracket / indent rules
@@ -301,6 +317,9 @@ are in `task/featuresArchive.md`.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
 		zones; epochs; durations and time calculations (a Math sub-module, user). Duration
 		literals map to int milliseconds until then (42.16)
+	[ ] 43.3 Currency module (user, 2026-10-29): currencies and conversion for `money` (47.2).
+		Hard rule: it never fetches prices or rates from an external API - the developer
+		using it fetches the rates and gives them to it (see CLAUDE.md project notes)
 	[ ] 43.2 Data formats module (user, 2026-10-28): read and write TOML, JSON, YAML, INI, XML,
 		CSV (and others) in Fusion itself - recovering from broken settings and minor syntax
 		mistakes where that is safe. Replaces the compiler's Python readers (Task 31) once

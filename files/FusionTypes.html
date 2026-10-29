@@ -46,7 +46,7 @@
     color: var(--text);
     font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  main { max-width: 1200px; margin: 0 auto; padding: 32px 16px 64px; }
+  main { max-width: 1600px; margin: 0 auto; padding: 32px 24px 64px; }
   h1 { font-size: 28px; margin: 0 0 4px; }
   h2 { font-size: 18px; margin: 36px 0 10px; }
   p.lead { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
@@ -56,7 +56,7 @@
     border: 1px solid var(--line);
     border-radius: 10px;
   }
-  table { border-collapse: collapse; width: 100%; min-width: 960px; }
+  table { border-collapse: collapse; width: 100%; min-width: 1200px; }
   th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th {
     background: var(--head);
@@ -83,7 +83,7 @@
     border-radius: 4px;
   }
   td.num { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13px; white-space: nowrap; }
-  td.notes { color: var(--muted); font-size: 13px; min-width: 260px; }
+  td.notes { color: var(--muted); font-size: 13px; min-width: 340px; }
   .badge {
     display: inline-block;
     font-size: 12px;
@@ -172,9 +172,11 @@
       </tr>
       <tr>
         <td class="type"><code>money</code></td><td class="kind-value">value</td>
-        <td class="num">0</td><td class="num">-</td><td class="num">-</td>
-        <td class="num">-</td><td>no</td><td><span class="badge designed">designed</span></td>
-        <td class="notes">Exact decimal. Size and range still to decide: whole cents in 64 bits, or a true decimal.</td>
+        <td class="num">0</td><td class="num">-9,223,372,036,854,775,808</td><td class="num">9,223,372,036,854,775,807</td>
+        <td class="num">8</td><td>no</td><td><span class="badge planned">planned</span></td>
+        <td class="notes">A signed 64-bit whole number of the smallest unit (cents): 12345 is $123.45 or R123.45.
+        Exact whole-number arithmetic with overflow checking - not a decimal. The number only, no
+        currency: the Currency module converts (Task 47.2).</td>
       </tr>
 
       <tr class="group"><td colspan="9">Other values</td></tr>
@@ -284,8 +286,8 @@
   <div class="card">
     <ol>
       <li><code>short</code> and <code>long</code> are reserved words but not built - using one gives no clear "not built yet" error.</li>
-      <li><code>money</code> needs a size and range: whole cents in 64 bits, or a true decimal type.</li>
-      <li>An enum whose values carry fixed data (like a table of these types) would need a new syntax.</li>
+      <li><code>money</code> - decided (2026-10-29): a <code>long</code> of cents, no currency (Task 47.2).</li>
+      <li>An enum whose values carry fixed data (like a table of these types) - Task 47.3.</li>
     </ol>
   </div>
 

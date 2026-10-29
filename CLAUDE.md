@@ -189,6 +189,9 @@ When a language feature or spec changes, update every affected file without aski
 - **Memory: OWNERSHIP first, always (user, 2026-10-29):** memory stability - no crashes where
   avoidable, no leaks (they cause instability and security holes); GC / MANUAL only where a
   project needs them (`Object_Lifetime.md`)
+- **No outside price or rate lookups (user, 2026-10-29) - a hard rule:** the core and every
+  module (Currency included) never call an external API to fetch prices or exchange rates;
+  the developer using them fetches the data and passes it in
 - **Guiding rule:** a simple working language first, advanced features after
   (`FutureFeaturesCaution.md`). Security principle: never trust code
 - **Repository is public** on GitHub (`EmileAvatar/fusion-lang`); history was scrubbed of a
