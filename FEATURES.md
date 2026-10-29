@@ -61,21 +61,34 @@ are in `task/featuresArchive.md`.
 	After Task 32 and 36.0. The type table: files/FusionTypes.html
 	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow
 		checked like int) and `short` (16-bit) - reserved words today, not built
-	[ ] 47.2 `money`: a `long` counting the smallest unit (cents) - `$1` is 100, R123.45 is 12345;
-		kind value, default 0, min / max as long, 8 bytes, never null; exact whole-number
-		arithmetic with overflow checking - not a decimal. The number only, no currency: the
-		Currency module (43.x) converts. Plan the literal / printing form first
+	[ ] 47.2 `money`: a `long` counting a currency's minor units - kind value, default 0, min /
+		max as long, 8 bytes, never null; exact whole-number arithmetic with overflow checking -
+		not a decimal, never a float. Plan the literal / printing form first
+		[ ] 47.2.1 Minor units, not cents (user, 2026-10-29): `money` holds a whole number only;
+			what one unit means is the Currency module's (43.3) - USD / ZAR: cents ($1 is 100,
+			12345 is R123.45), JPY: whole yen, BHD: thousandths. The core stays small; the
+			currency system can change on its own
+		[ ] 47.2.2 Exact on every device: rules for everything that makes a fraction - rounding,
+			percentages (deals, discounts), tax, splitting an amount (R100 / 3) - so a
+			calculation gives the same result on any CPU, OS or platform. Whole-number steps
+			only (no floating point); the rounding mode written out (half-up, half-even /
+			banker's, down, ...) with a project default; where a split's remainder goes
+			(R33.34 + R33.33 + R33.33); the order of steps (discount before or after tax)
+			stays the program's - Fusion only makes each step exact
+		[ ] 47.2.3 Later option: a decimal or arbitrary-precision number type - for amounts past
+			a long's range or more fractional precision than the minor unit gives
 	[ ] 47.3 An enum whose values carry fixed data (Java's `enum Planet(double mass)`):
 		`EARTH(5.976e24)`, read with a method for each field (`Planet.EARTH.mass()`); the data
 		is const and byVal, set once; the constructor is always private. An enum is always
 		const and static - `const static enum Planet` is accepted and changes nothing
 	[ ] 47.4 A built-in enum `FusionType` describing every type (user, 2026-10-29 - the table in
 		files/FusionTypes.html): fields Type, Kind, Default, Min, Max, Size, CanBeNull. Each
-		field's method returns a value of that type itself, byVal: `FusionType.int.MAX` is an
-		int (2,147,483,647), `FusionType.bool.MAX` is `true`, `FusionType.double.MIN` a double -
-		for developers and IDEs. To settle when planned: the value names are type keywords
-		(`int`, `bool`) - allowed after `FusionType.`; one spelling for the fields (`MAX` or
-		`max`); a field whose type differs per value is more than 47.3 gives, so it is built in
+		field's method returns a value of that type itself, byVal: `FusionType.INT.MAX` is an
+		int (2,147,483,647), `FusionType.BOOL.MAX` is `true`, `FusionType.DOUBLE.MIN` a double -
+		for developers and IDEs. Value names in capitals (INT, BOOL, ...) so they never clash
+		with the type keywords (user, 2026-10-29). To settle when planned: one spelling for
+		the fields (`MAX` or `max`); a field whose type differs per value is more than 47.3
+		gives, so it is built in
 
 #### 45 Arrays that grow at the end (user, 2026-10-27 - Arrays.md) [ ]
 	Today an array's size is fixed when it is made, and the compiler must know it. An array

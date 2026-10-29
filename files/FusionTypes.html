@@ -174,9 +174,9 @@
         <td class="type"><code>money</code></td><td class="kind-value">value</td>
         <td class="num">0</td><td class="num">-9,223,372,036,854,775,808</td><td class="num">9,223,372,036,854,775,807</td>
         <td class="num">8</td><td>no</td><td><span class="badge planned">planned</span></td>
-        <td class="notes">A signed 64-bit whole number of the smallest unit (cents): 12345 is $123.45 or R123.45.
+        <td class="notes">A signed 64-bit whole number of the currency's minor units - for USD / ZAR, cents: 12345 is $123.45 or R123.45 (JPY: whole yen). Exact on every device: rounding, discounts and tax follow fixed rules (Task 47.2.2).
         Exact whole-number arithmetic with overflow checking - not a decimal. The number only, no
-        currency: the Currency module converts (Task 47.2).</td>
+        currency: the Currency module decides what a unit means and converts (Task 47.2).</td>
       </tr>
 
       <tr class="group"><td colspan="9">Other values</td></tr>
@@ -286,7 +286,7 @@
   <div class="card">
     <ol>
       <li><code>short</code> and <code>long</code> are reserved words but not built - using one gives no clear "not built yet" error.</li>
-      <li><code>money</code> - decided (2026-10-29): a <code>long</code> of cents, no currency (Task 47.2).</li>
+      <li><code>money</code> - decided (2026-10-29): a <code>long</code> of minor units, no currency (Task 47.2).</li>
       <li>An enum whose values carry fixed data (like a table of these types) - Task 47.3.</li>
     </ol>
   </div>
