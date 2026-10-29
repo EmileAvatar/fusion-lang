@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Thu Oct 29 19:44:32 SAST 2026
+**Date:** Thu Oct 29 20:06:07 SAST 2026
 **Total Examples:** 19
 
 ## Summary
@@ -85,11 +85,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -157,11 +157,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -248,11 +248,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -338,11 +338,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -426,11 +426,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -500,11 +500,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -568,11 +568,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -669,11 +669,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -752,11 +752,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -820,11 +820,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -888,11 +888,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -970,11 +970,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -1056,11 +1056,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -1154,11 +1154,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -1226,11 +1226,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -1298,11 +1298,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -1370,11 +1370,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -1438,11 +1438,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 
@@ -1516,11 +1516,11 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
-
-// Program start-up: the Windows console shows UTF-8 text correctly only after switching its
-// output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
-#ifdef _WIN32
-__declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
 ... (truncated)
 ```
 

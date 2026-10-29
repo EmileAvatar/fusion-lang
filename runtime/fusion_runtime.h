@@ -49,6 +49,13 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+#define FUSION_TRACE_FREED(name) ((void)0)
+#endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>

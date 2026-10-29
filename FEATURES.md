@@ -119,7 +119,10 @@ are in `task/featuresArchive.md`.
 		[DONE] 32.10b Minimal classes (tests/test_classes.py): fields, methods, one constructor
 			(or none), `new` optional, objects by reference with a count, null, NullError on
 			`.`, `==` is the same object; a failing constructor frees its object
-		[ ] 32.10c The catalogue (U / D / R / T / O, collections of objects) - a test each
+		[DONE] 32.10c The catalogue (tests/test_object_lifetime.py): U1-U5, U8, U9, D1-D9,
+			R1-R5, C1-C4, T1-T3, O1, O2 - each checks the moment its object is freed
+			(-DFUSION_TRACE_OBJECTS); fixed: `for x in [A(), A()]` made new objects every pass
+		[ ] `null == null` gives false (the null literal is "never null") - should be true
 		[ ] 32.10d Cycles: the leak check reports them; a warning where a class can hold itself
 		[ ] 32.10e No counting where one owner is proven
 		[ ] Arrays become references too - with Task 45 (they must live on the heap first)

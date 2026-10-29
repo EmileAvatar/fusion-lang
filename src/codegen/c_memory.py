@@ -80,6 +80,13 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_MADE() ((void)0)
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+#define FUSION_TRACE_FREED(name) ((void)0)
+#endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
@@ -737,6 +744,7 @@ class MemoryManagementMixin:
         __retain - one more holder; __release - one less, and at 0 its fields let go and it is
         freed; __set - replace what a holder holds. Prototypes first: classes refer to each
         other."""
+        from .c_runtime import escape_c_text
         protos, bodies = [], []
         for decl in classes:
             kind = StructType(location=decl.location, name=decl.name, declaration=decl)
@@ -752,7 +760,8 @@ class MemoryManagementMixin:
                        f'    {c}* o = *p;',
                        '    *p = NULL;',
                        '    if (!o || --o->fusion_count > 0) return;',
-                       '    FUSION_OBJECT_FREED();']
+                       '    FUSION_OBJECT_FREED();',
+                       f'    FUSION_TRACE_FREED("{escape_c_text(decl.name, chr(34))}");']
             for f in decl.fields:
                 field = f'o->{self._field_name(f.name)}'
                 if isinstance(f.field_type, ArrayType):

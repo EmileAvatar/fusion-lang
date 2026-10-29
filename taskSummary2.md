@@ -465,4 +465,6 @@ Kept under Task 22 until the renumbering is approved.
   a struct; byVal / byRef)
 - 32.10b done: minimal classes with the counting (a class is a StructDecl with is_class;
   the constructor is the function Car.new; C helpers __make / __retain / __release / __set)
-- **Next Action:** 32.10c (the catalogue - a test for each case), then 32.10d-e, then 32.2
+- 32.10c done: the catalogue, a test per case group, each checking when its object is freed
+- **Next Action:** 32.10d (cycles: the leak check reports them; a warning where a class can
+  hold itself), then 32.10e (no counting where one owner is proven), then 32.2

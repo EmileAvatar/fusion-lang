@@ -485,9 +485,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         `{0}` for nested data draws GCC's -Wmissing-braces warning."""
         if isinstance(type_node, ArrayType):
             return '{' + self._zero_initializer(type_node.element_type) + '}'
-        if isinstance(type_node, StructType):
+        if isinstance(type_node, StructType) and not self.is_class_type(type_node):
             return '{' + self._zero_initializer(self._struct_decl(type_node).fields[0].field_type) + '}'
-        return '0'
+        return '0'      # a number - or an object: null (Task 32.10b)
 
     def _default_value_code(self, type_node) -> str:
         """C initializer for a value nobody gave: zero for numbers, false, '\\0', "" for a
@@ -1758,9 +1758,17 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             items = 'keys' if isinstance(iterable_type, MapType) else 'data'   # a map: its keys
             length, item = f'{source}len', f'{source}{items}[{index}]'
         else:
-            array_code = self.visit(iterable)
-            if isinstance(iterable, ArrayLiteralExpr):   # for x in [1, 2, 3]
-                array_code = f'(({self.map_type(element)}[]){array_code})'
+            if isinstance(iterable, ArrayLiteralExpr) and self.is_managed(element):
+                # for x in [A(), A()] - made once, before the loop, and freed after it (each
+                # pass would otherwise make new ones - Task 32.10c)
+                array_code = f'fusion_items_{n}'
+                values = ', '.join(self.owned_value(e, element) for e in iterable.elements)
+                self.emit_line(f'{self.map_type(element)} {array_code}[{len(iterable.elements)}] = {{{values}}}')
+                self.register_owned(array_code, iterable_type)
+            elif isinstance(iterable, ArrayLiteralExpr):   # for x in [1, 2, 3]
+                array_code = f'(({self.map_type(element)}[]){self.visit(iterable)})'
+            else:
+                array_code = self.visit(iterable)
             if iterable_type.size is None and isinstance(iterable, IdentifierExpr):
                 length = array_length_name(iterable.name)
             else:

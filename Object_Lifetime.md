@@ -3,8 +3,12 @@
 Every case where a class object gains or loses a reference, so that each object is freed
 exactly once, at the right time, and never used after it is freed. A design document for
 Task 32 (classes) - a mini-task of its own (32.10) - and the base for Task 38 (the memory
-model). Status: **being designed** (user decisions 2026-10-28). Nothing here is built yet:
-"we need to be 150% sure before creating any code on this".
+model). Status (2026-10-29): the **OWNERSHIP counting is built** for class objects, Lists and
+Maps (Task 32.10a-c) - every case in sections 7 and 8 marked below has a test in
+tests/test_object_lifetime.py that checks the moment each object is freed
+(`-DFUSION_TRACE_OBJECTS` shows `[freed Car]`), with the leak check (exit 5: an object never
+freed). Still designed only: GC and MANUAL, `free` / `deallocate`, statics, copies of objects
+(clone), cycles (32.10d), skipping the count (32.10e).
 
 ---
 
@@ -439,6 +443,10 @@ void function main()
 ---
 
 ## 7. When the count goes up (+1)
+
+**Built and tested (32.10c):** U1-U5, U8, U9 - and R1-R5, D1-D9, C1-C4, T1-T3, O1, O2 below.
+Not yet: U6 / U7 (need clone() and `[structs] classes`), U10 (statics), F1-F4, T4 (a match
+works on enums, numbers and text, not objects), O3 / O4 (32.10d).
 
 | # | Case | Example | Notes |
 |---|---|---|---|
