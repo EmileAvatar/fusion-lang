@@ -694,6 +694,35 @@ void function main()
 ```
 Off by default (structs hold values); `examples/fusion.toml` turns it on for this example.
 
+#### A struct building on a struct: `implements` (or `extends` / `includes`)
+
+<!-- example: syntax_struct_parents | task: 32.8 -->
+```fusion
+struct Person
+    string name
+    string tel
+
+    void function greet()
+        print("Hi {name}")
+
+struct Employee implements Person       // Person's fields first, then its own
+    string employeeID
+    string tel                          // Person has tel too: a warning, both kept
+
+void function welcome(Person p)         // an Employee can go here - its Person part
+    p.greet()
+
+void function main()
+    Employee e = Employee("Jeff", "082", "E7", "011")
+    e.name = "Jeffrey"                  // Person's field
+    e.Employee.tel = "012"              // a name both have needs the struct's name
+    e.greet()                           // Person's method
+    welcome(e)
+    print("{e}")                        // Jeffrey, 082, E7, 012
+    print("{e.Person.tel} {e.Employee.tel}")
+```
+`welcome` gets a copy of the Person part only. The method `greet` needs `[structs] functions`.
+
 #### Your own functions as methods: `p.moved(1, 2)` is `moved(p, 1, 2)`
 
 <!-- example: syntax_functions_as_methods | task: 44.2 -->

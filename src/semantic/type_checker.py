@@ -22,6 +22,7 @@ from .name_resolver import builtin_layer
 from .collection_rules import CollectionRulesMixin
 from .enums import EnumRulesMixin, ENUM_METHODS
 from .error_rules import ErrorRulesMixin
+from .struct_parents import StructParentRulesMixin, flat_field_names
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
                             TYPE_CLASSES, CLASS_STATICS, NOT_METHODS,
                             builtin_defaults)
@@ -45,7 +46,7 @@ def field_default(field: StructField):
     return None
 
 
-class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
+class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructParentRulesMixin):
     """Type checks the AST using visitor pattern.
 
     Validates type compatibility in expressions, assignments, function calls,
@@ -339,7 +340,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             return expected
         result = self.visit(value)
         self.widen_to_float(value, result, expected)
-        return result
+        return self.as_parent_part(value, result, expected) or result
 
     _FLOAT_EXACT = 16777216   # 2^24: every whole number up to here fits a float exactly
 
@@ -689,7 +690,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
                 or not decl.parameters:
             return None
         first = decl.parameters[0].param_type
-        return decl if self.types_compatible(first, receiver_type) else None
+        if self.types_compatible(first, receiver_type) or self.parent_path(receiver_type, first):
+            return decl
+        return None
 
     def _call_as_function(self, node: CallExpr, receiver) -> None:
         """`x.f(a)` -> `f(x, a)` for the program's own function f (Task 44.2) - checked from
@@ -716,6 +719,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             struct = self.struct_declaration(receiver_type)
             method = next((m for m in getattr(struct, 'methods', None) or []
                            if getattr(m, 'method_name', None) == member), None)
+            inherited = self.inherited_method(receiver, struct, member) \
+                if method is None and getattr(struct, 'parent', None) else None
+            if inherited is not None:
+                receiver, struct, method = inherited     # e.greet() is Person.greet(e.Person)
             if method is not None:
                 if getattr(method, 'changes_this', False):
                     root = self._root_variable(receiver)
@@ -1071,6 +1078,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
 
         if symbol.symbol_type == 'struct':
             struct = symbol.declaration
+            self.flatten_parent_arguments(node, struct)      # Task 32.8
             if self._has_named_arguments(node):
                 self._check_named_call(
                     node, f"struct '{struct.name}'", 'field',
@@ -1342,12 +1350,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
 
         for number, extra in enumerate(extras, start=1):
             extra_type = self.visit(extra)
-            if not isinstance(extra_type, (PrimitiveType, EnumType, ErrorType)):
-                self.errors.append(SemanticError(
-                    f"Can't print a whole {self.type_to_string(extra_type)} value - print its "
-                    f"elements or fields one at a time",
-                    extra.location
-                ))
+            problem = self.printable_problem(extra_type)   # a struct prints its fields (32.8)
+            if problem:
+                self.errors.append(SemanticError(problem, extra.location))
             if positions and number not in positions:
                 self.warnings.append(SemanticError(
                     f"Argument {number + 1} to {name}() isn't used - no {{@{number}}} placeholder "
@@ -1449,7 +1454,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             if value is None:
                 continue
             name, expected_type, _ = slots[index]
-            actual_type = self.visit(value)
+            actual_type = self._visit_value_for(expected_type, value)
             if isinstance(expected_type, ArrayType) and func_name is not None:
                 self._check_array_argument(func_name, index, value, expected_type, actual_type)
             elif isinstance(expected_type, ArrayType) and struct is not None:
@@ -1567,8 +1572,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         """
         by_name = {s.name: s for s in structs}
 
-        def children(struct):
+        def children(struct, parts=True):
             for field in struct.fields:
+                if not parts and getattr(field, 'is_parent', False):
+                    continue
                 field_type = field.field_type
                 if isinstance(field_type, ArrayType):
                     field_type = field_type.element_type
@@ -1611,8 +1618,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         def chain(name):
             """The deepest nesting chain starting at this struct, e.g. [Scene, Shape, Point]."""
             if name not in chains:
-                deepest = max((chain(c) for c in children(by_name[name])), key=len, default=[])
+                struct = by_name[name]
+                deepest = max((chain(c) for c in children(struct, parts=False)), key=len, default=[])
                 chains[name] = [name] + deepest
+                if struct.parent in by_name:   # building on a struct isn't nesting (Task 32.8)
+                    inherited = [name] + chain(struct.parent)[1:]
+                    if len(inherited) > len(chains[name]):
+                        chains[name] = inherited
             return chains[name]
 
         max_depth = self.structs_config.max_nesting_depth
@@ -1805,12 +1817,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
                 # codegen), struct, or function has no printf format. (void is the error-
                 # recovery type - its own error, e.g. an undefined variable, is already
                 # reported)
-                if not isinstance(expr_type, PrimitiveType):
-                    self.errors.append(SemanticError(
-                        f"Can't print a whole {self.type_to_string(expr_type)} value - print "
-                        f"its elements or fields one at a time",
-                        segment.expression.location
-                    ))
+                problem = self.printable_problem(expr_type)  # a struct prints its fields (32.8)
+                if problem:
+                    self.errors.append(SemanticError(problem, segment.expression.location))
 
         return PrimitiveType(location=node.location, name='string')
 
@@ -1940,13 +1949,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
             ))
             return PrimitiveType(location=node.location, name='void')
 
-        for field in struct.fields:
-            if field.name == node.member:
-                return field.field_type
+        member_type = self.struct_member_type(node, struct, object_type)   # Task 32.8
+        if member_type is not None:
+            return member_type
 
         self.errors.append(SemanticError(
             f"Struct '{struct.name}' has no field '{node.member}' (its fields: "
-            f"{', '.join(f.name for f in struct.fields)})",
+            f"{', '.join(flat_field_names(struct, self.struct_named))})",
             node.location
         ))
         return PrimitiveType(location=node.location, name='void')
@@ -2266,7 +2275,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
                 node.location
             ))
 
-        value_type = self.visit(node.value)
+        value_type = self._visit_value_for(field_type, node.value)
         if not self.types_compatible(field_type, value_type):
             self.errors.append(SemanticError(
                 f"Cannot assign {self.type_to_string(value_type)} to field '{target.member}' "

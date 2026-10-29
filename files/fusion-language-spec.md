@@ -1761,6 +1761,47 @@ struct Point
 Point p = Point(1, 2)
 p.move(3, 4)                // p is now (4, 6)
 ```
+
+**Structs building on structs (Task 32.8, built):** `struct Employee implements Person`
+(`extends` and `includes` mean the same). An Employee has Person's fields first, then its own;
+the constructor takes them in that order (`Employee("Jeff", "082", "E7")`), or a whole Person
+first (`Employee(p, "E7")`), or named values. In C the Employee holds a Person as its first
+member, named `Person`.
+
+- **Where a Person is expected** (a parameter, `Person p = e`, a `List<Person>`, a return)
+  an Employee can be given: it becomes its Person part - a copy of that part only, so the
+  receiver can use only Person's fields and methods
+- **Person's methods work on an Employee:** `e.greet()` runs Person's `greet` on `e.Person`,
+  by reference (it can change `e`); inside Employee's methods Person's fields and methods
+  are used by their bare names
+- **A field both have** (`tel`) is kept twice, with a warning; `e.tel` is then an error -
+  write `e.Person.tel` or `e.Employee.tel`. A field can't have the name of a struct it builds
+  on, or of a method it builds on
+- A chain works the same way (`Manager extends Employee`); building on a struct doesn't count
+  as nesting (`[structs] maxNestingDepth`); no struct may build on itself
+- **A whole struct as text:** `"{e}"` (and `format("{@1}", e)`) gives every field, the part it
+  builds on first, separated by ", " - `Jeff, 082, E7` (not a struct with an array, list or
+  map field)
+- Later (32.7): `typeOf(x)` gives the chain (`Person.Employee.Manager`) and a value can be
+  converted back; a normal parameter holds only the Person part (`typeOf` says `Person`), a
+  `byRef` one the whole struct
+
+```
+struct Person
+    string name
+    void function greet()
+        print("Hi {name}")
+
+struct Employee implements Person
+    string employeeID
+
+void function welcome(Person p)
+    p.greet()
+
+Employee e = Employee("Jeff", "E7")
+welcome(e)                  // Hi Jeff
+print("{e}")                // Jeff, E7
+```
  Settings decided (user, 2026-10-24): a struct is never null; `[structs]` holding List / Map on (built), functions on structs off by default (32.1), classes inside structs off by default
 
 Description: Lightweight value types for copying data around an application and reading or

@@ -5752,3 +5752,51 @@ stays the documented default; the other three become equally valid alternatives.
 
 **Success Criteria:** all four formats load identically through one shared validation path;
 TOML/JSON/INI add no dependencies; existing `fusion.toml` behavior is unchanged.
+
+---
+
+## TASK 32.8: Structs building on structs - COMPLETE (2026-10-29)
+
+(tests/test_struct_parents.py; src/semantic/struct_parents.py)
+
+**Structs building on structs (user's example, put in Fusion's form):**
+```
+struct Person
+    string name
+    string id
+    string tel
+
+struct Employee implements Person        // gets name, id, tel - and adds its own fields
+    string employeeID
+    string tel                           // the same name as Person's: a warning; both kept
+
+Employee e
+e.name = "Jeff"                          // only Person has name - no prefix needed
+e.Person.tel = "082-000-0000"            // Person's tel (the private number)
+e.Employee.tel = "011-000-0000"          // Employee's own tel (the office number)
+print(e)                                 // Person's fields first, then Employee's, with commas
+```
+- Two fields with the same name: both kept, a **warning**; reading `e.tel` without the
+  struct's name is an **error** ("say e.Person.tel or e.Employee.tel") - never a silent pick
+- `print(e)` / `"{e}"` - a whole struct printed: the inner struct's fields first, comma
+  separated (today printing a whole struct is an error - new)
+- Commas: today fields are one per line, no commas (`string Name,` is a parse error)
+
+**32.8 plan (user, 2026-10-29 - "yes for the inheritance"):**
+- `struct Employee implements Person` (`extends` / `includes` are the same). In C, Employee
+  holds a Person as its first member; `e.name` becomes `e.Person.name`. A chain works too
+  (`Manager implements Employee`)
+- **An Employee goes where a Person is expected** - a parameter, `Person p = e`, a
+  `List<Person>` element. The function can only use Person's fields and methods. Structs are
+  values, so it gets a **copy of the Person part** (what C++ calls slicing); a change inside
+  the function doesn't reach `e` - the same as passing a Person today
+- **Person's methods work on an Employee:** `e.greet()` runs Person's `greet` on e's Person part
+  (by reference, so it can change e)
+- Same-name fields: both kept, a warning; a bare `e.tel` is an error naming both choices
+- `print(e)` / `"{e}"`: every field, Person's first, separated by ", "
+- Not in 32.8: `typeOf` and converting a Person back to an Employee - they go to 32.7.
+  User, 2026-10-29: (1) a normal parameter gets a copy of the Person part only - `typeOf`
+  says `Person`; (2) a `byRef` parameter keeps the whole struct - `typeOf` says
+  `Person.Employee.Manager`; (3) joined with dots. (2) waits for `byRef` parameters
+- Tests: with and without null checks don't apply (a struct is never null) - noted in the tests
+- **Settings:** none

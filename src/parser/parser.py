@@ -1744,6 +1744,17 @@ class Parser:
         struct_token = self.previous()
         name_token = self.consume(TokenType.IDENTIFIER, "Expected struct name after 'struct'")
 
+        # The struct it builds on (Task 32.8): implements, or extends / includes (not keywords)
+        parent = None
+        if self.match(TokenType.IMPLEMENTS) or (
+                self.check(TokenType.IDENTIFIER) and self.peek().value in ('extends', 'includes')
+                and self.advance()):
+            parent = self.consume(TokenType.IDENTIFIER,
+                                  f"Expected the struct that '{name_token.value}' builds on").value
+            if self.check(TokenType.COMMA):
+                raise ParserError(self.peek(), f"Struct '{name_token.value}' can build on one "
+                                               f"struct only")
+
         while self.match(TokenType.NEWLINE):
             pass
 
@@ -1783,7 +1794,8 @@ class Parser:
         if self.match(TokenType.END):
             self.consume(TokenType.STRUCT, "Expected 'struct' after 'End'")
 
-        struct = StructDecl(location=struct_token.location, name=name_token.value, fields=fields)
+        struct = StructDecl(location=struct_token.location, name=name_token.value, fields=fields,
+                            parent=parent)
         self.attach_methods(struct, methods)
         return struct
 
@@ -1799,7 +1811,8 @@ class Parser:
             if clash:
                 raise ParserError(self.previous(), f"'{clash}' is both a field and a method of "
                                                    f"struct '{struct.name}'")
-            self._method_body(method, struct, field_names, method_names)
+            self.rewrite_method_body(method, struct.name, field_names, method_names,
+                                     lambda message: self._fail(message))
             method.method_name = method.name
             method.method_of = struct.name
             method.name = f'{struct.name}.{method.name}'
@@ -1807,10 +1820,10 @@ class Parser:
                                  param_type=StructType(location=method.location, name=struct.name),
                                  by_ref=True)
             method.parameters.insert(0, this)
-        changes = {m.method_name: self._assigns_this(m) for m in methods}
+        changes = {m.method_name: self.assigns_this(m) for m in methods}
         while True:          # a method that calls one that changes `this` changes it too
             more = {m.method_name for m in methods if not changes[m.method_name]
-                    and any(changes[n] for n in self._this_calls(m))}
+                    and any(changes[n] for n in self.this_calls(m))}
             if not more:
                 break
             for name in more:
@@ -1819,12 +1832,18 @@ class Parser:
             method.changes_this = changes[method.method_name]
         struct.methods = methods
 
-    def _method_body(self, method, struct, field_names, method_names) -> None:
+    def _fail(self, message: str):
+        raise ParserError(self.previous(), message)
+
+    @staticmethod
+    def rewrite_method_body(method, struct_name, field_names, method_names, fail) -> None:
+        """A field's bare name in a method becomes `this.field`, another method's bare call
+        `this.method(...)`. Also used for the fields a struct builds on (Task 32.8), which
+        are known only once every struct is parsed. `fail(message)` reports a name clash."""
         for p in method.parameters:
-            if p.name in field_names or p.name == 'this':
-                raise ParserError(self.previous(), f"Parameter '{p.name}' of method "
-                                                   f"'{method.name}' has the name of a field of "
-                                                   f"struct '{struct.name}' - choose another")
+            if p.name in field_names or (p.name == 'this' and not getattr(p, 'by_ref', False)):
+                fail(f"Parameter '{p.name}' of method '{method.name}' has the name of a field "
+                     f"of struct '{struct_name}' - choose another")
 
         def this_of(node, name):
             return MemberExpr(location=node.location,
@@ -1840,8 +1859,8 @@ class Parser:
             if not is_dataclass(node) or isinstance(node, type):
                 return
             if isinstance(node, VarDeclStmt) and node.name in field_names:
-                raise ParserError(self.previous(), f"A variable in method '{method.name}' can't "
-                                                   f"have the name of field '{node.name}'")
+                fail(f"A variable in method '{method.name}' can't have the name of field "
+                     f"'{node.name}'")
             for f in dataclass_fields(node):
                 if f.name in ('location', 'inferred_type', 'scope', 'declaration',
                               'callee_declaration', 'resolved_arguments'):
@@ -1871,7 +1890,8 @@ class Parser:
             node = node.object if isinstance(node, MemberExpr) else node.array
         return node.name if isinstance(node, IdentifierExpr) else None
 
-    def _assigns_this(self, method) -> bool:
+    @classmethod
+    def assigns_this(cls, method) -> bool:
         """Whether a method changes `this` itself (not counting other methods it calls)."""
         changing = ('add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy')
         found = [False]
@@ -1885,13 +1905,13 @@ class Parser:
                 return
             if not is_dataclass(node):
                 return
-            if isinstance(node, AssignmentStmt) and self._root_name(node.target) == 'this':
+            if isinstance(node, AssignmentStmt) and cls._root_name(node.target) == 'this':
                 found[0] = True
                 return
             if isinstance(node, CallExpr) and isinstance(node.callee, MemberExpr) \
                     and node.callee.member in changing \
                     and isinstance(node.callee.object, (MemberExpr, IndexExpr)) \
-                    and self._root_name(node.callee.object) == 'this':
+                    and cls._root_name(node.callee.object) == 'this':
                 found[0] = True
                 return
             for f in dataclass_fields(node):
@@ -1901,7 +1921,8 @@ class Parser:
         walk(method.body)
         return found[0]
 
-    def _this_calls(self, method) -> set:
+    @staticmethod
+    def this_calls(method) -> set:
         """The struct's methods a method calls on `this`."""
         names = set()
 

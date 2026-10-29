@@ -75,28 +75,8 @@ List<string> names                       // List is an interface: the default im
 foreach (string n in names)              // anything that implements Collection
 ```
 
-**Structs building on structs (user's example, put in Fusion's form):**
-```
-struct Person
-    string name
-    string id
-    string tel
-
-struct Employee implements Person        // gets name, id, tel - and adds its own fields
-    string employeeID
-    string tel                           // the same name as Person's: a warning; both kept
-
-Employee e
-e.name = "Jeff"                          // only Person has name - no prefix needed
-e.Person.tel = "082-000-0000"            // Person's tel (the private number)
-e.Employee.tel = "011-000-0000"          // Employee's own tel (the office number)
-print(e)                                 // Person's fields first, then Employee's, with commas
-```
-- Two fields with the same name: both kept, a **warning**; reading `e.tel` without the
-  struct's name is an **error** ("say e.Person.tel or e.Employee.tel") - never a silent pick
-- `print(e)` / `"{e}"` - a whole struct printed: the inner struct's fields first, comma
-  separated (today printing a whole struct is an error - new)
-- Commas: today fields are one per line, no commas (`string Name,` is a parse error)
+**32.8 (structs building on structs) - DONE 2026-10-29:** its plan and decisions are in
+task/taskSummaryArchive.md (Task 32.8); `typeOf` and converting back are in 32.7 below.
 
 **Sub-tasks (order):**
 - 32.1 Methods on structs (`p.move(1, 2)`); `[structs] functions` setting (default off -
@@ -113,7 +93,10 @@ print(e)                                 // Person's fields first, then Employee
 - 32.6 `List` as an interface with a default implementation (never null)
 - 32.9 Mini-task: collection implementations - study Java / C# / Rust / Go / Python, choose
   (for fusionlib); the core ones built in
-- 32.7 Inheritance: `inherits` / `extends`, `override`, the parent's method
+- 32.7 Inheritance: `inherits` / `extends`, `override`, the parent's method; using a parent
+  type (user, 2026-10-29): `typeOf(x)` gives the whole chain, top type first - an Employee
+  held as a Person shows `Person.Employee` - so the program can decide whether to convert it
+  back to an Employee (how the conversion is written: part of 32.7)
 - 32.3 Example program (classes, interfaces, structs building on structs, enums)
 - **Settings:** `[structs] functions` (32.1, default false), `[interfaces] default_methods`
   (32.5, default false) - into files/fusionSettings.xml when built; showcase updated
@@ -442,5 +425,6 @@ Kept under Task 22 until the renumbering is approved.
   (default false) into files/fusionSettings.xml
 - 32.1 done: methods on structs (lifted to Struct.method with `this` by reference;
   [structs] functions, default false)
-- **Next Action:** 32.10 (object lifetime - the counting, before classes) or 32.8 (structs
-  building on structs) - the plan's order: 32.8, then 32.10, then 32.2
+- 32.8 done: structs building on structs (a hidden first field holds the parent part; an
+  Employee becomes its Person part where a Person is expected; "{e}" prints every field)
+- **Next Action:** 32.10 (object lifetime - the counting, before classes), then 32.2

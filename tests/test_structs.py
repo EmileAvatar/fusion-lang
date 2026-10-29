@@ -218,7 +218,7 @@ def test_declaration_errors(source, message):
     ('int n = 5\nint z = n.x', "Cannot read field 'x' of a value of type int"),
     ('Point p\nbool same = p == 5', "Can't compare Point with int using '=='"),
     ('Point p\nPoint q = p + p', "must be numeric, got Point"),
-    ('Point p\nprint("{p}")', "Can't print a whole Point value"),
+    ('Point p\nprint(p)', "expected string, got Point"),   # "{p}" prints it (Task 32.8)
     ('Point p\nprint(p)', "expected string, got Point"),
     ('const Point O = Point(0, 0)\nO.x = 1', "Cannot assign to field 'x' of constant 'O'"),
     ('Point p\np.x = "text"', "Cannot assign string to field 'x' of type int"),
@@ -609,7 +609,7 @@ def test_struct_containing_itself_rejected(source, message):
      "Cannot assign to field 'x' of constant 'k'"),
     (POINT + main('const Point[] P = [Point(1, 1)]\nP[0].x = 5'),
      "Cannot assign to field 'x' of constant 'P'"),
-    (POINT + LINE + main('Line l\nprint("{l.a}")'), "Can't print a whole Point value"),
+    (POINT + LINE + main('Line l\nint n = l.a'), "Cannot assign Point to variable of type int"),
 ])
 def test_nesting_errors(source, message):
     assert message in errors_of(source)

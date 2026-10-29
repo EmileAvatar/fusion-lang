@@ -12,6 +12,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
                                 ListType, MapType)
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
+from .struct_parents import expand_struct_parents
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -95,6 +96,11 @@ class SemanticAnalyzer:
         template_errors, template_warnings, template_spots = expand_templates(ast)
         self.errors.extend(template_errors)
         self.warnings.extend(template_warnings)
+
+        # Structs building on structs (Task 32.8): Employee gets its Person part as a field
+        parent_errors, parent_warnings = expand_struct_parents(ast)
+        self.errors.extend(parent_errors)
+        self.warnings.extend(parent_warnings)
 
         # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
         # nothing after this mistakes an enum for a struct

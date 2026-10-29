@@ -121,6 +121,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.lambda_count = 0
         self.array_wrappers = {}         # returned-array wrapper structs (Task 18.2.4)
         self.equality_helpers = {}       # struct / array comparison helpers (Task 18.3.5)
+        self.text_helpers = {}           # a whole struct as text (Task 32.8)
         self.list_types = {}             # List<T> C types made so far (Task 18.5.1)
         self.list_protos, self.list_bodies, self.list_extras = [], [], set()
         self.temp_scopes = []            # per-function temporary declarations (Task 18.2.2)
@@ -235,6 +236,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # Equality helpers (Task 18.3.5) - inserted first, so they end up after the
         # typedefs and wrappers inserted at the same position below
         self.output[typedef_index:typedef_index] = self.equality_helper_lines()
+        self.output[typedef_index:typedef_index] = self.text_helper_lines()
         typedef_lines = self.function_typedef_lines()
         if typedef_lines:
             self.output[typedef_index:typedef_index] = (
@@ -510,7 +512,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         temporary for the call, freed after the statement."""
         if self.goes_through_list(value):
             return f'&{self.list_lvalue(value)}'
-        if isinstance(value, (IdentifierExpr, MemberExpr, IndexExpr)):
+        if isinstance(value, (IdentifierExpr, MemberExpr, IndexExpr)) and self._in_place(value):
             return f'&({self.visit(value)})'
         kind = value.inferred_type
         temp = self._declare_temp('self', self.map_type(kind), self._default_value_code(kind))
@@ -521,6 +523,14 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         else:
             code = self.visit(value)
         return f'({temp} = {code}, &{temp})'
+
+    @staticmethod
+    def _in_place(value: ASTNode) -> bool:
+        """Whether a field or element is stored somewhere (a variable's), not part of a
+        call's result - `make().corner` has no address."""
+        while isinstance(value, (MemberExpr, IndexExpr)):
+            value = value.object if isinstance(value, MemberExpr) else value.array
+        return isinstance(value, IdentifierExpr)
 
     def _argument_code(self, value: ASTNode) -> str:
         """C code for one argument: its temporary, if _evaluate_in_written_order stored it
@@ -1276,6 +1286,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         if getattr(node, 'length_call', None) is not None:
             return self.visit(node.length_call)       # x.length, x.len (Task 30.8)
+        if getattr(node, 'self_view', False):
+            return self.visit(node.object)            # e.Employee is e itself (Task 32.8)
         object_type = getattr(node.object, 'inferred_type', None)
         if type(object_type).__name__ == 'ErrorType' and node.member == 'kind':
             return f'fusion_error_kind_text({self.visit(node.object)})'   # err.kind (26.10)

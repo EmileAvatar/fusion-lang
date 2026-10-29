@@ -109,6 +109,13 @@ are in `task/featuresArchive.md`.
 		interface names need no I prefix; several constructors per class; a constructor may
 		call another (private ones too) with this(...); constructors calling each other in a
 		circle are a compile error
+	[DONE] 32.8 Structs building on structs (tests/test_struct_parents.py): `implements`
+		(`extends` / `includes`); an Employee goes where a Person is expected (a copy of its
+		Person part); Person's methods work on it; same-name fields warn, `e.Person.tel`;
+		`"{e}"` prints every field
+	[ ] 32.7 Inheritance - using a parent type (user, 2026-10-29): `typeOf(x)` gives the chain,
+		top type first (`Person.Employee.Manager`), so the program can convert it back; for a
+		struct, only a `byRef` parameter keeps the whole value (a normal one: `Person`)
 	[ ] 32.4 A `Collection` interface (user, 2026-10-27 - Arrays.md section 6): arrays, lists and
 		maps implement it; `foreach` works on any class that does, and the class decides its
 		own rules (adding / removing while looping, threads, special actions)
@@ -367,7 +374,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] A whole-program setting read from fusion.toml at compile time (`config.build.mode`)
 	[ ] `++` and `--` as statements only (never inside an expression)
 	[ ] Type tests with `is` (`if s is string`) - the spec uses `is` only for null
-	[ ] `typeOf(x)` gives the type's name as text
+	[ ] `typeOf(x)` gives the type's name as text - for a parent type, the chain (32.7)
 	[ ] A format inside `{}`: `{value:pattern}` (`{19.5:$0.00}`)
 	[ ] Raw strings: `r"C:\path"` - no escapes
 	[ ] Multi-line strings: `"""..."""`, indentation removed up to the closing quotes

@@ -695,6 +695,9 @@ class StructDecl(ASTNode):
     # Methods written inside the struct (Task 32.1) - each also a top-level FunctionDecl named
     # `Struct.method`, its first parameter `this` (by reference)
     methods: List['FunctionDecl'] = field(default_factory=list)
+    # The struct it builds on (Task 32.8): `struct Employee implements Person`. Semantic
+    # analysis gives it a first field named Person holding the Person part
+    parent: Optional[str] = None
 
 
 @dataclass
