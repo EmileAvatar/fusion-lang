@@ -61,13 +61,24 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
@@ -399,6 +410,13 @@ static inline fusion_char fusion_str_at(fusion_string s, int i, const char* wher
 
 // An enum with no value (Task 30.11): a number no enum value may use
 #define FUSION_ENUM_NULL (-2147483647)
+static inline void fusion_null_fail(const char* where, const char* what);
+// `.` on an object (Task 32.10b): null is a NullError - the caller checks fusion_failed
+static inline void* fusion_need(void* p, const char* where, const char* kind) {
+    if (!p) { char what[160]; snprintf(what, sizeof what, "used '.' on a null %s", kind);
+              fusion_null_fail(where, what); }
+    return p;
+}
 static inline void fusion_null_fail(const char* where, const char* what) {
     fusion_fail(FUSION_KIND_NullError, where, "%s", what);
 }
@@ -580,8 +598,17 @@ class MemoryManagementMixin:
             return self.is_managed(type_node.element_type)
         if isinstance(type_node, StructType):
             struct = self._struct_decl(type_node)
+            if struct.is_class:
+                return True   # an object with a count (Task 32.10b)
             return any(self.is_managed(f.field_type) for f in struct.fields)
         return False
+
+    def is_class_type(self, type_node) -> bool:
+        """A class's type - a pointer to an object with a count (Task 32.10b)."""
+        if not isinstance(type_node, StructType):
+            return False
+        decl = type_node.declaration or getattr(self, 'struct_decls', {}).get(type_node.name)
+        return getattr(decl, 'is_class', False)
 
     def _struct_c_name(self, type_node: StructType) -> str:
         return mangle_function_name(type_node.name)
@@ -597,6 +624,8 @@ class MemoryManagementMixin:
         if isinstance(type_node, (ListType, MapType)):
             # a reference: one more holder of the same list (Task 32.10a)
             return f'{self.map_type(type_node)}_retain({code})'
+        if self.is_class_type(type_node):
+            return f'{self._struct_c_name(type_node)}__retain({code})'   # one more holder (32.10b)
         if isinstance(type_node, StructType) and self.is_managed(type_node):
             return f'fusion_copy_{self._struct_c_name(type_node)}({code})'
         return code
@@ -630,7 +659,7 @@ class MemoryManagementMixin:
             return True
         if isinstance(type_node, ArrayType):
             return self.holds_collection(type_node.element_type)
-        if isinstance(type_node, StructType):
+        if isinstance(type_node, StructType) and not self.is_class_type(type_node):
             return any(self.holds_collection(f.field_type)
                        for f in self._struct_decl(type_node).fields)
         return False
@@ -645,6 +674,8 @@ class MemoryManagementMixin:
             return [f'fusion_error_free(&{lvalue});']                                  # Task 26
         if isinstance(type_node, (ListType, MapType)):
             return [f'{self.map_type(type_node)}_free(&{lvalue});']
+        if self.is_class_type(type_node):
+            return [f'{self._struct_c_name(type_node)}__release(&{lvalue});']   # Task 32.10b
         if isinstance(type_node, PrimitiveType):
             return [f'fusion_str_free(&{lvalue});']
         if isinstance(type_node, StructType):
@@ -659,6 +690,8 @@ class MemoryManagementMixin:
             return f'{self.map_type(type_node)}_set(&{lvalue}, {value_code});'
         if type(type_node).__name__ == 'ErrorType':
             return f'fusion_error_set(&{lvalue}, {value_code});'   # Task 26
+        if self.is_class_type(type_node):
+            return f'{self._struct_c_name(type_node)}__set(&{lvalue}, {value_code});'   # 32.10b
         if isinstance(type_node, PrimitiveType):
             return f'fusion_str_set(&{lvalue}, {value_code});'
         return f'fusion_set_{self._struct_c_name(type_node)}(&{lvalue}, {value_code});'
@@ -668,10 +701,10 @@ class MemoryManagementMixin:
     def struct_helper_lines(self, ordered_structs) -> list:
         """Copy / free / set helpers for every struct holding a string somewhere, in
         dependency order (a struct's helpers call its fields' helpers)."""
-        lines = []
+        lines = self.class_helper_lines([s for s in ordered_structs if s.is_class])
         for struct in ordered_structs:
             struct_type = StructType(location=struct.location, name=struct.name, declaration=struct)
-            if not self.is_managed(struct_type):
+            if struct.is_class or not self.is_managed(struct_type):
                 continue
             c = self._struct_c_name(struct_type)
             copy_body, free_body = [], []
@@ -699,6 +732,55 @@ class MemoryManagementMixin:
                       f'fusion_free_{c}(dst); *dst = value; }}']
         return lines
 
+    def class_helper_lines(self, classes) -> list:
+        """Per class (Task 32.10b): __make - a new object, fields at their defaults, count 1;
+        __retain - one more holder; __release - one less, and at 0 its fields let go and it is
+        freed; __set - replace what a holder holds. Prototypes first: classes refer to each
+        other."""
+        protos, bodies = [], []
+        for decl in classes:
+            kind = StructType(location=decl.location, name=decl.name, declaration=decl)
+            c = self._struct_c_name(kind)
+            protos += [f'static inline {c}* {c}__make(void);', f'static inline {c}* {c}__retain({c}* o);',
+                       f'static inline void {c}__release({c}** p);', f'static inline void {c}__set({c}** dst, {c}* v);']
+            make = [f'static inline {c}* {c}__make(void) {{',
+                    f'    {c}* o = ({c}*)fusion_alloc(sizeof({c}));',
+                    '    memset(o, 0, sizeof *o);',
+                    '    o->fusion_count = 1;',
+                    '    FUSION_OBJECT_MADE();']
+            release = [f'static inline void {c}__release({c}** p) {{',
+                       f'    {c}* o = *p;',
+                       '    *p = NULL;',
+                       '    if (!o || --o->fusion_count > 0) return;',
+                       '    FUSION_OBJECT_FREED();']
+            for f in decl.fields:
+                field = f'o->{self._field_name(f.name)}'
+                if isinstance(f.field_type, ArrayType):
+                    value = None if f.default_value is None else self.visit(f.default_value)
+                    if value is not None or not self._is_zero_safe(f.field_type):
+                        value = value or self._default_value_code(f.field_type)
+                        make.append(f'    {{ {self.map_type(f.field_type.element_type)} init[] = '
+                                    f'{value}; memcpy({field}, init, sizeof init); }}')
+                elif f.default_value is not None:
+                    make.append(f'    {field} = {self.owned_value(f.default_value, f.field_type)};')
+                elif not self._is_zero_safe(f.field_type):
+                    make.append(f'    {field} = {self._default_value_code(f.field_type)};')
+                release += ['    ' + line for line in self.free_lines(f.field_type, field)]
+            bodies += make + ['    return o;', '}']
+            bodies += [f'static inline {c}* {c}__retain({c}* o) {{ if (o) o->fusion_count++; return o; }}']
+            bodies += release + ['    fusion_dealloc(o);', '}']
+            bodies += [f'static inline void {c}__set({c}** dst, {c}* v) {{ {c}* old = *dst; *dst = v; '
+                       f'{c}__release(&old); }}']
+        return protos + bodies
+
+    def object_needed(self, code: str, type_node, node) -> str:
+        """An object about to be used through `.` - null is a NullError (Task 32.10b)."""
+        from .c_runtime import escape_c_text
+        c = self._struct_c_name(type_node)
+        name = escape_c_text(type_node.name, '"')
+        return self.checked_code(f'(({c}*)fusion_need({code}, {self._where(node)}, "{name}"))',
+                                 f'{c}*')
+
     # ------------------------------------------------------------------ ownership of values
 
     def is_fresh(self, expr) -> bool:
@@ -710,6 +792,8 @@ class MemoryManagementMixin:
             return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, InterpolatedStringExpr):
             return True  # "x is {x}" builds a new string (18.3.3)
+        if type(expr).__name__ == 'ObjectMakeExpr':
+            return True   # a new object, count 1 (Task 32.10b)
         if type(expr).__name__ == 'PassingExpr':
             # byVal a: a new copy; byRef a: as the value itself (Task 32.10a)
             if expr.by_val:

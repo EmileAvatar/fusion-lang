@@ -1363,7 +1363,23 @@ Spaceship, Error function loadAndValidateShip(string filename)
 
 ## Classes and Objects
 
-**Status:** [PLANNED 32] (methods on structs first, then classes). Decided in the showcase
+**Status:** a minimal class is built (Task 32.10b) - the rest [PLANNED 32].
+
+**Built (Task 32.10b, user decisions 2026-10-28 / 29):** `class Car` with fields (defaults
+allowed), methods (`this`; a field's bare name means `this.field`) and an optional
+constructor - `constructor(...)`, or `Car(...)` named like the class; none written: `Car()`
+with every value field at its default and every object null. `Car("x")` and `new Car("x")`
+are the same. An object lives on the heap with a **count**: a variable holds a reference
+(null until set), `b = a` shares it, passing borrows it, and it is freed when its last holder
+lets go - with what it holds (Object_Lifetime.md). `.` on null is a NullError; `== null` /
+`is null`; `==` on two objects asks whether they are the same object. A `let` object can't be
+replaced, but the object can still change. A constructor that fails frees its half-made
+object. In C an object is `fu_Car*` with `fusion_count` first and helpers `__make`,
+`__retain`, `__release`, `__set`; the constructor is the function `Car.new`. Not yet: several
+constructors, inheritance, interfaces, private / static, `?.`, copies of objects (clone), a
+struct holding an object (`[structs] classes`), printing a whole object.
+
+Decided in the showcase
 review (user, 2026-10-23/24, FEATURES Later): operator overloading off by default
 (`[language] operatorOverloading`); several return values only with `[functions]
 multiple_returns = true`; class objects are the only values that can be null (Task 30)

@@ -477,6 +477,16 @@ class Parser:
         Raises:
             ParserError: If token is not a valid primary expression
         """
+        # `new Car("Honda")` - the same as Car("Honda"); `new` only shows an object is made
+        # (Task 32.10b)
+        if self.match(TokenType.NEW):
+            new_token = self.previous()
+            made = self.parse_call()
+            if not (isinstance(made, CallExpr) and isinstance(made.callee, IdentifierExpr)):
+                raise ParserError(new_token, "'new' comes before a class's constructor: new Car(...)")
+            made.uses_new = True
+            return made
+
         # A match that gives a value (Task 46.2) - it never falls through
         if self.match(TokenType.MATCH):
             return self.parse_match_value()
@@ -1826,6 +1836,10 @@ class Parser:
         if self.match(TokenType.STRUCT):
             return self.parse_struct_declaration()
 
+        # Class declaration (Task 32.10b)
+        if self.match(TokenType.CLASS):
+            return self.parse_class_declaration()
+
         # Enum declaration (Task 25)
         if self.match(TokenType.ENUM):
             return self.parse_enum_declaration()
@@ -1955,6 +1969,112 @@ class Parser:
                             parent=parent)
         self.attach_methods(struct, methods)
         return struct
+
+    def parse_class_declaration(self) -> StructDecl:
+        """`class Car` (Task 32.10b) - fields, methods and an optional constructor, in any
+        block style:
+
+            class Car
+                string name
+                Engine engine                   // an object: null until set
+                constructor(string name)        // or Car(string name) - the same
+                    this.name = name
+                void function rename(string n)
+                    name = n
+
+        No constructor: `Car()` makes one with every field at its default. The constructor
+        becomes the function `Car.new`: make the object, run the body, return it. The CLASS
+        token has already been consumed."""
+        class_token = self.previous()
+        name = self.consume(TokenType.IDENTIFIER, "Expected the class name after 'class'").value
+        if self.check(TokenType.IMPLEMENTS) or self.check(TokenType.INHERITS) or (
+                self.check(TokenType.IDENTIFIER) and self.peek().value in ('extends', 'includes')):
+            raise ParserError(self.peek(), "A class building on another class comes with "
+                                           "inheritance (Task 32.7)")
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.match(TokenType.LBRACE):
+            closing = TokenType.RBRACE
+        elif self.match(TokenType.INDENT):
+            closing = TokenType.DEDENT
+        else:
+            raise ParserError(self.peek(), f"Expected the members of class '{name}' - an "
+                                           f"indented block, or '{{' ... '}}'")
+        fields, methods, constructors = [], [], []
+        while True:
+            while self.match(TokenType.NEWLINE):
+                pass
+            if self.check(closing) or self.is_at_end():
+                break
+            if (self.check(TokenType.IDENTIFIER) and self.peek().value in ('constructor', name)
+                    and self.peek(1).type == TokenType.LPAREN):
+                start = self.advance()
+                self.consume(TokenType.LPAREN, "Expected '('")
+                parameters = []
+                if not self.check(TokenType.RPAREN):
+                    parameters.append(self.parse_parameter())
+                    while self.match(TokenType.COMMA):
+                        parameters.append(self.parse_parameter())
+                self.consume(TokenType.RPAREN, "Expected ')' after the constructor's parameters")
+                while self.match(TokenType.NEWLINE):
+                    pass
+                constructors.append((start, parameters, self.parse_block_statement()))
+                continue
+            item = self.parse_struct_field()
+            (methods if isinstance(item, FunctionDecl) else fields).append(item)
+        self.consume(closing, f"Expected the end of class '{name}'")
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.match(TokenType.END):
+            self.consume(TokenType.CLASS, "Expected 'class' after 'End'")
+        if len(constructors) > 1:
+            raise ParserError(constructors[1][0], "One constructor per class for now - several "
+                                                  "come with Task 32.2")
+        decl = StructDecl(location=class_token.location, name=name, fields=fields, is_class=True)
+        self.attach_methods(decl, methods)
+        for method in decl.methods:
+            method.parameters[0].by_ref = False      # `this` is a reference already
+        decl.methods.append(self._constructor(decl, constructors[0] if constructors else None))
+        return decl
+
+    def _constructor(self, decl: StructDecl, written) -> FunctionDecl:
+        """`Car.new(...)`: `Car this = <a new Car>`, the constructor's body, `return this`. A
+        bare `return` in the body returns the object. A parameter may have a field's name
+        (`this.name = name` - Java's habit): then the bare name is the parameter."""
+        location = written[0].location if written else decl.location
+        parameters, body = (written[1], written[2]) if written else \
+            ([], BlockStmt(location=location, statements=[]))
+        class_type = StructType(location=location, name=decl.name)
+        this = lambda: IdentifierExpr(location=location, name='this')
+        method = FunctionDecl(location=location, name=decl.name, parameters=parameters,
+                              return_type=class_type, body=body)
+        field_names = {f.name for f in decl.fields} - {p.name for p in parameters}
+        method_names = {m.method_name for m in decl.methods}
+        self.rewrite_method_body(method, decl.name, field_names, method_names,
+                                 lambda message: self._fail(message))
+
+        def returns(node):
+            if isinstance(node, ReturnStmt) and node.value is None:
+                node.value = this()
+            elif isinstance(node, list):
+                for item in node:
+                    returns(item)
+            elif is_dataclass(node) and not isinstance(node, (type, LambdaExpr)):
+                for f in dataclass_fields(node):
+                    if f.name not in ('location', 'inferred_type', 'scope'):
+                        returns(getattr(node, f.name))
+
+        returns(body)
+        body.statements = ([VarDeclStmt(location=location, var_type=class_type, name='this',
+                                        initializer=ObjectMakeExpr(location=location,
+                                                                   class_name=decl.name))]
+                           + body.statements + [ReturnStmt(location=location, value=this())])
+        method.method_name = 'new'
+        method.method_of = decl.name
+        method.is_constructor = True
+        method.changes_this = False
+        method.name = f'{decl.name}.new'
+        return method
 
     def attach_methods(self, struct: StructDecl, methods: list) -> None:
         """Methods written inside a struct (Task 32.1): each becomes a function `Struct.name`

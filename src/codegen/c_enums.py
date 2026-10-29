@@ -201,6 +201,8 @@ class EnumsMixin:
         if not getattr(node, 'can_be_null', False):
             return f'((void)({code}), {1 if node.negated else 0})'   # never null (a warning)
         operator = '!=' if node.negated else '=='
+        if self.is_class_type(node.operand.inferred_type):
+            return f'(({code}) {operator} NULL)'          # an object (Task 32.10b)
         if self.data_struct(node.operand.inferred_type) is not None:
             return f'(({code}).tag {operator} FUSION_ENUM_NULL)'
         return f'(({code}) {operator} FUSION_ENUM_NULL)'

@@ -523,6 +523,14 @@ class MatchPattern(ASTNode):
 
 
 @dataclass
+class ObjectMakeExpr(ASTNode):
+    """A new object of a class with every field at its default and a count of 1 - the
+    first line of the class's constructor `Car.new` (Task 32.10b)."""
+    class_name: str
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class PassingExpr(ASTNode):
     """`byVal a` - a copy (deep: a List / Map is copied, not shared) - or `byRef a`, the same
     value shared (Task 32.10a, user decisions 2026-10-28 / 29). In normal code a List / Map
@@ -744,6 +752,10 @@ class StructDecl(ASTNode):
     # The struct it builds on (Task 32.8): `struct Employee implements Person`. Semantic
     # analysis gives it a first field named Person holding the Person part
     parent: Optional[str] = None
+    # `class Car` (Task 32.10b): the same declaration, but its objects live on the heap with a
+    # count, a variable holds a reference (null until set), and `Car(...)` calls the
+    # constructor - the function `Car.new`, one of the methods
+    is_class: bool = False
 
 
 @dataclass

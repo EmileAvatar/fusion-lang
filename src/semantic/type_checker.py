@@ -14,7 +14,7 @@ from src.parser.ast_nodes import (
     StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
     ListType, MapType, NewCollectionExpr, ConditionalExpr,
     EnumType, EnumValueExpr, EnumStaticCall, ErrorType, ErrorActiveExpr, WidenExpr,
-    PassingExpr,
+    PassingExpr, ObjectMakeExpr,
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
@@ -337,10 +337,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             # null (Task 30.11): an enum can hold it (class objects later, Task 32)
             if isinstance(expected, (ListType, MapType, ArrayType)):
                 self.errors.append(SemanticError(self.null_collection(expected), value.location))
-            elif not isinstance(expected, EnumType):
+            elif not isinstance(expected, EnumType) and not self.is_class(expected):
                 self.errors.append(SemanticError(
-                    f"A {self.type_to_string(expected)} can't be null - only an enum (and class "
-                    f"objects, later) can", value.location))
+                    f"A {self.type_to_string(expected)} can't be null - only a class object or "
+                    f"an enum can", value.location))
             value.inferred_type = expected
             return expected
         result = self.visit(value)
@@ -742,7 +742,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             if inherited is not None:
                 receiver, struct, method = inherited     # e.greet() is Person.greet(e.Person)
             if method is not None:
-                if getattr(method, 'changes_this', False):
+                if getattr(method, 'changes_this', False) and not struct.is_class:
                     root = self._root_variable(receiver)
                     symbol = self.symbol_table.lookup(root.name) if root is not None else None
                     if symbol is not None and symbol.is_constant:
@@ -930,7 +930,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         (class objects with Task 32); on anything else the answer is always the same - a
         warning, not an error, since a library may still hand over a null one day."""
         operand_type = self.visit(node.operand)
-        node.can_be_null = isinstance(operand_type, EnumType)
+        node.can_be_null = isinstance(operand_type, EnumType) or self.is_class(operand_type)
         if not node.can_be_null and not (isinstance(operand_type, PrimitiveType)
                                          and operand_type.name == 'void'):
             self.warnings.append(SemanticError(
@@ -1024,6 +1024,41 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
     LENGTH_NAMES = ('len', 'length')
 
+    # ------------------------------------------------------------------ classes (32.10b)
+
+    def is_class(self, type_node) -> bool:
+        """A class's type: its objects live on the heap, a variable holds a reference."""
+        return getattr(self.struct_declaration(type_node), 'is_class', False)
+
+    def holds_objects(self, type_node) -> bool:
+        """A class object, or a List / Map / array holding them."""
+        if isinstance(type_node, ListType):
+            return self.holds_objects(type_node.element_type)
+        if isinstance(type_node, MapType):
+            return self.holds_objects(type_node.value_type)
+        if isinstance(type_node, ArrayType):
+            return self.holds_objects(type_node.element_type)
+        return self.is_class(type_node)
+
+    def no_object_copies(self, type_node, location) -> None:
+        """A deep copy of objects needs clone() - Cloneable (Task 32.2 onwards)."""
+        self.errors.append(SemanticError(
+            f"A copy of a {self.type_to_string(type_node)} would copy its objects - that needs "
+            f"clone() (Cloneable, comes with Task 32.2); share it instead", location))
+
+    def _through_object(self, expr) -> bool:
+        """A field or element reached through a class object - changing it changes the
+        object, not the variable, so a let / const variable doesn't stop it."""
+        while isinstance(expr, (MemberExpr, IndexExpr)):
+            if self.is_class(getattr(expr, 'inferred_type', None)):
+                return True
+            expr = expr.object if isinstance(expr, MemberExpr) else expr.array
+        return self.is_class(getattr(expr, 'inferred_type', None))
+
+    def visit_ObjectMakeExpr(self, node: ObjectMakeExpr) -> TypeNode:
+        decl = self.struct_named(node.class_name)
+        return StructType(location=node.location, name=node.class_name, declaration=decl)
+
     # ------------------------------------------------------------------ byVal / byRef (32.10a)
 
     @staticmethod
@@ -1035,6 +1070,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         List / Map already is in normal code. A struct is always copied for now: `byRef` on
         one waits for [structs] allowReference (user decision 2026-10-28)."""
         value_type = self.visit(node.value)
+        if node.by_val and self.holds_objects(value_type):
+            self.no_object_copies(value_type, node.location)
         if not node.by_val and not self._is_collection(value_type) \
                 and not (isinstance(value_type, PrimitiveType) and value_type.name == 'void'):
             self.errors.append(SemanticError(
@@ -1053,6 +1090,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             value = arguments[i]
             if value is None or not param.by_val or not self._is_collection(param.param_type) \
                     or isinstance(value, PassingExpr):
+                continue
+            if self.holds_objects(param.param_type):
+                self.no_object_copies(param.param_type, value.location)
                 continue
             wrapper = PassingExpr(location=value.location, value=value, by_val=True)
             wrapper.inferred_type = param.param_type
@@ -1140,6 +1180,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             ))
             return PrimitiveType(location=node.location, name='void')
 
+        if symbol.symbol_type == 'struct' and getattr(symbol.declaration, 'is_class', False):
+            # Car("Honda") / new Car("Honda") - the constructor, Car.new (Task 32.10b)
+            node.callee = IdentifierExpr(location=node.callee.location,
+                                         name=f'{symbol.declaration.name}.new')
+            return self._visit_call(node)
         if symbol.symbol_type == 'struct':
             struct = symbol.declaration
             self.flatten_parent_arguments(node, struct)      # Task 32.8
@@ -2335,12 +2380,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return
 
         root = self._root_variable(target.object)
-        if root is None:
+        through_object = self._through_object(target.object)    # Task 32.10b
+        if root is None and not through_object:
             self.errors.append(SemanticError(
                 f"Can only assign to field '{target.member}' of a struct stored in a variable",
                 node.location
             ))
-        else:
+        elif root is not None and not through_object:
             symbol = self.symbol_table.lookup(root.name)
             if symbol and symbol.is_constant:
                 self.errors.append(SemanticError(

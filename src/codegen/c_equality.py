@@ -61,6 +61,9 @@ class EqualityMixin:
             helper = f'fusion_box_eq_{self.map_type(left_type.inner)}'   # what they point to (25.5)
         elif type(left_type).__name__ in ('ListType', 'MapType'):
             helper = f'{self.map_type(left_type)}_eq'   # element by element / key by key (18.5)
+        elif isinstance(left_type, StructType) and self.is_class_type(left_type):
+            # two objects are equal when they are the same object (Task 32.10b)
+            return f'((void*)({left}) {"!=" if negate else "=="} (void*)({right}))'
         elif isinstance(left_type, StructType):
             helper = self._struct_equality_helper(left_type, right_type)
         elif left_name == right_name and left_name in ('string', 'bytes'):
@@ -136,8 +139,8 @@ class EqualityMixin:
             return name
         element_equal = self.value_equality('a[i]', left_element, 'b[i]', right_element)
         self.equality_helpers[name] = [
-            f'static inline bool {name}(const {self.map_type(left_element)}* a, int na, '
-            f'const {self.map_type(right_element)}* b, int nb) {{',
+            f'static inline bool {name}({self.map_type(left_element)} const* a, int na, '
+            f'{self.map_type(right_element)} const* b, int nb) {{',
             '    if (na != nb) return false;',
             f'    for (int i = 0; i < na; i++) if (!{element_equal}) return false;',
             '    return true;',

@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Thu Oct 29 19:11:14 SAST 2026
+**Date:** Thu Oct 29 19:44:32 SAST 2026
 **Total Examples:** 19
 
 ## Summary
@@ -66,30 +66,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -138,30 +138,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -229,30 +229,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -319,30 +319,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -407,30 +407,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -481,30 +481,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -549,30 +549,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -650,30 +650,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -733,30 +733,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -801,30 +801,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -869,30 +869,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -951,30 +951,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -1037,30 +1037,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -1135,30 +1135,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -1207,30 +1207,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -1279,30 +1279,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -1351,30 +1351,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -1419,30 +1419,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 
@@ -1497,30 +1497,30 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
 // output code page (Task 18.3.2b). Declared directly to avoid including <windows.h>
 #ifdef _WIN32
 __declspec(dllimport) int __stdcall SetConsoleOutputCP(unsigned int code_page);
-__declspec(dllimport) int __stdcall SetConsoleCP(unsigned int code_page);
-#endif
-// Waiting before the window closes (user request 2026-10-11): a program started by
-// double-clicking it would close before its output can be read, so it waits for a key when
-// it ends - also after a run-time error. Only when the project sets [build] wait_at_exit =
-// true (FUSION_WAIT_AT_EXIT - off by default, user 2026-10-28: for development, examples and
-// testing); never with --headless or when no one is at the console (redirected - tests,
-// scripts, pipes)
-#ifdef _WIN32
-#include <conio.h>
-#include <io.h>
 ... (truncated)
 ```
 

@@ -106,7 +106,7 @@ class CollectionsMixin:
                 f'memset(r, 0, sizeof({name}_s));',
                 'r->count = 1;',
                 'return r;'],
-            f'{name} {name}_from(const {T}* items, int n)': [
+            f'{name} {name}_from({T} const* items, int n)': [
                 f'{name} r = {name}_new();',
                 f'if (n > 0) {{ r->data = ({T}*)fusion_alloc(sizeof({T}) * (size_t)n); '
                 f'memcpy(r->data, items, sizeof({T}) * (size_t)n); r->len = r->cap = n; }}',
@@ -189,7 +189,7 @@ class CollectionsMixin:
                 'r->len = count;',
                 'return r;'],
             # an array's toList() - a new list with copies of the elements (Task 32.10a.1)
-            f'{name} {name}_copyFrom(const {T}* items, int n)': [
+            f'{name} {name}_copyFrom({T} const* items, int n)': [
                 f'{name} r = {name}_new();',
                 f'{name}_grow(r, n);',
                 f'for (int i = 0; i < n; i++) r->data[i] = {clone("items[i]")};',
@@ -291,6 +291,8 @@ class CollectionsMixin:
         if isinstance(expr, IndexExpr):
             return f'{self.list_lvalue(expr.array, False)}[{self.visit(expr.index)}]'
         if isinstance(expr, MemberExpr):
+            if self.is_class_type(getattr(expr.object, 'inferred_type', None)):
+                return self.visit(expr)             # an object's field (Task 32.10b)
             return f'{self.list_lvalue(expr.object, False)}.{self._field_name(expr.member)}'
         return self.visit(expr)
 

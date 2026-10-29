@@ -126,11 +126,20 @@ class SemanticAnalyzer:
             self.type_checker.visit(struct)
             for field in struct.fields:   # List<...> fields (Task 18.5)
                 self.type_checker._check_collection_type(field.field_type, field.location)
+                inner = field.field_type
+                while isinstance(inner, (ArrayType, ListType)):
+                    inner = inner.element_type
+                if not struct.is_class and getattr(self.type_checker.struct_declaration(inner),
+                                                   'is_class', False):
+                    self.errors.append(SemanticError(
+                        f"Struct '{struct.name}' can't hold a class object (field '{field.name}') "
+                        f"- a struct is a value; [structs] classes (planned) will allow it",
+                        field.location))
                 if field.by_ref and not isinstance(field.field_type, (ListType, MapType)):
                     self.errors.append(SemanticError(
                         f"byRef on field '{field.name}': only a List or Map field can be shared "
                         f"between copies of the struct", field.location))
-        self.type_checker.check_struct_nesting(structs)
+        self.type_checker.check_struct_nesting([s for s in structs if not s.is_class])
         # A custom error type's fields (Task 26.9) - any type a struct field may have
         for decl in (d for d in ast.declarations if isinstance(d, ErrorDecl) and not d.builtin):
             for field in decl.fields:
@@ -268,14 +277,14 @@ class SemanticAnalyzer:
         """
         location = structs[0].location if structs else None
         if not getattr(self.structs_config, 'functions', False):
-            for struct in structs:
+            for struct in (s for s in structs if not s.is_class):    # a class always may
                 for method in getattr(struct, 'methods', None) or []:
                     self.errors.append(SemanticError(
                         f"Struct '{struct.name}' has a method '{method.method_name}' - functions "
                         f"on structs are off; [structs] functions = true allows them",
                         method.location))
         if not self.structs_config.hold_collections:
-            for struct in structs:
+            for struct in (s for s in structs if not s.is_class):
                 for f in struct.fields:
                     if isinstance(f.field_type, (ListType, MapType)):
                         self.errors.append(SemanticError(

@@ -116,7 +116,9 @@ are in `task/featuresArchive.md`.
 			array (a copy); null on an array / List / Map names the planned nullable setting
 		[ ] toList on arrays of more dimensions - revisit with multi-dimensional arrays (user,
 			2026-10-29)
-		[ ] 32.10b Minimal classes: fields, methods, constructor, objects by reference, null
+		[DONE] 32.10b Minimal classes (tests/test_classes.py): fields, methods, one constructor
+			(or none), `new` optional, objects by reference with a count, null, NullError on
+			`.`, `==` is the same object; a failing constructor frees its object
 		[ ] 32.10c The catalogue (U / D / R / T / O, collections of objects) - a test each
 		[ ] 32.10d Cycles: the leak check reports them; a warning where a class can hold itself
 		[ ] 32.10e No counting where one owner is proven

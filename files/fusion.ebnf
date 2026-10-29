@@ -413,10 +413,15 @@ escape_sequence =
 
 (* ========== Classes and Interfaces ========== *)
 
+(* Task 32.10b built: fields, methods, one constructor - `constructor(...)` or named like
+   the class; `new` optional before a call that makes an object. Not yet: inherits /
+   implements, access modifiers, static, properties *)
 class_declaration =
     "class" identifier [ "inherits" identifier ]
     [ "implements" interface_list ]
     class_body ;
+
+new_expression = "new" call_expression ;    (* the same as the call itself *)
 
 class_body =
     INDENT { class_member } DEDENT ;

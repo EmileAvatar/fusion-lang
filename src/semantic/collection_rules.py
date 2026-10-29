@@ -180,6 +180,9 @@ class CollectionRulesMixin:
                 want(1)
             elif args:
                 check(args[0], bool_type, 'copy')
+            if self.holds_objects(element) and not (
+                    args and isinstance(args[0], LiteralExpr) and args[0].value is False):
+                self.no_object_copies(receiver_type, node.location)   # 32.10b: needs clone()
             return receiver_type
         if method in ('clear', 'len'):
             want(0)

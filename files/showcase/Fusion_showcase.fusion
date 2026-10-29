@@ -633,7 +633,8 @@ interface Damageable {
 // 14. Classes (Task 32)
 // =============================================================================================
 
-// [designed] A class: references, not copies; implements interfaces
+// [built] A class: references, not copies - fields, methods, constructor (Task 32.10b)
+// [designed] implements interfaces
 class Ship implements Movable, Damageable {
     // [designed] Auto-properties, with a private setter
     property Name: string { get; private set; }

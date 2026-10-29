@@ -30,13 +30,24 @@ typedef uint32_t fusion_char;
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
 static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
 static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
     if (fusion_live_count > 0 && !fusion_leak_skip) {
         fflush(stdout);
         fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
         _Exit(3);
     }
 }
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
 #endif
 
 // Program start-up: the Windows console shows UTF-8 text correctly only after switching its
@@ -396,6 +407,13 @@ static inline fusion_char fusion_str_at(fusion_string s, int i, const char* wher
 
 // An enum with no value (Task 30.11): a number no enum value may use
 #define FUSION_ENUM_NULL (-2147483647)
+static inline void fusion_null_fail(const char* where, const char* what);
+// `.` on an object (Task 32.10b): null is a NullError - the caller checks fusion_failed
+static inline void* fusion_need(void* p, const char* where, const char* kind) {
+    if (!p) { char what[160]; snprintf(what, sizeof what, "used '.' on a null %s", kind);
+              fusion_null_fail(where, what); }
+    return p;
+}
 static inline void fusion_null_fail(const char* where, const char* what) {
     fusion_fail(FUSION_KIND_NullError, where, "%s", what);
 }

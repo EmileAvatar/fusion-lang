@@ -1015,6 +1015,8 @@ class NameResolver:
             self.resolve_expression(expr.condition)
             self.resolve_expression(expr.then_value)
             self.resolve_expression(expr.else_value)
+        elif type(expr).__name__ == 'ObjectMakeExpr':    # a constructor's new object (32.10b)
+            pass
         elif isinstance(expr, PassingExpr):              # byVal a / byRef a (Task 32.10a)
             self.resolve_expression(expr.value)
         elif isinstance(expr, MatchExpr):                # Task 46.2 - an enum case is a bare name

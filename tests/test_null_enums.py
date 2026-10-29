@@ -85,8 +85,8 @@ def test_the_first_value_may_hold_the_enum_now():
 
 
 @pytest.mark.parametrize('source, message', [
-    (main('string s = null'), "A string can't be null - only an enum"),
-    (main('int n = null'), "A int can't be null - only an enum"),
+    (main('string s = null'), "A string can't be null - only a class object or an enum"),
+    (main('int n = null'), "A int can't be null - only a class object or an enum"),
     ('enum E\n    A = -2147483647\n\n' + main('E e = E.A'), "-2147483647 is kept for null"),
 ])
 def test_errors(source, message):

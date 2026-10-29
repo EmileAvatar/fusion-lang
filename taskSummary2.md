@@ -463,4 +463,6 @@ Kept under Task 22 until the renumbering is approved.
 - 32.13 done: "{e}" as `name : value`, toCSV on structs, arrays and Lists of structs
 - 32.10a done: Lists and Maps are references with a count (shared in normal code, copied in
   a struct; byVal / byRef)
-- **Next Action:** 32.10b (minimal classes, with the counting), then 32.10c-e, then 32.2
+- 32.10b done: minimal classes with the counting (a class is a StructDecl with is_class;
+  the constructor is the function Car.new; C helpers __make / __retain / __release / __set)
+- **Next Action:** 32.10c (the catalogue - a test for each case), then 32.10d-e, then 32.2

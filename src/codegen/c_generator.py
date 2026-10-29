@@ -390,7 +390,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 inner = field.field_type
                 if isinstance(inner, ArrayType):
                     inner = inner.element_type
-                if isinstance(inner, StructType) and inner.name in by_name:
+                if isinstance(inner, StructType) and inner.name in by_name \
+                        and not by_name[inner.name].is_class:      # an object: a pointer
                     add(by_name[inner.name])
             ordered.append(struct)
 
@@ -398,10 +399,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             add(struct)
 
         self.emit('// Structs')
+        for struct in ordered:          # classes point at each other (Task 32.10b)
+            if struct.is_class:
+                c_name = self._mangle_function_name(struct.name)
+                self.emit(f'typedef struct {c_name} {c_name};')
         for struct in ordered:
             c_name = self._mangle_function_name(struct.name)
             self.emit(f'typedef struct {c_name} {{')
             self.indent()
+            if struct.is_class:
+                self.emit_line('int fusion_count')   # how many places hold the object
             for field in struct.fields:
                 name = self._field_name(field.name)
                 if isinstance(field.field_type, ArrayType):
@@ -457,6 +464,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         field default or a string anywhere inside it."""
         if isinstance(type_node, (ListType, MapType)):
             return False  # a list / map is made when declared - never null (Task 32.10a)
+        if self.is_class_type(type_node):
+            return True   # an object variable starts as null (Task 32.10b)
         if isinstance(type_node, PrimitiveType):
             return type_node.name not in ('string', 'bytes')
         if isinstance(type_node, EnumType):
@@ -491,6 +500,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return 'NULL'   # an enum holding itself, not in use (Task 25.5)
         if type(type_node).__name__ == 'ErrorType':
             return '((fusion_error){0})'   # no error (Task 26)
+        if self.is_class_type(type_node):
+            return 'NULL'   # no object yet (Task 32.10b)
         if isinstance(type_node, StructType):
             struct = self._struct_decl(type_node)
             return self._struct_initializer(struct, [None] * len(struct.fields))
@@ -1069,6 +1080,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 c_args.extend(self._array_argument(arg, param.param_type))
             elif param is not None and getattr(param, 'by_ref', False):
                 c_args.append(self._reference_argument(arg))   # `this` (Task 32.1)
+            elif param is not None and param.name == 'this' and self.is_class_type(param.param_type) \
+                    and not (isinstance(arg, IdentifierExpr) and arg.name == 'this'):
+                # a method called on an object - null is a NullError (Task 32.10b)
+                c_args.append(self.object_needed(self._argument_code(arg), param.param_type, arg))
             else:
                 c_args.append(self._argument_code(arg))
         args = ', '.join(c_args)
@@ -1315,7 +1330,17 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if type(object_type).__name__ == 'ErrorType' and object_type.declaration is not None \
                 and node.member not in ('message', 'code', 'where'):
             return self.error_field_code(node)    # err.path (Task 26.9)
+        if self.is_class_type(object_type):
+            # an object's field - through its pointer; null is a NullError (Task 32.10b)
+            code = self.visit(node.object)
+            if not (isinstance(node.object, IdentifierExpr) and node.object.name == 'this'):
+                code = self.object_needed(code, object_type, node)
+            return f'{code}->{self._field_name(node.member)}'
         return f'{self.visit(node.object)}.{self._field_name(node.member)}'
+
+    def visit_ObjectMakeExpr(self, node) -> str:
+        """A constructor's new object: fields at their defaults, count 1 (Task 32.10b)."""
+        return f'{self._struct_c_name(node.inferred_type)}__make()'
 
     # _FORMAT_SPECIFIERS, _format_specifier_for_expr, _generate_print_call,
     # visit_InterpolatedStringExpr, _generate_interpolated_print,
@@ -1412,7 +1437,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         # A struct declared without a value starts with every field at its default, or zero
         # (Task 18.2.1)
-        if isinstance(node.var_type, StructType) and not node.initializer:
+        if isinstance(node.var_type, StructType) and not node.initializer                 and not self.is_class_type(node.var_type):      # an object starts as null
             struct = node.var_type.declaration
             init_code = self._struct_initializer(struct, [None] * len(struct.fields))
             self.emit_line(f'{const_keyword}{c_type} {name} = {init_code}')

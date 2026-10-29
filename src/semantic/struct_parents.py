@@ -294,6 +294,9 @@ class StructParentRulesMixin:
         if isinstance(type_node, (PrimitiveType, EnumType, ErrorType)):
             return None
         struct = self.struct_declaration(type_node)
+        if getattr(struct, 'is_class', False):
+            return (f"Can't {action} {struct.name} object yet - use its fields one at a time "
+                    f"(Task 32.2)")
         if struct is not None:
             for f in struct.fields:
                 if self.printable_problem(f.field_type) is not None:

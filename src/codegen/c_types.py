@@ -72,8 +72,10 @@ class TypeMapperMixin:
 
         elif isinstance(fusion_type, StructType):
             # A typedef'd C struct of the same name (Task 18.2.1), mangled like a function
-            # name if it collides with a C keyword
-            return mangle_function_name(fusion_type.name)
+            # name if it collides with a C keyword; a class's object is reached through a
+            # pointer (Task 32.10b)
+            name = mangle_function_name(fusion_type.name)
+            return f'{name}*' if self.is_class_type(fusion_type) else name
 
         return 'void'
 

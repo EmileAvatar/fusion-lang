@@ -763,6 +763,45 @@ void function main()
         print("long name")
 ```
 
+#### Classes: objects shared by reference
+
+<!-- example: syntax_classes | task: 32.10b -->
+```fusion
+class Engine
+    string kind
+    constructor(string kind)            // or Engine(string kind) - the same
+        this.kind = kind
+
+class Car
+    string name
+    int speed = 10
+    Engine engine                       // an object: null until set
+
+    constructor(string name)
+        this.name = name
+        engine = Engine("V8")           // a field's bare name means this.engine
+
+    void function drive()
+        speed = speed + 5
+
+class Note                              // no constructor: Note() - every field at its default
+    string text
+
+void function main()
+    Car mine = Car("Honda")             // new Car("Honda") is the same
+    Car shared = mine                   // the same car - an object is shared, not copied
+    shared.drive()
+    print("{mine.name} {mine.speed} {mine.engine.kind}")   // Honda 15 V8
+    print("{@1}", shared == mine)       // true - the same object
+    Car none                            // null
+    if none is null
+        print("no car")
+    Note n = Note()
+    print("[{n.text}]")                 // []
+```
+An object is freed when the last place holding it lets go (Object_Lifetime.md). `.` on null
+is a NullError that `catch` handles.
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->
