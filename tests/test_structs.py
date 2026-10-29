@@ -90,15 +90,16 @@ def test_field_default_parsed():
     assert struct.fields[1].default_value.value == 100.0
 
 
-@pytest.mark.parametrize("member", [
-    '    int function length() : 0\n',
-    '    constructor(int x)\n',
-    '    int size()\n',
+@pytest.mark.parametrize("member, message", [
+    ('    constructor(int x)\n', "can't have a constructor"),
+    ('    int size()\n', 'only contain fields'),
 ])
-def test_functions_inside_struct_rejected(member):
+def test_constructors_and_bad_members_inside_struct_rejected(member, message):
+    # (a method - `int function length() : 0` - parses since Task 32.1; [structs] functions
+    # decides whether it is allowed: tests/test_struct_methods.py)
     with pytest.raises(ParserError) as exc:
         parse('struct Point\n    int x\n' + member)
-    assert 'only contain fields' in str(exc.value)
+    assert message in str(exc.value)
 
 
 def test_field_access_chain_parses():

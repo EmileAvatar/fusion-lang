@@ -443,11 +443,13 @@ interface_list =
 
 struct_declaration =
     "struct" identifier { NEWLINE }
-    ( INDENT { struct_field NEWLINE } DEDENT [ "End" "struct" ]      (* indentation / End style *)
-    | "{" { NEWLINE } { struct_field NEWLINE } "}" ) ;               (* brace style *)
-    (* Implemented (Task 18.2.1). Structs are pure value types: fields only - no methods,
-       operators or constructors. The compiler generates one constructor, Name(...), taking
-       every field in declaration order. Top level only. *)
+    ( INDENT { struct_member NEWLINE } DEDENT [ "End" "struct" ]     (* indentation / End style *)
+    | "{" { NEWLINE } { struct_member NEWLINE } "}" ) ;              (* brace style *)
+    (* Implemented (Task 18.2.1). Structs are value types: no operators or constructors - the
+       compiler generates one constructor, Name(...), taking every field in declaration order.
+       Methods (Task 32.1) with [structs] functions = true. Top level only. *)
+
+struct_member = struct_field | function_declaration ;   (* a method: `this` is the struct *)
 
 struct_field =
     type_name identifier [ "=" expression ] ;

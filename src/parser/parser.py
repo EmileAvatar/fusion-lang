@@ -6,6 +6,7 @@ Syntax Tree (AST). Uses precedence climbing for binary operators.
 """
 
 import json
+from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import List, Optional
 from src.lexer.token import Token, TokenType, SourceLocation
 from src.lexer.literals import decode_char_literal, integer_value
@@ -533,6 +534,10 @@ class Parser:
                 value=None,
                 type_hint="null"
             )
+
+        # `this` - inside a struct's method, the struct itself (Task 32.1)
+        if self.match(TokenType.THIS):
+            return IdentifierExpr(location=self.previous().location, name='this')
 
         # Array literal: [1, 2, 3]
         if self.match(TokenType.LBRACKET):
@@ -1584,6 +1589,10 @@ class Parser:
             decl = self.parse_declaration()
             if decl:
                 declarations.append(decl)
+                if isinstance(decl, StructDecl):
+                    for method in decl.methods:        # a struct's methods (Task 32.1)
+                        method.is_public = decl.is_public
+                        declarations.append(method)
 
             # Skip newlines between declarations
             while self.match(TokenType.NEWLINE):
@@ -1749,7 +1758,7 @@ class Parser:
                 f"'{{' ... '}}'"
             )
 
-        fields = []
+        fields, methods = [], []
         while self.match(TokenType.NEWLINE):
             pass
         while not self.check(closing) and not self.is_at_end():
@@ -1757,11 +1766,12 @@ class Parser:
                     self.check(TokenType.IDENTIFIER) and self.peek().value == 'constructor'):
                 raise ParserError(
                     self.peek(),
-                    f"Struct '{name_token.value}' can only contain fields - structs are pure "
-                    f"value types with no functions or constructors (write a separate function "
-                    f"that takes the struct instead)"
+                    f"Struct '{name_token.value}' can't have a constructor - the compiler makes "
+                    f"its only one; a method needs its return type first: void function "
+                    f"move(int dx)"
                 )
-            fields.append(self.parse_struct_field())
+            item = self.parse_struct_field()
+            (methods if isinstance(item, FunctionDecl) else fields).append(item)
             while self.match(TokenType.NEWLINE):
                 pass
 
@@ -1773,7 +1783,147 @@ class Parser:
         if self.match(TokenType.END):
             self.consume(TokenType.STRUCT, "Expected 'struct' after 'End'")
 
-        return StructDecl(location=struct_token.location, name=name_token.value, fields=fields)
+        struct = StructDecl(location=struct_token.location, name=name_token.value, fields=fields)
+        self.attach_methods(struct, methods)
+        return struct
+
+    def attach_methods(self, struct: StructDecl, methods: list) -> None:
+        """Methods written inside a struct (Task 32.1): each becomes a function `Struct.name`
+        whose first parameter is `this` - the struct itself, by reference, so a method can
+        change it. Inside, a field's bare name means `this.field`, and another method's bare
+        name `this.method(...)`; a parameter or local can't take a field's name."""
+        field_names = {f.name for f in struct.fields}
+        method_names = {m.name for m in methods}
+        for method in methods:
+            clash = next((n for n in method_names if n in field_names), None)
+            if clash:
+                raise ParserError(self.previous(), f"'{clash}' is both a field and a method of "
+                                                   f"struct '{struct.name}'")
+            self._method_body(method, struct, field_names, method_names)
+            method.method_name = method.name
+            method.method_of = struct.name
+            method.name = f'{struct.name}.{method.name}'
+            this = ParameterDecl(location=method.location, name='this', default_value=None,
+                                 param_type=StructType(location=method.location, name=struct.name),
+                                 by_ref=True)
+            method.parameters.insert(0, this)
+        changes = {m.method_name: self._assigns_this(m) for m in methods}
+        while True:          # a method that calls one that changes `this` changes it too
+            more = {m.method_name for m in methods if not changes[m.method_name]
+                    and any(changes[n] for n in self._this_calls(m))}
+            if not more:
+                break
+            for name in more:
+                changes[name] = True
+        for method in methods:
+            method.changes_this = changes[method.method_name]
+        struct.methods = methods
+
+    def _method_body(self, method, struct, field_names, method_names) -> None:
+        for p in method.parameters:
+            if p.name in field_names or p.name == 'this':
+                raise ParserError(self.previous(), f"Parameter '{p.name}' of method "
+                                                   f"'{method.name}' has the name of a field of "
+                                                   f"struct '{struct.name}' - choose another")
+
+        def this_of(node, name):
+            return MemberExpr(location=node.location,
+                              object=IdentifierExpr(location=node.location, name='this'),
+                              member=name)
+
+        def walk(node):
+            if isinstance(node, list):
+                for i, item in enumerate(node):
+                    node[i] = fix(item)
+                    walk(node[i])
+                return
+            if not is_dataclass(node) or isinstance(node, type):
+                return
+            if isinstance(node, VarDeclStmt) and node.name in field_names:
+                raise ParserError(self.previous(), f"A variable in method '{method.name}' can't "
+                                                   f"have the name of field '{node.name}'")
+            for f in dataclass_fields(node):
+                if f.name in ('location', 'inferred_type', 'scope', 'declaration',
+                              'callee_declaration', 'resolved_arguments'):
+                    continue
+                value = getattr(node, f.name)
+                if isinstance(value, list):
+                    walk(value)
+                    continue
+                new = fix(value)
+                if new is not value:
+                    setattr(node, f.name, new)
+                walk(new)
+
+        def fix(node):
+            if isinstance(node, IdentifierExpr) and node.name in field_names:
+                return this_of(node, node.name)
+            if isinstance(node, CallExpr) and isinstance(node.callee, IdentifierExpr) \
+                    and node.callee.name in method_names:
+                node.callee = this_of(node.callee, node.callee.name)
+            return node
+
+        walk(method.body)
+
+    @staticmethod
+    def _root_name(node):
+        while isinstance(node, (MemberExpr, IndexExpr)):
+            node = node.object if isinstance(node, MemberExpr) else node.array
+        return node.name if isinstance(node, IdentifierExpr) else None
+
+    def _assigns_this(self, method) -> bool:
+        """Whether a method changes `this` itself (not counting other methods it calls)."""
+        changing = ('add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy')
+        found = [False]
+
+        def walk(node):
+            if found[0] or isinstance(node, type):
+                return
+            if isinstance(node, list):
+                for item in node:
+                    walk(item)
+                return
+            if not is_dataclass(node):
+                return
+            if isinstance(node, AssignmentStmt) and self._root_name(node.target) == 'this':
+                found[0] = True
+                return
+            if isinstance(node, CallExpr) and isinstance(node.callee, MemberExpr) \
+                    and node.callee.member in changing \
+                    and isinstance(node.callee.object, (MemberExpr, IndexExpr)) \
+                    and self._root_name(node.callee.object) == 'this':
+                found[0] = True
+                return
+            for f in dataclass_fields(node):
+                if f.name not in ('location', 'inferred_type', 'scope'):
+                    walk(getattr(node, f.name))
+
+        walk(method.body)
+        return found[0]
+
+    def _this_calls(self, method) -> set:
+        """The struct's methods a method calls on `this`."""
+        names = set()
+
+        def walk(node):
+            if isinstance(node, type):
+                return
+            if isinstance(node, list):
+                for item in node:
+                    walk(item)
+                return
+            if not is_dataclass(node):
+                return
+            if isinstance(node, CallExpr) and isinstance(node.callee, MemberExpr) \
+                    and isinstance(node.callee.object, IdentifierExpr) \
+                    and node.callee.object.name == 'this':
+                names.add(node.callee.member)
+            for f in dataclass_fields(node):
+                if f.name not in ('location', 'inferred_type', 'scope'):
+                    walk(getattr(node, f.name))
+
+        walk(method.body)
+        return names
 
     @classmethod
     def place_at(cls, node, location) -> None:
@@ -1943,9 +2093,12 @@ class Parser:
             variant.explicit_value = True
         return variant
 
-    def parse_struct_field(self) -> StructField:
-        """Parse one struct field: `int x` or `int hp = 100` (Task 18.2.1)."""
+    def parse_struct_field(self):
+        """Parse one struct field: `int x` or `int hp = 100` (Task 18.2.1) - or a method,
+        `void function move(int dx)` (Task 32.1), returned as a FunctionDecl."""
         field_type = self.parse_type()
+        if self.match(TokenType.FUNCTION, TokenType.FUNC):
+            return self.parse_function_declaration(field_type)
         if self.check_any(TokenType.FUNCTION, TokenType.FUNC):
             raise ParserError(
                 self.peek(),

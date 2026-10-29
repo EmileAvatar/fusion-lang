@@ -2,3 +2,7 @@
 # closes, so its output can be read (all other settings: their defaults)
 [build]
 waitAtExit = true
+
+# Methods inside a struct (Task 32.1) - for syntax_struct_methods
+[structs]
+functions = true

@@ -640,6 +640,7 @@ class ParameterDecl(ASTNode):
     name: str
     default_value: Optional[ASTNode]
     is_variadic: bool = False   # `string... args` - main's arguments (Task 18.5.4)
+    by_ref: bool = False        # the caller's value itself, not a copy - a method's `this` (32.1)
 
 
 @dataclass
@@ -691,6 +692,9 @@ class StructDecl(ASTNode):
     name: str
     fields: List[StructField]
     is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
+    # Methods written inside the struct (Task 32.1) - each also a top-level FunctionDecl named
+    # `Struct.method`, its first parameter `this` (by reference)
+    methods: List['FunctionDecl'] = field(default_factory=list)
 
 
 @dataclass

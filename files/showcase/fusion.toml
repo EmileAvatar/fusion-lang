@@ -68,8 +68,9 @@ stringMutable = true
 stringWarnLength = 64
 # [built] A struct field may be a List or Map (false: such a field is an error)
 holdCollections = true
-# [designed] Functions on structs (Task 32.1) / classes inside structs - off by default
+# [built] Methods inside a struct - p.move(1, 2) changes p (Task 32.1); off by default
 functions = false
+# [designed] Classes inside structs - off by default
 classes = false
 
 [conditions]

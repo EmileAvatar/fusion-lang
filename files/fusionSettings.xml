@@ -66,6 +66,9 @@
     <setting name="stringWarnLength" type="int" min="0" default="64" task="18.2">
       <description>Warn when a string field's text is longer than this (0 = never warn)</description>
     </setting>
+    <setting name="functions" type="bool" default="false" task="32.1">
+      <description>Methods written inside a struct (p.move(1, 2) changes p); false: a function inside a struct is an error</description>
+    </setting>
     <setting name="holdCollections" type="bool" default="true" task="18.5">
       <description>A struct field may be a List or a Map; false makes such a field an error</description>
     </setting>

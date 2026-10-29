@@ -431,4 +431,16 @@ Kept under Task 22 until the renumbering is approved.
 - Truth tables settled (byValue / byVal; structs byRef as a parameter, [structs] allowReference,
   shareableListBehaviour; noshare can't be handed out; nocopy set only in constructor / clone;
   clone() only with nocopy) - no open questions
-- **Next Action:** the user approves Task 32 to start; then 32.1 (methods on structs)
+- Task 32 approved (user, 2026-10-29: "continue with task 32")
+- **32.1 plan (methods on structs):** a function written inside a struct, allowed by
+  `[structs] functions = true` (default false - decided 2026-10-24; off: a compile error that
+  names the setting). It gets the struct as `this`, by reference: `p.move(1, 2)` changes p.
+  Fields by bare name or `this.x`; another method by bare name or `this.f()`; a local or
+  parameter can't have a field's name. On a const struct, a method that changes `this` is an
+  error. The struct's own method comes before a free function of the same name (44.2). In C:
+  `fu_Point__move(fu_Point* this, ...)`, called with `&p`. Settings: `[structs] functions`
+  (default false) into files/fusionSettings.xml
+- 32.1 done: methods on structs (lifted to Struct.method with `this` by reference;
+  [structs] functions, default false)
+- **Next Action:** 32.10 (object lifetime - the counting, before classes) or 32.8 (structs
+  building on structs) - the plan's order: 32.8, then 32.10, then 32.2

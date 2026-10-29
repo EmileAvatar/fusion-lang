@@ -504,6 +504,24 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     # Argument evaluation order (Task 18.2.2)
     # ========================================================================
 
+    def _reference_argument(self, value: ASTNode) -> str:
+        """The address of an argument passed by reference - a method's `this` (Task 32.1):
+        a variable, field or element itself; any other value (a call's result) is held in a
+        temporary for the call, freed after the statement."""
+        if self.goes_through_list(value):
+            return f'&{self.list_lvalue(value)}'
+        if isinstance(value, (IdentifierExpr, MemberExpr, IndexExpr)):
+            return f'&({self.visit(value)})'
+        kind = value.inferred_type
+        temp = self._declare_temp('self', self.map_type(kind), self._default_value_code(kind))
+        if self.is_managed(kind):
+            code = self.owned_value(value, kind)
+            if getattr(self, 'stmt_temps', None):
+                self.stmt_temps[-1].append((temp, kind))
+        else:
+            code = self.visit(value)
+        return f'({temp} = {code}, &{temp})'
+
     def _argument_code(self, value: ASTNode) -> str:
         """C code for one argument: its temporary, if _evaluate_in_written_order stored it
         in one, otherwise the expression itself."""
@@ -635,6 +653,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                     c_params.append(f'int {array_length_name(p.name)}')
                 else:
                     c_params.append(f'{elem} {p.name}[{p.param_type.size}]')
+            elif getattr(p, 'by_ref', False):
+                c_params.append(f'{self.map_type(p.param_type)}* {p.name}')   # `this` (32.1)
             else:
                 c_params.append(f'{self.map_type(p.param_type)} {p.name}')
         return ', '.join(c_params)
@@ -774,6 +794,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # A module-level variable (Task 44.1) - its C name keeps it apart from locals and C
         if node.name in getattr(self, 'global_names', {}):
             return self.global_names[node.name]
+        # A parameter passed by reference - a method's `this` (Task 32.1) - is a pointer
+        if node.name in getattr(self, 'ref_params', ()):
+            return f'(*{node.name})'
         # A declared function used as a value (Task 18.1.3) - use its C name, which differs
         # from the Fusion name when it collides with a C keyword
         if isinstance(node.inferred_type, FunctionType) and node.name in getattr(self, 'function_decls', {}):
@@ -1013,6 +1036,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         for param, arg in zip(params, arguments):
             if param is not None and isinstance(param.param_type, ArrayType):
                 c_args.extend(self._array_argument(arg, param.param_type))
+            elif param is not None and getattr(param, 'by_ref', False):
+                c_args.append(self._reference_argument(arg))   # `this` (Task 32.1)
             else:
                 c_args.append(self._argument_code(arg))
         args = ', '.join(c_args)
@@ -1856,9 +1881,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if node.name == 'main':
             self.set_module_variables(node)
         assigned = self.assigned_roots(node.body)
+        # A method's `this` is the caller's struct itself, by reference (Task 32.1)
+        self.ref_params = {p.name for p in node.parameters if getattr(p, 'by_ref', False)}
         for param in node.parameters:
             if param.name in assigned and not isinstance(param.param_type, ArrayType) \
-                    and self.is_managed(param.param_type):
+                    and self.is_managed(param.param_type) and not getattr(param, 'by_ref', False):
                 self.emit_line(f'{param.name} = {self.copy_code(param.param_type, param.name)}')
                 self.register_owned(param.name, param.param_type, param.location)
 

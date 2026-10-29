@@ -121,6 +121,7 @@ class StructsConfig:
     string_mutable: bool = DEFAULT_STRING_MUTABLE
     string_warn_length: int = DEFAULT_STRING_WARN_LENGTH
     hold_collections: bool = True
+    functions: bool = False   # methods inside a struct (Task 32.1; decided 2026-10-24: off)
 
 
 @dataclass
@@ -292,7 +293,7 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
     section = _require_table(data, "structs", config_path)
 
     known = {"maxNestingDepth", "warnNestingDepth", "stringStorage", "stringMutable",
-             "stringWarnLength", "holdCollections"}
+             "stringWarnLength", "holdCollections", "functions"}
     if "string_max_length" in section:
         raise ProjectConfigError(
             f"{config_path}: structs.string_max_length has moved to [strings] maxLength (it now "
@@ -342,6 +343,12 @@ def _load_structs_section(data: dict, config_path: str) -> StructsConfig:
                 f"(0 = never warn), got {value!r}"
             )
         structs.string_warn_length = value
+    if "functions" in section:
+        value = section["functions"]
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: structs.functions must be a boolean, got {value!r}")
+        structs.functions = value
     if "holdCollections" in section:
         value = section["holdCollections"]
         if not isinstance(value, bool):

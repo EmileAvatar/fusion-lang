@@ -253,6 +253,13 @@ class SemanticAnalyzer:
           an error only when the program actually has a string field it would apply to
         """
         location = structs[0].location if structs else None
+        if not getattr(self.structs_config, 'functions', False):
+            for struct in structs:
+                for method in getattr(struct, 'methods', None) or []:
+                    self.errors.append(SemanticError(
+                        f"Struct '{struct.name}' has a method '{method.method_name}' - functions "
+                        f"on structs are off; [structs] functions = true allows them",
+                        method.location))
         if not self.structs_config.hold_collections:
             for struct in structs:
                 for f in struct.fields:

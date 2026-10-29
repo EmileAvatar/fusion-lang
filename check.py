@@ -108,13 +108,15 @@ def compile_and_run_leak_checked(source: str, source_path: str):
         analyzer = SemanticAnalyzer(structs_config=config.structs, strings_config=config.strings,
                                     stdlib_config=config.stdlib, errors_config=config.errors,
                                     numbers_config=config.numbers,
-                                    modules_config=config.modules)
+                                    modules_config=config.modules,
+                                    conditions_config=config.conditions)
         if not analyzer.analyze(ast):
             return None, '\n'.join(str(e) for e in analyzer.get_errors())
         c_code = CCodeGenerator(encoding=config.strings.encoding,
                                 max_length=config.strings.max_length,
                                 safety_mode=config.safety_mode,
-                                max_call_depth=config.max_call_depth).generate(ast)
+                                max_call_depth=config.max_call_depth,
+                                overflow_wrap=config.numbers.overflow_wrap).generate(ast)
     except Exception as e:  # report, don't crash the checker
         return None, f'{type(e).__name__}: {e}'
 
@@ -323,7 +325,8 @@ def check_leaks():
     # examples/ (syntax_*) would only repeat them
     programs = [(example_name(p), p.read_text(encoding='utf-8'), str(p))
                 for p in example_sources() if not p.name.startswith('syntax_')]
-    programs += [(f'SYNTAX_REFERENCE #{i}', code, str(ROOT / 'reference.fusion'))
+    # built as if in examples/ - where they live - so examples/fusion.toml applies
+    programs += [(f'SYNTAX_REFERENCE #{i}', code, str(ROOT / 'examples' / 'reference.fusion'))
                  for i, code in enumerate(reference_programs(), 1)]
     failures = []
     for name, code, path in programs:

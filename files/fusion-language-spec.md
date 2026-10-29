@@ -1739,7 +1739,29 @@ class GameObject implements IMovable, IDamageable
 
 ## Structures and Value Types
 
-**Status:** [DONE 18.2] fields, value semantics, nesting, string / list fields; methods on structs [PLANNED 32]. Settings decided (user, 2026-10-24): a struct is never null; `[structs]` holding List / Map on (built), functions on structs off by default (32.1), classes inside structs off by default
+**Status:** [DONE 18.2] fields, value semantics, nesting, string / list fields; methods on structs built (32.1 - `[structs] functions = true`).
+
+**Methods (Task 32.1, built):** with `[structs] functions = true` (off by default) a struct may
+hold functions. A method gets the struct as `this`, **by reference** - `p.move(1, 2)` changes
+`p`. Inside, a field's bare name means `this.field` (or write `this.x`), and another method's
+bare name `this.method(...)`; a parameter or local can't take a field's name, and a method
+can't share a field's name. On a `const` struct only methods that don't change `this` can be
+called. The struct's own method comes before a free function of the same name (44.2). In C a
+method is a function whose first parameter is a pointer to the struct.
+
+```
+struct Point
+    int x
+    int y
+    void function move(int dx, int dy)
+        x = x + dx
+        y = y + dy
+    int function sum() : x + y
+
+Point p = Point(1, 2)
+p.move(3, 4)                // p is now (4, 6)
+```
+ Settings decided (user, 2026-10-24): a struct is never null; `[structs]` holding List / Map on (built), functions on structs off by default (32.1), classes inside structs off by default
 
 Description: Lightweight value types for copying data around an application and reading or
 changing it conveniently.

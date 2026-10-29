@@ -1,0 +1,19 @@
+struct Counter
+    string name
+    int count
+
+    void function add(int n)            // this is the struct itself - the caller's one
+        count = count + n               // a field by its bare name (or this.count)
+
+    void function reset()
+        count = 0
+
+    string function show() : format("{@1}: {@2}", name, count)
+
+void function main()
+    Counter c = Counter("clicks", 0)
+    c.add(3)
+    c.add(2)
+    print(c.show())                     // clicks: 5
+    c.reset()
+    print(c.show())                     // clicks: 0

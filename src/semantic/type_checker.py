@@ -711,6 +711,23 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin):
         else:
             receiver_type = self.visit(receiver)
             self.checked_receivers[id(receiver)] = receiver_type   # checked once, not again
+            # A struct's own method (Task 32.1) comes first: p.move(1, 2) is
+            # Point.move(p, 1, 2), with p passed by reference as `this`
+            struct = self.struct_declaration(receiver_type)
+            method = next((m for m in getattr(struct, 'methods', None) or []
+                           if getattr(m, 'method_name', None) == member), None)
+            if method is not None:
+                if getattr(method, 'changes_this', False):
+                    root = self._root_variable(receiver)
+                    symbol = self.symbol_table.lookup(root.name) if root is not None else None
+                    if symbol is not None and symbol.is_constant:
+                        self.checked_receivers.pop(id(receiver), None)
+                        return (f"Method '{member}' changes the {struct.name} - '{root.name}' "
+                                f"is a constant")
+                node.callee = IdentifierExpr(location=node.callee.location, name=method.name)
+                node.arguments = [receiver] + list(node.arguments)
+                node.struct_method = True     # (not is_method - that means a built-in)
+                return None
             # The program's own function, called as a method (Task 44.2): x.f(a) is f(x, a).
             # A List / Map method (checked before this) and an enum's own toString / toInt come
             # first; like a plain call, it replaces a library function of the same name. (A

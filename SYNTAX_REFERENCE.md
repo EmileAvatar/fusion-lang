@@ -668,6 +668,32 @@ void function main()
         print("long name")
 ```
 
+#### Methods inside a struct (`[structs] functions = true`)
+
+<!-- example: syntax_struct_methods | task: 32.1 -->
+```fusion
+struct Counter
+    string name
+    int count
+
+    void function add(int n)            // this is the struct itself - the caller's one
+        count = count + n               // a field by its bare name (or this.count)
+
+    void function reset()
+        count = 0
+
+    string function show() : format("{@1}: {@2}", name, count)
+
+void function main()
+    Counter c = Counter("clicks", 0)
+    c.add(3)
+    c.add(2)
+    print(c.show())                     // clicks: 5
+    c.reset()
+    print(c.show())                     // clicks: 0
+```
+Off by default (structs hold values); `examples/fusion.toml` turns it on for this example.
+
 #### Your own functions as methods: `p.moved(1, 2)` is `moved(p, 1, 2)`
 
 <!-- example: syntax_functions_as_methods | task: 44.2 -->

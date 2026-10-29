@@ -99,7 +99,8 @@ are in `task/featuresArchive.md`.
 		`_` ignored (`tab_width` = `tabWidth`); `[numbers] overflowWrap` (default false) takes
 		over arithmetic wrapping from `[safety] mode = "unsafe"`; `[safety] mode` = safe
 		(default; `normal` accepted) / strict (every warning is an error) / unsafe
-	[ ] 32.1 Methods on the program's own structs (`p.move(1, 2)`) - built-in types have them (18.3.7);
+	[DONE] 32.1 Methods on the program's own structs (`[structs] functions = true`;
+		tests/test_struct_methods.py) - (`p.move(1, 2)`) - built-in types have them (18.3.7);
 		also 44.2
 	[ ] 32.2 Classes, interfaces, inheritance - plan first
 		Passing (user, 2026-10-26, as in VB.NET): value types (primitives, structs) by value - a
