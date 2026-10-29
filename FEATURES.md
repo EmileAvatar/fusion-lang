@@ -69,6 +69,13 @@ are in `task/featuresArchive.md`.
 		`EARTH(5.976e24)`, read with a method for each field (`Planet.EARTH.mass()`); the data
 		is const and byVal, set once; the constructor is always private. An enum is always
 		const and static - `const static enum Planet` is accepted and changes nothing
+	[ ] 47.4 A built-in enum `FusionType` describing every type (user, 2026-10-29 - the table in
+		files/FusionTypes.html): fields Type, Kind, Default, Min, Max, Size, CanBeNull. Each
+		field's method returns a value of that type itself, byVal: `FusionType.int.MAX` is an
+		int (2,147,483,647), `FusionType.bool.MAX` is `true`, `FusionType.double.MIN` a double -
+		for developers and IDEs. To settle when planned: the value names are type keywords
+		(`int`, `bool`) - allowed after `FusionType.`; one spelling for the fields (`MAX` or
+		`max`); a field whose type differs per value is more than 47.3 gives, so it is built in
 
 #### 45 Arrays that grow at the end (user, 2026-10-27 - Arrays.md) [ ]
 	Today an array's size is fixed when it is made, and the compiler must know it. An array
