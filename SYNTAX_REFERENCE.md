@@ -718,10 +718,42 @@ void function main()
     e.Employee.tel = "012"              // a name both have needs the struct's name
     e.greet()                           // Person's method
     welcome(e)
-    print("{e}")                        // Jeffrey, 082, E7, 012
     print("{e.Person.tel} {e.Employee.tel}")
 ```
 `welcome` gets a copy of the Person part only. The method `greet` needs `[structs] functions`.
+
+#### A whole struct as text, and `toCSV`
+
+<!-- example: syntax_struct_text | task: 32.13 -->
+```fusion
+struct Point
+    int x
+    int y
+
+struct Person
+    string name
+    int age
+    Point home
+
+void function main()
+    Person ann = Person("Ann", 30, Point(1, 2))
+    print("{ann}")                      // name : "Ann",age : 30,home : {x : 1,y : 2}
+    print(ann.toCSV())                  // a heading row, then a row of values
+    Person[] team = [ann, Person("Bo", 41, Point(3, 4))]
+    print(team.toCSV(";"))              // one heading row, one row per person
+```
+Prints:
+```
+name : "Ann",age : 30,home : {x : 1,y : 2}
+Person.name,Person.age,Person.home.x,Person.home.y
+"Ann",30,1,2
+Person.name;Person.age;Person.home.x;Person.home.y
+"Ann";30;1;2
+"Bo";41;3;4
+```
+`toCSV` works on any struct, a one-dimensional array or a `List` of structs; the delimiter is
+`","` when left out. A field both a struct and the one it builds on have is printed with its
+struct's name (`Person.tel : "082",...,Employee.tel : "011"`).
 
 #### Your own functions as methods: `p.moved(1, 2)` is `moved(p, 1, 2)`
 

@@ -31,6 +31,7 @@ from .c_names import (mangle_function_name, array_length_name, c_member_name, lo
 from .c_runtime import RuntimeLoweringMixin, escape_c_text
 from .c_memory import MemoryManagementMixin, RUNTIME_PRELUDE
 from .c_equality import EqualityMixin, EQUALITY_OPERATORS
+from .c_struct_text import StructTextMixin
 from .c_collections import CollectionsMixin
 from .c_enums import EnumsMixin
 from .c_errors import ErrorsMixin
@@ -38,7 +39,7 @@ from ..semantic.name_resolver import FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS
 
 
 class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin,
-                     CollectionsMixin, EnumsMixin, ErrorsMixin):
+                     CollectionsMixin, EnumsMixin, ErrorsMixin, StructTextMixin):
     """Generates C code from Fusion AST.
 
     Uses visitor pattern to traverse the AST and generate equivalent C code.
@@ -987,6 +988,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self.list_method_code(node)
         if getattr(node, 'map_method', None):
             return self.map_method_code(node)
+        if getattr(node, 'csv', None):
+            return self.csv_code(node)            # x.toCSV() (Task 32.13)
 
         # A struct constructor, Point(3, 4) (Task 18.2.1) - resolved_arguments has every
         # field, with omitted ones filled in from their defaults by the type checker

@@ -18,5 +18,4 @@ void function main()
     e.Employee.tel = "012"              // a name both have needs the struct's name
     e.greet()                           // Person's method
     welcome(e)
-    print("{e}")                        // Jeffrey, 082, E7, 012
     print("{e.Person.tel} {e.Employee.tel}")

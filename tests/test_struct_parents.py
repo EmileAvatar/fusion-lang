@@ -3,7 +3,8 @@
 `struct Employee implements Person` (or extends / includes): Person's fields come first, then
 Employee's own. An Employee goes where a Person is expected - the function gets a copy of the
 Person part only. Person's methods work on an Employee. A field both have is kept twice, with
-a warning, and is read as e.Person.tel / e.Employee.tel. "{e}" prints every field.
+a warning, and is read as e.Person.tel / e.Employee.tel. "{e}" prints every field as
+`name : value` (Task 32.13), and x.toCSV() gives a heading row and rows of values.
 
 A struct is never null, so the with / without null check rule (4b) has nothing to test here.
 """
@@ -50,7 +51,9 @@ def test_fields_methods_and_the_parts(tmp_path):
                               'e.birthday()\n'
                               'e.show()\n'
                               'print("{e}")'), tmp_path)
-    assert lines == ['Hi Jeffrey, 42', 'Jeffrey E7 012 083', 'Jeffrey, 083, 42, E7, 012']
+    assert lines == ['Hi Jeffrey, 42', 'Jeffrey E7 012 083',
+                     'name : "Jeffrey",Person.tel : "083",age : 42,employeeID : "E7",'
+                     'Employee.tel : "012"']
 
 
 def test_an_employee_goes_where_a_person_is_expected(tmp_path):
@@ -67,7 +70,8 @@ def test_an_employee_goes_where_a_person_is_expected(tmp_path):
                        'people.add(hire("Cy"))\n'
                        'for x in people\n'
                        '    print(x.name)'), tmp_path)
-    assert lines == ['Jo, 1, 99', '20', 'Ann, 082, 99', 'Jo, 1, 20', 'Jo', 'Bo', 'Cy']
+    assert lines == ['name : "Jo",tel : "1",age : 99', '20', 'name : "Ann",tel : "082",age : 99',
+                     'name : "Jo",tel : "1",age : 20', 'Jo', 'Bo', 'Cy']
 
 
 def test_a_chain_and_the_ways_to_build_one(tmp_path):
@@ -82,8 +86,11 @@ def test_a_chain_and_the_ways_to_build_one(tmp_path):
                               'Employee e = Employee(p, "E9", "099")\n'
                        'Dog d = Dog(name = "Rex", kind = "dog")\n'
                        'print("{e} / {d}")'), tmp_path)
-    assert lines == ['Hi Sue, 50', 'Hi Bo, 40', 'Sue, 1, 99', 'Sue, 1, 50, M1, 2, 7',
-                     'Al, 5, 30, E9, 099 / dog, 4, Rex']
+    assert lines == ['Hi Sue, 50', 'Hi Bo, 40', 'name : "Sue",tel : "1",age : 99',
+                     'name : "Sue",Person.tel : "1",age : 50,employeeID : "M1",Employee.tel : "2",'
+                     'reports : 7',
+                     'name : "Al",Person.tel : "5",age : 30,employeeID : "E9",Employee.tel : "099"'
+                     ' / kind : "dog",legs : 4,name : "Rex"']
 
 
 def test_a_field_both_have_is_a_warning():
@@ -128,3 +135,51 @@ def test_building_on_a_struct_is_not_nesting():
     chain = ('struct A\n    int a\nstruct B implements A\n    int b\n'
              'struct C implements B\n    int c\nstruct D implements C\n    int d\n')
     assert errors(chain + main('D d'), StructsConfig(functions=True, max_nesting_depth=2)) == []
+
+
+SHAPES = ('struct Point\n    int x\n    int y\n\n'
+          'struct Line\n    Point a\n    Point b\n    char mark = \'q\'\n    bool on = true\n\n')
+
+
+def test_a_struct_inside_a_struct_and_csv(tmp_path):
+    lines = run(SHAPES + main('Line l = Line(Point(1, 2), Point(3, 4))\n'
+                              'print("{l}")\n'
+                              'print(l.toCSV(";"))'), tmp_path)
+    assert lines == ["a : {x : 1,y : 2},b : {x : 3,y : 4},mark : 'q',on : true",
+                     'Line.a.x;Line.a.y;Line.b.x;Line.b.y;Line.mark;Line.on',
+                     '1;2;3;4;"q";true']
+
+
+def test_csv_of_a_struct_an_array_and_a_list(tmp_path):
+    lines = run(PEOPLE + main('Employee e = Employee("Jeff \\"J\\"", "082", 41, "E7", "011")\n'
+                              'print(e.toCSV())\n'
+                              'Employee[] staff = [e, hire("Ann")]\n'
+                              'print(staff.toCSV())\n'
+                              'List<Person> people = [e, Person("Bo", "9")]\n'
+                              'string s = people.toCSV(\'|\')\n'
+                              'print(s)'), tmp_path)
+    assert lines == ['Person.name,Person.tel,Person.age,Employee.employeeID,Employee.tel',
+                     '"Jeff ""J""","082",41,"E7","011"',
+                     'Person.name,Person.tel,Person.age,Employee.employeeID,Employee.tel',
+                     '"Jeff ""J""","082",41,"E7","011"',
+                     '"Ann","082",40,"E1","011"',
+                     'Person.name|Person.tel|Person.age',
+                     '"Jeff ""J"""|"082"|41',
+                     '"Bo"|"9"|30']
+
+
+def test_a_structs_own_tocsv_comes_first(tmp_path):
+    lines = run('struct P\n    int x\n    string function toCSV() : "mine"\n\n'
+                + main('P p = P(1)\nprint(p.toCSV())'), tmp_path)
+    assert lines == ['mine']
+
+
+@pytest.mark.parametrize('code, message', [
+    ('Bag b\nstring s = b.toCSV()', "Can't make CSV from a Bag: its field 'items' is a int[2]"),
+    ('Point p\nstring s = p.toCSV(1)', "The delimiter of toCSV is a string or char, not int"),
+    ('Point p\nstring s = p.toCSV(";", ",")', "toCSV takes one value, the delimiter"),
+    ('int n = 1\nstring s = n.toCSV()', "has no method 'toCSV'"),
+])
+def test_csv_errors(code, message):
+    source = SHAPES + 'struct Bag\n    int[2] items\n\n' + main(code)
+    assert any(message in e for e in errors(source))

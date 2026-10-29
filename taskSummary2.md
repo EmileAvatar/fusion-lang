@@ -427,4 +427,5 @@ Kept under Task 22 until the renumbering is approved.
   [structs] functions, default false)
 - 32.8 done: structs building on structs (a hidden first field holds the parent part; an
   Employee becomes its Person part where a Person is expected; "{e}" prints every field)
+- 32.13 done: "{e}" as `name : value`, toCSV on structs, arrays and Lists of structs
 - **Next Action:** 32.10 (object lifetime - the counting, before classes), then 32.2

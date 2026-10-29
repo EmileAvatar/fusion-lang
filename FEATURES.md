@@ -57,15 +57,6 @@ are in `task/featuresArchive.md`.
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
-#### 30 Nulls - the postponed parts (30.0, 30.1, 30.6-30.9, 30.11-30.13 done: task/featuresArchive.md) [POSTPONED]
-	[POSTPONED to 45] 30.10 Empty arrays: `int[] numbers` and `int numbers[]` both declare an
-		empty array, length 0 (user, 2026-10-27) - only useful once arrays can grow
-	[POSTPONED to 32] 30.2 On class objects: the `?.` guard (not run on null, false in an `if`),
-		`??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a plain
-		`.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
-	[POSTPONED to 32] 30.3 `nullable` settings for strings / arrays / lists / maps (default
-		false) and `?.length()` giving -1 on a null one - only useful with 30.2
-
 #### 45 Arrays that grow at the end (user, 2026-10-27 - Arrays.md) [ ]
 	Today an array's size is fixed when it is made, and the compiler must know it. An array
 	will grow and shrink at its end only (an item never moves position); a List changes
@@ -109,10 +100,19 @@ are in `task/featuresArchive.md`.
 		interface names need no I prefix; several constructors per class; a constructor may
 		call another (private ones too) with this(...); constructors calling each other in a
 		circle are a compile error
+	[ ] 30.2 (from Task 30) On class objects: the `?.` guard (not run on null, false in an
+		`if`), `??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a
+		plain `.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
+	[ ] 30.3 (from Task 30) `nullable` settings for strings / arrays / lists / maps (default
+		false) and `?.length()` giving -1 on a null one - only useful with 30.2
 	[DONE] 32.8 Structs building on structs (tests/test_struct_parents.py): `implements`
 		(`extends` / `includes`); an Employee goes where a Person is expected (a copy of its
 		Person part); Person's methods work on it; same-name fields warn, `e.Person.tel`;
 		`"{e}"` prints every field
+	[DONE] 32.13 A struct as text (tests/test_struct_parents.py): `"{e}"` gives
+		`name : "Jeff",age : 30`; `x.toCSV(delimiter = ",")` on a struct, a one-dimensional
+		array or a List of structs - one heading row (`Person.name`, ...), one row per struct
+	[ ] toCSV on arrays of more dimensions (user, 2026-10-29) - with multi-dimensional arrays
 	[ ] 32.7 Inheritance - using a parent type (user, 2026-10-29): `typeOf(x)` gives the chain,
 		top type first (`Person.Employee.Manager`), so the program can convert it back; for a
 		struct, only a `byRef` parameter keeps the whole value (a normal one: `Person`)

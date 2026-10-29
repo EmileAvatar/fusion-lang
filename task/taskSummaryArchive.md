@@ -5800,3 +5800,23 @@ print(e)                                 // Person's fields first, then Employee
   `Person.Employee.Manager`; (3) joined with dots. (2) waits for `byRef` parameters
 - Tests: with and without null checks don't apply (a struct is never null) - noted in the tests
 - **Settings:** none
+
+---
+
+## TASK 32.13: A struct as text, and toCSV - COMPLETE (2026-10-29)
+
+(tests/test_struct_parents.py; src/codegen/c_struct_text.py)
+
+**32.13 plan - a struct as text, and toCSV (user, 2026-10-29):**
+- `"{e}"` gives `name : "Jeff",tel : "082",employeeID : "E7"` - each field `name : value`,
+  joined by a comma with no space; a string value in "" (replaces 32.8's `Jeff, 082, E7`)
+- `x.toCSV()` / `x.toCSV(";")` - a built-in method of every struct (no setting needed): one
+  heading row naming each field by the struct it belongs to, in order (`Person.name`,
+  `Person.tel`, `Employee.employeeID`, `Employee.tel`), then one row of values; strings in ""
+- On a one-dimensional array of structs (`Person[]`): one heading row, then one row per
+  element. Arrays of more dimensions later (Task 45 / multi-dimensional arrays)
+- Answers (user, "proceed" on the suggestions): spaces around the colon as written; a field
+  both structs have named with its struct in print; a struct inside a struct in braces
+  (print) / `Line.a.x` (CSV heading); List too; a " inside a string doubled in CSV; no
+  newline after the last row
+- **Settings:** none

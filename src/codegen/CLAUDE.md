@@ -12,6 +12,7 @@
 | `c_errors.py` | C for errors (Task 26): the runtime (`fusion_raise`, `fusion_take_error`), which functions can fail, a check after each call that can fail, failure blocks that free and pass the error on, captures |
 | `c_files.py` | C for files (Task 18.5.5): read / write / append text and bytes, fileExists, deleteFile; UTF-8 paths on Windows |
 | `c_runtime.py` | Lowers built-ins: `print`, `len`, `format` and string interpolation into `printf` / string building |
+| `c_struct_text.py` | A whole struct as text (Tasks 32.8, 32.13): `"{e}"` as `name : value,...`, and `x.toCSV()` on a struct, array or List of structs - small helpers per struct, made on demand |
 | `c_types.py` | Maps Fusion types to C types; function-pointer typedefs; wrappers for returned arrays |
 | `c_names.py` | Fusion names -> C names: functions / structs get `fu_` (`add` -> `fu_add`), clashing locals too (`auto` -> `fu_auto`), fields only for C keywords; hidden array-length names |
 | `__init__.py` | Exports `CCodeGenerator` |

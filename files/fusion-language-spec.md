@@ -1779,9 +1779,16 @@ member, named `Person`.
   on, or of a method it builds on
 - A chain works the same way (`Manager extends Employee`); building on a struct doesn't count
   as nesting (`[structs] maxNestingDepth`); no struct may build on itself
-- **A whole struct as text:** `"{e}"` (and `format("{@1}", e)`) gives every field, the part it
-  builds on first, separated by ", " - `Jeff, 082, E7` (not a struct with an array, list or
-  map field)
+- **A whole struct as text (Task 32.13):** `"{e}"` (and `format("{@1}", e)`) gives every field,
+  the part it builds on first, as `name : value` joined by a comma with no space - a string
+  in "", a char in '', a struct inside in braces: `name : "Jeff",age : 30,home : {x : 1,y : 2}`.
+  A field both structs have is named with its struct (`Person.tel : "082"`)
+- **`x.toCSV()` / `x.toCSV(";")` (Task 32.13):** on any struct, a one-dimensional array or a
+  `List` of structs - one heading row naming each field by its struct (`Person.name`; a
+  struct inside: `Person.home.x`), then one row of values per struct, separated by the
+  delimiter (default ","); strings in "" with a " inside doubled; no newline after the last
+  row. A struct's own `toCSV` method (or the program's own function) comes first. Not for a
+  struct with an array, list or map field. Arrays of more dimensions: later
 - Later (32.7): `typeOf(x)` gives the chain (`Person.Employee.Manager`) and a value can be
   converted back; a normal parameter holds only the Person part (`typeOf` says `Person`), a
   `byRef` one the whole struct

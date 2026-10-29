@@ -1040,6 +1040,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if isinstance(node.callee, MemberExpr) and node.callee.member in self.LENGTH_NAMES \
                 and not node.arguments:
             self._length_sugar(node)
+        # x.toCSV() on a struct, or an array or List of them (Task 32.13)
+        if isinstance(node.callee, MemberExpr) and node.callee.member == 'toCSV':
+            result = self.csv_call(node)
+            if result is not None:
+                return result
         # xs.add(5) - a List method (Task 18.5.1)
         if isinstance(node.callee, MemberExpr):
             result = self._collection_method_call(node)

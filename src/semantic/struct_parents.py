@@ -20,7 +20,8 @@ import copy
 from typing import Dict, List, Optional, Set, Tuple
 
 from src.parser.ast_nodes import (
-    CallExpr, EnumType, ErrorType, IdentifierExpr, IndexExpr, MemberExpr, NamedArgument,
+    ArrayType, CallExpr, EnumType, ErrorType, IdentifierExpr, IndexExpr, ListType, MemberExpr,
+    NamedArgument,
     PrimitiveType, ProgramNode, StructDecl, StructField, StructType, TypeNode,
 )
 from src.parser.parser import Parser
@@ -287,7 +288,7 @@ class StructParentRulesMixin:
                         callee=IdentifierExpr(location=node.location, name=parent.name))
         node.arguments = [part] + positional[len(take):] + [a for a in named if a not in theirs]
 
-    def printable_problem(self, type_node) -> Optional[str]:
+    def printable_problem(self, type_node, action: str = "print a whole") -> Optional[str]:
         """Why a value can't be printed whole, or None. A struct prints every field (Task
         32.8), so it can be printed when each of its fields can."""
         if isinstance(type_node, (PrimitiveType, EnumType, ErrorType)):
@@ -296,8 +297,45 @@ class StructParentRulesMixin:
         if struct is not None:
             for f in struct.fields:
                 if self.printable_problem(f.field_type) is not None:
-                    return (f"Can't print a whole {struct.name}: its field '{f.name}' is a "
-                            f"{self.type_to_string(f.field_type)} - print its fields one at a time")
+                    return (f"Can't {action} {struct.name}: its field '{f.name}' is a "
+                            f"{self.type_to_string(f.field_type)} - use its fields one at a time")
             return None
         return (f"Can't print a whole {self.type_to_string(type_node)} value - print its "
                 f"elements or fields one at a time")
+
+    def csv_call(self, node) -> Optional[TypeNode]:
+        """x.toCSV() / x.toCSV(";") (Task 32.13): a heading row and a row of values, on any
+        struct, a one-dimensional array or a List of structs. A struct's own toCSV method, or
+        the program's own toCSV function, comes first. Returns string, or None if this isn't
+        one (the call is then checked as usual)."""
+        receiver = node.callee.object
+        if isinstance(receiver, IdentifierExpr) and self.symbol_table.lookup(receiver.name) is None:
+            return None
+        receiver_type = self.visit(receiver)
+        self.checked_receivers[id(receiver)] = receiver_type
+        kind, element = 'struct', receiver_type
+        if isinstance(receiver_type, ArrayType):
+            kind, element = 'array', receiver_type.element_type
+        elif isinstance(receiver_type, ListType):
+            kind, element = 'list', receiver_type.element_type
+        struct = self.struct_declaration(element)
+        if struct is None or self.user_method('toCSV', receiver_type) is not None or (
+                kind == 'struct' and any(m.method_name == 'toCSV'
+                                         for s in chain(struct, self.struct_named) for m in s.methods)):
+            return None
+        self.checked_receivers.pop(id(receiver), None)
+        problem = self.printable_problem(element, "make CSV from a")
+        if problem:
+            self.errors.append(SemanticError(problem, node.location))
+        if len(node.arguments) > 1 or any(isinstance(a, NamedArgument) for a in node.arguments):
+            self.errors.append(SemanticError(
+                "toCSV takes one value, the delimiter (\",\" when left out)", node.location))
+        elif node.arguments:
+            given = self.visit(node.arguments[0])
+            if getattr(given, 'name', None) not in ('string', 'char') \
+                    or not isinstance(given, PrimitiveType):
+                self.errors.append(SemanticError(
+                    f"The delimiter of toCSV is a string or char, not "
+                    f"{self.type_to_string(given)}", node.arguments[0].location))
+        node.csv = kind
+        return PrimitiveType(location=node.location, name='string')

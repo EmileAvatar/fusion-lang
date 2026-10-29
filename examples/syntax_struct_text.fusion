@@ -1,0 +1,15 @@
+struct Point
+    int x
+    int y
+
+struct Person
+    string name
+    int age
+    Point home
+
+void function main()
+    Person ann = Person("Ann", 30, Point(1, 2))
+    print("{ann}")                      // name : "Ann",age : 30,home : {x : 1,y : 2}
+    print(ann.toCSV())                  // a heading row, then a row of values
+    Person[] team = [ann, Person("Bo", 41, Point(3, 4))]
+    print(team.toCSV(";"))              // one heading row, one row per person

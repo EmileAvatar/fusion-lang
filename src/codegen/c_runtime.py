@@ -167,49 +167,6 @@ class RuntimeLoweringMixin:
             return f'fusion_error_text({code})'   # its message (Task 26)
         return code
 
-    def struct_text_helper(self, struct_type) -> str:
-        """Name of the helper giving a struct as text - every field, comma separated, the
-        part it builds on first: "Jeff, 30, E7" (Task 32.8). Made on first use, after any it
-        needs, and placed after the struct definitions."""
-        name = f'fusion_text_{self._struct_c_name(struct_type)}'
-        if name in self.text_helpers:
-            return name
-        formats, args, lines, frees = [], [], [], []
-        for number, field in enumerate(self._struct_decl(struct_type).fields):
-            code, kind = f'v.{self._field_name(field.name)}', field.field_type
-            if isinstance(kind, StructType) or (isinstance(kind, PrimitiveType)
-                                                and kind.name == 'bytes'):
-                make = (f'{self.struct_text_helper(kind)}({code})' if isinstance(kind, StructType)
-                        else f'fusion_bytes_rawToHex({code}, "")')
-                lines.append(f'    fusion_string t{number} = {make};')
-                frees.append(f'    fusion_str_free(&t{number});')
-                formats.append('%s')
-                args.append(f't{number}.data')
-                continue
-            if isinstance(kind, PrimitiveType) and kind.name == 'string':
-                args.append(f'{code}.data')
-            elif isinstance(kind, PrimitiveType) and kind.name == 'char':
-                args.append(f'fusion_char_text({code}).bytes')
-            elif isinstance(kind, PrimitiveType) and kind.name == 'bool':
-                args.append(f'(({code}) ? "true" : "false")')
-            elif isinstance(kind, EnumType) or self.data_struct(kind) is not None:
-                args.append(f'{self.enum_text_code(kind, code)}.data')
-            elif type(kind).__name__ == 'ErrorType':
-                args.append(f'fusion_error_text({code})')
-            else:
-                args.append(code)
-            formats.append('%s' if not isinstance(kind, PrimitiveType)
-                           else self._FORMAT_SPECIFIERS[kind.name])
-        call = f'fusion_str_format("{", ".join(formats)}"' + ''.join(f', {a}' for a in args) + ')'
-        self.text_helpers[name] = (
-            [f'static fusion_string {name}({self.map_type(struct_type)} v) {{'] + lines
-            + [f'    fusion_string r = {call};'] + frees + ['    return r;', '}'])
-        return name
-
-    def text_helper_lines(self) -> list:
-        lines = [line for helper in self.text_helpers.values() for line in helper]
-        return ['// A whole struct as text (Task 32.8)'] + lines + [''] if lines else []
-
     def _generate_print_call(self, node: CallExpr) -> str:
         """Generate code for print() built-in function.
 
