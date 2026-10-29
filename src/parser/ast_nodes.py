@@ -523,6 +523,16 @@ class MatchPattern(ASTNode):
 
 
 @dataclass
+class PassingExpr(ASTNode):
+    """`byVal a` - a copy (deep: a List / Map is copied, not shared) - or `byRef a`, the same
+    value shared (Task 32.10a, user decisions 2026-10-28 / 29). In normal code a List / Map
+    is shared and a struct copied unless written otherwise."""
+    value: ASTNode
+    by_val: bool = True
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class MatchArm(ASTNode):
     """`6, 7 : "Weekend"` - one case of a match that gives a value (Task 46.2)."""
     patterns: List[MatchPattern]
@@ -672,6 +682,8 @@ class ParameterDecl(ASTNode):
     is_variadic: bool = False   # `string... args` - main's arguments (Task 18.5.4)
     by_ref: bool = False        # the caller's value itself, not a copy - a method's `this` (32.1)
     is_let: bool = False        # `let int a` - can't be changed inside the function (Task 46.1)
+    by_val: bool = False        # `byVal List<int> xs` - the function gets a copy (32.10a)
+    written_by_ref: bool = False    # `byRef List<int> xs` - shared, as without it (32.10a)
 
 
 @dataclass
@@ -708,6 +720,9 @@ class StructField(ASTNode):
     field_type: 'TypeNode'
     name: str
     default_value: Optional[ASTNode] = None
+    # `byRef List<string> log` - shared when the struct is copied; a struct's List / Map is
+    # otherwise copied with it (Task 32.10a)
+    by_ref: bool = False
 
 
 @dataclass

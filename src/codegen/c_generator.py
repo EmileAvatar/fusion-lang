@@ -456,7 +456,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         string (zero would be a NULL pointer - Fusion's default is ""), or a struct with a
         field default or a string anywhere inside it."""
         if isinstance(type_node, (ListType, MapType)):
-            return True   # all-zero is the empty list / map (Task 18.5)
+            return False  # a list / map is made when declared - never null (Task 32.10a)
         if isinstance(type_node, PrimitiveType):
             return type_node.name not in ('string', 'bytes')
         if isinstance(type_node, EnumType):
@@ -500,7 +500,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             element = self._default_value_code(type_node.element_type)
             return '{' + ', '.join([element] * type_node.size) + '}'
         if isinstance(type_node, (ListType, MapType)):
-            return f'(({self.map_type(type_node)}){{0}})'   # an empty list / map (18.5)
+            return f'{self.map_type(type_node)}_new()'   # an empty list / map (18.5, 32.10a)
         return '0'
 
     # ========================================================================
@@ -970,9 +970,22 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self.fresh_temporary(code, node.inferred_type)
         return code
 
+    def visit_PassingExpr(self, node) -> str:
+        """`byVal a` - a deep copy (a List / Map is copied, not shared); `byRef a` - the value
+        itself, shared (Task 32.10a)."""
+        kind = node.inferred_type
+        if not node.by_val or not self.is_managed(kind):
+            if id(node) in self.consumed:
+                self.consumed.add(id(node.value))      # taken over: the value moves
+            return self.visit(node.value)
+        code = self.clone_code(kind, self.visit(node.value))
+        return code if id(node) in self.consumed else self.fresh_temporary(code, kind)
+
     def visit_NewCollectionExpr(self, node) -> str:
-        """List<int>() - an empty list (Task 18.5.1)."""
-        return self._default_value_code(node.collection_type)
+        """List<int>() - an empty list (Task 18.5.1); freed after the statement unless
+        something takes it over (it is made on the heap - Task 32.10a)."""
+        code = self._default_value_code(node.collection_type)
+        return code if id(node) in self.consumed else self.fresh_temporary(code, node.collection_type)
 
     def _call_code(self, node: CallExpr) -> str:
         """Generate C code for function call expression.
@@ -1706,7 +1719,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if isinstance(iterable_type, (ListType, MapType)):
             list_c = self.map_type(iterable_type)
             if isinstance(iterable, (IdentifierExpr, MemberExpr, IndexExpr)):
-                self.emit_line(f'{list_c}* fusion_iter_{n} = &{self.list_lvalue(iterable, final=False)}')
+                self.emit_line(f'{list_c} fusion_iter_{n} = {self.visit(iterable)}')
                 source = f'fusion_iter_{n}->'
                 # Elements added or removed while looping: an error, never a skip (27.2e)
                 watched = f'fusion_changes_{n}'
@@ -1714,7 +1727,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             else:
                 self.emit_line(f'{list_c} fusion_iter_{n} = {self.owned_value(iterable, iterable_type)}')
                 self.register_owned(f'fusion_iter_{n}', iterable_type)
-                source = f'fusion_iter_{n}.'
+                source = f'fusion_iter_{n}->'
             items = 'keys' if isinstance(iterable_type, MapType) else 'data'   # a map: its keys
             length, item = f'{source}len', f'{source}{items}[{index}]'
         else:

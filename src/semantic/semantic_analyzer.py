@@ -126,6 +126,10 @@ class SemanticAnalyzer:
             self.type_checker.visit(struct)
             for field in struct.fields:   # List<...> fields (Task 18.5)
                 self.type_checker._check_collection_type(field.field_type, field.location)
+                if field.by_ref and not isinstance(field.field_type, (ListType, MapType)):
+                    self.errors.append(SemanticError(
+                        f"byRef on field '{field.name}': only a List or Map field can be shared "
+                        f"between copies of the struct", field.location))
         self.type_checker.check_struct_nesting(structs)
         # A custom error type's fields (Task 26.9) - any type a struct field may have
         for decl in (d for d in ast.declarations if isinstance(d, ErrorDecl) and not d.builtin):

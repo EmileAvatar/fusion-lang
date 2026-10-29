@@ -156,7 +156,7 @@ class StructTextMixin:
             items, count = self._array_operand(receiver, receiver_type)
         else:
             code = self.visit(receiver)
-            items, count = f'({code}).data', f'({code}).len'
+            items, count = f'({code})->data', f'({code})->len'
         return f'{self._csv_many_helper(element)}({items}, {count}, {delimiter})'
 
     def _csv_one_helper(self, struct_type) -> str:

@@ -14,6 +14,7 @@ from src.parser.ast_nodes import (
     StructDecl, StructField, TypeNode, PrimitiveType, FunctionType, ArrayType, StructType,
     ListType, MapType, NewCollectionExpr, ConditionalExpr,
     EnumType, EnumValueExpr, EnumStaticCall, ErrorType, ErrorActiveExpr, WidenExpr,
+    PassingExpr,
 )
 from src.config.project_config import StructsConfig, StringsConfig
 from .symbol_table import SymbolTable
@@ -1001,6 +1002,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         (Task 18.2.4). C returns the array inside a hidden struct, which can be copied into
         an array or indexed - but not passed on by reference or printed whole."""
         result = self._visit_call(node)
+        self._copy_by_val_arguments(node)          # `byVal List<int> xs` (Task 32.10a)
         if isinstance(result, ArrayType) and id(node) not in self.allowed_array_calls:
             name = node.callee.name if isinstance(node.callee, IdentifierExpr) else "this function"
             self.errors.append(SemanticError(
@@ -1010,6 +1012,41 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         return result
 
     LENGTH_NAMES = ('len', 'length')
+
+    # ------------------------------------------------------------------ byVal / byRef (32.10a)
+
+    @staticmethod
+    def _is_collection(type_node) -> bool:
+        return isinstance(type_node, (ListType, MapType))
+
+    def visit_PassingExpr(self, node: PassingExpr) -> TypeNode:
+        """`byVal a` - a copy (a List / Map is copied, not shared); `byRef a` - shared, which a
+        List / Map already is in normal code. A struct is always copied for now: `byRef` on
+        one waits for [structs] allowReference (user decision 2026-10-28)."""
+        value_type = self.visit(node.value)
+        if not node.by_val and not self._is_collection(value_type) \
+                and not (isinstance(value_type, PrimitiveType) and value_type.name == 'void'):
+            self.errors.append(SemanticError(
+                f"byRef works on a List or Map (shared already in normal code); a value of "
+                f"type {self.type_to_string(value_type)} is copied - sharing one comes later",
+                node.location))
+        return value_type
+
+    def _copy_by_val_arguments(self, node: CallExpr) -> None:
+        """A `byVal` List / Map parameter gets a copy: its argument becomes `byVal arg`."""
+        decl = getattr(node, 'callee_declaration', None)
+        arguments = getattr(node, 'resolved_arguments', None)
+        if not isinstance(decl, FunctionDecl) or not arguments:
+            return
+        for i, param in enumerate(decl.parameters[:len(arguments)]):
+            value = arguments[i]
+            if value is None or not param.by_val or not self._is_collection(param.param_type) \
+                    or isinstance(value, PassingExpr):
+                continue
+            wrapper = PassingExpr(location=value.location, value=value, by_val=True)
+            wrapper.inferred_type = param.param_type
+            arguments[i] = wrapper
+            node.arguments = [wrapper if a is value else a for a in node.arguments]
 
     def _has_length(self, value_type) -> bool:
         """Whether `.len` / `.length` work on a value of this type (Task 30.8)."""
@@ -2594,6 +2631,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """
         self._check_function_type_supported(node.param_type, node.location)
         self._check_collection_type(node.param_type, node.location)   # Task 18.5
+        if node.written_by_ref and not self._is_collection(node.param_type):
+            self.errors.append(SemanticError(
+                f"byRef works on a List or Map parameter (shared already); a parameter of "
+                f"type {self.type_to_string(node.param_type)} that changes the caller's value "
+                f"comes later", node.location))
         if node.is_variadic and getattr(self, 'current_function_name', 'main') != 'main':
             self.errors.append(SemanticError(
                 "'...' is only for main's arguments for now (main(string... args)) - "

@@ -109,6 +109,9 @@ void function render()
   (today they are copied) but are still treated like values in one way: **never null**
   (unless a `nullable` setting allows it)
 - A class object passed is borrowed - no count change while the call runs
+- **Rule of thumb (user, 2026-10-29):** in a struct, Arrays / Lists / Maps are `byVal` (copied
+  with it) unless the field says `byRef`; everywhere else they are `byRef` (shared) unless
+  written `byVal`. The truth table is in Arrays.md section 1
 
 **Modifiers on a parameter:**
 
@@ -591,4 +594,5 @@ The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mo
 | 2026-10-28 | A class with a `nocopy` field can't be copied - unless it implements `Cloneable`: then `copy(x)` / `byVal x` call its `clone()`, which recreates the field. A `noshare` field is copied automatically when the enclosing object is copied (it doesn't stop sharing). A class that can't be copied can still be passed to functions (borrowed). Structs are always copied. A list of a `nocopy` class needs that class to be `Cloneable` to be copied. A method may hand out a `nocopy` field's reference (`return database`) or a copy of a `noshare` field (`return copy(log)`) |
 | 2026-10-28 | Leaks: warned in development; the leak check can be off or built into the app; a published app logs, never shows debug messages to the customer |
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |
+| 2026-10-29 | Lists and Maps become references with a count (shared in normal code, copied in a struct, `byVal` copies) - the same counting the class objects use. A class with no constructor: `Car()` - value fields at their defaults, objects null; its methods set them. 32.10 builds a minimal class together with the counting |
 | 2026-10-29 | OWNERSHIP is always the first choice - no crashes, no leaks (they cause instability and security holes). Counting is skipped where the compiler proves a single owner |

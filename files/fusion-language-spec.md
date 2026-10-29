@@ -3755,10 +3755,13 @@ parallel for i in range(1000):
 **Status:** [DONE 18.5] List, Map (alias Dictionary), text helpers, program arguments, console input, files, standard-library layers
 
 **`List<T>`** (Task 18.5.1, user decisions 2026-10-11) - a growable list of any value type:
-numbers, chars, bools, text, bytes, structs, and lists (`List<List<int>>`). It is a **value**
-like a string: `b = a` gives an independent copy, it is freed automatically, it works in
-struct fields; functions borrow it, and a function that changes a list parameter gets its
-own copy. A new list (a literal, a call's result) is moved, not copied. Built-in generic
+numbers, chars, bools, text, bytes, structs, and lists (`List<List<int>>`). It is a
+**reference with a count** (Task 32.10a, user decisions 2026-10-29): in normal code - a
+variable, a parameter, an element - `b = a`, passing and returning share the same list, and
+it is freed when its last holder lets go; `byVal a` (or `byValue a`) makes a deep copy, and a
+`byVal List<int> xs` parameter gets one. **Inside a struct** it is copied with the struct,
+unless the field is written `byRef`. It is never null - empty when declared. A Map works the
+same way. Arrays follow once they can grow (Task 45); until then they are copied. Built-in generic
 types - user-written generics come later, with classes. In C each element type has its own
 small set of functions, made only when used, so there is no boxing and no speed cost.
 

@@ -17,9 +17,9 @@ void function main()
     print("{@1} {@2}", big.len(), total)
 
     List<string> names = ["Ada", "Grace"]
-    List<string> copy = names                     // an independent copy
+    List<string> copy = byVal names               // a copy - `copy = names` would share it
     copy.add("Linus")
-    Team t = Team("core", names)
+    Team t = Team("core", names)                  // a struct holds its own copy
     t.members.add("Ken")
     print("{@1} {@2} {@3}", names.len(), copy.len(), t.members[2])
 

@@ -12,6 +12,9 @@ from src.lexer.token import Token, TokenType, SourceLocation
 from src.lexer.literals import decode_char_literal, integer_value
 from src.parser.ast_nodes import *
 
+# `byVal a` / `byValue a` - a copy; `byRef a` - shared (Task 32.10a; words, not keywords)
+PASSING_WORDS = {'byVal': True, 'byValue': True, 'byRef': False}
+
 
 class ParserError(Exception):
     """Exception raised for parser errors.
@@ -359,7 +362,26 @@ class Parser:
                 operand=operand
             )
 
+        # `byVal a` (or byValue) - a copy; `byRef a` - shared (Task 32.10a). Words only here
+        passing = self._passing_word()
+        if passing is not None:
+            word = self.advance()
+            return PassingExpr(location=word.location, value=self.parse_unary(),
+                               by_val=passing)
+
         return self.parse_call()
+
+    def _passing_word(self):
+        """True for `byVal` / `byValue`, False for `byRef`, before a value or a type; None
+        when the word is just a name."""
+        if not self.check(TokenType.IDENTIFIER) or self.peek().value not in PASSING_WORDS:
+            return None
+        if self.peek(1).type not in (TokenType.IDENTIFIER, TokenType.LPAREN, TokenType.LBRACKET,
+                                     TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
+                                     TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
+                                     TokenType.BYTE):
+            return None
+        return PASSING_WORDS[self.peek().value]
 
     def parse_call(self) -> ASTNode:
         """Parse postfix operators: function calls func(...), array indexing arr[...], and
@@ -691,6 +713,10 @@ class Parser:
                 raise ParserError(self.peek(), f"Give the parameter's type: {keyword.value} int "
                                                f"{self.peek().value} - a type taken from each "
                                                f"caller comes with generics (Task 33)")
+        # `byVal List<int> xs` - a copy; `byRef` - shared (Task 32.10a)
+        passing = self._passing_word()
+        if passing is not None:
+            self.advance()
         # Parse type (for now, just expect identifier for type name)
         param_type = self.parse_type()
         # `string... args` - any number of values, as an array (Task 18.5.4)
@@ -713,6 +739,8 @@ class Parser:
 
         return ParameterDecl(
             location=param_type.location,
+            by_val=passing is True,
+            written_by_ref=passing is False,
             is_let=is_let,
             is_variadic=variadic,
             param_type=param_type,
@@ -2245,7 +2273,11 @@ class Parser:
 
     def parse_struct_field(self):
         """Parse one struct field: `int x` or `int hp = 100` (Task 18.2.1) - or a method,
-        `void function move(int dx)` (Task 32.1), returned as a FunctionDecl."""
+        `void function move(int dx)` (Task 32.1), returned as a FunctionDecl. `byRef
+        List<string> log` - shared when the struct is copied (Task 32.10a)."""
+        passing = self._passing_word()
+        if passing is not None:
+            self.advance()
         field_type = self.parse_type()
         if self.match(TokenType.FUNCTION, TokenType.FUNC):
             return self.parse_function_declaration(field_type)
@@ -2267,6 +2299,7 @@ class Parser:
             default_value = self.parse_expression()
         return StructField(
             location=name_token.location,
+            by_ref=passing is False,
             field_type=field_type,
             name=name_token.value,
             default_value=default_value

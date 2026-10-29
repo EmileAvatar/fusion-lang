@@ -21,9 +21,36 @@ Decisions by the user, 2026-10-27. Status marks: **built** (works today) and **p
 | Remove | - | from the end (planned) | anywhere: `removeAt`, `remove` | `m.remove(key)` |
 | Reorder / sort | - | no | `sort`, `sortBy` (a kept sort order planned) | keeps the order keys were added |
 | Duplicates | - | allowed | allowed | **no**: each key once (adding it again replaces the value, by default) |
-| Copying `b = a` | a copy | an independent copy | an independent copy | an independent copy |
+| `b = a` (normal code) | a copy | an independent copy (shared with Task 45) | **shared** (`byVal a` copies) | **shared** (`byVal a` copies) |
 | Cost of adding | - | cheap at the end | cheap at the end, slower in the middle (later items move up) | cheap |
 | Status | built | built (fixed size); growing planned | built | built |
+
+#### Shared or copied - the rule of thumb (user, 2026-10-29)
+
+Arrays, Lists and Maps are treated like values in one way - **never null, just empty** - but
+are **references** (shared) everywhere except **inside a struct**, where they are copied with it.
+
+| Where | `b = a`, passing to a function, returning | Written with `byVal` | Written with `byRef` |
+|---|---|---|---|
+| Normal code - a variable, a parameter, a class field, an element of a List / Map | **shared** - a change through `b` shows in `a` | a copy (deep) | shared (the default, written out) |
+| A field of a struct | **copied** with the struct (`byVal`) | copied (the default, written out) | shared - `byRef List<int> items` |
+
+```fusion
+List<int> a = [1]
+List<int> b = a              // the same list
+b.add(2)                     // a has 2 items too
+List<int> c = byVal a        // a copy - c.add(3) leaves a alone
+void function grow(List<int> xs)            // shared - xs.add(9) changes the caller's list
+void function look(byVal List<int> xs)      // a copy
+
+struct Order
+    List<string> items       // copied when the Order is copied
+    byRef List<string> log   // shared by the copies
+```
+
+The counting (Object_Lifetime.md section 5) frees a List or Map when its last holder lets go.
+**Arrays** follow the same rule once they live on the heap and know their own length (Task
+45); until then an array keeps today's behaviour (fixed size, copied).
 
 **In one line each:**
 - **Single value**: one thing - an age, a name, a flag
@@ -315,4 +342,5 @@ original alone.
 | 2026-10-27 | `foreach (string item in names)` - the item's type is the collection's. Future: a `Collection` interface (Task 32) - arrays, lists, maps and your own classes implement it, and a class decides its own looping / thread rules |
 | 2026-10-27 | `foreach` over arrays, lists and maps: adding / removing inside is a compile error; `continue` and `break` allowed |
 | 2026-10-27 | Lists / maps and threads: shared by default, `[collections] threads = "shared"`, `shared_threads = 10` |
+| 2026-10-29 | Arrays, Lists and Maps are references (shared) in normal code - a variable, parameter, class field, element - and copied inside a struct; `byVal` copies in normal code, `byRef` shares in a struct field. Never null, just empty |
 | 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |

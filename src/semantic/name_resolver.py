@@ -15,7 +15,7 @@ from src.parser.ast_nodes import (
     EnumDecl, EnumType, EnumStaticCall, EnumValueExpr, MatchStmt, ErrorType, ErrorMakeExpr, ErrorDecl,
     ErrorActiveExpr, TryStmt, ThrowStmt, UncheckedStmt,
     ListType, MapType, NewCollectionExpr, COLLECTION_TYPE_NAMES, ConditionalExpr, IsNullExpr,
-    MatchExpr,
+    MatchExpr, PassingExpr,
 )
 from .symbol_table import SymbolTable
 from .symbol import Symbol
@@ -1015,6 +1015,8 @@ class NameResolver:
             self.resolve_expression(expr.condition)
             self.resolve_expression(expr.then_value)
             self.resolve_expression(expr.else_value)
+        elif isinstance(expr, PassingExpr):              # byVal a / byRef a (Task 32.10a)
+            self.resolve_expression(expr.value)
         elif isinstance(expr, MatchExpr):                # Task 46.2 - an enum case is a bare name
             self.resolve_expression(expr.subject)
             for case in expr.cases:

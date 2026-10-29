@@ -61,7 +61,11 @@ parameter_list =
     parameter { "," parameter } [ "," ] ;  (* Trailing comma allowed *)
 
 parameter =
-    [ "let" | "var" ] type_name identifier [ "=" expression ] ;   (* let: can't change, 46.1 *)
+    [ "let" | "var" ] [ passing ] type_name identifier [ "=" expression ] ;   (* let: 46.1 *)
+
+(* Task 32.10a: a List / Map is shared in normal code and copied in a struct; byVal copies,
+   byRef shares. Words, not keywords - special only before a value or a type *)
+passing = "byVal" | "byValue" | "byRef" ;
 
 (* Main function entry point - Optional for programs, not required for libraries *)
 (* Standard signature convention for executable programs *)
@@ -346,6 +350,7 @@ primary =
     | "(" expression ")"
     | lambda_expression
     | match_expression                    (* Task 46.2 *)
+    | passing primary                     (* byVal a - a copy; byRef a - shared, 32.10a *)
     | "this"
     | "null"
     | "cast" "<" type_name ">" "(" expression ")" ;

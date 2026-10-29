@@ -627,9 +627,9 @@ void function main()
     print("{@1} {@2}", big.len(), total)
 
     List<string> names = ["Ada", "Grace"]
-    List<string> copy = names                     // an independent copy
+    List<string> copy = byVal names               // a copy - `copy = names` would share it
     copy.add("Linus")
-    Team t = Team("core", names)
+    Team t = Team("core", names)                  // a struct holds its own copy
     t.members.add("Ken")
     print("{@1} {@2} {@3}", names.len(), copy.len(), t.members[2])
 
@@ -641,6 +641,41 @@ void function main()
     print("{@1} {@2}", parts.len(), parts.join(" + "))   // also join(parts, " + ")
     print("{@1} {@2}", lines("one\ntwo\n").len(), words("  the quick  fox ").join("|"))
 ```
+
+#### Shared or copied: `byVal` and `byRef`
+
+<!-- example: syntax_shared_lists | task: 32.10a -->
+```fusion
+struct Order
+    List<string> items                  // copied when the Order is copied
+    byRef List<string> log              // shared by the copies
+
+void function addTo(List<int> xs)       // shared - the caller's list changes
+    xs.add(9)
+
+void function tryOut(byVal List<int> xs) // a copy - the caller's list stays as it was
+    xs.add(100)
+
+void function main()
+    List<int> a = [1]
+    List<int> b = a                     // the same list
+    b.add(2)
+    List<int> c = byVal a               // a copy
+    c.add(3)
+    c.add(4)
+    addTo(a)
+    tryOut(a)
+    print("{@1} {@2} {@3}", a.len(), b.len(), c.len())   // 3 3 4
+
+    Order first = Order(["tea"], ["opened"])
+    Order second = first                // a struct is copied - its items too, not its log
+    second.items.add("cake")
+    second.log.add("copied")
+    print("{@1} {@2} {@3}", first.items.len(), second.items.len(), first.log.len())   // 1 2 2
+```
+Rule of thumb: in a struct a List / Map is copied (`byVal`) unless the field says `byRef`;
+everywhere else it is shared (`byRef`) unless written `byVal`. Never null - just empty.
+Maps work the same way. Arrays follow once they can grow (Task 45).
 
 #### Maps: `Map<K, V>` (also written `Dictionary<K, V>`)
 

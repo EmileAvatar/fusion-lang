@@ -68,24 +68,27 @@ def test_filter_map_reduce():
                   )) == ['2 #4 10 #1#2#3#4', '#4']
 
 
-def test_copies_are_independent():
+def test_a_list_is_shared_and_byval_copies():
+    # Task 32.10a (user, 2026-10-29): a List is a reference in normal code
     assert run_ok(main(
         'List<string> a = ["x", "y"]\n'
         'List<string> b = a\n'
         'b[0] = "changed"\n'
         'b.add("z")\n'
-        'print("{@1} {@2} {@3} {@4}", a[0], a.len(), b[0], b.len())'
-    )) == ['x 2 changed 3']
+        'List<string> c = byVal a\n'
+        'c.add("only c")\n'
+        'print("{@1} {@2} {@3} {@4} {@5}", a[0], a.len(), b[0], b.len(), c.len())'
+    )) == ['changed 3 changed 3 4']
 
 
-def test_functions_borrow_and_copy_when_they_change_a_list():
+def test_a_function_changes_the_callers_list():
     assert run_ok('int function total(List<int> xs) : xs.reduce(0, (int s, int x) : s + x)\n\n'
                   'List<int> function grow(List<int> xs)\n    xs.add(100)\n    return xs\n\n'
                   'List<string> function names() : ["Ada", "Grace"]\n\n' + main(
                       'List<int> xs = [1, 2]\n'
                       'List<int> bigger = grow(xs)\n'
                       'print("{@1} {@2} {@3} {@4}", xs.len(), bigger.len(), total(bigger), names()[1])'
-                  )) == ['2 3 103 Grace']
+                  )) == ['3 3 103 Grace']     # shared: grow added to xs itself (32.10a)
 
 
 def test_lists_in_structs_and_lists_of_lists():

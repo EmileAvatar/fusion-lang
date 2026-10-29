@@ -64,7 +64,7 @@ def test_char_keys_and_counting():
     )) == ['3 2 1 3']
 
 
-def test_maps_are_values():
+def test_maps_are_shared():
     assert run_ok('Map<string, int> function scores() \n    Map<string, int> m\n    m["x"] = 1\n    return m\n\n'
                   'int function total(Map<string, int> m) : m.values().reduce(0, (int s, int x) : s + x)\n\n'
                   'void function bump(Map<string, int> m)\n    m["x"] = 100\n\n' + main(
@@ -75,7 +75,7 @@ def test_maps_are_values():
                       'print("{@1} {@2} {@3} {@4}", a.len(), b.len(), a["x"], total(b))\n'
                       'b.remove("y")\n'
                       'print("{@1} {@2}", a == b, a != b)'
-                  )) == ['1 2 1 3', 'true false']
+                  )) == ['2 2 100 102', 'true false']     # one map, shared (Task 32.10a)
 
 
 def test_equality_ignores_order():
@@ -86,7 +86,7 @@ def test_equality_ignores_order():
         'Map<string, int> b\n'
         'b["y"] = 2\n'
         'b["x"] = 1\n'
-        'Map<string, int> c = b\n'
+        'Map<string, int> c = byVal b\n'
         'c["x"] = 9\n'
         'print("{@1} {@2}", a == b, a == c)'
     )) == ['true false']

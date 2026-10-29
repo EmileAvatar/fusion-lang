@@ -7,7 +7,7 @@
 | `c_equality.py` | Lowers `==` `!=` `===` `!==` per type; generates struct / array comparison helpers on demand |
 | `c_strings.py` | C for the versatile string functions (Task 18.3.6), appended to the runtime prelude |
 | `c_bytes.py` | C for raw bytes (Task 18.3.8): `byte` / `bytes`, appended to the runtime prelude |
-| `c_collections.py` | C for `List<T>` and `Map<K, V>` (Tasks 18.5.1-2): one type and its functions per element / key-value type, made on demand; lvalues through elements and map values |
+| `c_collections.py` | C for `List<T>` and `Map<K, V>` (Tasks 18.5.1-2): one type and its functions per element / key-value type, made on demand; lvalues through elements and map values. Since 32.10a a List / Map is a pointer to a counted block: `_retain` shares, `_clone` copies deeply, `_free` lets go and frees at 0 |
 | `c_enums.py` | C for enums (Task 25): an int typedef per enum, its name / fromString helpers, values(), enum values |
 | `c_errors.py` | C for errors (Task 26): the runtime (`fusion_raise`, `fusion_take_error`), which functions can fail, a check after each call that can fail, failure blocks that free and pass the error on, captures |
 | `c_files.py` | C for files (Task 18.5.5): read / write / append text and bytes, fileExists, deleteFile; UTF-8 paths on Windows |

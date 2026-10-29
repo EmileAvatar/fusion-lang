@@ -109,6 +109,14 @@ are in `task/featuresArchive.md`.
 		test. OWNERSHIP first, always (user, 2026-10-29 - no crashes, no leaks); count references,
 		but skip the counting where the compiler proves a single owner (Swift / Lobster -
 		Notes/Program lang Compare.md, Rust videos)
+		[DONE] 32.10a Lists and Maps are references with a count (tests/test_shared_collections.py):
+			shared in normal code, copied in a struct; `byVal` copies, a `byRef` field shares
+			(user, 2026-10-29 - truth table in Arrays.md section 1)
+		[ ] 32.10b Minimal classes: fields, methods, constructor, objects by reference, null
+		[ ] 32.10c The catalogue (U / D / R / T / O, collections of objects) - a test each
+		[ ] 32.10d Cycles: the leak check reports them; a warning where a class can hold itself
+		[ ] 32.10e No counting where one owner is proven
+		[ ] Arrays become references too - with Task 45 (they must live on the heap first)
 	[DONE] 32.8 Structs building on structs (tests/test_struct_parents.py): `implements`
 		(`extends` / `includes`); an Employee goes where a Person is expected (a copy of its
 		Person part); Person's methods work on it; same-name fields warn, `e.Person.tel`;

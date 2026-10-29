@@ -288,7 +288,7 @@ def test_nested_collections():
         'scores["bo"].add(9)\n'
         'List<List<string>> grid = [["a", "b"], ["c"]]\n'
         'grid[1].add("d")\n'
-        'List<List<string>> copy = grid\n'
+        'List<List<string>> copy = byVal grid\n'
         'copy[0][0] = "z"\n'
         'int total = 0\n'
         'for name in scores\n'

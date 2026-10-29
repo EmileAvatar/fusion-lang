@@ -595,10 +595,45 @@ class MemoryManagementMixin:
         if isinstance(type_node, PrimitiveType) and type_node.name in ('string', 'bytes'):
             return f'fusion_str_copy({code})'
         if isinstance(type_node, (ListType, MapType)):
-            return f'{self.map_type(type_node)}_copy({code})'
+            # a reference: one more holder of the same list (Task 32.10a)
+            return f'{self.map_type(type_node)}_retain({code})'
         if isinstance(type_node, StructType) and self.is_managed(type_node):
             return f'fusion_copy_{self._struct_c_name(type_node)}({code})'
         return code
+
+    def clone_code(self, type_node, code: str) -> str:
+        """C expression giving a deep copy - a List or Map is copied, not shared (`byVal`, a
+        struct's own copy - Task 32.10a); anything else as copy_code."""
+        if isinstance(type_node, (ListType, MapType)):
+            return f'{self.map_type(type_node)}_clone({code})'
+        return self.copy_code(type_node, code)
+
+    def error_value(self, type_node) -> str:
+        """What a call that failed gives back - never a new List / Map (nothing would free
+        it): the caller goes on to the error."""
+        if isinstance(type_node, (ListType, MapType)):
+            return 'NULL'
+        return self._default_value_code(type_node)
+
+    def temp_initial(self, type_node) -> str:
+        """A temporary's first value, set where the function starts: empty and allocating
+        nothing - it may never be used (a List / Map is NULL until then)."""
+        if isinstance(type_node, (ListType, MapType)):
+            return 'NULL'
+        if isinstance(type_node, StructType) and self.holds_collection(type_node):
+            return '{0}'
+        return self._default_value_code(type_node)
+
+    def holds_collection(self, type_node) -> bool:
+        """A List or Map somewhere inside a struct (its default allocates)."""
+        if isinstance(type_node, (ListType, MapType)):
+            return True
+        if isinstance(type_node, ArrayType):
+            return self.holds_collection(type_node.element_type)
+        if isinstance(type_node, StructType):
+            return any(self.holds_collection(f.field_type)
+                       for f in self._struct_decl(type_node).fields)
+        return False
 
     def free_lines(self, type_node, lvalue: str, depth: int = 0) -> list:
         """C statements freeing a managed value stored at `lvalue`."""
@@ -645,13 +680,16 @@ class MemoryManagementMixin:
                     continue
                 name = f'v.{self._field_name(field.name)}'
                 field_type = field.field_type
+                # A struct's List / Map is copied with it - shared only if the field is
+                # byRef (Task 32.10a, user decision 2026-10-29)
+                copy = self.copy_code if getattr(field, 'by_ref', False) else self.clone_code
                 if isinstance(field_type, ArrayType):
                     element = field_type.element_type
                     copy_body.append(
                         f'    for (int i = 0; i < {field_type.size}; i++) '
-                        f'{name}[i] = {self.copy_code(element, f"{name}[i]")};')
+                        f'{name}[i] = {copy(element, f"{name}[i]")};')
                 else:
-                    copy_body.append(f'    {name} = {self.copy_code(field_type, name)};')
+                    copy_body.append(f'    {name} = {copy(field_type, name)};')
                 free_body += ['    ' + line for line in self.free_lines(
                     field_type, f'v->{self._field_name(field.name)}')]
             lines += [f'static inline {c} fusion_copy_{c}({c} v) {{'] + copy_body + \
@@ -672,6 +710,11 @@ class MemoryManagementMixin:
             return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, InterpolatedStringExpr):
             return True  # "x is {x}" builds a new string (18.3.3)
+        if type(expr).__name__ == 'PassingExpr':
+            # byVal a: a new copy; byRef a: as the value itself (Task 32.10a)
+            if expr.by_val:
+                return self.is_managed(getattr(expr, 'inferred_type', None))
+            return self.is_fresh(expr.value)
         if type(expr).__name__ == 'MatchExpr':
             # a match value (Task 46.2): each value made owned, as with (c) ? a : b
             return self.is_managed(getattr(expr, 'inferred_type', None))
@@ -735,7 +778,7 @@ class MemoryManagementMixin:
             initial = '{' + self._default_value_code(type_node) + '}'
         else:
             c_type = self.map_type(type_node)
-            initial = self._default_value_code(type_node)
+            initial = self.temp_initial(type_node)
         name = self._declare_temp('tmp', f'{c_type}', initial)
         self.stmt_temps[-1].append((name, type_node))
         return f'({name} = {code})'

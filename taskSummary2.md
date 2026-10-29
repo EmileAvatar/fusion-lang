@@ -134,6 +134,34 @@ task/taskSummaryArchive.md (Task 32.8); `typeOf` and converting back are in 32.7
   - Answers (user, 2026-10-28): `_` may be used and is ignored (a reading aid some people
     prefer) - `tab_width`, `tabWidth`, `TABWIDTH` are the same; new files are written in
     camelCase. `strict`: every warning becomes an error. Approved - build it now
+- **32.10 plan (2026-10-29, awaiting approval):** every case in the catalogue is about class
+  objects, which don't exist yet - so the counting is built together with a minimal class, and
+  no class code ever exists without it:
+  - **32.10a Minimal classes:** `class Car` - fields (with defaults), methods (`this`),
+    `constructor(...)` (`Car(...)` the same), `new` optional; objects on the heap, a variable
+    holds a reference; `Car c` is null; `.` on null is a NullError (`?.` comes with 30.2);
+    `== null` / `is null`. No constructor written: `Car()` with every field at its default.
+    In C: a struct with a count first, `fu_Car*` variables, retain / release helpers; at 0
+    the object lets go of its fields, then is freed
+  - **32.10b The counting, case by case** - U1-U5, U8, U9; D1-D9; R1-R5; T1-T4; O1, O2; a
+    List / Map / array of objects (U4, C1-C4) - each a test checking the output and that the
+    leak check finds every object freed (a new exit code: 5 = an object never freed)
+  - **32.10c Cycles (O3, O4):** the leak check reports them; a warning where a class can hold
+    its own type (directly or through others) - Weak comes with Task 38
+  - **32.10d No counting where one owner is proven** - last, once every case is right; the
+    tests stay the same
+  - **Later (other parts first):** `[memory] strategy` gc / manual, `free` / `deallocate` /
+    `unsafe` / doubleFree, byVal and deep copies (U6), statics (U10), a struct holding
+    objects (U7), readonly, nocopy / noshare / Cloneable, atomic counts (Task 42), the
+    leakCheck setting; inheritance, interfaces, private (32.2 onwards)
+  - **Settings:** none now (`[memory] strategy` waits until gc / manual are built)
+  - **Answers (user, 2026-10-29):** (1) yes, the class with the counting; (2) Lists and Maps
+    become references - shared in normal code, copied in a struct (`byVal` copies, a
+    `byRef` struct field shares; never null) - the truth table is in Arrays.md section 1;
+    (3) no constructor needed: value fields at their defaults, objects null
+  - **Order:** 32.10a Lists and Maps become counted references (+ `byVal` / `byRef`); arrays
+    follow with Task 45 (they need to live on the heap first); 32.10b minimal classes;
+    32.10c the catalogue; 32.10d cycles; 32.10e no counting where one owner is proven
 - 32.10 Object lifetime (mini-task): every case in Object_Lifetime.md, each with a test - run
   before classes (32.2) so the counting is right from the start. OWNERSHIP first, always (user,
   2026-10-29); skip the counting where the compiler proves a single owner (Swift / Lobster). Three strategies (MANUAL /
@@ -433,4 +461,6 @@ Kept under Task 22 until the renumbering is approved.
 - 32.8 done: structs building on structs (a hidden first field holds the parent part; an
   Employee becomes its Person part where a Person is expected; "{e}" prints every field)
 - 32.13 done: "{e}" as `name : value`, toCSV on structs, arrays and Lists of structs
-- **Next Action:** 32.10 (object lifetime - the counting, before classes), then 32.2
+- 32.10a done: Lists and Maps are references with a count (shared in normal code, copied in
+  a struct; byVal / byRef)
+- **Next Action:** 32.10b (minimal classes, with the counting), then 32.10c-e, then 32.2
