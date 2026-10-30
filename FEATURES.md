@@ -102,6 +102,11 @@ are in `task/featuresArchive.md`.
 	[ ] 45.1 Each array knows its own length at run time (like a List), so an array can be
 		replaced by one of another size (`numbers = make()`, `numbers = [1, 2, 3]`)
 	[ ] 45.2 Empty arrays: `int[] numbers` and `int numbers[]` (was 30.10)
+	[ ] 45.10 Arrays become references too, like Lists (shared in normal code, copied in a
+		struct; `byVal` copies) - once they live on the heap (from 32.10a, user 2026-10-29);
+		then an array's `toList(false)` can share it
+	[ ] 45.11 `toList` and `toCSV` on arrays of more dimensions - with multi-dimensional arrays
+		(user, 2026-10-29)
 	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, `numbers.removeLast()` (`pop()` as
 		quick typing) - user, 2026-10-27
 	[ ] 45.4 Combine arrays: `a + b + c + d` - a new array, each one's items in turn; all of
@@ -143,7 +148,7 @@ are in `task/featuresArchive.md`.
 		plain `.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
 	[ ] 30.3 (from Task 30) `nullable` settings for strings / arrays / lists / maps (default
 		false) and `?.length()` giving -1 on a null one - only useful with 30.2
-	[ ] 32.10 Object lifetime (mini-task, before 32.2): every case in Object_Lifetime.md with a
+	[DONE] 32.10 Object lifetime (mini-task, before 32.2): every case in Object_Lifetime.md with a
 		test. OWNERSHIP first, always (user, 2026-10-29 - no crashes, no leaks); count references,
 		but skip the counting where the compiler proves a single owner (Swift / Lobster -
 		Notes/Program lang Compare.md, Rust videos)
@@ -152,20 +157,18 @@ are in `task/featuresArchive.md`.
 			(user, 2026-10-29 - truth table in Arrays.md section 1)
 		[DONE] 32.10a.1 `toList(copy = true)` on a List (false: shared) and a one-dimensional
 			array (a copy); null on an array / List / Map names the planned nullable setting
-		[ ] toList on arrays of more dimensions - revisit with multi-dimensional arrays (user,
-			2026-10-29)
 		[DONE] 32.10b Minimal classes (tests/test_classes.py): fields, methods, one constructor
 			(or none), `new` optional, objects by reference with a count, null, NullError on
 			`.`, `==` is the same object; a failing constructor frees its object
 		[DONE] 32.10c The catalogue (tests/test_object_lifetime.py): U1-U5, U8, U9, D1-D9,
 			R1-R5, C1-C4, T1-T3, O1, O2 - each checks the moment its object is freed
 			(-DFUSION_TRACE_OBJECTS); fixed: `for x in [A(), A()]` made new objects every pass
-		[ ] `null == null` gives false (the null literal is "never null") - should be true
 		[DONE] 32.10d Cycles (tests/test_object_lifetime.py): a warning where a class can hold
 			itself (directly, through other classes, Lists, Maps, arrays) - once per circle;
 			the leak check stops a program that keeps one (exit 5)
-		[ ] 32.10e No counting where one owner is proven
-		[ ] Arrays become references too - with Task 45 (they must live on the heap first)
+		[DONE] 32.10e No counting where one owner is proven (tests/test_object_lifetime.py): a
+			local returned is moved - no copy, no counting, not freed (every constructor's
+			`return this`, a returned string or List); not through a finally
 	[DONE] 32.8 Structs building on structs (tests/test_struct_parents.py): `implements`
 		(`extends` / `includes`); an Employee goes where a Person is expected (a copy of its
 		Person part); Person's methods work on it; same-name fields warn, `e.Person.tel`;
@@ -173,7 +176,8 @@ are in `task/featuresArchive.md`.
 	[DONE] 32.13 A struct as text (tests/test_struct_parents.py): `"{e}"` gives
 		`name : "Jeff",age : 30`; `x.toCSV(delimiter = ",")` on a struct, a one-dimensional
 		array or a List of structs - one heading row (`Person.name`, ...), one row per struct
-	[ ] toCSV on arrays of more dimensions (user, 2026-10-29) - with multi-dimensional arrays
+	[ ] `null == null` gives false (the null literal is "never null") - should be true (found
+		in 32.10c)
 	[ ] 32.7 Inheritance - using a parent type (user, 2026-10-29): `typeOf(x)` gives the chain,
 		top type first (`Person.Employee.Manager`), so the program can convert it back; for a
 		struct, only a `byRef` parameter keeps the whole value (a normal one: `Person`)
@@ -227,6 +231,10 @@ are in `task/featuresArchive.md`.
 
 #### 38 Memory model: Unique / Shared / Weak, GC as a project option (was 15.5) [ ]
 	[ ] 38.1 Scope it (semantics decided in 12.7, not built)
+	[ ] 38.2 More moves where one owner is proven (after 32.10e): a variable's last use storing
+		it (`xs.add(b)`, `field = b`, `Car d = b`) moves it instead of counting; no null check
+		on a local just made (`Car c = Car()`) - a "last use" analysis over branches and loops
+	[ ] 38.3 Weak references - break a circle of objects (32.10d warns where one can form)
 
 #### 39 Library trust, isolation & security (was 19) [ ]
 	[ ] 39.1 Compiler-verified capability signatures (was 19.1; layers from 18.5.6 are the groundwork)

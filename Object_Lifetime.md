@@ -7,8 +7,9 @@ model). Status (2026-10-29): the **OWNERSHIP counting is built** for class objec
 Maps (Task 32.10a-c) - every case in sections 7 and 8 marked below has a test in
 tests/test_object_lifetime.py that checks the moment each object is freed
 (`-DFUSION_TRACE_OBJECTS` shows `[freed Car]`), with the leak check (exit 5: an object never
-freed). Still designed only: GC and MANUAL, `free` / `deallocate`, statics, copies of objects
-(clone), cycles (32.10d), skipping the count (32.10e).
+freed). Cycles get a warning (32.10d); a returned local is moved without counting (32.10e).
+Still designed only: GC and MANUAL, `free` / `deallocate`, statics, copies of objects (clone),
+Weak references and more moves (Task 38).
 
 ---
 

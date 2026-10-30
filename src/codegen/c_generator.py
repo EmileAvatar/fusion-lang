@@ -1540,14 +1540,21 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 value_code = self.visit(node.value)
             else:
                 value_code = f'{wrapper}_from({self.visit(node.value)})'
-        elif node.value:
-            # The caller owns the returned value: a string is copied out (Task 18.3.1)
-            value_code = self.owned_value(node.value, return_type)
+        owned = self.owned_in_scopes('function') if hasattr(self, 'cleanup_scopes') else []
+        leaves_finally = any(True for _ in getattr(self, 'finally_stack', None) or [])
+        if node.value is not None and value_code is None:
+            moved = self._returned_local(node.value, owned, leaves_finally)
+            if moved is not None:
+                # `return mine` - a local of this function, never used again: handed to the
+                # caller as it is - no copy, no counting, and it isn't freed (Task 32.10e)
+                value_code = moved
+                owned = [entry for entry in owned if entry[0] != moved]
+            else:
+                # The caller owns the returned value: a string is copied out (Task 18.3.1)
+                value_code = self.owned_value(node.value, return_type)
 
         # Leaving the function: this statement's temporaries and every owned variable in
         # the function are freed first - after the returned value is safely computed
-        owned = self.owned_in_scopes('function') if hasattr(self, 'cleanup_scopes') else []
-        leaves_finally = any(True for _ in getattr(self, 'finally_stack', None) or [])
         if not owned and not self.has_pending_temps() and not leaves_finally:
             self.emit_line(f'return {value_code}' if value_code is not None else self._bare_return())
             return ''
@@ -1564,6 +1571,15 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.emit_frees(owned)
         self.emit_line(f'return {result}')
         return ''
+
+    def _returned_local(self, value, owned: list, leaves_finally: bool):
+        """The C name of a local variable being returned that can be moved: one this function
+        owns (not a parameter or module variable - a constructor's `this` is one of its
+        locals), with no finally to run in between (it could still change it). None otherwise."""
+        if leaves_finally or not isinstance(value, IdentifierExpr):
+            return None
+        name = self.visit(value)
+        return name if any(entry[0] == name for entry in owned) else None
 
     def _bare_return(self) -> str:
         """`return` with no value: in `void main` it is `return 0` - C's main returns an int

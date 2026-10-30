@@ -279,3 +279,47 @@ def test_o3_a_circle_kept_is_reported_by_the_leak_check(tmp_path):
 ])
 def test_a_circle_broken_is_freed(body, freed, tmp_path):
     assert traced(CIRCLE + main(body), tmp_path) == freed
+
+
+def generated(source: str) -> str:
+    return CCodeGenerator().generate(analyzed(source)[1])
+
+
+def test_returning_a_local_moves_it_without_counting():
+    # 32.10e: a local returned is handed over as it is - no retain / copy, no release
+    code = generated(CLASSES + 'A function makeOne()\n'
+                               '    A mine = A()\n'
+                               '    return mine\n\n'
+                               'string function greet(string name)\n'
+                               '    string s = "Hi " + name\n'
+                               '    return s\n\n'
+                     + main('A a = makeOne()\nprint(greet("Ann"))'))
+    body = code[code.index('fu_A* fu_makeOne(void) {'):]
+    body = body[:body.index('\n}')]
+    assert 'return mine;' in body and '__retain' not in body
+    constructor = code[code.index('fu_A* fu_A__new(void) {'):]
+    assert constructor[:constructor.index('\n}')].count('__retain') == 0
+    greet = code[code.index('fusion_string fu_greet(fusion_string name) {'):]
+    assert 'return s;' in greet[:greet.index('\n}')]
+
+
+def test_moves_keep_every_moment_the_same(tmp_path):
+    # the same frees as before 32.10e - a returned local, and one leaving through a finally
+    # (not moved: the finally could still change it)
+    assert traced(CLASSES + 'A function makeOne()\n'
+                            '    A mine = A()\n'
+                            '    B other = B()\n'
+                            '    return mine\n\n'
+                            'A function guarded()\n'
+                            '    A kept = A()\n'
+                            '    try\n'
+                            '        return kept\n'
+                            '    finally\n'
+                            '        print("finally")\n\n'
+                  + main('A a = makeOne()\n'
+                         'print("made")\n'
+                         'A g = guarded()\n'
+                         'a = null\n'
+                         'g = null\n'
+                         'print("end")'), tmp_path) == \
+        ['[freed B]', 'made', 'finally', '[freed A]', '[freed A]', 'end']
