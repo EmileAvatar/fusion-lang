@@ -1385,6 +1385,14 @@ being set up is a compile error showing the chain. `static` methods have no `thi
 when the program ends. In C a static is a module variable (`fusion_g_Car__count`) and a
 class's set-up the function `Car.__setup`, called first in main.
 
+**Form B on any variable (Task 32.2d, built - Classes.md section 4):** a block right after
+a declaration's value sets that variable up further: a local (`Car c = new Car() { c.speed =
+4 }`, also `let` / `const`, Lists and Maps), a class field, a static (32.2c). The block may
+change only its own variable (an assignment to, or a method call on, another variable is a
+compile error); variables declared in it are its own. A class field's value may be any
+expression: each constructor sets the field and runs its block first, in field order, before
+its own body - not again when it hands over with `this(...)`.
+
 **Constructors (Task 32.2b, built - Classes.md section 2):** a class may have several; a call
 picks the one whose parameters take the values given - by their number, then their types,
 and when several fit, the one whose types match exactly (two that can't be told apart, or a

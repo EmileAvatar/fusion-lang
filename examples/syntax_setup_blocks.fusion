@@ -1,0 +1,22 @@
+class Engine
+    public string kind = "none"
+    public int power
+
+class Car
+    public int speed = 5
+    public Engine engine = new Engine() {      // a field: every constructor runs this first
+        engine.kind = "V6"
+        engine.power = 300
+    }
+
+void function main()
+    Car mine = new Car() {                     // a local
+        mine.speed = 99
+        mine.engine.power = 320
+    }
+    List<string> names = List<string>() {      // a List
+        names.add("Ann")
+        names.add("Bob")
+    }
+    print("{mine.speed} {mine.engine.kind} {mine.engine.power}")
+    print(format("{@1} names", names.length()))

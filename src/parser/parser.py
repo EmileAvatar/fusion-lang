@@ -5,6 +5,7 @@ This module implements a parser that converts a token stream into an Abstract
 Syntax Tree (AST). Uses precedence climbing for binary operators.
 """
 
+import copy
 import json
 from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import List, Optional
@@ -1170,7 +1171,7 @@ class Parser:
             initializer = self.parse_expression()
             self.reject_compare_with_single_equals()   # Task 27.2
 
-        self.consume_statement_terminator()
+        setup = self._setup_block(initializer is not None and error_name is None)
 
         return VarDeclStmt(
             location=location,
@@ -1179,7 +1180,8 @@ class Parser:
             initializer=initializer,
             error_name=error_name,
             error_location=error_location,
-            error_type=error_type
+            error_type=error_type,
+            setup=setup
         )
 
     def parse_inferred_declaration(self) -> VarDeclStmt:
@@ -1200,9 +1202,24 @@ class Parser:
         if self.match(TokenType.ASSIGN):
             initializer = self.parse_expression()
             self.reject_compare_with_single_equals()   # Task 27.2
-        self.consume_statement_terminator()
+        setup = self._setup_block(initializer is not None)
         return VarDeclStmt(location=name_token.location, var_type=None, name=name_token.value,
-                           initializer=initializer, inferred=keyword.value)
+                           initializer=initializer, inferred=keyword.value, setup=setup)
+
+    def _setup_block(self, has_value: bool):
+        """Form B (Tasks 32.2c, 32.2d): a block right after a declaration's value sets that
+        variable up further - `Car c = new Car() { c.speed = 4 }`. Ends the statement; returns
+        the block, or None when there is none."""
+        if has_value and (self.check(TokenType.LBRACE) or (
+                self.check(TokenType.NEWLINE) and self.peek(1).type == TokenType.INDENT)):
+            while self.match(TokenType.NEWLINE):
+                pass
+            block = self.parse_block_statement()
+            while self.match(TokenType.NEWLINE):
+                pass
+            return block
+        self.consume_statement_terminator()
+        return None
 
     def parse_const_declaration(self) -> ASTNode:
         """Parse const declaration: const int x = 5
@@ -1231,14 +1248,15 @@ class Parser:
         initializer = self.parse_expression()
         self.reject_compare_with_single_equals()   # Task 27.2
 
-        self.consume_statement_terminator()
+        setup = self._setup_block(True)
 
         return VarDeclStmt(
             location=location,
             var_type=var_type,
             name=name,
             initializer=initializer,
-            is_const=True
+            is_const=True,
+            setup=setup
         )
 
     def parse_return_statement(self) -> ASTNode:
@@ -2061,16 +2079,15 @@ class Parser:
                 (static_methods if is_static else methods).append(item)
                 continue
             item.is_private = written is not True
+            # Form B: a block right after a field's value sets it up further (32.2c, 32.2d)
+            item.setup = None
+            if item.default_value is not None and (self.check(TokenType.LBRACE) or (
+                    self.check(TokenType.NEWLINE) and self.peek(1).type == TokenType.INDENT)):
+                item.setup = self._setup_block(True)
             if not is_static:
                 fields.append(item)
                 continue
-            # Form B: a block right after a static field's value sets it up further
-            item.is_static, item.is_const, item.setup = True, is_const, None
-            if item.default_value is not None and (self.check(TokenType.LBRACE) or (
-                    self.check(TokenType.NEWLINE) and self.peek(1).type == TokenType.INDENT)):
-                while self.match(TokenType.NEWLINE):
-                    pass
-                item.setup = self.parse_block_statement()
+            item.is_static, item.is_const = True, is_const
             static_fields.append(item)
         self.consume(closing, f"Expected the end of class '{name}'")
         while self.match(TokenType.NEWLINE):
@@ -2123,6 +2140,8 @@ class Parser:
                 raise ParserError(self.previous(), f"this(...) can't use '{clash[0]}' - the object "
                                                    f"isn't made until the other constructor runs")
         method_names = {m.method_name for m in decl.methods}
+        if delegate is None:
+            body.statements = self._field_setups(decl, method_names) + body.statements
         self.rewrite_method_body(method, decl.name, field_names, method_names,
                                  lambda message: self._fail(message))
 
@@ -2152,6 +2171,31 @@ class Parser:
         method.delegate = made if delegate is not None else None
         method.name = f'{decl.name}.new' if number == 1 else f'{decl.name}.new_{number}'
         return method
+
+    def _field_setups(self, decl: StructDecl, method_names) -> list:
+        """A class field whose value isn't a plain constant, or that has a form B block (Task
+        32.2d), is set by each constructor first, in field order: `this.engine = new
+        Engine()`, then its block - before the constructor's own body."""
+        statements = []
+        every_field = {f.name for f in decl.fields}
+        for f in decl.fields:
+            value = getattr(f, 'moved_default', None) or f.default_value
+            if value is None or (getattr(f, 'setup', None) is None and (
+                    isinstance(value, LiteralExpr) or (isinstance(value, UnaryExpr)
+                                                       and isinstance(value.operand, LiteralExpr)))):
+                continue
+            f.moved_default, f.default_value = value, None   # the object starts it at zero
+            block = BlockStmt(location=f.location, statements=[AssignmentStmt(
+                location=f.location, target=IdentifierExpr(location=f.location, name=f.name),
+                value=copy.deepcopy(value))])
+            if getattr(f, 'setup', None) is not None:
+                block.statements.append(copy.deepcopy(f.setup))
+            holder = FunctionDecl(location=f.location, name=f'{decl.name}.new', parameters=[],
+                                  return_type=None, body=block)
+            self.rewrite_method_body(holder, decl.name, every_field, method_names,
+                                     lambda message: self._fail(message))
+            statements += block.statements
+        return statements
 
     @staticmethod
     def _this_call(statement):

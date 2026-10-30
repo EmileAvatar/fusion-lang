@@ -1,8 +1,8 @@
 # Classes: visibility, constructors, static set-up, Default
 
 A design document for Task 32.2 and 32.5 (user decisions 2026-10-30). Status: built -
-visibility (32.2a), constructors (32.2b), statics (32.2c: tests/test_statics.py); the rest
-designed. Every permutation is in a truth table,
+visibility (32.2a), constructors (32.2b), statics (32.2c: tests/test_statics.py), form B on
+any variable (32.2d: tests/test_setup_blocks.py); the rest designed. Every permutation is in a truth table,
 so each rule can be checked at a glance and turned into a test.
 
 ---
@@ -109,6 +109,10 @@ List<string> names = List<string>() {
 | A local variable | yes | that variable only |
 | A field of a class (its default) | yes | that field only |
 | An array / List / Map | yes | that collection only - e.g. no duplicates, no null, read only (planned options) |
+
+Built (32.2d): a class field's value may be any expression - each constructor sets the field
+and runs its block first, in field order, before its own body (once, also when it hands over
+with `this(...)`). Changing another variable in the block is a compile error.
 
 **Not the builder pattern:** form B sets up one variable right where it is made. A builder (a
 separate object that collects settings, then `build()` makes the result) is a different idea,

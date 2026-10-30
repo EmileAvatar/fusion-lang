@@ -414,6 +414,9 @@ class VarDeclStmt(ASTNode):
     # `let x = ...` / `var x = ...` (Task 46.1): the type comes from the value - var_type is
     # None until the type checker fills it in. 'let': set once, never changes; 'var': can change
     inferred: Optional[str] = None
+    # Form B (Task 32.2d): `Car c = new Car() { c.speed = 4 }` - a block that sets the variable
+    # up further; expand_setup_blocks() moves it right after the declaration
+    setup: Optional['BlockStmt'] = None
 
 
 @dataclass

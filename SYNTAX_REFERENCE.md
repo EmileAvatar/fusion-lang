@@ -851,6 +851,38 @@ uses another class is set up after it, and two that need each other are a compil
 shows the chain (`Factory can't use Car - Car is still being set up (Car -> Engine -> Factory
 -> Car)`). A const static is set only in its class's set-up. Statics are freed last.
 
+#### Form B on any variable: a block right after the value
+
+<!-- example: syntax_setup_blocks | task: 32.2d -->
+```fusion
+class Engine
+    public string kind = "none"
+    public int power
+
+class Car
+    public int speed = 5
+    public Engine engine = new Engine() {      // a field: every constructor runs this first
+        engine.kind = "V6"
+        engine.power = 300
+    }
+
+void function main()
+    Car mine = new Car() {                     // a local
+        mine.speed = 99
+        mine.engine.power = 320
+    }
+    List<string> names = List<string>() {      // a List
+        names.add("Ann")
+        names.add("Bob")
+    }
+    print("{mine.speed} {mine.engine.kind} {mine.engine.power}")
+    print(format("{@1} names", names.length()))
+```
+The block sets up that variable only - changing another variable in it is a compile error
+(`The set-up block of 'mine' can only change 'mine' - change 'other' after the block`). A
+class field's value may be any expression; each constructor sets it, then runs its block,
+before its own body.
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->

@@ -493,7 +493,10 @@ Kept under Task 22 until the renumbering is approved.
   this(...) - the other constructor makes the object (class_rules.check_constructors)
 - 32.2c done: statics - module variables `Car.count` + a set-up function `Car.__setup` per
   class (src/semantic/statics.py); main calls them first, ordered after type checking
-- **Next Action:** 32.2d (form B on any variable), then 32.2e-g;
+- 32.2d done: form B on any variable - a local's block follows its declaration
+  (src/semantic/setup_blocks.py); a class field's value and block go to the start of each
+  constructor (parser `_field_setups`)
+- **Next Action:** 32.2e (readonly parameters), then 32.2f-g;
   then 32.5 (interfaces: ToString, Default, Cloneable), then the rest of Task 32 - finish Task
   32, then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

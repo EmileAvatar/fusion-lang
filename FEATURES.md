@@ -146,7 +146,9 @@ are in `task/featuresArchive.md`.
 		[DONE] 32.2c `static` (tests/test_statics.py): fields, const static, static methods; set-up
 			forms A (direct), B (self set-up), C (`static { }`) in that order before main;
 			classes by dependency; a circle is an error showing the whole chain; freed last
-		[ ] 32.2d Form B on any variable - `Car c = new Car() { c.setEngine("V6") }`
+		[DONE] 32.2d Form B on any variable (tests/test_setup_blocks.py) - `Car c = new Car() {
+			c.setEngine("V6") }`: locals, let / const, Lists, class fields (any value, set by each
+			constructor first); the block changes its own variable only
 		[ ] 32.2e `readonly` parameters
 		[ ] 32.2f Printing an object: the class name with a warning until ToString (32.5)
 		[ ] 32.2g The `null == null` bug

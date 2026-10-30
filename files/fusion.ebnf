@@ -426,6 +426,10 @@ new_expression = "new" call_expression ;    (* the same as the call itself *)
 (* Task 32.2c - statics: form A `static T NAME = value`; form B the same with a block after
    the value (it changes NAME only); form C `static block` - any static of the class. A
    static method has no `this`. Run A, B, C in order before main, classes by dependency *)
+(* Task 32.2d - form B on any variable: a block right after a declaration's value (a local,
+   `let` / `const`, a class field) sets that variable up; it changes nothing else *)
+setup_block = block ;
+
 static_member =
     [ access_modifier ] { "const" | "static" } type_name identifier [ "=" expression [ block ] ]
     | "static" block ;

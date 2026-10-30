@@ -16,6 +16,7 @@ from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
 from .statics import expand_statics, static_setup_order
+from .setup_blocks import expand_setup_blocks
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -106,6 +107,8 @@ class SemanticAnalyzer:
         self.warnings.extend(parent_warnings)
         # A class's statics (Task 32.2c): module variables and a set-up function per class
         self.errors.extend(expand_statics(ast))
+        # Form B on any variable (Task 32.2d): a local's set-up block runs right after it
+        self.errors.extend(expand_setup_blocks(ast))
 
         # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
         # nothing after this mistakes an enum for a struct
