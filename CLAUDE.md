@@ -142,6 +142,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Single values, arrays, lists, maps: what each does, when (not) to use it | `Arrays.md` |
 | When a class object is freed: every way it gains or loses a reference | `Object_Lifetime.md` |
 | Classes: visibility, constructors, static set-up (forms A, B, C), Default, ToString - truth tables | `Classes.md` |
+| How a .fusion file is laid out: namespace, imports, the preferred order | `files/FusionTemplate.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |
 | Compiler source | `src/` - `src/CLAUDE.md` explains the pipeline; each subfolder's `CLAUDE.md` has one line per file |
 | Tests / examples | `tests/`, `examples/` |

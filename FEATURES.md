@@ -147,6 +147,11 @@ are in `task/featuresArchive.md`.
 		[ ] 32.2e `readonly` parameters
 		[ ] 32.2f Printing an object: the class name with a warning until ToString (32.5)
 		[ ] 32.2g The `null == null` bug
+		[ ] 32.2h Visibility levels private (the class) / internal (the namespace; without one,
+			the module) / public; `namespace Core.Collections` - a line at the top of a file, not
+			a folder (Namespace.Module.Class.Function); `[visibility] required` (default false)
+			makes the level mandatory; namespace and imports first; `Core` always imported -
+			plan in taskSummary2.md, layout in files/FusionTemplate.md (user, 2026-10-30)
 		Passing (user, 2026-10-26, as in VB.NET): value types (primitives, structs) by value - a
 		copy; objects (class instances) by reference. Until classes exist, everything is a copy
 		User decisions (2026-10-23, showcase review): `inherits`, with `extends` as an alias;

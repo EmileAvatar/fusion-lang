@@ -464,6 +464,29 @@ Kept under Task 22 until the renumbering is approved.
 - 32.10d done: cycles - a warning per circle of classes (src/semantic/class_rules.py); the
   leak check reports a kept circle
 - 32.10e done: a returned local is moved (no copy, no counting); 32.10 complete
+- **32.2h plan (2026-10-30, third version - answers in; layout in files/FusionTemplate.md) -
+  visibility levels,
+  `internal`, namespaces** (user answers 2026-10-30):
+  - **A namespace is a line, not a folder:** `namespace Core.Collections` at the top of a
+    .fusion file, before any import - it says where the file's classes belong
+    (Namespace.Module.Class.Function - later used to map what belongs where). Optional: only
+    Fusion's own libraries use it (`namespace Core` - the first one); an app uses it only to
+    break a big program into logical parts. No new folders - the ~21 core modules (IO,
+    Graphics, ...) stay side by side. Other namespaces only once the compiler works
+  - **File layout:** enforced - the namespace first (if any), then the imports (both
+    optional); `Core` is always imported, never written. The rest is the preferred layout
+    (files/FusionTemplate.md)
+  - **Three levels:** `private` - the class; `internal` - the namespace (a file without one:
+    its module); `public` - everyone. `private` is only for a class's (or struct's) members:
+    on a top-level item (class, struct, enum, interface, function) it is an error - nothing
+    could use it; never inside an interface
+  - **When nothing is written:** fields and module variables private (a module variable:
+    its module); functions, constructors, classes, interfaces, enums and structs public.
+    `[visibility] required` (default false): true makes a missing level an error. `internal`
+    in a file without a namespace means its module (like private)
+  - Today's `private struct Helper` / private module functions become `internal`
+  - **Order:** after 32.2b-g; namespaces touch the module loader
+  - **Settings:** `[visibility] required` (default false) - into files/fusionSettings.xml when built
 - 32.2a done: visibility (fields private, functions public; types public at module level);
   also fixed classes / struct methods inside modules (the loader walked methods twice)
 - **Next Action:** 32.2b (several constructors, this(...)), then 32.2c-g;

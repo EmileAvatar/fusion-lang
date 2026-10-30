@@ -17,8 +17,12 @@ so each rule can be checked at a glance and turned into a test.
 | Module level | struct | **public** | `private struct Helper` | private: only inside its module |
 | Module level | class | **public** | `private class Helper` | a helper class strictly for the module |
 | Module level | enum | **public** | `private enum Mode` | |
-| Module level | function | **private** | `public void function run()` | today's rule (Task 18.4.3, 2026-10-10) |
-| Module level | module variable / constant | **private** | `public int rate = 5` | today's rule (Task 44.1) |
+| Module level | function | **private** - becomes **public** with 32.2h | `public void function run()` | today's rule (Task 18.4.3, 2026-10-10) |
+| Module level | module variable / constant | **private** - its module | `public int rate = 5` | today's rule (Task 44.1) |
+
+**Planned (32.2h - files/FusionTemplate.md section 4):** three levels - `private` (the class;
+on a top-level item an error, write `internal`), `internal` (the namespace; without one, the
+module), `public`. `[visibility] required = true` makes writing the level mandatory.
 
 **Rule of thumb:** types are public, helpers are private. A thing is made private when it is
 internal to the module and not useful outside it.
