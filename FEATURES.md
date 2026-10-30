@@ -140,7 +140,9 @@ are in `task/featuresArchive.md`.
 		[DONE] 32.2a Visibility (tests/test_visibility.py): class fields private, functions /
 			constructors public by default; module level: structs, classes, enums public,
 			functions / variables private; fixed: classes and struct methods in modules
-		[ ] 32.2b Several constructors, `this(...)`; a private constructor only inside the class
+		[DONE] 32.2b Several constructors, chosen by the values given; `this(...)` on the first
+			line; a circle, two alike, no match or two matches: compile errors
+			(tests/test_classes.py)
 		[ ] 32.2c `static`: set-up forms A (direct), B (self set-up), C (`static { }`), in that
 			order; classes set up by dependency; a circle is an error showing the whole chain
 		[ ] 32.2d Form B on any variable - `Car c = new Car() { c.setEngine("V6") }`

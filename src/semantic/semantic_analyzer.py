@@ -14,7 +14,7 @@ from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
-from .class_rules import check_class_cycles
+from .class_rules import check_class_cycles, check_constructors
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -238,6 +238,10 @@ class SemanticAnalyzer:
         # Return success if no errors
         # Ways of handling errors the project turned off (Task 26.5)
         self.errors.extend(check_error_settings(ast, self.errors_config))
+        # Constructors that can't be told apart, or call each other in a circle (32.2b)
+        self.errors.extend(check_constructors(
+            [d for d in ast.declarations if isinstance(d, StructDecl)],
+            self.type_checker.type_to_string))
         # A let / var declared without a value: set before read, a let once (Task 46.1)
         known = {(str(e), str(e.location)) for e in self.errors}
         self.errors.extend(e for e in check_set_once(ast) if (str(e), str(e.location)) not in known)

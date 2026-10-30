@@ -2044,20 +2044,22 @@ class Parser:
             pass
         if self.match(TokenType.END):
             self.consume(TokenType.CLASS, "Expected 'class' after 'End'")
-        if len(constructors) > 1:
-            raise ParserError(constructors[1][0], "One constructor per class for now - several "
-                                                  "come with Task 32.2")
         decl = StructDecl(location=class_token.location, name=name, fields=fields, is_class=True)
         self.attach_methods(decl, methods)
         for method in decl.methods:
             method.parameters[0].by_ref = False      # `this` is a reference already
-        decl.methods.append(self._constructor(decl, constructors[0] if constructors else None))
+        # Several constructors (Task 32.2b): Car.new, Car.new_2, ... - a call picks one by
+        # its arguments
+        for number, written in enumerate(constructors or [None], start=1):
+            decl.methods.append(self._constructor(decl, written, number))
         return decl
 
-    def _constructor(self, decl: StructDecl, written) -> FunctionDecl:
+    def _constructor(self, decl: StructDecl, written, number: int = 1) -> FunctionDecl:
         """`Car.new(...)`: `Car this = <a new Car>`, the constructor's body, `return this`. A
         bare `return` in the body returns the object. A parameter may have a field's name
-        (`this.name = name` - Java's habit): then the bare name is the parameter."""
+        (`this.name = name` - Java's habit): then the bare name is the parameter. With
+        `this(...)` on the first line another constructor makes the object (Task 32.2b):
+        `Car this = Car(...)`, then this one's body goes on."""
         location = written[0].location if written else decl.location
         parameters, body = (written[1], written[2]) if written else \
             ([], BlockStmt(location=location, statements=[]))
@@ -2067,7 +2069,20 @@ class Parser:
         this = lambda: IdentifierExpr(location=location, name='this')
         method = FunctionDecl(location=location, name=decl.name, parameters=parameters,
                               return_type=class_type(), body=body)
+        delegate = self._this_call(body.statements[0]) if body.statements else None
+        if delegate is not None:
+            body.statements = body.statements[1:]
+        for statement in body.statements:
+            if self._this_call(statement) is not None:
+                raise ParserError(self.previous(), "this(...) calls another constructor only on "
+                                                   "a constructor's first line")
         field_names = {f.name for f in decl.fields} - {p.name for p in parameters}
+        if delegate is not None:
+            used = self._names_in(delegate.arguments)
+            clash = sorted(used & (field_names | {'this'}))
+            if clash:
+                raise ParserError(self.previous(), f"this(...) can't use '{clash[0]}' - the object "
+                                                   f"isn't made until the other constructor runs")
         method_names = {m.method_name for m in decl.methods}
         self.rewrite_method_body(method, decl.name, field_names, method_names,
                                  lambda message: self._fail(message))
@@ -2084,17 +2099,41 @@ class Parser:
                         returns(getattr(node, f.name))
 
         returns(body)
+        made = ObjectMakeExpr(location=location, class_type=class_type()) if delegate is None \
+            else CallExpr(location=delegate.location, arguments=delegate.arguments,
+                          callee=IdentifierExpr(location=delegate.location, name=decl.name))
         body.statements = ([VarDeclStmt(location=location, var_type=class_type(), name='this',
-                                        initializer=ObjectMakeExpr(location=location,
-                                                                   class_type=class_type()))]
+                                        initializer=made)]
                            + body.statements + [ReturnStmt(location=location, value=this())])
         method.method_name = 'new'
         method.method_of = decl.name
         method.is_constructor = True
         method.is_private = private
         method.changes_this = False
-        method.name = f'{decl.name}.new'
+        method.delegate = made if delegate is not None else None
+        method.name = f'{decl.name}.new' if number == 1 else f'{decl.name}.new_{number}'
         return method
+
+    @staticmethod
+    def _this_call(statement):
+        """The call in `this(...)` - a constructor calling another - or None."""
+        if isinstance(statement, ExpressionStmt) and isinstance(statement.expression, CallExpr) \
+                and isinstance(statement.expression.callee, IdentifierExpr) \
+                and statement.expression.callee.name == 'this':
+            return statement.expression
+        return None
+
+    @classmethod
+    def _names_in(cls, node) -> set:
+        """Every bare name used in an expression (or a list of them)."""
+        if isinstance(node, list):
+            return set().union(*(cls._names_in(item) for item in node)) if node else set()
+        if isinstance(node, IdentifierExpr):
+            return {node.name}
+        if not is_dataclass(node) or isinstance(node, type):
+            return set()
+        return set().union(*(cls._names_in(getattr(node, f.name)) for f in dataclass_fields(node)
+                             if f.name not in ('location', 'inferred_type', 'scope')))
 
     def attach_methods(self, struct: StructDecl, methods: list) -> None:
         """Methods written inside a struct (Task 32.1): each becomes a function `Struct.name`

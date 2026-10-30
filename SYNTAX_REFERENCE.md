@@ -782,6 +782,10 @@ class Car
         this.name = name
         engine = Engine("V8")           // a field's bare name means this.engine
 
+    constructor(string name, int speed) // several constructors - chosen by the values given
+        this(name)                      // first line: another constructor makes the object
+        this.speed = speed
+
     void function drive()               // functions are public unless written private
         speed = speed + 5
         count()
@@ -794,6 +798,8 @@ class Note                              // no constructor: Note() - every field 
 
 void function main()
     Car mine = Car("Honda")             // new Car("Honda") is the same
+    Car fast = Car("BMW", 90)           // the second constructor
+    print("{fast.name} {fast.speed}")   // BMW 90
     Car shared = mine                   // the same car - an object is shared, not copied
     shared.drive()
     print("{mine.name} {mine.speed} {mine.engine.kind}")   // Honda 15 V8

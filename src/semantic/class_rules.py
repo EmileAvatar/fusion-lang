@@ -26,6 +26,42 @@ def _held_classes(type_node, classes: Dict[str, StructDecl]) -> List[str]:
     return []
 
 
+def check_constructors(structs: List[StructDecl], type_text) -> List[SemanticError]:
+    """Task 32.2b: two constructors of a class that take the same types can't be told
+    apart; constructors calling each other with this(...) in a circle would never end.
+    Runs after type checking - a this(...) call knows then which constructor it means."""
+    errors = []
+    for decl in (s for s in structs if s.is_class):
+        constructors = [m for m in decl.methods if getattr(m, 'is_constructor', False)]
+        text = {c.name: f"{decl.name}({', '.join(type_text(p.param_type) for p in c.parameters)})"
+                for c in constructors}
+        seen = {}
+        for c in constructors:
+            if text[c.name] in seen:
+                errors.append(SemanticError(
+                    f"Class '{decl.name}' has two constructors that take the same values - "
+                    f"{text[c.name]} - they can't be told apart", c.location))
+            seen.setdefault(text[c.name], c)
+        calls = {c.name: getattr(getattr(c, 'delegate', None), 'callee', None) for c in constructors}
+        reported = set()
+        for start in constructors:
+            path, current = [start.name], calls.get(start.name)
+            while current is not None and getattr(current, 'name', None) in calls:
+                name = current.name
+                if name in path:
+                    circle = path[path.index(name):] + [name]
+                    if frozenset(circle) not in reported:
+                        reported.add(frozenset(circle))
+                        errors.append(SemanticError(
+                            f"Constructors of '{decl.name}' call each other in a circle with "
+                            f"this(...): {' -> '.join(text[n] for n in circle)} - it would never "
+                            f"end", start.location))
+                    break
+                path.append(name)
+                current = calls.get(name)
+    return errors
+
+
 def check_class_cycles(structs: List[StructDecl]) -> List[SemanticError]:
     """A warning for each circle of classes whose objects can hold each other."""
     classes = {s.name: s for s in structs if s.is_class}

@@ -489,7 +489,9 @@ Kept under Task 22 until the renumbering is approved.
   - **Settings:** `[visibility] required` (default false) - into files/fusionSettings.xml when built
 - 32.2a done: visibility (fields private, functions public; types public at module level);
   also fixed classes / struct methods inside modules (the loader walked methods twice)
-- **Next Action:** 32.2b (several constructors, this(...)), then 32.2c-g;
+- 32.2b done: several constructors (Car.new, Car.new_2, ...), chosen by the arguments;
+  this(...) - the other constructor makes the object (class_rules.check_constructors)
+- **Next Action:** 32.2c (static: forms A, B, C), then 32.2d-g;
   then 32.5 (interfaces: ToString, Default, Cloneable), then the rest of Task 32 - finish Task
   32, then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

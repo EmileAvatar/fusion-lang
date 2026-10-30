@@ -1372,6 +1372,14 @@ included); a private constructor means only the class makes its objects. At modu
 structs, classes and enums are public by default, functions and module variables private
 (`private struct Helper`, `public int function api()`).
 
+**Constructors (Task 32.2b, built - Classes.md section 2):** a class may have several; a call
+picks the one whose parameters take the values given - by their number, then their types,
+and when several fit, the one whose types match exactly (two that can't be told apart, or a
+call that fits none or two equally, is a compile error). `this(...)` on a constructor's first
+line lets another constructor make the object; this one's body then goes on. It can't use
+the object's fields (the object isn't made yet); constructors calling each other in a circle
+are a compile error. Named values with several constructors come later.
+
 **Built (Task 32.10b, user decisions 2026-10-28 / 29):** `class Car` with fields (defaults
 allowed), methods (`this`; a field's bare name means `this.field`) and an optional
 constructor - `constructor(...)`, or `Car(...)` named like the class; none written: `Car()`

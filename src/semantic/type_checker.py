@@ -1073,6 +1073,68 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 f"own functions can use it (write 'public' before it to share it)",
                 node.location))
 
+    def constructor_text(self, decl, constructor) -> str:
+        """Car(string name, int speed) - a constructor as written in a message."""
+        return f"{decl.name}({', '.join(f'{self.type_to_string(p.param_type)} {p.name}' for p in constructor.parameters)})"
+
+    def choose_constructor(self, node: CallExpr, decl):
+        """The constructor a call `Car(...)` means (Task 32.2b): the one whose parameters
+        take the arguments - by their number, then their types; when several do, the one
+        whose types match exactly. None (with an error) when none does, or two equally."""
+        constructors = [m for m in decl.methods if getattr(m, 'is_constructor', False)]
+        if len(constructors) == 1:
+            return constructors[0]
+        if any(isinstance(a, NamedArgument) for a in node.arguments):
+            self.errors.append(SemanticError(
+                f"Named values with several constructors come later - give the values in order "
+                f"to {decl.name}(...)", node.location))
+            return None
+        given = []
+        for arg in node.arguments:
+            if isinstance(arg, LiteralExpr) and arg.type_hint == 'null':
+                given.append((arg, 'null'))
+            elif isinstance(arg, ArrayLiteralExpr):
+                given.append((arg, 'list'))
+            else:
+                kind = self.visit(arg)
+                self.checked_receivers[id(arg)] = kind      # checked once, not again
+                given.append((arg, kind))
+
+        def fits(constructor, exact: bool) -> bool:
+            params = constructor.parameters
+            required = sum(1 for p in params if p.default_value is None)
+            if not required <= len(given) <= len(params):
+                return False
+            for (arg, kind), param in zip(given, params):
+                want = param.param_type
+                if kind == 'null':
+                    ok = self.is_class(want) or isinstance(want, EnumType)
+                elif kind == 'list':
+                    ok = isinstance(want, (ListType, ArrayType)) and not exact
+                elif exact:
+                    ok = self.types_equal(want, kind)
+                else:
+                    ok = self.types_compatible(want, kind) or bool(self.parent_path(kind, want))
+                if not ok:
+                    return False
+            return True
+
+        fitting = [c for c in constructors if fits(c, False)]
+        if len(fitting) > 1:
+            exact = [c for c in fitting if fits(c, True)]
+            fitting = exact if len(exact) == 1 else fitting
+        if len(fitting) == 1:
+            return fitting[0]
+        shown = ', '.join(self.constructor_text(decl, c) for c in (fitting or constructors))
+        given_text = ', '.join(k if isinstance(k, str) else self.type_to_string(k) for _, k in given)
+        if fitting:
+            message = (f"{decl.name}({given_text}) could be more than one constructor: {shown} - "
+                       f"make the values' types clear")
+        else:
+            message = f"No constructor of '{decl.name}' takes ({given_text}) - its constructors: {shown}"
+        self.errors.append(SemanticError(message, node.location))
+        return None
+
     def visit_ObjectMakeExpr(self, node: ObjectMakeExpr) -> TypeNode:
         name = node.class_type.name
         return StructType(location=node.location, name=name, declaration=self.struct_named(name))
@@ -1202,14 +1264,16 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             # Car("Honda") / new Car("Honda") - the constructor, Car.new (Task 32.10b); a
             # private one only inside the class (Task 32.2a)
             name = symbol.declaration.name
-            made = next((m for m in symbol.declaration.methods
-                         if getattr(m, 'is_constructor', False)), None)
+            made = self.choose_constructor(node, symbol.declaration)
+            if made is None:
+                for arg in node.arguments:
+                    self.checked_receivers.pop(id(arg), None)
+                return StructType(location=node.location, name=name, declaration=symbol.declaration)
             if getattr(made, 'is_private', False) and getattr(self, 'current_class', None) != name:
                 self.errors.append(SemanticError(
                     f"The constructor of class '{name}' is private - only {name} itself makes "
                     f"{name} objects", node.location))
-            node.callee = IdentifierExpr(location=node.callee.location,
-                                         name=f'{symbol.declaration.name}.new')
+            node.callee = IdentifierExpr(location=node.callee.location, name=made.name)
             return self._visit_call(node)
         if symbol.symbol_type == 'struct':
             struct = symbol.declaration

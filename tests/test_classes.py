@@ -145,11 +145,68 @@ def test_class_errors(source, message):
 
 
 @pytest.mark.parametrize('source, message', [
-    ('class Car\n    constructor()\n        print("a")\n    constructor(int n)\n        print("b")\n',
-     "One constructor per class for now"),
+    ('class A\n    public int n\n    constructor(int n)\n        this.n = n\n'
+     '    constructor()\n        print("x")\n        this(1)\n',
+     r"this\(\.\.\.\) calls another constructor only on a constructor's first line"),
+    ('class A\n    public int n\n    constructor(int n)\n        this.n = n\n'
+     '    constructor()\n        this(n)\n',
+     "can't use 'n' - the object isn't made until the other constructor runs"),
     ('class Car implements Thing\n    public int n\n', "comes with inheritance"),
     ('void function main()\n    int x = new 5\n', "'new' comes before a class's constructor"),
 ])
 def test_class_parse_errors(source, message):
     with pytest.raises(ParserError, match=message):
         Parser(Lexer(source, 't').tokenize()).parse_program()
+
+
+SEVERAL = ('class Car\n'
+           '    public string name\n'
+           '    public int speed\n'
+           '    constructor()\n'
+           '        this("unnamed", 0)\n'
+           '    constructor(string name)\n'
+           '        this(name, 10)\n'
+           '        speed = speed + 1\n'
+           '    constructor(string name, int speed)\n'
+           '        this.name = name\n'
+           '        this.speed = speed\n'
+           '    constructor(float f)\n'
+           '        name = "float"\n\n')
+
+
+def test_several_constructors_and_this():
+    # Task 32.2b: chosen by the values given; this(...) lets another make the object
+    lines = run(SEVERAL + main('Car a = Car()\n'
+                               'Car b = Car("Honda")\n'
+                               'Car c = new Car("BMW", 99)\n'
+                               'Car d = Car(2.5)\n'
+                               'Car e = Car(3)\n'
+                               'print("{a.name} {a.speed} / {b.name} {b.speed} / {c.name} {c.speed}'
+                               ' / {d.name} / {e.name}")'))
+    assert lines == ['unnamed 0 / Honda 11 / BMW 99 / float / float']
+
+
+@pytest.mark.parametrize('source, message', [
+    (SEVERAL + main('Car x = Car(true)'),
+     "No constructor of 'Car' takes (bool) - its constructors: Car(), Car(string name), "
+     "Car(string name, int speed), Car(float f)"),
+    ('class Loop\n    public int n\n    constructor()\n        this(1)\n'
+     '    constructor(int n)\n        this()\n\n' + main('Loop l = Loop()'),
+     "Constructors of 'Loop' call each other in a circle with this(...): Loop() -> Loop(int) "
+     "-> Loop() - it would never end"),
+    ('class Twice\n    public int n\n    constructor(int a)\n        n = a\n'
+     '    constructor(int b)\n        n = b\n\n' + main('Twice t = Twice(1)'),
+     "Class 'Twice' has two constructors that take the same values - Twice(int) - they can't "
+     "be told apart"),
+    (SEVERAL + main('Car x = Car(name = "x")'), "Named values with several constructors come later"),
+])
+def test_constructor_errors(source, message):
+    assert message in errors_of(source)
+
+
+def test_an_exact_match_wins():
+    lines = run('class Pick\n    public string kind\n'
+                '    constructor(int a)\n        kind = "int"\n'
+                '    constructor(float b)\n        kind = "float"\n\n'
+                + main('Pick p = Pick(1)\nPick q = Pick(1.5)\nprint("{p.kind} {q.kind}")'))
+    assert lines == ['int float']
