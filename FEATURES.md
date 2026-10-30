@@ -161,7 +161,9 @@ are in `task/featuresArchive.md`.
 			R1-R5, C1-C4, T1-T3, O1, O2 - each checks the moment its object is freed
 			(-DFUSION_TRACE_OBJECTS); fixed: `for x in [A(), A()]` made new objects every pass
 		[ ] `null == null` gives false (the null literal is "never null") - should be true
-		[ ] 32.10d Cycles: the leak check reports them; a warning where a class can hold itself
+		[DONE] 32.10d Cycles (tests/test_object_lifetime.py): a warning where a class can hold
+			itself (directly, through other classes, Lists, Maps, arrays) - once per circle;
+			the leak check stops a program that keeps one (exit 5)
 		[ ] 32.10e No counting where one owner is proven
 		[ ] Arrays become references too - with Task 45 (they must live on the heap first)
 	[DONE] 32.8 Structs building on structs (tests/test_struct_parents.py): `implements`

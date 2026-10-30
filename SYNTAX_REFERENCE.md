@@ -800,7 +800,9 @@ void function main()
     print("[{n.text}]")                 // []
 ```
 An object is freed when the last place holding it lets go (Object_Lifetime.md). `.` on null
-is a NullError that `catch` handles.
+is a NullError that `catch` handles. Two objects that hold each other (`a.friend = b` and
+`b.friend = a`) are never freed: a class that can hold itself gets a warning, and setting
+one of the fields to null breaks the circle (Weak references come with Task 38).
 
 #### Methods inside a struct (`[structs] functions = true`)
 

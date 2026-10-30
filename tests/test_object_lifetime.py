@@ -8,11 +8,14 @@ The catalogue's numbers: U - the count goes up, D - leaving a scope, R - replaci
 holds, C - collections letting go, T - temporaries, O - objects holding objects. Not here:
 U6 / U7 (copies of objects, a struct holding one - need clone() and [structs] classes), U10
 (statics), F (free / deallocate), T4 (a match works on enums, numbers and text, not objects),
-O3 / O4 (cycles - Task 32.10d).
+O3 / O4 - cycles - are at the end (Task 32.10d): a warning where a class can hold itself, and
+the leak check stopping a program that keeps a circle.
 """
 
 import os
 import subprocess
+
+import pytest
 
 from src.codegen import CCodeGenerator
 from src.lexer import Lexer
@@ -23,11 +26,17 @@ from tests.test_structs import main
 CLASSES = 'class A\n    int n\n\nclass B\n    int n\n\n'
 
 
-def traced(source: str, tmp_path) -> list:
+def analyzed(source: str):
     program = Parser(Lexer(source, 'test.fusion').tokenize()).parse_program()
     analyzer = SemanticAnalyzer()
     analyzer.analyze(program)
     assert not analyzer.get_errors(), analyzer.get_errors()
+    return analyzer, program
+
+
+def built(source: str, tmp_path):
+    """The program's run: (exit code, output lines, stderr)."""
+    _, program = analyzed(source)
     c_file, exe = os.path.join(tmp_path, 'out.c'), os.path.join(tmp_path, 'out.exe')
     with open(c_file, 'w', encoding='utf-8') as f:
         f.write(CCodeGenerator().generate(program))
@@ -35,8 +44,13 @@ def traced(source: str, tmp_path) -> list:
                             c_file, '-o', exe], capture_output=True, text=True)
     assert build.returncode == 0 and 'warning' not in build.stderr, build.stderr
     result = subprocess.run([exe], capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr          # 5: an object never freed
-    return result.stdout.strip().splitlines()
+    return result.returncode, result.stdout.strip().splitlines(), result.stderr
+
+
+def traced(source: str, tmp_path) -> list:
+    code, lines, err = built(source, tmp_path)
+    assert code == 0, err                                 # 5: an object never freed
+    return lines
 
 
 def test_u1_u2_r2_held_until_the_last_holder_lets_go(tmp_path):
@@ -229,3 +243,39 @@ def test_arrays_of_objects(tmp_path):
                                  'arr[0] = A()\n'
                                  'print("replaced")'), tmp_path) == \
         ['[freed A]', 'replaced', '[freed A]']
+
+
+CIRCLE = ('class Node\n    int n\n    Node next\n\n'
+          'class A\n    B friend\n\n'
+          'class B\n    List<A> friends\n\n'
+          'class Plain\n    A one\n\n')
+
+
+def test_o3_o4_a_warning_where_a_class_can_hold_itself():
+    warnings = [str(w) for w in analyzed(CIRCLE + main('print("x")'))[0].get_warnings()]
+    assert any("Class 'Node' can hold itself (Node -> Node)" in w for w in warnings)
+    assert any("Class 'A' can hold objects that hold it in turn (A -> B -> A)" in w
+               for w in warnings)
+    assert not any("'B'" in w or "'Plain'" in w for w in warnings)   # one warning per circle
+    assert len(warnings) == 2
+
+
+def test_o3_a_circle_kept_is_reported_by_the_leak_check(tmp_path):
+    code, lines, err = built(CIRCLE + main('A a = A()\n'
+                                           'B b = B()\n'
+                                           'a.friend = b\n'
+                                           'b.friends.add(a)\n'
+                                           'print("made a circle")'), tmp_path)
+    assert (code, lines) == (5, ['made a circle'])
+    assert "2 object(s) were never freed" in err
+
+
+@pytest.mark.parametrize('body, freed', [
+    # O3: break the circle before letting go - both are freed
+    ('A a = A()\nB b = B()\na.friend = b\nb.friends.add(a)\na.friend = null\nprint("broken")',
+     ['broken', '[freed B]', '[freed A]']),
+    # O4: an object holding itself
+    ('Node n = Node()\nn.next = n\nn.next = null\nprint("broken")', ['broken', '[freed Node]']),
+])
+def test_a_circle_broken_is_freed(body, freed, tmp_path):
+    assert traced(CIRCLE + main(body), tmp_path) == freed

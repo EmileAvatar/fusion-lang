@@ -14,6 +14,7 @@ from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
+from .class_rules import check_class_cycles
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -140,6 +141,7 @@ class SemanticAnalyzer:
                         f"byRef on field '{field.name}': only a List or Map field can be shared "
                         f"between copies of the struct", field.location))
         self.type_checker.check_struct_nesting([s for s in structs if not s.is_class])
+        self.warnings.extend(check_class_cycles(structs))   # objects in a circle (32.10d)
         # A custom error type's fields (Task 26.9) - any type a struct field may have
         for decl in (d for d in ast.declarations if isinstance(d, ErrorDecl) and not d.builtin):
             for field in decl.fields:

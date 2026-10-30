@@ -445,8 +445,11 @@ void function main()
 ## 7. When the count goes up (+1)
 
 **Built and tested (32.10c):** U1-U5, U8, U9 - and R1-R5, D1-D9, C1-C4, T1-T3, O1, O2 below.
+O3 / O4 (32.10d): a warning on a class that can hold itself, directly or through other
+classes, Lists, Maps or arrays (`Class 'Node' can hold itself (Node -> Node)`), and the leak
+check stops a program that keeps a circle (exit 5); setting a field to null breaks it.
 Not yet: U6 / U7 (need clone() and `[structs] classes`), U10 (statics), F1-F4, T4 (a match
-works on enums, numbers and text, not objects), O3 / O4 (32.10d).
+works on enums, numbers and text, not objects), Weak references (Task 38).
 
 | # | Case | Example | Notes |
 |---|---|---|---|

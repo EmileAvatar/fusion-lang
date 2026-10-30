@@ -466,7 +466,8 @@ Kept under Task 22 until the renumbering is approved.
 - 32.10b done: minimal classes with the counting (a class is a StructDecl with is_class;
   the constructor is the function Car.new; C helpers __make / __retain / __release / __set)
 - 32.10c done: the catalogue, a test per case group, each checking when its object is freed
-- **Next Action:** 32.10d (cycles: the leak check reports them; a warning where a class can
-  hold itself), then 32.10e (no counting where one owner is proven), then 32.2 - finish Task
+- 32.10d done: cycles - a warning per circle of classes (src/semantic/class_rules.py); the
+  leak check reports a kept circle
+- **Next Action:** 32.10e (no counting where one owner is proven), then 32.2 - finish Task
   32, then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29
