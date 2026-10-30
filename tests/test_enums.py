@@ -200,7 +200,7 @@ def test_enums_across_modules(tmp_path):
 def test_a_private_enum_stays_in_its_module(tmp_path):
     message = module_errors(tmp_path, {
         'paint/colors.fusion': (
-            'enum Secret: A B\n'
+            'private enum Secret: A B\n'
             'public Secret function hidden()\n'
             '    return Secret.A\n'),
         'main.fusion': 'import paint\nvoid function main()\n    print("x")\n',

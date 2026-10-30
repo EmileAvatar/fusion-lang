@@ -37,7 +37,8 @@ from src.semantic.name_resolver import TYPE_CLASSES
 ParseFile = Callable[[str, str], ProgramNode]   # (source text, file name) -> ProgramNode
 
 _SKIP_FIELDS = ('location', 'inferred_type', 'scope', 'declaration', 'callee_declaration',
-                'resolved_arguments')
+                'resolved_arguments',
+                'methods')   # a struct's / class's methods are top-level functions too (32.1)
 
 
 class Module:

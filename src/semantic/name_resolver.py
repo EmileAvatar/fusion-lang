@@ -462,7 +462,7 @@ class NameResolver:
         Args:
             struct: Struct declaration node
         """
-        if not struct.fields:
+        if not struct.fields and not struct.is_class:    # a class may have only functions
             self.errors.append(SemanticError(
                 f"Struct '{struct.name}' has no fields - a struct needs at least one",
                 struct.location

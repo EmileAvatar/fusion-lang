@@ -24,14 +24,14 @@ from tests.test_end_to_end import compile_and_run
 from tests.test_structs import errors_of, main
 
 CARS = ('class Engine\n'
-        '    string kind\n'
+        '    public string kind\n'
         '    constructor(string kind)\n'
         '        this.kind = kind\n\n'
         'class Car\n'
-        '    string name\n'
-        '    int speed = 10\n'
-        '    Engine engine\n'
-        '    List<string> trips\n\n'
+        '    public string name\n'
+        '    public int speed = 10\n'
+        '    public Engine engine\n'
+        '    public List<string> trips\n\n'
         '    constructor(string name)\n'
         '        this.name = name\n'
         '        engine = Engine("V8")\n\n'
@@ -75,7 +75,7 @@ def test_objects_are_shared_and_compared_by_identity():
 
 
 def test_no_constructor_new_and_lists_of_objects():
-    lines = run(CARS + 'class Plain\n    int n\n    string s\n    Car car\n\n'
+    lines = run(CARS + 'class Plain\n    public int n\n    public string s\n    public Car car\n\n'
                 + main('Plain p = new Plain()\n'
                        'print("{@1} [{@2}] {@3}", p.n, p.s, p.car == null)\n'
                        'List<Car> cars = [make("One"), make("Two")]\n'
@@ -107,10 +107,10 @@ def test_null_with_and_without_a_check():
 def test_a_constructor_that_fails_half_way_frees_the_object():
     # O2: the error goes to the caller, never the half-made object - the leak check would
     # stop the program if the object or its engine were kept
-    lines = run('class Engine\n    string kind\n\n'
+    lines = run('class Engine\n    public string kind\n\n'
                 'class Car\n'
-                '    Engine engine\n'
-                '    string name\n'
+                '    public Engine engine\n'
+                '    public string name\n'
                 '    constructor(string name)\n'
                 '        engine = Engine()\n'
                 '        if name == ""\n'
@@ -129,15 +129,15 @@ def test_a_constructor_that_fails_half_way_frees_the_object():
 
 
 @pytest.mark.parametrize('source, message', [
-    ('struct S\n    Car c\n\nclass Car\n    int n\n\nvoid function main()\n    S s\n',
+    ('struct S\n    Car c\n\nclass Car\n    public int n\n\nvoid function main()\n    S s\n',
      "Struct 'S' can't hold a class object (field 'c')"),
-    ('class Car\n    int n\n\nvoid function main()\n    List<Car> cs\n    List<Car> d = byVal cs\n',
+    ('class Car\n    public int n\n\nvoid function main()\n    List<Car> cs\n    List<Car> d = byVal cs\n',
      "A copy of a List<Car> would copy its objects - that needs clone()"),
-    ('class Car\n    int n\n\nvoid function main()\n    List<Car> cs\n    List<Car> d = cs.toList()\n',
+    ('class Car\n    public int n\n\nvoid function main()\n    List<Car> cs\n    List<Car> d = cs.toList()\n',
      "A copy of a List<Car> would copy its objects"),
-    ('class Car\n    int n\n\nvoid function main()\n    Car c = Car()\n    print("{c}")\n',
+    ('class Car\n    public int n\n\nvoid function main()\n    Car c = Car()\n    print("{c}")\n',
      "Can't print a whole Car object yet"),
-    ('class Car\n    int n\n\nvoid function main()\n    int x = null\n',
+    ('class Car\n    public int n\n\nvoid function main()\n    int x = null\n',
      "A int can't be null - only a class object or an enum can"),
 ])
 def test_class_errors(source, message):
@@ -147,7 +147,7 @@ def test_class_errors(source, message):
 @pytest.mark.parametrize('source, message', [
     ('class Car\n    constructor()\n        print("a")\n    constructor(int n)\n        print("b")\n',
      "One constructor per class for now"),
-    ('class Car implements Thing\n    int n\n', "comes with inheritance"),
+    ('class Car implements Thing\n    public int n\n', "comes with inheritance"),
     ('void function main()\n    int x = new 5\n', "'new' comes before a class's constructor"),
 ])
 def test_class_parse_errors(source, message):

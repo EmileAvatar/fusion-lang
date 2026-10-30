@@ -1,22 +1,27 @@
 class Engine
-    string kind
+    public string kind                  // fields are private unless written public
     constructor(string kind)            // or Engine(string kind) - the same
         this.kind = kind
 
 class Car
-    string name
-    int speed = 10
-    Engine engine                       // an object: null until set
+    public string name
+    public int speed = 10
+    public Engine engine                // an object: null until set
+    int trips                           // private - only Car's own functions use it
 
     constructor(string name)
         this.name = name
         engine = Engine("V8")           // a field's bare name means this.engine
 
-    void function drive()
+    void function drive()               // functions are public unless written private
         speed = speed + 5
+        count()
+
+    private void function count()
+        trips = trips + 1
 
 class Note                              // no constructor: Note() - every field at its default
-    string text
+    public string text
 
 void function main()
     Car mine = Car("Honda")             // new Car("Honda") is the same

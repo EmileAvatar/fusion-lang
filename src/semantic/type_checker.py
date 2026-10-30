@@ -741,6 +741,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 if method is None and getattr(struct, 'parent', None) else None
             if inherited is not None:
                 receiver, struct, method = inherited     # e.greet() is Person.greet(e.Person)
+            if method is not None and getattr(method, 'is_private', False) \
+                    and getattr(self, 'current_class', None) != struct.name:
+                self.checked_receivers.pop(id(receiver), None)
+                return (f"Function '{member}' of class '{struct.name}' is private - only "
+                        f"{struct.name}'s own functions can call it")
             if method is not None:
                 if getattr(method, 'changes_this', False) and not struct.is_class:
                     root = self._root_variable(receiver)
@@ -1055,9 +1060,22 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             expr = expr.object if isinstance(expr, MemberExpr) else expr.array
         return self.is_class(getattr(expr, 'inferred_type', None))
 
+    def _check_private_field(self, node, struct) -> None:
+        """A class's private field (the default) is used only by the class's own functions -
+        Task 32.2a, Classes.md section 1."""
+        owner = self.struct_declaration(getattr(node.object, 'inferred_type', None)) or struct
+        if not getattr(owner, 'is_class', False):
+            return
+        field = next((f for f in owner.fields if f.name == node.member), None)
+        if getattr(field, 'is_private', False) and getattr(self, 'current_class', None) != owner.name:
+            self.errors.append(SemanticError(
+                f"Field '{node.member}' of class '{owner.name}' is private - only {owner.name}'s "
+                f"own functions can use it (write 'public' before it to share it)",
+                node.location))
+
     def visit_ObjectMakeExpr(self, node: ObjectMakeExpr) -> TypeNode:
-        decl = self.struct_named(node.class_name)
-        return StructType(location=node.location, name=node.class_name, declaration=decl)
+        name = node.class_type.name
+        return StructType(location=node.location, name=name, declaration=self.struct_named(name))
 
     # ------------------------------------------------------------------ byVal / byRef (32.10a)
 
@@ -1181,7 +1199,15 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return PrimitiveType(location=node.location, name='void')
 
         if symbol.symbol_type == 'struct' and getattr(symbol.declaration, 'is_class', False):
-            # Car("Honda") / new Car("Honda") - the constructor, Car.new (Task 32.10b)
+            # Car("Honda") / new Car("Honda") - the constructor, Car.new (Task 32.10b); a
+            # private one only inside the class (Task 32.2a)
+            name = symbol.declaration.name
+            made = next((m for m in symbol.declaration.methods
+                         if getattr(m, 'is_constructor', False)), None)
+            if getattr(made, 'is_private', False) and getattr(self, 'current_class', None) != name:
+                self.errors.append(SemanticError(
+                    f"The constructor of class '{name}' is private - only {name} itself makes "
+                    f"{name} objects", node.location))
             node.callee = IdentifierExpr(location=node.callee.location,
                                          name=f'{symbol.declaration.name}.new')
             return self._visit_call(node)
@@ -2060,6 +2086,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         member_type = self.struct_member_type(node, struct, object_type)   # Task 32.8
         if member_type is not None:
+            self._check_private_field(node, struct)
             return member_type
 
         self.errors.append(SemanticError(

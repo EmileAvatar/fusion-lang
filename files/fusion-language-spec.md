@@ -1365,6 +1365,13 @@ Spaceship, Error function loadAndValidateShip(string filename)
 
 **Status:** a minimal class is built (Task 32.10b) - the rest [PLANNED 32].
 
+**Visibility (Task 32.2a, built - Classes.md section 1):** in a class, fields are **private**
+and functions and constructors **public** unless `public` / `private` is written; a private
+member is used only by the class's own functions (another object of the same class
+included); a private constructor means only the class makes its objects. At module level,
+structs, classes and enums are public by default, functions and module variables private
+(`private struct Helper`, `public int function api()`).
+
 **Built (Task 32.10b, user decisions 2026-10-28 / 29):** `class Car` with fields (defaults
 allowed), methods (`this`; a field's bare name means `this.field`) and an optional
 constructor - `constructor(...)`, or `Car(...)` named like the class; none written: `Car()`
@@ -3947,8 +3954,9 @@ direction:
       public string function show(Price p)
   ```
 * Example: `examples/shop/` - a program of three files in two modules
-* **`public`** (Task 18.4.3, user decision 2026-10-10): only structs and functions marked
-  `public` can be used by other modules - through `money.round`, `import money.round` or
+* **`public`** (Task 18.4.3, user decision 2026-10-10; types changed 2026-10-30, Task 32.2a):
+  structs, classes and enums are public unless written `private`; functions and module
+  variables only when marked `public` can be used by other modules - through `money.round`, `import money.round` or
   `import money.*` (which brings the public names only). Everything else is private to its
   module, while the module's own files see all of each other's names. `private` may be
   written to say the default explicitly. A public function or struct can't use a private

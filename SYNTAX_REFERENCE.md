@@ -768,24 +768,29 @@ void function main()
 <!-- example: syntax_classes | task: 32.10b -->
 ```fusion
 class Engine
-    string kind
+    public string kind                  // fields are private unless written public
     constructor(string kind)            // or Engine(string kind) - the same
         this.kind = kind
 
 class Car
-    string name
-    int speed = 10
-    Engine engine                       // an object: null until set
+    public string name
+    public int speed = 10
+    public Engine engine                // an object: null until set
+    int trips                           // private - only Car's own functions use it
 
     constructor(string name)
         this.name = name
         engine = Engine("V8")           // a field's bare name means this.engine
 
-    void function drive()
+    void function drive()               // functions are public unless written private
         speed = speed + 5
+        count()
+
+    private void function count()
+        trips = trips + 1
 
 class Note                              // no constructor: Note() - every field at its default
-    string text
+    public string text
 
 void function main()
     Car mine = Car("Honda")             // new Car("Honda") is the same
@@ -799,8 +804,11 @@ void function main()
     Note n = Note()
     print("[{n.text}]")                 // []
 ```
-An object is freed when the last place holding it lets go (Object_Lifetime.md). `.` on null
-is a NullError that `catch` handles. Two objects that hold each other (`a.friend = b` and
+In a class, fields are private and functions and constructors public unless written
+otherwise (`mine.trips` outside Car is an error); at module level, structs, classes and enums
+are public, functions and module variables private (Classes.md section 1). An object is
+freed when the last place holding it lets go (Object_Lifetime.md). `.` on null is a NullError
+that `catch` handles. Two objects that hold each other (`a.friend = b` and
 `b.friend = a`) are never freed: a class that can hold itself gets a warning, and setting
 one of the fields to null breaks the circle (Weak references come with Task 38).
 

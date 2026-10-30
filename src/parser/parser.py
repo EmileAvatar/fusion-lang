@@ -1752,6 +1752,11 @@ class Parser:
             decl = self.parse_declaration()
             if decl:
                 declarations.append(decl)
+                # Types - structs, classes, enums - are public unless written private;
+                # functions and module variables private unless written public (Task 32.2a)
+                if isinstance(decl, (StructDecl, EnumDecl)) \
+                        and not getattr(decl, 'visibility_written', False):
+                    decl.is_public = True
                 if isinstance(decl, StructDecl):
                     for method in decl.methods:        # a struct's methods (Task 32.1)
                         method.is_public = decl.is_public
@@ -1818,6 +1823,7 @@ class Parser:
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
                                             f"an enum, a function or a module variable")
             decl.is_public = modifier.type == TokenType.PUBLIC
+            decl.visibility_written = True
             return decl
 
         # A module-level `let` / `var` (Task 46.1)
@@ -2006,6 +2012,11 @@ class Parser:
                 pass
             if self.check(closing) or self.is_at_end():
                 break
+            # public / private on a member (Task 32.2a): fields private, functions and
+            # constructors public when nothing is written (Classes.md section 1)
+            written = None
+            if self.match(TokenType.PUBLIC, TokenType.PRIVATE):
+                written = self.previous().type == TokenType.PUBLIC
             if (self.check(TokenType.IDENTIFIER) and self.peek().value in ('constructor', name)
                     and self.peek(1).type == TokenType.LPAREN):
                 start = self.advance()
@@ -2018,10 +2029,16 @@ class Parser:
                 self.consume(TokenType.RPAREN, "Expected ')' after the constructor's parameters")
                 while self.match(TokenType.NEWLINE):
                     pass
-                constructors.append((start, parameters, self.parse_block_statement()))
+                constructors.append((start, parameters, self.parse_block_statement(),
+                                     written is False))
                 continue
             item = self.parse_struct_field()
-            (methods if isinstance(item, FunctionDecl) else fields).append(item)
+            if isinstance(item, FunctionDecl):
+                item.is_private = written is False
+                methods.append(item)
+            else:
+                item.is_private = written is not True
+                fields.append(item)
         self.consume(closing, f"Expected the end of class '{name}'")
         while self.match(TokenType.NEWLINE):
             pass
@@ -2044,10 +2061,12 @@ class Parser:
         location = written[0].location if written else decl.location
         parameters, body = (written[1], written[2]) if written else \
             ([], BlockStmt(location=location, statements=[]))
-        class_type = StructType(location=location, name=decl.name)
+        private = bool(written and written[3])
+        # a new type node for each use - the module loader rewrites each one in place
+        class_type = lambda: StructType(location=location, name=decl.name)
         this = lambda: IdentifierExpr(location=location, name='this')
         method = FunctionDecl(location=location, name=decl.name, parameters=parameters,
-                              return_type=class_type, body=body)
+                              return_type=class_type(), body=body)
         field_names = {f.name for f in decl.fields} - {p.name for p in parameters}
         method_names = {m.method_name for m in decl.methods}
         self.rewrite_method_body(method, decl.name, field_names, method_names,
@@ -2065,13 +2084,14 @@ class Parser:
                         returns(getattr(node, f.name))
 
         returns(body)
-        body.statements = ([VarDeclStmt(location=location, var_type=class_type, name='this',
+        body.statements = ([VarDeclStmt(location=location, var_type=class_type(), name='this',
                                         initializer=ObjectMakeExpr(location=location,
-                                                                   class_name=decl.name))]
+                                                                   class_type=class_type()))]
                            + body.statements + [ReturnStmt(location=location, value=this())])
         method.method_name = 'new'
         method.method_of = decl.name
         method.is_constructor = True
+        method.is_private = private
         method.changes_this = False
         method.name = f'{decl.name}.new'
         return method

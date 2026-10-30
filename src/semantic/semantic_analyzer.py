@@ -205,6 +205,8 @@ class SemanticAnalyzer:
                     self.type_checker._check_collection_type(decl.return_type, decl.location)
 
                     self.type_checker.current_function_name = decl.name
+                    # Whose private members this function may use (Task 32.2a)
+                    self.type_checker.current_class = getattr(decl, 'method_of', None)
                     if decl.name == 'main' and decl.parameters:
                         self.type_checker.require_layer('std', "main's arguments (string... args)",
                                                         decl.location)

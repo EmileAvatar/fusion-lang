@@ -137,8 +137,9 @@ are in `task/featuresArchive.md`.
 		tests/test_struct_methods.py) - (`p.move(1, 2)`) - built-in types have them (18.3.7);
 		also 44.2
 	[ ] 32.2 Classes, the rest (plan: taskSummary2.md; truth tables: Classes.md - user, 2026-10-30)
-		[ ] 32.2a Visibility: class fields private, functions / constructors public by default;
-			module level: structs, classes, enums public, functions / variables private
+		[DONE] 32.2a Visibility (tests/test_visibility.py): class fields private, functions /
+			constructors public by default; module level: structs, classes, enums public,
+			functions / variables private; fixed: classes and struct methods in modules
 		[ ] 32.2b Several constructors, `this(...)`; a private constructor only inside the class
 		[ ] 32.2c `static`: set-up forms A (direct), B (self set-up), C (`static { }`), in that
 			order; classes set up by dependency; a circle is an error showing the whole chain

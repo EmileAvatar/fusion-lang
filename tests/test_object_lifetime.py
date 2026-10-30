@@ -23,7 +23,7 @@ from src.parser.parser import Parser
 from src.semantic import SemanticAnalyzer
 from tests.test_structs import main
 
-CLASSES = 'class A\n    int n\n\nclass B\n    int n\n\n'
+CLASSES = 'class A\n    public int n\n\nclass B\n    public int n\n\n'
 
 
 def analyzed(source: str):
@@ -146,7 +146,7 @@ def test_d9_module_variables_go_last(tmp_path):
 
 
 def test_r1_r3_r5_replacing_and_swapping(tmp_path):
-    assert traced(CLASSES + 'class Holder\n    A a\n\n'
+    assert traced(CLASSES + 'class Holder\n    public A a\n\n'
                   + main('A c = A()\n'
                          'c = c\n'                        # R1: safe - nothing freed
                          'print("same")\n'
@@ -172,8 +172,8 @@ def test_r1_r3_r5_replacing_and_swapping(tmp_path):
 
 def test_u3_u4_u9_c1_c2_r4_collections_of_objects(tmp_path):
     assert traced(CLASSES + 'class Holder\n'
-                            '    List<A> items\n'
-                            '    Map<string, A> named\n'
+                            '    public List<A> items\n'
+                            '    public Map<string, A> named\n'
                             '    Holder function keep() : this\n\n'
                   + main('Holder h = Holder()\n'
                          'h.items.add(A())\n'              # U4
@@ -200,7 +200,7 @@ def test_u3_u4_u9_c1_c2_r4_collections_of_objects(tmp_path):
 
 
 def test_c3_c4_o1_a_collection_freed_and_parts_shared(tmp_path):
-    assert traced(CLASSES + 'class Box\n    List<A> items\n\n'
+    assert traced(CLASSES + 'class Box\n    public List<A> items\n\n'
                             'bool function all(A a) : true\n\n'
                   + main('List<A> xs = [A(), A()]\n'
                          'List<A> part = xs.slice(0, 1)\n'   # C4: shares the first
@@ -245,10 +245,10 @@ def test_arrays_of_objects(tmp_path):
         ['[freed A]', 'replaced', '[freed A]']
 
 
-CIRCLE = ('class Node\n    int n\n    Node next\n\n'
-          'class A\n    B friend\n\n'
-          'class B\n    List<A> friends\n\n'
-          'class Plain\n    A one\n\n')
+CIRCLE = ('class Node\n    public int n\n    public Node next\n\n'
+          'class A\n    public B friend\n\n'
+          'class B\n    public List<A> friends\n\n'
+          'class Plain\n    public A one\n\n')
 
 
 def test_o3_o4_a_warning_where_a_class_can_hold_itself():

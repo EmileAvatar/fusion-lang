@@ -526,7 +526,7 @@ class MatchPattern(ASTNode):
 class ObjectMakeExpr(ASTNode):
     """A new object of a class with every field at its default and a count of 1 - the
     first line of the class's constructor `Car.new` (Task 32.10b)."""
-    class_name: str
+    class_type: 'TypeNode'   # a type node, so a module's names are qualified like any type
     inferred_type: Optional['TypeNode'] = None
 
 

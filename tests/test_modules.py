@@ -198,7 +198,7 @@ def test_two_fusion_names_never_share_a_c_name(tmp_path):
 
 BANK = {
     'bank/core.fusion': ('public struct Account\n    int cents\n\n'
-                         'struct Ledger\n    int entries\n\n'
+                         'private struct Ledger\n    int entries\n\n'
                          'public Account function open(int cents) : Account(cents + bonus())\n\n'
                          'int function bonus() : 100\n'),
     'bank/report.fusion': ('public string function show(Account a)\n'
@@ -240,11 +240,11 @@ def test_private_names_from_another_module_are_errors(tmp_path, main_text, messa
 
 
 @pytest.mark.parametrize("module_text, message", [
-    ('struct Secret\n    int x\n\npublic Secret function make() : Secret(1)\n',
+    ('private struct Secret\n    int x\n\npublic Secret function make() : Secret(1)\n',
      "The public function 'make' uses the private struct 'Secret' - make 'Secret' public too"),
-    ('struct Secret\n    int x\n\npublic int function peek(Secret s) : s.x\n',
+    ('private struct Secret\n    int x\n\npublic int function peek(Secret s) : s.x\n',
      "The public function 'peek' uses the private struct 'Secret'"),
-    ('struct Secret\n    int x\n\npublic struct Box\n    Secret[2] inside\n',
+    ('private struct Secret\n    int x\n\npublic struct Box\n    Secret[2] inside\n',
      "The public struct 'Box' uses the private struct 'Secret'"),
 ])
 def test_public_declarations_cannot_expose_private_structs(tmp_path, module_text, message):

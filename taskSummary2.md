@@ -464,7 +464,9 @@ Kept under Task 22 until the renumbering is approved.
 - 32.10d done: cycles - a warning per circle of classes (src/semantic/class_rules.py); the
   leak check reports a kept circle
 - 32.10e done: a returned local is moved (no copy, no counting); 32.10 complete
-- **Next Action:** 32.2 - the plan above (third version) is ready to build, in order 32.2a-g;
+- 32.2a done: visibility (fields private, functions public; types public at module level);
+  also fixed classes / struct methods inside modules (the loader walked methods twice)
+- **Next Action:** 32.2b (several constructors, this(...)), then 32.2c-g;
   then 32.5 (interfaces: ToString, Default, Cloneable), then the rest of Task 32 - finish Task
   32, then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29
