@@ -134,6 +134,32 @@ task/taskSummaryArchive.md (Task 32.8); `typeOf` and converting back are in 32.7
   - Answers (user, 2026-10-28): `_` may be used and is ignored (a reading aid some people
     prefer) - `tab_width`, `tabWidth`, `TABWIDTH` are the same; new files are written in
     camelCase. `strict`: every warning becomes an error. Approved - build it now
+- **32.2 plan (2026-10-30, third version - answers in; truth tables in Classes.md)** - the
+  rest of a class (interfaces 32.5, inheritance 32.7 and `?.` 30.2 stay their own sub-tasks):
+  - **32.2a Visibility:** class fields private, functions and constructors public by
+    default; a class always has a default constructor. Module level: structs, classes and
+    enums public by default, functions and module variables private (Classes.md section 1)
+  - **32.2b Constructors:** several, chosen by the arguments; `this(...)`; a circle is an
+    error; a private constructor is used only inside the class - forms A, B, C and its
+    methods (section 2)
+  - **32.2c `static`:** forms A (direct), B (self set-up - its own field, reads statics
+    already set up), C (`static { }` - any static); A, then B, then C; classes set up by
+    dependency, found by following what the set-up names until nothing new; a circle is a
+    compile error showing the whole chain (`Car -> Engine -> Parts -> Factory -> Car`: "Factory
+    can't use Car - Car is still being set up"); before `main`; freed last; static methods,
+    plain statics (section 3)
+  - **32.2d Form B on any variable:** a local, a field, a static (section 4) - its block
+    changes that variable only
+  - **32.2e `readonly` parameters** (Object_Lifetime.md section 3)
+  - **32.2f Printing an object:** the class name with a warning until ToString (32.5) -
+    section 6
+  - **32.2g** the `null == null` bug (gives false)
+  - **With 32.5 (interfaces):** `ToString`, `Default` (never null - the object made when
+    declared, its constructor may be private; section 5), `Cloneable` / `clone()`, copies of
+    objects, nocopy / noshare
+  - **Tests:** each table row in Classes.md; with and without null checks (4b); the lifetime
+    trace for statics (freed last) and the set-up order
+  - **Settings:** none
 - 32.10 (object lifetime) - DONE 2026-10-30: its plan and answers are in
   task/taskSummaryArchive.md (Task 32.10)
 - 32.11 `[source] case_sensitive` (default true); off: the compiler lists names that differ
@@ -438,6 +464,7 @@ Kept under Task 22 until the renumbering is approved.
 - 32.10d done: cycles - a warning per circle of classes (src/semantic/class_rules.py); the
   leak check reports a kept circle
 - 32.10e done: a returned local is moved (no copy, no counting); 32.10 complete
-- **Next Action:** 32.2 (the rest of classes - plan first), then the rest of Task 32 - finish Task
+- **Next Action:** 32.2 - the plan above (third version) is ready to build, in order 32.2a-g;
+  then 32.5 (interfaces: ToString, Default, Cloneable), then the rest of Task 32 - finish Task
   32, then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

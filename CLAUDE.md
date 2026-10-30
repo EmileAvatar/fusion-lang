@@ -54,6 +54,12 @@ From 2026-10-28 (user): a feature where a value can be null is tested both ways 
 check, the null is a NullError that a `catch` handles correctly; with `?.` / `?.null` /
 `case null`, the code runs on as intended.
 
+### Rule 4c: A truth table when there are many permutations
+From 2026-10-30 (user): when a design has many combinations (visibility x where it is used,
+form x order x what it may change, ...), write them out as a truth table in its design
+document (`Classes.md`, `Object_Lifetime.md`, `Nullable_Values.md`, `Arrays.md`) - every row
+a case, so it can be checked at a glance and each row becomes a test.
+
 ### Rule 5: Headings in tracking and reference files
 In `FEATURES.md`, `SYNTAX_REFERENCE.md` and similar files, `##` is only for **major
 sections**. Tasks and headings inside a major section use `####` - easier to read.
@@ -135,6 +141,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Null design: `?.`, `??`, number conditions, truth tables | `Nullable_Values.md` |
 | Single values, arrays, lists, maps: what each does, when (not) to use it | `Arrays.md` |
 | When a class object is freed: every way it gains or loses a reference | `Object_Lifetime.md` |
+| Classes: visibility, constructors, static set-up (forms A, B, C), Default, ToString - truth tables | `Classes.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |
 | Compiler source | `src/` - `src/CLAUDE.md` explains the pipeline; each subfolder's `CLAUDE.md` has one line per file |
 | Tests / examples | `tests/`, `examples/` |

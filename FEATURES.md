@@ -136,7 +136,16 @@ are in `task/featuresArchive.md`.
 	[DONE] 32.1 Methods on the program's own structs (`[structs] functions = true`;
 		tests/test_struct_methods.py) - (`p.move(1, 2)`) - built-in types have them (18.3.7);
 		also 44.2
-	[ ] 32.2 Classes, interfaces, inheritance - plan first
+	[ ] 32.2 Classes, the rest (plan: taskSummary2.md; truth tables: Classes.md - user, 2026-10-30)
+		[ ] 32.2a Visibility: class fields private, functions / constructors public by default;
+			module level: structs, classes, enums public, functions / variables private
+		[ ] 32.2b Several constructors, `this(...)`; a private constructor only inside the class
+		[ ] 32.2c `static`: set-up forms A (direct), B (self set-up), C (`static { }`), in that
+			order; classes set up by dependency; a circle is an error showing the whole chain
+		[ ] 32.2d Form B on any variable - `Car c = new Car() { c.setEngine("V6") }`
+		[ ] 32.2e `readonly` parameters
+		[ ] 32.2f Printing an object: the class name with a warning until ToString (32.5)
+		[ ] 32.2g The `null == null` bug
 		Passing (user, 2026-10-26, as in VB.NET): value types (primitives, structs) by value - a
 		copy; objects (class instances) by reference. Until classes exist, everything is a copy
 		User decisions (2026-10-23, showcase review): `inherits`, with `extends` as an alias;
@@ -176,11 +185,16 @@ are in `task/featuresArchive.md`.
 	[DONE] 32.13 A struct as text (tests/test_struct_parents.py): `"{e}"` gives
 		`name : "Jeff",age : 30`; `x.toCSV(delimiter = ",")` on a struct, a one-dimensional
 		array or a List of structs - one heading row (`Person.name`, ...), one row per struct
-	[ ] `null == null` gives false (the null literal is "never null") - should be true (found
-		in 32.10c)
 	[ ] 32.7 Inheritance - using a parent type (user, 2026-10-29): `typeOf(x)` gives the chain,
 		top type first (`Person.Employee.Manager`), so the program can convert it back; for a
 		struct, only a `byRef` parameter keeps the whole value (a normal one: `Person`)
+	[ ] 32.5 Interfaces - also the built-in ones (Classes.md sections 5, 6): `ToString`
+		(how an object prints; without it the class name and a warning), `Default` (a
+		constructor with no arguments, may be private - a variable of the type is never null,
+		the object made when declared; arrays / Lists / Maps implement it), `Cloneable`
+		(`clone()` - copies of objects, byVal / toList on a List of objects, nocopy / noshare)
+	[ ] 32.14 List / Map options set in form B (user, 2026-10-30): no duplicates, no null,
+		read only after set-up - `List<string> names = List<string>() { names.noDuplicates() }`
 	[ ] 32.4 A `Collection` interface (user, 2026-10-27 - Arrays.md section 6): arrays, lists and
 		maps implement it; `foreach` works on any class that does, and the class decides its
 		own rules (adding / removing while looping, threads, special actions)
@@ -352,6 +366,9 @@ are in `task/featuresArchive.md`.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
 		zones; epochs; durations and time calculations (a Math sub-module, user). Duration
 		literals map to int milliseconds until then (42.16)
+	[ ] 43.4 Collections module (user, 2026-10-30): more collection types beyond the core ones
+		that are always there (array, List, Map) - first a RingBuffer: a fixed number of
+		slots used round and round, the newest replacing the oldest; more later (with 32.9)
 	[ ] 43.3 Currency module (user, 2026-10-29): how `money` (47.2) is used per currency -
 		currency definitions with their decimal places (USD 2, JPY 0, KWD 3) and so their
 		units (USD 100, JPY 100 in whole steps, KWD 1000), formatting, parsing, and exchange-
@@ -388,6 +405,9 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 ## Later / advanced (after MVP)
 
 Kept in Fusion's design, deliberately postponed - the simple version comes first.
+	[POSTPONED - after Task 32] The builder pattern (user, 2026-10-30): a separate object that
+		collects settings, then `build()` makes the result - a different idea from form B
+		set-up (Classes.md section 4)
 	From the Rust videos (user, 2026-10-29 - Notes/Program lang Compare.md):
 	[ ] Errors for tools and AI agents: every error in one form (line, what failed, a `fix:`
 		hint), and an optional machine-readable output (`--errors json`)
