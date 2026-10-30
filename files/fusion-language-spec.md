@@ -1372,6 +1372,19 @@ included); a private constructor means only the class makes its objects. At modu
 structs, classes and enums are public by default, functions and module variables private
 (`private struct Helper`, `public int function api()`).
 
+**Statics (Task 32.2c, built - Classes.md section 3):** `static` fields belong to the class -
+one for the whole program, read as `Car.count` (or `count` inside Car); `const static` ones
+are set only in the class's set-up. Three set-up forms, run in this order before `main`:
+**A** `public const static Car CAR = new Car()`; **B** `= new Car() { CAR3.speed = 4 }` - a
+block that changes only its own field and reads statics already set up; **C** `static { }` -
+may set and change any static of the class (and gives a `const static` declared without a
+value its value). Classes are set up in the order they depend on each other, found by
+following what each set-up uses and what that calls; another class using a class still
+being set up is a compile error showing the chain. `static` methods have no `this`
+(`Car.make()`). A static field is private unless written public. Statics are freed last,
+when the program ends. In C a static is a module variable (`fusion_g_Car__count`) and a
+class's set-up the function `Car.__setup`, called first in main.
+
 **Constructors (Task 32.2b, built - Classes.md section 2):** a class may have several; a call
 picks the one whose parameters take the values given - by their number, then their types,
 and when several fit, the one whose types match exactly (two that can't be told apart, or a

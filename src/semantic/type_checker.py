@@ -562,6 +562,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     f"value yet",
                     node.location
                 ))
+        self._check_static_access(node.name, symbol, node.location)
         if symbol.data_type is None:
             # a let / var whose first value comes later (Task 46.1)
             self.errors.append(SemanticError(not_yet_set(node.name), node.location))
@@ -1059,6 +1060,17 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 return True
             expr = expr.object if isinstance(expr, MemberExpr) else expr.array
         return self.is_class(getattr(expr, 'inferred_type', None))
+
+    def _check_static_access(self, name: str, symbol, location) -> None:
+        """A private static (the default for a field) is used only by its class's own
+        functions and set-up (Task 32.2c)."""
+        decl = getattr(symbol, 'declaration', None)
+        owner = getattr(decl, 'static_of', None)
+        if owner and getattr(decl, 'static_private', False) \
+                and getattr(self, 'current_class', None) != owner:
+            self.errors.append(SemanticError(
+                f"Static '{name}' is private - only {owner}'s own functions can use it (write "
+                f"'public' before it to share it)", location))
 
     def _check_private_field(self, node, struct) -> None:
         """A class's private field (the default) is used only by the class's own functions -
@@ -2326,6 +2338,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             ))
             return
 
+        self._check_static_access(target_name, symbol, node.location)    # Task 32.2c
         if symbol.data_type is None and isinstance(getattr(symbol, 'declaration', None), VarDeclStmt):
             self.first_value(node, symbol)     # `let total` ... `total = 100` (Task 46.1)
             return

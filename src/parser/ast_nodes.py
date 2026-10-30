@@ -756,6 +756,11 @@ class StructDecl(ASTNode):
     # count, a variable holds a reference (null until set), and `Car(...)` calls the
     # constructor - the function `Car.new`, one of the methods
     is_class: bool = False
+    # A class's statics (Task 32.2c): fields that belong to the class (each a StructField with
+    # is_static, and maybe a form B block), static methods (no `this`), the form C block
+    static_fields: List['StructField'] = field(default_factory=list)
+    static_methods: List['FunctionDecl'] = field(default_factory=list)
+    static_block: Optional['BlockStmt'] = None
 
 
 @dataclass

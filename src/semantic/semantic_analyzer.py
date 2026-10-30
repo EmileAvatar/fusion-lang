@@ -15,6 +15,7 @@ from .templates import expand_templates
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
+from .statics import expand_statics, static_setup_order
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -103,6 +104,8 @@ class SemanticAnalyzer:
         parent_errors, parent_warnings = expand_struct_parents(ast)
         self.errors.extend(parent_errors)
         self.warnings.extend(parent_warnings)
+        # A class's statics (Task 32.2c): module variables and a set-up function per class
+        self.errors.extend(expand_statics(ast))
 
         # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
         # nothing after this mistakes an enum for a struct
@@ -238,6 +241,8 @@ class SemanticAnalyzer:
         # Return success if no errors
         # Ways of handling errors the project turned off (Task 26.5)
         self.errors.extend(check_error_settings(ast, self.errors_config))
+        # Classes set up in the order they depend on each other; a circle (Task 32.2c)
+        self.errors.extend(static_setup_order(ast))
         # Constructors that can't be told apart, or call each other in a circle (32.2b)
         self.errors.extend(check_constructors(
             [d for d in ast.declarations if isinstance(d, StructDecl)],
@@ -262,7 +267,8 @@ class SemanticAnalyzer:
 
     def check_module_variable(self, decl: VarDeclStmt) -> None:
         """A variable or constant declared outside any function (Task 44.1)."""
-        if not decl.is_const and decl.inferred != 'let' and not self.module_variables_allowed:
+        if not decl.is_const and decl.inferred != 'let' and not getattr(decl, 'is_static', False) \
+                and not self.module_variables_allowed:
             self.errors.append(SemanticError(
                 f"Module-level variable '{decl.name}': fusion.toml sets [modules] variables = "
                 f"false (module-level constants are still allowed)", decl.location))

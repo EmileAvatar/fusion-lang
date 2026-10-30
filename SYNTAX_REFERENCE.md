@@ -818,6 +818,39 @@ that `catch` handles. Two objects that hold each other (`a.friend = b` and
 `b.friend = a`) are never freed: a class that can hold itself gets a warning, and setting
 one of the fields to null breaks the circle (Weak references come with Task 38).
 
+#### Statics: set up in three forms, before main
+
+<!-- example: syntax_statics | task: 32.2c -->
+```fusion
+class Car
+    public string name
+    public int speed
+    public static int made                              // one for the whole program
+    public const static Car BASIC = new Car("Basic")    // form A - direct
+    public const static Car FAST = new Car("Fast") {    // form B - sets up FAST only
+        FAST.speed = 200
+    }
+    public const static Car SPECIAL                     // given its value in form C
+    static {                                            // form C - any static of Car
+        SPECIAL = new Car("Special")
+        BASIC.speed = 50
+    }
+
+    constructor(string name)
+        this.name = name
+        made = made + 1                                 // a static's bare name inside Car
+
+    static string function summary() : format("{@1} cars made", made)   // no `this`
+
+void function main()
+    print("{Car.BASIC.name} {Car.BASIC.speed} / {Car.FAST.speed} / {Car.SPECIAL.name}")
+    print(Car.summary())                                // 3 cars made
+```
+Form A runs first, then B, then C - each top to bottom - before `main`; a class whose set-up
+uses another class is set up after it, and two that need each other are a compile error that
+shows the chain (`Factory can't use Car - Car is still being set up (Car -> Engine -> Factory
+-> Car)`). A const static is set only in its class's set-up. Statics are freed last.
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->

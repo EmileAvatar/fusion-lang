@@ -1,0 +1,23 @@
+class Car
+    public string name
+    public int speed
+    public static int made                              // one for the whole program
+    public const static Car BASIC = new Car("Basic")    // form A - direct
+    public const static Car FAST = new Car("Fast") {    // form B - sets up FAST only
+        FAST.speed = 200
+    }
+    public const static Car SPECIAL                     // given its value in form C
+    static {                                            // form C - any static of Car
+        SPECIAL = new Car("Special")
+        BASIC.speed = 50
+    }
+
+    constructor(string name)
+        this.name = name
+        made = made + 1                                 // a static's bare name inside Car
+
+    static string function summary() : format("{@1} cars made", made)   // no `this`
+
+void function main()
+    print("{Car.BASIC.name} {Car.BASIC.speed} / {Car.FAST.speed} / {Car.SPECIAL.name}")
+    print(Car.summary())                                // 3 cars made

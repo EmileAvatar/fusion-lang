@@ -423,6 +423,13 @@ class_declaration =
 
 new_expression = "new" call_expression ;    (* the same as the call itself *)
 
+(* Task 32.2c - statics: form A `static T NAME = value`; form B the same with a block after
+   the value (it changes NAME only); form C `static block` - any static of the class. A
+   static method has no `this`. Run A, B, C in order before main, classes by dependency *)
+static_member =
+    [ access_modifier ] { "const" | "static" } type_name identifier [ "=" expression [ block ] ]
+    | "static" block ;
+
 class_body =
     INDENT { class_member } DEDENT ;
 

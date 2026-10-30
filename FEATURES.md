@@ -143,8 +143,9 @@ are in `task/featuresArchive.md`.
 		[DONE] 32.2b Several constructors, chosen by the values given; `this(...)` on the first
 			line; a circle, two alike, no match or two matches: compile errors
 			(tests/test_classes.py)
-		[ ] 32.2c `static`: set-up forms A (direct), B (self set-up), C (`static { }`), in that
-			order; classes set up by dependency; a circle is an error showing the whole chain
+		[DONE] 32.2c `static` (tests/test_statics.py): fields, const static, static methods; set-up
+			forms A (direct), B (self set-up), C (`static { }`) in that order before main;
+			classes by dependency; a circle is an error showing the whole chain; freed last
 		[ ] 32.2d Form B on any variable - `Car c = new Car() { c.setEngine("V6") }`
 		[ ] 32.2e `readonly` parameters
 		[ ] 32.2f Printing an object: the class name with a warning until ToString (32.5)

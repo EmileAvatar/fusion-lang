@@ -1758,7 +1758,7 @@ class Parser:
                         and not getattr(decl, 'visibility_written', False):
                     decl.is_public = True
                 if isinstance(decl, StructDecl):
-                    for method in decl.methods:        # a struct's methods (Task 32.1)
+                    for method in decl.methods + decl.static_methods:   # Tasks 32.1, 32.2c
                         method.is_public = decl.is_public
                         declarations.append(method)
 
@@ -2007,6 +2007,7 @@ class Parser:
             raise ParserError(self.peek(), f"Expected the members of class '{name}' - an "
                                            f"indented block, or '{{' ... '}}'")
         fields, methods, constructors = [], [], []
+        static_fields, static_methods, static_block = [], [], None
         while True:
             while self.match(TokenType.NEWLINE):
                 pass
@@ -2017,6 +2018,27 @@ class Parser:
             written = None
             if self.match(TokenType.PUBLIC, TokenType.PRIVATE):
                 written = self.previous().type == TokenType.PUBLIC
+            # Form C, the static block: `static { ... }` (Task 32.2c)
+            if self.check(TokenType.STATIC) and self.peek(1).type in (
+                    TokenType.LBRACE, TokenType.NEWLINE, TokenType.INDENT):
+                start = self.advance()
+                while self.match(TokenType.NEWLINE):
+                    pass
+                if static_block is not None:
+                    raise ParserError(start, f"Class '{name}' has one static block - put its "
+                                             f"set-up together")
+                static_block = self.parse_block_statement()
+                continue
+            # `const` and `static`, in any order (Task 32.2c)
+            is_const = is_static = False
+            while self.check(TokenType.CONST) or self.check(TokenType.STATIC):
+                if self.advance().type == TokenType.CONST:
+                    is_const = True
+                else:
+                    is_static = True
+            if is_const and not is_static:
+                raise ParserError(self.previous(), "In a class, 'const' goes with 'static' - "
+                                                   "const static Car CAR = Car()")
             if (self.check(TokenType.IDENTIFIER) and self.peek().value in ('constructor', name)
                     and self.peek(1).type == TokenType.LPAREN):
                 start = self.advance()
@@ -2035,17 +2057,34 @@ class Parser:
             item = self.parse_struct_field()
             if isinstance(item, FunctionDecl):
                 item.is_private = written is False
-                methods.append(item)
-            else:
-                item.is_private = written is not True
+                item.is_static = is_static
+                (static_methods if is_static else methods).append(item)
+                continue
+            item.is_private = written is not True
+            if not is_static:
                 fields.append(item)
+                continue
+            # Form B: a block right after a static field's value sets it up further
+            item.is_static, item.is_const, item.setup = True, is_const, None
+            if item.default_value is not None and (self.check(TokenType.LBRACE) or (
+                    self.check(TokenType.NEWLINE) and self.peek(1).type == TokenType.INDENT)):
+                while self.match(TokenType.NEWLINE):
+                    pass
+                item.setup = self.parse_block_statement()
+            static_fields.append(item)
         self.consume(closing, f"Expected the end of class '{name}'")
         while self.match(TokenType.NEWLINE):
             pass
         if self.match(TokenType.END):
             self.consume(TokenType.CLASS, "Expected 'class' after 'End'")
-        decl = StructDecl(location=class_token.location, name=name, fields=fields, is_class=True)
+        decl = StructDecl(location=class_token.location, name=name, fields=fields, is_class=True,
+                          static_fields=static_fields, static_block=static_block)
         self.attach_methods(decl, methods)
+        for method in static_methods:                # no `this` (Task 32.2c)
+            method.method_name, method.method_of = method.name, name
+            method.name = f'{name}.{method.name}'
+            method.changes_this = False
+        decl.static_methods = static_methods
         for method in decl.methods:
             method.parameters[0].by_ref = False      # `this` is a reference already
         # Several constructors (Task 32.2b): Car.new, Car.new_2, ... - a call picks one by

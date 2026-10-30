@@ -1,7 +1,8 @@
 # Classes: visibility, constructors, static set-up, Default
 
-A design document for Task 32.2 and 32.5 (user decisions 2026-10-30). Status: **designed -
-not built yet** (a minimal class is built: Task 32.10b). Every permutation is in a truth table,
+A design document for Task 32.2 and 32.5 (user decisions 2026-10-30). Status: built -
+visibility (32.2a), constructors (32.2b), statics (32.2c: tests/test_statics.py); the rest
+designed. Every permutation is in a truth table,
 so each rule can be checked at a glance and turned into a test.
 
 ---
