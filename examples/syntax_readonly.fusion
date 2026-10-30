@@ -1,0 +1,18 @@
+class Account
+    public int balance
+    void function deposit(int amount)
+        balance = balance + amount
+
+void function report(readonly Account a, readonly List<int> moves)
+    print(format("balance {@1}, {@2} moves", a.balance, moves.length()))
+    List<int> sorted = byVal moves              // a copy may change
+    sorted.sort()
+    // a.balance = 0      - error: 'a' is readonly - report may read it but not change it
+    // a.deposit(5)       - error: report calls deposit, which changes a
+
+void function main()
+    Account acc = Account()
+    acc.deposit(40)
+    List<int> moves = List<int>()
+    moves.add(40)
+    report(acc, moves)

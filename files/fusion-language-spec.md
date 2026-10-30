@@ -1385,6 +1385,15 @@ being set up is a compile error showing the chain. `static` methods have no `thi
 when the program ends. In C a static is a module variable (`fusion_g_Car__count`) and a
 class's set-up the function `Car.__setup`, called first in main.
 
+**readonly parameters (Task 32.2e, built - Object_Lifetime.md section 3):** `void function
+show(readonly Account a)` - the function reads `a` but never changes it, deeply: not
+assigned, not through a field or element, not by a List / Map method or a method that
+changes its object, not passed to a parameter another function changes (worked out by
+following the calls - `readonly` needn't be written all the way down), not handed to a
+function value. A variable that shares it (`Account b = a`) is readonly too; keeping it
+(a field, a List, a module variable, `return a`) is an error; `byVal a` is a copy. A set-up
+block (form B, C) may still change the const / let it sets up.
+
 **Form B on any variable (Task 32.2d, built - Classes.md section 4):** a block right after
 a declaration's value sets that variable up further: a local (`Car c = new Car() { c.speed =
 4 }`, also `let` / `const`, Lists and Maps), a class field, a static (32.2c). The block may

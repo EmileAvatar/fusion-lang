@@ -17,6 +17,7 @@ from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
 from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
+from .readonly import check_readonly
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -246,6 +247,8 @@ class SemanticAnalyzer:
         self.errors.extend(check_error_settings(ast, self.errors_config))
         # Classes set up in the order they depend on each other; a circle (Task 32.2c)
         self.errors.extend(static_setup_order(ast))
+        # readonly parameters: never changed, passed on to a change or kept (Task 32.2e)
+        self.errors.extend(check_readonly(ast))
         # Constructors that can't be told apart, or call each other in a circle (32.2b)
         self.errors.extend(check_constructors(
             [d for d in ast.declarations if isinstance(d, StructDecl)],

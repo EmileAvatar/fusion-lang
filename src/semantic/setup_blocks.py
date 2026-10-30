@@ -86,6 +86,8 @@ def expand_setup_blocks(program) -> List[SemanticError]:
                     if isinstance(s, VarDeclStmt) and s.setup is not None:
                         errors.extend(_check_changes(s.setup, s.name, known,
                                                      "after the block"))
+                        s.setup.sets_up = s.name     # may change a const / let (32.2e)
+                        s.has_setup = True
                         statements.append(s.setup)
                         s.setup = None
                 node.statements = statements

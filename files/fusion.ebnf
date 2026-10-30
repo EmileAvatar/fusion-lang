@@ -61,7 +61,9 @@ parameter_list =
     parameter { "," parameter } [ "," ] ;  (* Trailing comma allowed *)
 
 parameter =
-    [ "let" | "var" ] [ passing ] type_name identifier [ "=" expression ] ;   (* let: 46.1 *)
+    [ "let" | "var" | "readonly" ] [ passing ] type_name identifier [ "=" expression ] ;
+    (* let: 46.1; readonly (32.2e): never changed - a word, special only before a type;
+       it stands alone, without let / var / byVal / byRef *)
 
 (* Task 32.10a: a List / Map is shared in normal code and copied in a struct; byVal copies,
    byRef shares. Words, not keywords - special only before a value or a type *)

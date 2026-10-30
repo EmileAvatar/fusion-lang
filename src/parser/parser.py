@@ -725,6 +725,14 @@ class Parser:
                                                f"{self.peek().value} - a type taken from each "
                                                f"caller comes with generics (Task 33)")
         # `byVal List<int> xs` - a copy; `byRef` - shared (Task 32.10a)
+        # `readonly Account a` - the function reads it, never changes it (Task 32.2e)
+        is_readonly = self.check(TokenType.IDENTIFIER) and self.peek().value == 'readonly' \
+            and self.peek(1).type != TokenType.COMMA and self.peek(1).type != TokenType.RPAREN
+        if is_readonly:
+            self.advance()
+            if is_let or self._passing_word() is not None:
+                raise ParserError(self.peek(), "'readonly' stands alone - it already means the "
+                                               "function can't change the value")
         passing = self._passing_word()
         if passing is not None:
             self.advance()
@@ -753,6 +761,7 @@ class Parser:
             by_val=passing is True,
             written_by_ref=passing is False,
             is_let=is_let,
+            is_readonly=is_readonly,
             is_variadic=variadic,
             param_type=param_type,
             name=name,

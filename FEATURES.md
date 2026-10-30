@@ -149,7 +149,10 @@ are in `task/featuresArchive.md`.
 		[DONE] 32.2d Form B on any variable (tests/test_setup_blocks.py) - `Car c = new Car() {
 			c.setEngine("V6") }`: locals, let / const, Lists, class fields (any value, set by each
 			constructor first); the block changes its own variable only
-		[ ] 32.2e `readonly` parameters
+		[DONE] 32.2e `readonly` parameters (tests/test_readonly.py) - never changed, deeply;
+			passing on is an error only when the other function changes it (calls followed); a
+			variable sharing it is readonly; keeping it is an error; a set-up block may change
+			the const / let it sets up
 		[ ] 32.2f Printing an object: the class name with a warning until ToString (32.5)
 		[ ] 32.2g The `null == null` bug
 		[ ] 32.2h Visibility levels private (the class) / internal (the namespace; without one,

@@ -883,6 +883,35 @@ The block sets up that variable only - changing another variable in it is a comp
 class field's value may be any expression; each constructor sets it, then runs its block,
 before its own body.
 
+#### readonly parameters: read, never changed
+
+<!-- example: syntax_readonly | task: 32.2e -->
+```fusion
+class Account
+    public int balance
+    void function deposit(int amount)
+        balance = balance + amount
+
+void function report(readonly Account a, readonly List<int> moves)
+    print(format("balance {@1}, {@2} moves", a.balance, moves.length()))
+    List<int> sorted = byVal moves              // a copy may change
+    sorted.sort()
+    // a.balance = 0      - error: 'a' is readonly - report may read it but not change it
+    // a.deposit(5)       - error: report calls deposit, which changes a
+
+void function main()
+    Account acc = Account()
+    acc.deposit(40)
+    List<int> moves = List<int>()
+    moves.add(40)
+    report(acc, moves)
+```
+A readonly parameter can't be changed in any way: assigned, through a field or element, by a
+List / Map method or a method that changes its object, or by passing it to a function that
+changes it (the compiler follows the calls). A variable that shares it is readonly too;
+keeping it in a field or List, or returning it, is an error. A const or let may still be
+changed by its own set-up block (`const Point p = Point(1, 2) { p.x = 5 }`).
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->

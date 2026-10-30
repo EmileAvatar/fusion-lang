@@ -751,7 +751,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 if getattr(method, 'changes_this', False) and not struct.is_class:
                     root = self._root_variable(receiver)
                     symbol = self.symbol_table.lookup(root.name) if root is not None else None
-                    if symbol is not None and symbol.is_constant:
+                    if self._is_fixed(symbol, root.name):
                         self.checked_receivers.pop(id(receiver), None)
                         return (f"Method '{member}' changes the {struct.name} - '{root.name}' "
                                 f"is a constant")
@@ -1507,7 +1507,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 f"field or element of one)", arg.location))
             return
         symbol = self.symbol_table.lookup(root.name)
-        if symbol is not None and symbol.is_constant:
+        if self._is_fixed(symbol, root.name):
             self.errors.append(SemanticError(
                 f"'{func_name}' can't change constant '{root.name}'", arg.location))
 
@@ -2400,7 +2400,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         root = self._root_variable(target.array)
         if root is not None:
             array_symbol = self.symbol_table.lookup(root.name)
-            if array_symbol and array_symbol.is_constant:
+            if self._is_fixed(array_symbol, root.name):
                 if root is target.array:
                     message = f"Cannot assign to element of constant array '{root.name}'"
                 else:
@@ -2429,7 +2429,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             self.errors.append(SemanticError(
                 "Only a stored string can be changed in place - keep it in a variable first",
                 node.location))
-        elif symbol and symbol.is_constant:
+        elif self._is_fixed(symbol, root.name):
             if root is target.array:
                 message = (f"Cannot change a character of constant '{root.name}' - a const "
                            f"string is fixed")
@@ -2467,7 +2467,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     self.errors.append(SemanticError(
                         f"Can only assign to field '{target.member}' of a struct stored in a "
                         f"variable", node.location))
-                elif symbol and symbol.is_constant:
+                elif self._is_fixed(symbol, root.name):
                     self.errors.append(SemanticError(
                         f"Cannot assign to field '{target.member}' of constant '{root.name}'",
                         node.location))
@@ -2492,7 +2492,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             ))
         elif root is not None and not through_object:
             symbol = self.symbol_table.lookup(root.name)
-            if symbol and symbol.is_constant:
+            if self._is_fixed(symbol, root.name):
                 self.errors.append(SemanticError(
                     f"Cannot assign to field '{target.member}' of constant '{root.name}'",
                     node.location
@@ -2735,11 +2735,22 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         else:
             self.symbol_table.enter_scope(f"block:{id(node)}")
 
+        sets_up = getattr(node, 'sets_up', None)      # form B on a local (Task 32.2d)
+        if sets_up is not None:
+            self.setting_up = getattr(self, 'setting_up', ()) + (sets_up,)
         try:
             for stmt in node.statements:
                 self.visit(stmt)
         finally:
             self.symbol_table.exit_scope()
+            if sets_up is not None:
+                self.setting_up = self.setting_up[:-1]
+
+    def _is_fixed(self, symbol, name: str) -> bool:
+        """A const / let that can't change here. Its own set-up block (form B) may still
+        change it - the object is still being set up (user, 2026-10-30)."""
+        return symbol is not None and symbol.is_constant \
+            and name not in getattr(self, 'setting_up', ())
 
     def visit_BreakStmt(self, node: BreakStmt) -> None:
         """Check break statement.

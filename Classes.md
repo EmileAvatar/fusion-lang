@@ -110,6 +110,9 @@ List<string> names = List<string>() {
 | A field of a class (its default) | yes | that field only |
 | An array / List / Map | yes | that collection only - e.g. no duplicates, no null, read only (planned options) |
 
+A set-up block may change the variable it sets up even when it is `const` or `let` - the
+object is still being set up (user, 2026-10-30; built with 32.2e).
+
 Built (32.2d): a class field's value may be any expression - each constructor sets the field
 and runs its block first, in field order, before its own body (once, also when it hands over
 with `this(...)`). Changing another variable in the block is a compile error.

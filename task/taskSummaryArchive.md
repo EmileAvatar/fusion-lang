@@ -5939,3 +5939,28 @@ null` gives a value; no `case null` -> NullError caught by `catch`).
   2026-10-29); skip the counting where the compiler proves a single owner (Swift / Lobster). Three strategies (MANUAL /
   OWNERSHIP / GC) as `[memory] strategy`; `free` / `deallocate`; leak reporting; the full
   example there becomes a test program
+
+#### 32.2e readonly parameters (done 2026-10-30)
+  - **32.2e `readonly` parameters** (Object_Lifetime.md section 3) - plan (2026-10-30):
+    - `void function show(readonly Account a)`: the function reads `a` but never changes it -
+      deep: not `a = ...`, not `a.balance = ...`, not `a.items[0] = ...`, not
+      `a.items.add(...)`, not a method that changes the object (the compiler already knows
+      which methods change `this`). Works for every type: an int is like `let`, a struct
+      like a const struct, and a class object, List, Map or array can't be changed through it
+      (a const class variable today may still change its object - readonly may not)
+    - **Passing it on (decision A):** to another function - an error only when that function
+      changes that parameter; the compiler works it out by following the calls (as it does
+      for methods that change `this`), so `readonly` needn't be written everywhere (C++'s
+      "const all the way down" is the alternative). A function value it can't see into: an
+      error unless that parameter is readonly
+    - **Holding on to it (decision B):** `Car c = a` makes `c` readonly too; storing it
+      where it could change later (a field, a List, a module variable) or returning it is an
+      error - `byVal a` (a copy) is fine
+    - Errors say what to do: "'a' is readonly - show may read it but not change it"
+    - Not on `this` (a method that doesn't change its object is found by the compiler)
+    - Tests: each row - assign, field, element, List method, class method, pass on (changing
+      / not changing callee), alias, store, return, byVal copy; with and without null (4b):
+      a readonly null object is a NullError on `.`, `?.` runs on
+    - **Settings:** none
+    - Added (user, 2026-10-30): a set-up block (form B, C) may still change the
+      const / let it sets up - it is still setting the object up

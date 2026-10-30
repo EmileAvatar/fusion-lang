@@ -1374,7 +1374,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         # A const string (or string-holding) variable is still freed when its block ends,
         # which C's const would forbid - Fusion's own const check already prevents changes
-        const_keyword = 'const ' if node.is_const and not self.is_managed(node.var_type) else ''
+        # a const with a set-up block (form B, Task 32.2d) is changed by it first
+        const_keyword = 'const ' if node.is_const and not self.is_managed(node.var_type) \
+            and not getattr(node, 'has_setup', False) else ''
         try:
             if node.error_name or getattr(node, 'capture_only', False):
                 self.capture_declaration(node)        # T x, Error err = f() (Task 26)

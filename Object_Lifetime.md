@@ -132,6 +132,28 @@ void function render()
   too
 - `readonly`, `byRef`, `byVal` on parameters only for now (user, 2026-10-28)
 
+**readonly - built (Task 32.2e, tests/test_readonly.py).** What a function may do with a
+`readonly` parameter `a`:
+
+| Inside the function | Allowed? |
+|---|---|
+| read it, its fields, call a method that doesn't change it (`a.read()`) | yes |
+| pass it to a function that doesn't change that parameter (`look(a)`) | yes |
+| `Account b = a`, then read `b` | yes - `b` is readonly too |
+| `byVal a` (a List / Map / struct copy), then change the copy | yes |
+| `a = ...`, `a.balance = 0`, `a.items[0] = 1` | **error** - may read it but not change it |
+| `a.items.add(1)`, `a.items.sort()` (a List / Map method that changes it) | **error** |
+| `a.deposit(5)` - a method that changes its object, or calls one that does | **error** |
+| `update(a)` - `update` changes its parameter, or passes it to one that does | **error** |
+| `f(a)` where `f` is a function value | **error** - the compiler can't see what it does |
+| `Account b = a`, then `b.balance = 2` | **error** |
+| `kept.add(a)`, `this.owner = a`, `return a` - kept where it could change | **error** |
+| `readonly int n` / `readonly Point p` - `n = 2`, `p.x = 1` | **error** |
+| a null `a`: `a.balance` | NullError (`catch` handles it); `if a is not null` runs on |
+
+A const / let may still be changed by its own set-up block (form B, C) - the object is still
+being set up (user, 2026-10-30): `const Point p = Point(1, 2) { p.x = 5 }`.
+
 ```fusion
 public void function addMoney(readonly BankAccount account, money amount)
     account.balance = account.balance + amount     // compile error - account is readonly

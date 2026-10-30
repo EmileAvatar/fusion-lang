@@ -150,7 +150,7 @@ task/taskSummaryArchive.md (Task 32.8); `typeOf` and converting back are in 32.7
     plain statics (section 3)
   - **32.2d Form B on any variable:** a local, a field, a static (section 4) - its block
     changes that variable only
-  - **32.2e `readonly` parameters** (Object_Lifetime.md section 3)
+  - **32.2e `readonly` parameters** - done (plan in task/taskSummaryArchive.md)
   - **32.2f Printing an object:** the class name with a warning until ToString (32.5) -
     section 6
   - **32.2g** the `null == null` bug (gives false)
@@ -496,7 +496,10 @@ Kept under Task 22 until the renumbering is approved.
 - 32.2d done: form B on any variable - a local's block follows its declaration
   (src/semantic/setup_blocks.py); a class field's value and block go to the start of each
   constructor (parser `_field_setups`)
-- **Next Action:** 32.2e (readonly parameters), then 32.2f-g;
+- 32.2e done: readonly parameters - src/semantic/readonly.py follows what each function does
+  with each parameter (change, keep, pass on); a set-up block may change the const / let it
+  sets up (user, 2026-10-30)
+- **Next Action:** 32.2f (printing an object), then 32.2g;
   then 32.5 (interfaces: ToString, Default, Cloneable), then the rest of Task 32 - finish Task
   32, then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

@@ -695,6 +695,7 @@ class ParameterDecl(ASTNode):
     is_let: bool = False        # `let int a` - can't be changed inside the function (Task 46.1)
     by_val: bool = False        # `byVal List<int> xs` - the function gets a copy (32.10a)
     written_by_ref: bool = False    # `byRef List<int> xs` - shared, as without it (32.10a)
+    is_readonly: bool = False   # `readonly Car c` - read, never changed through it (32.2e)
 
 
 @dataclass
