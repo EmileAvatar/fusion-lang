@@ -1,0 +1,9 @@
+class Car
+    public string name = "Honda"
+
+void function main()
+    Car mine = Car()
+    Car none = null
+    print("{mine} / {none}")                  // Car / null
+    print(toString(mine))                     // Car
+    print(mine.name)                          // Honda - its fields print as usual

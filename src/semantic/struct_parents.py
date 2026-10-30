@@ -295,8 +295,10 @@ class StructParentRulesMixin:
             return None
         struct = self.struct_declaration(type_node)
         if getattr(struct, 'is_class', False):
-            return (f"Can't {action} {struct.name} object yet - use its fields one at a time "
-                    f"(Task 32.2)")
+            if action != "print a whole":
+                return (f"Can't {action} {struct.name} object yet - use its fields one at a "
+                        f"time (Task 32.2)")
+            return None                 # its class name, with a warning (Task 32.2f)
         if struct is not None:
             for f in struct.fields:
                 if self.printable_problem(f.field_type) is not None:
@@ -305,6 +307,17 @@ class StructParentRulesMixin:
             return None
         return (f"Can't print a whole {self.type_to_string(type_node)} value - print its "
                 f"elements or fields one at a time")
+
+    def warn_object_text(self, type_node, location) -> None:
+        """An object printed or made text shows its class name only (Task 32.2f, Classes.md
+        section 6) - a warning until the class can implement ToString (Task 32.5)."""
+        struct = self.struct_declaration(type_node)
+        warned = self.__dict__.setdefault('warned_object_text', set())   # once per class
+        if getattr(struct, 'is_class', False) and struct.name not in warned:
+            warned.add(struct.name)
+            self.warnings.append(SemanticError(
+                f"{struct.name} doesn't implement ToString - it prints as its class name "
+                f"'{struct.name}' (ToString comes with interfaces, Task 32.5)", location))
 
     def csv_call(self, node) -> Optional[TypeNode]:
         """x.toCSV() / x.toCSV(";") (Task 32.13): a heading row and a row of values, on any

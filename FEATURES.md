@@ -153,7 +153,8 @@ are in `task/featuresArchive.md`.
 			passing on is an error only when the other function changes it (calls followed); a
 			variable sharing it is readonly; keeping it is an error; a set-up block may change
 			the const / let it sets up
-		[ ] 32.2f Printing an object: the class name with a warning until ToString (32.5)
+		[DONE] 32.2f Printing an object (tests/test_object_text.py): the class name (null:
+			`null`) in print / format / "{x}" / toString, one warning per class until ToString (32.5)
 		[ ] 32.2g The `null == null` bug
 		[ ] 32.2h Visibility levels private (the class) / internal (the namespace; without one,
 			the module) / public; `namespace Core.Collections` - a line at the top of a file, not

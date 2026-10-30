@@ -1385,6 +1385,10 @@ being set up is a compile error showing the chain. `static` methods have no `thi
 when the program ends. In C a static is a module variable (`fusion_g_Car__count`) and a
 class's set-up the function `Car.__setup`, called first in main.
 
+**Printing an object (Task 32.2f, built - Classes.md section 6):** in `print` / `format`,
+`"{car}"` and `toString(car)` an object shows its class name (`Car`; a null one `null`), with a
+warning once per class until it can implement ToString (Task 32.5) - then its `toString()`.
+
 **readonly parameters (Task 32.2e, built - Object_Lifetime.md section 3):** `void function
 show(readonly Account a)` - the function reads `a` but never changes it, deeply: not
 assigned, not through a field or element, not by a List / Map method or a method that

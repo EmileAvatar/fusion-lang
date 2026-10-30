@@ -1182,6 +1182,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             number = f'({code}).tag' if self.data_struct(first_type) is not None else f'(int)({code})'
             # null has no number: a NullError (Task 30.11)
             return self.checked_code(f'fusion_enum_toInt({number}, {self._where(node)})', 'int')
+        if name == 'toString' and self.is_class_type(first_type):
+            # an object: its class name, or null - static text (Task 32.2f)
+            text = escape_c_text(first_type.name, '"')
+            return f'(({self.visit(arguments[0])}) ? FUSION_STR("{text}") : FUSION_STR("null"))'
         if name == 'toString':
             if self._is_bytes(arguments[0]):
                 c_function, needs_where = 'fusion_bytes_toString', True   # must be text (18.3.8)

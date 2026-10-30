@@ -499,7 +499,8 @@ Kept under Task 22 until the renumbering is approved.
 - 32.2e done: readonly parameters - src/semantic/readonly.py follows what each function does
   with each parameter (change, keep, pass on); a set-up block may change the const / let it
   sets up (user, 2026-10-30)
-- **Next Action:** 32.2f (printing an object), then 32.2g;
+- 32.2f done: an object prints its class name (null: `null`), one warning per class
+- **Next Action:** 32.2g (the `null == null` bug);
   then 32.5 (interfaces: ToString, Default, Cloneable), then the rest of Task 32 - finish Task
   32, then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

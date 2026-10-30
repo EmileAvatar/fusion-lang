@@ -912,6 +912,24 @@ changes it (the compiler follows the calls). A variable that shares it is readon
 keeping it in a field or List, or returning it, is an error. A const or let may still be
 changed by its own set-up block (`const Point p = Point(1, 2) { p.x = 5 }`).
 
+#### Printing an object: its class name (until ToString)
+
+<!-- example: syntax_object_text | task: 32.2f -->
+```fusion
+class Car
+    public string name = "Honda"
+
+void function main()
+    Car mine = Car()
+    Car none = null
+    print("{mine} / {none}")                  // Car / null
+    print(toString(mine))                     // Car
+    print(mine.name)                          // Honda - its fields print as usual
+```
+Until a class can implement ToString (Task 32.5) an object prints as its class name, and the
+compiler warns once per class: `Car doesn't implement ToString - it prints as its class name
+'Car'`. A null object prints `null`.
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->

@@ -1390,6 +1390,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     node.location))
                 return func_type.return_type
             arg_type = self.visit(node.arguments[0])
+            if self.is_class_object(arg_type):          # its class name (Task 32.2f)
+                self.warn_object_text(arg_type, node.arguments[0].location)
+                node.resolved_arguments = list(node.arguments)
+                return func_type.return_type
             if (not isinstance(arg_type, (PrimitiveType, EnumType))
                     or getattr(arg_type, 'name', '') == 'void'):
                 self.errors.append(SemanticError(
@@ -1564,6 +1568,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             problem = self.printable_problem(extra_type)   # a struct prints its fields (32.8)
             if problem:
                 self.errors.append(SemanticError(problem, extra.location))
+            self.warn_object_text(extra_type, extra.location)  # an object: its name (32.2f)
             if positions and number not in positions:
                 self.warnings.append(SemanticError(
                     f"Argument {number + 1} to {name}() isn't used - no {{@{number}}} placeholder "
@@ -2031,6 +2036,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 problem = self.printable_problem(expr_type)  # a struct prints its fields (32.8)
                 if problem:
                     self.errors.append(SemanticError(problem, segment.expression.location))
+                self.warn_object_text(expr_type, segment.expression.location)   # 32.2f
 
         return PrimitiveType(location=node.location, name='string')
 
@@ -2745,6 +2751,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             self.symbol_table.exit_scope()
             if sets_up is not None:
                 self.setting_up = self.setting_up[:-1]
+
+    def is_class_object(self, type_node) -> bool:
+        return getattr(self.struct_declaration(type_node), 'is_class', False)
 
     def _is_fixed(self, symbol, name: str) -> bool:
         """A const / let that can't change here. Its own set-up block (form B) may still
