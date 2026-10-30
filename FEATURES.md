@@ -191,7 +191,8 @@ are in `task/featuresArchive.md`.
 	[ ] 32.5 Interfaces - also the built-in ones (Classes.md sections 5, 6): `ToString`
 		(how an object prints; without it the class name and a warning), `Default` (a
 		constructor with no arguments, may be private - a variable of the type is never null,
-		the object made when declared; arrays / Lists / Maps implement it), `Cloneable`
+		the object made when declared; `s = null` lets the old object go and makes a new
+		default one (user, 2026-10-30); arrays / Lists / Maps implement it), `Cloneable`
 		(`clone()` - copies of objects, byVal / toList on a List of objects, nocopy / noshare)
 	[ ] 32.14 List / Map options set in form B (user, 2026-10-30): no duplicates, no null,
 		read only after set-up - `List<string> names = List<string>() { names.noDuplicates() }`

@@ -125,7 +125,7 @@ class Settings implements Default
 | Class implements `Default`? | `Settings s` (no value) | `Settings s = null` | Form B on it |
 |---|---|---|---|
 | no | **null** | allowed | yes, when a value is given |
-| yes | **an object is made** - the compiler calls `Settings()` | an error (unless a `nullable` setting allows it) | yes - sets it up further |
+| yes | **an object is made** - the compiler calls `Settings()` | **never null:** the old object is let go (freed if nothing else holds it) and a new default object made in its place | yes - sets it up further |
 
 - The same idea as an array, List or Map: never null, empty when declared - they implement
   `Default` themselves
@@ -157,5 +157,6 @@ until then every object prints its class name, with the warning.
 | 2026-10-30 | Static set-up forms A, B, C - in that order; B changes only its own field and reads statics already set up; C changes any static; classes set up by dependency; a circle is a compile error that shows the whole chain |
 | 2026-10-30 | Form B works on any variable, field or static - including arrays / Lists / Maps (options like no duplicates, read only) |
 | 2026-10-30 | `Default` interface - a constructor with no arguments (may be private); a variable of the type is never null, the object made automatically |
+| 2026-10-30 | `Default` and null: `s = null` on a Default type lets the old object go and makes a new default one - the variable is never null, even right after `= null` |
 | 2026-10-30 | Printing an object: `ToString` interface; without it the class name only, with a warning |
 | 2026-10-30 | The builder pattern - noted for later, a different idea from form B |
