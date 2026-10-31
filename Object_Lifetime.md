@@ -10,6 +10,10 @@ tests/test_object_lifetime.py that checks the moment each object is freed
 freed). Cycles get a warning (32.10d); a returned local is moved without counting (32.10e).
 Still designed only: GC and MANUAL, `free` / `deallocate`, statics, copies of objects (clone),
 Weak references and more moves (Task 38).
+**Planned (Task 48, user 2026-10-31):** assigning moves - `Car b = a` leaves `a` unusable,
+`byVal` copies, passing borrows; counting stays only for `shared` objects and service
+handles. The rules and truth tables: `Ownership.md` - they replace "`b = a` shares" below
+once built (`[memory] assignment = "share"` keeps it).
 
 ---
 
@@ -630,3 +634,4 @@ The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mo
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |
 | 2026-10-29 | Lists and Maps become references with a count (shared in normal code, copied in a struct, `byVal` copies) - the same counting the class objects use. A class with no constructor: `Car()` - value fields at their defaults, objects null; its methods set them. 32.10 builds a minimal class together with the counting |
 | 2026-10-29 | OWNERSHIP is always the first choice - no crashes, no leaks (they cause instability and security holes). Counting is skipped where the compiler proves a single owner |
+| 2026-10-31 | Planned (Task 48): assigning moves by default (Lists, Maps, objects); `byVal` copies; passing / reading an element borrows; `shared` for several holders; the rules in Ownership.md |

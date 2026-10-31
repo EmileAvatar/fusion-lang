@@ -34,6 +34,10 @@ Manual locking is a last resort.
 | P8 | Weighted Turns | Priorities get shares of the turns; low priority still runs; priority is inherited |
 | P9 | Services Never Block on Each Other | While handling a request, a service calls only down the hierarchy, or sends without waiting |
 | P10 | Visible Concurrency | Editor tools and compiler warnings show who touches what |
+| P11 | One Writer (2026-10-31) | Assigning moves; a value two threads use gets a (temporary) service as its only writer; readers may run together (Ownership.md, Concurrency.md 3.13) |
+
+Send / sync in Fusion's words (Ownership.md truth table 5): **send** - a value goes to another
+thread and the sender no longer has it; **sync** - many threads use it through a service.
 
 Collections (Concurrency.md 3.12): an array's add / remove at the end takes an implicit
 atomic lock; a List or Map is served by a shared or dedicated thread (P1 in small).
@@ -48,7 +52,7 @@ preemption** and **circular wait**.
 
 | # | Trap | What goes wrong | General solution | Principles |
 |---|---|---|---|---|
-| 1 | Race condition | Two threads change one value at once; updates are lost (`count += 1`) | Remove shared changeable state, or make each change indivisible | P1, P10 |
+| 1 | Race condition | Two threads change one value at once; updates are lost (`count += 1`) | Remove shared changeable state, or make each change indivisible | P1, P10, P11 |
 | 2 | Check-then-act | The situation changes between a check and the action (an overdrawn account) | A decision and its action form one indivisible step | P1, P7 |
 | 3 | Deadlock | Two threads each hold what the other waits for; the program freezes silently | Break the waiting circle: an order on resources, or no waiting while holding | P2, P3, P4, P9 |
 | 4 | Forgotten unlock | An early return or error leaves a lock held forever | Tie a resource's release to a scope | P1 (no caller locks), `final` clean-up |
@@ -56,7 +60,7 @@ preemption** and **circular wait**.
 | 6 | Starvation | One thread never gets its turn | Bounded waiting: fairness and aging | P8, P6 |
 | 7 | Priority inversion | Important work waits behind unimportant work holding a lock | Whoever blocks important work temporarily becomes important | P8, P1 |
 | 8 | Change never seen | One thread's write never becomes visible to another (a plain stop flag) | Communicate only through operations that synchronize | P1 |
-| 9 | Collection changed by two threads | Lost items, crashes or corrupted memory in a shared list or map | Confinement (one owner) or immutability (snapshots) | P1 |
+| 9 | Collection changed by two threads | Lost items, crashes or corrupted memory in a shared list or map | Confinement (one owner) or immutability (snapshots) | P1, P11 |
 | 10 | Channel with nobody receiving | A send or receive waits forever | Every channel has a defined lifetime and owner; every wait has a limit | P4, P5, P6 |
 | 11 | Blocking inside async | One slow call freezes every task on the shared thread | Keep blocking work and waiting work on separate executors | P7, P1 |
 | 12 | Forgetting `await` | A task's result and error are silently dropped | No orphan tasks: each is awaited, or explicitly detached | P5 |

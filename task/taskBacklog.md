@@ -838,3 +838,16 @@ live errors, go to definition and completion from one implementation.
 **Until then:** `tools/windows/fusion-file-preview.reg` shows `.fusion` files as plain text
 in Explorer's preview pane.
 
+---
+
+## TASK 48: Ownership - move, borrow, share (designed 2026-10-31)
+
+- **When:** after all of Task 32 (user)
+- **Status:** FEATURES.md Task 48 (48.0-48.7)
+- **Design:** Ownership.md - rules R1-R8, truth tables 1-8
+- **Decisions:** Notes/Ownership_Decisions_2026-10-31.md (D1-D49)
+- **Thread side:** Task 42 (42.18-42.25), files/Service.md, Concurrency.md 3.13
+- **Settings:** `[memory] assignment` ("move" default | "share"); with Task 42:
+  `[concurrency] autoService`, `[concurrency] readers`, `[hotpath]` (files/showcase/fusion.toml)
+- **Plan first** (Rule 1) when it starts: the migration of tests and examples comes first
+

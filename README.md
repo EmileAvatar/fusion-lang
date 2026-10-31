@@ -34,6 +34,12 @@ Fusion separates **how code is written** from **how it is compiled and executed*
 
 Syntax is a preference, not a limitation.
 
+## One Owner, One Writer
+
+Fusion aims to be memory-safe and free of data races by construction, without a garbage
+collector by default: every value has one owner, assigning moves it, passing lends it, and a
+value several threads use gets exactly one writer - a service. The rules: `Ownership.md`.
+
 ## Status
 
 Fusion is in early development. The capability-driven vision above is the direction; what

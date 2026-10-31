@@ -744,5 +744,22 @@ DEDENT = ? decrease indentation level ? ;
 *)
 
 (* ===================================================================== *)
+(* PLANNED - ownership, hot paths, fixed (designed 2026-10-31: Ownership.md) *)
+(* ===================================================================== *)
+
+(* Task 48.3: readonly / byVal / byRef written at the call *)
+call_argument = [ "readonly" | passing ] expression ;
+
+(* Task 48.5: several holders - read only except to the holder that made it shared *)
+shared_declaration = "shared" type_name identifier "=" expression ;
+
+(* Task 42.23 / 42.24: hotpath on a function (the checks) or a service (a dedicated thread) *)
+hotpath_function = "hotpath" function_declaration ;
+hotpath_service = "hotpath" "service" type_name identifier "=" expression [ setup_block ] ;
+
+(* Task 47.5: a maximum size - lower fine, never higher *)
+fixed_type = "fixed" ( "string" | type_name ) "(" expression ")" ;
+
+(* ===================================================================== *)
 (* END OF FUSION GRAMMAR                                                 *)
 (* ===================================================================== *)

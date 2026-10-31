@@ -421,6 +421,140 @@ queue, and its worker carries it out atomically.
     `max_unit` (default 32), both in `fusion.toml`. These are everyday defaults that a
     project can change.
 
+## Ownership in a service (agreed 2026-10-31)
+
+A service is the one writer of what it holds. These rules come from the ownership design
+(`Ownership.md`; the record: `Notes/Ownership_Decisions_2026-10-31.md`). FEATURES.md 42.18.
+
+| # | Rule | Why |
+|---|---|---|
+| S1 | **The worker is the only writer** - nothing outside the service holds a reference to its inside | one writer |
+| S2 | **The service owns its value; a request borrows it** for the call - to change it or only read it, as the called function's signature says | the owner / borrower model |
+| S3 | **Nothing escapes a request** - it can't return, store or capture a reference to the inside (`byVal` copies it out) | no back door around the worker |
+| S4 | **Readers in parallel** - readonly requests may run together; a changing request runs alone. `Readers = PARALLEL \| SERIAL` | `show` and `log` |
+| S5 | **Temporary services** - made when two or more threads use one value, gone when the last ends; ownership comes back (Ownership.md section 6) | the user's design |
+| S6 | **What goes into a request** - borrowed for the request only, moved in (send), or copied | a borrow never outlives its owner |
+| S7 | **Fixed order for several services** in one step; waiting inside a request for another thread's result is an error | no deadlocks |
+| S8 | **Plain counts inside a service**; only handles use atomic counts | speed - an object inside is never reached by two threads |
+| S9 | **The thread-boundary table** - what may reach another thread (Ownership.md truth table 5) | the compiler check |
+| S10 | **A `Service` interface** that every kind of service implements (below) | program to an interface |
+
+**Several variables** (Ownership.md section 7): each keeps its own service and worker - a
+database runs the query, the log writes it, the results go back to the caller. One service
+may send to another without waiting.
+
+## The Service interface (agreed 2026-10-31)
+
+Code to an interface: `Service` is the interface; each kind of service implements it.
+FEATURES.md 42.21. Needs interfaces (Task 32.5).
+
+```fusion
+interface Service<T>                    // T: the kind of request
+    void function send(T request)       // a caller puts a request in the mailbox
+    T function fetch()                  // the worker fetches its next request (waits as Wait says)
+    T? function tryFetch()              // the next request, or null when there is none - never waits
+    void function start()
+    void function stop()
+    ServiceState function state()
+    int function waiting()              // requests in the mailbox
+
+class BasicService implements Service      // a mailbox and one worker thread (version one)
+class SharedService implements Service     // the temporary one (Ownership.md section 6)
+class FileService implements Service       // one writer per file
+class DatabaseService implements Service   // one connection, queries in turn
+class HotPathService implements Service    // a dedicated thread that never sleeps (below)
+
+Service log = BasicService() { ... }
+```
+
+| Written | Implementation behind `service(x)` |
+|---|---|
+| `service T x = ...` | `BasicService` (one worker thread) |
+| two or more threads use a plain variable | `SharedService` (made by the compiler) |
+| `hotpath service T x = ...` | `HotPathService` |
+| a file / database as a service (42.5) | `FileService` / `DatabaseService` |
+
+Settings are checked against the implementation: `service(trading).Core` exists only on a
+`HotPathService`.
+
+## Hot-path services (`hotpath service`, agreed 2026-10-31)
+
+A hot path is a **dedicated thread that never sleeps**: it keeps one processor busy all the
+time - a CPU core, or a CPU core feeding a GPU or a chip on some hardware. FEATURES.md
+42.23-42.24.
+
+```fusion
+hotpath service Trade trading = Trade("BTC-USD") {   // service(trading) is a HotPathService
+    service(trading).Core = 3                  // pinned to CPU core 3
+    service(trading).Ring = 4096               // input slots, a power of 2
+    service(trading).Producers = SINGLE        // one feed: a lock-free single-producer ring
+    service(trading).WhenFull = Full.COALESCE  // never WAIT (a compile error)
+    service(trading).Wait = Wait.SPIN          // never sleeps
+    service(trading).Budget = 50ns             // a warning when a step takes longer
+    trading.preparePools(10000)                // allocating is fine here, in the set-up
+}
+
+struct Tick                                    // ring messages: fixed-size values
+    money price                                // Task 47 - a long of cents, no heap
+    int quantity
+    fixed string(16) symbol                    // fixed: at most 16 characters, no heap (47.5)
+
+hotpath void function step(Tick t)             // the checks without the thread (game frames, audio)
+```
+
+The set-up block is form B (Task 32.2d): it runs once, before the loop starts, so it may
+allocate.
+
+#### H: what the compiler checks (the worker and everything it calls)
+
+| # | Rule | Why |
+|---|---|---|
+| H1 | no allocating - no new objects, no growing Lists / Maps, no building strings | `malloc` costs 20-100 ns, unpredictably |
+| H2 | no blocking - no locks, I/O, `print`, sleeping or waiting for a reply | one block costs microseconds |
+| H3 | no count changes - values, or objects the hot path owns (moved in, never `shared`) | an atomic count is 5-20 ns |
+| H4 | no unknown calls - a function value must be `hotpath` itself | the compiler can't check what it can't see |
+| H5 | no unbounded loops inside one step (a setting) | each step finishes in its budget |
+| H6 | errors stay inside - an error counter or ring; the loop never stops | it can never stop |
+| H7 | ring messages are fixed-size values | copied into reserved slots |
+| H8 | only the set-up block may allocate | the lifecycle below |
+| H9 | sizes come from the hardware - ring and message sizes, `fixed` lengths: constants from settings or read from the device at set-up (cache line 64 / 128 bytes, NIC descriptors, a GPU command buffer) | fixed, never grown |
+
+#### T: what happens while it runs
+
+| # | Feature |
+|---|---|
+| T1 | a dedicated thread pinned to a core, real-time priority where the OS allows it |
+| T2 | an input ring - one or many producers, a power-of-2 size, counters padded to the cache line (no false sharing) |
+| T3 | wait: `SPIN` (default - never sleeps) or `YIELD`; `PARK` is not allowed on a hot path |
+| T4 | memory locked and touched at set-up (no page faults while running); huge pages optional |
+| T5 | no replies - results go to other rings (an order gateway, a logger) |
+| T6 | a latency histogram (p50 / p99 / p99.9) and the `Budget` warning, from the CPU's cheap timer |
+| T7 | a watchdog thread that notices a stall |
+| T8 | lifecycle: set-up (may allocate) -> warm-up (fake data, so code and data are in cache) -> running (H1-H9) -> drain -> stop |
+
+**Settings per hot-path service:** `Core`, `Ring`, `Producers` (SINGLE / MULTI), `WhenFull`
+(DROP / OVERWRITE / COALESCE / ERROR - never WAIT), `Wait` (SPIN / YIELD), `Budget`,
+`Priority` (REALTIME), `Prefault`, `WarmUp`. Project defaults: `fusion.toml` `[hotpath]`
+(files/showcase/fusion.toml).
+
+#### Where a hot path is justified
+
+| Processor kept busy | What the hot path does | Justified? |
+|---|---|---|
+| CPU (trading) | market data, matching engines, risk checks before an order goes out | yes |
+| GPU | builds and submits command buffers; feeds a persistent kernel's ring | yes - engines, VR, GPU risk |
+| FPGA (trading cards, signal processing) | reads and writes the card's DMA rings | yes |
+| SmartNIC / DPU / network card | polls receive and send rings (DPDK style) at 10-100 Gbit/s | yes |
+| DSP chip, audio interface | keeps sample buffers full - a gap is heard | yes |
+| software-defined radio | streams millions of samples a second; 5G radio slots | yes |
+| NPU / TPU | keeps inference batches flowing so the chip never waits | yes, at scale |
+| video encoder chip (NVENC, Quick Sync), capture cards, camera image processors | feeds frames, collects packets before a buffer overflows | yes |
+| NVMe storage (SPDK) | polls completion queues instead of waiting for interrupts | yes - storage engines |
+| motor drive / microcontroller (EtherCAT, CAN), LiDAR, radar, PLC I/O | control loops at 1-10 kHz that must not miss a cycle | yes (hard real-time also needs certification) |
+| telemetry ingestion, real-time bidding | millions of events a second | yes |
+| a web server, a UI, batch jobs | - | **no** - a BasicService |
+| a game frame, an audio callback | sleeps between turns | `hotpath function` - the checks without the thread |
+
 ## Not decided yet
 
 - How "undone where possible" (group rule 7) works in detail.

@@ -52,6 +52,17 @@ The counting (Object_Lifetime.md section 5) frees a List or Map when its last ho
 **Arrays** follow the same rule once they live on the heap and know their own length (Task
 45); until then an array keeps today's behaviour (fixed size, copied).
 
+**Planned - moving by default (Task 48, user 2026-10-31 - Ownership.md):** the table above
+is today's rule. With Task 48 `List<int> b = a` **moves** (a is no longer usable), `byVal`
+copies, and code that reads an element or passes a List borrows it. A collection inside a
+struct only lends itself - `List<string> xs = order.items` is a borrow, never a move
+(Ownership.md truth tables 1, 2). `[memory] assignment = "share"` keeps today's sharing.
+
+**Planned - `fixed` collections (Task 47.5, user 2026-10-31):** `fixed List<Tick>(4096)`
+holds at most 4096 elements - fewer is fine, more never (an error, no silent cut). It starts
+empty and grows as needed up to its maximum; its memory is reserved once at set-up, so a hot
+path never allocates (files/Service.md "Hot-path services").
+
 **In one line each:**
 - **Single value**: one thing - an age, a name, a flag
 - **Array**: a sequence you build up at the end and read by position - simple and fast
@@ -344,4 +355,6 @@ original alone.
 | 2026-10-27 | Lists / maps and threads: shared by default, `[collections] threads = "shared"`, `shared_threads = 10` |
 | 2026-10-29 | `toList(copy = true)` on a List and an array; setting an array / List / Map to null is an error unless its nullable setting allows it |
 | 2026-10-29 | Arrays, Lists and Maps are references (shared) in normal code - a variable, parameter, class field, element - and copied inside a struct; `byVal` copies in normal code, `byRef` shares in a struct field. Never null, just empty |
+| 2026-10-31 | Planned (Task 48): Lists and Maps move on assignment, `byVal` copies, reading an element or passing borrows; a struct's collection only lends itself (Ownership.md) |
+| 2026-10-31 | Planned (47.5): the `fixed` prefix - a maximum size, lower fine, never higher; starts empty, grows up to it, memory reserved once |
 | 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |

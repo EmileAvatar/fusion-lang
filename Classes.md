@@ -186,3 +186,4 @@ and `toCSV` of objects can't be printed whole yet (no List prints whole today).
 | 2026-10-30 | `Default` and null: `s = null` on a Default type lets the old object go and makes a new default one - the variable is never null, even right after `= null` |
 | 2026-10-30 | Printing an object: `ToString` interface; without it the class name only, with a warning |
 | 2026-10-30 | The builder pattern - noted for later, a different idea from form B |
+| 2026-10-31 | Planned (Task 48, Ownership.md): `Car b = a` moves - `a` can't be used after it; `byVal` copies (`clone()`), passing borrows; `shared Car c = a` is read only except to the holder that made it shared, `byRef` from it lends change; `[memory] assignment = "move"` (default) / `"share"` |

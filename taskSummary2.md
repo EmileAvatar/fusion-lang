@@ -482,7 +482,12 @@ Kept under Task 22 until the renumbering is approved.
 - 32.2h done: private / internal / public, `namespace A.B` as the first line (the loader
   shares internal names inside a namespace), [visibility] required; module functions public
   by default; class helpers renamed fusion_make_fu_Car ... (a static `make` clashed)
+- Design session 2026-10-31: ownership, one writer, services, hot paths (nothing built)
+  - The record, decisions D1-D49: Notes/Ownership_Decisions_2026-10-31.md
+  - Rules and truth tables: Ownership.md (new)
+  - Services S1-S10, the Service interface, hotpath service: files/Service.md
+  - Threads: Concurrency.md 3.13; Concurrency_Traps.md P11
+  - Scheduled: Task 48 (after all of Task 32), 42.18-42.25, 47.5 `fixed`
 - **Next Action:** 32.5 (interfaces: ToString, Default, Cloneable);
-  then 32.5 (interfaces: ToString, Default, Cloneable), then the rest of Task 32 - finish Task
-  32, then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
+  then the rest of Task 32, then Task 48 (ownership) - user, 2026-10-31; then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

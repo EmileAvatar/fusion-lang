@@ -57,7 +57,7 @@ check, the null is a NullError that a `catch` handles correctly; with `?.` / `?.
 ### Rule 4c: A truth table when there are many permutations
 From 2026-10-30 (user): when a design has many combinations (visibility x where it is used,
 form x order x what it may change, ...), write them out as a truth table in its design
-document (`Classes.md`, `Object_Lifetime.md`, `Nullable_Values.md`, `Arrays.md`) - every row
+document (`Classes.md`, `Object_Lifetime.md`, `Ownership.md`, `Nullable_Values.md`, `Arrays.md`) - every row
 a case, so it can be checked at a glance and each row becomes a test.
 
 ### Rule 5: Headings in tracking and reference files
@@ -141,6 +141,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Null design: `?.`, `??`, number conditions, truth tables | `Nullable_Values.md` |
 | Single values, arrays, lists, maps: what each does, when (not) to use it | `Arrays.md` |
 | When a class object is freed: every way it gains or loses a reference | `Object_Lifetime.md` |
+| Ownership: moves, borrows, `shared`, readonly caller / called, one writer across threads (Task 48) | `Ownership.md` |
 | Classes: visibility, constructors, static set-up (forms A, B, C), Default, ToString - truth tables | `Classes.md` |
 | How a .fusion file is laid out: namespace, imports, the preferred order | `files/FusionTemplate.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |
@@ -165,6 +166,7 @@ When a language feature or spec changes, update every affected file without aski
 | String interpolation | language spec, `SYNTAX_REFERENCE.md`, examples |
 | Standard library module | language spec |
 | A concurrency idea, design decision, trap, principle or real-world case | `Concurrency.md` (full write-up), `Concurrency_Traps.md` (the overview tables) and `files/Service.md` (the `service` reference) - keep them in step; schedule any new feature in `FEATURES.md` Task 42 |
+| An ownership decision (moving, borrowing, `shared`, readonly at the call, threads) | `Ownership.md` (truth tables + decisions log); the thread side also `files/Service.md` and `Concurrency.md` 3.13; schedule in `FEATURES.md` Task 48 / 42 |
 | A null-handling decision (`?.`, `??`, nullable types, number conditions) | `Nullable_Values.md` (decisions log + tables); schedule in `FEATURES.md` Task 30 |
 | A project setting added or changed (`fusion.toml` / `.yaml` / `.json` / `.ini`) | **Once the feature is built** (not before): `files/fusionSettings.xml` (the master template - its type, values, default, description, task), `src/config/project_config.py`, spec "Project Configuration", `SYNTAX_REFERENCE.md` settings section - `tests/test_settings_formats.py` checks template and compiler agree |
 | A task done (any new, changed or newly decided setting) | `files/showcase/fusion.toml` - every setting a finished Fusion will have, tagged [built] / [designed] / [idea] / [rejected] (user, 2026-10-28) |

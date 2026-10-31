@@ -1530,6 +1530,42 @@ per service.
 A **deterministic test mode** (a seed that fixes the order threads run in) lets a failing
 order be replayed.
 
+### 3.13 One writer: ownership across threads (agreed 2026-10-31)
+
+The thread side of the ownership design (`Ownership.md` sections 5-7; the record:
+`Notes/Ownership_Decisions_2026-10-31.md`). FEATURES.md Task 48 and 42.18-42.25.
+
+#### Why `b = a` sharing one object is dangerous across threads
+
+- Inside one thread it causes logic surprises (a change through `b` shows in `a`), not memory
+  corruption - the count keeps the object alive
+- Across threads it corrupts: two `deposit` calls read 100 and both write 110 (a lost update,
+  trap 1); two threads changing a plain count at once free an object still in use, or free it
+  twice (a crash or a security hole); a reader sees half of a two-field change
+- So assigning moves (Ownership.md R2), and a value two threads use gets one writer (R7)
+
+#### The rules
+
+- **One writer:** a service and its worker thread are the only writer of what it holds
+  (files/Service.md S1-S10)
+- **A temporary service:** when two or more threads use one variable, the compiler makes
+  `service(acc)`; it owns the value, the thread functions borrow it, and ownership comes back
+  when the last thread ends (Ownership.md truth tables 6, 7)
+- **One request = one whole call:** `deposit(acc)` on thread 2 waits in the mailbox while
+  thread 1's runs
+- **Readers in parallel:** a readonly signature or call makes a request a read - reads run
+  together, a change runs alone
+- **send / sync, in Fusion's words:** send - a value goes to another thread and the sender no
+  longer has it (a Go channel send, checked); sync - many threads use a value through a
+  service, and only its thread changes it (Ownership.md truth table 5)
+- **Several variables:** each keeps its own service (a database and a log file); one service
+  may send to another without waiting; one step changing two takes them in a fixed order;
+  waiting inside a request for another thread's result is an error (Ownership.md section 7)
+- **Go has the pattern, not the check:** a pointer sent down a channel can still be used on
+  both sides; Fusion makes that a compile error
+- **Hot paths:** `hotpath service` - a dedicated thread that never sleeps (files/Service.md
+  "Hot-path services")
+
 ---
 
 ## Section 4 - How other languages handle it

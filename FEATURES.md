@@ -86,6 +86,12 @@ are in `task/featuresArchive.md`.
 		`EARTH(5.976e24)`, read with a method for each field (`Planet.EARTH.mass()`); the data
 		is const and byVal, set once; the constructor is always private. An enum is always
 		const and static - `const static enum Planet` is accepted and changes nothing
+	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - Ownership.md, files/Service.md)
+		`fixed string(16)`: at most 16 characters, kept inline - no heap
+		`fixed List<Tick>(4096)`, `fixed Map<K, V>(n)`: at most n elements
+		Lower is fine, higher never - an error, never a silent cut
+		Starts empty, grows as needed up to its maximum; memory reserved once
+		The size may be a constant set by the hardware or a setting (H9)
 	[ ] 47.4 A built-in enum `FusionType` describing every type (user, 2026-10-29 - the table in
 		files/FusionTypes.html): fields Type, Kind, Default, Min, Max, Size, CanBeNull. Each
 		field's method returns a value of that type itself, byVal: `FusionType.INT.MAX` is an
@@ -201,6 +207,47 @@ are in `task/featuresArchive.md`.
 		own rules (adding / removing while looping, threads, special actions)
 	[ ] 32.3 Example (was 16.2: classes, interfaces & enums)
 
+#### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ]
+	After all of Task 32 (user)
+	Design and truth tables: Ownership.md
+	Decisions D1-D49: Notes/Ownership_Decisions_2026-10-31.md
+	Settings: [memory] assignment = "move" (default) | "share"
+	[ ] 48.0 The rules (from Rust's borrow checker)
+		R1 One owner: every object, List and Map has one owner at a time
+		R2 Assigning moves: `Car b = a` - using `a` afterwards is a compile error
+		R3 Passing borrows: `f(a)` lends it for the call; `a` is back afterwards
+		R4 Many readers or one writer, never both at the same time
+		R5 A borrow never outlives its owner: never stored, returned or captured (no lifetimes)
+		R6 `shared`: counted, read only except to the holder that made it shared
+		R7 The thread boundary: two or more threads using a value - one writer, a service (42.19)
+		R8 Copies are written: `byVal x` (objects: `clone()`, 32.5)
+	[ ] 48.1 Moving
+		Assignment, `this.f = a`, `list.add(a)`, `return a` move
+		Use after a move: a compile error; a new value brings the name back
+		A move in one branch of an `if`: dead after it unless every branch gives a new value
+		A move inside a loop: an error unless each pass gives a new value
+		Lists and Maps move too; strings stay values (copied)
+		A struct holding a List / Map / object moves as a whole
+		Migrate tests and examples that rely on `b = a` sharing
+	[ ] 48.2 Borrowing
+		Passing to a function borrows (changeable unless readonly)
+		Reading an element or a field (`Car c = fleet[0]`) is a local borrow - the owner is frozen while it is used
+		A struct's collection only lends itself - never moved out (user)
+		Taking an element out: `removeAt` / `removeLast` (a move)
+		A function value can't capture a borrow
+	[ ] 48.3 At the call: `byVal`, `byRef`, `readonly`
+		`log(readonly acc)`: the caller's demand - an error if log changes it
+		The same project: errors at the call and at the line that changes it
+		A Fusion library: only its signature counts - the caller is responsible
+		A library not written in Fusion: a warning when a borrowed value is passed (user)
+	[ ] 48.4 `--interface` shows the readonly result of each public function
+	[ ] 48.5 `shared` objects
+		`shared Car c = a`: one more reader (counted)
+		Only the holder that made it shared changes it
+		`f(byRef pool)` from that holder lends the right to change it
+	[ ] 48.6 Counting removed where moves make it unnecessary (covers 38.2)
+	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
+
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ]
 	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)
 	[ ] 33.2 Example (was 16.3)
@@ -246,7 +293,7 @@ are in `task/featuresArchive.md`.
 
 #### 38 Memory model: Unique / Shared / Weak, GC as a project option (was 15.5) [ ]
 	[ ] 38.1 Scope it (semantics decided in 12.7, not built)
-	[ ] 38.2 More moves where one owner is proven (after 32.10e): a variable's last use storing
+	[ ] 38.2 (covered by Task 48 - moving by default) More moves where one owner is proven (after 32.10e): a variable's last use storing
 		it (`xs.add(b)`, `field = b`, `Car d = b`) moves it instead of counting; no null check
 		on a local just made (`Car c = Car()`) - a "last use" analysis over branches and loops
 	[ ] 38.3 Weak references - break a circle of objects (32.10d warns where one can form)
@@ -359,6 +406,53 @@ are in `task/featuresArchive.md`.
 		Map is served by a shared or its own (dedicated) thread for adding, reading and
 		removing - like a small service. `[collections] threads = "shared"` (default) /
 		"dedicated", `shared_threads = 10` (default)
+	[ ] 42.18 Ownership in a service (user, 2026-10-31 - files/Service.md "Ownership in a service")
+		S1 The worker is the only writer
+		S2 The service owns its value; a request borrows it (read or change, by the signature)
+		S3 Nothing escapes a request - `byVal` copies out
+		S4 Readers in parallel: readonly requests together, a change alone (`Readers` setting)
+		S5 Temporary services (42.19)
+		S6 Into a request: borrowed for the request, moved in (send), or copied
+		S7 Several services in one step: a fixed order; waiting inside a request is an error
+		S8 Plain counts inside a service, atomic only for handles
+		S9 The thread-boundary check (42.22)
+		S10 The Service interface (42.21)
+	[ ] 42.19 Temporary services (Ownership.md section 6)
+		Two or more threads use one variable: the compiler makes `service(acc)`
+		The service owns it; the thread functions borrow it
+		One request = one whole call (`deposit(acc)`); the others wait in the mailbox
+		The parent's own use while threads run is a request too
+		The last thread ends: the variable owns its value again
+		`[concurrency] autoService = "on"` (a note per variable) | "warn" | "off" (an error)
+	[ ] 42.20 Several variables (Ownership.md section 7)
+		Each keeps its own service and worker (a database and a log file)
+		One service sends to another without waiting
+		One step changing two: taken in a fixed order (no deadlock)
+		Two temporary services always used together: one group service (42.3)
+	[ ] 42.21 The Service interface (needs 32.5)
+		`interface Service<T>`: send, `T fetch()` (the worker's next request), tryFetch, start, stop, state, waiting
+		BasicService (one worker thread), SharedService (temporary), FileService, DatabaseService, HotPathService
+		Settings checked against the implementation (`Core` only on a HotPathService)
+	[ ] 42.22 The thread boundary - send and sync (Ownership.md truth table 5)
+		send: a value goes to another thread, the sender no longer has it
+		sync: many threads use a value through a service; only its thread changes it
+		Worked out by the compiler, never written; errors say send / copy / service
+	[ ] 42.23 `hotpath` functions: the H checks (files/Service.md "Hot-path services")
+		H1 no allocating; H2 no blocking; H3 no count changes
+		H4 no unknown calls; H5 no unbounded loops (a setting); H6 errors stay inside
+		H7 fixed-size ring messages; H8 only the set-up allocates; H9 sizes from the hardware
+	[ ] 42.24 `hotpath service`: a HotPathService - a dedicated thread that never sleeps (after 43.4 RingBuffer)
+		T1 pinned to a core, real-time priority
+		T2 an input ring (one / many producers, power-of-2, cache-line padded)
+		T3 wait SPIN (default) or YIELD - never PARK
+		T4 memory locked and touched at set-up
+		T5 no replies - results go to other rings
+		T6 a latency histogram and the `Budget` warning
+		T7 a watchdog
+		T8 set-up -> warm-up -> running -> drain -> stop
+		Settings: Core, Ring, Producers, WhenFull (never WAIT), Wait, Budget, Priority, Prefault, WarmUp
+		Project defaults: `[hotpath]` in fusion.toml
+	[ ] 42.25 Examples per processor kept busy: CPU (trading), GPU, FPGA, NIC, DSP / audio, radio, NPU (files/Service.md table)
 	(The thread view in the editor: 36.6. The service reference: files/Service.md)
 
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]

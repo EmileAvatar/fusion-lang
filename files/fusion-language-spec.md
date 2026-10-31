@@ -2993,6 +2993,30 @@ Raw Pointers | Embedded/FFI only | High | Maximum
 
 ---
 
+### Ownership: move, borrow, share
+
+**Status:** [PLANNED 48] designed 2026-10-31 (user). The rules and truth tables:
+`Ownership.md`; the decisions: `Notes/Ownership_Decisions_2026-10-31.md`.
+
+* **Assigning moves:** `Car b = a` hands the object over - using `a` afterwards is a compile
+  error until it gets a new value. Lists and Maps move too; strings and plain structs copy
+* **`byVal` copies** (`clone()` for objects); **passing borrows** for the call; reading an
+  element or field is a local borrow; a struct's collection only lends itself
+* **At the call:** `show(readonly acc)` - the call must not change acc; `f(byRef x)`; `f(byVal x)`
+* **The contract is the signature:** `readonly Account a` only reads; `Account a` may change
+  it. Inside a project it is worked out from the body; a library counts by its signature
+  only; a library not written in Fusion gets a warning when a borrowed value is passed
+* **`shared Car c = a`:** counted, read only except to the holder that made it shared
+* **`fixed`** (Task 47.5): `fixed string(16)`, `fixed List<Tick>(4096)` - a maximum size,
+  lower fine, never higher; memory reserved once
+* Setting:
+  ```toml
+  [memory]
+  assignment = "move"            # "move" (default) | "share" - b = a: two names, one object
+  ```
+
+---
+
 ## Threading and Concurrency Model
 
 **Status:** [DESIGN] FEATURES.md Task 42. The current design, newer than this section:
@@ -3287,6 +3311,26 @@ if err
 else
     print("Loaded ship: {ship.Name}")
 ```
+
+---
+
+### One writer, temporary services, hot paths
+
+**Status:** [PLANNED 42.18-42.25] designed 2026-10-31 (user) - `files/Service.md`,
+`Concurrency.md` 3.13, `Ownership.md` sections 5-7.
+
+* **One writer:** a service's worker thread is the only writer of what it holds
+* **Temporary services:** two or more threads using one variable - the compiler makes
+  `service(acc)`; it owns the value, the threads borrow it, one call at a time; ownership
+  comes back when the last thread ends. `[concurrency] autoService = "on"` (a note) | "warn" | "off"
+* **Readers in parallel:** a readonly signature or call makes a request a read
+* **send / sync:** send - a value goes to another thread and the sender no longer has it;
+  sync - many threads use it through a service. Worked out by the compiler
+* **The `Service` interface:** `send`, `T fetch()`, ...; BasicService, SharedService,
+  FileService, DatabaseService, HotPathService implement it
+* **`hotpath service T x = ... { }`:** a dedicated thread that never sleeps - no allocating,
+  blocking or counting (checked), an input ring, pinned to a core. `hotpath void function f()`:
+  the checks without the thread. Defaults in `[hotpath]`
 
 ---
 

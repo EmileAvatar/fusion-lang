@@ -120,12 +120,45 @@ maxIterations = 0
 # [designed] gc (automatic) | smart (Unique / Shared / Weak) | manual (raw pointers) (Task 38)
 strategy = "smart"
 # [rejected] Non-atomic Shared counts as an option - always atomic (decided 2026-09-13)
+# [designed] Car b = a: "move" (a can't be used after it; byVal copies) | "share" (two
+# names, one object) - Task 48, Ownership.md (user, 2026-10-31)
+assignment = "move"
 
 [threads]
 # [designed] Threads allowed at all (off for small devices)
 enabled = true
 # [idea] Size of the thread pool ("auto" = one per CPU core)
 poolSize = "auto"
+
+[concurrency]
+# [designed] Two or more threads using one variable: the compiler makes a temporary
+# service(x) - "on" (a note per variable) | "warn" | "off" (an error) (Task 42.19)
+autoService = "on"
+# [designed] Readonly requests to a service run together ("parallel") or in turn (42.18 S4)
+readers = "parallel"
+
+[hotpath]
+# [designed] Hot-path services: a dedicated thread that never sleeps (Task 42.23-42.24,
+# files/Service.md)
+enabled = true
+# [designed] Default input ring size per hot-path service (a power of 2)
+ring = 1024
+# [designed] Default wait: "spin" | "yield" (never park)
+wait = "spin"
+# [designed] When the ring is full: "drop" | "overwrite" | "coalesce" | "error" (never wait)
+whenFull = "error"
+# [designed] Pin each hot-path worker to its own core
+pinThreads = true
+# [designed] Lock and touch the memory at set-up (no page faults while running)
+lockMemory = true
+# [idea] Huge pages for the rings and pools
+hugePages = false
+# [designed] Keep bounds and null checks inside a hot path (a few ns each)
+checks = true
+# [designed] No unbounded loops inside one step (H5)
+loopLimit = true
+# [idea] Going over a hot path's Budget is an error in test builds
+budgetStrict = false
 
 [visibility]
 # [built] public / internal / private must be written on every top-level item and class member (Task 32.2h)

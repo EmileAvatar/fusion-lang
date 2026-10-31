@@ -212,6 +212,12 @@
         <td class="num">24</td><td>no</td><td><span class="badge built">built</span></td>
         <td class="notes">Raw bytes - the same handle as a string.</td>
       </tr>
+      <tr>
+        <td class="type"><code>fixed string(n)</code></td><td class="kind-value">value</td>
+        <td class="num">""</td><td class="num">0 characters</td><td class="num">n characters</td>
+        <td class="num">n + length</td><td>no</td><td><span class="badge planned">planned</span></td>
+        <td class="notes">Task 47.5: kept inline, no heap - for hot-path messages. Lower is fine, more than n is an error (never cut). <code>fixed List&lt;T&gt;(n)</code> / <code>fixed Map&lt;K, V&gt;(n)</code>: at most n elements, memory reserved once.</td>
+      </tr>
 
       <tr class="group"><td colspan="9">Collections</td></tr>
       <tr>
