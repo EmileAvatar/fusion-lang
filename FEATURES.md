@@ -61,7 +61,8 @@ are in `task/featuresArchive.md`.
 	Before 32.5 (it keeps later work from contradicting earlier decisions)
 	Rule: CLAUDE.md Rule 3b
 	[DONE] 49.0 First version of Decisions.md: section 1 features, section 2 decisions, 4 clashes found
-	[ ] 49.1 The design documents' decisions logs: Object_Lifetime, Classes, Arrays, Nullable_Values, Ownership
+	[DONE] 49.1 The design documents' decisions logs: Object_Lifetime, Classes, Arrays, Nullable_Values, Ownership
+		D.029-D.056 added; MEM.008, COL.011, COL.012 added; clashes C.005, C.006 for the user
 	[ ] 49.2 FEATURES.md, task/featuresArchive.md (built features), SYNTAX_REFERENCE.md
 	[ ] 49.3 The spec and the grammar (files/fusion-language-spec.md, files/fusion.ebnf)
 	[ ] 49.4 Concurrency.md, Concurrency_Traps.md, files/Service.md

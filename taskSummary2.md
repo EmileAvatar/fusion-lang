@@ -489,7 +489,8 @@ Kept under Task 22 until the renumbering is approved.
   - Threads: Concurrency.md 3.13; Concurrency_Traps.md P11
   - Scheduled: Task 48 (after all of Task 32), 42.18-42.25, 47.5 `fixed`
 - Decisions.md created (Task 49.0): features one line each, decisions table, 4 clashes (C.001-C.004)
-- **Next Action:** review Decisions.md with the user, then Task 49.1-49.9 (the pass over every
+- 49.1 done: the five decisions logs -> D.029-D.056; clashes C.005, C.006 open for the user
+- **Next Action:** the user settles C.005, C.006; then Task 49.2-49.9 (the pass over every
   file); then 32.5 (interfaces: ToString, Default, Cloneable);
   then the rest of Task 32, then Task 48 (ownership) - user, 2026-10-31; then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

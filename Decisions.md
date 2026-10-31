@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (none open - C.001-C.004 settled 2026-10-31 as D.025-D.028)
+  (open: C.005, C.006 - C.001-C.004 settled 2026-10-31 as D.025-D.028)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -75,6 +75,8 @@ COL.007 [PLANNED] List / Map options in form B: no duplicates, no null, read onl
 COL.008 [PLANNED] A Collections module: RingBuffer first (43.4)
 COL.009 [BUILT] `toList`, `toCSV`
 COL.010 [REJECTED] Turning off array bounds checks, even in unsafe mode
+COL.011 [PLANNED] Lists: a capacity, a growth buffer, a kept sort order
+COL.012 [PLANNED] Maps: `add(otherMap)`; a map may bring its own hashing and key rules
 
 #### FUN - functions and errors
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value
@@ -123,6 +125,7 @@ MEM.004 [PLANNED] `shared`: read only except to the holder that made it shared (
 MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; Unique / Shared / Weak (Task 38)
 MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`
 MEM.007 [BUILT] The leak check: every example and test
+MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep(x)` always deep
 
 #### CON - concurrency
 CON.001 [PLANNED] `service`: shared state with one owner (reserved keyword); version one (42.0-42.2)
@@ -177,3 +180,33 @@ SET.006 [REJECTED] Fetching prices or exchange rates from an external API - in t
 | D.026 | A struct's fields can't be moved out, only borrowed; the whole struct moves or is borrowed | STC.001 | 2026-10-31 | Ownership.md 2 | ACTIVE (planned; replaces "copied with its Lists" when Task 48 is built) |
 | D.027 | No GC by default - OWNERSHIP first; a GC only when made in code or when a project's `fusion.toml` chooses it | MEM.005 | 2026-10-31 | Object_Lifetime.md 1 | ACTIVE |
 | D.028 | Data shared across threads: a temporary service first; `send` moves data (and its ownership) to another thread; or share a readonly value | CON.006 | 2026-10-31 | Ownership.md 5, 6 | ACTIVE (planned) |
+| D.029 | The three strategies may be mixed: MANUAL frees by hand; a GC can be made in code as a backup | MEM.005 | 2026-10-28 | Object_Lifetime.md 1 | ACTIVE (planned) |
+| D.030 | `unsafe` functions and `unsafe { }` blocks: only memory, assembly and devices | MEM.006 | 2026-10-28 | Object_Lifetime.md 2 | ACTIVE (planned) |
+| D.031 | `free(x)`: unsafe, at once; `deallocate(x)`: safe, checks the count; using the variable after either is a compile error | MEM.006 | 2026-10-28 | Object_Lifetime.md 2 | ACTIVE (planned) |
+| D.032 | Passing never copies an object or collection: it is borrowed, with no count change | MEM.003 | 2026-10-28 | Object_Lifetime.md 3 | ACTIVE |
+| D.033 | `byVal` copies deeply (the engine inside the car too); `[memory] copy = "deep"` (default) / "shallow" | MEM.008 | 2026-10-28 | Object_Lifetime.md 4b | ACTIVE (planned) |
+| D.034 | `nocopy` field: the class can't be copied unless Cloneable (`clone()` recreates it); `noshare` field: always copied; not both on one field | CLS.008 | 2026-10-28 | Object_Lifetime.md 4b | ACTIVE (planned) |
+| D.035 | Leaks are warned in development; a published app logs them, never shows debug messages | MEM.007 | 2026-10-28 | Object_Lifetime.md 9 | ACTIVE |
+| D.036 | Constructors: `constructor(...)` or `Car(...)`; `new` optional; private constructors and static factories allowed | CLS.002 | 2026-10-28 | Object_Lifetime.md 4 | ACTIVE |
+| D.037 | `[safety] mode`: safe (default) / strict (every warning an error) / unsafe (the whole project) | SET.002 | 2026-10-28 | fusionSettings.xml | ACTIVE |
+| D.038 | Whole-number overflow is an error; `[numbers] overflowWrap = true` wraps | TYP.001 | 2026-10-28 | SYNTAX_REFERENCE.md | ACTIVE |
+| D.039 | A circle of classes gets a warning; Weak references break it (Task 38) | CLS.010 | 2026-10-29 | Object_Lifetime.md | ACTIVE |
+| D.040 | A class with no constructor written gets `Car()`: value fields at their defaults, objects null | CLS.002 | 2026-10-29 | Classes.md 2 | ACTIVE |
+| D.041 | A private constructor is used only by forms A, B, C and the class's own functions | CLS.002 | 2026-10-30 | Classes.md 2 | ACTIVE |
+| D.042 | Static set-up forms A, B, C in that order; classes set up by dependency; a circle is a compile error showing the chain | CLS.003 | 2026-10-30 | Classes.md 3 | ACTIVE |
+| D.043 | Printing an object: its `ToString`; without one, the class name and a warning | CLS.005 | 2026-10-30 | Classes.md 6 | ACTIVE |
+| D.044 | Arrays, Lists, Maps are never null - empty when declared; a nullable setting per kind (default false) | COL.003 | 2026-10-27 | Arrays.md 1 | ACTIVE |
+| D.045 | Arrays grow and shrink only at the end - an item never moves position; Lists change anywhere | COL.002 | 2026-10-27 | Arrays.md 3 | ACTIVE (planned) |
+| D.046 | `copyPart(start, count)` / `copyPartAt(start, end)` copy; from 0, end included, past the end stops there, a start outside is an IndexError; `slice` / `sliceAt` as aliases | COL.002 | 2026-10-27 | Arrays.md 8 | ACTIVE (planned) |
+| D.047 | `a + b + c` combines arrays or Lists of one type; Maps use `add(otherMap)` - a key already there is replaced (a setting) | COL.012 | 2026-10-27 | Arrays.md 5 | ACTIVE (planned) |
+| D.048 | Arrays and Lists allow duplicates; Map keys never repeat - a non-empty fixed string or a whole number 0 or above; values any type | COL.012 | 2026-10-27 | Arrays.md 5 | ACTIVE |
+| D.049 | `foreach`: the item's type is the collection's; adding / removing inside is a compile error; `continue` / `break` allowed | COL.005 | 2026-10-27 | Arrays.md 6 | ACTIVE (planned) |
+| D.050 | A string is never null by default (`[strings] nullable`, default false) | NUL.001 | 2026-10-27 | Nullable_Values.md 2 | ACTIVE |
+| D.051 | An unset enum is null, like a class object - not its first value | NUL.001 | 2026-10-27 | Nullable_Values.md 2 | ACTIVE |
+| D.052 | A null in a `match` goes to `case null`, else to `else`; neither: a NullError | SYN.007 | 2026-10-28 | Nullable_Values.md 8 | ACTIVE |
+| D.053 | `?.` is a guard: a null object's function isn't run, no error, false in an `if`; `??` gives a default | NUL.003 | 2026-10-27 | Nullable_Values.md 3 | ACTIVE (planned) |
+| D.054 | Null checks: `==`, `===`, `is null`; `x?.null` as quick typing; no `x!` | NUL.003 | 2026-10-27 | Nullable_Values.md 3 | ACTIVE (planned) |
+| D.055 | `string?.length()` / `array?.length` on null give -1; everything else gives null | NUL.003 | 2026-10-27 | Nullable_Values.md 5 | ACTIVE (planned) |
+| D.056 | Numbers as conditions only in `if` / `while`: `[conditions] numbers` = positive (default) / nonzero / off; `bool b = count` is an error | SYN.005 | 2026-10-27 | Nullable_Values.md 4 | ACTIVE |
+| C.005 | **CLASH:** 42.17 - a List or Map used by threads is always served by a (shared or dedicated) thread; D.017 - a temporary service only when two or more threads use it | CON.003 | - | Arrays.md 9, Ownership.md 6 | CLASH - check |
+| C.006 | **CLASH:** 45.7 - changing an array at the end while looping is allowed (the loop sees the new length); D.049 - adding / removing inside a `foreach` is a compile error. Meant: an index loop may, a `foreach` may not? | COL.005 | - | Arrays.md 9 | CLASH - check |
