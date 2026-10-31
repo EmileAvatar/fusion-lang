@@ -140,10 +140,10 @@ are in `task/featuresArchive.md`.
 	[ ] 45.9 `foreach (string item in names)` over arrays, lists and maps - the item's type is
 		the collection's; adding / removing that collection inside is a compile error;
 		`continue` / `break` allowed (user, 2026-10-27)
-	[ ] 45.7 Changing an array while looping over it is allowed: the loop sees the new length
-		(user, 2026-10-27) - no temporary copy needed
-	[ ] 45.8 Adding / removing at the end is thread-safe by itself (an atomic lock) - with
-		Task 42 (user, 2026-10-27)
+	[ ] 45.7 The array being looped over can't be changed inside the loop (user, 2026-10-31, D.058)
+		Any loop: `for` and `foreach` - a compile error where seen, else ModifiedWhileLoopingError
+		Build a new array from it instead: loop over `a`, add to `b`
+	[ ] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19) - with Task 42
 	[ ] 45.6 Docs and examples: Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
 
 #### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED]
@@ -419,11 +419,10 @@ are in `task/featuresArchive.md`.
 		also read from text (strings, fusion.toml). The full time module: Task 43.1
 	[ ] 42.13 The compiler checks P9 (a service handling a request calls only down the
 		hierarchy, or sends without waiting) across modules - to be designed
-	[ ] 42.17 Collections and threads (user, 2026-10-27 - Concurrency.md 3.12): an array's
-		add / remove at the end is thread-safe by itself (an atomic lock, 45.8); a List or
-		Map is served by a shared or its own (dedicated) thread for adding, reading and
-		removing - like a small service. `[collections] threads = "shared"` (default) /
-		"dedicated", `shared_threads = 10` (default)
+	[ ] 42.17 Collections and threads (Concurrency.md 3.12; settled 2026-10-31, D.057)
+		An array, List or Map used by two or more threads gets a temporary service (42.19)
+		`[collections] threads` picks its worker: "shared" pool (default) | "dedicated"
+		`sharedThreads = 10` (default): the pool's size
 	[ ] 42.18 Ownership in a service (user, 2026-10-31 - files/Service.md "Ownership in a service")
 		S1 The worker is the only writer
 		S2 The service owns its value; a request borrows it (read or change, by the signature)
@@ -557,9 +556,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		IndexError); a start outside the list is an IndexError. `copyPartAt(start, end)`
 		(`sliceAt`): end included, stops at the end, start after end gives the items reversed.
 		Positions count from 0. Also `+` for lists (`a + b + c`)
-	[ ] Changing a List / Map while looping (user, 2026-10-27): a setting per list / map (or
-		project) allows adding / removing inside the loop; when not allowed it stays a
-		ModifiedWhileLoopingError (today's rule, 27.2e) - saves a temporary copy
+	[REJECTED 2026-10-31, D.058] Changing a List / Map while looping, allowed by a setting -
+		the collection being looped over is never changed; build a new one
 	[ ] Map keys (user, 2026-10-27): values of any type; keys a non-empty fixed string (never
 		pooled) or a whole number 0 or above (byte, int - no floats). A map can bring its own
 		hash function and key rules (e.g. only non-empty strings, or ints only). Today: keys

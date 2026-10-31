@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (open: C.005, C.006 - C.001-C.004 settled 2026-10-31 as D.025-D.028)
+  (none open - C.001-C.006 settled 2026-10-31: D.025-D.028, D.057, D.058)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -77,6 +77,7 @@ COL.009 [BUILT] `toList`, `toCSV`
 COL.010 [REJECTED] Turning off array bounds checks, even in unsafe mode
 COL.011 [PLANNED] Lists: a capacity, a growth buffer, a kept sort order
 COL.012 [PLANNED] Maps: `add(otherMap)`; a map may bring its own hashing and key rules
+COL.013 [REJECTED] Changing a collection while looping over it (a setting to allow it) - build a new one
 
 #### FUN - functions and errors
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value
@@ -200,7 +201,7 @@ SET.006 [REJECTED] Fetching prices or exchange rates from an external API - in t
 | D.046 | `copyPart(start, count)` / `copyPartAt(start, end)` copy; from 0, end included, past the end stops there, a start outside is an IndexError; `slice` / `sliceAt` as aliases | COL.002 | 2026-10-27 | Arrays.md 8 | ACTIVE (planned) |
 | D.047 | `a + b + c` combines arrays or Lists of one type; Maps use `add(otherMap)` - a key already there is replaced (a setting) | COL.012 | 2026-10-27 | Arrays.md 5 | ACTIVE (planned) |
 | D.048 | Arrays and Lists allow duplicates; Map keys never repeat - a non-empty fixed string or a whole number 0 or above; values any type | COL.012 | 2026-10-27 | Arrays.md 5 | ACTIVE |
-| D.049 | `foreach`: the item's type is the collection's; adding / removing inside is a compile error; `continue` / `break` allowed | COL.005 | 2026-10-27 | Arrays.md 6 | ACTIVE (planned) |
+| D.049 | `foreach`: the item's type is the collection's; `continue` / `break` allowed (changing it inside: D.058) | COL.005 | 2026-10-27 | Arrays.md 6 | ACTIVE (planned) |
 | D.050 | A string is never null by default (`[strings] nullable`, default false) | NUL.001 | 2026-10-27 | Nullable_Values.md 2 | ACTIVE |
 | D.051 | An unset enum is null, like a class object - not its first value | NUL.001 | 2026-10-27 | Nullable_Values.md 2 | ACTIVE |
 | D.052 | A null in a `match` goes to `case null`, else to `else`; neither: a NullError | SYN.007 | 2026-10-28 | Nullable_Values.md 8 | ACTIVE |
@@ -208,5 +209,5 @@ SET.006 [REJECTED] Fetching prices or exchange rates from an external API - in t
 | D.054 | Null checks: `==`, `===`, `is null`; `x?.null` as quick typing; no `x!` | NUL.003 | 2026-10-27 | Nullable_Values.md 3 | ACTIVE (planned) |
 | D.055 | `string?.length()` / `array?.length` on null give -1; everything else gives null | NUL.003 | 2026-10-27 | Nullable_Values.md 5 | ACTIVE (planned) |
 | D.056 | Numbers as conditions only in `if` / `while`: `[conditions] numbers` = positive (default) / nonzero / off; `bool b = count` is an error | SYN.005 | 2026-10-27 | Nullable_Values.md 4 | ACTIVE |
-| C.005 | **CLASH:** 42.17 - a List or Map used by threads is always served by a (shared or dedicated) thread; D.017 - a temporary service only when two or more threads use it | CON.003 | - | Arrays.md 9, Ownership.md 6 | CLASH - check |
-| C.006 | **CLASH:** 45.7 - changing an array at the end while looping is allowed (the loop sees the new length); D.049 - adding / removing inside a `foreach` is a compile error. Meant: an index loop may, a `foreach` may not? | COL.005 | - | Arrays.md 9 | CLASH - check |
+| D.057 | A List, Map or array used by two or more threads gets a temporary service (D.017); `[collections] threads` only picks its worker: a shared pool (default) or a dedicated thread | CON.003 | 2026-10-31 | Concurrency.md 3.12 | ACTIVE (planned) |
+| D.058 | The collection being looped over can't be changed inside the loop - any loop (`for`, `foreach`), any collection; build a new one (`b`) from it instead. A compile error where seen, else a ModifiedWhileLoopingError | COL.005 | 2026-10-31 | Arrays.md 6 | ACTIVE |

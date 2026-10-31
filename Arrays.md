@@ -130,11 +130,16 @@ console.log(fruits);                 // unchanged
 (JavaScript's `slice(1, 3)` means "from 1 up to 3"; Fusion's `slice(start, count)` means
 "count items from start", and `sliceAt(start, end)` means "from start to end" - see section 7.)
 
-**Looping while it changes** (planned): adding or removing at the end inside `for x in numbers`
-is allowed - the loop sees the new length, so no temporary copy is needed.
+**Looping:** the collection being looped over can't be changed inside the loop (user, 2026-10-31, Decisions.md D.058) - build a new one instead:
+```fusion
+int[] b = []
+for x in a
+    b.add(x * 2)        // fine - b is a new array
+    // a.add(x)         // an error: a is being looped over
+```
 
-**Threads** (planned, Task 42): adding or removing at the end is thread-safe by itself - an
-implicit atomic lock (`Concurrency.md` 3.12).
+**Threads** (planned, Task 42): an array used by two or more threads gets a temporary service
+(`Ownership.md` section 6, `Concurrency.md` 3.12).
 
 **Use an array when:**
 - you collect values in arrival order and read them back by position - readings from a
@@ -175,11 +180,10 @@ All methods: `add`, `insert`, `removeAt`, `remove`, `clear`, `len`, `contains`, 
   will hold 10,000 items doesn't grow 10,000 times
 - **A kept sort order**: a list can be told its order once (for example by name), and every
   item added goes into its sorted place
-- **Changing it while looping**: today adding or removing inside `for x in list` is a
-  ModifiedWhileLoopingError (never a skipped item). A setting will allow it for a list
-  (or a map) that needs it - so no temporary copy is needed
-- **Threads** (Task 42): a list or map is served by a shared or its own thread for adding,
-  reading and removing (`Concurrency.md` 3.12). Shared by default:
+- **Changing it while looping**: the collection being looped over can't be changed inside the loop (user, 2026-10-31, Decisions.md D.058) - build a new one instead. Today a change inside `for x in list` is a
+  ModifiedWhileLoopingError (never a skipped item)
+- **Threads** (Task 42): a list or map used by two or more threads gets a temporary service;
+  this setting picks its worker (`Concurrency.md` 3.12). Shared by default:
 
 ```toml
 [collections]
@@ -266,8 +270,8 @@ foreach (string item in names)       // the item's type is the collection's - al
 
 | | `for x in collection` | `foreach x in collection` |
 |---|---|---|
-| Adding / removing inside | arrays: allowed (the loop sees the new length); lists / maps: a setting, otherwise ModifiedWhileLoopingError at run time | always a **compile error** |
-| Use it when | the loop must change the collection | reading only - the code says so, and the compiler checks it |
+| Adding / removing inside | **never** (D.058) - a compile error where seen, else ModifiedWhileLoopingError | always a **compile error** |
+| Use it when | the loop needs the position (`i`) | reading only - the code says so |
 
 **Future - the Collection interface** (user, 2026-10-27, with classes and interfaces, Task 32):
 `foreach` works on anything that implements a `Collection` interface. Arrays, lists and maps
@@ -346,8 +350,8 @@ original alone.
 | 2026-10-27 | Taking a part (`slice`) gives a copy; the original is unchanged |
 | 2026-10-27 | `a + b` combines arrays; `removeLast()` removes the last item, `pop()` is quick typing for it |
 | 2026-10-27 | `slice(start, count)`: a count past the end stops at the end; a start outside is an IndexError. `sliceAt(start, end)`: start after end gives the items in reverse |
-| 2026-10-27 | Arrays: changing at the end while looping is allowed (the loop sees the new length). Lists / maps: a setting allows it; otherwise ModifiedWhileLoopingError |
-| 2026-10-27 | Threads: an array's add / remove at the end takes an implicit atomic lock; a list or map is served by a shared or dedicated thread |
+| 2026-10-27 | Arrays: changing at the end while looping is allowed (the loop sees the new length). Lists / maps: a setting allows it; otherwise ModifiedWhileLoopingError - **replaced 2026-10-31**: never changed while looped over; build a new one (D.058) |
+| 2026-10-27 | Threads: an array's add / remove at the end takes an implicit atomic lock; a list or map is served by a shared or dedicated thread - **replaced 2026-10-31**: a temporary service; the setting picks its worker (D.057) |
 | 2026-10-27 | `copyPart` / `copyPartAt` (with `slice` / `sliceAt` as quick typing); `end` included; an end past the end stops there; a start outside is an IndexError |
 | 2026-10-27 | Combine any number at once: `A + B + C + D` - arrays and lists, all of the same type. Maps use `add(otherMap)`, not `+`; a setting on the map decides a key already there - replace by default |
 | 2026-10-27 | Positions count from 0 in `copyPart` / `copyPartAt` too |

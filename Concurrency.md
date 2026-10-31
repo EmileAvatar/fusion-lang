@@ -1381,14 +1381,11 @@ Scheduled in `FEATURES.md` Task 42:
 
 ### 3.12 Collections and threads (user, 2026-10-27)
 
-Arrays, lists and maps get thread safety built in, so the common cases need no lock written
-by hand (FEATURES.md 42.17, 45.8; `Arrays.md`):
-- **Arrays** grow and shrink only at their end, so one atomic lock around "add at the end" /
-  "remove the last" is enough - taken implicitly, never written in the code
-- **Lists and maps** can change anywhere, so they are served like a small service (P1): a
-  shared thread, or a dedicated one for a busy list or map, does the adding, reading and
-  removing; callers send requests
-- Default (user, 2026-10-27): **shared** - lists and maps share a pool of 10 threads;
+Settled 2026-10-31 (Decisions.md D.057): an array, list or map used by two or more threads
+gets a **temporary service** (section 3.13, `Ownership.md` section 6) - no lock written by
+hand, and no separate atomic lock for arrays. The setting picks the service's worker
+(FEATURES.md 42.17, 45.8; `Arrays.md`):
+- Default (user, 2026-10-27): **shared** - a pool of 10 threads;
   `"dedicated"` gives a busy list or map its own:
 
 ```toml
