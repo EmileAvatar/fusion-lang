@@ -786,21 +786,21 @@ double d = f            // OK: float to double
 
 ```
 double d = 3.14159
-float f = cast<float>(d)           // OK: loses precision
-int i = cast<int>(d)               // OK: becomes 3 (truncates)
+float f = (float)d           // OK: loses precision
+int i = (int)d               // OK: becomes 3 (truncates)
 
 long big = 1000000000000
-int small = cast<int>(big)         // Runtime error if too big!
+int small = (int)big         // Runtime error if too big!
 ```
 
 * **Unsigned/Signed Conversions**
 
 ```
 uint positive = 100
-int signed = cast<int>(positive)   // OK: value fits
+int signed = (int)positive   // OK: value fits
 
 int negative = -50
-uint unsign = cast<uint>(negative) // Runtime error: cannot convert negative!
+uint unsign = (uint)negative // Runtime error: cannot convert negative!
 ```
 
 * **String Conversions**

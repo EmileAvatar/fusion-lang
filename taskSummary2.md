@@ -167,6 +167,63 @@ task/taskSummaryArchive.md (Task 32.8); `typeOf` and converting back are in 32.7
 - 32.12 Commas after struct fields / multi-line enum values are ignored
 - **Settings (added):** `[source] case_sensitive`
 
+#### The rest of Task 32 - plan (2026-10-31, approved with the answers below)
+
+- **Answers (user, 2026-10-31):**
+  - Q1 a cast is written in front: `Shape shp = (Shape)aCircle` - fails when aCircle isn't a Shape
+  - Q2 yes; Fusion's rule: favour composition over inheritance
+  - Q3 a `Collection<T>` interface in Fusion's words, starting from Java's (below)
+  - Q4 Fusion's own collections never change while looped; a class of your own may, only
+    with `[collections] allowChangeWhileLooping = true` (default false - blocked)
+  - Q5 always a compile error where it can be seen, else a run-time error
+  - Q6 yes, several: `interface D implements A, B, C`
+  - Q7 yes - 32.9 moves to Task 43
+  - Q8 yes - a copy is usually a new default object, each field set byVal from the original
+
+- **One mechanism under it all:** each class gets a table in C (its name, its parent, its functions)
+  - every object points to its class's table
+  - a call through an interface or a parent type looks the function up there (as C++ / Java do)
+  - the same table gives `typeOf(x)` and `x is Circle` while the program runs
+- **32.5a Interfaces:** `interface Shape` with function signatures only
+  - `class Circle implements Shape, Printable` - several; a missing function is a compile error
+  - an interface as a type: variables, parameters, results, List / Map elements
+  - the object's own function runs; with and without null checks (Rule 4b)
+  - `interface D implements A, B, C` - an interface building on several (Q6)
+  - default methods behind `[interfaces] defaultMethods` (default false - D.006)
+  - casting written in front: `(Shape)aCircle`, `(Circle)shp` - a compile error where it can be
+    seen, else a CastError; `x is Circle` tests first (Q1)
+- **32.5b The built-in interfaces**
+  - `ToString`: `string function toString()` - used by print, `"{x}"`, format, a struct's field (D.043)
+  - `Default`: a constructor with no arguments; a variable of the type is never null (D.010)
+  - copies of objects: `byVal obj` / `copy(x)` - a new default object, each field set byVal (D.033, Q8)
+  - `nocopy` / `noshare` fields (D.034); `Cloneable` + a written `clone()` - needed only with a `nocopy` field (Q8)
+- **32.7 Inheritance:** `class Manager inherits Employee` (`extends` as quick typing) - one parent only
+  - Fusion's rule: favour composition over inheritance - docs and examples hold an object first (Q2)
+  - the parent's fields and functions; a Manager is used where an Employee is expected
+  - replacing a parent's function needs `override`; `sealed` stops it; `abstract` class / function (Q2)
+  - `protected`: the class and its children
+  - `super(...)` on the child constructor's first line, `super.drive()` for the parent's version (Q2)
+  - `typeOf(x)`: the chain, top type first - `Person.Employee.Manager`
+- **32.4 + 32.6 Collections as interfaces**
+  - `Collection<T>` (Q3, from Java's): add, remove, length, isEmpty, contains; addAll, removeAll,
+    keepOnly (Java's retainAll, kept as an alias), clear - see the open points below
+  - `foreach (string n in names)` (45.9, D.049); a class of your own implements `Collection<Person>`
+  - changing the looped collection: Fusion's own never; your own only with
+    `[collections] allowChangeWhileLooping = true` (default false) - D.058, Q4
+  - open points (before 32.4): how `foreach` walks a collection of your own (an iterator?); which
+    parts arrays (grow only at the end) and Maps (keys and values) implement
+  - `List<T>` is an interface with a default implementation, never null (32.6)
+- **32.14 List / Map options in form B:** `noDuplicates()`, `noNull()`, `readOnly()` (after the set-up)
+  - breaking one: a compile error where it can be seen, else DuplicateError / NullError / ReadOnlyError (Q5)
+- **32.11** `[source] caseSensitive` (default true); false: the compiler lists names that differ only in case
+- **32.12** A comma after a struct field or a multi-line enum value is ignored
+- **32.9** The study of collection kinds - moved to Task 43 (43.5)
+- **32.3** An example program: classes, interfaces, inheritance, structs, enums
+- **Order:** 32.5a, 32.5b, 32.7, 32.4 + 32.6, 32.14, 32.11, 32.12, 32.3 - each shipped on its own
+- **Settings:** `[interfaces] defaultMethods` (false), `[source] caseSensitive` (true),
+  `[collections] allowChangeWhileLooping` (false) - into fusionSettings.xml when built
+- **Tests:** a truth table per sub-task in Classes.md (Rule 4c); each row a test; with and without null checks
+
 ---
 
 ## TASK 31: The settings file in four formats - COMPLETE (2026-10-28)

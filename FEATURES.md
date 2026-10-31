@@ -146,7 +146,7 @@ are in `task/featuresArchive.md`.
 	[DONE] 32.1 Methods on the program's own structs (`[structs] functions = true`;
 		tests/test_struct_methods.py) - (`p.move(1, 2)`) - built-in types have them (18.3.7);
 		also 44.2
-	[ ] 32.2 Classes, the rest (plan: taskSummary2.md; truth tables: Classes.md - user, 2026-10-30)
+	[DONE] 32.2 Classes, the rest (plan: taskSummary2.md; truth tables: Classes.md - user, 2026-10-30)
 		[DONE] 32.2a Visibility (tests/test_visibility.py): class fields private, functions /
 			constructors public by default; module level: structs, classes, enums public,
 			functions / variables private; fixed: classes and struct methods in modules
@@ -195,7 +195,7 @@ are in `task/featuresArchive.md`.
 	[DONE] 32.13 A struct as text (tests/test_struct_parents.py): `"{e}"` gives
 		`name : "Jeff",age : 30`; `x.toCSV(delimiter = ",")` on a struct, a one-dimensional
 		array or a List of structs - one heading row (`Person.name`, ...), one row per struct
-	[ ] 32.7 Inheritance - using a parent type (user, 2026-10-29): `typeOf(x)` gives the chain,
+	[ ] 32.7 Inheritance - one parent; favour composition (D.083) - using a parent type (user, 2026-10-29): `typeOf(x)` gives the chain,
 		top type first (`Person.Employee.Manager`), so the program can convert it back; for a
 		struct, only a `byRef` parameter keeps the whole value (a normal one: `Person`)
 	[ ] 32.5 Interfaces - also the built-in ones (Classes.md sections 5, 6): `ToString`
@@ -209,6 +209,9 @@ are in `task/featuresArchive.md`.
 	[ ] 32.4 A `Collection` interface (user, 2026-10-27 - Arrays.md section 6): arrays, lists and
 		maps implement it; `foreach` works on any class that does, and the class decides its
 		own rules (adding / removing while looping, threads, special actions)
+	[ ] 32.6 `List<T>` as an interface with a default implementation - never null
+	[ ] 32.11 `[source] caseSensitive` (default true); false: the compiler lists names that differ only in case
+	[ ] 32.12 A comma after a struct field or a multi-line enum value is ignored
 	[ ] 32.3 Example (was 16.2: classes, interfaces & enums)
 
 #### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ]
@@ -467,9 +470,10 @@ are in `task/featuresArchive.md`.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
 		zones; epochs; durations and time calculations (a Math sub-module, user). Duration
 		literals map to int milliseconds until then (42.16)
+	[ ] 43.5 The study of collection kinds - Java, C#, Rust, Go, Python - which to offer in fusionlib (was 32.9)
 	[ ] 43.4 Collections module (user, 2026-10-30): more collection types beyond the core ones
 		that are always there (array, List, Map) - first a RingBuffer: a fixed number of
-		slots used round and round, the newest replacing the oldest; more later (with 32.9)
+		slots used round and round, the newest replacing the oldest; more later (with 43.5)
 	[ ] 43.3 Currency module (user, 2026-10-29): how `money` (47.2) is used per currency -
 		currency definitions with their decimal places (USD 2, JPY 0, KWD 3) and so their
 		units (USD 100, JPY 100 in whole steps, KWD 1000), formatting, parsing, and exchange-

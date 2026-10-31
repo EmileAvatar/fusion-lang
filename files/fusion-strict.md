@@ -155,11 +155,11 @@ int i = f               // WARNING: Implicit narrowing (loses precision)
 ```fusion
 int x = 10
 // long y = x           // ERROR: Must use explicit cast
-long y = cast<long>(x)  // OK: Explicit cast
+long y = (long)x  // OK: Explicit cast
 
 float f = 3.14
 // int i = f            // ERROR: Must use explicit cast
-int i = cast<int>(f)    // OK: Explicit cast (programmer aware of precision loss)
+int i = (int)f    // OK: Explicit cast (programmer aware of precision loss)
 ```
 
 **Rationale**: Explicit casts make data loss visible and intentional.
@@ -583,7 +583,7 @@ int parentId  // Use ID instead
 long y = x
 
 // After
-long y = cast<long>(x)
+long y = (long)x
 ```
 
 ---
@@ -715,7 +715,7 @@ int count = 10
 **Error: "Implicit cast not allowed"**
 ```fusion
 // Fix: Add explicit cast
-long y = cast<long>(x)
+long y = (long)x
 ```
 
 **Error: "Null check required before use"**

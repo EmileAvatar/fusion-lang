@@ -359,7 +359,7 @@ primary =
     | passing primary                     (* byVal a - a copy; byRef a - shared, 32.10a *)
     | "this"
     | "null"
-    | "cast" "<" type_name ">" "(" expression ")" ;
+    | "(" type_name ")" unary ;          (* a cast, written in front: (Shape)aCircle - D.082 *)
 
 lambda_expression =
     [ "func" | "function" ] "(" [ parameter_list ] ")" ":" expression ;
