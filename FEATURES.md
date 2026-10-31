@@ -75,7 +75,8 @@ are in `task/featuresArchive.md`.
 	[DONE] 49.4 Concurrency.md, Concurrency_Traps.md, files/Service.md
 		7 feature lines (version one, settings, the hierarchy, trap checks); D.066-D.075
 		Clash C.009 for the user: P2 (one service owns both) vs a fixed order over two services
-	[ ] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
+	[DONE] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
+		9 feature lines (the built settings missing, [project], [build], [threads], stack traces); D.076
 	[ ] 49.6 Notes/, FutureFeatures.md, FutureFeaturesCaution.md, task/taskSummaryArchive.md (decisions only)
 	[ ] 49.7 The code: what the compiler does that no document records (src/)
 	[ ] 49.8 The user settles each CLASH row; the losing side is fixed in its document

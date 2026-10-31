@@ -124,6 +124,7 @@ FUN.009 [BUILT] `[errors] returns` / `exceptions` - both on by default
 FUN.010 [DESIGN] `?` after a call returns its error at once; `await all([...])`
 FUN.011 [DESIGN] `extern "C"` - call a C function by declaring it
 FUN.012 [POSTPONED] More error types (Network, Timeout, Parse, Cancelled, Assertion, NotSupported) - with each feature
+FUN.013 [DESIGN] Every error carries a stack trace
 
 #### NUL - null
 NUL.001 [BUILT] Value types are never null; class objects and enums can be
@@ -209,6 +210,14 @@ SET.011 [POSTPONED] `config.fusion` writes the settings file from the master tem
 SET.012 [POSTPONED] `console build / run / test / add` - one tool, after Python
 SET.013 [DESIGN] How a program is built: script mode, JIT, a library, other platforms (WebAssembly)
 SET.014 [DESIGN] Library modules beyond the core (fusionlib): file formats, images, math, networking, graphics, audio, localization
+SET.015 [BUILT] `[indentation]` tabWidth, allowMixed; `[source]` allowUnicodeIdentifiers (default false)
+SET.016 [BUILT] `[stdlib] layer` = std (everything) / alloc (no OS: no print, no files) / core (no heap)
+SET.017 [BUILT] `[strings]` maxLength, encoding (utf-8 / ascii); `[structs]` nesting depth, string storage and warnings
+SET.018 [BUILT] `[backend] target = "c"`; other targets with Task 40
+SET.019 [DESIGN] `[project]` name, version, the file that holds main
+SET.020 [DESIGN] `[build]` mode (debug / release), optimize (speed / size / none), output (exe / lib); `[backend]` platform (windows-x64, linux-x64, wasm)
+SET.021 [DESIGN] `[threads] enabled` - threads off for small devices
+SET.022 [DESIGN] Strict mode extras: null checks forced, `Weak<T>` an error, callbacks limited
 
 ---
 
@@ -291,4 +300,5 @@ SET.014 [DESIGN] Library modules beyond the core (fusionlib): file formats, imag
 | D.073 | The OS scheduler by default; a Fusion scheduler for advanced use | CON.008 | 2026-10-23 | Concurrency.md 3.6 | ACTIVE (planned) |
 | D.074 | Concurrency trap checks are warnings by default; `fusion.toml` can make each an error | CON.001 | 2026-10-23 | Concurrency.md 3.6 | ACTIVE (planned) |
 | D.075 | The principles P1-P11 govern every concurrency feature | GOL.004 | 2026-10-23 | Concurrency_Traps.md | ACTIVE |
+| D.076 | A misspelled setting or a bad value is an error, never ignored; every built setting, its values and default are in `files/fusionSettings.xml`; every setting a finished Fusion will have, tagged, in `files/showcase/fusion.toml` | SET.001 | 2026-10-23 | fusionSettings.xml | ACTIVE |
 | C.009 | **CLASH:** P2 - never two resources per thread; if they can't be separated, one service owns both as a unit (2026-10-23). D.028 / Ownership.md 7 - one step changing two services takes them in a fixed order (2026-10-31). Suggest: P2 wins - two values changed in one step form a group service (42.3); using them one after the other (a database, then a log) stays fine | CON.004 | - | Concurrency_Traps.md, Ownership.md 7 | CLASH - check |
