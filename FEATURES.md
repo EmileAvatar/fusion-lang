@@ -293,7 +293,7 @@ are in `task/featuresArchive.md`.
 		`async` to not wait, not re-entrant by default; `service(x).run { }` for several steps;
 		a timeout = the caller stopped waiting. Created only by a parent thread, outside loops
 		(class field or function variable); a warning when no other thread uses it.
-		Contextual keyword. Settings v1: Mailbox, WhenFull, Timeout, final. Roadmap phases
+		A reserved keyword (Task 46, 2026-10-29). Settings v1: Mailbox, WhenFull, Timeout, final. Roadmap phases
 		1-5 and the 8 first tests in 3.11; a prototype measuring cost first
 	[ ] 42.1 `service` keyword: `service <type> <name>` makes a variable, struct or class object
 		a service with Fusion's default thread settings (`service int counter = 0`,

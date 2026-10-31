@@ -1466,8 +1466,8 @@ void function worker(Order order, Totals totals) {
 
 #### The keyword
 
-`service` is a **contextual** keyword for now, the way `error` is. A variable may still be
-named `service`. It may become a full keyword later.
+`service` is a **keyword** (reserved since Task 46, 2026-10-29), not a contextual word like
+`error`: it can't name a variable, field, function or parameter.
 
 #### Adopted from the reviews
 

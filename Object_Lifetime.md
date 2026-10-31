@@ -383,7 +383,7 @@ Columns: the kind of field.
 | Holder | Example |
 |---|---|
 | A local variable | `Car honda = Car()` |
-| A parameter (only when the function stores it) | `void function service(Car c)` |
+| A parameter (only when the function stores it) | `void function repair(Car c)` |
 | A field of an object | `engine = Engine("V8")` inside `Car` |
 | A static field of a class | `const static Car HONDA` - held until the program ends |
 | A module variable | `Garage garage = Garage()` outside any function |

@@ -20,8 +20,8 @@ service Person person = Person("Ada")       // a struct
 service Car honda = Honda(Color.Black)      // a class object
 ```
 
-`service` is a **contextual** keyword, as `error` is: a variable may still be named
-`service`. It may become a full keyword later.
+`service` is a **keyword** (reserved since Task 46, 2026-10-29): it can't be used as the name
+of a variable, field, function or parameter - write `svc`, `server`, `api` and so on instead.
 
 ## The five rules (version one)
 
