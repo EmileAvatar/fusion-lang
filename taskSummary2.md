@@ -494,7 +494,8 @@ Kept under Task 22 until the renumbering is approved.
 - C.007, C.008 settled: `fixed(n)` = a size limit only, `const` = nothing changes (D.064);
   `match` the form, `switch` an alias, `else if` for 2-3 checks (D.065)
 - 49.3 done: the spec and grammar - 17 feature lines; D.060 corrected; the spec summary fixed
-- **Next Action:** Task 49.4-49.9 (the pass over every
+- 49.4 done: the concurrency files - 7 feature lines, D.066-D.075; clash C.009 open
+- **Next Action:** the user settles C.009; then Task 49.5-49.9 (the pass over every
   file); then 32.5 (interfaces: ToString, Default, Cloneable);
   then the rest of Task 32, then Task 48 (ownership) - user, 2026-10-31; then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

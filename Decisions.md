@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (none open - C.001-C.008 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065)
+  (open: C.009 - C.001-C.008 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -186,6 +186,13 @@ CON.009 [POSTPONED] Cluster threads over several servers
 CON.010 [PLANNED] Resources as services: files, sockets, databases (42.5); `final` clean-up (42.4)
 CON.011 [DESIGN] Default settings that fit the machine (42.6); default timeouts per resource (42.8)
 CON.012 [DESIGN] `async` / `await`; `go f(x)`; thread interrupts checked in loops; channels (`<-` read by the lexer only)
+CON.013 [PLANNED] The compiler picks how a service runs: a plain variable (one thread), atomics (a simple value), a mailbox with workers (42.0)
+CON.014 [PLANNED] Calls wait in order; `async` to not wait; one request at a time (not re-entrant) (42.0)
+CON.015 [PLANNED] `service(x).run { }` - several steps as one (42.0)
+CON.016 [PLANNED] A timeout means the caller stopped waiting; a request ends completed / failed / timed out / cancelled (42.0)
+CON.017 [PLANNED] Settings with `service(x).X = ...`: Mailbox, WhenFull, Timeout, Scheduler, Priority, Rule, WorkerThreadType, ThreadPool (42.2, 42.14)
+CON.018 [PLANNED] Every thread has an ID, a parent and a place in the hierarchy; the hierarchy decides who gets a resource (42.7, 42.9)
+CON.019 [PLANNED] Concurrency trap checks: warnings by default, errors when `fusion.toml` says so (42.10)
 
 #### SET - settings and tools
 SET.001 [BUILT] `fusion.toml` (or .yaml / .json / .ini); camelCase, read case-insensitively; a bad key is an error
@@ -274,3 +281,14 @@ SET.014 [DESIGN] Library modules beyond the core (fusionlib): file formats, imag
 | D.063 | No `T?` types: only class objects and enums can be null; `?` goes on a variable | NUL.001 | 2026-10-27 | Nullable_Values.md | ACTIVE |
 | D.064 | `const`: nothing changes - neither the length nor the values. `fixed(n)`: only the size is limited - at most n characters or slots, the values may change; the compiler guarantees it never exceeds n (limited memory, hot paths) | TYP.006 | 2026-10-31 | Arrays.md 1 | ACTIVE (planned) |
 | D.065 | `match` is the form; `switch` an alias (familiar from VB.NET). `else if` for 2-3 checks; `match` / `switch` for a list of values | SYN.007 | 2026-10-31 | SYNTAX_REFERENCE.md | ACTIVE |
+| D.066 | A service is made by a parent thread, outside loops (a class field or a function variable); its child threads use it; a warning when no other thread does | CON.001 | 2026-10-24 | Service.md | ACTIVE (planned) |
+| D.067 | Each call on a service is one step; anything read out is a copy; copying a service variable gives another handle to it | CON.001 | 2026-10-24 | Service.md | ACTIVE (planned) |
+| D.068 | A service finishes one request before the next (not re-entrant); the caller waits unless it writes `async` | CON.001 | 2026-10-24 | Service.md | ACTIVE (planned) |
+| D.069 | `WorkerThreadType` AUTO by default: SHARED as more threads read the resource, SINGLE when its work is heavy | CON.001 | 2026-10-24 | Service.md | ACTIVE (planned) |
+| D.070 | A full mailbox: the sender waits (`WhenFull = WAIT`, the default) or gets a QueueFullError; a hot path never waits | CON.001 | 2026-10-24 | Service.md | ACTIVE (planned) |
+| D.071 | Every wait has a timeout; defaults per kind of resource | CON.001 | 2026-10-23 | Concurrency.md 3.7 | ACTIVE (planned) |
+| D.072 | Resources are services by default (`resourceAsService = true`); direct access only in unsafe mode | CON.010 | 2026-10-23 | Concurrency.md 3.6 | ACTIVE (planned) |
+| D.073 | The OS scheduler by default; a Fusion scheduler for advanced use | CON.008 | 2026-10-23 | Concurrency.md 3.6 | ACTIVE (planned) |
+| D.074 | Concurrency trap checks are warnings by default; `fusion.toml` can make each an error | CON.001 | 2026-10-23 | Concurrency.md 3.6 | ACTIVE (planned) |
+| D.075 | The principles P1-P11 govern every concurrency feature | GOL.004 | 2026-10-23 | Concurrency_Traps.md | ACTIVE |
+| C.009 | **CLASH:** P2 - never two resources per thread; if they can't be separated, one service owns both as a unit (2026-10-23). D.028 / Ownership.md 7 - one step changing two services takes them in a fixed order (2026-10-31). Suggest: P2 wins - two values changed in one step form a group service (42.3); using them one after the other (a database, then a log) stays fine | CON.004 | - | Concurrency_Traps.md, Ownership.md 7 | CLASH - check |
