@@ -355,7 +355,7 @@ block-level (lexical) scoping (Task 12.6), so a const declared inside an `if`/`w
 block is only visible inside that block, and is never visible outside the function it's
 declared in.
 
-**Fixed strings are `const` strings** (Task 29.2, user decision 2026-10-27 - no separate
+**Constant strings are `const` strings** (once called fixed strings; `fixed(n)` now means a maximum size - Task 47.5) (Task 29.2, user decision 2026-10-27 - no separate
 fixed type or `f"..."` prefix): a `const string` never changes - neither replaced nor
 edited in place (`s[i] = c` is a compile error), and the same holds for a string inside a
 const struct or array. Fixed-ness belongs to the variable, not the text: a copy of a const
@@ -3007,7 +3007,8 @@ Raw Pointers | Embedded/FFI only | High | Maximum
   it. Inside a project it is worked out from the body; a library counts by its signature
   only; a library not written in Fusion gets a warning when a borrowed value is passed
 * **`shared Car c = a`:** counted, read only except to the holder that made it shared
-* **`fixed`** (Task 47.5): `fixed string(16)`, `fixed List<Tick>(4096)` - a maximum size,
+* **`fixed(n)`** (Task 47.5, D.064): `fixed(10) string name`, `fixed(14) List<Person> people`,
+  `fixed int numbers[10]` - only the size is limited (the values may change; `const`: nothing changes),
   lower fine, never higher; memory reserved once
 * Setting:
   ```toml

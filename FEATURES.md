@@ -66,7 +66,7 @@ are in `task/featuresArchive.md`.
 	[DONE] 49.2 FEATURES.md, task/featuresArchive.md (built features), SYNTAX_REFERENCE.md
 		39 feature lines added (the showcase ideas, built settings, postponed items); D.059-D.063
 		Old Later lines marked: money as a decimal and string(255) replaced, namespaces built
-		Clashes C.007 (the word "fixed"), C.008 (`switch` preferred, `match` used) for the user
+		Clashes C.007 (the word "fixed"), C.008 (`switch` preferred, `match` used) - settled: D.064, D.065
 	[ ] 49.3 The spec and the grammar (files/fusion-language-spec.md, files/fusion.ebnf)
 	[ ] 49.4 Concurrency.md, Concurrency_Traps.md, files/Service.md
 	[ ] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
@@ -106,8 +106,11 @@ are in `task/featuresArchive.md`.
 		is const and byVal, set once; the constructor is always private. An enum is always
 		const and static - `const static enum Planet` is accepted and changes nothing
 	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - Ownership.md, files/Service.md)
-		`fixed string(16)`: at most 16 characters, kept inline - no heap
-		`fixed List<Tick>(4096)`, `fixed Map<K, V>(n)`: at most n elements
+		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
+		`fixed(10) string name`: at most 10 characters, kept inline - no heap
+		`fixed(10) int numbers[]`, or `fixed int numbers[10]` (the size written in the array)
+		`fixed(14) List<Person> people`: at most 14 elements
+		`fixed(10) Map<int, fixed(15) string> codes`: at most 10 keys, each value at most 15 characters
 		Lower is fine, higher never - an error, never a silent cut
 		Starts empty, grows as needed up to its maximum; memory reserved once
 		The size may be a constant set by the hardware or a setting (H9)
@@ -561,7 +564,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		Positions count from 0. Also `+` for lists (`a + b + c`)
 	[REJECTED 2026-10-31, D.058] Changing a List / Map while looping, allowed by a setting -
 		the collection being looped over is never changed; build a new one
-	[ ] Map keys (user, 2026-10-27): values of any type; keys a non-empty fixed string (never
+	[ ] Map keys (user, 2026-10-27): values of any type; keys a non-empty constant string (never
 		pooled) or a whole number 0 or above (byte, int - no floats). A map can bring its own
 		hash function and key rules (e.g. only non-empty strings, or ints only). Today: keys
 		are string, int or char. Combining: `m.add(otherMap)` (no `+`); a setting on the map
@@ -569,8 +572,9 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
 		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 	From the showcase review (user, 2026-10-23):
-	[ ] `switch` and `match` interchangeable; `elif` an alias for `else if`. The preferred forms
-		(used in docs and examples) are `else if` and `switch` (user, 2026-10-24)
+	[ ] `switch` as an alias of `match` (familiar from VB.NET); `elif` an alias for `else if`
+		`match` stays the form in docs and examples (user, 2026-10-31 - D.065)
+		`else if` for 2-3 checks; `match` / `switch` for a list of values
 	[ ] Enum values with fixed constants, built by the enum's private constructor:
 		`enum Planet { Mercury(3.7) ... }`, Planet.Mercury.gravity() / Planet.Mercury.Name
 	[ ] Several return values only when `[functions] multipleReturns = true` (off by default);
@@ -626,7 +630,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		TimeoutError (a network module), ParseError (JSON / data modules), CancelledError
 		(threads), AssertionError (an `assert` statement), NotSupportedError (a backend that
 		can't do something) - each an Error subtype
-	[REPLACED by 47.5 - `fixed string(255) name`] Per-field string sizes (`string(255) name`) to match database columns
+	[REPLACED by 47.5 - `fixed(255) string name`] Per-field string sizes (`string(255) name`) to match database columns
 	[POSTPONED - needs references] Identity operator (same object in memory)
 	[POSTPONED - after MVP] Multi-dimensional arrays (growable lists: done, 18.5.1)
 	[POSTPONED to 32 / 33] Classes, interfaces, inheritance (32), generics (33); enums: Task 25;

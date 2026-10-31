@@ -758,7 +758,9 @@ hotpath_function = "hotpath" function_declaration ;
 hotpath_service = "hotpath" "service" type_name identifier "=" expression [ setup_block ] ;
 
 (* Task 47.5: a maximum size - lower fine, never higher *)
-fixed_type = "fixed" ( "string" | type_name ) "(" expression ")" ;
+(* the size limit only - the values may change; without ( n ) only on an array with a size:
+   fixed int numbers[10] *)
+fixed_type = "fixed" [ "(" expression ")" ] type_name ;
 
 (* ===================================================================== *)
 (* END OF FUSION GRAMMAR                                                 *)

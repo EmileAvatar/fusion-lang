@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (open: C.007, C.008 - C.001-C.006 settled 2026-10-31: D.025-D.028, D.057, D.058)
+  (none open - C.001-C.008 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -48,7 +48,7 @@ SYN.014 [PLANNED] Duration literals `500ms`, `5s`, `2min` (42.16)
 SYN.015 [REJECTED] An `I` prefix on interface names
 SYN.016 [BUILT] Identifiers are ASCII; Trojan Source and look-alike letters are rejected
 SYN.017 [BUILT] `_` for an unused `match` field
-SYN.018 [DESIGN] `switch` interchangeable with `match`; `elif` for `else if`
+SYN.018 [DESIGN] `switch` as an alias of `match` (VB.NET); `elif` for `else if`
 SYN.019 [DESIGN] `loop { }` - no break / return inside is a compile error; the keyword may be dropped
 SYN.020 [DESIGN] `++` / `--` as statements only, never inside an expression
 SYN.021 [DESIGN] `if` as a value; do-while
@@ -66,7 +66,7 @@ TYP.002 [PLANNED] `long`, `short` (47.1)
 TYP.003 [PLANNED] `money`: a long of minor units, exact, never a float (47.2)
 TYP.004 [BUILT] Enums; enums with data (tagged unions); an unset enum is null
 TYP.005 [PLANNED] Enums whose values carry fixed data (47.3); the `FusionType` enum (47.4)
-TYP.006 [PLANNED] The `fixed` prefix: a maximum size - `fixed string(16)`, `fixed List<T>(n)` (47.5)
+TYP.006 [PLANNED] `fixed(n)`: a maximum size, values may change - `fixed(10) string name`, `fixed(14) List<Person> people`, `fixed int numbers[10]` (47.5)
 TYP.007 [PLANNED] Generics: the program's own generic functions and types (Task 33)
 TYP.008 [DESIGN] Operator overloading - only for exceptional cases (a setting, off)
 TYP.009 [BUILT] int becomes float only when written (`[numbers] autoWidening`, default false)
@@ -211,7 +211,7 @@ SET.012 [POSTPONED] `console build / run / test / add` - one tool, after Python
 | D.017 | A value two or more threads use gets a temporary service; ownership returns when they end | CON.003 | 2026-10-31 | Ownership.md 6 | ACTIVE (planned) |
 | D.018 | Counts inside a service are plain; `shared` objects a thread can reach and handles stay atomic | CON.002 | 2026-10-31 | Service.md S8 | ACTIVE (narrows "always atomic", 2026-09-13) |
 | D.019 | `hotpath service` (a modifier, not `serviceHotPath`); a dedicated thread that never sleeps | CON.007 | 2026-10-31 | Service.md | ACTIVE (planned) |
-| D.020 | `fixed`: a maximum - lower fine, higher an error; starts empty, memory reserved once | TYP.006 | 2026-10-31 | Arrays.md | ACTIVE (planned) |
+| D.020 | `fixed(n)`: lower fine, higher an error (never cut); starts empty, memory reserved once (the meaning: D.064) | TYP.006 | 2026-10-31 | Arrays.md | ACTIVE (planned) |
 | D.021 | `money` is a long of minor units; the Currency module enforces each currency's steps | TYP.003 | 2026-10-29 | FEATURES 47.2 | ACTIVE (planned) |
 | D.022 | The core and every module never fetch prices or rates; the developer passes them in | SET.006 | 2026-10-29 | CLAUDE.md | ACTIVE |
 | D.023 | Settings named in camelCase, read case-insensitively, `_` ignored | SET.001 | 2026-10-28 | fusionSettings.xml | ACTIVE |
@@ -239,7 +239,7 @@ SET.012 [POSTPONED] `console build / run / test / add` - one tool, after Python
 | D.045 | Arrays grow and shrink only at the end - an item never moves position; Lists change anywhere | COL.002 | 2026-10-27 | Arrays.md 3 | ACTIVE (planned) |
 | D.046 | `copyPart(start, count)` / `copyPartAt(start, end)` copy; from 0, end included, past the end stops there, a start outside is an IndexError; `slice` / `sliceAt` as aliases | COL.002 | 2026-10-27 | Arrays.md 8 | ACTIVE (planned) |
 | D.047 | `a + b + c` combines arrays or Lists of one type; Maps use `add(otherMap)` - a key already there is replaced (a setting) | COL.012 | 2026-10-27 | Arrays.md 5 | ACTIVE (planned) |
-| D.048 | Arrays and Lists allow duplicates; Map keys never repeat - a non-empty fixed string or a whole number 0 or above; values any type | COL.012 | 2026-10-27 | Arrays.md 5 | ACTIVE |
+| D.048 | Arrays and Lists allow duplicates; Map keys never repeat - a non-empty constant string or a whole number 0 or above; values any type | COL.012 | 2026-10-27 | Arrays.md 5 | ACTIVE |
 | D.049 | `foreach`: the item's type is the collection's; `continue` / `break` allowed (changing it inside: D.058) | COL.005 | 2026-10-27 | Arrays.md 6 | ACTIVE (planned) |
 | D.050 | A string is never null by default (`[strings] nullable`, default false) | NUL.001 | 2026-10-27 | Nullable_Values.md 2 | ACTIVE |
 | D.051 | An unset enum is null, like a class object - not its first value | NUL.001 | 2026-10-27 | Nullable_Values.md 2 | ACTIVE |
@@ -255,5 +255,5 @@ SET.012 [POSTPONED] `console build / run / test / add` - one tool, after Python
 | D.061 | Error returns and exceptions are both on by default; a project may turn either off | FUN.001 | 2026-10-16 | spec Errors | ACTIVE |
 | D.062 | Errors bubble up; capturing is optional on any call; `catch` goes by first match, a parent catches its children | FUN.002 | 2026-10-16 | spec Errors | ACTIVE |
 | D.063 | No `T?` types: only class objects and enums can be null; `?` goes on a variable | NUL.001 | 2026-10-27 | Nullable_Values.md | ACTIVE |
-| C.007 | **CLASH (a word):** "fixed string" means a `const string` (29.2; Map keys "a non-empty fixed string"), but `fixed string(16)` (D.020) means a maximum length. Suggest: say "constant string" for const, keep `fixed` for size | STR.001 | - | Decisions.md D.020 | CLASH - check |
-| C.008 | **CLASH:** `switch` and `else if` are the preferred forms in docs and examples (2026-10-24), but `match` is built and every doc and example uses it; `switch` isn't built | SYN.007 | - | FEATURES Later | CLASH - check |
+| D.064 | `const`: nothing changes - neither the length nor the values. `fixed(n)`: only the size is limited - at most n characters or slots, the values may change; the compiler guarantees it never exceeds n (limited memory, hot paths) | TYP.006 | 2026-10-31 | Arrays.md 1 | ACTIVE (planned) |
+| D.065 | `match` is the form; `switch` an alias (familiar from VB.NET). `else if` for 2-3 checks; `match` / `switch` for a list of values | SYN.007 | 2026-10-31 | SYNTAX_REFERENCE.md | ACTIVE |

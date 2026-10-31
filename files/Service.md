@@ -496,7 +496,7 @@ hotpath service Trade trading = Trade("BTC-USD") {   // service(trading) is a Ho
 struct Tick                                    // ring messages: fixed-size values
     money price                                // Task 47 - a long of cents, no heap
     int quantity
-    fixed string(16) symbol                    // fixed: at most 16 characters, no heap (47.5)
+    fixed(16) string symbol                    // at most 16 characters, no heap (47.5)
 
 hotpath void function step(Tick t)             // the checks without the thread (game frames, audio)
 ```

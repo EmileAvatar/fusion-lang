@@ -60,10 +60,19 @@ struct only lends itself - `List<string> xs = order.items` is a borrow, never a 
 struct's fields are only ever borrowed; the whole struct moves (Decisions.md D.025, D.026).
 `[memory] assignment = "share"` keeps today's sharing.
 
-**Planned - `fixed` collections (Task 47.5, user 2026-10-31):** `fixed List<Tick>(4096)`
-holds at most 4096 elements - fewer is fine, more never (an error, no silent cut). It starts
-empty and grows as needed up to its maximum; its memory is reserved once at set-up, so a hot
-path never allocates (files/Service.md "Hot-path services").
+**Planned - `fixed(n)` (Task 47.5, user 2026-10-31 - Decisions.md D.064):** `fixed` limits only
+the **size** - at most n characters or slots; the values may still change. `const` is
+different: nothing changes, neither the length nor the values. The compiler guarantees a
+fixed string or collection never exceeds its total - for limited memory and hot paths.
+Lower is fine, more is an error (never cut). It starts empty and grows up to its maximum;
+its memory is reserved once.
+```fusion
+fixed(10) string name                        // at most 10 characters
+fixed(10) int numbers[]                      // at most 10 elements
+fixed int numbers[10]                        // the same - the size written in the array
+fixed(14) List<Person> people                // at most 14 people
+fixed(10) Map<int, fixed(15) string> codes   // at most 10 keys, each value at most 15 characters
+```
 
 **In one line each:**
 - **Single value**: one thing - an age, a name, a flag
@@ -227,7 +236,7 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
 #### Planned (user, 2026-10-27)
 
 - **Values of any type**
-- **Keys**: a non-empty fixed string (never pooled - its text can't change under the map), or
+- **Keys**: a non-empty constant string (never pooled - its text can't change under the map), or
   a whole number 0 or above (`byte`, `int`: 0, 140, 15661 - never a float, whose rounding
   makes equal-looking keys differ)
 - **Your own hashing and key rules**: a map can bring its own hash function and its own
@@ -362,5 +371,5 @@ original alone.
 | 2026-10-29 | `toList(copy = true)` on a List and an array; setting an array / List / Map to null is an error unless its nullable setting allows it |
 | 2026-10-29 | Arrays, Lists and Maps are references (shared) in normal code - a variable, parameter, class field, element - and copied inside a struct; `byVal` copies in normal code, `byRef` shares in a struct field. Never null, just empty |
 | 2026-10-31 | Planned (Task 48): Lists and Maps move on assignment, `byVal` copies, reading an element or passing borrows; a struct's collection only lends itself (Ownership.md) |
-| 2026-10-31 | Planned (47.5): the `fixed` prefix - a maximum size, lower fine, never higher; starts empty, grows up to it, memory reserved once |
+| 2026-10-31 | Planned (47.5): `fixed(n)` - only the size is limited, the values may change (`const`: nothing changes); lower fine, never higher; starts empty, grows up to it, memory reserved once |
 | 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |
