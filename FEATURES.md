@@ -57,6 +57,20 @@ are in `task/featuresArchive.md`.
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
+#### 49 Decisions.md - every feature and decision in one place (user, 2026-10-31) [ ]
+	Before 32.5 (it keeps later work from contradicting earlier decisions)
+	Rule: CLAUDE.md Rule 3b
+	[DONE] 49.0 First version of Decisions.md: section 1 features, section 2 decisions, 4 clashes found
+	[ ] 49.1 The design documents' decisions logs: Object_Lifetime, Classes, Arrays, Nullable_Values, Ownership
+	[ ] 49.2 FEATURES.md, task/featuresArchive.md (built features), SYNTAX_REFERENCE.md
+	[ ] 49.3 The spec and the grammar (files/fusion-language-spec.md, files/fusion.ebnf)
+	[ ] 49.4 Concurrency.md, Concurrency_Traps.md, files/Service.md
+	[ ] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
+	[ ] 49.6 Notes/, FutureFeatures.md, FutureFeaturesCaution.md, task/taskSummaryArchive.md (decisions only)
+	[ ] 49.7 The code: what the compiler does that no document records (src/)
+	[ ] 49.8 The user settles each CLASH row; the losing side is fixed in its document
+	[ ] 49.9 A check in check.py: every feature line has a known area and status; IDs unique
+
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ]
 	After Task 32 and 36.0. The type table: files/FusionTypes.html
 	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow

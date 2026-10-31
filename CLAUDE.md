@@ -44,6 +44,16 @@ files and chat; never in `.py`, `.c`, `.h`, `.fusion`, config, JSON or YAML. Use
   being worked on if it belongs there, otherwise under the future task it fits, or "Later /
   advanced" with a `[POSTPONED to X]`
 
+### Rule 3b: Decisions.md - one list of every feature and decision
+From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in one line
+(`AREA.NNN [STATUS] ...`) and the latest decision on each subject in one table row.
+- Before designing anything: grep it for the subject; if a proposal goes against an
+  ACTIVE decision, tell the user before going further
+- After the user decides: update the feature line and the decision row in the same session;
+  a replaced decision is removed (git keeps the history); a conflict is a `CLASH` row until
+  the user settles it
+- Language features only - no bug fixes, no discussions; keep it small
+
 ### Rule 4: Ship an example for every new feature
 When a language feature lands: add a short example to `SYNTAX_REFERENCE.md` (it becomes an
 example program in `examples/` - see `examples/CLAUDE.md`), or a fuller demo program in
@@ -125,6 +135,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 
 | What | Where |
 |---|---|
+| Every feature (one line) and the latest decision on each subject, clashes marked | `Decisions.md` |
 | Status of every open task/feature, postponed items | `FEATURES.md` |
 | Finished tasks and items (their FEATURES.md lines) | `task/featuresArchive.md` |
 | What the language can do now, with examples | `SYNTAX_REFERENCE.md` |
@@ -161,7 +172,8 @@ When a language feature or spec changes, update every affected file without aski
 
 | Change | Update |
 |---|---|
-| Any implemented feature | `FEATURES.md`, `SYNTAX_REFERENCE.md`, an example program |
+| Any implemented feature | `FEATURES.md`, `SYNTAX_REFERENCE.md`, an example program, its `Decisions.md` line ([BUILT]) |
+| Any language decision (new, changed, postponed, rejected) | `Decisions.md` (Rule 3b) |
 | Syntax (lambdas, blocks, types, keywords, operators) | `files/fusion.ebnf`, `files/fusion-language-spec.md`, `SYNTAX_REFERENCE.md` |
 | String interpolation | language spec, `SYNTAX_REFERENCE.md`, examples |
 | Standard library module | language spec |
