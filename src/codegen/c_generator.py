@@ -70,6 +70,22 @@ static inline int fusion_is_class(const void* o, const fusion_class_t* cls) {
 static inline void* fusion_clone_object(void* o) {
     return o ? ((fusion_object*)o)->fusion_class->clone(o) : NULL;
 }
+// typeOf(x) on an object (Task 32.7): its chain, top type first - Person.Employee.Manager
+static inline fusion_string fusion_type_of(const void* o) {
+    if (!o) return FUSION_STR("null");
+    const fusion_class_t* chain[64]; int n = 0, len = 0;
+    for (const fusion_class_t* c = ((const fusion_object*)o)->fusion_class; c && n < 64; c = c->parent) {
+        chain[n++] = c; len += (int)strlen(c->name) + 1;
+    }
+    char* text = (char*)fusion_alloc((size_t)len);
+    int at = 0;
+    for (int i = n - 1; i >= 0; i--) {
+        int k = (int)strlen(chain[i]->name);
+        memcpy(text + at, chain[i]->name, (size_t)k); at += k;
+        text[at++] = i ? '.' : '\0';
+    }
+    return (fusion_string){text, len - 1, len - 1, 1};
+}
 static inline const char* fusion_class_name(const void* o) {
     return o ? ((const fusion_object*)o)->fusion_class->name : "null";
 }
@@ -209,6 +225,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             decl.name: decl for decl in program.declarations if isinstance(decl, StructDecl)
         }
 
+        # Inheritance (Task 32.7): a child object is used where its parent is expected - its
+        # struct starts with the parent's fields, and the checker has already made sure
+        if any(getattr(d, 'class_parent', None) for d in self.struct_decls.values()):
+            self.emit('#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"')
         # Generate includes, then the runtime every program shares (Task 18.3.1) - or only
         # the settings and an #include of the shared run-time header (Task 28.1.3)
         if getattr(self, 'runtime_include', None):
@@ -731,13 +751,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         for decl in classes:
             c = self._mangle_function_name(decl.name)
             tables = []
-            for iface_name, answers in getattr(decl, 'interface_impls', {}).items():
+            every = list(getattr(decl, 'interface_impls', {}).items()) + \
+                list(getattr(decl, 'virtual_impls', {}).items())         # 32.7
+            for iface_name, answers in every:
                 i = self._mangle_function_name(iface_name)
                 iface = next(d for d in program.declarations
                              if isinstance(d, StructDecl) and d.name == iface_name)
                 order = {m.method_name: n for n, m in enumerate(iface.methods)}
-                wrappers = [None] * len(iface.methods)
+                wrappers = ['NULL'] * len(iface.methods)
                 for method, answer in answers:
+                    if answer is None:
+                        wrappers[order[method.method_name]] = 'NULL'     # abstract here (32.7)
+                        continue
                     wrapper = f'fusion_wrap_{c}__{i}__{method.method_name}'
                     params = self._c_parameter_list(
                         [ParameterDecl(location=method.location, name='this', default_value=None,
@@ -756,7 +781,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             name = decl.name.replace('\\', '\\\\').replace('"', '\\"')
             self.emit_clone_function(decl)
             self.emit(f'static void* fusion_clone_any_{c}(void* o) {{ return fusion_clone_{c}(({c}*)o); }}')
-            self.emit(f'static const fusion_class_t fusion_class_{c} = {{ "{name}", NULL, '
+            parent = f'&fusion_class_{self._mangle_function_name(decl.class_parent)}' \
+                if decl.class_parent else 'NULL'                  # 32.7
+            self.emit(f'static const fusion_class_t fusion_class_{c} = {{ "{name}", {parent}, '
                       f'fusion_release_any_{c}, fusion_clone_any_{c}, {len(tables)}, '
                       f'{f"fusion_tables_{c}" if tables else "NULL"} }};')
         if self.has_to_string():
@@ -777,8 +804,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """`Shape.area(Shape this)` - no code of its own (Task 32.5a): it finds the object's
         function in the object's class table and calls it."""
         i = self._mangle_function_name(node.interface_of)
-        iface = node.parameters[0].param_type
-        decl = iface.declaration or self.struct_decls.get(iface.name)
+        decl = self.struct_decls.get(node.interface_of)
         index = next(n for n, m in enumerate(decl.methods) if m.method_name == node.method_name)
         result = self.return_c_type(node.return_type)
         name = self._mangle_function_name(node.name)
@@ -1266,6 +1292,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'toInt': ('fusion_str_toInt', True), 'toFloat': ('fusion_str_toFloat', True),
         'isInt': ('fusion_str_isIntBase', True), 'isFloat': ('fusion_str_isFloat', False),
         'toString': (None, False),
+        'typeOf': (None, False),        # Task 32.7
         # Encoding helpers (Task 18.3.2b)
         'lenb': (None, False), 'isAscii': ('fusion_str_isAscii', False),
         'asciiOnly': ('fusion_str_asciiOnly', False), 'charCode': ('fusion_charCode', False),
@@ -1346,6 +1373,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             number = f'({code}).tag' if self.data_struct(first_type) is not None else f'(int)({code})'
             # null has no number: a NullError (Task 30.11)
             return self.checked_code(f'fusion_enum_toInt({number}, {self._where(node)})', 'int')
+        if name == 'typeOf':
+            # an object: its chain while running (32.7); anything else: its type's name
+            code = self.visit(arguments[0])
+            if self.is_class_type(first_type):
+                return f'fusion_type_of({code})'
+            text = escape_c_text(getattr(node, 'type_text', ''), '"')
+            return f'((void)({code}), FUSION_STR("{text}"))'
         if name == 'toString' and self.is_class_type(first_type):
             # an object: its toString() (32.5b), else its own class name, or null (32.2f, 32.5a)
             if self.has_to_string():

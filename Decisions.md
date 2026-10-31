@@ -160,7 +160,7 @@ CLS.003 [BUILT] Statics set up in three forms (A, B, C) before main
 CLS.004 [BUILT] Visibility `private` (the class) / `internal` (the namespace) / `public`; `namespace A.B`
 CLS.005 [BUILT] Printing an object gives its class name, with a warning (until ToString)
 CLS.006 [BUILT] Interfaces: `interface`, `implements` (several), building on several, as a type, `is`, casts; default methods behind `[interfaces] defaultMethods` (32.5a)
-CLS.007 [PLANNED] Inheritance: one parent, `inherits` (alias `extends`), `override`, `sealed`, `abstract`, `protected`, `super`; `typeOf(x)` gives the chain (32.7)
+CLS.007 [BUILT] Inheritance: one parent, `inherits` (alias `extends`), `override`, `sealed`, `abstract`, `protected`, `super`; `typeOf(x)` gives the chain (32.7)
 CLS.008 [BUILT] `nocopy` / `noshare` fields; `byVal` copies objects; `Cloneable` with its own clone() (32.5b)
 CLS.009 [POSTPONED] The builder pattern (after Task 32)
 CLS.010 [BUILT] A warning for each circle of classes that could leak
@@ -327,7 +327,7 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.081 | Not catchable: running out of memory, a List past 536,870,911 elements - every other failure is an error a program can catch | FUN.002 | 2026-10-16 | spec Errors | ACTIVE |
 | D.082 | A cast is written in front: `Shape shp = (Shape)aCircle`; a type it isn't is a compile error where it can be seen, else a CastError; `x is Circle` tests first | TYP.016 | 2026-10-31 | taskSummary2.md (32.5) | ACTIVE (planned) |
 | D.083 | Favour composition over inheritance: holding an object comes first in docs and examples; inheritance has one parent | CLS.007 | 2026-10-31 | Classes.md | ACTIVE |
-| D.084 | Inheritance: `override` is required to replace a parent's function, `sealed` stops it, `abstract` allowed, `protected` for the class and its children, `super(...)` / `super.f()` | CLS.007 | 2026-10-31 | taskSummary2.md (32.7) | ACTIVE (planned) |
+| D.084 | Inheritance: `override` is required to replace a parent's function, `sealed` stops it, `abstract` allowed, `protected` for the class and its children, `super(...)` / `super.f()` | CLS.007 | 2026-10-31 | taskSummary2.md (32.7) | ACTIVE |
 | D.085 | `Collection<T>`, from Java's: add, remove, length, isEmpty, contains, addAll, removeAll, keepOnly (alias retainAll), clear | COL.006 | 2026-10-31 | taskSummary2.md (32.4) | ACTIVE (planned) |
 | D.086 | A rule that is broken: a compile error wherever it can be seen, else a run-time error | GOL.008 | 2026-10-31 | - | ACTIVE |
 | D.087 | An interface can build on several: `interface D implements A, B, C` | CLS.006 | 2026-10-31 | taskSummary2.md (32.5) | ACTIVE (planned) |

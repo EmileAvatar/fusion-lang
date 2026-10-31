@@ -145,7 +145,7 @@ def test_class_errors(source, message):
     ('class A\n    public int n\n    constructor(int n)\n        this.n = n\n'
      '    constructor()\n        this(n)\n',
      "can't use 'n' - the object isn't made until the other constructor runs"),
-    ('class Car inherits Thing\n    public int n\n', "comes with inheritance"),
+    ('class Car includes Thing\n    public int n\n', "'includes' is for structs"),
     ('void function main()\n    int x = new 5\n', "'new' comes before a class's constructor"),
 ])
 def test_class_parse_errors(source, message):

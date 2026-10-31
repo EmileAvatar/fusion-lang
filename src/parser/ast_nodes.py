@@ -790,6 +790,11 @@ class StructDecl(ASTNode):
     # implements, or what an interface builds on (`interface D implements A, B, C`)
     is_interface: bool = False
     interfaces: List[str] = field(default_factory=list)
+    # `class Manager inherits Employee` (Task 32.7): one parent class; `abstract class` can't
+    # be made, `sealed class` can't be inherited (D.084)
+    class_parent: Optional[str] = None
+    is_abstract: bool = False
+    is_sealed: bool = False
 
 
 @dataclass

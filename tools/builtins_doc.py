@@ -33,7 +33,7 @@ TOPICS = [
                                    'digitsOnly']),
     ('Text - split and join', ['split', 'join', 'lines', 'words']),
     ('Text - masks', ['mask', 'maskEmail', 'formatMask']),
-    ('Conversions and formatting', ['toString', 'toInt', 'toFloat', 'parseInt', 'formatNumber']),
+    ('Conversions and formatting', ['toString', 'typeOf', 'toInt', 'toFloat', 'parseInt', 'formatNumber']),
     ('Number bases', ['toHex', 'toBinary', 'toOctal', 'toBase', 'fromHex', 'fromBinary',
                       'fromOctal']),
     ('Raw bytes', ['toBytes', 'newBytes', 'byteAt', 'getInt', 'getInt16', 'getUInt16', 'setInt',
@@ -50,6 +50,7 @@ SPECIAL = {
     'len': ('len(string | array | bytes)', 'int'),
     'range': ('range(int from, int to, int step = 1)', 'the numbers, for a loop'),
     'toString': ('toString(int | float | double | bool | char | byte | bytes)', 'string'),
+    'typeOf': ('typeOf(any)', 'string'),     # an object: its chain, Person.Employee (32.7)
 }
 
 # (call, returns, can fail, what it does) - List<T> methods (Task 18.5.1)

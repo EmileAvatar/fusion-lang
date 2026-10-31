@@ -556,7 +556,11 @@ Kept under Task 22 until the renumbering is approved.
 - 32.5b Default done: the interface pass gives each Default variable / field / static Settings()
   (made_by_default - may call a private constructor); a field's is called in the make function
 - 32.5 complete
-- **Next Action:** 32.7 (inheritance)
+- 32.7 done: inheritance.py - a child's struct starts with the parent's fields (a pragma lets
+  C use it as the parent); virtual functions through a hidden X.virtual table; Employee.init
+  for super(...); typeOf via the class chain
+- **Next Action:** 32.4 + 32.6 (Collection<T>, foreach) - two open points first (iterator?
+  what arrays and Maps give)
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

@@ -1670,6 +1670,8 @@ int value = grid.Cell[5, 3]
 
 ### Inheritance
 
+**Status:** [DONE 32.7] one parent (`inherits` / `extends`), `override`, `sealed`, `abstract`, `protected`, `super(...)` / `super.f()`, `typeOf(x)` - the truth table: Classes.md section 8. Favour composition over inheritance (D.083).
+
 Description: Single inheritance with interface support.
 
 ```

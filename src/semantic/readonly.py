@@ -40,9 +40,12 @@ def check_readonly(program) -> List[SemanticError]:
     # parameter on to every function that answers it
     answers: Dict[str, List[str]] = {}
     for d in program.declarations:
-        for iface, pairs in getattr(d, 'interface_impls', {}).items():
+        tables = list(getattr(d, 'interface_impls', {}).items()) + \
+            list(getattr(d, 'virtual_impls', {}).items())          # 32.7
+        for iface, pairs in tables:
             for method, answer in pairs:
-                answers.setdefault(f'{iface}.{method.method_name}', []).append(answer.name)
+                if answer is not None and answer is not method:
+                    answers.setdefault(method.name, []).append(answer.name)
     if not any(p.is_readonly for f in functions.values() for p in f.parameters):
         return []
     classes = {d.name for d in program.declarations if isinstance(d, StructDecl) and d.is_class}

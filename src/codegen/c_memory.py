@@ -645,8 +645,9 @@ class MemoryManagementMixin:
             return f'{self.map_type(type_node)}_clone({code})'
         if self.is_class_type(type_node):
             decl = type_node.declaration or self.struct_decls.get(type_node.name)
-            if decl.is_interface:
-                return f'fusion_clone_object({code})'      # its own class makes it
+            has_children = any(decl.name in getattr(d, 'ancestors', ()) for d in self.struct_decls.values())
+            if decl.is_interface or has_children:
+                return f'fusion_clone_object({code})'      # its own class makes it (32.5b, 32.7)
             return f'fusion_clone_{self._struct_c_name(type_node)}({code})'
         return self.copy_code(type_node, code)
 

@@ -1878,7 +1878,8 @@ class Parser:
                                                "may be given")
             if not (self.check(TokenType.STRUCT) or self.check(TokenType.ENUM)
                     or self.check(TokenType.CONST) or self.check(TokenType.CLASS)
-                    or self.check(TokenType.INTERFACE)
+                    or self.check(TokenType.INTERFACE) or self.check(TokenType.ABSTRACT)
+                    or self.check(TokenType.SEALED)
                     or self.is_error_declaration_start() or self.is_type_start()
                     or self.is_function_type_declaration_start()
                     or self.is_struct_type_declaration_start()):
@@ -1920,6 +1921,14 @@ class Parser:
         # Class declaration (Task 32.10b)
         if self.match(TokenType.INTERFACE):
             return self.parse_interface_declaration()
+        if self.check(TokenType.ABSTRACT) or self.check(TokenType.SEALED):
+            word = self.advance()                      # Task 32.7 (D.084)
+            self.consume(TokenType.CLASS, f"'{word.value}' goes before 'class' (or before a "
+                                          f"function inside a class)")
+            decl = self.parse_class_declaration()
+            decl.is_abstract = word.type == TokenType.ABSTRACT
+            decl.is_sealed = word.type == TokenType.SEALED
+            return decl
         if self.match(TokenType.CLASS):
             return self.parse_class_declaration()
 
@@ -2130,11 +2139,23 @@ class Parser:
         token has already been consumed."""
         class_token = self.previous()
         name = self.consume(TokenType.IDENTIFIER, "Expected the class name after 'class'").value
-        interfaces = self._implements_list() if self.match(TokenType.IMPLEMENTS) else []
-        if self.check(TokenType.INHERITS) or (
-                self.check(TokenType.IDENTIFIER) and self.peek().value in ('extends', 'includes')):
-            raise ParserError(self.peek(), "A class building on another class comes with "
-                                           "inheritance (Task 32.7)")
+        interfaces, parent = [], None
+        while True:
+            if self.match(TokenType.IMPLEMENTS):
+                interfaces += self._implements_list()
+            elif self.check(TokenType.INHERITS) or (
+                    self.check(TokenType.IDENTIFIER) and self.peek().value == 'extends'):
+                word = self.advance()              # Task 32.7: one parent (D.084)
+                if parent is not None:
+                    raise ParserError(word, f"Class '{name}' has one parent - favour holding an "
+                                            f"object over a second parent (D.083)")
+                parent = self.consume(TokenType.IDENTIFIER, f"Expected the parent class after "
+                                                            f"'{word.value}'").value
+            elif self.check(TokenType.IDENTIFIER) and self.peek().value == 'includes':
+                raise ParserError(self.peek(), "A class builds on a class with 'inherits' "
+                                               "(or 'extends') - 'includes' is for structs")
+            else:
+                break
         while self.match(TokenType.NEWLINE):
             pass
         if self.match(TokenType.LBRACE):
@@ -2154,9 +2175,19 @@ class Parser:
             # public / private on a member (Task 32.2a): fields private, functions and
             # constructors public when nothing is written (Classes.md section 1)
             written = None              # True public, False private, 'internal' (32.2h)
-            if self.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.INTERNAL):
+            if self.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.INTERNAL, TokenType.PROTECTED):
                 written = {TokenType.PUBLIC: True, TokenType.PRIVATE: False,
-                           TokenType.INTERNAL: 'internal'}[self.previous().type]
+                           TokenType.INTERNAL: 'internal',
+                           TokenType.PROTECTED: 'protected'}[self.previous().type]   # 32.7
+            # override / sealed / abstract before a function (Task 32.7, D.084)
+            member_words = set()
+            while self.check(TokenType.OVERRIDE) or self.check(TokenType.SEALED) \
+                    or self.check(TokenType.ABSTRACT) or self.check(TokenType.VIRTUAL):
+                word = self.advance()
+                if word.type == TokenType.VIRTUAL:
+                    raise ParserError(word, "Every function can be overridden - 'virtual' isn't "
+                                            "needed ('sealed' stops it)")
+                member_words.add(word.value)
             # Form C, the static block: `static { ... }` (Task 32.2c)
             if self.check(TokenType.STATIC) and self.peek(1).type in (
                     TokenType.LBRACE, TokenType.NEWLINE, TokenType.INDENT):
@@ -2202,7 +2233,18 @@ class Parser:
                 constructors.append((start, parameters, self.parse_block_statement(),
                                      written is False, written))
                 continue
-            item = self.parse_struct_field()
+            item = self.parse_struct_field(signature_only='abstract' in member_words)
+            if member_words and not isinstance(item, FunctionDecl):
+                raise ParserError(self.previous(), f"'{sorted(member_words)[0]}' goes before a "
+                                                   f"function")
+            if 'abstract' in member_words and item.body is not None:
+                raise ParserError(self.previous(), f"An abstract function has no code - a class "
+                                                   f"that inherits it gives the code")
+            if isinstance(item, FunctionDecl):
+                item.is_override = 'override' in member_words
+                item.is_sealed = 'sealed' in member_words
+                item.is_abstract = 'abstract' in member_words
+            item.is_protected = written == 'protected'
             if copying is not None and isinstance(item, FunctionDecl):
                 raise ParserError(self.previous(), f"'{copying}' goes before a field")
             item.copying = copying
@@ -2213,7 +2255,7 @@ class Parser:
                 item.is_static = is_static
                 (static_methods if is_static else methods).append(item)
                 continue
-            item.is_private = written is not True and written != 'internal'
+            item.is_private = written is not True and written not in ('internal', 'protected')
             # Form B: a block right after a field's value sets it up further (32.2c, 32.2d)
             item.setup = None
             if item.default_value is not None and (self.check(TokenType.LBRACE) or (
@@ -2231,7 +2273,7 @@ class Parser:
             self.consume(TokenType.CLASS, "Expected 'class' after 'End'")
         decl = StructDecl(location=class_token.location, name=name, fields=fields, is_class=True,
                           static_fields=static_fields, static_block=static_block,
-                          interfaces=interfaces)
+                          interfaces=interfaces, class_parent=parent)
         self.attach_methods(decl, methods)
         for method in static_methods:                # no `this` (Task 32.2c)
             method.method_name, method.method_of = method.name, name
@@ -2672,7 +2714,7 @@ class Parser:
             variant.explicit_value = True
         return variant
 
-    def parse_struct_field(self):
+    def parse_struct_field(self, signature_only: bool = False):
         """Parse one struct field: `int x` or `int hp = 100` (Task 18.2.1) - or a method,
         `void function move(int dx)` (Task 32.1), returned as a FunctionDecl. `byRef
         List<string> log` - shared when the struct is copied (Task 32.10a)."""
@@ -2681,7 +2723,7 @@ class Parser:
             self.advance()
         field_type = self.parse_type()
         if self.match(TokenType.FUNCTION, TokenType.FUNC):
-            return self.parse_function_declaration(field_type)
+            return self.parse_function_declaration(field_type, signature_only=signature_only)
         if self.check_any(TokenType.FUNCTION, TokenType.FUNC):
             raise ParserError(
                 self.peek(),

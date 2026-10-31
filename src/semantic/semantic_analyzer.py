@@ -19,6 +19,7 @@ from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly
 from .interfaces import check_interfaces
+from .inheritance import expand_inheritance
 from .class_rules import check_visibility_written, check_copy_fields
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
@@ -116,6 +117,8 @@ class SemanticAnalyzer:
         self.errors.extend(expand_statics(ast))
         # Form B on any variable (Task 32.2d): a local's set-up block runs right after it
         self.errors.extend(expand_setup_blocks(ast))
+        # Inheritance (Task 32.7): fields, functions, virtual ones, super - before interfaces
+        self.errors.extend(expand_inheritance(ast))
         # Interfaces (Task 32.5a): what each needs, which class function answers it
         self.errors.extend(check_interfaces(ast, self.default_methods))
 

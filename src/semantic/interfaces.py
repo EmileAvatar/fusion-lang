@@ -223,6 +223,10 @@ def check_interfaces(program, default_methods: bool = False) -> List[SemanticErr
                     wanted.append(more)
         own = {m.method_name: m for m in decl.methods
                if not getattr(m, 'is_constructor', False) and not getattr(m, 'is_static', False)}
+        for name, m in getattr(decl, 'inherited', {}).items():      # from a parent (32.7)
+            own.setdefault(name, m)
+        # a virtual function answers through its look-up, so a child's version runs (32.7)
+        own = {n: getattr(m, 'virtual_dispatcher', m) for n, m in own.items()}
         impls = {}
         for name in wanted:
             answers = []

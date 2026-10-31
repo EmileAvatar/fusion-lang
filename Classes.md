@@ -210,7 +210,37 @@ if s is Circle                           // what it is while running
 
 ---
 
-## 8. Decisions log
+## 8. Inheritance (built - Task 32.7, tests/test_inheritance.py)
+
+Fusion favours composition - holding an object - over inheritance (D.083); inheritance is there
+for a true "is a" with one parent.
+
+```fusion
+class Employee inherits Person           // `extends` as quick typing
+    constructor(string name)
+        super(name)                      // the parent's constructor - the first line
+    override string function greet() : super.greet() + " and I work"
+```
+
+| Case | Result |
+|---|---|
+| `class B inherits A` (`extends`) | B gets A's fields (first, in order), functions and interfaces; a B is used where an A is expected |
+| a second parent | a compile error - one parent only (hold an object instead) |
+| A is an interface, a struct, sealed, missing, or in a circle | a compile error |
+| B has a function of A's name | needs `override`, the same signature; A's `sealed` or private one: an error |
+| `override` with nothing to replace | a compile error |
+| a call through an A that holds a B | B's function runs (looked up in the object's class table) |
+| `super.f()` | A's own code for f |
+| `super(...)` on the first line of B's constructor | A's constructor code on this object; without it, A's constructor without arguments |
+| `abstract class A` / `abstract float function area()` | A can't be made; a class below must give every abstract function |
+| `protected` field / function | A and the classes below it; private: A only |
+| `(B)a`, `a is B` | checked while running: a CastError when it isn't; a null stays null |
+| `typeOf(x)` | the chain, top first: `Person.Employee.Manager`; a null: `null`; any other value: its type |
+| `byVal a` holding a B | a copy of the whole B |
+
+---
+
+## 9. Decisions log
 
 | Date | Decision |
 |---|---|
@@ -223,6 +253,7 @@ if s is Circle                           // what it is while running
 | 2026-10-30 | `Default` and null: `s = null` on a Default type lets the old object go and makes a new default one - the variable is never null, even right after `= null` |
 | 2026-10-30 | Printing an object: `ToString` interface; without it the class name only, with a warning |
 | 2026-10-30 | The builder pattern - noted for later, a different idea from form B |
+| 2026-10-31 | Inheritance built (32.7): one parent, override / sealed / abstract / protected, super, typeOf; favour composition (D.083, D.084) |
 | 2026-10-31 | The built-in interfaces built (32.5b): ToString, Cloneable (with nocopy / noshare), Default; byVal copies objects |
 | 2026-10-31 | Interfaces built (32.5a): several per class, an interface building on several, casts written in front, `is`, default methods behind `[interfaces] defaultMethods` (D.082, D.087) |
 | 2026-10-31 | Planned (Task 48, Ownership.md): `Car b = a` moves - `a` can't be used after it; `byVal` copies (`clone()`), passing borrows; `shared Car c = a` is read only except to the holder that made it shared, `byRef` from it lends change; `[memory] assignment = "move"` (default) / `"share"` |

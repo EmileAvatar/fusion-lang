@@ -1026,6 +1026,30 @@ void function main()
     print("{@1}", s.size)                 // 5
 ```
 
+#### Inheritance: `inherits`, `override`, `super`, `typeOf`
+
+<!-- example: syntax_inheritance | task: 32.7 -->
+```fusion
+class Person
+    public string name
+    constructor(string name)
+        this.name = name
+    string function greet() : "Hi, I am " + name
+
+class Employee inherits Person           // `extends` too - one parent only
+    constructor(string name)
+        super(name)                      // the parent's constructor, first
+    override string function greet() : super.greet() + " and I work"
+
+void function main()
+    Person p = Employee("Bob")
+    print(p.greet())                     // Hi, I am Bob and I work - the object's own
+    print(typeOf(p))                     // Person.Employee
+```
+`abstract class` can't be made and `abstract` functions must be given below; `sealed` stops a
+class being inherited or a function overridden; `protected` is for the class and the classes
+below it. Fusion favours holding an object (composition) over inheritance.
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->

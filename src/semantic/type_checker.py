@@ -175,6 +175,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         # An object where an interface it implements is expected (Task 32.5a)
         if self.implements_interface(actual, expected):
             return True
+        # A child class where its parent (or the parent's parent ...) is expected (32.7)
+        if self.is_descendant(actual, expected):
+            return True
 
         # Numeric promotions (byte -> int -> float -> double)
         if self.is_numeric_promotion(expected, actual):
@@ -746,11 +749,16 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 if method is None and getattr(struct, 'parent', None) else None
             if inherited is not None:
                 receiver, struct, method = inherited     # e.greet() is Person.greet(e.Person)
-            if method is not None and getattr(method, 'is_private', False) \
-                    and getattr(self, 'current_class', None) != struct.name:
+            if method is None and getattr(struct, 'inherited', None):
+                method = struct.inherited.get(member)   # a parent class's function (32.7)
+            owner = getattr(method, 'method_of', None) or getattr(struct, 'name', None)
+            if method is not None and not self.member_owner_ok(method, owner):
                 self.checked_receivers.pop(id(receiver), None)
-                return (f"Function '{member}' of class '{struct.name}' is private - only "
-                        f"{struct.name}'s own functions can call it")
+                if getattr(method, 'is_protected', False):
+                    return (f"Function '{member}' of class '{owner}' is protected - only "
+                            f"{owner} and the classes that inherit it can call it")
+                return (f"Function '{member}' of class '{owner}' is private - only "
+                        f"{owner}'s own functions can call it")
             if method is not None and getattr(method, 'is_internal', False) \
                     and not self.same_place(struct):
                 self.checked_receivers.pop(id(receiver), None)
@@ -763,7 +771,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                         self.checked_receivers.pop(id(receiver), None)
                         return (f"Method '{member}' changes the {struct.name} - '{root.name}' "
                                 f"is a constant")
-                node.callee = IdentifierExpr(location=node.callee.location, name=method.name)
+                # a virtual function: through its look-up, so the object's own runs (32.7)
+                called = getattr(method, 'virtual_dispatcher', None) or method
+                node.callee = IdentifierExpr(location=node.callee.location, name=called.name)
                 node.arguments = [receiver] + list(node.arguments)
                 node.struct_method = True     # (not is_method - that means a built-in)
                 return None
@@ -956,10 +966,50 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 f"{'true' if node.negated else 'false'}", node.location))
         return PrimitiveType(location=node.location, name='bool')
 
+    def is_descendant(self, actual, expected) -> bool:
+        """A class value of `actual` can be used as the class `expected` (Task 32.7)."""
+        target = self.struct_declaration(expected)
+        if not getattr(target, 'is_class', False) or target.is_interface:
+            return False
+        return target.name in getattr(self.struct_declaration(actual), 'ancestors', ())
+
+    def member_owner_ok(self, member, owner_name: str) -> bool:
+        """private: the class that declared it; protected: that class and its children
+        (Task 32.7)."""
+        here = getattr(self, 'current_class', None)
+        if getattr(member, 'is_protected', False):
+            decl = self.struct_named(here) if here else None
+            return here == owner_name or owner_name in getattr(decl, 'ancestors', ())
+        if getattr(member, 'is_private', False):
+            return here == owner_name
+        return True
+
     def is_default_type(self, type_node) -> bool:
         """A class implementing Default - its variables are never null (Task 32.5b)."""
         decl = self.struct_declaration(type_node)
         return not getattr(decl, 'is_interface', True) and 'Default' in getattr(decl, 'all_interfaces', ())
+
+    def _super_call(self, node, parent) -> TypeNode:
+        """super(...) (Task 32.7): the parent constructor the arguments choose, run on this
+        object - its code as `Employee.init(this, ...)`."""
+        made = self.choose_constructor(node, parent)
+        void = PrimitiveType(location=node.location, name='void')
+        if made is None:
+            return void
+        if getattr(made, 'is_private', False):
+            self.errors.append(SemanticError(f"The constructor of class '{parent.name}' is "
+                                              f"private - a class can't inherit with it", node.location))
+            return void
+        if getattr(made, 'init', None) is None:
+            self.errors.append(SemanticError(f"super(...) can't use a constructor of "
+                                              f"{parent.name} that starts with this(...) - not yet",
+                                              node.location))
+            return void
+        node.super_call = False
+        node.callee = IdentifierExpr(location=node.location, name=made.init.name)
+        node.arguments = [IdentifierExpr(location=node.location, name='this')] + list(node.arguments)
+        node.resolved_arguments = None
+        return self.visit_CallExpr(node)
 
     def implements_interface(self, actual, expected) -> bool:
         """An object of `actual` (a class or an interface) can be used as the interface
@@ -987,7 +1037,20 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return 'maybe'                  # some class may implement both
         if target_kind == 'class' and operand_kind == 'interface':
             return 'maybe' if self.implements_interface(target, operand_type) else 'never'
+        if target_kind == 'class' and operand_kind == 'class' and self.is_descendant(target, operand_type):
+            return 'maybe'                  # an Employee that may be a Manager (32.7)
+        if target_kind == 'interface' and operand_kind == 'class':
+            decl = self.struct_declaration(operand_type)
+            children = [d for d in self._all_classes() if decl.name in getattr(d, 'ancestors', ())]
+            if any(self.implements_interface(StructType(location=d.location, name=d.name), target)
+                   for d in children):
+                return 'maybe'              # a child of it implements it (32.7)
         return 'never'
+
+    def _all_classes(self):
+        return [s.declaration for s in self.symbol_table.global_scope.symbols.values()
+                if s.symbol_type == 'struct' and getattr(s.declaration, 'is_class', False)
+                and not s.declaration.is_interface]
 
     def visit_CastExpr(self, node) -> TypeNode:
         """`(Shape)aCircle` (Task 32.5a, D.082): to what the value always is - no check; to what
@@ -1215,11 +1278,17 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if not getattr(owner, 'is_class', False):
             return
         field = next((f for f in owner.fields if f.name == node.member), None)
-        if getattr(field, 'is_private', False) and getattr(self, 'current_class', None) != owner.name:
-            self.errors.append(SemanticError(
-                f"Field '{node.member}' of class '{owner.name}' is private - only {owner.name}'s "
-                f"own functions can use it (write 'public' before it to share it)",
-                node.location))
+        declared = getattr(field, 'owner', None) or owner.name      # a parent's field (32.7)
+        if field is not None and not self.member_owner_ok(field, declared):
+            if getattr(field, 'is_protected', False):
+                self.errors.append(SemanticError(
+                    f"Field '{node.member}' of class '{declared}' is protected - only {declared} "
+                    f"and the classes that inherit it can use it", node.location))
+            else:
+                self.errors.append(SemanticError(
+                    f"Field '{node.member}' of class '{declared}' is private - only {declared}'s "
+                    f"own functions can use it (write 'public' before it to share it)",
+                    node.location))
         elif getattr(field, 'is_internal', False) and not self.same_place(owner):
             self.errors.append(SemanticError(
                 self.internal_text(f"Field '{node.member}' of class '{owner.name}'", owner),
@@ -1419,6 +1488,15 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return StructType(location=node.location, name=symbol.declaration.name,
                               declaration=symbol.declaration)
 
+        if symbol.symbol_type == 'struct' and getattr(node, 'super_call', False):
+            return self._super_call(node, symbol.declaration)             # Task 32.7
+        if symbol.symbol_type == 'struct' and getattr(symbol.declaration, 'is_abstract', False):
+            self.errors.append(SemanticError(
+                f"Class '{func_name}' is abstract - it can't be made; make an object of a "
+                f"class that inherits it", node.location))
+            return StructType(location=node.location, name=symbol.declaration.name,
+                              declaration=symbol.declaration)
+
         if symbol.symbol_type == 'struct' and getattr(symbol.declaration, 'is_class', False):
             # Car("Honda") / new Car("Honda") - the constructor, Car.new (Task 32.10b); a
             # private one only inside the class (Task 32.2a)
@@ -1531,6 +1609,18 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     f"{self.type_to_string(arg_type)}",
                     node.arguments[0].location
                 ))
+            return func_type.return_type
+
+        # typeOf(x) - the type's name; an object's whole chain, top type first, while the
+        # program runs: Person.Employee.Manager (Task 32.7)
+        if func_name == 'typeOf':
+            if len(node.arguments) != 1:
+                self.errors.append(SemanticError(
+                    f"Function 'typeOf' expects 1 argument, got {len(node.arguments)}", node.location))
+                return func_type.return_type
+            arg_type = self.visit(node.arguments[0])
+            node.type_text = self.type_to_string(arg_type)
+            node.resolved_arguments = list(node.arguments)
             return func_type.return_type
 
         # toString(x) - any single value: int, float, double, bool, char, string (18.3.2)

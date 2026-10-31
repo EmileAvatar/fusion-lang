@@ -3,7 +3,7 @@
 **Generated from the compiler** by `python check.py --builtins` (Task 28.1.4) - do not edit by hand.
 `python check.py` fails when this file no longer matches the compiler.
 
-96 functions, 16 List methods, 7 Map methods. Examples of each are in `SYNTAX_REFERENCE.md`.
+97 functions, 16 List methods, 7 Map methods. Examples of each are in `SYNTAX_REFERENCE.md`.
 
 - **Layer:** the lowest `[stdlib] layer` that allows it - `core` (no heap), `alloc` (no operating system), `std` (everything)
 - **Fails:** it can raise an error (catch it with `try`, or capture it); any function that makes text can also fail with StringTooLongError when `[strings] max_length` is set
@@ -124,6 +124,7 @@
 | Function | Returns | Layer | Fails |
 |---|---|---|---|
 | `toString(int \| float \| double \| bool \| char \| byte \| bytes)` | `string` | alloc |  |
+| `typeOf(any)` | `string` | alloc |  |
 | `toInt(string)` | `int` | alloc | yes |
 | `toFloat(string)` | `float` | alloc | yes |
 | `parseInt(string, int)` | `int` | alloc | yes |

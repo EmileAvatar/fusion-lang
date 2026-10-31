@@ -195,9 +195,11 @@ are in `task/featuresArchive.md`.
 	[DONE] 32.13 A struct as text (tests/test_struct_parents.py): `"{e}"` gives
 		`name : "Jeff",age : 30`; `x.toCSV(delimiter = ",")` on a struct, a one-dimensional
 		array or a List of structs - one heading row (`Person.name`, ...), one row per struct
-	[ ] 32.7 Inheritance - one parent; favour composition (D.083) - using a parent type (user, 2026-10-29): `typeOf(x)` gives the chain,
-		top type first (`Person.Employee.Manager`), so the program can convert it back; for a
-		struct, only a `byRef` parameter keeps the whole value (a normal one: `Person`)
+	[DONE] 32.7 Inheritance (tests/test_inheritance.py, Classes.md section 8): one parent - `inherits` / `extends`
+		fields, functions and interfaces inherited; override (required), sealed, abstract, protected
+		a call through a parent runs the object's own function (the class table)
+		super(...) runs the parent's constructor code; super.f() the parent's own code
+		typeOf(x): Person.Employee.Manager; casts down checked while running; favour composition (D.083)
 	[DONE] 32.5 Interfaces - also the built-in ones (Classes.md sections 5, 6): `ToString`
 		[DONE] 32.5a Interfaces (tests/test_interfaces.py, Classes.md section 7): `interface`, `implements` (several)
 			an interface building on several; as a type (variables, parameters, Lists); the object's own function runs

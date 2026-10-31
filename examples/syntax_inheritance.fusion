@@ -1,0 +1,15 @@
+class Person
+    public string name
+    constructor(string name)
+        this.name = name
+    string function greet() : "Hi, I am " + name
+
+class Employee inherits Person           // `extends` too - one parent only
+    constructor(string name)
+        super(name)                      // the parent's constructor, first
+    override string function greet() : super.greet() + " and I work"
+
+void function main()
+    Person p = Employee("Bob")
+    print(p.greet())                     // Hi, I am Bob and I work - the object's own
+    print(typeOf(p))                     // Person.Employee
