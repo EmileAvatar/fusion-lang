@@ -77,7 +77,11 @@ are in `task/featuresArchive.md`.
 		Clash C.009 settled 2026-10-31: a group service (D.077)
 	[DONE] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
 		9 feature lines (the built settings missing, [project], [build], [threads], stack traces); D.076
-	[ ] 49.6 Notes/, FutureFeatures.md, FutureFeaturesCaution.md, task/taskSummaryArchive.md (decisions only)
+	[DONE] 49.6 Notes/, FutureFeatures.md, FutureFeaturesCaution.md, task/taskSummaryArchive.md (decisions only)
+		11 feature lines (comment blocks, bit type, decimal, arenas, tools, IDE module); D.078, D.079
+		Fixed against decisions: Currency live rates (D.022), GC default (D.027), `Shared<T>?` (D.063)
+		Marked as replaced in FutureFeatures: decimal money, string prefixes, `type()` arrays
+		Clash C.010 for the user: 12.7 `.move()` written vs D.014 moving by default
 	[ ] 49.7 The code: what the compiler does that no document records (src/)
 	[ ] 49.8 The user settles each CLASH row; the losing side is fixed in its document
 		C.001-C.004 settled 2026-10-31 -> D.025-D.028; documents fixed

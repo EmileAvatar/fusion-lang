@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (none open - C.001-C.009 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065, D.077)
+  (open: C.010 - C.001-C.009 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065, D.077)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -66,6 +66,9 @@ SYN.032 [DESIGN] `#Region` / `#End Region`; documentation comments; documentatio
 SYN.033 [DESIGN] `loop { } end loop` with safety checks; loop labels; an iteration limit (`[safety] maxIterations`)
 SYN.034 [DESIGN] The `...` operator: ranges `1...100`, variadic `int... numbers`, spread `[...a, ...b]` (`string... args` of main is built)
 SYN.035 [DESIGN] `**` (power) - read by the lexer, not built; annotations `@name(...)`
+SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints
+SYN.037 [DESIGN] Semicolons accepted; reading code written in other languages' syntax
+SYN.038 [DESIGN] A minimum variable-name length in strict mode (default 3; loop counters and type parameters excepted)
 
 #### TYP - types
 TYP.001 [BUILT] int, float, double, bool, char, byte - overflow checked; `[numbers] overflowWrap` wraps
@@ -81,6 +84,8 @@ TYP.010 [DESIGN] Flag enums combined with `|` (`Permission.Read | Permission.Wri
 TYP.011 [BUILT] Conversions are functions: `toInt`, `toFloat`, `toString`, `toByte`, `parseInt`
 TYP.012 [BUILT] Enum functions `values()`, `fromString()`; an enum prints its name
 TYP.013 [DESIGN] Cast syntax `cast<T>(x)`; autoboxing (`(42).toString()`) - the type classes (`Int`, `String`) are built
+TYP.014 [DESIGN] A `bit` type and bit-level operations
+TYP.015 [DESIGN] `decimal(p, s)`: an exact fixed-point number - after `money` (47.2.3)
 
 #### STR - strings
 STR.001 [BUILT] Strings are values, freed automatically; changed in place (`s[i] = c`)
@@ -110,6 +115,7 @@ COL.012 [PLANNED] Maps: `add(otherMap)`; a map may bring its own hashing and key
 COL.013 [REJECTED] Changing a collection while looping over it (a setting to allow it) - build a new one
 COL.014 [DESIGN] `Set<T>`; slices by range (`numbers[0...1]`); Map literals (`{"apples": 3}`)
 COL.015 [POSTPONED] Multi-dimensional arrays
+COL.016 [REJECTED] `type()` / `type(N)` arrays meaning read-only or fixed size - `const` and `fixed(n)` instead (D.064)
 
 #### FUN - functions and errors
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value
@@ -163,6 +169,7 @@ MOD.004 [DESIGN] Library trust: capability signatures, sandboxing, supply-chain 
 MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); `[modules] paths`
 MOD.006 [DESIGN] Working with other code: loading a DLL, assembly blocks, calling outside compilers
 MOD.007 [DESIGN] Callbacks and events
+MOD.008 [DESIGN] Grouped import blocks
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
@@ -173,6 +180,7 @@ MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; Unique 
 MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`
 MEM.007 [BUILT] The leak check: every example and test
 MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep(x)` always deep
+MEM.009 [DESIGN] Arena / region memory (many objects freed together); memory-mapped resources
 
 #### CON - concurrency
 CON.001 [PLANNED] `service`: shared state with one owner (reserved keyword); version one (42.0-42.2)
@@ -218,6 +226,8 @@ SET.019 [DESIGN] `[project]` name, version, the file that holds main
 SET.020 [DESIGN] `[build]` mode (debug / release), optimize (speed / size / none), output (exe / lib); `[backend]` platform (windows-x64, linux-x64, wasm)
 SET.021 [DESIGN] `[threads] enabled` - threads off for small devices
 SET.022 [DESIGN] Strict mode extras: null checks forced, `Weak<T>` an error, callbacks limited
+SET.023 [DESIGN] Tools: a formatter that converts between block styles, a debugger protocol, hot reloading, a bytecode VM
+SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactoring, a symbol database
 
 ---
 
@@ -302,3 +312,6 @@ SET.022 [DESIGN] Strict mode extras: null checks forced, `Weak<T>` an error, cal
 | D.075 | The principles P1-P11 govern every concurrency feature | GOL.004 | 2026-10-23 | Concurrency_Traps.md | ACTIVE |
 | D.076 | A misspelled setting or a bad value is an error, never ignored; every built setting, its values and default are in `files/fusionSettings.xml`; every setting a finished Fusion will have, tagged, in `files/showcase/fusion.toml` | SET.001 | 2026-10-23 | fusionSettings.xml | ACTIVE |
 | D.077 | A thread using two or more resources: they become a **group service** - written by the developer or made by the compiler. It is their temporary owner; its worker borrows them and carries out the requests; when they are done it lets go, and each variable owns its value again. A **service** manages one resource, a **group service** several | CON.004 | 2026-10-31 | Ownership.md 7 | ACTIVE (planned) |
+| D.078 | No automatic cycle detection: `Weak<T>` breaks a circle of objects | MEM.005 | 2026-09-13 | spec Memory | ACTIVE (planned) |
+| D.079 | `Weak<T>.lock()` gives a `Shared<T>` that is null when the target is gone - the caller checks; never a crash (written without `?` - D.063) | MEM.005 | 2026-09-13 | spec Memory | ACTIVE (planned) |
+| C.010 | **CLASH:** Task 12.7 (2026-09-13) - `Unique<T> b = a` is a compile error; every move is written (`.move()`) so each transfer of ownership is visible. D.014 (2026-10-31) - `Car b = a` moves with nothing written. Suggest: D.014 wins - every object moves by default, so `Unique<T>` isn't needed; using `a` after the move is a compile error naming the line it moved on, which keeps the move visible | MEM.002 | - | Ownership.md 2, task/taskSummaryArchive.md 12.7 | CLASH - check |

@@ -4620,6 +4620,9 @@ end unsafe
 
 ### Advanced Array Declaration Syntax
 
+> **Replaced (2026-10-31, Decisions.md D.064):** read-only is `const`, a size limit is
+> `fixed(n)` - `type()` / `type(N)` are not used.
+
 **Status:** 📝 Proposed
 **Purpose:** Provide fine-grained control over array mutability and resizing
 
@@ -4788,6 +4791,9 @@ processArray(immutable)  // ❌ Type error: Cannot pass immutable() as mutable[]
 ---
 
 ### Fixed-Point Decimal Type & `Currency` Sugar (Financial / Money Precision)
+
+> **Decided since (2026-10-29, Decisions.md D.021):** `money` is a long of minor units
+> (Task 47.2); an exact `decimal(p, s)` stays a later option (47.2.3).
 
 **Status:** 📝 Proposed
 **Priority:** Medium-High (needed before Fusion can be credibly used for financial/trading
@@ -5120,6 +5126,10 @@ over `decimal` and costs almost nothing extra once `decimal` itself is built.
 ---
 
 ### Mutable vs. Fixed Strings, Templated Fixed Strings & String Pooling
+
+> **Decided since (Task 29, Decisions.md D.059, D.064):** no `m"` / `f"` prefixes - a plain
+> string can change, `const string` never does; templates are `template string`; `fixed(n)`
+> now means a maximum size.
 
 **Status:** 📝 Proposed
 **Priority:** Medium (a real, common source of bugs in other languages - accidental
@@ -5952,8 +5962,8 @@ arithmetic at whatever precision/scale a program declares (`Currency(11, 2)`,
 **Features (overview only - not scoped yet):**
 
 * Currency conversion between ISO 4217 currency codes (e.g. USD -> EUR) using exchange rates
-* Exchange rate sourcing - static/configured rates for offline use, pluggable live-rate
-  providers for online use
+* Exchange rates supplied by the developer - **never fetched from an external API** by the
+  module (a hard rule, Decisions.md D.022)
 * Currency-aware formatting (symbols, locale-specific separators - e.g. `$19.99` vs
   `19,99 €`)
 * Per-currency-code default scale lookup (USD = 2 decimal places, JPY = 0, BHD = 3, etc.) -

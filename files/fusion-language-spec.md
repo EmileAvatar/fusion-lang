@@ -2928,7 +2928,7 @@ Shared<Texture> copy2 = texture  // Ref count: 3
 * **Weak Pointer**: Non-owning reference
      * Doesn't increase reference count
      * **Upgrade is nullable, never a silent crash (decided 2026-09-13):** `.lock()`
-       (shown below) always returns a nullable `Shared<T>?` - `null` if the owner was
+       (shown below) always returns a `Shared<T>` that is `null` if the owner was
        already destroyed. The caller must null-check before use; there is no "just crash
        if the owner is gone" mode. Chosen for consistency with the same nullable-safe-
        navigation direction Task 30 defines for arrays, so Fusion has one null-handling
@@ -2950,7 +2950,7 @@ class Child
     Weak<Parent> parent  // Weak reference prevents memory leak
 
 // Using weak pointer
-Shared<Parent>? parentRef = child.parent.lock()
+Shared<Parent> parentRef = child.parent.lock()     // null when the parent is gone (no T? types - D.063)
 if parentRef?.null
     print("Parent no longer exists")
 else
