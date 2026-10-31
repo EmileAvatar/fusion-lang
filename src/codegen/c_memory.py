@@ -632,7 +632,7 @@ class MemoryManagementMixin:
             # a reference: one more holder of the same list (Task 32.10a)
             return f'{self.map_type(type_node)}_retain({code})'
         if self.is_class_type(type_node):
-            return f'{self._struct_c_name(type_node)}__retain({code})'   # one more holder (32.10b)
+            return f'fusion_retain_{self._struct_c_name(type_node)}({code})'   # one more holder (32.10b)
         if isinstance(type_node, StructType) and self.is_managed(type_node):
             return f'fusion_copy_{self._struct_c_name(type_node)}({code})'
         return code
@@ -682,7 +682,7 @@ class MemoryManagementMixin:
         if isinstance(type_node, (ListType, MapType)):
             return [f'{self.map_type(type_node)}_free(&{lvalue});']
         if self.is_class_type(type_node):
-            return [f'{self._struct_c_name(type_node)}__release(&{lvalue});']   # Task 32.10b
+            return [f'fusion_release_{self._struct_c_name(type_node)}(&{lvalue});']   # Task 32.10b
         if isinstance(type_node, PrimitiveType):
             return [f'fusion_str_free(&{lvalue});']
         if isinstance(type_node, StructType):
@@ -698,7 +698,7 @@ class MemoryManagementMixin:
         if type(type_node).__name__ == 'ErrorType':
             return f'fusion_error_set(&{lvalue}, {value_code});'   # Task 26
         if self.is_class_type(type_node):
-            return f'{self._struct_c_name(type_node)}__set(&{lvalue}, {value_code});'   # 32.10b
+            return f'fusion_set_{self._struct_c_name(type_node)}(&{lvalue}, {value_code});'   # 32.10b
         if isinstance(type_node, PrimitiveType):
             return f'fusion_str_set(&{lvalue}, {value_code});'
         return f'fusion_set_{self._struct_c_name(type_node)}(&{lvalue}, {value_code});'
@@ -740,23 +740,24 @@ class MemoryManagementMixin:
         return lines
 
     def class_helper_lines(self, classes) -> list:
-        """Per class (Task 32.10b): __make - a new object, fields at their defaults, count 1;
-        __retain - one more holder; __release - one less, and at 0 its fields let go and it is
-        freed; __set - replace what a holder holds. Prototypes first: classes refer to each
-        other."""
+        """Per class (Task 32.10b): fusion_make_fu_Car - a new object, fields at their
+        defaults, count 1; fusion_retain_ - one more holder; fusion_release_ - one less, and at
+        0 its fields let go and it is freed; fusion_set_ - replace what a holder holds. Named
+        fusion_* so no method (fu_Car__make) can clash (Task 32.2h). Prototypes first: classes
+        refer to each other."""
         from .c_runtime import escape_c_text
         protos, bodies = [], []
         for decl in classes:
             kind = StructType(location=decl.location, name=decl.name, declaration=decl)
             c = self._struct_c_name(kind)
-            protos += [f'static inline {c}* {c}__make(void);', f'static inline {c}* {c}__retain({c}* o);',
-                       f'static inline void {c}__release({c}** p);', f'static inline void {c}__set({c}** dst, {c}* v);']
-            make = [f'static inline {c}* {c}__make(void) {{',
+            protos += [f'static inline {c}* fusion_make_{c}(void);', f'static inline {c}* fusion_retain_{c}({c}* o);',
+                       f'static inline void fusion_release_{c}({c}** p);', f'static inline void fusion_set_{c}({c}** dst, {c}* v);']
+            make = [f'static inline {c}* fusion_make_{c}(void) {{',
                     f'    {c}* o = ({c}*)fusion_alloc(sizeof({c}));',
                     '    memset(o, 0, sizeof *o);',
                     '    o->fusion_count = 1;',
                     '    FUSION_OBJECT_MADE();']
-            release = [f'static inline void {c}__release({c}** p) {{',
+            release = [f'static inline void fusion_release_{c}({c}** p) {{',
                        f'    {c}* o = *p;',
                        '    *p = NULL;',
                        '    if (!o || --o->fusion_count > 0) return;',
@@ -776,10 +777,10 @@ class MemoryManagementMixin:
                     make.append(f'    {field} = {self._default_value_code(f.field_type)};')
                 release += ['    ' + line for line in self.free_lines(f.field_type, field)]
             bodies += make + ['    return o;', '}']
-            bodies += [f'static inline {c}* {c}__retain({c}* o) {{ if (o) o->fusion_count++; return o; }}']
+            bodies += [f'static inline {c}* fusion_retain_{c}({c}* o) {{ if (o) o->fusion_count++; return o; }}']
             bodies += release + ['    fusion_dealloc(o);', '}']
-            bodies += [f'static inline void {c}__set({c}** dst, {c}* v) {{ {c}* old = *dst; *dst = v; '
-                       f'{c}__release(&old); }}']
+            bodies += [f'static inline void fusion_set_{c}({c}** dst, {c}* v) {{ {c}* old = *dst; *dst = v; '
+                       f'fusion_release_{c}(&old); }}']
         return protos + bodies
 
     def object_needed(self, code: str, type_node, node) -> str:

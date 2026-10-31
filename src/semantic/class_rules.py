@@ -11,7 +11,10 @@ behind (exit 5). Weak references, which break such a circle, come with Task 38.
 
 from typing import Dict, List, Optional
 
-from src.parser.ast_nodes import ArrayType, ListType, MapType, StructDecl, StructType
+from src.parser.ast_nodes import (
+    ArrayType, EnumDecl, ErrorDecl, FunctionDecl, ListType, MapType, StructDecl, StructType,
+    VarDeclStmt,
+)
 from .errors import SemanticError
 
 
@@ -93,3 +96,39 @@ def check_class_cycles(structs: List[StructDecl]) -> List[SemanticError]:
             f"other in a circle are never freed - set one of the fields to null before "
             f"letting go (Weak references come with Task 38)", decl.location))
     return warnings
+
+
+def check_visibility_written(program) -> List[SemanticError]:
+    """`[visibility] required = true` (Task 32.2h): every top-level item and class member says
+    who can use it - public, internal or private. main, and what the compiler makes (a
+    class's default constructor, its set-up), need nothing."""
+    errors = []
+
+    def need(item, what: str, name: str):
+        if not getattr(item, 'visibility_written', False):
+            errors.append(SemanticError(
+                f"Write who can use {what} '{name}' - public, internal or private "
+                f"([visibility] required = true)", item.location))
+
+    kinds = {EnumDecl: 'enum', ErrorDecl: 'error type', VarDeclStmt: 'module variable',
+             FunctionDecl: 'function'}
+    for d in program.declarations:
+        if isinstance(d, FunctionDecl) and (getattr(d, 'method_of', None) or d.name == 'main'
+                                            or getattr(d, 'is_static_setup', False)):
+            continue
+        if isinstance(d, VarDeclStmt) and getattr(d, 'static_of', None):
+            continue                          # a static - checked as a member of its class
+        if getattr(d, 'builtin', False):
+            continue                          # the built-in error types (Task 26)
+        if isinstance(d, StructDecl):
+            need(d, 'class' if d.is_class else 'struct', d.name)
+            if not d.is_class:
+                continue
+            for f in d.fields + d.static_fields:
+                need(f, 'field', f.name)
+            for m in d.methods + d.static_methods:
+                label = 'the constructor of' if getattr(m, 'is_constructor', False) else 'function'
+                need(m, label, d.name if label != 'function' else m.method_name)
+        elif type(d) in kinds:
+            need(d, kinds[type(d)], d.name.rsplit('.', 1)[-1])
+    return errors

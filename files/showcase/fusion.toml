@@ -127,6 +127,10 @@ enabled = true
 # [idea] Size of the thread pool ("auto" = one per CPU core)
 poolSize = "auto"
 
+[visibility]
+# [built] public / internal / private must be written on every top-level item and class member (Task 32.2h)
+required = false
+
 [modules]
 # [built] Module-level variables (module constants are always allowed) (Task 44.1)
 variables = true

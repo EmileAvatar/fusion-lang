@@ -50,6 +50,8 @@ class Module:
         self.names: Dict[str, ASTNode] = {}   # top-level name -> its declaration
         for _, program in files:
             for decl in program.declarations:
+                # where it was declared - for `internal` (Task 32.2h)
+                decl.module_id, decl.namespace = module_id, program.namespace
                 if isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt,
                                      TemplateDecl)):
                     self.names.setdefault(decl.name, decl)
@@ -59,6 +61,24 @@ class Module:
 
     def is_public(self, name: str) -> bool:
         return getattr(self.names.get(name), 'is_public', False)
+
+    def visible(self, name: str, namespace: Optional[str]) -> bool:
+        """Whether code in another module (of `namespace`) may use the name: it is public, or
+        internal and that module shares its namespace (Task 32.2h)."""
+        decl = self.names.get(name)
+        return getattr(decl, 'is_public', False) or (
+            getattr(decl, 'is_internal', False) and namespace is not None
+            and getattr(decl, 'namespace', None) == namespace)
+
+    def hidden_text(self, name: str) -> str:
+        """Why another module can't use the name."""
+        decl = self.names.get(name)
+        if getattr(decl, 'is_internal', False) or not isinstance(decl, (VarDeclStmt, TemplateDecl)):
+            namespace = getattr(decl, 'namespace', None)
+            where = f"namespace {namespace}" if namespace else f"module '{self.id}'"
+            return (f"'{name}' is internal to {where} - only names marked public can be used "
+                    f"from another module")
+        return f"'{name}' is private to module '{self.id}'"   # a module variable
 
 
 class ModuleLoader:
@@ -182,7 +202,7 @@ class ModuleLoader:
             for name in sorted({n for t in used for n in private_structs(t)}):
                 kind = {EnumDecl: 'enum', ErrorDecl: 'error type'}.get(
                     type(module.names.get(name)), 'struct')
-                self._error(f"The {what} uses the private {kind} '{name}' - make '{name}' "
+                self._error(f"The {what} uses the internal {kind} '{name}' - make '{name}' "
                             f"public too", decl)
 
     # ------------------------------------------------------------------ name rewriting
@@ -214,9 +234,8 @@ class ModuleLoader:
                 if name not in imported.names:
                     self._error(f"Module '{module_id}' has no '{name}'", imp)
                     continue
-                if not imported.is_public(name):
-                    self._error(f"'{name}' is private to module '{module_id}' - only names "
-                                f"marked public can be imported", imp)
+                if not imported.visible(name, program.namespace):
+                    self._error(imported.hidden_text(name), imp)
                     continue
                 local = imp.alias or name
                 if local in module.names:
@@ -227,7 +246,7 @@ class ModuleLoader:
                 explicit.add(local)
             else:
                 for name in imported.names:
-                    if imported.is_public(name):   # .* brings the public names only
+                    if imported.visible(name, program.namespace):   # .*: the public names only
                         direct.setdefault(name, set()).add(imported.qualify(name))
 
         def lookup(name: str, node: ASTNode) -> str:
@@ -250,8 +269,8 @@ class ModuleLoader:
                 target = self.modules[aliases[prefix]]
                 if rest not in target.names:
                     self._error(f"Module '{target.id}' has no '{rest}'", node)
-                elif not target.is_public(rest) and target is not module:
-                    self._error(f"'{rest}' is private to module '{target.id}'", node)
+                elif not target.visible(rest, program.namespace) and target is not module:
+                    self._error(target.hidden_text(rest), node)
                 return target.qualify(rest)
             return lookup(name, node)
 
@@ -285,8 +304,8 @@ class ModuleLoader:
                 target = self.modules[aliases[node.object.name]]
                 if node.member not in target.names:
                     self._error(f"Module '{target.id}' has no '{node.member}'", node)
-                elif not target.is_public(node.member) and target is not module:
-                    self._error(f"'{node.member}' is private to module '{target.id}'", node)
+                elif not target.visible(node.member, program.namespace) and target is not module:
+                    self._error(target.hidden_text(node.member), node)
                 # money.round -> the identifier money.round (a call, a value or a struct)
                 replacement = IdentifierExpr(location=node.location, name=target.qualify(node.member))
                 node.__class__ = IdentifierExpr

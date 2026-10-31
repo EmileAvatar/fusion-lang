@@ -296,9 +296,9 @@ def test_returning_a_local_moves_it_without_counting():
                      + main('A a = makeOne()\nprint(greet("Ann"))'))
     body = code[code.index('fu_A* fu_makeOne(void) {'):]
     body = body[:body.index('\n}')]
-    assert 'return mine;' in body and '__retain' not in body
+    assert 'return mine;' in body and 'fusion_retain_' not in body
     constructor = code[code.index('fu_A* fu_A__new(void) {'):]
-    assert constructor[:constructor.index('\n}')].count('__retain') == 0
+    assert constructor[:constructor.index('\n}')].count('fusion_retain_') == 0
     greet = code[code.index('fusion_string fu_greet(fusion_string name) {'):]
     assert 'return s;' in greet[:greet.index('\n}')]
 

@@ -18,6 +18,7 @@ from .class_rules import check_class_cycles, check_constructors
 from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly
+from .class_rules import check_visibility_written
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -50,7 +51,7 @@ class SemanticAnalyzer:
     def __init__(self, structs_config: Optional[StructsConfig] = None,
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
-                 conditions_config=None):
+                 conditions_config=None, visibility_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -69,6 +70,8 @@ class SemanticAnalyzer:
         self.type_checker.number_conditions = getattr(conditions_config, 'numbers', 'positive')
         # [modules] variables (Task 44.1): module-level variables allowed (default true)
         self.module_variables_allowed = bool(getattr(modules_config, 'variables', True))
+        # [visibility] required (Task 32.2h): the level must be written everywhere
+        self.visibility_required = bool(getattr(visibility_config, 'required', False))
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
@@ -214,6 +217,9 @@ class SemanticAnalyzer:
                     self.type_checker.current_function_name = decl.name
                     # Whose private members this function may use (Task 32.2a)
                     self.type_checker.current_class = getattr(decl, 'method_of', None)
+                    # Where it is - who may use an internal member (Task 32.2h)
+                    self.type_checker.current_place = (getattr(decl, 'module_id', ''),
+                                                       getattr(decl, 'namespace', None))
                     if decl.name == 'main' and decl.parameters:
                         self.type_checker.require_layer('std', "main's arguments (string... args)",
                                                         decl.location)
@@ -249,6 +255,8 @@ class SemanticAnalyzer:
         self.errors.extend(static_setup_order(ast))
         # readonly parameters: never changed, passed on to a change or kept (Task 32.2e)
         self.errors.extend(check_readonly(ast))
+        if self.visibility_required:                    # Task 32.2h
+            self.errors.extend(check_visibility_written(ast))
         # Constructors that can't be told apart, or call each other in a circle (32.2b)
         self.errors.extend(check_constructors(
             [d for d in ast.declarations if isinstance(d, StructDecl)],

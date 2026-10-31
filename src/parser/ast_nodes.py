@@ -842,6 +842,7 @@ class ProgramNode(ASTNode):
     """
     declarations: List[ASTNode]  # FunctionDecl, StructDecl, etc.
     imports: List['ImportDecl'] = field(default_factory=list)
+    namespace: Optional[str] = None   # `namespace Core.Collections` (Task 32.2h)
 
 
 @dataclass

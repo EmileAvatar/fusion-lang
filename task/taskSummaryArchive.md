@@ -5964,3 +5964,28 @@ null` gives a value; no `case null` -> NullError caught by `catch`).
     - **Settings:** none
     - Added (user, 2026-10-30): a set-up block (form B, C) may still change the
       const / let it sets up - it is still setting the object up
+
+#### 32.2h visibility levels (done 2026-10-31)
+- **32.2h plan (2026-10-30, third version - answers in; layout in files/FusionTemplate.md) -
+  visibility levels,
+  `internal`, namespaces** (user answers 2026-10-30):
+  - **A namespace is a line, not a folder:** `namespace Core.Collections` at the top of a
+    .fusion file, before any import - it says where the file's classes belong
+    (Namespace.Module.Class.Function - later used to map what belongs where). Optional: only
+    Fusion's own libraries use it (`namespace Core` - the first one); an app uses it only to
+    break a big program into logical parts. No new folders - the ~21 core modules (IO,
+    Graphics, ...) stay side by side. Other namespaces only once the compiler works
+  - **File layout:** enforced - the namespace first (if any), then the imports (both
+    optional); `Core` is always imported, never written. The rest is the preferred layout
+    (files/FusionTemplate.md)
+  - **Three levels:** `private` - the class; `internal` - the namespace (a file without one:
+    its module); `public` - everyone. `private` is only for a class's (or struct's) members:
+    on a top-level item (class, struct, enum, interface, function) it is an error - nothing
+    could use it; never inside an interface
+  - **When nothing is written:** fields and module variables private (a module variable:
+    its module); functions, constructors, classes, interfaces, enums and structs public.
+    `[visibility] required` (default false): true makes a missing level an error. `internal`
+    in a file without a namespace means its module (like private)
+  - Today's `private struct Helper` / private module functions become `internal`
+  - **Order:** after 32.2b-g; namespaces touch the module loader
+  - **Settings:** `[visibility] required` (default false) - into files/fusionSettings.xml when built

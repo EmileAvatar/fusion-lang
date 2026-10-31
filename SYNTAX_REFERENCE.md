@@ -1061,7 +1061,18 @@ void function main()
 public struct Price
     int cents
 public Price function make(int cents) : Price(cents + fee())
-int function fee() : 50          // private: only the files of module money see it
+internal int function fee() : 50 // only module money (or its namespace) sees it
+```
+Who can use what (Task 32.2h): `public` - everyone; `internal` - the namespace (a file
+without one: its module); `private` - the class (a member only; on a top-level item it is an
+error). Nothing written: fields and module variables private, everything else public.
+```fusion multi-file
+namespace Shop                   // the first line: shop modules see each other's internal names
+import stock
+
+class Till
+    internal int drawer          // the Shop namespace may use it
+    private int secret           // Till's own functions only
 ```
 Each file imports what it uses; files of one module share all their names; each module is
 loaded once, so modules may import each other. A whole project to try: `examples/shop/`.
@@ -1241,6 +1252,9 @@ layer = "std"                    # std (default) | alloc (no OS: no print, files
 
 [modules]
 variables = true                 # module-level variables (constants are always allowed)
+
+[visibility]
+required = false                 # true: public / internal / private written everywhere
 
 [conditions]
 numbers = "positive"             # if / while count: count > 0 (default); "nonzero": count != 0;

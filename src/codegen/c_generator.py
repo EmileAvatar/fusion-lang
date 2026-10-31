@@ -1344,7 +1344,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
     def visit_ObjectMakeExpr(self, node) -> str:
         """A constructor's new object: fields at their defaults, count 1 (Task 32.10b)."""
-        return f'{self._struct_c_name(node.inferred_type)}__make()'
+        return f'fusion_make_{self._struct_c_name(node.inferred_type)}()'
 
     # _FORMAT_SPECIFIERS, _format_specifier_for_expr, _generate_print_call,
     # visit_InterpolatedStringExpr, _generate_interpolated_print,

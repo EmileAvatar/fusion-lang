@@ -182,6 +182,7 @@ def expand_statics(program: ProgramNode) -> List[SemanticError]:
                              return_type=PrimitiveType(location=c.location, name='void'),
                              body=BlockStmt(location=c.location, statements=statements))
         setup.method_of, setup.method_name, setup.is_static_setup = c.name, '__setup', True
+        setup.module_id, setup.namespace = getattr(c, 'module_id', ''), getattr(c, 'namespace', None)
         setups.append(setup)
         for f in c.static_fields:
             variable = VarDeclStmt(location=f.location, var_type=f.field_type, name=qualified[f.name],
@@ -189,6 +190,8 @@ def expand_statics(program: ProgramNode) -> List[SemanticError]:
             variable.is_static, variable.static_of = True, c.name
             variable.static_const, variable.is_public = f.is_const, not f.is_private
             variable.static_private = f.is_private
+            variable.static_internal = getattr(f, 'is_internal', False)     # Task 32.2h
+            variable.static_class = c
             variables.append(variable)
 
     # Names: inside each class first (bare names), then everywhere (Class.name)

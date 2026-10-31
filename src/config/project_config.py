@@ -200,6 +200,18 @@ CONDITION_NUMBERS = ("positive", "nonzero", "off")
 
 
 @dataclass
+class VisibilityConfig:
+    """Who can use what (Task 32.2h, user decisions 2026-10-30).
+
+    Attributes:
+        required: True makes writing the level (public / internal / private) on every
+            top-level item and class member mandatory - a missing one is an error. False
+            (the default): nothing written means the default for that item.
+    """
+    required: bool = False
+
+
+@dataclass
 class ModulesConfig:
     """Module settings (Task 44.1, user decision 2026-10-26).
 
@@ -249,6 +261,7 @@ class ProjectConfig:
     errors: ErrorsConfig = field(default_factory=ErrorsConfig)
     numbers: NumbersConfig = field(default_factory=NumbersConfig)
     modules: ModulesConfig = field(default_factory=ModulesConfig)
+    visibility: VisibilityConfig = field(default_factory=VisibilityConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
@@ -442,6 +455,21 @@ def _load_modules_section(data: dict, config_path: str) -> ModulesConfig:
                 f"{config_path}: modules.variables must be true or false, got {value!r}")
         modules.variables = value
     return modules
+
+
+def _load_visibility_section(data: dict, config_path: str) -> VisibilityConfig:
+    """Parse and validate the [visibility] section (Task 32.2h)."""
+    visibility = VisibilityConfig()
+    section = _require_table(data, "visibility", config_path)
+    for key, value in section.items():
+        if key != "required":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting visibility.{key} (known: ['required'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: visibility.required must be true or false, got {value!r}")
+        visibility.required = value
+    return visibility
 
 
 def _load_build_section(data: dict, config_path: str) -> BuildConfig:
@@ -654,6 +682,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         stdlib=_load_stdlib_section(data, config_path),
         errors=_load_errors_section(data, config_path),
         modules=_load_modules_section(data, config_path),
+        visibility=_load_visibility_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),

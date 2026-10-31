@@ -15,15 +15,26 @@ so each rule can be checked at a glance and turned into a test.
 | Inside a class | function (method) | **public** | `private void function helper()` | |
 | Inside a class | constructor | **public** | `private constructor()` | a class with none still gets the default `Car()` |
 | Inside a class | static field / method | as a field / function | | private static fields, public static methods |
-| Module level | struct | **public** | `private struct Helper` | private: only inside its module |
-| Module level | class | **public** | `private class Helper` | a helper class strictly for the module |
-| Module level | enum | **public** | `private enum Mode` | |
-| Module level | function | **private** - becomes **public** with 32.2h | `public void function run()` | today's rule (Task 18.4.3, 2026-10-10) |
-| Module level | module variable / constant | **private** - its module | `public int rate = 5` | today's rule (Task 44.1) |
+| Inside a class | any member | | `internal int stock` | the namespace (without one, the module) |
+| Module level | struct | **public** | `internal struct Helper` | internal: its namespace / module |
+| Module level | class | **public** | `internal class Helper` | a helper class strictly for the module |
+| Module level | enum | **public** | `internal enum Mode` | |
+| Module level | function | **public** (from 32.2h; private before) | `internal void function run()` | |
+| Module level | module variable / constant | **private** - its module | `public int rate = 5` | Task 44.1 |
+| Module level | `private` on a struct, class, enum, error type or function | **an error** | | nothing could use it - write `internal` |
 
-**Planned (32.2h - files/FusionTemplate.md section 4):** three levels - `private` (the class;
-on a top-level item an error, write `internal`), `internal` (the namespace; without one, the
-module), `public`. `[visibility] required = true` makes writing the level mandatory.
+**Built (32.2h, tests/test_visibility_levels.py):** three levels - `private` (the class),
+`internal` (the namespace; a file without one: its module), `public`. `namespace Shop` is the
+file's first line, before the imports: modules whose files share it see each other's internal
+names and members. `[visibility] required = true` makes writing the level mandatory (main and
+what the compiler makes need none).
+
+| Used from | public | internal | private (a member) |
+|---|---|---|---|
+| the class's own functions | yes | yes | yes |
+| another class in the same module | yes | yes | **no** |
+| another module, same namespace | yes | yes | **no** |
+| another module, another / no namespace | yes | **no** | **no** |
 
 **Rule of thumb:** types are public, helpers are private. A thing is made private when it is
 internal to the module and not useful outside it.

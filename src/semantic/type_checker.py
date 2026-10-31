@@ -747,6 +747,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 self.checked_receivers.pop(id(receiver), None)
                 return (f"Function '{member}' of class '{struct.name}' is private - only "
                         f"{struct.name}'s own functions can call it")
+            if method is not None and getattr(method, 'is_internal', False) \
+                    and not self.same_place(struct):
+                self.checked_receivers.pop(id(receiver), None)
+                return self.internal_text(f"Function '{member}' of class '{struct.name}'", struct)
             if method is not None:
                 if getattr(method, 'changes_this', False) and not struct.is_class:
                     root = self._root_variable(receiver)
@@ -1074,6 +1078,25 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             self.errors.append(SemanticError(
                 f"Static '{name}' is private - only {owner}'s own functions can use it (write "
                 f"'public' before it to share it)", location))
+        elif owner and getattr(decl, 'static_internal', False) \
+                and not self.same_place(decl.static_class):
+            self.errors.append(SemanticError(
+                self.internal_text(f"Static '{name}'", decl.static_class), location))
+
+    def same_place(self, decl) -> bool:
+        """Whether the code being checked may use an `internal` member of decl's class: it
+        is in the same module, or in the same namespace (Task 32.2h)."""
+        here = getattr(self, 'current_place', ('', None))
+        module, namespace = getattr(decl, 'module_id', ''), getattr(decl, 'namespace', None)
+        return here[0] == module or (namespace is not None and here[1] == namespace)
+
+    @staticmethod
+    def internal_text(what: str, decl) -> str:
+        namespace = getattr(decl, 'namespace', None)
+        where = f"namespace {namespace}" if namespace else \
+            f"module {getattr(decl, 'module_id', '') or 'the main file'}"
+        return (f"{what} is internal - only its {where} can use it (write 'public' before it "
+                f"to share it)")
 
     def _check_private_field(self, node, struct) -> None:
         """A class's private field (the default) is used only by the class's own functions -
@@ -1086,6 +1109,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             self.errors.append(SemanticError(
                 f"Field '{node.member}' of class '{owner.name}' is private - only {owner.name}'s "
                 f"own functions can use it (write 'public' before it to share it)",
+                node.location))
+        elif getattr(field, 'is_internal', False) and not self.same_place(owner):
+            self.errors.append(SemanticError(
+                self.internal_text(f"Field '{node.member}' of class '{owner.name}'", owner),
                 node.location))
 
     def constructor_text(self, decl, constructor) -> str:
@@ -1288,6 +1315,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 self.errors.append(SemanticError(
                     f"The constructor of class '{name}' is private - only {name} itself makes "
                     f"{name} objects", node.location))
+            elif getattr(made, 'is_internal', False) and not self.same_place(symbol.declaration):
+                self.errors.append(SemanticError(self.internal_text(
+                    f"The constructor of class '{name}'", symbol.declaration), node.location))
             node.callee = IdentifierExpr(location=node.callee.location, name=made.name)
             return self._visit_call(node)
         if symbol.symbol_type == 'struct':

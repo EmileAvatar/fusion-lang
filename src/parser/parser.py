@@ -1765,6 +1765,19 @@ class Parser:
         while self.match(TokenType.NEWLINE):
             pass
 
+        # `namespace Core.Collections` - the first line, before the imports (Task 32.2h)
+        namespace = None
+        if self.match(TokenType.NAMESPACE):
+            parts = [self.consume(TokenType.IDENTIFIER, "Expected a name after 'namespace'").value]
+            while self.match(TokenType.DOT):
+                parts.append(self.consume(TokenType.IDENTIFIER,
+                                          "Expected a name after '.' in the namespace").value)
+            if not (self.check(TokenType.NEWLINE) or self.is_at_end()):
+                raise ParserError(self.peek(), "Expected the end of the line after the namespace")
+            namespace = '.'.join(parts)
+            while self.match(TokenType.NEWLINE):
+                pass
+
         # Imports come first (Task 18.4.2)
         imports = []
         while self.match(TokenType.IMPORT):
@@ -1776,12 +1789,15 @@ class Parser:
             if self.check(TokenType.IMPORT):
                 raise ParserError(self.peek(), "'import' lines must come before everything else "
                                                "in the file")
+            if self.check(TokenType.NAMESPACE):
+                raise ParserError(self.peek(), "'namespace' must be the first line of the file - "
+                                               "before the imports")
             decl = self.parse_declaration()
             if decl:
                 declarations.append(decl)
-                # Types - structs, classes, enums - are public unless written private;
-                # functions and module variables private unless written public (Task 32.2a)
-                if isinstance(decl, (StructDecl, EnumDecl)) \
+                # Types and functions are public unless written otherwise; module variables
+                # private - their module (Tasks 32.2a, 32.2h)
+                if isinstance(decl, (StructDecl, EnumDecl, ErrorDecl, FunctionDecl)) \
                         and not getattr(decl, 'visibility_written', False):
                     decl.is_public = True
                 if isinstance(decl, StructDecl):
@@ -1796,7 +1812,8 @@ class Parser:
         return ProgramNode(
             location=start_loc,
             declarations=declarations,
-            imports=imports
+            imports=imports,
+            namespace=namespace
         )
 
     def parse_import(self) -> ImportDecl:
@@ -1830,16 +1847,17 @@ class Parser:
         Raises:
             ParserError: If declaration is malformed
         """
-        # `public` / `private` before a struct or function (Task 18.4.3) - private is the
-        # default, so `private` only says so explicitly
-        if self.match(TokenType.PUBLIC, TokenType.PRIVATE):
+        # `public` / `internal` / `private` before a top-level item (Tasks 18.4.3, 32.2h)
+        if self.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.INTERNAL):
             modifier = self.previous()
             while self.match(TokenType.NEWLINE):
                 pass
-            if self.check(TokenType.PUBLIC) or self.check(TokenType.PRIVATE):
-                raise ParserError(self.peek(), "Only one of 'public' / 'private' may be given")
+            if self.check(TokenType.PUBLIC) or self.check(TokenType.PRIVATE) \
+                    or self.check(TokenType.INTERNAL):
+                raise ParserError(self.peek(), "Only one of 'public' / 'internal' / 'private' "
+                                               "may be given")
             if not (self.check(TokenType.STRUCT) or self.check(TokenType.ENUM)
-                    or self.check(TokenType.CONST)
+                    or self.check(TokenType.CONST) or self.check(TokenType.CLASS)
                     or self.is_error_declaration_start() or self.is_type_start()
                     or self.is_function_type_declaration_start()
                     or self.is_struct_type_declaration_start()):
@@ -1849,7 +1867,15 @@ class Parser:
             if not isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt)):
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
                                             f"an enum, a function or a module variable")
+            if modifier.type == TokenType.PRIVATE and not isinstance(decl, VarDeclStmt):
+                kind = 'class' if getattr(decl, 'is_class', False) else {
+                    StructDecl: 'struct', EnumDecl: 'enum', ErrorDecl: 'error type',
+                    FunctionDecl: 'function'}[type(decl)]
+                raise ParserError(modifier, f"'private' can't be on a top-level {kind} - "
+                                            f"nothing could use it; write 'internal' (its "
+                                            f"module, or its namespace)")
             decl.is_public = modifier.type == TokenType.PUBLIC
+            decl.is_internal = modifier.type == TokenType.INTERNAL
             decl.visibility_written = True
             return decl
 
@@ -2042,9 +2068,10 @@ class Parser:
                 break
             # public / private on a member (Task 32.2a): fields private, functions and
             # constructors public when nothing is written (Classes.md section 1)
-            written = None
-            if self.match(TokenType.PUBLIC, TokenType.PRIVATE):
-                written = self.previous().type == TokenType.PUBLIC
+            written = None              # True public, False private, 'internal' (32.2h)
+            if self.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.INTERNAL):
+                written = {TokenType.PUBLIC: True, TokenType.PRIVATE: False,
+                           TokenType.INTERNAL: 'internal'}[self.previous().type]
             # Form C, the static block: `static { ... }` (Task 32.2c)
             if self.check(TokenType.STATIC) and self.peek(1).type in (
                     TokenType.LBRACE, TokenType.NEWLINE, TokenType.INDENT):
@@ -2079,15 +2106,17 @@ class Parser:
                 while self.match(TokenType.NEWLINE):
                     pass
                 constructors.append((start, parameters, self.parse_block_statement(),
-                                     written is False))
+                                     written is False, written))
                 continue
             item = self.parse_struct_field()
+            item.is_internal = written == 'internal'
+            item.visibility_written = written is not None
             if isinstance(item, FunctionDecl):
                 item.is_private = written is False
                 item.is_static = is_static
                 (static_methods if is_static else methods).append(item)
                 continue
-            item.is_private = written is not True
+            item.is_private = written is not True and written != 'internal'
             # Form B: a block right after a field's value sets it up further (32.2c, 32.2d)
             item.setup = None
             if item.default_value is not None and (self.check(TokenType.LBRACE) or (
@@ -2129,6 +2158,7 @@ class Parser:
         parameters, body = (written[1], written[2]) if written else \
             ([], BlockStmt(location=location, statements=[]))
         private = bool(written and written[3])
+        level = written[4] if written else None       # what was written (Task 32.2h)
         # a new type node for each use - the module loader rewrites each one in place
         class_type = lambda: StructType(location=location, name=decl.name)
         this = lambda: IdentifierExpr(location=location, name='this')
@@ -2176,6 +2206,8 @@ class Parser:
         method.method_of = decl.name
         method.is_constructor = True
         method.is_private = private
+        method.is_internal = level == 'internal'
+        method.visibility_written = not written or level is not None   # one made: none needed
         method.changes_this = False
         method.delegate = made if delegate is not None else None
         method.name = f'{decl.name}.new' if number == 1 else f'{decl.name}.new_{number}'

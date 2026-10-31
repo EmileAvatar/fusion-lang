@@ -193,14 +193,14 @@ def test_two_fusion_names_never_share_a_c_name(tmp_path):
 
 
 # ============================================================
-# 18.4.3 - public (private by default)
+# 18.4.3 - public; internal stays in its module (Task 32.2h)
 # ============================================================
 
 BANK = {
     'bank/core.fusion': ('public struct Account\n    int cents\n\n'
-                         'private struct Ledger\n    int entries\n\n'
+                         'internal struct Ledger\n    int entries\n\n'
                          'public Account function open(int cents) : Account(cents + bonus())\n\n'
-                         'int function bonus() : 100\n'),
+                         'internal int function bonus() : 100\n'),
     'bank/report.fusion': ('public string function show(Account a)\n'
                            '    Ledger l = Ledger(1)\n'
                            '    return format("{@1} ({@2} entry, bonus {@3})", a.cents, l.entries, bonus())\n'),
@@ -227,11 +227,11 @@ def test_star_import_brings_public_names_only(tmp_path):
 
 @pytest.mark.parametrize("main_text, message", [
     ('import bank\nvoid function main()\n    int x = bank.bonus()\n',
-     "'bonus' is private to module 'bank'"),
+     "'bonus' is internal to module 'bank'"),
     ('import bank.bonus\nvoid function main()\n    print("x")\n',
-     "'bonus' is private to module 'bank' - only names marked public can be imported"),
+     "'bonus' is internal to module 'bank' - only names marked public can be used from another module"),
     ('import bank\nvoid function main()\n    bank.Ledger l\n',
-     "'Ledger' is private to module 'bank'"),
+     "'Ledger' is internal to module 'bank'"),
 ])
 def test_private_names_from_another_module_are_errors(tmp_path, main_text, message):
     files = dict(BANK)
@@ -240,12 +240,12 @@ def test_private_names_from_another_module_are_errors(tmp_path, main_text, messa
 
 
 @pytest.mark.parametrize("module_text, message", [
-    ('private struct Secret\n    int x\n\npublic Secret function make() : Secret(1)\n',
-     "The public function 'make' uses the private struct 'Secret' - make 'Secret' public too"),
-    ('private struct Secret\n    int x\n\npublic int function peek(Secret s) : s.x\n',
-     "The public function 'peek' uses the private struct 'Secret'"),
-    ('private struct Secret\n    int x\n\npublic struct Box\n    Secret[2] inside\n',
-     "The public struct 'Box' uses the private struct 'Secret'"),
+    ('internal struct Secret\n    int x\n\npublic Secret function make() : Secret(1)\n',
+     "The public function 'make' uses the internal struct 'Secret' - make 'Secret' public too"),
+    ('internal struct Secret\n    int x\n\npublic int function peek(Secret s) : s.x\n',
+     "The public function 'peek' uses the internal struct 'Secret'"),
+    ('internal struct Secret\n    int x\n\npublic struct Box\n    Secret[2] inside\n',
+     "The public struct 'Box' uses the internal struct 'Secret'"),
 ])
 def test_public_declarations_cannot_expose_private_structs(tmp_path, module_text, message):
     files = {'m/m.fusion': module_text, 'main.fusion': 'import m\nvoid function main()\n    print("x")\n'}
@@ -253,7 +253,11 @@ def test_public_declarations_cannot_expose_private_structs(tmp_path, module_text
 
 
 @pytest.mark.parametrize("source, message", [
-    ('public public int function f() : 1\n', "Only one of 'public' / 'private' may be given"),
+    ('public public int function f() : 1\n', "Only one of 'public' / 'internal' / 'private' may be given"),
+    ('private int function f() : 1\n', "'private' can't be on a top-level function - nothing could "
+                                         "use it; write 'internal'"),
+    ('private struct S\n    int x\n', "'private' can't be on a top-level struct"),
+    ('import m\nnamespace A\n', "'namespace' must be the first line of the file"),
     ('public import m\n', "'public' can only come before a struct, an enum, a function or a module variable"),
 ])
 def test_public_syntax_errors(source, message):
@@ -262,8 +266,10 @@ def test_public_syntax_errors(source, message):
         parse_file(source, 'main.fusion')
 
 
-def test_private_is_the_default_and_may_be_written(tmp_path):
-    files = {'m/m.fusion': 'private int function hidden() : 1\npublic int function shown() : hidden() + 1\n',
+def test_internal_may_be_written_and_functions_are_public_by_default(tmp_path):
+    # Task 32.2h: a function with nothing written is public; internal keeps it in its module
+    files = {'m/m.fusion': ('internal int function hidden() : 1\n'
+                            'int function shown() : hidden() + 1\n'),
              'main.fusion': 'import m\nvoid function main()\n    print("{@1}", m.shown())\n'}
     assert run_project(str(tmp_path), files) == ['2']
 
@@ -276,7 +282,7 @@ INTERFACE_PROJECT = {
     'money/m.fusion': ('public struct Price\n    int cents\n    string currency = "EUR"\n\n'
                        'public Price function make(int cents, string currency = "EUR") : Price(cents, currency)\n\n'
                        'public int[3] function parts(Price p) : [p.cents, 0, 0]\n\n'
-                       'int function hidden() : 1\n'),
+                       'internal int function hidden() : 1\n'),
     'cart/c.fusion': ('import money\n\npublic struct Item\n    money.Price price\n    bool taxed\n\n'
                       'public (int) : int function scaler(bool up = true) : (int x) : x * 2\n'),
     'main.fusion': 'import money\nimport cart\nvoid function main()\n    print("x")\n',

@@ -15,8 +15,12 @@
 
 (* A variable or constant outside any function (Task 44.1): `int count = 0`,
    `const int LIMIT = 3`, `public string version = "1.0"` *)
+(* Task 32.2h - the file's first line, before the imports *)
+namespace_line = "namespace" identifier { "." identifier } NEWLINE ;
+
+(* Task 32.2h: private on a top-level struct, class, enum, error type or function is an error *)
 module_variable =
-    [ "public" | "private" ] ( "const" type identifier "=" expression
+    [ "public" | "internal" | "private" ] ( "const" type identifier "=" expression
                              | type identifier [ "=" expression ] ) NEWLINE ;
 
 program = {
@@ -464,7 +468,7 @@ property_declaration =
 
 (* Task 18.4.3: "public" / "private" before a top-level struct or function; private is the
    default; "protected" is reserved for classes *)
-access_modifier = "public" | "private" | "protected" ;
+access_modifier = "public" | "internal" | "private" | "protected" ;   (* internal: 32.2h *)
 
 interface_declaration =
     "interface" identifier

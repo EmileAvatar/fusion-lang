@@ -52,10 +52,12 @@ KEYWORDS: Dict[str, TokenType] = {
     'set': TokenType.SET,
 
     # ============================================================
-    # Modifier Keywords (8)
+    # Modifier Keywords (10)
     # ============================================================
     'public': TokenType.PUBLIC,
     'private': TokenType.PRIVATE,
+    'internal': TokenType.INTERNAL,     # Task 32.2h
+    'namespace': TokenType.NAMESPACE,   # Task 32.2h
     'protected': TokenType.PROTECTED,
     'static': TokenType.STATIC,
     'virtual': TokenType.VIRTUAL,

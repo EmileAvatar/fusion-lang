@@ -200,12 +200,12 @@ def test_enums_across_modules(tmp_path):
 def test_a_private_enum_stays_in_its_module(tmp_path):
     message = module_errors(tmp_path, {
         'paint/colors.fusion': (
-            'private enum Secret: A B\n'
+            'internal enum Secret: A B\n'
             'public Secret function hidden()\n'
             '    return Secret.A\n'),
         'main.fusion': 'import paint\nvoid function main()\n    print("x")\n',
     })
-    assert "The public function 'hidden' uses the private enum 'Secret'" in message
+    assert "The public function 'hidden' uses the internal enum 'Secret'" in message
 
 
 # ---------------------------------------------------------------- match (Task 25.3)

@@ -3996,20 +3996,24 @@ direction:
       public string function show(Price p)
   ```
 * Example: `examples/shop/` - a program of three files in two modules
-* **`public`** (Task 18.4.3, user decision 2026-10-10; types changed 2026-10-30, Task 32.2a):
-  structs, classes and enums are public unless written `private`; functions and module
-  variables only when marked `public` can be used by other modules - through `money.round`, `import money.round` or
-  `import money.*` (which brings the public names only). Everything else is private to its
-  module, while the module's own files see all of each other's names. `private` may be
-  written to say the default explicitly. A public function or struct can't use a private
-  struct of its module in its parameters, result or fields ("make 'Secret' public too") -
-  otherwise other modules would get values of a type they can't name
+* **`public` / `internal` / `private`** (Task 18.4.3; 32.2a; 32.2h, user decisions
+  2026-10-30): structs, classes, enums, error types and functions are public unless written
+  `internal`; module variables private to their module unless written `public` / `internal`.
+  `internal` means the namespace - a file without one: its module. Other modules use public
+  names through `money.round`, `import money.round` or `import money.*` (public names only);
+  a module's own files see all of each other's names. `private` on a top-level struct,
+  class, enum, error type or function is an error ("write 'internal'"). A public function or
+  struct can't use an internal struct of its module in its parameters, result or fields
+  ("make 'Secret' public too") - other modules would get values of a type they can't name
   ```
   public struct Price          // other modules may use it
       int cents
   public Price function make(int cents) : Price(cents + fee())
-  int function fee() : 50      // private: only module money's files see it
+  internal int function fee() : 50   // only module money (or its namespace) sees it
   ```
+* **`namespace Shop.Tools`** (Task 32.2h): the file's first line, before the imports - a line,
+  not a folder. Modules whose files share a namespace see each other's internal names and
+  class members; Fusion's own libraries use `namespace Core`
 
 ---
 
@@ -4498,6 +4502,10 @@ layer = "std"                  # std (default) | alloc | core
 
 [modules]                      # Task 44.1 - see "Constants"
 variables = true               # module-level variables; constants are always allowed
+
+[visibility]                   # Task 32.2h - see "Modules" / public, internal, private
+required = false               # true: public / internal / private must be written on every
+                               # top-level item and class member
 
 [conditions]                   # Task 30.9 - see "Null Handling" / numbers as conditions
 numbers = "positive"           # positive (default): if / while count is count > 0;

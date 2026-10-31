@@ -109,7 +109,8 @@ def compile_and_run_leak_checked(source: str, source_path: str):
                                     stdlib_config=config.stdlib, errors_config=config.errors,
                                     numbers_config=config.numbers,
                                     modules_config=config.modules,
-                                    conditions_config=config.conditions)
+                                    conditions_config=config.conditions,
+                                    visibility_config=config.visibility)
         if not analyzer.analyze(ast):
             return None, '\n'.join(str(e) for e in analyzer.get_errors())
         c_code = CCodeGenerator(encoding=config.strings.encoding,

@@ -100,5 +100,6 @@ class RingBuffer implements Sized
 | `private` on a top-level class, struct, enum, interface or function | an error | nothing could use it - write `internal` |
 | `private` inside an interface | an error | |
 
-`[visibility] required = true` (planned) makes writing the level mandatory - a missing one is
-an error. Details: `Classes.md` section 1.
+`[visibility] required = true` (built, Task 32.2h) makes writing the level mandatory - a
+missing one is an error. `namespace` and `internal` are built too. Details: `Classes.md`
+section 1.

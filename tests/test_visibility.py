@@ -65,13 +65,13 @@ def test_outside_the_class_public_members_work():
                      + main('int n = 1\nn = n / 0')).count('private') == 0
 
 
-def test_module_level_types_are_public_functions_private(tmp_path):
+def test_module_level_types_are_public_internal_stays_inside(tmp_path):
     files = {
         'shop/items.fusion': ('struct Item\n    int n\n\n'
                               'class Cart\n    public int count\n\n'
                               'enum Kind: Small Big\n\n'
-                              'private struct Note\n    int n\n\n'
-                              'int function helper() : 1\n'),
+                              'internal struct Note\n    int n\n\n'
+                              'internal int function helper() : 1\n'),
         'main.fusion': ('import shop\n\n'
                         'void function main()\n'
                         '    shop.Item i\n'
@@ -81,6 +81,6 @@ def test_module_level_types_are_public_functions_private(tmp_path):
     }
     assert module_errors(str(tmp_path), files) == ''
     files['main.fusion'] = 'import shop\n\nvoid function main()\n    shop.Note n\n'
-    assert "'Note' is private to module 'shop'" in module_errors(str(tmp_path), files)
+    assert "'Note' is internal to module 'shop'" in module_errors(str(tmp_path), files)
     files['main.fusion'] = 'import shop\n\nvoid function main()\n    int x = shop.helper()\n'
-    assert "'helper' is private to module 'shop'" in module_errors(str(tmp_path), files)
+    assert "'helper' is internal to module 'shop'" in module_errors(str(tmp_path), files)

@@ -157,26 +157,10 @@ are in `task/featuresArchive.md`.
 			`null`) in print / format / "{x}" / toString, one warning per class until ToString (32.5)
 		[DONE] 32.2g The `null == null` bug - gave false (the null had no type); now true, as
 			`null is null` (tests/test_classes.py)
-		[ ] 32.2h Visibility levels private (the class) / internal (the namespace; without one,
-			the module) / public; `namespace Core.Collections` - a line at the top of a file, not
-			a folder (Namespace.Module.Class.Function); `[visibility] required` (default false)
-			makes the level mandatory; namespace and imports first; `Core` always imported -
-			plan in taskSummary2.md, layout in files/FusionTemplate.md (user, 2026-10-30)
-		Passing (user, 2026-10-26, as in VB.NET): value types (primitives, structs) by value - a
-		copy; objects (class instances) by reference. Until classes exist, everything is a copy
-		User decisions (2026-10-23, showcase review): `inherits`, with `extends` as an alias;
-		interface names need no I prefix; several constructors per class; a constructor may
-		call another (private ones too) with this(...); constructors calling each other in a
-		circle are a compile error
-	[ ] 30.2 (from Task 30) On class objects: the `?.` guard (not run on null, false in an
-		`if`), `??`, `x?.null` / `!x?.null`, `== null` / `=== null` / `is null`, NullError for a
-		plain `.` on null (was 30.1b), the two warnings (Nullable_Values.md section 5)
-	[ ] 30.3 (from Task 30) `nullable` settings for strings / arrays / lists / maps (default
-		false) and `?.length()` giving -1 on a null one - only useful with 30.2
-	[DONE] 32.10 Object lifetime (mini-task, before 32.2): every case in Object_Lifetime.md with a
-		test. OWNERSHIP first, always (user, 2026-10-29 - no crashes, no leaks); count references,
-		but skip the counting where the compiler proves a single owner (Swift / Lobster -
-		Notes/Program lang Compare.md, Rust videos)
+		[DONE] 32.2h Visibility levels (tests/test_visibility_levels.py): private (the class) /
+			internal (the namespace; without one, the module) / public; `namespace A.B` the
+			file's first line; module functions public by default; private on a top-level item
+			is an error; [visibility] required (default false)
 		[DONE] 32.10a Lists and Maps are references with a count (tests/test_shared_collections.py):
 			shared in normal code, copied in a struct; `byVal` copies, a `byRef` field shares
 			(user, 2026-10-29 - truth table in Arrays.md section 1)
