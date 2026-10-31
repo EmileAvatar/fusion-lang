@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (open: C.009 - C.001-C.008 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065)
+  (none open - C.001-C.009 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065, D.077)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -178,7 +178,7 @@ MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep
 CON.001 [PLANNED] `service`: shared state with one owner (reserved keyword); version one (42.0-42.2)
 CON.002 [PLANNED] One writer: the service's worker; readers in parallel (42.18)
 CON.003 [PLANNED] Temporary services when two or more threads use one variable (42.19)
-CON.004 [PLANNED] Several variables, each its own service; a fixed order (42.20)
+CON.004 [PLANNED] A thread using two or more resources: a group service - written or made by the compiler (42.20)
 CON.005 [PLANNED] A `Service` interface: BasicService, SharedService, FileService, DatabaseService, HotPathService (42.21)
 CON.006 [PLANNED] send / sync worked out at the thread boundary (42.22)
 CON.007 [PLANNED] `hotpath` functions and `hotpath service` (42.23-42.24)
@@ -301,4 +301,4 @@ SET.022 [DESIGN] Strict mode extras: null checks forced, `Weak<T>` an error, cal
 | D.074 | Concurrency trap checks are warnings by default; `fusion.toml` can make each an error | CON.001 | 2026-10-23 | Concurrency.md 3.6 | ACTIVE (planned) |
 | D.075 | The principles P1-P11 govern every concurrency feature | GOL.004 | 2026-10-23 | Concurrency_Traps.md | ACTIVE |
 | D.076 | A misspelled setting or a bad value is an error, never ignored; every built setting, its values and default are in `files/fusionSettings.xml`; every setting a finished Fusion will have, tagged, in `files/showcase/fusion.toml` | SET.001 | 2026-10-23 | fusionSettings.xml | ACTIVE |
-| C.009 | **CLASH:** P2 - never two resources per thread; if they can't be separated, one service owns both as a unit (2026-10-23). D.028 / Ownership.md 7 - one step changing two services takes them in a fixed order (2026-10-31). Suggest: P2 wins - two values changed in one step form a group service (42.3); using them one after the other (a database, then a log) stays fine | CON.004 | - | Concurrency_Traps.md, Ownership.md 7 | CLASH - check |
+| D.077 | A thread using two or more resources: they become a **group service** - written by the developer or made by the compiler. It is their temporary owner; its worker borrows them and carries out the requests; when they are done it lets go, and each variable owns its value again. A **service** manages one resource, a **group service** several | CON.004 | 2026-10-31 | Ownership.md 7 | ACTIVE (planned) |

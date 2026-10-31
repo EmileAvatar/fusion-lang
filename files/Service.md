@@ -434,14 +434,15 @@ A service is the one writer of what it holds. These rules come from the ownershi
 | S4 | **Readers in parallel** - readonly requests may run together; a changing request runs alone. `Readers = PARALLEL \| SERIAL` | `show` and `log` |
 | S5 | **Temporary services** - made when two or more threads use one value, gone when the last ends; ownership comes back (Ownership.md section 6) | the user's design |
 | S6 | **What goes into a request** - borrowed for the request only, moved in (send), or copied | a borrow never outlives its owner |
-| S7 | **Fixed order for several services** in one step; waiting inside a request for another thread's result is an error | no deadlocks |
+| S7 | **A thread using two or more resources gets a group service** (written, or made by the compiler); waiting inside a request for another thread's result is an error | no deadlocks (P2) |
 | S8 | **Plain counts inside a service**; only handles use atomic counts | speed - an object inside is never reached by two threads |
 | S9 | **The thread-boundary table** - what may reach another thread (Ownership.md truth table 5) | the compiler check |
 | S10 | **A `Service` interface** that every kind of service implements (below) | program to an interface |
 
-**Several variables** (Ownership.md section 7): each keeps its own service and worker - a
-database runs the query, the log writes it, the results go back to the caller. One service
-may send to another without waiting.
+**Several resources** (Ownership.md section 7, D.077): a **service** manages one resource, a
+**group service** several. A thread that uses two or more resources - a database and its
+log - gets a group service: written by the developer ("Group services" below) or made by the
+compiler. It owns them while its requests run, then each variable owns its value again.
 
 ## The Service interface (agreed 2026-10-31)
 

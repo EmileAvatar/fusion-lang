@@ -74,7 +74,7 @@ are in `task/featuresArchive.md`.
 			immutable strings, implicit widening, fields-only structs, locks, one class per file
 	[DONE] 49.4 Concurrency.md, Concurrency_Traps.md, files/Service.md
 		7 feature lines (version one, settings, the hierarchy, trap checks); D.066-D.075
-		Clash C.009 for the user: P2 (one service owns both) vs a fixed order over two services
+		Clash C.009 settled 2026-10-31: a group service (D.077)
 	[DONE] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
 		9 feature lines (the built settings missing, [project], [build], [threads], stack traces); D.076
 	[ ] 49.6 Notes/, FutureFeatures.md, FutureFeaturesCaution.md, task/taskSummaryArchive.md (decisions only)
@@ -443,7 +443,7 @@ are in `task/featuresArchive.md`.
 		S4 Readers in parallel: readonly requests together, a change alone (`Readers` setting)
 		S5 Temporary services (42.19)
 		S6 Into a request: borrowed for the request, moved in (send), or copied
-		S7 Several services in one step: a fixed order; waiting inside a request is an error
+		S7 A thread using two or more resources: a group service; waiting inside a request is an error
 		S8 Plain counts inside a service, atomic only for handles
 		S9 The thread-boundary check (42.22)
 		S10 The Service interface (42.21)
@@ -454,11 +454,12 @@ are in `task/featuresArchive.md`.
 		The parent's own use while threads run is a request too
 		The last thread ends: the variable owns its value again
 		`[concurrency] autoService = "on"` (a note per variable) | "warn" | "off" (an error)
-	[ ] 42.20 Several variables (Ownership.md section 7)
-		Each keeps its own service and worker (a database and a log file)
-		One service sends to another without waiting
-		One step changing two: taken in a fixed order (no deadlock)
-		Two temporary services always used together: one group service (42.3)
+	[ ] 42.20 Several resources: the group service (Ownership.md section 7, D.077)
+		A service manages one resource; a group service several
+		A thread using two or more resources: a group service - written (42.3) or made by the compiler
+		It owns them while its requests run; its worker borrows them
+		Done: it lets go, each variable owns its value again
+		No thread holds two separate services at once (P2)
 	[ ] 42.21 The Service interface (needs 32.5)
 		`interface Service<T>`: send, `T fetch()` (the worker's next request), start, stop, state, waiting
 		BasicService (one worker thread), SharedService (temporary), FileService, DatabaseService, HotPathService

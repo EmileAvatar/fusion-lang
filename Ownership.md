@@ -216,31 +216,39 @@ print(acc.balance)        // the parent's use is a request too - it waits its tu
 
 ---
 
-## 7. Several variables (D28-D31)
+## 7. Several variables: the group service (D.077)
 
-More than one variable is the normal case. Each may already be a service, or run on its own
-thread - a log file and a database connection:
+- **Service** - manages one resource
+- **Group service** - manages several resources that one thread uses
+- A thread using two or more resources: they become a **group service** - written by the
+  developer (`service(db, queries) shop`, 42.3), or made by the compiler when it sees the
+  thread use them
+- The group service is their **temporary owner**; its worker borrows them and carries out
+  the requests
+- When the requests are done it lets go, and each variable owns its value again
 
 ```fusion
 service Database db = Database("shop.db")
 service LogFile queries = LogFile("queries.log")
 
 List<Row> function find(string sql)
-    List<Row> rows = db.query(sql)      // db's worker runs the query; the caller waits for the rows
-    async queries.write(sql)            // sent to the log's worker - no wait
+    List<Row> rows = db.query(sql)      // find uses db and queries: the compiler makes
+    queries.write(sql)                  // a group service of the two for this thread
     return rows                         // the results go back to the caller
 ```
 
-#### Truth table 8: one call using several variables
+#### Truth table 8: one thread using several resources
 
-| Variables | Each is | How the call runs |
+| Resources the thread uses | Written as | Result |
 |---|---|---|
-| 2, used one after the other (db, then the log) | its own service | two requests in turn; the caller waits for db's reply, the log write is `async` |
-| 2, one service uses another (db's worker logs each query) | its own service | db sends to the log without waiting (or waits only down the hierarchy - P9) |
-| 2, changed together in one step (`transfer(a, b)`) | its own service | both taken in a fixed order (by creation), released together - no deadlock |
-| 2, always used together by several threads | temporary | joined into one group service (42.3): one worker for both |
-| 2, one of them only read (readonly) | either | the read one may be read in parallel |
-| a request waiting for another thread's result while it holds a service | - | **an error** (the second deadlock pattern) |
+| 1 | a variable | a (temporary) service when other threads use it too (section 6) |
+| 2 or more | `service(a, b) unit` | the developer's group service: it owns both while it runs |
+| 2 or more | nothing written | **a group service made by the compiler** - with a note, like a temporary service |
+| 2 or more, one of them only read (readonly) | either | the read one may be read in parallel |
+| the group's requests done | - | it lets go; each variable owns its value again |
+| a request waiting for another thread's result while it holds a service | - | **an error** (a deadlock pattern) |
+
+No thread ever holds two separate services at once (P2), so no circle of waiting can form.
 
 ---
 
@@ -260,5 +268,5 @@ List<Row> function find(string sql)
 | 2026-10-31 | `shared`: read only except to the holder that made it shared; `byRef` from it lends change (D11, D12) |
 | 2026-10-31 | readonly: the called function's signature is the contract; the caller may write `readonly` at the call; a library only by its signature; a non-Fusion library: a warning (D13-D20) |
 | 2026-10-31 | Two or more threads using a value: a temporary service owns it, the threads borrow, ownership comes back when they end (D21-D27) |
-| 2026-10-31 | Several variables: each its own service, fixed order for one step over two, no waiting inside a request (D28-D31) |
+| 2026-10-31 | Several resources used by one thread: a group service, written or made by the compiler; it owns them while it runs, then each variable owns its value again (D.077 - replaces the fixed order) |
 | 2026-10-31 | Send / sync worked out by the compiler, explained in Fusion's words (D37-D39) |

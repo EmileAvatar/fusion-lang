@@ -25,7 +25,7 @@ Manual locking is a last resort.
 | | Principle | In one line |
 |---|---|---|
 | P1 | Resource as Service | One coordinator owns each resource; everyone else sends requests (`service` keyword) |
-| P2 | One Thread, One Resource | No thread holds or waits on two resources; things that must change together form one unit |
+| P2 | One Thread, One Resource | No thread holds or waits on two resources; things that must change together form one unit - a group service, written or made by the compiler (D.077) |
 | P3 | The Hierarchy Decides | When two threads want one resource, a rule (the senior thread key, by default) picks the winner |
 | P4 | Every Wait Has a Deadline | Every thread, request and wait has a timeout; a freeze becomes an error |
 | P5 | Owned Threads | Every thread has a parent; parents wait for, cancel, and get errors from their children |

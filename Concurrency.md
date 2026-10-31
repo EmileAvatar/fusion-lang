@@ -1555,9 +1555,10 @@ The thread side of the ownership design (`Ownership.md` sections 5-7; the record
 - **send / sync, in Fusion's words:** send - a value goes to another thread and the sender no
   longer has it (a Go channel send, checked); sync - many threads use a value through a
   service, and only its thread changes it (Ownership.md truth table 5)
-- **Several variables:** each keeps its own service (a database and a log file); one service
-  may send to another without waiting; one step changing two takes them in a fixed order;
-  waiting inside a request for another thread's result is an error (Ownership.md section 7)
+- **Several resources:** a thread that uses two or more (a database and a log file) gets a
+  **group service** - written or made by the compiler; it owns them while its requests run,
+  then each variable owns its value again (P2; D.077; Ownership.md section 7). Waiting
+  inside a request for another thread's result is an error
 - **Go has the pattern, not the check:** a pointer sent down a channel can still be used on
   both sides; Fusion makes that a compile error
 - **Hot paths:** `hotpath service` - a dedicated thread that never sleeps (files/Service.md
