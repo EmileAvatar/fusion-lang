@@ -33,6 +33,8 @@ Checks:
               its copy in examples/ is up to date
     builtins  files/Builtins.md matches the compiler's built-in functions and methods
     runtime   runtime/fusion_runtime.h matches the run-time the compiler writes into C files
+    decisions Decisions.md in shape: feature lines AREA.NNN [STATUS] in order, decision rows
+              in order and naming a feature that exists (CLAUDE.md Rule 3b, Task 49.9)
     ascii     no non-ASCII characters in .py / .fusion files (CLAUDE.md Rule 2)
 
 Exit code 0 only if everything passed.
@@ -357,6 +359,67 @@ def check_ascii():
     return not bad, 'ok' if not bad else f'{len(bad)} line(s)', '\n'.join(bad[:20])
 
 
+FEATURE_LINE = re.compile(r'^([A-Z]{3})\.(\d{3}) \[(BUILT|PLANNED|DESIGN|POSTPONED|REJECTED)\] \S')
+AREA_HEADING = re.compile(r'^#### ([A-Z]{3}) - ')
+
+
+def decision_problems(text: str) -> list:
+    """Task 49.9: Decisions.md stays in shape (CLAUDE.md Rule 3b) - every feature line is
+    `AREA.NNN [STATUS] text` under its own area heading, numbered 1, 2, 3 ... in order; every
+    decision row D.NNN is numbered in order and names a feature (or an area) that exists; a
+    C.NNN row is a clash."""
+    problems = []
+    area, numbers, features, areas = None, {}, set(), set()
+    for number, line in enumerate(text.splitlines(), 1):
+        heading = AREA_HEADING.match(line)
+        if heading:
+            area = heading.group(1)
+            areas.add(area)
+            continue
+        if not re.match(r'^[A-Z]{3}\.\d', line):
+            continue
+        match = FEATURE_LINE.match(line)
+        if not match:
+            problems.append(f'line {number}: not "AREA.NNN [BUILT|PLANNED|DESIGN|POSTPONED|REJECTED] text"')
+            continue
+        code, n = match.group(1), int(match.group(2))
+        if code != area:
+            problems.append(f'line {number}: {code}.{n:03d} is under the {area} heading')
+        expected = numbers.get(code, 0) + 1
+        if n != expected:
+            problems.append(f'line {number}: {code}.{n:03d} - expected {code}.{expected:03d} (in order, no gaps)')
+        numbers[code] = n
+        features.add(f'{code}.{n:03d}')
+    expected = 1
+    for number, line in enumerate(text.splitlines(), 1):
+        row = re.match(r'^\| ([DC])\.(\d{3}) \|(.*)$', line)
+        if not row:
+            continue
+        cells = [c.strip() for c in row.group(3).split('|')]
+        if row.group(1) == 'C':
+            if not cells[0].startswith('**CLASH'):
+                problems.append(f'line {number}: C.{row.group(2)} is not marked CLASH')
+            continue
+        if int(row.group(2)) != expected:
+            problems.append(f'line {number}: D.{row.group(2)} - expected D.{expected:03d} (in order, no gaps)')
+        expected = int(row.group(2)) + 1
+        feature = cells[1] if len(cells) > 1 else ''
+        if feature not in features and feature not in areas:
+            problems.append(f'line {number}: D.{row.group(2)} names feature "{feature}", which is not in section 1')
+    return problems
+
+
+def check_decisions():
+    path = ROOT / 'Decisions.md'
+    text = path.read_text(encoding='utf-8')
+    problems = decision_problems(text)
+    features = len(re.findall(r'^[A-Z]{3}\.\d{3} ', text, re.M))
+    decisions = len(re.findall(r'^\| D\.\d{3} ', text, re.M))
+    clashes = len(re.findall(r'^\| C\.\d{3} ', text, re.M))
+    summary = f'{features} features, {decisions} decisions, {clashes} clash(es) open'
+    return not problems, summary if not problems else f'{len(problems)} problem(s)', '\n'.join(problems[:20])
+
+
 def escape_non_ascii(text: str) -> str:
     return ''.join(ch if ord(ch) < 128 else
                    ('\\u%04x' % ord(ch) if ord(ch) <= 0xFFFF else '\\U%08x' % ord(ch))
@@ -547,7 +610,7 @@ def run_checks(quick: bool) -> bool:
     if not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
                    ('reference', check_reference_sync), ('builtins', check_builtins),
-                   ('runtime', check_runtime),
+                   ('runtime', check_runtime), ('decisions', check_decisions),
                    ('ascii', check_ascii)]
     all_ok = True
     details = []

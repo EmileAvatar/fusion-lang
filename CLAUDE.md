@@ -118,7 +118,7 @@ python tests/verify_examples.py      # examples directly
 `check.py` runs: the test suite (end-to-end tests compile with `-DFUSION_LEAK_CHECK`), the
 examples, a leak check of every example and every `SYNTAX_REFERENCE.md` program (exit 3 =
 string never freed, 4 = freed twice), that `files/Builtins.md` and `runtime/fusion_runtime.h`
-match the compiler, and the ASCII rule.
+match the compiler, that `Decisions.md` is in shape (Rule 3b), and the ASCII rule.
 
 ### Setting up a new machine
 1. Python 3.11+ (`tomllib`), and GCC on PATH (Windows: MinGW-w64, e.g.

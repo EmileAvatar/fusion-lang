@@ -301,3 +301,38 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 	[DONE] 46.2 `match` gives a value: `match n { 6, 7 : "Weekend", _ : "Weekday" }`; no fall through
 	[DONE] 46.3 `write(...)` - print without ending the line (console only, flushed)
 	tests/test_let_var_match.py
+
+#### 49 Decisions.md - every feature and decision in one place (user, 2026-10-31) [DONE 2026-10-31]
+	Before 32.5 (it keeps later work from contradicting earlier decisions)
+	Rule: CLAUDE.md Rule 3b
+	[DONE] 49.0 First version of Decisions.md: section 1 features, section 2 decisions, 4 clashes found
+	[DONE] 49.1 The design documents' decisions logs: Object_Lifetime, Classes, Arrays, Nullable_Values, Ownership
+		D.029-D.056 added; MEM.008, COL.011, COL.012 added; clashes C.005, C.006 for the user
+	[DONE] 49.2 FEATURES.md, task/featuresArchive.md (built features), SYNTAX_REFERENCE.md
+		39 feature lines added (the showcase ideas, built settings, postponed items); D.059-D.063
+		Old Later lines marked: money as a decimal and string(255) replaced, namespaces built
+		Clashes C.007 (the word "fixed"), C.008 (`switch` preferred, `match` used) - settled: D.064, D.065
+	[DONE] 49.3 The spec and the grammar (files/fusion-language-spec.md, files/fusion.ebnf)
+		17 feature lines added (comments, `<>`, `unchecked`, `...`, properties, casts, interop, ...)
+		D.060 corrected: an int is used as a float when it fits exactly (27.2f)
+		The spec summary fixed where it went against decisions: GC default, nullable strings,
+			immutable strings, implicit widening, fields-only structs, locks, one class per file
+	[DONE] 49.4 Concurrency.md, Concurrency_Traps.md, files/Service.md
+		7 feature lines (version one, settings, the hierarchy, trap checks); D.066-D.075
+		Clash C.009 settled 2026-10-31: a group service (D.077)
+	[DONE] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
+		9 feature lines (the built settings missing, [project], [build], [threads], stack traces); D.076
+	[DONE] 49.6 Notes/, FutureFeatures.md, FutureFeaturesCaution.md, task/taskSummaryArchive.md (decisions only)
+		11 feature lines (comment blocks, bit type, decimal, arenas, tools, IDE module); D.078, D.079
+		Fixed against decisions: Currency live rates (D.022), GC default (D.027), `Shared<T>?` (D.063)
+		Marked as replaced in FutureFeatures: decimal money, string prefixes, `type()` arrays
+		Clash C.010 settled 2026-10-31: no `.move()`, assigning moves (D.080)
+	[DONE] 49.7 The code: what the compiler does that no document records (src/)
+		4 feature lines: and / or / not and `func` lambdas, the built-ins, the error tree, reserved inheritance words; D.081
+		fusion-summary.md (GC default) and fusion-strict.md (Unique<T>) brought in line; `Unique` keyword: 48.8
+	[DONE] 49.8 The user settles each CLASH row; the losing side is fixed in its document
+		C.001-C.010 all settled 2026-10-31
+		C.001-C.004 settled 2026-10-31 -> D.025-D.028; documents fixed
+	[DONE] 49.9 A check in check.py: every feature line has a known area and status; IDs unique and in order
+		`decisions` in check.py (tests/test_decisions_file.py): lines under their own area, numbered in
+		order, decision rows in order naming a feature that exists, C rows marked CLASH

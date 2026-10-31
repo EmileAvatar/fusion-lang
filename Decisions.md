@@ -12,7 +12,8 @@ features only - no bug fixes, no discussions.
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
   `files/fusionSettings.xml`, design documents (named in each row)
-- First version 2026-10-31; the full pass over every file, note and the code: FEATURES.md Task 49
+- Built from every design document, note, setting and the compiler (Task 49, done 2026-10-31);
+  `python check.py` checks its shape (`decisions`)
 
 ---
 

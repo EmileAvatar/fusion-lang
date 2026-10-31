@@ -488,19 +488,10 @@ Kept under Task 22 until the renumbering is approved.
   - Services S1-S10, the Service interface, hotpath service: files/Service.md
   - Threads: Concurrency.md 3.13; Concurrency_Traps.md P11
   - Scheduled: Task 48 (after all of Task 32), 42.18-42.25, 47.5 `fixed`
-- Decisions.md created (Task 49.0): features one line each, decisions table, 4 clashes (C.001-C.004)
-- 49.1 done: the five decisions logs -> D.029-D.056; clashes C.005, C.006 open for the user
-- C.005, C.006 settled (D.057, D.058); 49.2 done: 39 feature lines, D.059-D.063; C.007, C.008 open
-- C.007, C.008 settled: `fixed(n)` = a size limit only, `const` = nothing changes (D.064);
-  `match` the form, `switch` an alias, `else if` for 2-3 checks (D.065)
-- 49.3 done: the spec and grammar - 17 feature lines; D.060 corrected; the spec summary fixed
-- 49.4 done: the concurrency files - 7 feature lines, D.066-D.075; clash C.009 open
-- 49.5 done: the settings - 9 feature lines, D.076
-- C.009 settled: a thread using two or more resources gets a group service (D.077)
-- 49.6 done: Notes, FutureFeatures, the archive - 11 feature lines, D.078, D.079; clash C.010 open
-- C.010 settled: no `.move()` or `Unique<T>` - assigning moves (D.080)
-- 49.7 done: the code - 4 feature lines, D.081; old GC / Unique text fixed; 48.8 releases `Unique`
-- **Next Action:** Task 49.9 (the check in check.py) (the pass over every
-  file); then 32.5 (interfaces: ToString, Default, Cloneable);
-  then the rest of Task 32, then Task 48 (ownership) - user, 2026-10-31; then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
-  (long, money, enums with fixed data) - user, 2026-10-29
+- Task 49 done (2026-10-31): Decisions.md built from every source, 10 clashes settled, a check in
+  check.py - detail in task/taskSummaryArchive.md
+- **Next Action:** 32.5 (interfaces: ToString, Default, Cloneable)
+  - then the rest of Task 32
+  - then Task 48 (ownership) - user, 2026-10-31
+  - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
+  - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29
