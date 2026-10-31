@@ -551,7 +551,9 @@ Kept under Task 22 until the renumbering is approved.
   interface, small wrappers); an interface value is a void* in C; CastError added
 - 32.5b ToString done: a run-time fusion_object_text (its toString() through the class table,
   else the class name); the ToString interface is added only when a class implements it
-- **Next Action:** 32.5b copies of objects (byVal, Cloneable, nocopy / noshare), then Default
+- 32.5b copies done: fusion_clone_fu_Car per class (a Cloneable class's own clone()); the class
+  table got a clone entry; nocopy / noshare checked after type checking (class_rules)
+- **Next Action:** 32.5b Default (a variable of the type is never null)
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

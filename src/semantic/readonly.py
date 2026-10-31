@@ -138,10 +138,7 @@ def check_readonly(program) -> List[SemanticError]:
             if not p.is_readonly:
                 continue
             start = f"'{p.name}' is readonly - {f.name}"
-            # a class object's copy comes with Cloneable (Task 32.5)
-            copy = "a copy of an object comes with clone(), Task 32.5" \
-                if isinstance(p.param_type, StructType) and p.param_type.name in classes \
-                else f"use a copy: byVal {p.name}"
+            copy = f"use a copy: byVal {p.name}"      # objects too, since Task 32.5b
             for kind, node, extra in found[(f.name, i)]:
                 if kind == 'pass':
                     if extra not in changed:

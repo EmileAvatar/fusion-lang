@@ -132,3 +132,60 @@ def check_visibility_written(program) -> List[SemanticError]:
         elif type(d) in kinds:
             need(d, kinds[type(d)], d.name.rsplit('.', 1)[-1])
     return errors
+
+
+def check_copy_fields(program) -> List[SemanticError]:
+    """`nocopy` / `noshare` fields (Task 32.5b, Decisions.md D.034), after type checking: a
+    nocopy field is set only in a constructor or clone(); a noshare field is never handed out
+    - returned or stored it is copied (`byVal`)."""
+    from dataclasses import fields as dataclass_fields, is_dataclass
+    from src.parser.ast_nodes import AssignmentStmt, MemberExpr, ReturnStmt, VarDeclStmt
+    copying = {}
+    for d in program.declarations:
+        if isinstance(d, StructDecl) and d.is_class:
+            for f in d.fields:
+                if getattr(f, 'copying', None):
+                    copying[(d.name, f.name)] = f.copying
+    if not copying:
+        return []
+    errors = []
+
+    def field_of(expr):
+        """('Car', 'db') when expr is a field of a class object, else None."""
+        if not isinstance(expr, MemberExpr):
+            return None
+        owner = getattr(getattr(expr.object, 'inferred_type', None), 'name', None)
+        return (owner, expr.member) if (owner, expr.member) in copying else None
+
+    def walk(node, function):
+        if isinstance(node, list):
+            for item in node:
+                walk(item, function)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if isinstance(node, AssignmentStmt):
+            target = field_of(node.target)
+            if target and copying[target] == 'nocopy' and not (
+                    getattr(function, 'method_of', None) == target[0]
+                    and (getattr(function, 'is_constructor', False)
+                         or getattr(function, 'method_name', None) == 'clone')):
+                errors.append(SemanticError(
+                    f"'{target[1]}' is nocopy - only a constructor or clone() of {target[0]} sets "
+                    f"it", node.location))
+        handed = node.value if isinstance(node, (AssignmentStmt, ReturnStmt)) else \
+            node.initializer if isinstance(node, VarDeclStmt) else None
+        given = field_of(handed)
+        if given and copying[given] == 'noshare':
+            errors.append(SemanticError(
+                f"'{given[1]}' is noshare - it is never handed out; give a copy: "
+                f"byVal {given[1]}", node.location))
+        for f in dataclass_fields(node):
+            if f.name not in ('location', 'inferred_type', 'declaration', 'scope',
+                              'callee_declaration', 'resolved_arguments'):
+                walk(getattr(node, f.name), function)
+
+    for d in program.declarations:
+        if isinstance(d, FunctionDecl) and d.body is not None:
+            walk(d.body, d)
+    return errors

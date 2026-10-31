@@ -201,6 +201,12 @@ Car mine = Car.HONDA
 
 ## 4b. Copying an object that holds objects (`byVal` and `byRef`)
 
+**Built (Task 32.5b, tests/test_object_copies.py):** `byVal` on an object, a List / Map of
+objects or an interface value makes a new object with each field copied byVal (D.088) - its
+objects, Lists and arrays too; a copy of null is null. A class with a `nocopy` field, or whose
+objects can hold each other in a circle, can't be copied unless it implements `Cloneable` with
+its own `Car function clone()`; a `noshare` field is handed out only as `byVal`.
+
 A `Car` holds an `Engine`. What does a copy of the car hold?
 
 ```fusion
@@ -634,4 +640,5 @@ The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mo
 | 2026-10-28 | Atomic counts with threads; a shared (default) or dedicated thread |
 | 2026-10-29 | Lists and Maps become references with a count (shared in normal code, copied in a struct, `byVal` copies) - the same counting the class objects use. A class with no constructor: `Car()` - value fields at their defaults, objects null; its methods set them. 32.10 builds a minimal class together with the counting |
 | 2026-10-29 | OWNERSHIP is always the first choice - no crashes, no leaks (they cause instability and security holes). Counting is skipped where the compiler proves a single owner |
+| 2026-10-31 | Built (32.5b): `byVal` copies objects - a new object, each field byVal; Cloneable / clone(); nocopy (set only in a constructor or clone()) and noshare (handed out only as a copy) |
 | 2026-10-31 | Planned (Task 48): assigning moves by default (Lists, Maps, objects); `byVal` copies; passing / reading an element borrows; `shared` for several holders; the rules in Ownership.md |

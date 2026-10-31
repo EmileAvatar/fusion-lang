@@ -983,6 +983,33 @@ A class may implement several interfaces (`implements Shape, Named`), and an int
 on several (`interface Item implements Sized, Named`). A function with code in an interface is a
 default method - only with `[interfaces] defaultMethods = true`.
 
+#### Copies of objects: `byVal`, `Cloneable`, `nocopy`, `noshare`
+
+<!-- example: syntax_object_copies | task: 32.5b -->
+```fusion
+class Engine
+    public string kind = "V8"
+
+class Car
+    public string name
+    public Engine engine
+    constructor(string name)
+        this.name = name
+        engine = Engine()
+
+void function main()
+    Car a = Car("Honda")
+    Car b = byVal a                       // a new Car - and a new Engine
+    b.engine.kind = "V6"
+    print("{a.engine.kind} {b.engine.kind}")   // V8 V6
+    Car c = a                             // the same car (shared)
+    c.engine.kind = "V12"
+    print(a.engine.kind)                  // V12
+```
+A class with a `nocopy` field (a connection, a lock) can't be copied unless it implements
+`Cloneable` with its own `Car function clone()`, which `byVal` then calls; a `nocopy` field is set
+only in a constructor or `clone()`. A `noshare` field is never handed out - `return byVal log`.
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->

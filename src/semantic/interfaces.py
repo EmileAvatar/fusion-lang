@@ -70,6 +70,7 @@ def _same_signature(a: FunctionDecl, b: FunctionDecl) -> bool:
 # Fusion's own interfaces (Task 32.5b) - added to a program only when something uses them
 BUILTIN_INTERFACES = {
     'ToString': [('string', 'toString')],      # how an object prints (Classes.md section 6)
+    'Cloneable': [],                           # its own clone() - checked below (32.5b, D.088)
 }
 
 
@@ -250,6 +251,23 @@ def check_interfaces(program, default_methods: bool = False) -> List[SemanticErr
             impls[name] = answers
         decl.interface_impls = impls
         decl.all_interfaces = wanted
+
+    # Cloneable (32.5b): a public `Car function clone()` - the copy byVal makes
+    for decl in structs.values():
+        if decl.is_interface or 'Cloneable' not in getattr(decl, 'all_interfaces', ()):
+            continue
+        clone = next((m for m in decl.methods if getattr(m, 'method_name', None) == 'clone'
+                      and not getattr(m, 'is_constructor', False)), None)
+        if clone is None or len(clone.parameters) != 1 \
+                or getattr(clone.return_type, 'name', None) != decl.name:
+            errors.append(SemanticError(
+                f"Class '{decl.name}' implements Cloneable but has no function "
+                f"'{decl.name} function clone()' - it makes the copy", decl.location))
+        elif getattr(clone, 'is_private', False) or getattr(clone, 'is_internal', False):
+            errors.append(SemanticError(f"Function 'clone' of class '{decl.name}' must be "
+                                        f"public - byVal calls it", clone.location))
+        else:
+            decl.clone_method = clone
 
     # An interface's function changes its object if any class's answer does (32.2e)
     for decl in structs.values():

@@ -639,9 +639,15 @@ class MemoryManagementMixin:
 
     def clone_code(self, type_node, code: str) -> str:
         """C expression giving a deep copy - a List or Map is copied, not shared (`byVal`, a
-        struct's own copy - Task 32.10a); anything else as copy_code."""
+        struct's own copy - Task 32.10a); an object too (32.5b, D.088); anything else as
+        copy_code."""
         if isinstance(type_node, (ListType, MapType)):
             return f'{self.map_type(type_node)}_clone({code})'
+        if self.is_class_type(type_node):
+            decl = type_node.declaration or self.struct_decls.get(type_node.name)
+            if decl.is_interface:
+                return f'fusion_clone_object({code})'      # its own class makes it
+            return f'fusion_clone_{self._struct_c_name(type_node)}({code})'
         return self.copy_code(type_node, code)
 
     def error_value(self, type_node) -> str:
@@ -763,6 +769,7 @@ class MemoryManagementMixin:
                            f'*dst = v; fusion_release_{c}(&old); }}']
                 continue
             protos.append(f'static const fusion_class_t fusion_class_{c};')   # its table (32.5a)
+            protos.append(f'static {c}* fusion_clone_{c}({c}* o);')             # a copy (32.5b)
             protos += [f'static inline {c}* fusion_make_{c}(void);', f'static inline {c}* fusion_retain_{c}({c}* o);',
                        f'static inline void fusion_release_{c}({c}** p);', f'static inline void fusion_set_{c}({c}** dst, {c}* v);']
             make = [f'static inline {c}* fusion_make_{c}(void) {{',
@@ -798,6 +805,36 @@ class MemoryManagementMixin:
             # freed through an interface's value: its class table points here (32.5a)
             bodies += [f'static void fusion_release_any_{c}(void** p) {{ fusion_release_{c}(({c}**)p); }}']
         return protos + bodies
+
+    def emit_clone_function(self, decl) -> None:
+        """fusion_clone_fu_Car (Task 32.5b, D.088): a new object with each field copied byVal -
+        the field defaults don't run again; a Cloneable class's own clone() makes it instead."""
+        kind = StructType(location=decl.location, name=decl.name, declaration=decl)
+        c = self._struct_c_name(kind)
+        self.emit(f'static {c}* fusion_clone_{c}({c}* o) {{')
+        self.emit('    if (!o) return NULL;')
+        clone = getattr(decl, 'clone_method', None)
+        if clone is not None:
+            self.emit(f'    return {self._mangle_function_name(clone.name)}(o);')
+            self.emit('}')
+            return
+        self.emit(f'    {c}* r = ({c}*)fusion_alloc(sizeof({c}));')
+        self.emit('    memset(r, 0, sizeof *r);')
+        self.emit(f'    r->fusion_count = 1; r->fusion_class = &fusion_class_{c};')
+        self.emit('    FUSION_OBJECT_MADE();')
+        for f in decl.fields:
+            name = self._field_name(f.name)
+            if isinstance(f.field_type, ArrayType):
+                element = f.field_type.element_type
+                if self.is_managed(element):
+                    self.emit(f'    for (int i = 0; i < {f.field_type.size}; i++) '
+                              f'r->{name}[i] = {self.clone_code(element, f"o->{name}[i]")};')
+                else:
+                    self.emit(f'    memcpy(r->{name}, o->{name}, sizeof r->{name});')
+            else:
+                self.emit(f'    r->{name} = {self.clone_code(f.field_type, f"o->{name}")};')
+        self.emit('    return r;')
+        self.emit('}')
 
     def object_needed(self, code: str, type_node, node) -> str:
         """An object about to be used through `.` - null is a NullError (Task 32.10b)."""

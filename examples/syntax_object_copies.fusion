@@ -1,0 +1,18 @@
+class Engine
+    public string kind = "V8"
+
+class Car
+    public string name
+    public Engine engine
+    constructor(string name)
+        this.name = name
+        engine = Engine()
+
+void function main()
+    Car a = Car("Honda")
+    Car b = byVal a                       // a new Car - and a new Engine
+    b.engine.kind = "V6"
+    print("{a.engine.kind} {b.engine.kind}")   // V8 V6
+    Car c = a                             // the same car (shared)
+    c.engine.kind = "V12"
+    print(a.engine.kind)                  // V12

@@ -48,6 +48,7 @@ typedef struct fusion_class_t {
     const char* name;
     const struct fusion_class_t* parent;
     void (*release)(void** p);
+    void* (*clone)(void* o);
     int ntables;
     const fusion_itable_t* tables;
 } fusion_class_t;
@@ -64,6 +65,10 @@ static inline int fusion_is_class(const void* o, const fusion_class_t* cls) {
     for (const fusion_class_t* c = ((const fusion_object*)o)->fusion_class; c; c = c->parent)
         if (c == cls) return 1;
     return 0;
+}
+// A copy of any object - its own class makes it (Task 32.5b)
+static inline void* fusion_clone_object(void* o) {
+    return o ? ((fusion_object*)o)->fusion_class->clone(o) : NULL;
 }
 static inline const char* fusion_class_name(const void* o) {
     return o ? ((const fusion_object*)o)->fusion_class->name : "null";
@@ -743,13 +748,17 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                     body = f'{call};' if result == 'void' else f'return {call};'
                     self.emit(f'static {result} {wrapper}({params}) {{ {body} }}')
                     wrappers[order[method.method_name]] = f'(fusion_fn){wrapper}'
-                self.emit(f'static const fusion_fn fusion_fns_{c}__{i}[] = {{ {", ".join(wrappers)} }};')
-                tables.append(f'{{ fusion_iface_{i}, fusion_fns_{c}__{i} }}')
+                if wrappers:
+                    self.emit(f'static const fusion_fn fusion_fns_{c}__{i}[] = {{ {", ".join(wrappers)} }};')
+                tables.append(f'{{ fusion_iface_{i}, {f"fusion_fns_{c}__{i}" if wrappers else "NULL"} }}')
             if tables:
                 self.emit(f'static const fusion_itable_t fusion_tables_{c}[] = {{ {", ".join(tables)} }};')
             name = decl.name.replace('\\', '\\\\').replace('"', '\\"')
+            self.emit_clone_function(decl)
+            self.emit(f'static void* fusion_clone_any_{c}(void* o) {{ return fusion_clone_{c}(({c}*)o); }}')
             self.emit(f'static const fusion_class_t fusion_class_{c} = {{ "{name}", NULL, '
-                      f'fusion_release_any_{c}, {len(tables)}, {f"fusion_tables_{c}" if tables else "NULL"} }};')
+                      f'fusion_release_any_{c}, fusion_clone_any_{c}, {len(tables)}, '
+                      f'{f"fusion_tables_{c}" if tables else "NULL"} }};')
         if self.has_to_string():
             # An object as text (32.5b): its toString(), or its class name; null - "null"
             self.emit('static fusion_string fusion_object_text(const void* o) {')

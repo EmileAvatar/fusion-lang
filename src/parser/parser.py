@@ -2168,6 +2168,15 @@ class Parser:
                                              f"set-up together")
                 static_block = self.parse_block_statement()
                 continue
+            # `nocopy` / `noshare` before a field (Task 32.5b, D.034) - words only here
+            copying = None
+            while self.check(TokenType.IDENTIFIER) and self.peek().value in ('nocopy', 'noshare') \
+                    and (self.peek(1).type == TokenType.IDENTIFIER or self.peek(1).type in self.PRIMITIVE_TYPE_TOKENS
+                         or self.peek(1).value in ('nocopy', 'noshare')):
+                word = self.advance().value
+                if copying is not None and copying != word:
+                    raise ParserError(self.previous(), "A field is nocopy or noshare, not both")
+                copying = word
             # `const` and `static`, in any order (Task 32.2c)
             is_const = is_static = False
             while self.check(TokenType.CONST) or self.check(TokenType.STATIC):
@@ -2194,6 +2203,9 @@ class Parser:
                                      written is False, written))
                 continue
             item = self.parse_struct_field()
+            if copying is not None and isinstance(item, FunctionDecl):
+                raise ParserError(self.previous(), f"'{copying}' goes before a field")
+            item.copying = copying
             item.is_internal = written == 'internal'
             item.visibility_written = written is not None
             if isinstance(item, FunctionDecl):

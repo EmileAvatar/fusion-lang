@@ -161,13 +161,13 @@ CLS.004 [BUILT] Visibility `private` (the class) / `internal` (the namespace) / 
 CLS.005 [BUILT] Printing an object gives its class name, with a warning (until ToString)
 CLS.006 [BUILT] Interfaces: `interface`, `implements` (several), building on several, as a type, `is`, casts; default methods behind `[interfaces] defaultMethods` (32.5a)
 CLS.007 [PLANNED] Inheritance: one parent, `inherits` (alias `extends`), `override`, `sealed`, `abstract`, `protected`, `super`; `typeOf(x)` gives the chain (32.7)
-CLS.008 [PLANNED] `nocopy` / `noshare` fields
+CLS.008 [BUILT] `nocopy` / `noshare` fields; `byVal` copies objects; `Cloneable` with its own clone() (32.5b)
 CLS.009 [POSTPONED] The builder pattern (after Task 32)
 CLS.010 [BUILT] A warning for each circle of classes that could leak
 CLS.011 [DESIGN] Properties: `property Name: type { get; set; }`, computed and indexed ones
 CLS.012 [DESIGN] A constant in a class is always static
 CLS.013 [DESIGN] `abstract`, `sealed`, `virtual`, `override`, `protected` - reserved words, for inheritance (32.7)
-CLS.014 [PLANNED] The built-in interfaces Default and Cloneable; copies of objects (32.5b) - ToString built
+CLS.014 [PLANNED] The built-in interface Default - a variable of the type is never null (32.5b)
 CLS.015 [BUILT] `implements ToString` - print, format, "{x}", toString(x) use its toString(), also through an interface (32.5b)
 
 #### MOD - modules

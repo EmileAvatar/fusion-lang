@@ -207,7 +207,9 @@ are in `task/featuresArchive.md`.
 		[ ] 32.5b ToString, Default, Cloneable; copies of objects; nocopy / noshare
 			[DONE] ToString (tests/test_object_text.py): print / format / "{x}" / toString(x) use it,
 				also through an interface value; added to a program only when a class implements it
-			[ ] Copies of objects: `byVal obj` - a new object, each field byVal (D.088); Cloneable; nocopy / noshare
+			[DONE] Copies of objects (tests/test_object_copies.py): `byVal` - a new object, each field byVal (D.088)
+				Lists / Maps of objects and interface values too; Cloneable with its own clone()
+				nocopy (set only in a constructor or clone()); noshare (handed out only as byVal)
 			[ ] Default: a variable of the type is never null
 		(how an object prints; without it the class name and a warning), `Default` (a
 		constructor with no arguments, may be private - a variable of the type is never null,

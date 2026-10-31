@@ -1130,10 +1130,38 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         return self.is_class(type_node)
 
     def no_object_copies(self, type_node, location) -> None:
-        """A deep copy of objects needs clone() - Cloneable (Task 32.2 onwards)."""
-        self.errors.append(SemanticError(
-            f"A copy of a {self.type_to_string(type_node)} would copy its objects - that needs "
-            f"clone() (Cloneable, comes with Task 32.2); share it instead", location))
+        """A copy of objects (Task 32.5b, D.088): a new object with each field copied byVal -
+        unless the class has a nocopy field, or its objects can form a circle; Cloneable and a
+        clone() of its own copy those."""
+        problem = self.copy_problem(type_node, set())
+        if problem:
+            self.errors.append(SemanticError(
+                f"A copy of a {self.type_to_string(type_node)} can't be made - {problem}", location))
+
+    def copy_problem(self, type_node, seen) -> Optional[str]:
+        """Why objects of this type can't be copied, or None."""
+        if isinstance(type_node, (ListType, ArrayType)):
+            return self.copy_problem(type_node.element_type, seen)
+        if isinstance(type_node, MapType):
+            return self.copy_problem(type_node.value_type, seen)
+        decl = self.struct_declaration(type_node)
+        if not getattr(decl, 'is_class', False) or decl.is_interface:
+            return None                  # an interface's object: its own class decides, running
+        if getattr(decl, 'clone_method', None) is not None:
+            return None                  # Cloneable: its own clone()
+        if decl.name in seen:
+            return (f"{decl.name} objects can hold each other in a circle, so the copy would "
+                    f"never end (implement Cloneable with {decl.name} function clone())")
+        fixed = next((f for f in decl.fields if getattr(f, 'copying', None) == 'nocopy'), None)
+        if fixed is not None:
+            return (f"{decl.name}'s field '{fixed.name}' is nocopy (implement Cloneable with "
+                    f"{decl.name} function clone() to make it)")
+        seen = seen | {decl.name}
+        for field in decl.fields:
+            problem = self.copy_problem(field.field_type, seen)
+            if problem:
+                return problem
+        return None
 
     def _through_object(self, expr) -> bool:
         """A field or element reached through a class object - changing it changes the
@@ -1269,7 +1297,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         one waits for [structs] allowReference (user decision 2026-10-28)."""
         value_type = self.visit(node.value)
         if node.by_val and self.holds_objects(value_type):
-            self.no_object_copies(value_type, node.location)
+            self.no_object_copies(value_type, node.location)          # D.088 (32.5b)
         if not node.by_val and not self._is_collection(value_type) \
                 and not (isinstance(value_type, PrimitiveType) and value_type.name == 'void'):
             self.errors.append(SemanticError(
