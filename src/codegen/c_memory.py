@@ -792,6 +792,13 @@ class MemoryManagementMixin:
                         value = value or self._default_value_code(f.field_type)
                         make.append(f'    {{ {self.map_type(f.field_type.element_type)} init[] = '
                                     f'{value}; memcpy({field}, init, sizeof init); }}')
+                elif getattr(f.default_value, 'made_by_default', False):
+                    # a Default type's field: a new object from its constructor (Task 32.5b)
+                    inner = f.field_type.declaration or self.struct_decls.get(f.field_type.name)
+                    made = inner.default_constructor
+                    maker = self._mangle_function_name(made.name)
+                    protos.append(f'{self.map_type(f.field_type)} {maker}({self._c_parameter_list(made.parameters)});')
+                    make.append(f'    {field} = {maker}();')
                 elif f.default_value is not None:
                     make.append(f'    {field} = {self.owned_value(f.default_value, f.field_type)};')
                 elif not self._is_zero_safe(f.field_type):

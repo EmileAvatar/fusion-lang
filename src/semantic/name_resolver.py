@@ -508,14 +508,18 @@ class NameResolver:
             elif isinstance(field_type, StructType):
                 self.resolve_type(field_type)
 
-            if field.default_value is not None and isinstance(field_type, (ArrayType, StructType)):
+            # an object field starts as null - a value (an object, a Default one - 32.5b) is fine
+            is_object = getattr(getattr(field_type, 'declaration', None), 'is_class', False)
+            if field.default_value is not None and isinstance(field_type, (ArrayType, StructType)) \
+                    and not is_object:
                 self.errors.append(SemanticError(
                     f"Field '{field.name}' of struct '{struct.name}' can't have a default value - "
                     f"an array or struct field already starts with its own defaults (zero, or "
                     f"its fields' defaults)",
                     field.default_value.location
                 ))
-            elif field.default_value is not None and not self.is_constant_default(field.default_value):
+            elif field.default_value is not None and not self.is_constant_default(field.default_value) \
+                    and not getattr(field.default_value, 'made_by_default', False):   # Default (32.5b)
                 self.errors.append(SemanticError(
                     f"Default value for field '{field.name}' must be a constant (a "
                     f"literal such as 5, -1, 2.5, \"text\", 'c' or true)",

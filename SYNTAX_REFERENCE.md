@@ -1010,6 +1010,22 @@ A class with a `nocopy` field (a connection, a lock) can't be copied unless it i
 `Cloneable` with its own `Car function clone()`, which `byVal` then calls; a `nocopy` field is set
 only in a constructor or `clone()`. A `noshare` field is never handed out - `return byVal log`.
 
+#### `Default`: an object that is never null
+
+<!-- example: syntax_default | task: 32.5b -->
+```fusion
+class Settings implements Default
+    public int size = 3
+    private constructor()                 // may be private - the compiler calls it
+        size = 5
+
+void function main()
+    Settings s                            // made when declared: Settings()
+    s.size = 9
+    s = null                              // the old one goes, a new default one comes
+    print("{@1}", s.size)                 // 5
+```
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->

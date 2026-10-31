@@ -198,19 +198,20 @@ are in `task/featuresArchive.md`.
 	[ ] 32.7 Inheritance - one parent; favour composition (D.083) - using a parent type (user, 2026-10-29): `typeOf(x)` gives the chain,
 		top type first (`Person.Employee.Manager`), so the program can convert it back; for a
 		struct, only a `byRef` parameter keeps the whole value (a normal one: `Person`)
-	[ ] 32.5 Interfaces - also the built-in ones (Classes.md sections 5, 6): `ToString`
+	[DONE] 32.5 Interfaces - also the built-in ones (Classes.md sections 5, 6): `ToString`
 		[DONE] 32.5a Interfaces (tests/test_interfaces.py, Classes.md section 7): `interface`, `implements` (several)
 			an interface building on several; as a type (variables, parameters, Lists); the object's own function runs
 			`x is Circle`; casts written in front, a CastError when wrong; readonly followed through
 			default methods behind `[interfaces] defaultMethods` (default false)
 			Later: a cast between numbers `(int)d` (TYP.016)
-		[ ] 32.5b ToString, Default, Cloneable; copies of objects; nocopy / noshare
+		[DONE] 32.5b ToString, Default, Cloneable; copies of objects; nocopy / noshare
 			[DONE] ToString (tests/test_object_text.py): print / format / "{x}" / toString(x) use it,
 				also through an interface value; added to a program only when a class implements it
 			[DONE] Copies of objects (tests/test_object_copies.py): `byVal` - a new object, each field byVal (D.088)
 				Lists / Maps of objects and interface values too; Cloneable with its own clone()
 				nocopy (set only in a constructor or clone()); noshare (handed out only as byVal)
-			[ ] Default: a variable of the type is never null
+			[DONE] Default (tests/test_default_interface.py): a local, field or static of the type is made
+				when declared; `= null` makes a new one; a constructor without arguments (may be private)
 		(how an object prints; without it the class name and a warning), `Default` (a
 		constructor with no arguments, may be private - a variable of the type is never null,
 		the object made when declared; `s = null` lets the old object go and makes a new

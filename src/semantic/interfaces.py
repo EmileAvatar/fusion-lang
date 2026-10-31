@@ -71,6 +71,7 @@ def _same_signature(a: FunctionDecl, b: FunctionDecl) -> bool:
 BUILTIN_INTERFACES = {
     'ToString': [('string', 'toString')],      # how an object prints (Classes.md section 6)
     'Cloneable': [],                           # its own clone() - checked below (32.5b, D.088)
+    'Default': [],                             # never null - set up below (32.5b, D.010)
 }
 
 
@@ -269,6 +270,8 @@ def check_interfaces(program, default_methods: bool = False) -> List[SemanticErr
         else:
             decl.clone_method = clone
 
+    errors += _set_up_defaults(program, structs)
+
     # An interface's function changes its object if any class's answer does (32.2e)
     for decl in structs.values():
         for answers in getattr(decl, 'interface_impls', {}).values():
@@ -279,6 +282,88 @@ def check_interfaces(program, default_methods: bool = False) -> List[SemanticErr
                                        if m.method_name == method.method_name), None)
                         if target is not None and name in decl.all_interfaces:
                             target.changes_this = True
+    return errors
+
+
+def default_object(name: str, location):
+    """`Settings()` - made by the compiler for a Default type (Task 32.5b); it may call a
+    private constructor."""
+    from src.parser.ast_nodes import CallExpr, IdentifierExpr
+    call = CallExpr(location=location, callee=IdentifierExpr(location=location, name=name),
+                    arguments=[])
+    call.made_by_default = True
+    return call
+
+
+def _set_up_defaults(program, structs) -> List[SemanticError]:
+    """Default (Task 32.5b, D.010 - Classes.md section 5): a variable or field of the type is
+    never null - with no value, or `= null`, the compiler makes `Settings()`. The class needs a
+    constructor without arguments (it may be private), and can't hold itself."""
+    from src.parser.ast_nodes import LiteralExpr, VarDeclStmt
+    defaults = {n for n, d in structs.items()
+                if not d.is_interface and 'Default' in getattr(d, 'all_interfaces', ())}
+    if not defaults:
+        return []
+    errors = []
+    for name in sorted(defaults):
+        decl = structs[name]
+        makers = [m for m in decl.methods if getattr(m, 'is_constructor', False)]
+        no_arguments = [m for m in makers if all(p.default_value is not None for p in m.parameters)]
+        if no_arguments:
+            decl.default_constructor = no_arguments[0]    # the code generator calls it for a field
+        if makers and not no_arguments:
+            errors.append(SemanticError(
+                f"Class '{name}' implements Default but has no constructor without arguments - "
+                f"the compiler makes {name}() for a variable with no value (it may be private)",
+                decl.location))
+
+        def holds(other, path):
+            for f in structs[other].fields:
+                inner = getattr(f.field_type, 'name', None)
+                if inner in defaults:
+                    if inner == name:
+                        return path + [inner]
+                    if inner not in path:
+                        found = holds(inner, path + [inner])
+                        if found:
+                            return found
+            return None
+        circle = holds(name, [name])
+        if circle:
+            errors.append(SemanticError(
+                f"Class '{name}' implements Default and holds itself ({' -> '.join(circle)}) - "
+                f"making one would make another forever", decl.location))
+    if errors:
+        return errors
+
+    def is_null(e):
+        return isinstance(e, LiteralExpr) and e.type_hint == 'null'
+
+    def visit(node):
+        if isinstance(node, list):
+            for item in node:
+                visit(item)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if isinstance(node, VarDeclStmt):
+            kind = getattr(node.var_type, 'name', None)
+            if kind in defaults and (node.initializer is None or is_null(node.initializer)):
+                node.initializer = default_object(kind, node.location)
+        for f in fields(node):
+            if f.name not in ('location', 'inferred_type', 'declaration', 'scope'):
+                visit(getattr(node, f.name))
+
+    for d in program.declarations:
+        if isinstance(d, FunctionDecl) and d.body is not None:
+            visit(d.body)
+        elif isinstance(d, StructDecl) and d.is_class:
+            for f in d.fields + d.static_fields:
+                kind = getattr(f.field_type, 'name', None)
+                if kind in defaults and (f.default_value is None or is_null(f.default_value)):
+                    f.default_value = default_object(kind, f.location)
+        else:
+            visit(d)
     return errors
 
 

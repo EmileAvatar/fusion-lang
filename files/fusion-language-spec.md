@@ -1764,7 +1764,7 @@ int maxConn = Config.MAX_CONNECTIONS
 
 ## Interfaces and Contracts
 
-**Status:** [DONE 32.5a] `interface`, `implements` (several), an interface building on several, an interface as a type, `is`, casts written in front, default methods behind `[interfaces] defaultMethods` - the truth table: Classes.md section 7; ToString, Default, Cloneable [PLANNED 32.5b]
+**Status:** [DONE 32.5a] `interface`, `implements` (several), an interface building on several, an interface as a type, `is`, casts written in front, default methods behind `[interfaces] defaultMethods` - the truth table: Classes.md section 7; the built-in ToString, Default, Cloneable [DONE 32.5b] - copies of objects with `byVal`, `nocopy` / `noshare` fields
 
 Description: Java-style interfaces with modern enhancements.
 

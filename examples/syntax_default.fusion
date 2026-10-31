@@ -1,0 +1,10 @@
+class Settings implements Default
+    public int size = 3
+    private constructor()                 // may be private - the compiler calls it
+        size = 5
+
+void function main()
+    Settings s                            // made when declared: Settings()
+    s.size = 9
+    s = null                              // the old one goes, a new default one comes
+    print("{@1}", s.size)                 // 5

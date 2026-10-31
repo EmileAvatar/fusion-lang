@@ -947,13 +947,19 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if isinstance(node.operand, LiteralExpr) and node.operand.type_hint == 'null':
             node.both_null = True                 # `null == null` - true (Task 32.2g)
             return PrimitiveType(location=node.location, name='bool')
-        node.can_be_null = isinstance(operand_type, EnumType) or self.is_class(operand_type)
+        node.can_be_null = isinstance(operand_type, EnumType) or (
+            self.is_class(operand_type) and not self.is_default_type(operand_type))   # 32.5b
         if not node.can_be_null and not (isinstance(operand_type, PrimitiveType)
                                          and operand_type.name == 'void'):
             self.warnings.append(SemanticError(
                 f"A {self.type_to_string(operand_type)} is never null - this test is always "
                 f"{'true' if node.negated else 'false'}", node.location))
         return PrimitiveType(location=node.location, name='bool')
+
+    def is_default_type(self, type_node) -> bool:
+        """A class implementing Default - its variables are never null (Task 32.5b)."""
+        decl = self.struct_declaration(type_node)
+        return not getattr(decl, 'is_interface', True) and 'Default' in getattr(decl, 'all_interfaces', ())
 
     def implements_interface(self, actual, expected) -> bool:
         """An object of `actual` (a class or an interface) can be used as the interface
@@ -1422,7 +1428,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 for arg in node.arguments:
                     self.checked_receivers.pop(id(arg), None)
                 return StructType(location=node.location, name=name, declaration=symbol.declaration)
-            if getattr(made, 'is_private', False) and getattr(self, 'current_class', None) != name:
+            if getattr(made, 'is_private', False) and getattr(self, 'current_class', None) != name \
+                    and not getattr(node, 'made_by_default', False):        # Default (32.5b)
                 self.errors.append(SemanticError(
                     f"The constructor of class '{name}' is private - only {name} itself makes "
                     f"{name} objects", node.location))
@@ -2464,6 +2471,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Args:
             node: Assignment statement node
         """
+        # `s = null` on a Default type (32.5b): the old object goes, a new default one comes
+        if isinstance(node.value, LiteralExpr) and node.value.type_hint == 'null' \
+                and isinstance(node.target, (IdentifierExpr, MemberExpr)):
+            kind = self._typed_once(node.target)
+            if self.is_default_type(kind):
+                from .interfaces import default_object
+                node.value = default_object(kind.name, node.value.location)
         if isinstance(node.target, IdentifierExpr):
             self._check_identifier_assignment(node)
         elif isinstance(node.target, IndexExpr):
@@ -2992,7 +3006,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
     def visit_StructDecl(self, node: StructDecl) -> None:
         """Check a struct's field defaults (Task 18.2.1): each must suit its field's type,
         and string defaults follow the project's string-length rules."""
-        for field in node.fields:
+        for field in node.fields + node.static_fields:
+            if getattr(field.default_value, 'made_by_default', False):
+                continue        # Settings() for a Default type - the code generator calls it (32.5b)
+            if field in node.static_fields:
+                continue
             # Array and struct fields can't have defaults - already reported by the name
             # resolver, so don't add a second, type-mismatch error (Task 18.2.3)
             if field.default_value is None or isinstance(field.field_type, (ArrayType, StructType)):

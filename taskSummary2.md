@@ -553,7 +553,10 @@ Kept under Task 22 until the renumbering is approved.
   else the class name); the ToString interface is added only when a class implements it
 - 32.5b copies done: fusion_clone_fu_Car per class (a Cloneable class's own clone()); the class
   table got a clone entry; nocopy / noshare checked after type checking (class_rules)
-- **Next Action:** 32.5b Default (a variable of the type is never null)
+- 32.5b Default done: the interface pass gives each Default variable / field / static Settings()
+  (made_by_default - may call a private constructor); a field's is called in the make function
+- 32.5 complete
+- **Next Action:** 32.7 (inheritance)
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

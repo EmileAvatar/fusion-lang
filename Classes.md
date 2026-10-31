@@ -154,7 +154,9 @@ class Settings implements Default
   `Default` themselves
 - Elsewhere this is called a non-nullable reference type (C#, Kotlin); Rust names the "has a
   ready value" part the `Default` trait
-- Needs interfaces (Task 32.5)
+- **Built (Task 32.5b, tests/test_default_interface.py):** a local, a field or a static of the
+  type is made when declared; `= null` makes a new one; `is null` is always false (a
+  warning); the class needs a constructor without arguments and can't hold itself
 
 ---
 
@@ -221,5 +223,6 @@ if s is Circle                           // what it is while running
 | 2026-10-30 | `Default` and null: `s = null` on a Default type lets the old object go and makes a new default one - the variable is never null, even right after `= null` |
 | 2026-10-30 | Printing an object: `ToString` interface; without it the class name only, with a warning |
 | 2026-10-30 | The builder pattern - noted for later, a different idea from form B |
+| 2026-10-31 | The built-in interfaces built (32.5b): ToString, Cloneable (with nocopy / noshare), Default; byVal copies objects |
 | 2026-10-31 | Interfaces built (32.5a): several per class, an interface building on several, casts written in front, `is`, default methods behind `[interfaces] defaultMethods` (D.082, D.087) |
 | 2026-10-31 | Planned (Task 48, Ownership.md): `Car b = a` moves - `a` can't be used after it; `byVal` copies (`clone()`), passing borrows; `shared Car c = a` is read only except to the holder that made it shared, `byRef` from it lends change; `[memory] assignment = "move"` (default) / `"share"` |
