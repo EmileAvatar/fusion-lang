@@ -69,6 +69,7 @@ are in `task/featuresArchive.md`.
 	[ ] 49.6 Notes/, FutureFeatures.md, FutureFeaturesCaution.md, task/taskSummaryArchive.md (decisions only)
 	[ ] 49.7 The code: what the compiler does that no document records (src/)
 	[ ] 49.8 The user settles each CLASH row; the losing side is fixed in its document
+		C.001-C.004 settled 2026-10-31 -> D.025-D.028; documents fixed
 	[ ] 49.9 A check in check.py: every feature line has a known area and status; IDs unique
 
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ]
@@ -122,9 +123,10 @@ are in `task/featuresArchive.md`.
 	[ ] 45.1 Each array knows its own length at run time (like a List), so an array can be
 		replaced by one of another size (`numbers = make()`, `numbers = [1, 2, 3]`)
 	[ ] 45.2 Empty arrays: `int[] numbers` and `int numbers[]` (was 30.10)
-	[ ] 45.10 Arrays become references too, like Lists (shared in normal code, copied in a
-		struct; `byVal` copies) - once they live on the heap (from 32.10a, user 2026-10-29);
-		then an array's `toList(false)` can share it
+	[ ] 45.10 Arrays live on the heap and follow the List rules (Decisions.md D.025, user 2026-10-31)
+		Normal code: an array moves (`int[] b = a`); `byVal` copies
+		Inside a struct: only borrowed - never moved out
+		Then an array's `toList(false)` can hand it over
 	[ ] 45.11 `toList` and `toCSV` on arrays of more dimensions - with multi-dimensional arrays
 		(user, 2026-10-29)
 	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, `numbers.removeLast()` (`pop()` as
@@ -242,6 +244,7 @@ are in `task/featuresArchive.md`.
 		A move inside a loop: an error unless each pass gives a new value
 		Lists and Maps move too; strings stay values (copied)
 		A struct holding a List / Map / object moves as a whole
+		A struct's fields can't be moved out - only borrowed (D.026)
 		Migrate tests and examples that rely on `b = a` sharing
 	[ ] 48.2 Borrowing
 		Passing to a function borrows (changeable unless readonly)

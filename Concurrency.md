@@ -1730,7 +1730,8 @@ gen_server:call(BankServer, {withdraw, 80})   % a request to the service; 5 s ti
   timeouts by default (P4), and supervision trees (P5). Erlang alone proves the
   million-connection goal.
 - From **Rust:** shared changeable data without protection is a compile error. In Fusion
-  that is a warning by default, an error when `fusion.toml` says so.
+  (decided 2026-10-31, Decisions.md D.028) it becomes a temporary service first; `send` moves
+  data and its ownership to another thread; or a readonly value is shared (section 3.13).
 - From **Go:** cheap tasks over a few threads, a race detector for testing, and deadlines
   passed down to children (`context`). Go's bug study is also a warning: channels alone
   don't stop freezes.

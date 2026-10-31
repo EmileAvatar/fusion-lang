@@ -7,6 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
+  (none open - C.001-C.004 settled 2026-10-31 as D.025-D.028)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -90,6 +91,7 @@ NUL.003 [PLANNED] `?.`, `?.null`, `??`, `case null` (Task 30.2)
 
 #### STC - structs
 STC.001 [BUILT] Structs: value types, copied, never null; may hold Lists, Maps, strings
+STC.006 [PLANNED] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (Task 48)
 STC.002 [BUILT] Methods on structs (`[structs] functions`, default off)
 STC.003 [BUILT] A struct building on a struct (`implements` / `extends` / `includes`)
 STC.004 [BUILT] A struct as text: `"{e}"` -> `name : "Jeff",age : 30`
@@ -118,7 +120,7 @@ MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
 MEM.002 [PLANNED] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies (48.1)
 MEM.003 [PLANNED] Passing and reading an element borrow; a borrow is never stored (48.2)
 MEM.004 [PLANNED] `shared`: read only except to the holder that made it shared (48.5)
-MEM.005 [DESIGN] GC and MANUAL as project strategies; Unique / Shared / Weak (Task 38)
+MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; Unique / Shared / Weak (Task 38)
 MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`
 MEM.007 [BUILT] The leak check: every example and test
 
@@ -171,7 +173,7 @@ SET.006 [REJECTED] Fetching prices or exchange rates from an external API - in t
 | D.022 | The core and every module never fetch prices or rates; the developer passes them in | SET.006 | 2026-10-29 | CLAUDE.md | ACTIVE |
 | D.023 | Settings named in camelCase, read case-insensitively, `_` ignored | SET.001 | 2026-10-28 | fusionSettings.xml | ACTIVE |
 | D.024 | `service` is a reserved keyword | CON.001 | 2026-10-29 | Service.md | ACTIVE |
-| C.001 | **CLASH:** 45.10 says arrays become references "shared in normal code, like Lists"; D.014 makes Lists move | COL.002 | - | FEATURES 45.10, Ownership.md | CLASH - check |
-| C.002 | **CLASH:** a struct is copied with its Lists today (32.10a, built); Task 48 moves a struct holding a List as a whole | STC.001 | - | Arrays.md 1, Ownership.md 2 | CLASH - check (48 replaces it when built?) |
-| C.003 | **CLASH:** `[memory] strategy = "smart"` (showcase) and "start with automatic GC" (spec) vs D.013 OWNERSHIP first | MEM.005 | - | spec Memory, showcase toml | CLASH - check |
-| C.004 | **CLASH:** shared changeable data across threads "a warning by default" (Concurrency.md section 4) vs D.017 a temporary service | CON.003 | - | Concurrency.md | CLASH - check |
+| D.025 | Arrays, Lists, Maps move in normal code; inside a struct they can only be borrowed | COL.002 | 2026-10-31 | Ownership.md 2 | ACTIVE (planned) |
+| D.026 | A struct's fields can't be moved out, only borrowed; the whole struct moves or is borrowed | STC.001 | 2026-10-31 | Ownership.md 2 | ACTIVE (planned; replaces "copied with its Lists" when Task 48 is built) |
+| D.027 | No GC by default - OWNERSHIP first; a GC only when made in code or when a project's `fusion.toml` chooses it | MEM.005 | 2026-10-31 | Object_Lifetime.md 1 | ACTIVE |
+| D.028 | Data shared across threads: a temporary service first; `send` moves data (and its ownership) to another thread; or share a readonly value | CON.006 | 2026-10-31 | Ownership.md 5, 6 | ACTIVE (planned) |

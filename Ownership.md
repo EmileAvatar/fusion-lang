@@ -62,7 +62,9 @@ Car mine = fleet.removeAt(0)   // taking an element out is a move
 #### Truth table 2: a struct holding a collection (D4)
 
 The collection belongs to the struct. It only lends itself - moving it out would break the
-struct.
+struct. The same holds for every field (D.026): a struct's fields can't be moved out, only
+borrowed; the whole struct moves or is borrowed. Arrays, Lists and Maps move in normal code
+(D.025).
 
 | Code | Result |
 |---|---|
@@ -253,6 +255,8 @@ List<Row> function find(string sql)
 |---|---|
 | 2026-10-31 | Assigning moves (default; `[memory] assignment = "share"` keeps sharing); Lists and Maps move too; `byVal` copies; passing and reading elements borrows (D1-D10) |
 | 2026-10-31 | A struct's collection only lends itself - assigning it outside is a borrow (D4) |
+| 2026-10-31 | A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (D.026) |
+| 2026-10-31 | Across threads: a temporary service first; `send` moves data and its ownership to another thread; or share a readonly value (D.028) |
 | 2026-10-31 | `shared`: read only except to the holder that made it shared; `byRef` from it lends change (D11, D12) |
 | 2026-10-31 | readonly: the called function's signature is the contract; the caller may write `readonly` at the call; a library only by its signature; a non-Fusion library: a warning (D13-D20) |
 | 2026-10-31 | Two or more threads using a value: a temporary service owns it, the threads borrow, ownership comes back when they end (D21-D27) |

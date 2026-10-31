@@ -56,7 +56,9 @@ The counting (Object_Lifetime.md section 5) frees a List or Map when its last ho
 is today's rule. With Task 48 `List<int> b = a` **moves** (a is no longer usable), `byVal`
 copies, and code that reads an element or passes a List borrows it. A collection inside a
 struct only lends itself - `List<string> xs = order.items` is a borrow, never a move
-(Ownership.md truth tables 1, 2). `[memory] assignment = "share"` keeps today's sharing.
+(Ownership.md truth tables 1, 2). Arrays follow the same rule once on the heap (45.10). A
+struct's fields are only ever borrowed; the whole struct moves (Decisions.md D.025, D.026).
+`[memory] assignment = "share"` keeps today's sharing.
 
 **Planned - `fixed` collections (Task 47.5, user 2026-10-31):** `fixed List<Tick>(4096)`
 holds at most 4096 elements - fewer is fine, more never (an error, no silent cut). It starts

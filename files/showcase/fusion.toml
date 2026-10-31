@@ -117,8 +117,9 @@ nullChecks = "strict"
 maxIterations = 0
 
 [memory]
-# [designed] gc (automatic) | smart (Unique / Shared / Weak) | manual (raw pointers) (Task 38)
-strategy = "smart"
+# [designed] ownership (one owner, moves, borrows - the default) | gc | manual (Task 38, 48).
+# No GC unless chosen here, or made in code (Decisions.md D.027, user 2026-10-31)
+strategy = "ownership"
 # [rejected] Non-atomic Shared counts as an option - always atomic (decided 2026-09-13)
 # [designed] Car b = a: "move" (a can't be used after it; byVal copies) | "share" (two
 # names, one object) - Task 48, Ownership.md (user, 2026-10-31)
