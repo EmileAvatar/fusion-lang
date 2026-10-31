@@ -549,7 +549,9 @@ Kept under Task 22 until the renumbering is approved.
   check.py - detail in task/taskSummaryArchive.md
 - 32.5a done: interfaces - each class has a table (name, release, one function table per
   interface, small wrappers); an interface value is a void* in C; CastError added
-- **Next Action:** 32.5b (ToString, Default, Cloneable)
+- 32.5b ToString done: a run-time fusion_object_text (its toString() through the class table,
+  else the class name); the ToString interface is added only when a class implements it
+- **Next Action:** 32.5b copies of objects (byVal, Cloneable, nocopy / noshare), then Default
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

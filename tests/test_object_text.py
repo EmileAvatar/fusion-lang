@@ -7,8 +7,12 @@ null checks (Rule 4b): a null object prints "null" (like most languages), no Nul
 to be printed is freed.
 """
 
+import pytest
+
 from tests.test_object_lifetime import traced
-from tests.test_structs import main, warnings_of
+
+from tests.test_end_to_end import compile_and_run
+from tests.test_structs import errors_of, main, warnings_of
 
 CAR = 'class Car\n    public string name = "x"\n\n'
 
@@ -38,6 +42,54 @@ def test_null_without_and_with_a_check(tmp_path):
 
 def test_one_warning_per_class():
     warnings = warnings_of(CAR + main('Car c = Car()\nprint("{c}")\nprint(toString(c))'))
-    message = ("Car doesn't implement ToString - it prints as its class name 'Car' (ToString "
-               "comes with interfaces, Task 32.5)")
+    message = ("Car doesn't implement ToString - it prints as its class name 'Car' (class Car "
+               "implements ToString, with string function toString())")
     assert warnings.count(message) == 1
+
+
+TEXT = ('class Car implements ToString\n'
+        '    string name\n'
+        '    constructor(string name)\n'
+        '        this.name = name\n'
+        '    string function toString() : "Car " + name\n\n'
+        'interface Shape\n    float function area()\n\n'
+        'class Dot implements Shape, ToString\n'
+        '    float function area() : 0.0\n'
+        '    string function toString() : "a dot"\n\n'
+        'class Bike\n    int gears = 3\n\n')
+
+
+def test_a_class_implementing_to_string_prints_its_own_text():
+    # Task 32.5b: print, format, "{x}", toString(x) - its own text, freed after (the leak check)
+    code, out, err = compile_and_run(TEXT + main('Car c = Car("Honda")\n'
+                                                 'print("{c}")\nprint(toString(c))\n'
+                                                 'print("{@1}", c)\n'
+                                                 'Shape s = Dot()\nprint("{s}")\n'
+                                                 'Bike b = Bike()\nprint("{b}")'))
+    assert code == 0, err
+    assert out.split('\n')[:5] == ['Car Honda', 'Car Honda', 'Car Honda', 'a dot', 'Bike']
+
+
+def test_a_null_object_prints_null_with_or_without_to_string():
+    # Rule 4b: printing never needs a null check - a null object prints null
+    code, out, err = compile_and_run(TEXT + main('Car c = null\nShape s = null\n'
+                                                 'print("{c} {s}")\nprint(toString(c))'))
+    assert code == 0, err
+    assert out.split('\n')[:2] == ['null null', 'null']
+
+
+def test_no_warning_when_it_implements_to_string():
+    assert "doesn't implement ToString" not in warnings_of(
+        TEXT + main('Car c = Car("x")\nprint("{c}")\nShape s = Dot()\nprint("{s}")'))
+
+
+@pytest.mark.parametrize('source, message', [
+    ('class Car implements ToString\n    int n\n\n',
+     "Class 'Car' implements ToString but has no function 'toString' - string function toString()"),
+    ('class Car implements ToString\n    int function toString() : 1\n\n',
+     "doesn't match ToString"),
+    ('interface ToString\n    string function text()\n\n',
+     "'ToString' is Fusion's own interface"),
+])
+def test_to_string_errors(source, message):
+    assert message in errors_of(source + main('print("x")'))

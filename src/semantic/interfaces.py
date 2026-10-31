@@ -18,7 +18,7 @@ import copy
 from dataclasses import fields, is_dataclass
 from typing import List
 
-from src.parser.ast_nodes import FunctionDecl, ParameterDecl, StructDecl, StructType
+from src.parser.ast_nodes import FunctionDecl, ParameterDecl, PrimitiveType, StructDecl, StructType
 from .errors import SemanticError
 
 
@@ -67,9 +67,44 @@ def _same_signature(a: FunctionDecl, b: FunctionDecl) -> bool:
                                       for x, y in zip(pa, pb))
 
 
+# Fusion's own interfaces (Task 32.5b) - added to a program only when something uses them
+BUILTIN_INTERFACES = {
+    'ToString': [('string', 'toString')],      # how an object prints (Classes.md section 6)
+}
+
+
+def _add_builtin_interfaces(program, structs) -> List[SemanticError]:
+    """Give the program each of Fusion's own interfaces that one of its types implements."""
+    errors, used = [], {n for d in structs.values() for n in d.interfaces}
+    for name, signatures in BUILTIN_INTERFACES.items():
+        if name in structs:
+            errors.append(SemanticError(f"'{name}' is Fusion's own interface - give yours another "
+                                        f"name", structs[name].location))
+            continue
+        if name not in used:
+            continue
+        where = next(d for d in structs.values() if name in d.interfaces).location
+        decl = StructDecl(location=where, name=name, fields=[], is_class=True, is_interface=True)
+        decl.builtin = True
+        for result, method_name in signatures:
+            method = FunctionDecl(location=where, return_type=PrimitiveType(location=where, name=result),
+                                  name=f'{name}.{method_name}', parameters=[
+                                      ParameterDecl(location=where, name='this', default_value=None,
+                                                    param_type=StructType(location=where, name=name))],
+                                  body=None, is_public=True)
+            method.method_name, method.method_of, method.interface_of = method_name, name, name
+            method.changes_this = False
+            decl.methods.append(method)
+            program.declarations.append(method)
+        program.declarations.insert(0, decl)
+        structs[name] = decl
+    return errors
+
+
 def check_interfaces(program, default_methods: bool = False) -> List[SemanticError]:
     errors = []
     structs = {d.name: d for d in program.declarations if isinstance(d, StructDecl)}
+    errors += _add_builtin_interfaces(program, structs)
     interfaces = {n: d for n, d in structs.items() if d.is_interface}
 
     # What each interface builds on: interfaces only, never in a circle

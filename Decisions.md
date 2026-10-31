@@ -167,7 +167,8 @@ CLS.010 [BUILT] A warning for each circle of classes that could leak
 CLS.011 [DESIGN] Properties: `property Name: type { get; set; }`, computed and indexed ones
 CLS.012 [DESIGN] A constant in a class is always static
 CLS.013 [DESIGN] `abstract`, `sealed`, `virtual`, `override`, `protected` - reserved words, for inheritance (32.7)
-CLS.014 [PLANNED] The built-in interfaces: ToString, Default, Cloneable; copies of objects (32.5b)
+CLS.014 [PLANNED] The built-in interfaces Default and Cloneable; copies of objects (32.5b) - ToString built
+CLS.015 [BUILT] `implements ToString` - print, format, "{x}", toString(x) use its toString(), also through an interface (32.5b)
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants

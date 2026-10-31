@@ -750,7 +750,19 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             name = decl.name.replace('\\', '\\\\').replace('"', '\\"')
             self.emit(f'static const fusion_class_t fusion_class_{c} = {{ "{name}", NULL, '
                       f'fusion_release_any_{c}, {len(tables)}, {f"fusion_tables_{c}" if tables else "NULL"} }};')
+        if self.has_to_string():
+            # An object as text (32.5b): its toString(), or its class name; null - "null"
+            self.emit('static fusion_string fusion_object_text(const void* o) {')
+            self.emit('    if (!o) return FUSION_STR("null");')
+            self.emit('    const fusion_fn* t = fusion_table_of(o, fusion_iface_fu_ToString);')
+            self.emit('    if (t) return ((fusion_string (*)(void*))t[0])((void*)o);')
+            self.emit('    return fusion_class_text(o);')
+            self.emit('}')
         self.emit()
+
+    def has_to_string(self) -> bool:
+        """A class of the program implements ToString (Task 32.5b)."""
+        return getattr(self.struct_decls.get('ToString'), 'is_interface', False)
 
     def _interface_dispatch(self, node) -> None:
         """`Shape.area(Shape this)` - no code of its own (Task 32.5a): it finds the object's
@@ -1326,7 +1338,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             # null has no number: a NullError (Task 30.11)
             return self.checked_code(f'fusion_enum_toInt({number}, {self._where(node)})', 'int')
         if name == 'toString' and self.is_class_type(first_type):
-            # an object: its own class name, or null (Tasks 32.2f, 32.5a)
+            # an object: its toString() (32.5b), else its own class name, or null (32.2f, 32.5a)
+            if self.has_to_string():
+                return f'fusion_object_text({self.visit(arguments[0])})'
             return f'fusion_class_text({self.visit(arguments[0])})'
         if name == 'toString':
             if self._is_bytes(arguments[0]):

@@ -205,6 +205,10 @@ are in `task/featuresArchive.md`.
 			default methods behind `[interfaces] defaultMethods` (default false)
 			Later: a cast between numbers `(int)d` (TYP.016)
 		[ ] 32.5b ToString, Default, Cloneable; copies of objects; nocopy / noshare
+			[DONE] ToString (tests/test_object_text.py): print / format / "{x}" / toString(x) use it,
+				also through an interface value; added to a program only when a class implements it
+			[ ] Copies of objects: `byVal obj` - a new object, each field byVal (D.088); Cloneable; nocopy / noshare
+			[ ] Default: a variable of the type is never null
 		(how an object prints; without it the class name and a warning), `Default` (a
 		constructor with no arguments, may be private - a variable of the type is never null,
 		the object made when declared; `s = null` lets the old object go and makes a new

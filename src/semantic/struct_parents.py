@@ -313,11 +313,16 @@ class StructParentRulesMixin:
         section 6) - a warning until the class can implement ToString (Task 32.5)."""
         struct = self.struct_declaration(type_node)
         warned = self.__dict__.setdefault('warned_object_text', set())   # once per class
+        # implements ToString: its own text (32.5b); an interface's value: known only while
+        # running - its object's toString() or class name
+        if 'ToString' in getattr(struct, 'all_interfaces', ()) or getattr(struct, 'is_interface', False):
+            return
         if getattr(struct, 'is_class', False) and struct.name not in warned:
             warned.add(struct.name)
             self.warnings.append(SemanticError(
                 f"{struct.name} doesn't implement ToString - it prints as its class name "
-                f"'{struct.name}' (ToString comes with interfaces, Task 32.5)", location))
+                f"'{struct.name}' (class {struct.name} implements ToString, with "
+                f"string function toString())", location))
 
     def csv_call(self, node) -> Optional[TypeNode]:
         """x.toCSV() / x.toCSV(";") (Task 32.13): a heading row and a row of values, on any

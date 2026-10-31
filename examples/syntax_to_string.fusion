@@ -1,0 +1,10 @@
+class Car implements ToString
+    string name
+    constructor(string name)
+        this.name = name
+    string function toString() : "Car " + name
+
+void function main()
+    Car mine = Car("Honda")
+    print("{mine}")                            // Car Honda
+    print(toString(mine))                     // Car Honda

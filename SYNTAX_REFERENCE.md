@@ -926,9 +926,23 @@ void function main()
     print(toString(mine))                     // Car
     print(mine.name)                          // Honda - its fields print as usual
 ```
-Until a class can implement ToString (Task 32.5) an object prints as its class name, and the
-compiler warns once per class: `Car doesn't implement ToString - it prints as its class name
-'Car'`. A null object prints `null`.
+A class that doesn't implement ToString prints as its class name, and the compiler warns once
+per class: `Car doesn't implement ToString - it prints as its class name 'Car'`. A null object
+prints `null`. With ToString (Task 32.5b) it prints its own text:
+
+<!-- example: syntax_to_string | task: 32.5b -->
+```fusion
+class Car implements ToString
+    string name
+    constructor(string name)
+        this.name = name
+    string function toString() : "Car " + name
+
+void function main()
+    Car mine = Car("Honda")
+    print("{mine}")                            // Car Honda
+    print(toString(mine))                     // Car Honda
+```
 
 #### Interfaces: `interface`, `implements`, `is`, a cast in front
 

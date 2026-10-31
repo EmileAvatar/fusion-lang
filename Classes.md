@@ -165,8 +165,10 @@ class Settings implements Default
 | yes | its `toString()` |
 | no | the class name only (`Car`) - and a **warning**: it doesn't implement ToString |
 
-A struct keeps its built-in text (`name : value,...`). ToString needs interfaces (Task 32.5);
-until then every object prints its class name, with the warning. Built (32.2f,
+A struct keeps its built-in text (`name : value,...`). **Built (32.5b, tests/test_object_text.py):**
+`class Car implements ToString` with `string function toString()` - print, format, `"{car}"`
+and `toString(car)` use it, also through an interface value (the object's own text); a class
+without it prints its name, with the warning. Built before (32.2f,
 tests/test_object_text.py): `print`, `format`, `"{car}"`, `toString(car)`; one warning per
 class; a null object prints `null` (as in most languages - no NullError). Lists of objects
 and `toCSV` of objects can't be printed whole yet (no List prints whole today).
