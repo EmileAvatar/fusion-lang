@@ -81,7 +81,7 @@ are in `task/featuresArchive.md`.
 		11 feature lines (comment blocks, bit type, decimal, arenas, tools, IDE module); D.078, D.079
 		Fixed against decisions: Currency live rates (D.022), GC default (D.027), `Shared<T>?` (D.063)
 		Marked as replaced in FutureFeatures: decimal money, string prefixes, `type()` arrays
-		Clash C.010 for the user: 12.7 `.move()` written vs D.014 moving by default
+		Clash C.010 settled 2026-10-31: no `.move()`, assigning moves (D.080)
 	[ ] 49.7 The code: what the compiler does that no document records (src/)
 	[ ] 49.8 The user settles each CLASH row; the losing side is fixed in its document
 		C.001-C.004 settled 2026-10-31 -> D.025-D.028; documents fixed
@@ -549,7 +549,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		strings are pooled and mutable strings use a StringBuilder internally (user note 2026-10-09)
 	[POSTPONED to 38] StringBuilder for fast repeated appends (internal for mutable strings)
 	[POSTPONED to 38] Garbage collection as a project-selectable memory strategy
-	[POSTPONED to 38] Unique<T> / Shared<T> / Weak<T> (decided in 12.7, not built)
+	[POSTPONED to 38] Shared<T> / Weak<T> (decided in 12.7, not built); Unique<T> and `.move()` dropped - every object moves by default (D.080)
 	[POSTPONED to 38] Copy-on-write string sharing (in-place editing, s[i] = c, done in 29.1)
 	[POSTPONED to 32] Methods on structs (`p.move(1, 2)`) - user-defined classes; methods on
 		built-in types are done (18.3.7)

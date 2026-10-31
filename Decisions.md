@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (open: C.010 - C.001-C.009 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065, D.077)
+  (none open - C.001-C.010 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065, D.077, D.080)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -176,7 +176,7 @@ MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
 MEM.002 [PLANNED] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies (48.1)
 MEM.003 [PLANNED] Passing and reading an element borrow; a borrow is never stored (48.2)
 MEM.004 [PLANNED] `shared`: read only except to the holder that made it shared (48.5)
-MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; Unique / Shared / Weak (Task 38)
+MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; `Shared<T>` / `Weak<T>` (Task 38) - single ownership is the default, no `Unique<T>` (D.080)
 MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`
 MEM.007 [BUILT] The leak check: every example and test
 MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep(x)` always deep
@@ -314,4 +314,4 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.077 | A thread using two or more resources: they become a **group service** - written by the developer or made by the compiler. It is their temporary owner; its worker borrows them and carries out the requests; when they are done it lets go, and each variable owns its value again. A **service** manages one resource, a **group service** several | CON.004 | 2026-10-31 | Ownership.md 7 | ACTIVE (planned) |
 | D.078 | No automatic cycle detection: `Weak<T>` breaks a circle of objects | MEM.005 | 2026-09-13 | spec Memory | ACTIVE (planned) |
 | D.079 | `Weak<T>.lock()` gives a `Shared<T>` that is null when the target is gone - the caller checks; never a crash (written without `?` - D.063) | MEM.005 | 2026-09-13 | spec Memory | ACTIVE (planned) |
-| C.010 | **CLASH:** Task 12.7 (2026-09-13) - `Unique<T> b = a` is a compile error; every move is written (`.move()`) so each transfer of ownership is visible. D.014 (2026-10-31) - `Car b = a` moves with nothing written. Suggest: D.014 wins - every object moves by default, so `Unique<T>` isn't needed; using `a` after the move is a compile error naming the line it moved on, which keeps the move visible | MEM.002 | - | Ownership.md 2, task/taskSummaryArchive.md 12.7 | CLASH - check |
+| D.080 | No `.move()`: under OWNERSHIP assigning moves by itself; `byVal` copies, `byRef` borrows. Every object is single-owner by default, so no `Unique<T>` wrapper is needed (replaces Task 12.7's written move) | MEM.002 | 2026-10-31 | Ownership.md 2 | ACTIVE (planned) |

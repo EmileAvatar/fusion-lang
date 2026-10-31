@@ -265,6 +265,7 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 | 2026-10-31 | A struct's collection only lends itself - assigning it outside is a borrow (D4) |
 | 2026-10-31 | A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (D.026) |
 | 2026-10-31 | Across threads: a temporary service first; `send` moves data and its ownership to another thread; or share a readonly value (D.028) |
+| 2026-10-31 | No `.move()` and no `Unique<T>`: assigning moves by itself; `byVal` copies, `byRef` borrows (D.080 - replaces Task 12.7's written move) |
 | 2026-10-31 | `shared`: read only except to the holder that made it shared; `byRef` from it lends change (D11, D12) |
 | 2026-10-31 | readonly: the called function's signature is the contract; the caller may write `readonly` at the call; a library only by its signature; a non-Fusion library: a warning (D13-D20) |
 | 2026-10-31 | Two or more threads using a value: a temporary service owns it, the threads borrow, ownership comes back when they end (D21-D27) |

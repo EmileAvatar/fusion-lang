@@ -211,8 +211,7 @@ Abstraction & Object Model
 
 ```
 Memory Model
-├── Unique<T>  - single ownership, move-only
-│     (plain assignment is a compile error; ownership transfer requires explicit .move())
+├── (single ownership is the default - assigning moves, no Unique<T> or .move(): D.080)
 ├── Shared<T>  - reference-counted, multiple owners
 │     (refcounting is always atomic; no automatic cycle detection - Weak<T> breaks cycles)
 ├── Weak<T>    - non-owning reference to a Shared<T>

@@ -2863,13 +2863,11 @@ Description: Explicit lifetime control without garbage collection pauses.
      * Only one owner at a time
      * Automatically deleted when owner goes out of scope
      * Cannot be copied, only moved
-     * **Move is explicit, never implicit (decided 2026-09-13):** plain assignment of a
-       `Unique<T>` (`Unique<Spaceship> b = a`) is a **compile-time error**, not a silent
-       move. Ownership transfer requires the explicit `.move()` call shown below - this
-       applies equally when passing a `Unique<T>` into a "consuming" function parameter;
-       the caller must write `.move()` at the call site. Chosen over implicit-move-on-
-       assignment (C++'s `unique_ptr` behavior) to make every ownership transfer visible
-       at the call site, matching Rust's explicit-move-by-default model.
+     * **Moving is automatic (decided 2026-10-31, Decisions.md D.080 - replaces the written
+       `.move()` of 2026-09-13):** under OWNERSHIP every object has one owner, and
+       assigning it moves it (`Car b = a`); `byVal` copies, `byRef` borrows. So no
+       `Unique<T>` wrapper is needed - single ownership is what every object already has
+       (Ownership.md)
      * **Use-after-move is a compile-time error where provable, a runtime crash with a
        clear message otherwise** - structurally the same hybrid analysis already decided
        for Task 30's nullable arrays (definite/maybe/unknown state tracked through
@@ -2886,10 +2884,9 @@ Unique<Spaceship> ship = Unique.create<Spaceship>("Enterprise", 100.0)
 ship.start()
 ship.move(direction, speed)
 
-// Transfer ownership (move) - must be explicit
-Unique<Spaceship> newOwner = ship.move()  // ship is now null; using ship again is an error
-
-// Unique<Spaceship> other = ship  // COMPILE ERROR: cannot copy a Unique value, use .move()
+// Transfer ownership (move) - by assigning (D.080)
+Spaceship newOwner = ship               // moved: using ship again is a compile error
+Spaceship copy = byVal newOwner         // a copy - both usable
 
 // Automatic cleanup when newOwner goes out of scope
 ```
