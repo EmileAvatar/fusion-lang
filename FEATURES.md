@@ -70,7 +70,7 @@ are in `task/featuresArchive.md`.
 	[ ] 49.7 The code: what the compiler does that no document records (src/)
 	[ ] 49.8 The user settles each CLASH row; the losing side is fixed in its document
 		C.001-C.004 settled 2026-10-31 -> D.025-D.028; documents fixed
-	[ ] 49.9 A check in check.py: every feature line has a known area and status; IDs unique
+	[ ] 49.9 A check in check.py: every feature line has a known area and status; IDs unique and in order
 
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ]
 	After Task 32 and 36.0. The type table: files/FusionTypes.html

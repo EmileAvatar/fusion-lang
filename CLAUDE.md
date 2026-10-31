@@ -53,6 +53,8 @@ From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in on
   a replaced decision is removed (git keeps the history); a conflict is a `CLASH` row until
   the user settles it
 - Language features only - no bug fixes, no discussions; keep it small
+- Keep it ordered: a new line goes at the end of its area with the next number (STC.006 after
+  STC.005), decisions by number (user, 2026-10-31)
 
 ### Rule 4: Ship an example for every new feature
 When a language feature lands: add a short example to `SYNTAX_REFERENCE.md` (it becomes an

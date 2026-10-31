@@ -91,11 +91,11 @@ NUL.003 [PLANNED] `?.`, `?.null`, `??`, `case null` (Task 30.2)
 
 #### STC - structs
 STC.001 [BUILT] Structs: value types, copied, never null; may hold Lists, Maps, strings
-STC.006 [PLANNED] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (Task 48)
 STC.002 [BUILT] Methods on structs (`[structs] functions`, default off)
 STC.003 [BUILT] A struct building on a struct (`implements` / `extends` / `includes`)
 STC.004 [BUILT] A struct as text: `"{e}"` -> `name : "Jeff",age : 30`
 STC.005 [REJECTED] A struct implementing an interface - a struct only holds values
+STC.006 [PLANNED] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (Task 48)
 
 #### CLS - classes
 CLS.001 [BUILT] Classes: objects by reference, counted, freed when the last holder goes
