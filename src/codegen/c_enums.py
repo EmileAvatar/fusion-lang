@@ -197,6 +197,8 @@ class EnumsMixin:
 
     def visit_IsNullExpr(self, node) -> str:
         """x == null / x is null / x?.null (Task 30.11)."""
+        if getattr(node, 'both_null', False):
+            return '0' if node.negated else '1'           # null == null (Task 32.2g)
         code = self.visit(node.operand)
         if not getattr(node, 'can_be_null', False):
             return f'((void)({code}), {1 if node.negated else 0})'   # never null (a warning)

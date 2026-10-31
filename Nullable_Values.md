@@ -243,3 +243,4 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 | 2026-10-27 | Warnings: a guarded value in a comparison; `??` after `?.length()` |
 | 2026-10-27 | Numbers as bool only in `if` / `while` conditions (with and / or / not); `count == true` follows the setting; `count === true` false; `bool b = count` always an error |
 | 2026-10-27 | `.len` and `.length` both; the conditional operator `(c) ? a : b` |
+| 2026-10-31 | `null == null` and `null is null` are true, `null != null` false (a bug gave false - Task 32.2g) |

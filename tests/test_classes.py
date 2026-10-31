@@ -208,3 +208,13 @@ def test_an_exact_match_wins():
                 '    constructor(float b)\n        kind = "float"\n\n'
                 + main('Pick p = Pick(1)\nPick q = Pick(1.5)\nprint("{p.kind} {q.kind}")'))
     assert lines == ['int float']
+
+
+def test_null_equals_null():
+    # Task 32.2g: `null == null` gave false - the null on the left had no type
+    assert run('class Car\n    public int n\n\n'
+               + main('Car a = null\n'
+                      'Car b = null\n'
+                      'print(format("{@1} {@2} {@3}", null == null, null is null, a == b))\n'
+                      'print(format("{@1} {@2} {@3}", null != null, null is not null, a != b))')) == \
+        ['true true true', 'false false false']

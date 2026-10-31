@@ -936,6 +936,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         (class objects with Task 32); on anything else the answer is always the same - a
         warning, not an error, since a library may still hand over a null one day."""
         operand_type = self.visit(node.operand)
+        if isinstance(node.operand, LiteralExpr) and node.operand.type_hint == 'null':
+            node.both_null = True                 # `null == null` - true (Task 32.2g)
+            return PrimitiveType(location=node.location, name='bool')
         node.can_be_null = isinstance(operand_type, EnumType) or self.is_class(operand_type)
         if not node.can_be_null and not (isinstance(operand_type, PrimitiveType)
                                          and operand_type.name == 'void'):
