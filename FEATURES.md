@@ -82,7 +82,9 @@ are in `task/featuresArchive.md`.
 		Fixed against decisions: Currency live rates (D.022), GC default (D.027), `Shared<T>?` (D.063)
 		Marked as replaced in FutureFeatures: decimal money, string prefixes, `type()` arrays
 		Clash C.010 settled 2026-10-31: no `.move()`, assigning moves (D.080)
-	[ ] 49.7 The code: what the compiler does that no document records (src/)
+	[DONE] 49.7 The code: what the compiler does that no document records (src/)
+		4 feature lines: and / or / not and `func` lambdas, the built-ins, the error tree, reserved inheritance words; D.081
+		fusion-summary.md (GC default) and fusion-strict.md (Unique<T>) brought in line; `Unique` keyword: 48.8
 	[ ] 49.8 The user settles each CLASH row; the losing side is fixed in its document
 		C.001-C.004 settled 2026-10-31 -> D.025-D.028; documents fixed
 	[ ] 49.9 A check in check.py: every feature line has a known area and status; IDs unique and in order
@@ -282,6 +284,7 @@ are in `task/featuresArchive.md`.
 		`f(byRef pool)` from that holder lends the right to change it
 	[ ] 48.6 Counting removed where moves make it unnecessary (covers 38.2)
 	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
+	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
 
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ]
 	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)

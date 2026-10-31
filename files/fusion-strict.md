@@ -247,8 +247,8 @@ class Child
 ```fusion
 // Spaceship* rawPtr = ...  // ERROR: Raw pointers not allowed
 
-// Must use:
-Unique<Spaceship> ship = Unique.create<Spaceship>("Enterprise", 100.0)
+// Must use (single ownership is the default - no Unique<T>, Decisions.md D.080):
+Spaceship ship = Spaceship("Enterprise", 100.0)
 // or
 Shared<Spaceship> ship = Shared.create<Spaceship>("Enterprise", 100.0)
 // or automatic GC
@@ -597,7 +597,7 @@ long y = cast<long>(x)
 * Make invalid states unrepresentable
 
 ### 2. Use Smart Pointers Over GC
-* Unique<T> for single ownership
+* Single ownership is every object's default - no Unique<T> (Decisions.md D.080)
 * Shared<T> for shared ownership
 * Avoid Weak<T> entirely (not allowed)
 

@@ -499,7 +499,8 @@ Kept under Task 22 until the renumbering is approved.
 - C.009 settled: a thread using two or more resources gets a group service (D.077)
 - 49.6 done: Notes, FutureFeatures, the archive - 11 feature lines, D.078, D.079; clash C.010 open
 - C.010 settled: no `.move()` or `Unique<T>` - assigning moves (D.080)
-- **Next Action:** Task 49.7, 49.9 (the pass over every
+- 49.7 done: the code - 4 feature lines, D.081; old GC / Unique text fixed; 48.8 releases `Unique`
+- **Next Action:** Task 49.9 (the check in check.py) (the pass over every
   file); then 32.5 (interfaces: ToString, Default, Cloneable);
   then the rest of Task 32, then Task 48 (ownership) - user, 2026-10-31; then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

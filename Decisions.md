@@ -69,6 +69,7 @@ SYN.035 [DESIGN] `**` (power) - read by the lexer, not built; annotations `@name
 SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints
 SYN.037 [DESIGN] Semicolons accepted; reading code written in other languages' syntax
 SYN.038 [DESIGN] A minimum variable-name length in strict mode (default 3; loop counters and type parameters excepted)
+SYN.039 [BUILT] `and`, `or`, `not`; a lambda as `func(int x) : x * 2`
 
 #### TYP - types
 TYP.001 [BUILT] int, float, double, bool, char, byte - overflow checked; `[numbers] overflowWrap` wraps
@@ -131,6 +132,8 @@ FUN.010 [DESIGN] `?` after a call returns its error at once; `await all([...])`
 FUN.011 [DESIGN] `extern "C"` - call a C function by declaring it
 FUN.012 [POSTPONED] More error types (Network, Timeout, Parse, Cancelled, Assertion, NotSupported) - with each feature
 FUN.013 [DESIGN] Every error carries a stack trace
+FUN.014 [BUILT] 96 built-in functions, 16 List and 7 Map methods, each with its `[stdlib]` layer - the list: files/Builtins.md (generated)
+FUN.015 [BUILT] Built-in error types in a tree (IndexError, KeyError, FileError, OverflowError, NullError, ...) - a parent catches its children
 
 #### NUL - null
 NUL.001 [BUILT] Value types are never null; class objects and enums can be
@@ -160,6 +163,7 @@ CLS.009 [POSTPONED] The builder pattern (after Task 32)
 CLS.010 [BUILT] A warning for each circle of classes that could leak
 CLS.011 [DESIGN] Properties: `property Name: type { get; set; }`, computed and indexed ones
 CLS.012 [DESIGN] A constant in a class is always static
+CLS.013 [DESIGN] `abstract`, `sealed`, `virtual`, `override`, `protected` - reserved words, for inheritance (32.7)
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
@@ -315,3 +319,4 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.078 | No automatic cycle detection: `Weak<T>` breaks a circle of objects | MEM.005 | 2026-09-13 | spec Memory | ACTIVE (planned) |
 | D.079 | `Weak<T>.lock()` gives a `Shared<T>` that is null when the target is gone - the caller checks; never a crash (written without `?` - D.063) | MEM.005 | 2026-09-13 | spec Memory | ACTIVE (planned) |
 | D.080 | No `.move()`: under OWNERSHIP assigning moves by itself; `byVal` copies, `byRef` borrows. Every object is single-owner by default, so no `Unique<T>` wrapper is needed (replaces Task 12.7's written move) | MEM.002 | 2026-10-31 | Ownership.md 2 | ACTIVE (planned) |
+| D.081 | Not catchable: running out of memory, a List past 536,870,911 elements - every other failure is an error a program can catch | FUN.002 | 2026-10-16 | spec Errors | ACTIVE |

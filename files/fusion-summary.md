@@ -261,7 +261,7 @@ Description: What makes Fusion unique.
 * Explicit error objects with message, code, stack trace
 
 **Memory**:
-* Default: Automatic garbage collection
+* Default: OWNERSHIP - one owner, assigning moves, passing borrows (Decisions.md D.027); a GC only when a project chooses it
 * Performance: Smart pointers (Unique, Shared, Weak)
 * Unsafe: Raw pointers (embedded systems only)
 
