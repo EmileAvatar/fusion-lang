@@ -127,7 +127,7 @@ def test_every_template_value_is_accepted_and_reserved_ones_are_not(tmp_path):
                 load(tmp_path, 'fusion.toml', f'[{s.section}]\n{s.name} = "{value}"\n')
     data, _ = default_settings()
     assert set(data) == {'project', 'indentation', 'source', 'structs', 'strings', 'stdlib',
-                         'errors', 'numbers', 'modules', 'visibility', 'conditions', 'build',
+                         'errors', 'numbers', 'modules', 'visibility', 'interfaces', 'conditions', 'build',
                          'safety', 'backend'}
 
 

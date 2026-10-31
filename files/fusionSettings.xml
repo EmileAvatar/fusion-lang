@@ -120,6 +120,12 @@
     </setting>
   </section>
 
+  <section name="interfaces" description="Interfaces">
+    <setting name="defaultMethods" type="bool" default="false" task="32.5a">
+      <description>An interface's function may have code, used by a class that doesn't give its own; false: an interface names its functions only</description>
+    </setting>
+  </section>
+
   <section name="visibility" description="Who can use what">
     <setting name="required" type="bool" default="false" task="32.2h">
       <description>Writing public / internal / private on every top-level item and class member is mandatory; false: nothing written means its default (fields and module variables private, the rest public)</description>

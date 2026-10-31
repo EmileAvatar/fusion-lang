@@ -1011,6 +1011,9 @@ class NameResolver:
             self.resolve_expression(expr.operand)
         elif isinstance(expr, IsNullExpr):               # Task 30.11
             self.resolve_expression(expr.operand)
+        elif type(expr).__name__ in ('CastExpr', 'IsTypeExpr'):   # Task 32.5a
+            self.resolve_expression(expr.operand)
+            self.resolve_type(expr.target)
         elif isinstance(expr, ConditionalExpr):          # Task 30.7
             self.resolve_expression(expr.condition)
             self.resolve_expression(expr.then_value)

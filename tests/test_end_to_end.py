@@ -15,7 +15,7 @@ from src.codegen import CCodeGenerator
 
 
 def compile_and_run(fusion_code: str, safety_mode: str = 'safe',
-                    overflow_wrap: bool = False) -> tuple[int, str, str]:
+                    overflow_wrap: bool = False, analyzer_options: dict = None) -> tuple[int, str, str]:
     """Compile Fusion code and run the executable.
 
     Args:
@@ -39,7 +39,7 @@ def compile_and_run(fusion_code: str, safety_mode: str = 'safe',
         parser = Parser(tokens)
         ast = parser.parse_program()
 
-        analyzer = SemanticAnalyzer()
+        analyzer = SemanticAnalyzer(**(analyzer_options or {}))   # e.g. a setting (32.5a)
         success = analyzer.analyze(ast)
         assert success, f"Semantic errors: {analyzer.get_errors()}"
 

@@ -63,7 +63,9 @@ class CollectionsMixin:
         for struct in getattr(self, 'struct_decls', {}).values():
             c = self._struct_c_name(StructType(location=struct.location, name=struct.name,
                                                declaration=struct))
-            lines.append(f'typedef struct {c} {c};')
+            # an interface's value is any object - void in C (Task 32.5a)
+            lines.append(f'typedef void {c};' if getattr(struct, 'is_interface', False)
+                         else f'typedef struct {c} {c};')
         for name, kind in self.list_types.items():
             # count: how many places hold it (Task 32.10a); changes: elements added /
             # removed - a for loop going over it checks it (Task 27.2e)

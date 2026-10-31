@@ -199,6 +199,12 @@ are in `task/featuresArchive.md`.
 		top type first (`Person.Employee.Manager`), so the program can convert it back; for a
 		struct, only a `byRef` parameter keeps the whole value (a normal one: `Person`)
 	[ ] 32.5 Interfaces - also the built-in ones (Classes.md sections 5, 6): `ToString`
+		[DONE] 32.5a Interfaces (tests/test_interfaces.py, Classes.md section 7): `interface`, `implements` (several)
+			an interface building on several; as a type (variables, parameters, Lists); the object's own function runs
+			`x is Circle`; casts written in front, a CastError when wrong; readonly followed through
+			default methods behind `[interfaces] defaultMethods` (default false)
+			Later: a cast between numbers `(int)d` (TYP.016)
+		[ ] 32.5b ToString, Default, Cloneable; copies of objects; nocopy / noshare
 		(how an object prints; without it the class name and a warning), `Default` (a
 		constructor with no arguments, may be private - a variable of the type is never null,
 		the object made when declared; `s = null` lets the old object go and makes a new

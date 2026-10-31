@@ -159,9 +159,8 @@ class RuntimeLoweringMixin:
         if isinstance(inferred, EnumType) or self.data_struct(inferred) is not None:
             return f'{self.enum_text_code(inferred, code)}.data'   # its name (Tasks 25.2, 25.4)
         if self.is_class_type(inferred):
-            # An object: its class name, or null (Task 32.2f) - its toString() comes with 32.5
-            name = escape_c_text(inferred.name, '"')
-            return f'(({code}) ? "{name}" : "null")'
+            # An object: its own class name, or null (Tasks 32.2f, 32.5a) - its toString() 32.5b
+            return f'fusion_class_name({code})'
         if isinstance(inferred, StructType):
             # Every field, comma separated (Task 32.8) - a new string, freed after the statement
             text = self.fresh_temporary(f'{self.struct_text_helper(inferred)}({code})',

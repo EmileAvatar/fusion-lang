@@ -38,6 +38,48 @@ from .c_errors import ErrorsMixin
 from ..semantic.name_resolver import FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS
 
 
+
+CLASS_RUNTIME = r'''// Classes and interfaces (Task 32.5a): every object starts with its count and its class's
+// table - the class's name, its parent, how to free it, and one table of functions per
+// interface it implements. A call through an interface looks its function up there.
+typedef void (*fusion_fn)(void);
+typedef struct { const char* iface; const fusion_fn* fns; } fusion_itable_t;
+typedef struct fusion_class_t {
+    const char* name;
+    const struct fusion_class_t* parent;
+    void (*release)(void** p);
+    int ntables;
+    const fusion_itable_t* tables;
+} fusion_class_t;
+typedef struct { int fusion_count; const fusion_class_t* fusion_class; } fusion_object;
+static inline const fusion_fn* fusion_table_of(const void* o, const char* iface) {
+    if (!o) return NULL;
+    for (const fusion_class_t* c = ((const fusion_object*)o)->fusion_class; c; c = c->parent)
+        for (int i = 0; i < c->ntables; i++)
+            if (c->tables[i].iface == iface) return c->tables[i].fns;
+    return NULL;
+}
+static inline int fusion_is_class(const void* o, const fusion_class_t* cls) {
+    if (!o) return 0;
+    for (const fusion_class_t* c = ((const fusion_object*)o)->fusion_class; c; c = c->parent)
+        if (c == cls) return 1;
+    return 0;
+}
+static inline const char* fusion_class_name(const void* o) {
+    return o ? ((const fusion_object*)o)->fusion_class->name : "null";
+}
+static inline fusion_string fusion_class_text(const void* o) {
+    const char* n = fusion_class_name(o); int len = (int)strlen(n);
+    return (fusion_string){(char*)n, len, len, 0};
+}
+// A cast that may fail (Task 32.5a): a null stays null; anything else must pass the test
+static inline void* fusion_cast(void* o, int ok, const char* where, const char* to) {
+    if (o && !ok) fusion_fail(FUSION_KIND_CastError, where, "a %s is not a %s",
+                              fusion_class_name(o), to);
+    return o;
+}
+'''
+
 class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin,
                      CollectionsMixin, EnumsMixin, ErrorsMixin, StructTextMixin):
     """Generates C code from Fusion AST.
@@ -203,6 +245,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         # Generate forward declarations
         self._generate_forward_declarations(program)
+        self._generate_class_tables(program)
         lambda_index = len(self.output)
 
         # Generate all functions
@@ -398,17 +441,28 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         for struct in structs:
             add(struct)
 
+        if any(s.is_class for s in ordered):
+            self.output.extend(CLASS_RUNTIME.rstrip('\n').split('\n'))
+            for struct in ordered:
+                if struct.is_interface:          # an interface's identity: an address
+                    c_name = self._mangle_function_name(struct.name)
+                    self.emit(f'static const char fusion_iface_{c_name}[] = "{struct.name}";')
         self.emit('// Structs')
         for struct in ordered:          # classes point at each other (Task 32.10b)
             if struct.is_class:
                 c_name = self._mangle_function_name(struct.name)
-                self.emit(f'typedef struct {c_name} {c_name};')
+                # an interface's value is any object - a void* in C (Task 32.5a)
+                self.emit(f'typedef void {c_name};' if struct.is_interface
+                          else f'typedef struct {c_name} {c_name};')
         for struct in ordered:
+            if struct.is_interface:
+                continue
             c_name = self._mangle_function_name(struct.name)
             self.emit(f'typedef struct {c_name} {{')
             self.indent()
             if struct.is_class:
                 self.emit_line('int fusion_count')   # how many places hold the object
+                self.emit_line('const fusion_class_t* fusion_class')   # its class (32.5a)
             for field in struct.fields:
                 name = self._field_name(field.name)
                 if isinstance(field.field_type, ArrayType):
@@ -650,6 +704,95 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                     params = 'int argc, char** argv'   # for --headless (fusion_init)
                 self.emit(f'{return_type} {func_name}({params});')
         self.emit()  # Blank line
+
+    def _c_arguments(self, parameters) -> str:
+        """The C names a call passes on for these parameters (a wrapper's call - 32.5a)."""
+        names = []
+        for p in parameters:
+            names.append(p.name)
+            if isinstance(p.param_type, ArrayType) and p.param_type.size is None:
+                names.append(array_length_name(p.name))
+        return ', '.join(names)
+
+    def _generate_class_tables(self, program: ProgramNode) -> None:
+        """Each class's table (Task 32.5a): its name, how to free it, and per interface it
+        implements the functions that answer it - each through a small wrapper taking the
+        interface's value, in the interface's order."""
+        classes = [d for d in program.declarations if isinstance(d, StructDecl) and d.is_class
+                   and not d.is_interface]
+        if not classes:
+            return
+        self.emit('// Class tables (Task 32.5a)')
+        for decl in classes:
+            c = self._mangle_function_name(decl.name)
+            tables = []
+            for iface_name, answers in getattr(decl, 'interface_impls', {}).items():
+                i = self._mangle_function_name(iface_name)
+                iface = next(d for d in program.declarations
+                             if isinstance(d, StructDecl) and d.name == iface_name)
+                order = {m.method_name: n for n, m in enumerate(iface.methods)}
+                wrappers = [None] * len(iface.methods)
+                for method, answer in answers:
+                    wrapper = f'fusion_wrap_{c}__{i}__{method.method_name}'
+                    params = self._c_parameter_list(
+                        [ParameterDecl(location=method.location, name='this', default_value=None,
+                                       param_type=StructType(location=method.location, name=iface_name))]
+                        + list(answer.parameters[1:]))
+                    result = self.return_c_type(answer.return_type)
+                    call = f'{self._mangle_function_name(answer.name)}({self._c_arguments(answer.parameters)})'
+                    body = f'{call};' if result == 'void' else f'return {call};'
+                    self.emit(f'static {result} {wrapper}({params}) {{ {body} }}')
+                    wrappers[order[method.method_name]] = f'(fusion_fn){wrapper}'
+                self.emit(f'static const fusion_fn fusion_fns_{c}__{i}[] = {{ {", ".join(wrappers)} }};')
+                tables.append(f'{{ fusion_iface_{i}, fusion_fns_{c}__{i} }}')
+            if tables:
+                self.emit(f'static const fusion_itable_t fusion_tables_{c}[] = {{ {", ".join(tables)} }};')
+            name = decl.name.replace('\\', '\\\\').replace('"', '\\"')
+            self.emit(f'static const fusion_class_t fusion_class_{c} = {{ "{name}", NULL, '
+                      f'fusion_release_any_{c}, {len(tables)}, {f"fusion_tables_{c}" if tables else "NULL"} }};')
+        self.emit()
+
+    def _interface_dispatch(self, node) -> None:
+        """`Shape.area(Shape this)` - no code of its own (Task 32.5a): it finds the object's
+        function in the object's class table and calls it."""
+        i = self._mangle_function_name(node.interface_of)
+        iface = node.parameters[0].param_type
+        decl = iface.declaration or self.struct_decls.get(iface.name)
+        index = next(n for n, m in enumerate(decl.methods) if m.method_name == node.method_name)
+        result = self.return_c_type(node.return_type)
+        name = self._mangle_function_name(node.name)
+        params = self._c_parameter_list(node.parameters)
+        self.emit(f'{result} {name}({params}) {{')
+        call = (f'(({result} (*)({params}))fusion_table_of(this, fusion_iface_{i})[{index}])'
+                f'({self._c_arguments(node.parameters)})')
+        self.emit(f'    {call};' if result == 'void' else f'    return {call};')
+        self.emit('}')
+        self.emit()
+
+    def visit_CastExpr(self, node) -> str:
+        """`(Shape)aCircle` (Task 32.5a): no check when it always holds; else a CastError while
+        the program runs when the object isn't one (a null stays null)."""
+        target = self.map_type(node.target)
+        code = self.visit(node.operand)
+        if not getattr(node, 'checked', False):
+            return f'(({target})({code}))'
+        test = self._is_test('fusion_c', node.target)
+        name = node.target.name.replace('"', '')
+        cast = (f'__extension__ ({{ void* fusion_c = (void*)({code}); '
+                f'fusion_cast(fusion_c, {test}, {self._where(node)}, "{name}"); }})')
+        return self.checked_code(f'(({target}){cast})', target)
+
+    def _is_test(self, code: str, target) -> str:
+        decl = target.declaration or self.struct_decls.get(target.name)
+        c = self._mangle_function_name(decl.name)
+        if decl.is_interface:
+            return f'(fusion_table_of({code}, fusion_iface_{c}) != NULL)'
+        return f'fusion_is_class({code}, &fusion_class_{c})'
+
+    def visit_IsTypeExpr(self, node) -> str:
+        """`x is Circle`, `x is not Shape` (Task 32.5a) - a null is no type: false."""
+        test = self._is_test(f'(void*)({self.visit(node.operand)})', node.target)
+        return f'(!{test})' if node.negated else test
 
     def _c_parameter_list(self, parameters) -> str:
         """Build a C parameter list - shared by forward declarations and definitions.
@@ -1183,9 +1326,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             # null has no number: a NullError (Task 30.11)
             return self.checked_code(f'fusion_enum_toInt({number}, {self._where(node)})', 'int')
         if name == 'toString' and self.is_class_type(first_type):
-            # an object: its class name, or null - static text (Task 32.2f)
-            text = escape_c_text(first_type.name, '"')
-            return f'(({self.visit(arguments[0])}) ? FUSION_STR("{text}") : FUSION_STR("null"))'
+            # an object: its own class name, or null (Tasks 32.2f, 32.5a)
+            return f'fusion_class_text({self.visit(arguments[0])})'
         if name == 'toString':
             if self._is_bytes(arguments[0]):
                 c_function, needs_where = 'fusion_bytes_toString', True   # must be text (18.3.8)
@@ -1910,6 +2052,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        if getattr(node, 'interface_of', None):
+            self._interface_dispatch(node)       # Task 32.5a
+            return ''
         # Generate function signature
         return_type = self.return_c_type(node.return_type)
         func_name = self._mangle_function_name(node.name)

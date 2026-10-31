@@ -161,6 +161,10 @@ loopLimit = true
 # [idea] Going over a hot path's Budget is an error in test builds
 budgetStrict = false
 
+[interfaces]
+# [built] An interface's function may have code - a default method (Task 32.5a)
+defaultMethods = false
+
 [visibility]
 # [built] public / internal / private must be written on every top-level item and class member (Task 32.2h)
 required = false

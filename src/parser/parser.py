@@ -261,12 +261,17 @@ class Parser:
                 right=right
             )
 
-        # x is null / x is not null (Task 30.11) - `is` with a type comes later
+        # x is null / x is not null (Task 30.11); x is Circle / x is not Shape (Task 32.5a)
         if self.check(TokenType.IS):
             self.advance()
             negated = self.match(TokenType.NOT)
-            self.consume(TokenType.NULL, "Only 'is null' and 'is not null' exist so far")
-            expr = IsNullExpr(location=expr.location, operand=expr, negated=negated)
+            if self.match(TokenType.NULL):
+                expr = IsNullExpr(location=expr.location, operand=expr, negated=negated)
+            elif self.is_type_start() or self.check(TokenType.IDENTIFIER):
+                expr = IsTypeExpr(location=expr.location, operand=expr, target=self.parse_type(),
+                                  negated=negated)
+            else:
+                raise ParserError(self.peek(), "Expected 'null' or a type after 'is'")
 
         return expr
 
@@ -362,6 +367,17 @@ class Parser:
                 operator=operator,
                 operand=operand
             )
+
+        # `(Shape)aCircle` - a cast written in front (Task 32.5a, D.082): `( Name )` followed by
+        # a value - a name, `this`, `new` or `(` - never `(a) + b` or `(c) ? x : y`
+        if self.check(TokenType.LPAREN) and self.peek(2).type == TokenType.RPAREN and (
+                self.peek(1).type == TokenType.IDENTIFIER or self.peek(1).type in self.PRIMITIVE_TYPE_TOKENS) \
+                and self.peek(3).type in (TokenType.IDENTIFIER, TokenType.THIS, TokenType.NEW,
+                                          TokenType.LPAREN):
+            start = self.advance()
+            target = self.parse_type()
+            self.consume(TokenType.RPAREN, "Expected ')' after the type of a cast")
+            return CastExpr(location=start.location, target=target, operand=self.parse_unary())
 
         # `byVal a` (or byValue) - a copy; `byRef a` - shared (Task 32.10a). Words only here
         passing = self._passing_word()
@@ -1722,6 +1738,10 @@ class Parser:
                 self.check(TokenType.NEWLINE) or
                 self.is_at_end())
 
+    # The type keywords - a cast `(int)x` starts with one (Task 32.5a)
+    PRIMITIVE_TYPE_TOKENS = (TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE, TokenType.STRING,
+                             TokenType.BOOL, TokenType.CHAR, TokenType.BYTE)
+
     def is_type_start(self) -> bool:
         """Check if current token starts a type.
 
@@ -1858,6 +1878,7 @@ class Parser:
                                                "may be given")
             if not (self.check(TokenType.STRUCT) or self.check(TokenType.ENUM)
                     or self.check(TokenType.CONST) or self.check(TokenType.CLASS)
+                    or self.check(TokenType.INTERFACE)
                     or self.is_error_declaration_start() or self.is_type_start()
                     or self.is_function_type_declaration_start()
                     or self.is_struct_type_declaration_start()):
@@ -1868,7 +1889,8 @@ class Parser:
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
                                             f"an enum, a function or a module variable")
             if modifier.type == TokenType.PRIVATE and not isinstance(decl, VarDeclStmt):
-                kind = 'class' if getattr(decl, 'is_class', False) else {
+                kind = 'interface' if getattr(decl, 'is_interface', False) else \
+                    'class' if getattr(decl, 'is_class', False) else {
                     StructDecl: 'struct', EnumDecl: 'enum', ErrorDecl: 'error type',
                     FunctionDecl: 'function'}[type(decl)]
                 raise ParserError(modifier, f"'private' can't be on a top-level {kind} - "
@@ -1896,6 +1918,8 @@ class Parser:
             return self.parse_struct_declaration()
 
         # Class declaration (Task 32.10b)
+        if self.match(TokenType.INTERFACE):
+            return self.parse_interface_declaration()
         if self.match(TokenType.CLASS):
             return self.parse_class_declaration()
 
@@ -1955,6 +1979,66 @@ class Parser:
         self.consume_statement_terminator()
         return VarDeclStmt(location=name_token.location, var_type=var_type,
                            name=name_token.value, initializer=initializer, is_const=is_const)
+
+    def _implements_list(self) -> list:
+        """`implements A, B, C` - the IMPLEMENTS token already consumed (Task 32.5a)."""
+        names = [self.consume(TokenType.IDENTIFIER, "Expected an interface's name after 'implements'").value]
+        while self.match(TokenType.COMMA):
+            names.append(self.consume(TokenType.IDENTIFIER, "Expected an interface's name after ','").value)
+        return names
+
+    def parse_interface_declaration(self) -> StructDecl:
+        """`interface Shape` (Task 32.5a, D.087): function signatures only - what, not how.
+
+            interface Shape implements Named, Printable
+                float function area()
+                float function scale(float k)
+
+        Each signature becomes the function `Shape.area` with `this` first, like a class's
+        method; it has no body - semantic analysis turns it into a look-up of the object's own
+        function. A body is a default method, allowed only by [interfaces] defaultMethods. The
+        INTERFACE token has already been consumed."""
+        start = self.previous()
+        name = self.consume(TokenType.IDENTIFIER, "Expected the interface's name after 'interface'").value
+        parents = self._implements_list() if self.match(TokenType.IMPLEMENTS) else []
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.match(TokenType.LBRACE):
+            closing = TokenType.RBRACE
+        elif self.match(TokenType.INDENT):
+            closing = TokenType.DEDENT
+        else:
+            raise ParserError(self.peek(), f"Expected the functions of interface '{name}' - an "
+                                           f"indented block, or '{{' ... '}}'")
+        methods = []
+        while True:
+            while self.match(TokenType.NEWLINE):
+                pass
+            if self.check(closing) or self.is_at_end():
+                break
+            self.match(TokenType.PUBLIC)            # an interface's functions are public anyway
+            return_type = self.parse_type()
+            if not self.match(TokenType.FUNCTION, TokenType.FUNC):
+                raise ParserError(self.peek(), f"An interface holds functions only - '{name}' "
+                                               f"can't have a field (a class that implements it can)")
+            methods.append(self.parse_function_declaration(return_type, signature_only=True))
+        self.consume(closing, f"Expected the end of interface '{name}'")
+        while self.match(TokenType.NEWLINE):
+            pass
+        if self.match(TokenType.END):
+            self.consume(TokenType.INTERFACE, "Expected 'interface' after 'End'")
+        decl = StructDecl(location=start.location, name=name, fields=[], is_class=True,
+                          is_interface=True, interfaces=parents)
+        for method in methods:
+            method.method_name, method.method_of = method.name, name
+            method.name = f'{name}.{method.name}'
+            method.interface_of = name
+            method.parameters.insert(0, ParameterDecl(
+                location=method.location, name='this', default_value=None,
+                param_type=StructType(location=method.location, name=name)))
+            method.changes_this = False      # set from the classes that implement it
+        decl.methods = methods
+        return decl
 
     def parse_struct_declaration(self) -> StructDecl:
         """Parse a struct declaration (Task 18.2.1), in any of the three block styles:
@@ -2046,7 +2130,8 @@ class Parser:
         token has already been consumed."""
         class_token = self.previous()
         name = self.consume(TokenType.IDENTIFIER, "Expected the class name after 'class'").value
-        if self.check(TokenType.IMPLEMENTS) or self.check(TokenType.INHERITS) or (
+        interfaces = self._implements_list() if self.match(TokenType.IMPLEMENTS) else []
+        if self.check(TokenType.INHERITS) or (
                 self.check(TokenType.IDENTIFIER) and self.peek().value in ('extends', 'includes')):
             raise ParserError(self.peek(), "A class building on another class comes with "
                                            "inheritance (Task 32.7)")
@@ -2133,7 +2218,8 @@ class Parser:
         if self.match(TokenType.END):
             self.consume(TokenType.CLASS, "Expected 'class' after 'End'")
         decl = StructDecl(location=class_token.location, name=name, fields=fields, is_class=True,
-                          static_fields=static_fields, static_block=static_block)
+                          static_fields=static_fields, static_block=static_block,
+                          interfaces=interfaces)
         self.attach_methods(decl, methods)
         for method in static_methods:                # no `this` (Task 32.2c)
             method.method_name, method.method_of = method.name, name
@@ -2608,7 +2694,8 @@ class Parser:
             default_value=default_value
         )
 
-    def parse_function_declaration(self, return_type: TypeNode) -> ASTNode:
+    def parse_function_declaration(self, return_type: TypeNode,
+                                   signature_only: bool = False) -> ASTNode:
         """Parse function declaration: int function add(int a, int b) { body }
 
         Args:
@@ -2638,6 +2725,14 @@ class Parser:
                 parameters.append(self.parse_parameter())
 
         self.consume(TokenType.RPAREN, "Expected ')' after parameters")
+
+        # An interface's function (Task 32.5a): the signature alone, unless a body follows
+        if signature_only and not self.check(TokenType.COLON) and not self.check(TokenType.LBRACE) \
+                and not (self.check(TokenType.NEWLINE) and self.peek(1).type == TokenType.INDENT):
+            if not self.check(TokenType.DEDENT) and not self.check(TokenType.RBRACE):
+                self.consume_statement_terminator()
+            return FunctionDecl(location=location, return_type=return_type, name=name,
+                                parameters=parameters, body=None)
 
         # Skip newlines after parameter list
         while self.match(TokenType.NEWLINE):

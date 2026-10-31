@@ -547,7 +547,9 @@ Kept under Task 22 until the renumbering is approved.
   - Scheduled: Task 48 (after all of Task 32), 42.18-42.25, 47.5 `fixed`
 - Task 49 done (2026-10-31): Decisions.md built from every source, 10 clashes settled, a check in
   check.py - detail in task/taskSummaryArchive.md
-- **Next Action:** 32.5 (interfaces: ToString, Default, Cloneable)
+- 32.5a done: interfaces - each class has a table (name, release, one function table per
+  interface, small wrappers); an interface value is a void* in C; CastError added
+- **Next Action:** 32.5b (ToString, Default, Cloneable)
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

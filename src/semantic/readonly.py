@@ -34,8 +34,15 @@ def check_readonly(program) -> List[SemanticError]:
     for d in program.declarations:
         for f in ([d] if isinstance(d, FunctionDecl) else
                   d.methods + d.static_methods if isinstance(d, StructDecl) else []):
-            if f.body is not None:
+            if f.body is not None or getattr(f, 'interface_of', None):
                 functions[f.name] = f
+    # An interface's function (Task 32.5a) does what the classes' answers do: it passes each
+    # parameter on to every function that answers it
+    answers: Dict[str, List[str]] = {}
+    for d in program.declarations:
+        for iface, pairs in getattr(d, 'interface_impls', {}).items():
+            for method, answer in pairs:
+                answers.setdefault(f'{iface}.{method.method_name}', []).append(answer.name)
     if not any(p.is_readonly for f in functions.values() for p in f.parameters):
         return []
     classes = {d.name for d in program.declarations if isinstance(d, StructDecl) and d.is_class}
@@ -56,6 +63,9 @@ def check_readonly(program) -> List[SemanticError]:
         or ('pass', node, (callee, index))."""
         tracked, found = {name}, []
         variables = {p.name for p in function.parameters}
+        if getattr(function, 'interface_of', None):
+            index = [p.name for p in function.parameters].index(name)
+            return [('pass', function, (answer, index)) for answer in answers.get(function.name, [])]
 
         def mine(e) -> bool:
             return place(e) and _root(e) in tracked
@@ -122,6 +132,8 @@ def check_readonly(program) -> List[SemanticError]:
 
     errors, seen = [], set()
     for f in functions.values():
+        if getattr(f, 'interface_of', None):
+            continue                     # checked in the classes that answer it
         for i, p in enumerate(f.parameters):
             if not p.is_readonly:
                 continue

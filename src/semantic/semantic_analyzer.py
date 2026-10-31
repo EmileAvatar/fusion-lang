@@ -18,6 +18,7 @@ from .class_rules import check_class_cycles, check_constructors
 from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly
+from .interfaces import check_interfaces
 from .class_rules import check_visibility_written
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
@@ -51,7 +52,7 @@ class SemanticAnalyzer:
     def __init__(self, structs_config: Optional[StructsConfig] = None,
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
-                 conditions_config=None, visibility_config=None):
+                 conditions_config=None, visibility_config=None, interfaces_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -72,6 +73,8 @@ class SemanticAnalyzer:
         self.module_variables_allowed = bool(getattr(modules_config, 'variables', True))
         # [visibility] required (Task 32.2h): the level must be written everywhere
         self.visibility_required = bool(getattr(visibility_config, 'required', False))
+        # [interfaces] defaultMethods (Task 32.5a, D.006): an interface's function may have code
+        self.default_methods = bool(getattr(interfaces_config, 'default_methods', False))
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
@@ -113,6 +116,8 @@ class SemanticAnalyzer:
         self.errors.extend(expand_statics(ast))
         # Form B on any variable (Task 32.2d): a local's set-up block runs right after it
         self.errors.extend(expand_setup_blocks(ast))
+        # Interfaces (Task 32.5a): what each needs, which class function answers it
+        self.errors.extend(check_interfaces(ast, self.default_methods))
 
         # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
         # nothing after this mistakes an enum for a struct

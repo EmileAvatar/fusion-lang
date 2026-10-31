@@ -1764,7 +1764,7 @@ int maxConn = Config.MAX_CONNECTIONS
 
 ## Interfaces and Contracts
 
-**Status:** [PLANNED 32]
+**Status:** [DONE 32.5a] `interface`, `implements` (several), an interface building on several, an interface as a type, `is`, casts written in front, default methods behind `[interfaces] defaultMethods` - the truth table: Classes.md section 7; ToString, Default, Cloneable [PLANNED 32.5b]
 
 Description: Java-style interfaces with modern enhancements.
 
@@ -4544,6 +4544,9 @@ layer = "std"                  # std (default) | alloc | core
 
 [modules]                      # Task 44.1 - see "Constants"
 variables = true               # module-level variables; constants are always allowed
+
+[interfaces]                   # Task 32.5a - see "Interfaces and Contracts"
+defaultMethods = false         # true: an interface's function may have code (a default)
 
 [visibility]                   # Task 32.2h - see "Modules" / public, internal, private
 required = false               # true: public / internal / private must be written on every

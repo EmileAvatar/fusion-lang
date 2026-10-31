@@ -750,12 +750,26 @@ class MemoryManagementMixin:
         for decl in classes:
             kind = StructType(location=decl.location, name=decl.name, declaration=decl)
             c = self._struct_c_name(kind)
+            if decl.is_interface:
+                # any object: count it through its header, free it through its class (32.5a)
+                protos += [f'static inline {c}* fusion_retain_{c}({c}* o);',
+                           f'static inline void fusion_release_{c}({c}** p);',
+                           f'static inline void fusion_set_{c}({c}** dst, {c}* v);']
+                bodies += [f'static inline {c}* fusion_retain_{c}({c}* o) {{ '
+                           f'if (o) ((fusion_object*)o)->fusion_count++; return o; }}',
+                           f'static inline void fusion_release_{c}({c}** p) {{ void* o = *p; *p = NULL; '
+                           f'if (o) ((fusion_object*)o)->fusion_class->release(&o); }}',
+                           f'static inline void fusion_set_{c}({c}** dst, {c}* v) {{ {c}* old = *dst; '
+                           f'*dst = v; fusion_release_{c}(&old); }}']
+                continue
+            protos.append(f'static const fusion_class_t fusion_class_{c};')   # its table (32.5a)
             protos += [f'static inline {c}* fusion_make_{c}(void);', f'static inline {c}* fusion_retain_{c}({c}* o);',
                        f'static inline void fusion_release_{c}({c}** p);', f'static inline void fusion_set_{c}({c}** dst, {c}* v);']
             make = [f'static inline {c}* fusion_make_{c}(void) {{',
                     f'    {c}* o = ({c}*)fusion_alloc(sizeof({c}));',
                     '    memset(o, 0, sizeof *o);',
                     '    o->fusion_count = 1;',
+                    f'    o->fusion_class = &fusion_class_{c};',
                     '    FUSION_OBJECT_MADE();']
             release = [f'static inline void fusion_release_{c}({c}** p) {{',
                        f'    {c}* o = *p;',
@@ -781,6 +795,8 @@ class MemoryManagementMixin:
             bodies += release + ['    fusion_dealloc(o);', '}']
             bodies += [f'static inline void fusion_set_{c}({c}** dst, {c}* v) {{ {c}* old = *dst; *dst = v; '
                        f'fusion_release_{c}(&old); }}']
+            # freed through an interface's value: its class table points here (32.5a)
+            bodies += [f'static void fusion_release_any_{c}(void** p) {{ fusion_release_{c}(({c}**)p); }}']
         return protos + bodies
 
     def object_needed(self, code: str, type_node, node) -> str:

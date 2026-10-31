@@ -544,6 +544,26 @@ class PassingExpr(ASTNode):
 
 
 @dataclass
+class CastExpr(ASTNode):
+    """`(Shape)aCircle` - a cast, written in front (Task 32.5a, D.082). To a type the value
+    always is: no check; to one it may be (an interface back to its class): checked while the
+    program runs - a CastError when it isn't; to one it never is: a compile error."""
+    target: 'TypeNode'
+    operand: ASTNode
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
+class IsTypeExpr(ASTNode):
+    """`x is Circle`, `x is not Shape` - what an object is while the program runs (Task 32.5a).
+    A null is no type: false."""
+    operand: ASTNode
+    target: 'TypeNode'
+    negated: bool = False
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class MatchArm(ASTNode):
     """`6, 7 : "Weekend"` - one case of a match that gives a value (Task 46.2)."""
     patterns: List[MatchPattern]
@@ -765,6 +785,11 @@ class StructDecl(ASTNode):
     static_fields: List['StructField'] = field(default_factory=list)
     static_methods: List['FunctionDecl'] = field(default_factory=list)
     static_block: Optional['BlockStmt'] = None
+    # `interface Shape` (Task 32.5a): a class-like declaration with function signatures only -
+    # a value of it is an object of a class that implements it. `interfaces`: what a class
+    # implements, or what an interface builds on (`interface D implements A, B, C`)
+    is_interface: bool = False
+    interfaces: List[str] = field(default_factory=list)
 
 
 @dataclass

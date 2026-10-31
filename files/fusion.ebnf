@@ -470,9 +470,10 @@ property_declaration =
    default; "protected" is reserved for classes *)
 access_modifier = "public" | "internal" | "private" | "protected" ;   (* internal: 32.2h *)
 
+(* Task 32.5a - several parents (D.087); a body only with [interfaces] defaultMethods *)
 interface_declaration =
-    "interface" identifier
-    INDENT { method_signature } DEDENT ;
+    "interface" identifier [ "implements" interface_list ]
+    INDENT { method_signature [ ":" expression | block ] } DEDENT ;
 
 method_signature =
     return_type "function" identifier "(" [ parameter_list ] ")" ;

@@ -200,6 +200,17 @@ CONDITION_NUMBERS = ("positive", "nonzero", "off")
 
 
 @dataclass
+class InterfacesConfig:
+    """Interfaces (Task 32.5a, user decision 2026-10-28 - Decisions.md D.006).
+
+    Attributes:
+        default_methods: True lets an interface's function have code - used by a class that
+            doesn't give its own. False (the default): an interface names its functions only.
+    """
+    default_methods: bool = False
+
+
+@dataclass
 class VisibilityConfig:
     """Who can use what (Task 32.2h, user decisions 2026-10-30).
 
@@ -262,6 +273,7 @@ class ProjectConfig:
     numbers: NumbersConfig = field(default_factory=NumbersConfig)
     modules: ModulesConfig = field(default_factory=ModulesConfig)
     visibility: VisibilityConfig = field(default_factory=VisibilityConfig)
+    interfaces: InterfacesConfig = field(default_factory=InterfacesConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
@@ -455,6 +467,21 @@ def _load_modules_section(data: dict, config_path: str) -> ModulesConfig:
                 f"{config_path}: modules.variables must be true or false, got {value!r}")
         modules.variables = value
     return modules
+
+
+def _load_interfaces_section(data: dict, config_path: str) -> InterfacesConfig:
+    """Parse and validate the [interfaces] section (Task 32.5a)."""
+    interfaces = InterfacesConfig()
+    section = _require_table(data, "interfaces", config_path)
+    for key, value in section.items():
+        if key != "defaultMethods":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting interfaces.{key} (known: ['defaultMethods'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: interfaces.defaultMethods must be true or false, got {value!r}")
+        interfaces.default_methods = value
+    return interfaces
 
 
 def _load_visibility_section(data: dict, config_path: str) -> VisibilityConfig:
@@ -683,6 +710,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         errors=_load_errors_section(data, config_path),
         modules=_load_modules_section(data, config_path),
         visibility=_load_visibility_section(data, config_path),
+        interfaces=_load_interfaces_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),

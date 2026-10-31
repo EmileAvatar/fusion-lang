@@ -930,6 +930,45 @@ Until a class can implement ToString (Task 32.5) an object prints as its class n
 compiler warns once per class: `Car doesn't implement ToString - it prints as its class name
 'Car'`. A null object prints `null`.
 
+#### Interfaces: `interface`, `implements`, `is`, a cast in front
+
+<!-- example: syntax_interfaces | task: 32.5a -->
+```fusion
+interface Shape
+    float function area()
+    string function name()
+
+class Circle implements Shape
+    public float r
+    constructor(float r)
+        this.r = r
+    float function area() : 3.0 * r * r
+    string function name() : "circle"
+
+class Square implements Shape
+    float side
+    constructor(float side)
+        this.side = side
+    float function area() : side * side
+    string function name() : "square"
+
+void function main()
+    List<Shape> shapes = [Circle(1.0), Square(2.0)]
+    for s in shapes
+        print("{@1} {@2}", s.name(), s.area())  // each object's own function
+    Shape first = shapes[0]
+    if first is Circle
+        Circle c = (Circle)first                 // back to the class - checked while running
+        print("radius {@1}", c.r)
+    try
+        Square q = (Square)first                 // not a Square: a CastError
+    catch CastError e
+        print(e.message)                         // a Circle is not a Square
+```
+A class may implement several interfaces (`implements Shape, Named`), and an interface may build
+on several (`interface Item implements Sized, Named`). A function with code in an interface is a
+default method - only with `[interfaces] defaultMethods = true`.
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->
@@ -1255,6 +1294,9 @@ variables = true                 # module-level variables (constants are always 
 
 [visibility]
 required = false                 # true: public / internal / private written everywhere
+
+[interfaces]
+defaultMethods = false           # true: an interface's function may have code (a default)
 
 [conditions]
 numbers = "positive"             # if / while count: count > 0 (default); "nonzero": count != 0;

@@ -179,6 +179,7 @@ static int fusion_failed = 0;
 #define FUSION_KIND_PrecisionError 27
 #define FUSION_KIND_ProcessError 28
 #define FUSION_KIND_NullError 29
+#define FUSION_KIND_CastError 30
 static inline void fusion_raise_text(int kind, void* extra, const char* where, const char* text, int len);
 static inline void* fusion_errdata_fu_FileError_new(fusion_string path);
 static void* fusion_errdata_fu_FileError_copy(void* p);
@@ -1676,6 +1677,7 @@ static const fusion_error_kind fusion_builtin_kinds[] = {
     {"PrecisionError", 1, NULL, NULL},
     {"ProcessError", 0, NULL, NULL},
     {"NullError", 0, NULL, NULL},
+    {"CastError", 8, NULL, NULL},
 };
 static const fusion_error_kind* fusion_error_kinds = fusion_builtin_kinds;
 // Is an error of type `kind` a `target` (that type or one of its subtypes)? (Task 26.9)

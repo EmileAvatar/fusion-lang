@@ -173,7 +173,40 @@ and `toCSV` of objects can't be printed whole yet (no List prints whole today).
 
 ---
 
-## 7. Decisions log
+## 7. Interfaces (built - Task 32.5a, tests/test_interfaces.py)
+
+```fusion
+interface Shape                          // function signatures only - what, not how
+    float function area()
+
+class Circle implements Shape, Named     // several
+Shape s = Circle(2.0)                    // the object's own area() runs
+if s is Circle                           // what it is while running
+    Circle c = (Circle)s                 // a cast written in front (D.082)
+```
+
+| Case | Result |
+|---|---|
+| a class gives every function of every interface it implements, public, same parameters and result | compiles; it can be used as each interface |
+| a function missing, different, or private | a compile error naming the interface's signature |
+| `interface D implements A, B, C` | D has every function of A, B and C; a D value is also an A, B and C (D.087) |
+| interfaces building on each other in a circle, or on a class / struct | a compile error |
+| a struct `implements` an interface | a compile error - a struct only holds values (STC.005) |
+| `Shape()` | a compile error - an interface can't be made |
+| an interface as a variable, parameter, result, List / Map element | holds any object of a class that implements it; counted and freed like any object |
+| a call through it | the object's own function - found in its class's table while running |
+| `(Shape)aCircle` - to what it always is | no check |
+| `(Circle)shape` - to what it may be | checked while running: a CastError when it isn't; a null stays null |
+| `(Square)aCircle` - to what it never is | a compile error (D.086) |
+| `x is Circle` / `x is not Shape` | the object's type while running; a null is false; never true: a compile error |
+| a cast between numbers `(int)d` | later - `toInt(d)` for now |
+| a function with code in an interface | a compile error, unless `[interfaces] defaultMethods = true`: then a class without its own uses it |
+| a readonly value called through an interface | an error when any class's function changes it (32.2e) |
+| printing an interface value | its object's own class name (`Square`) - ToString with 32.5b |
+
+---
+
+## 8. Decisions log
 
 | Date | Decision |
 |---|---|
@@ -186,4 +219,5 @@ and `toCSV` of objects can't be printed whole yet (no List prints whole today).
 | 2026-10-30 | `Default` and null: `s = null` on a Default type lets the old object go and makes a new default one - the variable is never null, even right after `= null` |
 | 2026-10-30 | Printing an object: `ToString` interface; without it the class name only, with a warning |
 | 2026-10-30 | The builder pattern - noted for later, a different idea from form B |
+| 2026-10-31 | Interfaces built (32.5a): several per class, an interface building on several, casts written in front, `is`, default methods behind `[interfaces] defaultMethods` (D.082, D.087) |
 | 2026-10-31 | Planned (Task 48, Ownership.md): `Car b = a` moves - `a` can't be used after it; `byVal` copies (`clone()`), passing borrows; `shared Car c = a` is read only except to the holder that made it shared, `byRef` from it lends change; `[memory] assignment = "move"` (default) / `"share"` |

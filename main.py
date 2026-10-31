@@ -120,7 +120,8 @@ def compile_file(source_path: str) -> int:
                                 numbers_config=project_config.numbers,
                                 modules_config=project_config.modules,
                                 conditions_config=project_config.conditions,
-                                visibility_config=project_config.visibility)
+                                visibility_config=project_config.visibility,
+                                interfaces_config=project_config.interfaces)
     success = analyzer.analyze(ast)
 
     if not success:

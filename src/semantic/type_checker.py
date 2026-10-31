@@ -172,6 +172,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             from .error_rules import is_error_subtype
             return is_error_subtype(actual.declaration, expected.declaration)
 
+        # An object where an interface it implements is expected (Task 32.5a)
+        if self.implements_interface(actual, expected):
+            return True
+
         # Numeric promotions (byte -> int -> float -> double)
         if self.is_numeric_promotion(expected, actual):
             return True
@@ -951,6 +955,78 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 f"{'true' if node.negated else 'false'}", node.location))
         return PrimitiveType(location=node.location, name='bool')
 
+    def implements_interface(self, actual, expected) -> bool:
+        """An object of `actual` (a class or an interface) can be used as the interface
+        `expected` (Task 32.5a)."""
+        target = self.struct_declaration(expected)
+        if not getattr(target, 'is_interface', False):
+            return False
+        from .interfaces import implements
+        return implements(self.struct_declaration(actual), target.name)
+
+    def _object_kind(self, type_node) -> str:
+        """'interface', 'class', or '' for anything that isn't an object."""
+        decl = self.struct_declaration(type_node)
+        if getattr(decl, 'is_interface', False):
+            return 'interface'
+        return 'class' if getattr(decl, 'is_class', False) else ''
+
+    def _may_be(self, operand_type, target) -> str:
+        """Can a value of operand_type be a target? 'always', 'maybe' (checked while the
+        program runs) or 'never' (Task 32.5a)."""
+        if self.types_equal(target, operand_type) or self.implements_interface(operand_type, target):
+            return 'always'
+        target_kind, operand_kind = self._object_kind(target), self._object_kind(operand_type)
+        if target_kind == 'interface' and operand_kind == 'interface':
+            return 'maybe'                  # some class may implement both
+        if target_kind == 'class' and operand_kind == 'interface':
+            return 'maybe' if self.implements_interface(target, operand_type) else 'never'
+        return 'never'
+
+    def visit_CastExpr(self, node) -> TypeNode:
+        """`(Shape)aCircle` (Task 32.5a, D.082): to what the value always is - no check; to what
+        it may be (an interface back to its class) - a CastError while running when it isn't;
+        to what it never is - a compile error (D.086)."""
+        operand_type = self.visit(node.operand)
+        target = node.target
+        if not self._object_kind(target) or not self._object_kind(operand_type):
+            if isinstance(target, PrimitiveType) and self.is_numeric_type(operand_type):
+                self.errors.append(SemanticError(
+                    f"A cast between numbers comes later - use to{target.name.capitalize()}(x) for now",
+                    node.location))
+            else:
+                self.errors.append(SemanticError(
+                    f"Can't cast a {self.type_to_string(operand_type)} to "
+                    f"{self.type_to_string(target)} - a cast changes an object's type only "
+                    f"(to an interface it implements, or back to its class)", node.location))
+            return target
+        answer = self._may_be(operand_type, target)
+        if answer == 'never':
+            self.errors.append(SemanticError(
+                f"A {self.type_to_string(operand_type)} is never a {self.type_to_string(target)} - "
+                f"the cast would always fail", node.location))
+        node.checked = answer == 'maybe'
+        return target
+
+    def visit_IsTypeExpr(self, node) -> TypeNode:
+        """`x is Circle`, `x is not Shape` (Task 32.5a): what an object is while the program
+        runs; a null is false."""
+        operand_type = self.visit(node.operand)
+        if not self._object_kind(operand_type):
+            self.errors.append(SemanticError(
+                f"Only an object has a type to test - a {self.type_to_string(operand_type)} is "
+                f"always a {self.type_to_string(operand_type)}", node.location))
+        elif not self._object_kind(node.target):
+            self.errors.append(SemanticError(
+                f"'is' tests for a class or an interface - {self.type_to_string(node.target)} is "
+                f"neither", node.location))
+        elif self._may_be(operand_type, node.target) == 'never':
+            self.errors.append(SemanticError(
+                f"A {self.type_to_string(operand_type)} is never a "
+                f"{self.type_to_string(node.target)} - this test is always "
+                f"{'true' if node.negated else 'false'}", node.location))
+        return PrimitiveType(location=node.location, name='bool')
+
     def visit_ConditionalExpr(self, node: ConditionalExpr) -> TypeNode:
         """`(c) ? a : b` (Task 30.7): the condition is a bool, and both values have one type -
         the result's. An array can't be one of the values yet (an array is returned inside a
@@ -1301,6 +1377,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 node.location
             ))
             return PrimitiveType(location=node.location, name='void')
+
+        if symbol.symbol_type == 'struct' and getattr(symbol.declaration, 'is_interface', False):
+            self.errors.append(SemanticError(
+                f"'{func_name}' is an interface - it can't be made; make an object of a class "
+                f"that implements it", node.location))
+            return StructType(location=node.location, name=symbol.declaration.name,
+                              declaration=symbol.declaration)
 
         if symbol.symbol_type == 'struct' and getattr(symbol.declaration, 'is_class', False):
             # Car("Honda") / new Car("Honda") - the constructor, Car.new (Task 32.10b); a

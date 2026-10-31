@@ -89,7 +89,7 @@ TYP.012 [BUILT] Enum functions `values()`, `fromString()`; an enum prints its na
 TYP.013 [DESIGN] Autoboxing (`(42).toString()`) - the type classes (`Int`, `String`) are built
 TYP.014 [DESIGN] A `bit` type and bit-level operations
 TYP.015 [DESIGN] `decimal(p, s)`: an exact fixed-point number - after `money` (47.2.3)
-TYP.016 [PLANNED] A cast written in front: `(Shape)aCircle`, `(int)d` - a compile error where it can be seen, else a CastError (32.5)
+TYP.016 [BUILT] A cast written in front: `(Shape)aCircle` - a compile error where it can be seen, else a CastError (32.5a); between numbers `(int)d` later
 
 #### STR - strings
 STR.001 [BUILT] Strings are values, freed automatically; changed in place (`s[i] = c`)
@@ -159,7 +159,7 @@ CLS.002 [BUILT] Several constructors; `this(...)`; `new` optional
 CLS.003 [BUILT] Statics set up in three forms (A, B, C) before main
 CLS.004 [BUILT] Visibility `private` (the class) / `internal` (the namespace) / `public`; `namespace A.B`
 CLS.005 [BUILT] Printing an object gives its class name, with a warning (until ToString)
-CLS.006 [PLANNED] Interfaces with `implements`; ToString, Default, Cloneable (32.5)
+CLS.006 [BUILT] Interfaces: `interface`, `implements` (several), building on several, as a type, `is`, casts; default methods behind `[interfaces] defaultMethods` (32.5a)
 CLS.007 [PLANNED] Inheritance: one parent, `inherits` (alias `extends`), `override`, `sealed`, `abstract`, `protected`, `super`; `typeOf(x)` gives the chain (32.7)
 CLS.008 [PLANNED] `nocopy` / `noshare` fields
 CLS.009 [POSTPONED] The builder pattern (after Task 32)
@@ -167,6 +167,7 @@ CLS.010 [BUILT] A warning for each circle of classes that could leak
 CLS.011 [DESIGN] Properties: `property Name: type { get; set; }`, computed and indexed ones
 CLS.012 [DESIGN] A constant in a class is always static
 CLS.013 [DESIGN] `abstract`, `sealed`, `virtual`, `override`, `protected` - reserved words, for inheritance (32.7)
+CLS.014 [PLANNED] The built-in interfaces: ToString, Default, Cloneable; copies of objects (32.5b)
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
