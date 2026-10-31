@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (none open - C.001-C.006 settled 2026-10-31: D.025-D.028, D.057, D.058)
+  (open: C.007, C.008 - C.001-C.006 settled 2026-10-31: D.025-D.028, D.057, D.058)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -28,6 +28,7 @@ GOL.006 [BUILT] Features become settings - a safe default, switchable per projec
 GOL.007 [BUILT] A simple working language first, advanced features after
 GOL.008 [BUILT] Never trust code - a library is checked by what its signature promises
 GOL.009 [PLANNED] Rename before 1.0 (another language is called Fusion)
+GOL.010 [BUILT] The self-hosting test run: lexer, parser, checker and C generator written in Fusion (Task 28)
 
 #### SYN - syntax
 SYN.001 [BUILT] Three block styles, one meaning: indentation, braces, keywords (`End if`)
@@ -45,6 +46,19 @@ SYN.012 [BUILT] `len` / `length`, with or without brackets
 SYN.013 [BUILT] Form B: a set-up block right after a value, on any variable, field or static
 SYN.014 [PLANNED] Duration literals `500ms`, `5s`, `2min` (42.16)
 SYN.015 [REJECTED] An `I` prefix on interface names
+SYN.016 [BUILT] Identifiers are ASCII; Trojan Source and look-alike letters are rejected
+SYN.017 [BUILT] `_` for an unused `match` field
+SYN.018 [DESIGN] `switch` interchangeable with `match`; `elif` for `else if`
+SYN.019 [DESIGN] `loop { }` - no break / return inside is a compile error; the keyword may be dropped
+SYN.020 [DESIGN] `++` / `--` as statements only, never inside an expression
+SYN.021 [DESIGN] `if` as a value; do-while
+SYN.022 [DESIGN] Guards and ranges in match cases (`case x if x < 0`, `case 0...9`)
+SYN.023 [DESIGN] `assert cond, "message"` - an AssertionError when false
+SYN.024 [DESIGN] Type tests `if s is string`; `typeOf(x)` as text
+SYN.025 [DESIGN] Extension methods (`extend string { }`); function overloading by parameter types
+SYN.026 [DESIGN] Copy with changes (`a with { x = 5 }`); tuples
+SYN.027 [DESIGN] Operands evaluated in one written order - today C's order (37.2)
+SYN.028 [POSTPONED] Closures; named lambdas inside functions; multi-line lambda bodies
 
 #### TYP - types
 TYP.001 [BUILT] int, float, double, bool, char, byte - overflow checked; `[numbers] overflowWrap` wraps
@@ -55,6 +69,8 @@ TYP.005 [PLANNED] Enums whose values carry fixed data (47.3); the `FusionType` e
 TYP.006 [PLANNED] The `fixed` prefix: a maximum size - `fixed string(16)`, `fixed List<T>(n)` (47.5)
 TYP.007 [PLANNED] Generics: the program's own generic functions and types (Task 33)
 TYP.008 [DESIGN] Operator overloading - only for exceptional cases (a setting, off)
+TYP.009 [BUILT] int becomes float only when written (`[numbers] autoWidening`, default false)
+TYP.010 [DESIGN] Flag enums combined with `|` (`Permission.Read | Permission.Write`)
 
 #### STR - strings
 STR.001 [BUILT] Strings are values, freed automatically; changed in place (`s[i] = c`)
@@ -63,6 +79,10 @@ STR.003 [BUILT] Unicode: characters vs bytes; `bytes` for raw data
 STR.004 [BUILT] The string library: search, extract, change, pad, number bases, format
 STR.005 [POSTPONED] String pooling (29.4); secure strings (29.5); StringBuilder (Task 38)
 STR.006 [REJECTED] A "mutable" switch - a string can always be changed in place
+STR.007 [BUILT] An unchangeable string is `const string` - no new type
+STR.008 [DESIGN] Raw strings `r"..."`; multi-line strings; a format inside `{value:pattern}`
+STR.009 [POSTPONED] Full expressions inside `{...}`; full Unicode case and normalization; Base64 / URL / JSON escaping; regex
+STR.010 [POSTPONED] Paged / memory-mapped strings
 
 #### COL - arrays, Lists, Maps
 COL.001 [BUILT] Fixed-size arrays, bounds always checked
@@ -78,6 +98,8 @@ COL.010 [REJECTED] Turning off array bounds checks, even in unsafe mode
 COL.011 [PLANNED] Lists: a capacity, a growth buffer, a kept sort order
 COL.012 [PLANNED] Maps: `add(otherMap)`; a map may bring its own hashing and key rules
 COL.013 [REJECTED] Changing a collection while looping over it (a setting to allow it) - build a new one
+COL.014 [DESIGN] `Set<T>`; slices by range (`numbers[0...1]`); Map literals (`{"apples": 3}`)
+COL.015 [POSTPONED] Multi-dimensional arrays
 
 #### FUN - functions and errors
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value
@@ -86,11 +108,18 @@ FUN.003 [BUILT] `readonly` parameters: never changed, deeply - worked out throug
 FUN.004 [PLANNED] `readonly` / `byVal` / `byRef` written at the call (48.3)
 FUN.005 [PLANNED] Several return values per function beyond the Error (`[functions] multipleReturns`, off)
 FUN.006 [BUILT] Files, program arguments, console input, `exit`, `run` (another program)
+FUN.007 [BUILT] Endless recursion is a catchable StackOverflowError (`[safety] maxCallDepth`)
+FUN.008 [BUILT] Wrapping on purpose: `wrapAdd`, `wrapSub`, `wrapMul`
+FUN.009 [BUILT] `[errors] returns` / `exceptions` - both on by default
+FUN.010 [DESIGN] `?` after a call returns its error at once; `await all([...])`
+FUN.011 [DESIGN] `extern "C"` - call a C function by declaring it
+FUN.012 [POSTPONED] More error types (Network, Timeout, Parse, Cancelled, Assertion, NotSupported) - with each feature
 
 #### NUL - null
 NUL.001 [BUILT] Value types are never null; class objects and enums can be
 NUL.002 [BUILT] A null without a check is a NullError a `catch` can handle; `null == null` is true
 NUL.003 [PLANNED] `?.`, `?.null`, `??`, `case null` (Task 30.2)
+NUL.004 [REJECTED] `T?` types - `?` goes on a variable (`x?.f()`), never on a type
 
 #### STC - structs
 STC.001 [BUILT] Structs: value types, copied, never null; may hold Lists, Maps, strings
@@ -99,6 +128,7 @@ STC.003 [BUILT] A struct building on a struct (`implements` / `extends` / `inclu
 STC.004 [BUILT] A struct as text: `"{e}"` -> `name : "Jeff",age : 30`
 STC.005 [REJECTED] A struct implementing an interface - a struct only holds values
 STC.006 [PLANNED] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (Task 48)
+STC.007 [DESIGN] Classes inside structs (a setting, off)
 
 #### CLS - classes
 CLS.001 [BUILT] Classes: objects by reference, counted, freed when the last holder goes
@@ -117,6 +147,7 @@ MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and
 MOD.002 [BUILT] `--interface`: the public interface of the imported modules
 MOD.003 [POSTPONED] A Fusion library other programs load (`.dll` / `.so`) - needs `extern`
 MOD.004 [DESIGN] Library trust: capability signatures, sandboxing, supply-chain checks (Task 39)
+MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); `[modules] paths`
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
@@ -138,6 +169,8 @@ CON.006 [PLANNED] send / sync worked out at the thread boundary (42.22)
 CON.007 [PLANNED] `hotpath` functions and `hotpath service` (42.23-42.24)
 CON.008 [DESIGN] Group services, service classes, the Thread class, schedulers (42.3-42.9)
 CON.009 [POSTPONED] Cluster threads over several servers
+CON.010 [PLANNED] Resources as services: files, sockets, databases (42.5); `final` clean-up (42.4)
+CON.011 [DESIGN] Default settings that fit the machine (42.6); default timeouts per resource (42.8)
 
 #### SET - settings and tools
 SET.001 [BUILT] `fusion.toml` (or .yaml / .json / .ini); camelCase, read case-insensitively; a bad key is an error
@@ -146,6 +179,12 @@ SET.003 [PLANNED] Core modules: Time, Data formats, Currency (Task 43)
 SET.004 [PLANNED] Syntax highlighting (36.0), later a language server (Task 36)
 SET.005 [PLANNED] An LLVM backend and an IR layer (Task 40); HIDL for hardware (Task 41)
 SET.006 [REJECTED] Fetching prices or exchange rates from an external API - in the core or any module
+SET.007 [BUILT] `[build] waitAtExit` (default false); `--headless`
+SET.008 [PLANNED] Enforce `[safety]` / `[backend]` (31.5)
+SET.009 [PLANNED] Errors for tools and AI agents: one form with a `fix:` hint; `--errors json`
+SET.010 [DESIGN] `blockStyles` (only some block styles); `config.build.mode`; `[console] lineEnding`
+SET.011 [POSTPONED] `config.fusion` writes the settings file from the master template (31.6)
+SET.012 [POSTPONED] `console build / run / test / add` - one tool, after Python
 
 ---
 
@@ -211,3 +250,10 @@ SET.006 [REJECTED] Fetching prices or exchange rates from an external API - in t
 | D.056 | Numbers as conditions only in `if` / `while`: `[conditions] numbers` = positive (default) / nonzero / off; `bool b = count` is an error | SYN.005 | 2026-10-27 | Nullable_Values.md 4 | ACTIVE |
 | D.057 | A List, Map or array used by two or more threads gets a temporary service (D.017); `[collections] threads` only picks its worker: a shared pool (default) or a dedicated thread | CON.003 | 2026-10-31 | Concurrency.md 3.12 | ACTIVE (planned) |
 | D.058 | The collection being looped over can't be changed inside the loop - any loop (`for`, `foreach`), any collection; build a new one (`b`) from it instead. A compile error where seen, else a ModifiedWhileLoopingError | COL.005 | 2026-10-31 | Arrays.md 6 | ACTIVE |
+| D.059 | No string prefixes (`m"`, `f"`): a plain string can change; interpolation is always on | STR.001 | 2026-10-27 | spec Strings | ACTIVE |
+| D.060 | int never becomes float by itself (`[numbers] autoWidening = false`) | TYP.001 | 2026-10-17 | spec Numbers | ACTIVE |
+| D.061 | Error returns and exceptions are both on by default; a project may turn either off | FUN.001 | 2026-10-16 | spec Errors | ACTIVE |
+| D.062 | Errors bubble up; capturing is optional on any call; `catch` goes by first match, a parent catches its children | FUN.002 | 2026-10-16 | spec Errors | ACTIVE |
+| D.063 | No `T?` types: only class objects and enums can be null; `?` goes on a variable | NUL.001 | 2026-10-27 | Nullable_Values.md | ACTIVE |
+| C.007 | **CLASH (a word):** "fixed string" means a `const string` (29.2; Map keys "a non-empty fixed string"), but `fixed string(16)` (D.020) means a maximum length. Suggest: say "constant string" for const, keep `fixed` for size | STR.001 | - | Decisions.md D.020 | CLASH - check |
+| C.008 | **CLASH:** `switch` and `else if` are the preferred forms in docs and examples (2026-10-24), but `match` is built and every doc and example uses it; `switch` isn't built | SYN.007 | - | FEATURES Later | CLASH - check |

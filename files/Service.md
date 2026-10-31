@@ -452,7 +452,6 @@ FEATURES.md 42.21. Needs interfaces (Task 32.5).
 interface Service<T>                    // T: the kind of request
     void function send(T request)       // a caller puts a request in the mailbox
     T function fetch()                  // the worker fetches its next request (waits as Wait says)
-    T? function tryFetch()              // the next request, or null when there is none - never waits
     void function start()
     void function stop()
     ServiceState function state()

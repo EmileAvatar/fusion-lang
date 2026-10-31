@@ -63,7 +63,10 @@ are in `task/featuresArchive.md`.
 	[DONE] 49.0 First version of Decisions.md: section 1 features, section 2 decisions, 4 clashes found
 	[DONE] 49.1 The design documents' decisions logs: Object_Lifetime, Classes, Arrays, Nullable_Values, Ownership
 		D.029-D.056 added; MEM.008, COL.011, COL.012 added; clashes C.005, C.006 for the user
-	[ ] 49.2 FEATURES.md, task/featuresArchive.md (built features), SYNTAX_REFERENCE.md
+	[DONE] 49.2 FEATURES.md, task/featuresArchive.md (built features), SYNTAX_REFERENCE.md
+		39 feature lines added (the showcase ideas, built settings, postponed items); D.059-D.063
+		Old Later lines marked: money as a decimal and string(255) replaced, namespaces built
+		Clashes C.007 (the word "fixed"), C.008 (`switch` preferred, `match` used) for the user
 	[ ] 49.3 The spec and the grammar (files/fusion-language-spec.md, files/fusion.ebnf)
 	[ ] 49.4 Concurrency.md, Concurrency_Traps.md, files/Service.md
 	[ ] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
@@ -447,7 +450,7 @@ are in `task/featuresArchive.md`.
 		One step changing two: taken in a fixed order (no deadlock)
 		Two temporary services always used together: one group service (42.3)
 	[ ] 42.21 The Service interface (needs 32.5)
-		`interface Service<T>`: send, `T fetch()` (the worker's next request), tryFetch, start, stop, state, waiting
+		`interface Service<T>`: send, `T fetch()` (the worker's next request), start, stop, state, waiting
 		BasicService (one worker thread), SharedService (temporary), FileService, DatabaseService, HotPathService
 		Settings checked against the implementation (`Core` only on a HotPathService)
 	[ ] 42.22 The thread boundary - send and sync (Ownership.md truth table 5)
@@ -545,7 +548,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		JSON/HTML escaping, validating UTF-8 from files and networks
 	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
 	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
-	[ ] money type (user, 2026-10-24 / 10-27): strict decimal for currency, default 0, written-out
+	[REPLACED by 47.2 - a long of minor units, never a decimal] money type (user, 2026-10-24 / 10-27): strict decimal for currency, default 0, written-out
 		conversions, rounding half away from zero + a rounding-mode enum (files/Literals.md
 		"Money", spec "Complete Type Specifications")
 	[ ] Lists (user, 2026-10-27 - Arrays.md): add many at once (another list, a group of
@@ -573,7 +576,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] Several return values only when `[functions] multipleReturns = true` (off by default);
 		a function that can fail always has its Error last
 	[ ] Operator overloading, off by default - `[language] operatorOverloading = true`
-	[ ] Namespaces: group related modules (several folders / libraries) under one name
+	[DONE - 32.2h] Namespaces: group related modules (several folders / libraries) under one name
 	[ ] println with a line ending: the PC's own, or set in fusion.toml. Kept for later (user,
 		2026-10-24); note for developers: `print` already ends the line
 	[ ] `loop`: a `loop { }` with no break / return inside is a compile error (user, 2026-10-24),
@@ -623,7 +626,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		TimeoutError (a network module), ParseError (JSON / data modules), CancelledError
 		(threads), AssertionError (an `assert` statement), NotSupportedError (a backend that
 		can't do something) - each an Error subtype
-	[POSTPONED - after MVP] Per-field string sizes (`string(255) name`) to match database columns
+	[REPLACED by 47.5 - `fixed string(255) name`] Per-field string sizes (`string(255) name`) to match database columns
 	[POSTPONED - needs references] Identity operator (same object in memory)
 	[POSTPONED - after MVP] Multi-dimensional arrays (growable lists: done, 18.5.1)
 	[POSTPONED to 32 / 33] Classes, interfaces, inheritance (32), generics (33); enums: Task 25;
