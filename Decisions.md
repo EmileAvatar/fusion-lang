@@ -59,6 +59,13 @@ SYN.025 [DESIGN] Extension methods (`extend string { }`); function overloading b
 SYN.026 [DESIGN] Copy with changes (`a with { x = 5 }`); tuples
 SYN.027 [DESIGN] Operands evaluated in one written order - today C's order (37.2)
 SYN.028 [POSTPONED] Closures; named lambdas inside functions; multi-line lambda bodies
+SYN.029 [BUILT] Comments `//` and `/* */`; `<>` as another way to write `!=`; hex, binary and octal numbers (`0xFF`)
+SYN.030 [BUILT] `unchecked { }` - whole-number `+ - *` inside wrap around on purpose
+SYN.031 [POSTPONED] `'` comments (VB style) - off so `'c'` works; maybe only at the start of a line
+SYN.032 [DESIGN] `#Region` / `#End Region`; documentation comments; documentation written from them
+SYN.033 [DESIGN] `loop { } end loop` with safety checks; loop labels; an iteration limit (`[safety] maxIterations`)
+SYN.034 [DESIGN] The `...` operator: ranges `1...100`, variadic `int... numbers`, spread `[...a, ...b]` (`string... args` of main is built)
+SYN.035 [DESIGN] `**` (power) - read by the lexer, not built; annotations `@name(...)`
 
 #### TYP - types
 TYP.001 [BUILT] int, float, double, bool, char, byte - overflow checked; `[numbers] overflowWrap` wraps
@@ -69,8 +76,11 @@ TYP.005 [PLANNED] Enums whose values carry fixed data (47.3); the `FusionType` e
 TYP.006 [PLANNED] `fixed(n)`: a maximum size, values may change - `fixed(10) string name`, `fixed(14) List<Person> people`, `fixed int numbers[10]` (47.5)
 TYP.007 [PLANNED] Generics: the program's own generic functions and types (Task 33)
 TYP.008 [DESIGN] Operator overloading - only for exceptional cases (a setting, off)
-TYP.009 [BUILT] int becomes float only when written (`[numbers] autoWidening`, default false)
+TYP.009 [BUILT] An int is used as a float only when it fits exactly (a written number that doesn't: compile error; a value: PrecisionError); `[numbers] autoWidening = true` widens with a warning
 TYP.010 [DESIGN] Flag enums combined with `|` (`Permission.Read | Permission.Write`)
+TYP.011 [BUILT] Conversions are functions: `toInt`, `toFloat`, `toString`, `toByte`, `parseInt`
+TYP.012 [BUILT] Enum functions `values()`, `fromString()`; an enum prints its name
+TYP.013 [DESIGN] Cast syntax `cast<T>(x)`; autoboxing (`(42).toString()`) - the type classes (`Int`, `String`) are built
 
 #### STR - strings
 STR.001 [BUILT] Strings are values, freed automatically; changed in place (`s[i] = c`)
@@ -141,6 +151,8 @@ CLS.007 [PLANNED] Inheritance with `inherits` (alias `extends`); `typeOf(x)` giv
 CLS.008 [PLANNED] `nocopy` / `noshare` fields
 CLS.009 [POSTPONED] The builder pattern (after Task 32)
 CLS.010 [BUILT] A warning for each circle of classes that could leak
+CLS.011 [DESIGN] Properties: `property Name: type { get; set; }`, computed and indexed ones
+CLS.012 [DESIGN] A constant in a class is always static
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
@@ -148,6 +160,8 @@ MOD.002 [BUILT] `--interface`: the public interface of the imported modules
 MOD.003 [POSTPONED] A Fusion library other programs load (`.dll` / `.so`) - needs `extern`
 MOD.004 [DESIGN] Library trust: capability signatures, sandboxing, supply-chain checks (Task 39)
 MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); `[modules] paths`
+MOD.006 [DESIGN] Working with other code: loading a DLL, assembly blocks, calling outside compilers
+MOD.007 [DESIGN] Callbacks and events
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
@@ -171,6 +185,7 @@ CON.008 [DESIGN] Group services, service classes, the Thread class, schedulers (
 CON.009 [POSTPONED] Cluster threads over several servers
 CON.010 [PLANNED] Resources as services: files, sockets, databases (42.5); `final` clean-up (42.4)
 CON.011 [DESIGN] Default settings that fit the machine (42.6); default timeouts per resource (42.8)
+CON.012 [DESIGN] `async` / `await`; `go f(x)`; thread interrupts checked in loops; channels (`<-` read by the lexer only)
 
 #### SET - settings and tools
 SET.001 [BUILT] `fusion.toml` (or .yaml / .json / .ini); camelCase, read case-insensitively; a bad key is an error
@@ -185,6 +200,8 @@ SET.009 [PLANNED] Errors for tools and AI agents: one form with a `fix:` hint; `
 SET.010 [DESIGN] `blockStyles` (only some block styles); `config.build.mode`; `[console] lineEnding`
 SET.011 [POSTPONED] `config.fusion` writes the settings file from the master template (31.6)
 SET.012 [POSTPONED] `console build / run / test / add` - one tool, after Python
+SET.013 [DESIGN] How a program is built: script mode, JIT, a library, other platforms (WebAssembly)
+SET.014 [DESIGN] Library modules beyond the core (fusionlib): file formats, images, math, networking, graphics, audio, localization
 
 ---
 
@@ -251,7 +268,7 @@ SET.012 [POSTPONED] `console build / run / test / add` - one tool, after Python
 | D.057 | A List, Map or array used by two or more threads gets a temporary service (D.017); `[collections] threads` only picks its worker: a shared pool (default) or a dedicated thread | CON.003 | 2026-10-31 | Concurrency.md 3.12 | ACTIVE (planned) |
 | D.058 | The collection being looped over can't be changed inside the loop - any loop (`for`, `foreach`), any collection; build a new one (`b`) from it instead. A compile error where seen, else a ModifiedWhileLoopingError | COL.005 | 2026-10-31 | Arrays.md 6 | ACTIVE |
 | D.059 | No string prefixes (`m"`, `f"`): a plain string can change; interpolation is always on | STR.001 | 2026-10-27 | spec Strings | ACTIVE |
-| D.060 | int never becomes float by itself (`[numbers] autoWidening = false`) | TYP.001 | 2026-10-17 | spec Numbers | ACTIVE |
+| D.060 | An int is used as a float only when it fits exactly - else a compile error (a written number) or a PrecisionError (a value); `[numbers] autoWidening = true` widens anything, with a warning | TYP.001 | 2026-10-17 | spec Type Casting | ACTIVE |
 | D.061 | Error returns and exceptions are both on by default; a project may turn either off | FUN.001 | 2026-10-16 | spec Errors | ACTIVE |
 | D.062 | Errors bubble up; capturing is optional on any call; `catch` goes by first match, a parent catches its children | FUN.002 | 2026-10-16 | spec Errors | ACTIVE |
 | D.063 | No `T?` types: only class objects and enums can be null; `?` goes on a variable | NUL.001 | 2026-10-27 | Nullable_Values.md | ACTIVE |

@@ -67,7 +67,11 @@ are in `task/featuresArchive.md`.
 		39 feature lines added (the showcase ideas, built settings, postponed items); D.059-D.063
 		Old Later lines marked: money as a decimal and string(255) replaced, namespaces built
 		Clashes C.007 (the word "fixed"), C.008 (`switch` preferred, `match` used) - settled: D.064, D.065
-	[ ] 49.3 The spec and the grammar (files/fusion-language-spec.md, files/fusion.ebnf)
+	[DONE] 49.3 The spec and the grammar (files/fusion-language-spec.md, files/fusion.ebnf)
+		17 feature lines added (comments, `<>`, `unchecked`, `...`, properties, casts, interop, ...)
+		D.060 corrected: an int is used as a float when it fits exactly (27.2f)
+		The spec summary fixed where it went against decisions: GC default, nullable strings,
+			immutable strings, implicit widening, fields-only structs, locks, one class per file
 	[ ] 49.4 Concurrency.md, Concurrency_Traps.md, files/Service.md
 	[ ] 49.5 Settings: files/fusionSettings.xml, files/showcase/fusion.toml (built / designed / idea / rejected)
 	[ ] 49.6 Notes/, FutureFeatures.md, FutureFeaturesCaution.md, task/taskSummaryArchive.md (decisions only)

@@ -493,7 +493,8 @@ Kept under Task 22 until the renumbering is approved.
 - C.005, C.006 settled (D.057, D.058); 49.2 done: 39 feature lines, D.059-D.063; C.007, C.008 open
 - C.007, C.008 settled: `fixed(n)` = a size limit only, `const` = nothing changes (D.064);
   `match` the form, `switch` an alias, `else if` for 2-3 checks (D.065)
-- **Next Action:** Task 49.3-49.9 (the pass over every
+- 49.3 done: the spec and grammar - 17 feature lines; D.060 corrected; the spec summary fixed
+- **Next Action:** Task 49.4-49.9 (the pass over every
   file); then 32.5 (interfaces: ToString, Default, Cloneable);
   then the rest of Task 32, then Task 48 (ownership) - user, 2026-10-31; then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate), then Task 47
   (long, money, enums with fixed data) - user, 2026-10-29

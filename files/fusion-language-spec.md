@@ -769,7 +769,7 @@ int n = toInt("42")                       // 42; toInt("12x") stops with a run-t
 
 ### Type Casting
 
-**Status:** [PARTLY] int widens to float / double automatically; conversions are functions - toInt, toFloat, toString, toByte, parseInt (18.3); cast syntax and sized types: no task yet
+**Status:** [PARTLY] an int is used as a float only when it fits exactly (27.2f, `[numbers] autoWidening`); conversions are functions - toInt, toFloat, toString, toByte, parseInt (18.3); cast syntax and sized types: no task yet
 
 Description: Converting between types with safety rules.
 
@@ -2838,7 +2838,7 @@ Task 30, which depends on this section's Weak/nullability decisions).
 
 ---
 
-### Tier 1: Automatic Garbage Collection (Default)
+### Tier 1: Automatic Garbage Collection (optional - never the default: OWNERSHIP first, Decisions.md D.027)
 
 Description: Automatic memory management for most use cases.
 
@@ -6120,7 +6120,7 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 * **Named Parameters**: `function(param2 = value, param1 = value)`
 * **Default Parameters**: Optional parameter values
 * **Enums**: Three syntax styles (braces, indentation, single-line)
-* **Comments**: Both `//` and `'` supported, `/* */` for multi-line
+* **Comments**: `//` and `/* */`; `'` (VB style) is off so `'c'` works - maybe only at a line's start later
 * **Regions**: `#Region` / `#End Region` for code organization
 * **Comparison Operators**: Both `!=` and `<>` for not-equal
 * **Spread Operator**: `...` for variadic, range, and array spread
@@ -6150,11 +6150,11 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 ### Type System
 
 * **Value Types**: Never null (int, float, bool, char, struct)
-* **Reference Types**: Can be null (objects, string)
+* **Reference Types**: class objects and enums can be null; strings, arrays, Lists and Maps never are (D.050)
 * **No Nullable Value Types**: Syntax like `int?` does not exist
 * **Explicit Null Checks**: `object?.null` or `object is null`
-* **String Implementation**: Immutable, copy-on-write, string pool
-* **Type Casting**: Implicit widening, explicit narrowing
+* **String Implementation**: values, changed in place (`s[i] = c`); `const string` never changes; pooling and copy-on-write postponed (Task 38)
+* **Type Casting**: an int is used as a float only when it fits exactly (D.060); other conversions by function (`toInt`, `toFloat`, ...)
 * **Default Values**: All types have defaults (0, false, "", null)
 * **Enums**: Type-safe enumeration values
 
@@ -6190,10 +6190,9 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 ### Memory Management
 
-* **Tier 1**: Automatic garbage collection (default)
-* **Tier 2**: Smart pointers (Unique, Shared, Weak) for performance
-* **Tier 3**: Raw pointers (unsafe mode, embedded systems only)
-* **Strategy**: Start with GC, optimize with smart pointers if needed
+* **Default**: OWNERSHIP - one owner, assigning moves, passing borrows (Task 48; D.013, D.027)
+* **GC**: only when a project's `fusion.toml` chooses it, or one is made in code
+* **MANUAL / unsafe**: raw pointers and `free` - memory, assembly and devices only
 
 ---
 
@@ -6230,20 +6229,21 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 ### Structures
 
-* **Fields Only**: No methods, operators or user-written constructors - one generated
-  constructor, `Point(3, 4)`, fields in declaration order
-* **Value Semantics**: Copied, not referenced
-* **Allowed Types**: Primitives, string, other structs (depth-limited per project), and
-  fixed-size arrays of these
-* **Not Allowed**: Functions, objects, dynamic collections
+* **Fields**: one generated constructor, `Point(3, 4)`, fields in declaration order; methods
+  when `[structs] functions = true` (default off)
+* **Value Semantics**: never null; copied today - with Task 48 a struct holding a List moves as
+  a whole, and its fields are only borrowed (D.026)
+* **Allowed Types**: primitives, strings, other structs, arrays, Lists and Maps
+  (`[structs] holdCollections`, default on)
+* **Not Allowed**: implementing an interface; classes inside a struct (a setting, off)
 * **Use Case**: Pure data containers for performance
 
 ---
 
 ### Threading and Concurrency
 
-* **Message Passing**: Channels for safe communication (Go-style)
-* **Shared Memory**: Traditional locks when needed
+* **Services**: a value several threads use gets one writer - a service, written or temporary
+  (Task 42, `files/Service.md`); `send` moves data to another thread; locks only as a last resort
 * **Async/Await**: Built-in for I/O operations
 * **Thread Interrupts**: Cooperative multitasking via loop checks
 * **Philosophy**: "Share memory by communicating"
@@ -6281,10 +6281,9 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 ### Modules
 
-* **Organization**: One class per file
-* **Module Definition**: Special module.fusion file
-* **Import Syntax**: `import Module` or `import Module.Class`
-* **Visibility**: Export control for public/private
+* **Organization**: a folder is a module; `namespace A.B` groups modules
+* **Import Syntax**: `import money`, `import money.round`, `import money.*`
+* **Visibility**: `public` / `internal` / `private` (D.007, D.008)
 * **Nested Classes**: Allowed within class file
 
 ---
