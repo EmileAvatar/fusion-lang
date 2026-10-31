@@ -612,6 +612,8 @@ void function structs() {
 // =============================================================================================
 // 13. Interfaces (Task 32)
 // =============================================================================================
+// Fusion's own interfaces (ToString, Cloneable, Default, Collection<T>, List<T>, Service<T>):
+// Interfaces.fusion in this folder
 
 // [designed] An interface lists what a class must provide. Names need no I in front
 //            (Movable, not IMovable - user, 2026-10-23)

@@ -1,0 +1,135 @@
+// =============================================================================================
+// Interfaces.fusion - Fusion's own (built-in) interfaces (Task 32.5, 2026-10-31)
+// =============================================================================================
+//
+// The interfaces Fusion itself provides. Like Fusion_showcase.fusion it does NOT compile: a
+// built-in interface can't be declared again, so each is shown as a comment, then a class
+// using it. Working examples: SYNTAX_REFERENCE.md (syntax_interfaces, syntax_to_string,
+// syntax_object_copies, syntax_default).
+//
+//   [built]     works in the compiler today
+//   [designed]  decided, not built yet - the task number says which task builds it
+//
+// A built-in interface is added to a program only when one of its classes implements it, and
+// its name can't be used for an interface of your own ("'ToString' is Fusion's own interface").
+//
+// Fusion's own interfaces
+//   ToString        [built 32.5b]     how an object prints
+//   Cloneable       [built 32.5b]     a class that makes its own copy
+//   Default         [built 32.5b]     a variable of the type is never null
+//   Collection<T>   [designed 32.4]   anything foreach can loop over
+//   List<T>         [designed 32.6]   List as an interface, with a default implementation
+//   Service<T>      [designed 42.21]  every kind of service (BasicService, HotPathService, ...)
+//
+// Not built in: Shape, Named and the like in the tests and examples are a program's own
+
+
+// ---------------------------------------------------------------------------------------------
+// [built 32.5b] ToString - how an object prints
+//     interface ToString { string function toString() }
+// print, format, "{x}" and toString(x) use it - also through an interface value. Without it
+// an object prints its class name, and the compiler warns once per class.
+// ---------------------------------------------------------------------------------------------
+class Car implements ToString {
+    string name
+    constructor(string name) { this.name = name }
+    string function toString() : "Car " + name
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// [built 32.5b] Cloneable - a class that makes its own copy
+//     interface Cloneable { <the class> function clone() }
+// byVal calls its clone(). Needed only when a field is nocopy (a connection, a lock); any
+// other object is copied by byVal without it - a new object, each field copied byVal (D.088).
+// ---------------------------------------------------------------------------------------------
+class Account implements Cloneable {
+    nocopy Database db                  // [built 32.5b] set only in a constructor or clone()
+    noshare List<string> history        // [built 32.5b] handed out only as a copy (byVal)
+    public int balance
+    constructor() { db = Database() }
+    Account function clone() {
+        Account copy = Account()        // a new connection, not a shared one
+        copy.balance = balance
+        return copy
+    }
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// [built 32.5b] Default - a variable of the type is never null
+//     interface Default { constructor() }      // a constructor without arguments
+// The compiler makes the object when a variable, field or static is declared; `= null` lets
+// the old object go and makes a new default one. The constructor may be private.
+// ---------------------------------------------------------------------------------------------
+class Settings implements Default {
+    public int size = 3
+    private constructor() { size = 5 }
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// [designed 32.4] Collection<T> - anything foreach can loop over (Decisions.md D.085)
+//     interface Collection<T> {
+//         bool function add(T item)                      // true when it was added
+//         bool function remove(T item)                   // removes one; true when one was there
+//         int function length()                          // len as quick typing
+//         bool function isEmpty()
+//         bool function contains(T item)
+//         bool function addAll(Collection<T> items)
+//         bool function removeAll(Collection<T> items)
+//         bool function keepOnly(Collection<T> items)    // retainAll as quick typing
+//         void function clear()
+//     }
+// Arrays, Lists and Maps implement it, and so can a class of your own. A looped collection
+// isn't changed inside the loop - your own only with [collections] allowChangeWhileLooping.
+// Still to decide: how foreach walks your own one (an iterator?); what arrays and Maps give.
+// ---------------------------------------------------------------------------------------------
+class Team implements Collection<Person> {
+    List<Person> people
+    // ... each function of Collection<Person>, mostly passed on to `people`
+}
+
+
+// ---------------------------------------------------------------------------------------------
+// [designed 32.6] List<T> - an interface with a default implementation
+// `List<string> names` is never null: it gets the default implementation, which can be
+// swapped for another (program to an interface, not an implementation).
+// ---------------------------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------------------------
+// [designed 42.21] Service<T> - every kind of service (files/Service.md)
+//     interface Service<T> {
+//         void function send(T request)      // a caller puts a request in the mailbox
+//         T function fetch()                 // the worker fetches its next request
+//         void function start()
+//         void function stop()
+//         ServiceState function state()
+//         int function waiting()             // requests in the mailbox
+//     }
+// Implemented by BasicService (one worker thread), SharedService (a temporary one, made by
+// the compiler), FileService, DatabaseService and HotPathService (`hotpath service`).
+// ---------------------------------------------------------------------------------------------
+
+
+// ---------------------------------------------------------------------------------------------
+// [built 32.5a] An interface of your own - for comparison (not built in)
+// ---------------------------------------------------------------------------------------------
+interface Shape {
+    float function area()
+}
+
+class Circle implements Shape, ToString {
+    float r
+    constructor(float r) { this.r = r }
+    float function area() : 3.14159 * r * r
+    string function toString() : "a circle"
+}
+
+void function main() {
+    Shape s = Circle(2.0)               // [built 32.5a] the object's own area() runs
+    print("{s}")                        // [built 32.5b] its toString(): a circle
+    Settings settings                   // [built 32.5b] Default: made here, never null
+    Account copy = byVal Account()      // [built 32.5b] Cloneable: its clone() makes it
+}
