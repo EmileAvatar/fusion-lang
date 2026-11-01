@@ -19,7 +19,7 @@ PASSING_WORDS = {'byVal': True, 'byValue': True, 'byRef': False}
 
 
 # Fusion's own generic interfaces (Task 32.4): Iterator<T>, Collection<T>
-GENERIC_INTERFACE_NAMES = ('Iterator', 'Collection')
+GENERIC_INTERFACE_NAMES = ('Iterator', 'Collection', 'Entry')   # Entry<K, V>: a Map's (32.6)
 
 
 def type_text(t) -> str:
@@ -632,6 +632,13 @@ class Parser:
                 location=start_token.location,
                 elements=elements
             )
+
+        # Entry<string, int>("a", 1) - a Map's entry, made (Task 32.6)
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'Entry' \
+                and self.peek(1).type == TokenType.LESS:
+            token = self.advance()
+            kind = self._generic_interface_type(token, 'Entry')
+            return IdentifierExpr(location=token.location, name=kind.name)
 
         # Identifier (allow type keywords and END as identifiers in expression context)
         # This allows calling functions/variables named "double", "string", "end", etc.
@@ -2079,10 +2086,14 @@ class Parser:
         """`Iterator<Person>`, `Collection<int>` (Task 32.4): one of Fusion's own interfaces,
         made for that element type - the name holds it (`Collection<Person>`)."""
         self.consume(TokenType.LESS, "Expected '<'")
-        element = self.parse_type()
+        args = [self.parse_type()]
+        while name == 'Entry' and self.match(TokenType.COMMA):
+            args.append(self.parse_type())
         self.consume(TokenType.GREATER, f"Expected '>' after the type in {name}<...>")
-        kind = StructType(location=token.location, name=f'{name}<{type_text(element)}>')
-        kind.type_args = [element]
+        if name == 'Entry' and len(args) != 2:
+            raise ParserError(self.previous(), "Entry has two types - Entry<string, int>")
+        kind = StructType(location=token.location, name=f'{name}<{", ".join(type_text(a) for a in args)}>')
+        kind.type_args = args
         self.generic_interfaces.append(kind)
         return kind
 

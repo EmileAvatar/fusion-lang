@@ -1,0 +1,11 @@
+void function main()
+    Map<string, int> ages
+    ages["ann"] = 30
+    ages["bob"] = 40
+    foreach (Entry<string, int> e in ages)    // each key and value
+        print("{e.key} {@1}", e.value)
+    foreach name in ages.keys()              // borrowed - a view of the Map, no copy
+        write("{name} ")
+    print("")
+    List<string> names = ages.keys().toList()   // a copy
+    print(names[0])

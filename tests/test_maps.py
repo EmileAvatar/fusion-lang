@@ -1,7 +1,7 @@
 """Tests for Task 18.5.2 - Map<K, V>, also written Dictionary<K, V> (the same type).
 
 Keys are string, int or char; values anything. A map remembers the order its keys were
-added (keys(), values(), for k in m). It is a value like a list: copies are independent,
+added (keys(), values() - borrowed views since Task 32.6, `.toList()` copies - for k in m). It is a value like a list: copies are independent,
 freed automatically. Every program runs under the leak check.
 """
 
@@ -35,8 +35,8 @@ def test_insertion_order():
         'm["a"] = 1\n'
         'm["b"] = 2\n'
         'm["a"] = 10\n'
-        'List<string> ks = m.keys()\n'
-        'List<int> vs = m.values()\n'
+        'List<string> ks = m.keys().toList()\n'
+        'List<int> vs = m.values().toList()\n'
         'print("{@1}{@2}{@3} {@4} {@5} {@6}", ks[0], ks[1], ks[2], vs[0], vs[1], vs[2])\n'
         'for k in m\n'
         '    print(k)'
@@ -50,7 +50,7 @@ def test_many_entries_grow_and_remove():
         '    names[i] = "n" + toString(i)\n'
         'for i in range(0, 200, 2)\n'
         '    names.remove(i)\n'
-        'print("{@1} {@2} {@3} {@4}", names.len(), names.has(100), names[101], names.keys()[0])'
+        'print("{@1} {@2} {@3} {@4}", names.len(), names.has(100), names[101], names.keys().toList()[0])'
     )) == ['100 false n101 1']
 
 
@@ -66,7 +66,7 @@ def test_char_keys_and_counting():
 
 def test_maps_are_shared():
     assert run_ok('Map<string, int> function scores() \n    Map<string, int> m\n    m["x"] = 1\n    return m\n\n'
-                  'int function total(Map<string, int> m) : m.values().reduce(0, (int s, int x) : s + x)\n\n'
+                  'int function total(Map<string, int> m) : m.values().toList().reduce(0, (int s, int x) : s + x)\n\n'
                   'void function bump(Map<string, int> m)\n    m["x"] = 100\n\n' + main(
                       'Map<string, int> a = scores()\n'
                       'Map<string, int> b = a\n'
@@ -106,7 +106,7 @@ def test_nested_and_in_structs():
         'Person q = p\n'
         'q.scores["math"] = 50\n'
         'List<Map<string, int>> rows = [p.scores, q.scores]\n'
-        'print("{@1} {@2} {@3} {@4} {@5}", groups["admins"][1], groups.keys()[1], deep["a"]["b"], p.scores["math"], rows[1]["math"])'
+        'print("{@1} {@2} {@3} {@4} {@5}", groups["admins"][1], groups.keys().toList()[1], deep["a"]["b"], p.scores["math"], rows[1]["math"])'
     )) == ['ben users 7 90 50']
 
 

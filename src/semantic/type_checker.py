@@ -180,6 +180,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             from src.parser.parser import type_text
             if expected.name == f'Collection<{type_text(actual.element_type)}>':
                 return True
+        # A Map<K, V> where Collection<Entry<K, V>> is expected - its entries (32.6, D.092)
+        if isinstance(actual, MapType) and getattr(self.struct_declaration(expected), 'is_interface', False):
+            from src.parser.parser import type_text
+            if expected.name == f'Collection<Entry<{type_text(actual.key_type)}, {type_text(actual.value_type)}>>':
+                return True
         # A child class where its parent (or the parent's parent ...) is expected (32.7)
         if self.is_descendant(actual, expected):
             return True

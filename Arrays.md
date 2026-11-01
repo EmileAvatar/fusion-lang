@@ -216,6 +216,13 @@ sharedThreads = 10    # default: the pool's size
 
 ## 5. Maps
 
+**Built (Task 32.6, tests/test_map_collection.py):** a Map is a `Collection<Entry<K, V>>` - an
+`Entry<K, V>` is its `key` and `value` (`Entry<string, int>("a", 1)`); `foreach k in m` gives
+the keys, `foreach (Entry<string, int> e in m)` each key and value (D.096). `keys()` and
+`values()` are **borrowed views** - `Collection<K>` / `Collection<V>` looking into the Map, no copy;
+removing from one removes the entry, adding to one does nothing (false - a key needs a value);
+`.toList()` gives a copy (D.095).
+
 #### Today (built)
 
 ```fusion
@@ -394,6 +401,7 @@ original alone.
 | 2026-10-29 | `toList(copy = true)` on a List and an array; setting an array / List / Map to null is an error unless its nullable setting allows it |
 | 2026-10-29 | Arrays, Lists and Maps are references (shared) in normal code - a variable, parameter, class field, element - and copied inside a struct; `byVal` copies in normal code, `byRef` shares in a struct field. Never null, just empty |
 | 2026-10-31 | Planned (Task 48): Lists and Maps move on assignment, `byVal` copies, reading an element or passing borrows; a struct's collection only lends itself (Ownership.md) |
+| 2026-11-01 | A Map is a Collection<Entry<K, V>>; keys() / values() are borrowed views (.toList() copies); foreach k in m gives keys, typed Entry gives entries (D.092, D.095, D.096) |
 | 2026-11-01 | `Iterator<T>` (hasNext, next); a collection gives a new one from `iterator()` for each loop; foreach needs it; arrays, Lists and Maps implement Collection<T> and Iterator<T> - an array's own implementation blocks remove (D.089, D.090) |
 | 2026-10-31 | Planned (47.5): `fixed(n)` - only the size is limited, the values may change (`const`: nothing changes); lower fine, never higher; starts empty, grows up to it, memory reserved once |
 | 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |

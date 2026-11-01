@@ -571,7 +571,9 @@ Kept under Task 22 until the renumbering is approved.
   needed only on one line (D.093) - 32.12 done
 - C.011 settled (D.094): next() past the end - null for string / List / Map / object / enum,
   an IndexError for a primitive; a null string = data NULL (prints null, `is null` works)
-- **Next Action:** 32.6 the Map part, then 32.14, 32.11, 32.3
+- 32.6 done: a Map is a Collection<Entry<K, V>> (Entry made per Map type, a struct that may hold
+  an object); keys() / values() borrowed views (user 2026-11-01); c.toList() copies any Collection
+- **Next Action:** 32.14 (List / Map options), then 32.11, 32.3
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

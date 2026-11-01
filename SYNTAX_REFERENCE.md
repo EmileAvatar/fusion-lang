@@ -682,6 +682,21 @@ everywhere else it is shared (`byRef`) unless written `byVal`. Never null - just
 
 #### Maps: `Map<K, V>` (also written `Dictionary<K, V>`)
 
+<!-- example: syntax_map_entries | task: 32.6 -->
+```fusion
+void function main()
+    Map<string, int> ages
+    ages["ann"] = 30
+    ages["bob"] = 40
+    foreach (Entry<string, int> e in ages)    // each key and value
+        print("{e.key} {@1}", e.value)
+    foreach name in ages.keys()              // borrowed - a view of the Map, no copy
+        write("{name} ")
+    print("")
+    List<string> names = ages.keys().toList()   // a copy
+    print(names[0])
+```
+
 <!-- example: syntax_maps | task: 18.5.2 -->
 ```fusion
 void function main()
@@ -703,7 +718,7 @@ void function main()
     Dictionary<string, List<string>> groups       // the same type as Map
     groups["admins"] = ["ann"]
     groups["admins"].add("ben")
-    print("{@1} {@2}", groups["admins"].len(), groups.keys()[0])
+    print("{@1} {@2}", groups["admins"].len(), groups.keys().toList()[0])
 ```
 
 #### Raw bytes: `byte` and `bytes`

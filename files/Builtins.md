@@ -204,7 +204,7 @@ Each built-in type has a class holding its functions as methods (Task 18.3.7):
 | `.has(K key)` | `bool` |  | whether the key is there |
 | `.get(K key, V default)` | `V` |  | the value, or the default when the key is missing |
 | `.remove(K key)` | `bool` |  | remove the key; false if it was not there |
-| `.keys()` | `List<K>` |  | the keys, in the order they were added |
-| `.values()` | `List<V>` |  | the values, in the same order |
+| `.keys()` | `Collection<K>` |  | the keys, in the order they were added - borrowed: a view of the Map, no copy (`.toList()` copies) |
+| `.values()` | `Collection<V>` |  | the values, in the same order - borrowed: a view of the Map (`.toList()` copies) |
 | `.len()` | `int` |  | the number of keys |
 | `.clear()` | `void` |  | remove every key |

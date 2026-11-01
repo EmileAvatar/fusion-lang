@@ -109,7 +109,7 @@ COL.002 [PLANNED] Arrays know their length, grow and shrink at the end, `+`, `co
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
-COL.006 [BUILT] `Collection<T>` and `Iterator<T>` - a class of your own, and a List, as Collection<T> values (32.4, 32.6); arrays and Maps [PLANNED 32.6]
+COL.006 [BUILT] `Collection<T>` and `Iterator<T>` - a class of your own, a List and a Map (of `Entry<K, V>`) as Collection values (32.4, 32.6); arrays [PLANNED 45.10]
 COL.007 [PLANNED] List / Map options in form B: no duplicates, no null, read only (32.14)
 COL.008 [PLANNED] A Collections module: RingBuffer first (43.4)
 COL.009 [BUILT] `toList`, `toCSV`
@@ -336,6 +336,8 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.089 | `Iterator<T>`: `bool hasNext()`, `T next()`; a collection gives a new one from `iterator()` for each loop (a loop inside a loop works); `foreach` needs it - for your own classes too | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
 | D.090 | Arrays, Lists and Maps implement Collection<T> and Iterator<T> - each its own implementation: an array's blocks removing an item, a List's / Map's allows it (code to an interface) | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE (planned - 32.6) |
 | D.091 | `Iterator<T>.next()` past the end is not an error for what can be null - an error is for a genuine failure, never to steer a loop; `hasNext()` is the way to check, and Fusion's own code uses it | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
-| D.092 | A Map is a `Collection<Entry<K, V>>` (each entry its key and value); `keys()` and `values()` give its keys and its values as borrowed collections | COL.006 | 2026-11-01 | Arrays.md 5 | ACTIVE (planned - 32.6) |
+| D.092 | A Map is a `Collection<Entry<K, V>>` (each entry its key and value); `keys()` and `values()` give its keys and its values as borrowed collections | COL.006 | 2026-11-01 | Arrays.md 5 | ACTIVE |
 | D.093 | Struct fields: a comma is needed between fields on one line; on new lines it isn't needed (ignored if written) | STC.008 | 2026-11-01 | SYNTAX_REFERENCE.md | ACTIVE |
 | D.094 | `next()` past the end: null for a string, List, Map, object or enum - whatever the nullable settings say (null = no more items); a primitive (int, double ...): an IndexError saying "check hasNext() first"; written in next()'s documentation and next to the nullable settings | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
+| D.095 | A Map's `keys()` / `values()` are borrowed views - `Collection<K>` / `Collection<V>` looking into the Map, no copy; removing from one removes the entry, adding gives false; `.toList()` on any Collection gives a copy (replaces keys() / values() as List copies) | COL.006 | 2026-11-01 | Arrays.md 5 | ACTIVE |
+| D.096 | `foreach k in m` gives a Map's keys; `foreach (Entry<K, V> e in m)` each key and value | COL.005 | 2026-11-01 | Arrays.md 5 | ACTIVE |

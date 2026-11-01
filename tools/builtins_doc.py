@@ -78,8 +78,8 @@ MAP_METHODS = [
     ('has(K key)', 'bool', False, 'whether the key is there'),
     ('get(K key, V default)', 'V', False, 'the value, or the default when the key is missing'),
     ('remove(K key)', 'bool', False, 'remove the key; false if it was not there'),
-    ('keys()', 'List<K>', False, 'the keys, in the order they were added'),
-    ('values()', 'List<V>', False, 'the values, in the same order'),
+    ('keys()', 'Collection<K>', False, 'the keys, in the order they were added - borrowed: a view of the Map, no copy (`.toList()` copies)'),
+    ('values()', 'Collection<V>', False, 'the values, in the same order - borrowed: a view of the Map (`.toList()` copies)'),
     ('len()', 'int', False, 'the number of keys'),
     ('clear()', 'void', False, 'remove every key'),
 ]

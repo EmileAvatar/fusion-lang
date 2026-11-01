@@ -10,7 +10,7 @@ from typing import Optional
 
 from src.parser.ast_nodes import (
     ASTNode, ArrayLiteralExpr, CallExpr, MemberExpr, IdentifierExpr, IndexExpr, LambdaExpr, LiteralExpr,
-    PrimitiveType, ArrayType, FunctionType, ListType, MapType, NewCollectionExpr, EnumType,
+    PrimitiveType, ArrayType, FunctionType, ListType, MapType, NewCollectionExpr, EnumType, StructType,
 )
 from .errors import SemanticError
 
@@ -129,6 +129,13 @@ class CollectionRulesMixin:
         if isinstance(receiver_type, MapType):
             self.checked_receivers.pop(id(receiver), None)
             return self._map_method_call(node, receiver, receiver_type)
+        iface = self.struct_declaration(receiver_type)
+        if getattr(iface, 'is_interface', False) and iface.name.startswith('Collection<') \
+                and node.callee.member == 'toList' and not node.arguments:
+            # c.toList() - a copy of any Collection, as a List (32.6, D.095)
+            self.checked_receivers.pop(id(receiver), None)
+            node.to_list = (iface.name, receiver)
+            return ListType(location=node.location, element_type=iface.element_type)
         if not isinstance(receiver_type, ListType):
             return None
         self.checked_receivers.pop(id(receiver), None)
@@ -276,9 +283,13 @@ class CollectionRulesMixin:
                 self.errors.append(SemanticError(
                     f"Argument of '{method}': expected {self.type_to_string(want)}, got "
                     f"{self.type_to_string(actual)}", arg.location))
+        from src.parser.parser import type_text
+        view = lambda t: StructType(location=node.location, name=f'Collection<{type_text(t)}>',
+                                    declaration=self.struct_named(f'Collection<{type_text(t)}>'))
+        # keys() / values(): borrowed views of the Map - no copy (32.6, D.095)
         return {'has': bool_type, 'get': value, 'remove': bool_type,
-                'keys': ListType(location=node.location, element_type=key),
-                'values': ListType(location=node.location, element_type=value),
+                'keys': view(key),
+                'values': view(value),
                 'len': int_type, 'clear': self._void(node)}[method]
 
     # ------------------------------------------------------------------ for ... in
@@ -347,6 +358,10 @@ class CollectionRulesMixin:
             element = iterable_type.element_type
         elif isinstance(iterable_type, MapType):
             element = iterable_type.key_type      # a map's keys, in the order they were added
+            declared = getattr(node, 'declared_type', None)
+            if isinstance(declared, StructType) and declared.name.startswith('Entry<'):
+                element = declared               # each key and value (32.6, D.096)
+                node.map_entries = declared.name
         elif isinstance(iterable_type, ArrayType):
             element = iterable_type.element_type
         elif self._collection_of(iterable_type) is not None:

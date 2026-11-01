@@ -17,4 +17,4 @@ void function main()
     Dictionary<string, List<string>> groups       // the same type as Map
     groups["admins"] = ["ann"]
     groups["admins"].add("ben")
-    print("{@1} {@2}", groups["admins"].len(), groups.keys()[0])
+    print("{@1} {@2}", groups["admins"].len(), groups.keys().toList()[0])

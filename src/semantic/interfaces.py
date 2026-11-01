@@ -136,7 +136,38 @@ def _generic_kinds(program) -> list:
     for d in program.declarations:
         walk(d)
         found += getattr(d, 'interface_kinds', [])
-    return found
+    return found + _map_kinds(program)
+
+
+def _map_kinds(program) -> list:
+    """For each Map<K, V> the program writes (Task 32.6, D.092): Entry<K, V>, its
+    Collection<Entry<K, V>>, and Collection<K> / Collection<V> for keys() / values()."""
+    from src.parser.ast_nodes import MapType
+    from src.parser.parser import type_text
+    kinds, seen = [], set()
+
+    def walk(node):
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if isinstance(node, MapType) and type_text(node) not in seen:
+            seen.add(type_text(node))
+            k, v = node.key_type, node.value_type
+            entry = StructType(location=node.location, name=f'Entry<{type_text(k)}, {type_text(v)}>')
+            entry.type_args = [k, v]
+            kinds.append(entry)
+            for name, element in (('Collection', entry), ('Collection', k), ('Collection', v)):
+                kind = StructType(location=node.location, name=f'{name}<{type_text(element)}>')
+                kind.type_args = [element]
+                kinds.append(kind)
+        for f in fields(node):
+            if f.name not in ('location', 'inferred_type', 'declaration', 'scope'):
+                walk(getattr(node, f.name))
+    walk(program.declarations)
+    return kinds
 
 
 def _add_generic_interfaces(program, structs) -> List[SemanticError]:
@@ -151,6 +182,18 @@ def _add_generic_interfaces(program, structs) -> List[SemanticError]:
             continue
         base, element = kind.name.split('<', 1)[0], kind.type_args[0]
         where = kind.location
+        if base == 'Entry':
+            # a Map's entry (32.6, D.092): a struct - its key and its value
+            from src.parser.ast_nodes import StructField
+            decl = StructDecl(location=where, name=kind.name, is_public=True, fields=[
+                StructField(location=where, field_type=copy.deepcopy(kind.type_args[0]), name='key',
+                            default_value=None),
+                StructField(location=where, field_type=copy.deepcopy(kind.type_args[1]), name='value',
+                            default_value=None)])
+            decl.builtin = True
+            program.declarations.insert(0, decl)
+            structs[kind.name] = made[kind.name] = decl
+            continue
         decl = StructDecl(location=where, name=kind.name, fields=[], is_class=True, is_interface=True)
         decl.builtin, decl.element_type = True, element
 

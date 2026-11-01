@@ -74,6 +74,7 @@ class CollectionsMixin:
                              f'{self.map_type(kind.key_type)}* keys; '
                              f'{self.map_type(kind.value_type)}* vals; int len; int cap; '
                              f'int* slots; int nslots; int changes; }} {name}_s;')
+                lines.append(f'static const void* {name}_class(void);')
             else:
                 element_c = self.map_type(kind.element_type)
                 # count and fusion_class first - laid out like an object, so a List is a
@@ -94,6 +95,7 @@ class CollectionsMixin:
         lines = []
         for name, kind in self.list_types.items():
             if isinstance(kind, MapType):
+                lines += self.map_class_lines(name, kind)
                 continue
             element = kind.element_type
             collection = f'Collection<{type_text(element)}>'
@@ -151,6 +153,125 @@ class CollectionsMixin:
                 f'{name}_c_release, {name}_c_clone, 1, {name}_c_tables }};',
                 f'static const void* {name}_class(void) {{ return &fusion_class_{name}; }}',
             ]
+        return lines
+
+    def map_class_lines(self, name: str, kind) -> list:
+        """A Map<K, V> (Task 32.6, D.092, D.095): a Collection<Entry<K, V>> of its entries, and
+        the borrowed views keys() / values() - Collection<K> / Collection<V> objects looking
+        into the Map itself. One iterator type for the three: what it gives depends on its class."""
+        from .c_names import mangle_function_name
+        from src.parser.parser import type_text
+        K, V = kind.key_type, kind.value_type
+        kt, vt = self.map_type(K), self.map_type(V)
+        entry_name = f'Entry<{type_text(K)}, {type_text(V)}>'
+        entry = StructType(location=None, name=entry_name, declaration=self.struct_decls.get(entry_name))
+        if entry.declaration is None:
+            return [f'static const void* {name}_class(void) {{ return NULL; }}']
+        E = self.map_type(entry)
+        ckeys = lambda c: self.copy_code(K, c) if self.is_managed(K) else c
+        cvals = lambda c: self.copy_code(V, c) if self.is_managed(V) else c
+        free_v = ' '.join(self.free_lines(V, '(*slot)'))
+        free_e = ' '.join(self.free_lines(entry, 'e'))
+        eq_v = lambda a, b: self.value_equality(a, V, b, V)
+        coll = {part: mangle_function_name(f'Collection<{t}>') for part, t in
+                (('e', entry_name), ('k', type_text(K)), ('v', type_text(V)))}
+        itr = {part: mangle_function_name(f'Iterator<{t}>') for part, t in
+               (('e', entry_name), ('k', type_text(K)), ('v', type_text(V)))}
+        it, view = f'{name}_iter', f'{name}_view'
+        lines = [
+            f'// Map<{type_text(K)}, {type_text(V)}> as a Collection of entries, its keys() / values() (32.6)',
+            f'typedef struct {{ int fusion_count; const fusion_class_t* fusion_class; {name} m; int at; }} {it};',
+            f'typedef struct {{ int fusion_count; const fusion_class_t* fusion_class; {name} m; }} {view};',
+            f'static void {it}_release(void** p) {{ {it}* o = ({it}*)*p; *p = NULL; if (!o || --o->fusion_count > 0) return; '
+            f'FUSION_OBJECT_FREED(); {name}_free(&o->m); fusion_dealloc(o); }}',
+            f'static void* {it}_clone(void* p) {{ {it}* r = ({it}*)fusion_alloc(sizeof({it})); *r = *({it}*)p; '
+            f'r->fusion_count = 1; r->m = {name}_retain(r->m); FUSION_OBJECT_MADE(); return r; }}',
+            f'static void {view}_release(void** p) {{ {view}* o = ({view}*)*p; *p = NULL; if (!o || --o->fusion_count > 0) return; '
+            f'FUSION_OBJECT_FREED(); {name}_free(&o->m); fusion_dealloc(o); }}',
+            f'static void* {view}_clone(void* p) {{ {view}* r = ({view}*)fusion_alloc(sizeof({view})); *r = *({view}*)p; '
+            f'r->fusion_count = 1; r->m = {name}_retain(r->m); FUSION_OBJECT_MADE(); return r; }}',
+            f'static bool {it}_hasNext(void* p) {{ {it}* o = ({it}*)p; return o->at < o->m->len; }}',
+            f'static {E} {it}_next_e(void* p) {{ {it}* o = ({it}*)p; if (o->at >= o->m->len) {self._past_the_end(entry)} '
+            f'{E} e = {{ {ckeys("o->m->keys[o->at]")}, {cvals("o->m->vals[o->at]")} }}; o->at++; return e; }}',
+            f'static {kt} {it}_next_k(void* p) {{ {it}* o = ({it}*)p; if (o->at >= o->m->len) {self._past_the_end(K)} '
+            f'{kt} v = {ckeys("o->m->keys[o->at]")}; o->at++; return v; }}',
+            f'static {vt} {it}_next_v(void* p) {{ {it}* o = ({it}*)p; if (o->at >= o->m->len) {self._past_the_end(V)} '
+            f'{vt} v = {cvals("o->m->vals[o->at]")}; o->at++; return v; }}',
+        ]
+        for part in ('e', 'k', 'v'):
+            lines += [
+                f'static const fusion_fn {it}_{part}_fns[] = {{ (fusion_fn){it}_hasNext, (fusion_fn){it}_next_{part} }};',
+                f'static const fusion_itable_t {it}_{part}_tables[] = {{ {{ fusion_iface_{itr[part]}, {it}_{part}_fns }} }};',
+                f'static const fusion_class_t fusion_class_{it}_{part} = {{ "an Iterator of a Map", NULL, {it}_release, '
+                f'{it}_clone, 1, {it}_{part}_tables }};',
+                f'static void* {name}_{part}_iterator(void* p) {{ {name} m = ({name})p; '
+                f'{"" if part == "e" else "m = ((" + view + "*)p)->m; "}'
+                f'{it}* o = ({it}*)fusion_alloc(sizeof({it})); o->fusion_count = 1; o->fusion_class = &fusion_class_{it}_{part}; '
+                f'o->m = {name}_retain(m); o->at = 0; FUSION_OBJECT_MADE(); return o; }}',
+            ]
+        M = f'{name} m = ({name})p;'
+        W = f'{name} m = (({view}*)p)->m;'
+        lines += [
+            # the entries
+            f'static bool {name}_e_add(void* p, {E} e) {{ {M} {vt}* slot = {name}_put(m, e.key); {free_v} *slot = {cvals("e.value")}; return true; }}',
+            f'static bool {name}_e_remove(void* p, {E} e) {{ {M} int i = {name}_find(m, e.key); '
+            f'if (i < 0 || !({eq_v("m->vals[i]", "e.value")})) return false; return {name}_remove(m, e.key); }}',
+            f'static bool {name}_e_contains(void* p, {E} e) {{ {M} int i = {name}_find(m, e.key); '
+            f'return i >= 0 && ({eq_v("m->vals[i]", "e.value")}); }}',
+            f'static int {name}_e_length(void* p) {{ return (({name})p)->len; }}',
+            f'static bool {name}_e_isEmpty(void* p) {{ return (({name})p)->len == 0; }}',
+            f'static bool {name}_e_addAll(void* p, void* items) {{ void* i = {coll["e"]}__iterator(items); bool any = false; '
+            f'while ({itr["e"]}__hasNext(i)) {{ {E} e = {itr["e"]}__next(i); {name}_e_add(p, e); {free_e} any = true; }} '
+            f'fusion_release_{itr["e"]}(&i); return any; }}',
+            f'static bool {name}_e_removeAll(void* p, void* items) {{ {M} bool any = false; for (int k = m->len - 1; k >= 0; k--) '
+            f'{{ {E} e = {{ m->keys[k], m->vals[k] }}; if ({coll["e"]}__contains(items, e)) {{ {name}_remove(m, m->keys[k]); any = true; }} }} return any; }}',
+            f'static bool {name}_e_keepOnly(void* p, void* items) {{ {M} bool any = false; for (int k = m->len - 1; k >= 0; k--) '
+            f'{{ {E} e = {{ m->keys[k], m->vals[k] }}; if (!{coll["e"]}__contains(items, e)) {{ {name}_remove(m, m->keys[k]); any = true; }} }} return any; }}',
+            f'static void {name}_e_clear(void* p) {{ {name}_clear(({name})p); }}',
+            # the keys view - removing a key removes its entry; a key can't be added alone
+            f'static bool {name}_k_add(void* p, {kt} k) {{ (void)p; (void)k; return false; }}',
+            f'static bool {name}_k_remove(void* p, {kt} k) {{ {W} return {name}_remove(m, k); }}',
+            f'static bool {name}_k_contains(void* p, {kt} k) {{ {W} return {name}_has(m, k); }}',
+            f'static int {name}_k_length(void* p) {{ {W} return m->len; }}',
+            f'static bool {name}_k_isEmpty(void* p) {{ {W} return m->len == 0; }}',
+            f'static bool {name}_k_addAll(void* p, void* items) {{ (void)p; (void)items; return false; }}',
+            f'static bool {name}_k_removeAll(void* p, void* items) {{ {W} bool any = false; for (int k = m->len - 1; k >= 0; k--) '
+            f'if ({coll["k"]}__contains(items, m->keys[k])) {{ {name}_remove(m, m->keys[k]); any = true; }} return any; }}',
+            f'static bool {name}_k_keepOnly(void* p, void* items) {{ {W} bool any = false; for (int k = m->len - 1; k >= 0; k--) '
+            f'if (!{coll["k"]}__contains(items, m->keys[k])) {{ {name}_remove(m, m->keys[k]); any = true; }} return any; }}',
+            f'static void {name}_k_clear(void* p) {{ {W} {name}_clear(m); }}',
+            # the values view - removing a value removes its first entry
+            f'static bool {name}_v_add(void* p, {vt} v) {{ (void)p; (void)v; return false; }}',
+            f'static bool {name}_v_remove(void* p, {vt} v) {{ {W} for (int k = 0; k < m->len; k++) '
+            f'if ({eq_v("m->vals[k]", "v")}) return {name}_remove(m, m->keys[k]); return false; }}',
+            f'static bool {name}_v_contains(void* p, {vt} v) {{ {W} for (int k = 0; k < m->len; k++) '
+            f'if ({eq_v("m->vals[k]", "v")}) return true; return false; }}',
+            f'static int {name}_v_length(void* p) {{ {W} return m->len; }}',
+            f'static bool {name}_v_isEmpty(void* p) {{ {W} return m->len == 0; }}',
+            f'static bool {name}_v_addAll(void* p, void* items) {{ (void)p; (void)items; return false; }}',
+            f'static bool {name}_v_removeAll(void* p, void* items) {{ {W} bool any = false; for (int k = m->len - 1; k >= 0; k--) '
+            f'if ({coll["v"]}__contains(items, m->vals[k])) {{ {name}_remove(m, m->keys[k]); any = true; }} return any; }}',
+            f'static bool {name}_v_keepOnly(void* p, void* items) {{ {W} bool any = false; for (int k = m->len - 1; k >= 0; k--) '
+            f'if (!{coll["v"]}__contains(items, m->vals[k])) {{ {name}_remove(m, m->keys[k]); any = true; }} return any; }}',
+            f'static void {name}_v_clear(void* p) {{ {W} {name}_clear(m); }}',
+            f'static void {name}_c_release(void** p) {{ {name}_free(({name}*)p); }}',
+            f'static void* {name}_c_clone(void* p) {{ return {name}_clone(({name})p); }}',
+        ]
+        for part, cls, release, clone, label in (
+                ('e', f'fusion_class_{name}', f'{name}_c_release', f'{name}_c_clone', f'Map<{type_text(K)}, {type_text(V)}>'),
+                ('k', f'fusion_class_{name}_keys', f'{view}_release', f'{view}_clone', 'the keys of a Map'),
+                ('v', f'fusion_class_{name}_values', f'{view}_release', f'{view}_clone', 'the values of a Map')):
+            fns = ', '.join(f'(fusion_fn){name}_{part}_{f}' for f in
+                            ('iterator', 'add', 'remove', 'length', 'isEmpty', 'contains', 'addAll',
+                             'removeAll', 'keepOnly', 'clear'))
+            lines += [f'static const fusion_fn {name}_{part}_fns[] = {{ {fns} }};',
+                      f'static const fusion_itable_t {name}_{part}_tables[] = {{ {{ fusion_iface_{coll[part]}, {name}_{part}_fns }} }};',
+                      f'static const fusion_class_t {cls} = {{ "{label}", NULL, {release}, {clone}, 1, {name}_{part}_tables }};']
+        for part, which in (('k', 'keys'), ('v', 'values')):
+            lines.append(f'static inline void* {name}_{which}View({name} m) {{ {view}* o = ({view}*)fusion_alloc(sizeof({view})); '
+                         f'o->fusion_count = 1; o->fusion_class = &fusion_class_{name}_{which}; o->m = {name}_retain(m); '
+                         f'FUSION_OBJECT_MADE(); return o; }}')
+        lines.append(f'static const void* {name}_class(void) {{ return &fusion_class_{name}; }}')
         return lines
 
     def nullable_item(self, element) -> bool:
@@ -507,6 +628,7 @@ class CollectionsMixin:
                 f'{name} r = ({name})fusion_alloc(sizeof({name}_s));',
                 f'memset(r, 0, sizeof({name}_s));',
                 'r->count = 1;',
+                f'r->fusion_class = {name}_class();      // a Collection<Entry<K, V>> (32.6)',
                 'return r;'],
             f'{name} {name}_retain({name} m)': ['if (m) m->count++;', 'return m;'],
             f'int {name}_find({name} m, {K} k)': [
@@ -626,7 +748,7 @@ class CollectionsMixin:
         if method == 'get':
             return f'{name}_getOr({target}, {self.visit(args[0])}, {self.visit(args[1])})'
         if method in ('keys', 'values'):
-            return f'{name}_{method}({target})'
+            return f'{name}_{method}View({target})'      # a borrowed view (32.6, D.095)
         return f'{name}_{method}({target}, {self.visit(args[0])})'   # has, remove
 
     # ------------------------------------------------------------------ text <-> lists (18.5.3)

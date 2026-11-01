@@ -152,8 +152,9 @@ class SemanticAnalyzer:
                 inner = field.field_type
                 while isinstance(inner, (ArrayType, ListType)):
                     inner = inner.element_type
-                if not struct.is_class and getattr(self.type_checker.struct_declaration(inner),
-                                                   'is_class', False):
+                # (Fusion's own Entry<K, V> holds a Map's value, an object too - Task 32.6)
+                if not struct.is_class and not getattr(struct, 'builtin', False) \
+                        and getattr(self.type_checker.struct_declaration(inner), 'is_class', False):
                     self.errors.append(SemanticError(
                         f"Struct '{struct.name}' can't hold a class object (field '{field.name}') "
                         f"- a struct is a value; [structs] classes (planned) will allow it",

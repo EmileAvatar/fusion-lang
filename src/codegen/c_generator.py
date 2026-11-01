@@ -1220,6 +1220,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             C function call
         """
         # xs.add(5) - a List method (Task 18.5.1); m.has(k) - a Map method (18.5.2)
+        if getattr(node, 'to_list', None):
+            # c.toList() - a copy of a Collection as a List, through its iterator (32.6)
+            iface, receiver = node.to_list
+            list_c = self.map_type(node.inferred_type)
+            helper = self.collect_helper(list_c, iface, node.inferred_type.element_type)
+            needed = self.object_needed(self.visit(receiver), receiver.inferred_type, receiver)
+            return f'{helper}((void*)({needed}))'
         if getattr(node, 'list_method', None):
             return self.list_method_code(node)
         if getattr(node, 'map_method', None):
@@ -2014,6 +2021,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 source = f'fusion_iter_{n}->'
             items = 'keys' if isinstance(iterable_type, MapType) else 'data'   # a map: its keys
             length, item = f'{source}len', f'{source}{items}[{index}]'
+            if getattr(node, 'map_entries', None):
+                # each key and value, as an Entry (32.6, D.096)
+                item = f'(({self.map_type(element)}){{ {source}keys[{index}], {source}vals[{index}] }})'
         else:
             if isinstance(iterable, ArrayLiteralExpr) and self.is_managed(element):
                 # for x in [A(), A()] - made once, before the loop, and freed after it (each

@@ -224,12 +224,12 @@ are in `task/featuresArchive.md`.
 		a collection gives a new Iterator<T> from iterator() per loop - nested loops work (D.089)
 		the looped collection never changes inside a loop - a compile error (D.058); your own class
 			only with `[collections] allowChangeWhileLooping` (default false)
-	[ ] 32.6 `List<T>` as an interface with a default implementation - never null
+	[DONE] 32.6 `List<T>` as an interface with a default implementation - never null
 		[DONE] A List as a Collection<T> value (tests/test_list_collection.py): `Collection<int> c = xs`
 			its class table answers every Collection function; c.iterator() an Iterator<T> object
 		[POSTPONED to 45.10] An array as a Collection<T> value - arrays on the heap first; removing blocked
-		[ ] A Map as a Collection<Entry<K, V>> value (D.092): a built-in Entry<K, V> (key, value)
-			`keys()` / `values()` - its keys and values as borrowed collections
+		[DONE] A Map as a Collection<Entry<K, V>> (tests/test_map_collection.py): Entry<K, V> (key, value)
+			`keys()` / `values()` borrowed views (D.095); `.toList()` copies; typed foreach gives entries (D.096)
 		[DONE] next() past the end (D.094): null for a string, List, Map, object or enum; a primitive:
 			an IndexError "check hasNext() first"; a null string prints null, `s is null` works
 		[POSTPONED to 33] Another implementation behind `List<T>` - needs generic classes of your own

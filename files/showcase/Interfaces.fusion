@@ -95,7 +95,8 @@ class Settings implements Default {
 // Arrays, Lists and Maps implement it, and so can a class of your own. A looped collection
 // isn't changed inside the loop - your own only with [collections] allowChangeWhileLooping.
 // [built 32.6] a List is a Collection<T> value: Collection<int> c = xs (D.090)
-// [designed 32.6] arrays (on the heap first - 45.10; removing an item blocked) and Maps too
+// [built 32.6] a Map is a Collection<Entry<K, V>>; keys() / values() are borrowed views (D.092)
+// [designed 45.10] an array too (once on the heap; removing an item blocked)
 // ---------------------------------------------------------------------------------------------
 class Team implements Collection<Person> {
     List<Person> people
