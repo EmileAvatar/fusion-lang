@@ -1,0 +1,11 @@
+int function total(Collection<int> c)       // any Collection<int> - a List, or a class of your own
+    int sum = 0
+    foreach n in c
+        sum = sum + n
+    return sum
+
+void function main()
+    List<int> xs = [1, 2, 3]
+    Collection<int> c = xs                  // the same List
+    c.add(4)
+    print("{@1} {@2}", total(xs), xs.len())  // 10 4

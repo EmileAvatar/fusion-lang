@@ -175,6 +175,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         # An object where an interface it implements is expected (Task 32.5a)
         if self.implements_interface(actual, expected):
             return True
+        # A List<X> where Collection<X> is expected - its own implementation (32.6, D.090)
+        if isinstance(actual, ListType) and getattr(self.struct_declaration(expected), 'is_interface', False):
+            from src.parser.parser import type_text
+            if expected.name == f'Collection<{type_text(actual.element_type)}>':
+                return True
         # A child class where its parent (or the parent's parent ...) is expected (32.7)
         if self.is_descendant(actual, expected):
             return True
@@ -2593,6 +2598,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return
 
         self._check_static_access(target_name, symbol, node.location)    # Task 32.2c
+        if symbol.data_type is not None:
+            node.target.inferred_type = symbol.data_type   # the code generator sets by it (32.6)
         if symbol.data_type is None and isinstance(getattr(symbol, 'declaration', None), VarDeclStmt):
             self.first_value(node, symbol)     # `let total` ... `total = 100` (Task 46.1)
             return

@@ -109,7 +109,7 @@ COL.002 [PLANNED] Arrays know their length, grow and shrink at the end, `+`, `co
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
-COL.006 [BUILT] `Collection<T>` and `Iterator<T>` - a class of your own can be looped over (32.4); arrays, Lists, Maps as their values [PLANNED 32.6]
+COL.006 [BUILT] `Collection<T>` and `Iterator<T>` - a class of your own, and a List, as Collection<T> values (32.4, 32.6); arrays and Maps [PLANNED 32.6]
 COL.007 [PLANNED] List / Map options in form B: no duplicates, no null, read only (32.14)
 COL.008 [PLANNED] A Collections module: RingBuffer first (43.4)
 COL.009 [BUILT] `toList`, `toCSV`

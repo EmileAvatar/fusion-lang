@@ -297,9 +297,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # but C needs them declared first: lifted lambdas go after the forward declarations
         # (they may call any function), and typedefs right after the includes. Insert the
         # later position first so the earlier index stays valid
-        if self.lambda_definitions or getattr(self, 'boxed_enums', None) or getattr(self, 'collect_helpers', None):
-            self.output[lambda_index:lambda_index] = self.lambda_definitions + self.box_equality_lines() \
-                + self.collect_helper_lines()
+        if self.lambda_definitions or getattr(self, 'boxed_enums', None) or getattr(self, 'collect_helpers', None) \
+                or self.list_types:
+            self.output[lambda_index:lambda_index] = self.list_class_lines() + self.lambda_definitions \
+                + self.box_equality_lines() + self.collect_helper_lines()
         # List function bodies (Task 18.5.1) go last of everything inserted here - they
         # call struct, equality and wrapper helpers
         self.output[typedef_index:typedef_index] = self.collection_body_lines()
@@ -1721,9 +1722,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return ''
 
         # Replacing a stored string (or string-holding struct): the new value is made first,
-        # then the old one is freed (Task 18.3.1). String and struct assignments need the
-        # exact same type, so the value's type is the target's
+        # then the old one is freed (Task 18.3.1). The target's type decides: a Circle or a
+        # List may go into a Shape or a Collection variable (Tasks 32.5a, 32.6, 32.7)
         value_type = getattr(node.value, 'inferred_type', None)
+        target_type = getattr(node.target, 'inferred_type', None)
+        if self.is_class_type(target_type) and self.is_managed(value_type):
+            value_type = target_type
         if self.is_managed(value_type):
             self.emit(self.set_code(value_type, target_code,
                                     self.owned_value(node.value, value_type)))

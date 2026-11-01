@@ -90,8 +90,8 @@ class Settings implements Default {
 //     }
 // Arrays, Lists and Maps implement it, and so can a class of your own. A looped collection
 // isn't changed inside the loop - your own only with [collections] allowChangeWhileLooping.
-// [designed 32.6] arrays, Lists and Maps as Collection<T> values, each its own implementation -
-// an array's blocks removing an item (D.090).
+// [built 32.6] a List is a Collection<T> value: Collection<int> c = xs (D.090)
+// [designed 32.6] arrays (on the heap first - 45.10; removing an item blocked) and Maps too
 // ---------------------------------------------------------------------------------------------
 class Team implements Collection<Person> {
     List<Person> people

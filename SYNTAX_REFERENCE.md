@@ -1064,6 +1064,23 @@ void function main()
     print("")
     // names.add("Cy") inside the loop would be a compile error - build a new List instead
 ```
+A List is a `Collection<T>` value too (Task 32.6) - its own functions answer:
+
+<!-- example: syntax_list_collection | task: 32.6 -->
+```fusion
+int function total(Collection<int> c)       // any Collection<int> - a List, or a class of your own
+    int sum = 0
+    foreach n in c
+        sum = sum + n
+    return sum
+
+void function main()
+    List<int> xs = [1, 2, 3]
+    Collection<int> c = xs                  // the same List
+    c.add(4)
+    print("{@1} {@2}", total(xs), xs.len())  // 10 4
+```
+
 A class of your own can be looped over: `class Team implements Collection<Person>` gives
 `Iterator<Person> function iterator()` (a new one each time) and the other Collection functions
 (add, remove, length, isEmpty, contains, addAll, removeAll, keepOnly, clear); the iterator

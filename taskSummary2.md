@@ -563,7 +563,10 @@ Kept under Task 22 until the renumbering is approved.
   Maps implement Collection<T> and Iterator<T>, an array's own implementation blocks remove):
   Iterator<X> / Collection<X> made per element type; foreach over a class collects its
   iterator's items into a List, then the List loop runs
-- **Next Action:** 32.6 (arrays, Lists, Maps as Collection<T> values; List as an interface)
+- 32.6 List part done: a List's struct now starts like an object (count, class table); a
+  List<X> table answers Collection<X> when the program uses it; a list iterator object;
+  fixed on the way: assigning to an interface / parent variable set by the value's type
+- **Next Action:** the Map question (32.6), then 32.14, 32.11, 32.12, 32.3
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

@@ -70,15 +70,85 @@ class CollectionsMixin:
             # count: how many places hold it (Task 32.10a); changes: elements added /
             # removed - a for loop going over it checks it (Task 27.2e)
             if isinstance(kind, MapType):
-                lines.append(f'typedef struct {name}_s {{ {self.map_type(kind.key_type)}* keys; '
+                lines.append(f'typedef struct {name}_s {{ int count; const void* fusion_class; '
+                             f'{self.map_type(kind.key_type)}* keys; '
                              f'{self.map_type(kind.value_type)}* vals; int len; int cap; '
-                             f'int* slots; int nslots; int changes; int count; }} {name}_s;')
+                             f'int* slots; int nslots; int changes; }} {name}_s;')
             else:
                 element_c = self.map_type(kind.element_type)
-                lines.append(f'typedef struct {name}_s {{ {element_c}* data; int len; int cap; '
-                             f'int changes; int count; }} {name}_s;')
+                # count and fusion_class first - laid out like an object, so a List is a
+                # Collection<T> value (Task 32.6)
+                lines.append(f'typedef struct {name}_s {{ int count; const void* fusion_class; '
+                             f'{element_c}* data; int len; int cap; int changes; }} {name}_s;')
+                lines.append(f'static const void* {name}_class(void);')
             lines.append(f'typedef {name}_s* {name};')
         lines += self.list_protos + ['']
+        return lines
+
+    def list_class_lines(self) -> list:
+        """Per List type (Task 32.6, D.090): when the program uses Collection<X> for its element
+        type, a class table answering Collection<X> - the List's own functions - and an iterator
+        object answering Iterator<X>; else no table. After the forward declarations."""
+        from .c_names import mangle_function_name
+        from src.parser.parser import type_text
+        lines = []
+        for name, kind in self.list_types.items():
+            if isinstance(kind, MapType):
+                continue
+            element = kind.element_type
+            collection = f'Collection<{type_text(element)}>'
+            if not getattr(self.struct_decls.get(collection), 'is_interface', False):
+                lines += [f'static const void* {name}_class(void) {{ return NULL; }}']
+                continue
+            iterator = f'Iterator<{type_text(element)}>'
+            C, I = mangle_function_name(collection), mangle_function_name(iterator)
+            T = self.map_type(element)
+            copy = (lambda code: self.copy_code(element, code)) if self.is_managed(element) else (lambda code: code)
+            it = f'{name}_iter'
+            lines += [
+                f'// {kind and "List"}<{type_text(element)}> as a Collection and its iterator (Task 32.6)',
+                f'typedef struct {{ int fusion_count; const fusion_class_t* fusion_class; {name} l; int at; }} {it};',
+                f'static const fusion_class_t fusion_class_{it};',
+                f'static void {it}_release(void** p) {{ {it}* o = ({it}*)*p; *p = NULL; '
+                f'if (!o || --o->fusion_count > 0) return; FUSION_OBJECT_FREED(); {name}_free(&o->l); fusion_dealloc(o); }}',
+                f'static void* {it}_clone(void* p) {{ {it}* o = ({it}*)p; {it}* r = ({it}*)fusion_alloc(sizeof({it})); '
+                f'*r = *o; r->fusion_count = 1; r->l = {name}_retain(o->l); FUSION_OBJECT_MADE(); return r; }}',
+                f'static bool {it}_hasNext(void* p) {{ {it}* o = ({it}*)p; return o->at < o->l->len; }}',
+                f'static {T} {it}_next(void* p) {{ {it}* o = ({it}*)p; '
+                f'if (o->at >= o->l->len) {{ fusion_fail(FUSION_KIND_IndexError, NULL, "next() past the end"); '
+                f'return {self.error_value(element)}; }} {T} v = {copy("o->l->data[o->at]")}; o->at++; return v; }}',
+                f'static const fusion_fn {it}_fns[] = {{ (fusion_fn){it}_hasNext, (fusion_fn){it}_next }};',
+                f'static const fusion_itable_t {it}_tables[] = {{ {{ fusion_iface_{I}, {it}_fns }} }};',
+                f'static const fusion_class_t fusion_class_{it} = {{ "{iterator} of a List", NULL, {it}_release, {it}_clone, 1, {it}_tables }};',
+                f'static void* {name}_c_iterator(void* p) {{ {it}* o = ({it}*)fusion_alloc(sizeof({it})); '
+                f'o->fusion_count = 1; o->fusion_class = &fusion_class_{it}; o->l = {name}_retain(({name})p); '
+                f'o->at = 0; FUSION_OBJECT_MADE(); return o; }}',
+                f'static bool {name}_c_add(void* p, {T} v) {{ {name}_add(({name})p, {copy("v")}); return true; }}',
+                f'static bool {name}_c_remove(void* p, {T} v) {{ return {name}_remove(({name})p, v); }}',
+                f'static int {name}_c_length(void* p) {{ return (({name})p)->len; }}',
+                f'static bool {name}_c_isEmpty(void* p) {{ return (({name})p)->len == 0; }}',
+                f'static bool {name}_c_contains(void* p, {T} v) {{ return {name}_contains(({name})p, v); }}',
+                f'static bool {name}_c_addAll(void* p, void* items) {{ void* i = {C}__iterator(items); bool any = false; '
+                f'while ({I}__hasNext(i)) {{ {name}_add(({name})p, {I}__next(i)); any = true; }} '
+                f'fusion_release_{I}(&i); return any; }}',
+                f'static bool {name}_c_removeAll(void* p, void* items) {{ {name} l = ({name})p; bool any = false; '
+                f'for (int k = l->len - 1; k >= 0; k--) if ({C}__contains(items, l->data[k])) '
+                f'{{ {name}_removeAt(l, k, NULL); any = true; }} return any; }}',
+                f'static bool {name}_c_keepOnly(void* p, void* items) {{ {name} l = ({name})p; bool any = false; '
+                f'for (int k = l->len - 1; k >= 0; k--) if (!{C}__contains(items, l->data[k])) '
+                f'{{ {name}_removeAt(l, k, NULL); any = true; }} return any; }}',
+                f'static void {name}_c_clear(void* p) {{ {name}_clear(({name})p); }}',
+                f'static void {name}_c_release(void** p) {{ {name}_free(({name}*)p); }}',
+                f'static void* {name}_c_clone(void* p) {{ return {name}_clone(({name})p); }}',
+                f'static const fusion_fn {name}_c_fns[] = {{ (fusion_fn){name}_c_iterator, (fusion_fn){name}_c_add, '
+                f'(fusion_fn){name}_c_remove, (fusion_fn){name}_c_length, (fusion_fn){name}_c_isEmpty, '
+                f'(fusion_fn){name}_c_contains, (fusion_fn){name}_c_addAll, (fusion_fn){name}_c_removeAll, '
+                f'(fusion_fn){name}_c_keepOnly, (fusion_fn){name}_c_clear }};',
+                f'static const fusion_itable_t {name}_c_tables[] = {{ {{ fusion_iface_{C}, {name}_c_fns }} }};',
+                f'static const fusion_class_t fusion_class_{name} = {{ "List<{type_text(element)}>", NULL, '
+                f'{name}_c_release, {name}_c_clone, 1, {name}_c_tables }};',
+                f'static const void* {name}_class(void) {{ return &fusion_class_{name}; }}',
+            ]
         return lines
 
     def collection_body_lines(self) -> list:
@@ -107,6 +177,7 @@ class CollectionsMixin:
                 f'{name} r = ({name})fusion_alloc(sizeof({name}_s));',
                 f'memset(r, 0, sizeof({name}_s));',
                 'r->count = 1;',
+                f'r->fusion_class = {name}_class();      // its table - a Collection<T> (32.6)',
                 'return r;'],
             f'{name} {name}_from({T} const* items, int n)': [
                 f'{name} r = {name}_new();',

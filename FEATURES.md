@@ -225,8 +225,11 @@ are in `task/featuresArchive.md`.
 		the looped collection never changes inside a loop - a compile error (D.058); your own class
 			only with `[collections] allowChangeWhileLooping` (default false)
 	[ ] 32.6 `List<T>` as an interface with a default implementation - never null
-		arrays, Lists and Maps as Collection<T> / Iterator<T> values (`Collection<int> c = xs`) (D.090)
-		each its own implementation - an array's blocks removing an item
+		[DONE] A List as a Collection<T> value (tests/test_list_collection.py): `Collection<int> c = xs`
+			its class table answers every Collection function; c.iterator() an Iterator<T> object
+		[POSTPONED to 45.10] An array as a Collection<T> value - arrays on the heap first; removing blocked
+		[ ] A Map as a Collection<T> value - what add() does needs a decision (a Map holds key / value pairs)
+		[POSTPONED to 33] Another implementation behind `List<T>` - needs generic classes of your own
 	[ ] 32.11 `[source] caseSensitive` (default true); false: the compiler lists names that differ only in case
 	[ ] 32.12 A comma after a struct field or a multi-line enum value is ignored
 	[ ] 32.3 Example (was 16.2: classes, interfaces & enums)

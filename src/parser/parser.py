@@ -916,8 +916,9 @@ class Parser:
         if not self.check(TokenType.IDENTIFIER):
             return False
         offset = 1
-        # List<int> xs, Map<string, int> ages (Task 18.5)
-        if self.peek().value in COLLECTION_TYPE_NAMES and self.peek(1).type == TokenType.LESS:
+        # List<int> xs, Map<string, int> ages (Task 18.5); Collection<int> c (Task 32.4)
+        if (self.peek().value in COLLECTION_TYPE_NAMES or self.peek().value in GENERIC_INTERFACE_NAMES) \
+                and self.peek(1).type == TokenType.LESS:
             offset = self._skip_type_arguments(1)
             if offset < 0:
                 return False

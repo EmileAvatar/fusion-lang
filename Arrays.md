@@ -275,8 +275,11 @@ class TeamIterator implements Iterator<Person>
     bool function hasNext() : at < people.len()
     Person function next() ...
 ```
-Planned (32.6): arrays, Lists and Maps as `Collection<T>` values themselves (`Collection<int> c
-= xs`), each with its own implementation - an array's blocks removing an item.
+**Built (32.6, tests/test_list_collection.py):** a List is a `Collection<T>` value -
+`Collection<int> c = xs` holds the same List, every Collection function works on it, and
+`c.iterator()` gives an `Iterator<int>` (`next()` past the end is an IndexError). Still
+planned: an array (once on the heap - 45.10, its own implementation blocks removing an item)
+and a Map as `Collection<T>` values.
 
 `foreach` goes over an array, list or map like `for x in`, but **promises not to change it**:
 adding or removing items of that collection inside a `foreach` is a **compile error**. `continue`
