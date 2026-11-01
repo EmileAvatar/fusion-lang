@@ -57,6 +57,57 @@ are in `task/featuresArchive.md`.
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
+#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED]
+	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
+		settings file from the master template (user, 2026-10-28)
+	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
+
+#### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ]
+	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)
+	[ ] 33.2 Example (was 16.3)
+	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
+
+#### 34 Example program coverage (was 16) [ ]
+	[POSTPONED - needs threading, no task yet] 34.1 Multithreading / async example (was 16.4)
+	[POSTPONED to 38] 34.2 Memory model (Unique/Shared/Weak) example (was 16.6)
+
+#### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ]
+	[ ] 35.1 The self-hosted compiler covers the whole language
+	[ ] 35.2 Bootstrap twice: the compiler compiles itself, and that one compiles itself again
+	[ ] 35.3 The whole test suite runs against it
+	[ ] 35.4 Performance
+	[ ] 35.5 The Python compiler retired; docs
+
+---
+
+#### 45 Arrays that grow at the end (user, 2026-10-27 - Arrays.md) [ ]
+	Today an array's size is fixed when it is made, and the compiler must know it. An array
+	will grow and shrink at its end only (an item never moves position); a List changes
+	anywhere.
+	[ ] 45.1 Each array knows its own length at run time (like a List), so an array can be
+		replaced by one of another size (`numbers = make()`, `numbers = [1, 2, 3]`)
+	[ ] 45.2 Empty arrays: `int[] numbers` and `int numbers[]` (was 30.10)
+	[ ] 45.10 Arrays live on the heap and follow the List rules (Decisions.md D.025, user 2026-10-31)
+		[ ] An array as a Collection<T> value (from 32.6) - removing blocked
+		Normal code: an array moves (`int[] b = a`); `byVal` copies
+		Inside a struct: only borrowed - never moved out
+		Then an array's `toList(false)` can hand it over
+	[ ] 45.11 `toList` and `toCSV` on arrays of more dimensions - with multi-dimensional arrays
+		(user, 2026-10-29)
+	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, `numbers.removeLast()` (`pop()` as
+		quick typing) - user, 2026-10-27
+	[ ] 45.4 Combine arrays: `a + b + c + d` - a new array, each one's items in turn; all of
+		the same type (user, 2026-10-27). Lists the same. Maps use `add(otherMap)` instead
+		(see Later: "Map keys")
+	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` /
+		`sliceAt` as quick typing) - the same rules as List (see Later: "List slice")
+	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
+	[ ] 45.7 The array being looped over can't be changed inside the loop (user, 2026-10-31, D.058)
+		Any loop: `for` and `foreach` - a compile error where seen, else ModifiedWhileLoopingError
+		Build a new array from it instead: loop over `a`, add to `b`
+	[ ] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19) - with Task 42
+	[ ] 45.6 Docs and examples: Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
+
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ]
 	After Task 32 and 36.0. The type table: files/FusionTypes.html
 	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow
@@ -104,39 +155,6 @@ are in `task/featuresArchive.md`.
 		the fields (`MAX` or `max`); a field whose type differs per value is more than 47.3
 		gives, so it is built in
 
-#### 45 Arrays that grow at the end (user, 2026-10-27 - Arrays.md) [ ]
-	Today an array's size is fixed when it is made, and the compiler must know it. An array
-	will grow and shrink at its end only (an item never moves position); a List changes
-	anywhere.
-	[ ] 45.1 Each array knows its own length at run time (like a List), so an array can be
-		replaced by one of another size (`numbers = make()`, `numbers = [1, 2, 3]`)
-	[ ] 45.2 Empty arrays: `int[] numbers` and `int numbers[]` (was 30.10)
-	[ ] 45.10 Arrays live on the heap and follow the List rules (Decisions.md D.025, user 2026-10-31)
-		[ ] An array as a Collection<T> value (from 32.6) - removing blocked
-		Normal code: an array moves (`int[] b = a`); `byVal` copies
-		Inside a struct: only borrowed - never moved out
-		Then an array's `toList(false)` can hand it over
-	[ ] 45.11 `toList` and `toCSV` on arrays of more dimensions - with multi-dimensional arrays
-		(user, 2026-10-29)
-	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, `numbers.removeLast()` (`pop()` as
-		quick typing) - user, 2026-10-27
-	[ ] 45.4 Combine arrays: `a + b + c + d` - a new array, each one's items in turn; all of
-		the same type (user, 2026-10-27). Lists the same. Maps use `add(otherMap)` instead
-		(see Later: "Map keys")
-	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` /
-		`sliceAt` as quick typing) - the same rules as List (see Later: "List slice")
-	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
-	[ ] 45.7 The array being looped over can't be changed inside the loop (user, 2026-10-31, D.058)
-		Any loop: `for` and `foreach` - a compile error where seen, else ModifiedWhileLoopingError
-		Build a new array from it instead: loop over `a`, add to `b`
-	[ ] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19) - with Task 42
-	[ ] 45.6 Docs and examples: Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
-
-#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED]
-	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
-		settings file from the master template (user, 2026-10-28)
-	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
-
 #### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ]
 	After all of Task 32 (user)
 	Design and truth tables: Ownership.md
@@ -179,24 +197,6 @@ are in `task/featuresArchive.md`.
 	[ ] 48.6 Counting removed where moves make it unnecessary (covers 38.2)
 	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
-
-#### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ]
-	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)
-	[ ] 33.2 Example (was 16.3)
-	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
-
-#### 34 Example program coverage (was 16) [ ]
-	[POSTPONED - needs threading, no task yet] 34.1 Multithreading / async example (was 16.4)
-	[POSTPONED to 38] 34.2 Memory model (Unique/Shared/Weak) example (was 16.6)
-
-#### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ]
-	[ ] 35.1 The self-hosted compiler covers the whole language
-	[ ] 35.2 Bootstrap twice: the compiler compiles itself, and that one compiles itself again
-	[ ] 35.3 The whole test suite runs against it
-	[ ] 35.4 Performance
-	[ ] 35.5 The Python compiler retired; docs
-
----
 
 ## Phase 3 - the advanced parts
 
