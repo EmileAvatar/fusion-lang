@@ -1,0 +1,8 @@
+void function main()
+    List<string> tags = ["a"] {
+        tags.noDuplicates()               // a value it has can't be added again
+        tags.add("b")
+        tags.readOnly()                   // after this block, no more changes
+    }
+    print("{@1}", tags.len())             // 2
+    // tags.add("c") here would be a compile error: read only after its set-up

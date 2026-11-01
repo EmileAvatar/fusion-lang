@@ -575,7 +575,9 @@ Kept under Task 22 until the renumbering is approved.
   an object); keys() / values() borrowed views (user 2026-11-01); c.toList() copies any Collection
 - A struct may hold an object (user, 2026-11-01 - D.097): null until set, shared when the struct
   is copied; the old error and the planned [structs] classes setting are gone
-- **Next Action:** 32.14 (List / Map options), then 32.11, 32.3
+- 32.14 done: options marked in the set-up block (readOnly moved to its end), flags in the
+  List / Map struct, checks at the start of each changing function; DuplicateError, ReadOnlyError
+- **Next Action:** 32.11 ([source] caseSensitive), then 32.3 (the example)
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

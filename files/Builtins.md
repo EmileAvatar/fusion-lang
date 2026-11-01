@@ -3,7 +3,7 @@
 **Generated from the compiler** by `python check.py --builtins` (Task 28.1.4) - do not edit by hand.
 `python check.py` fails when this file no longer matches the compiler.
 
-97 functions, 16 List methods, 7 Map methods. Examples of each are in `SYNTAX_REFERENCE.md`.
+97 functions, 19 List methods, 9 Map methods. Examples of each are in `SYNTAX_REFERENCE.md`.
 
 - **Layer:** the lowest `[stdlib] layer` that allows it - `core` (no heap), `alloc` (no operating system), `std` (everything)
 - **Fails:** it can raise an error (catch it with `try`, or capture it); any function that makes text can also fail with StringTooLongError when `[strings] max_length` is set
@@ -186,6 +186,9 @@ Each built-in type has a class holding its functions as methods (Task 18.3.7):
 | `.removeAt(int at)` | `void` | yes | remove the element at a position (IndexError) |
 | `.remove(T x)` | `bool` |  | remove the first element equal to x; false if none |
 | `.clear()` | `void` |  | remove every element |
+| `.noDuplicates()` | `void` |  | in its set-up block only: adding a value it has is a DuplicateError (32.14) |
+| `.noNull()` | `void` |  | in its set-up block only: adding null is a NullError (32.14) |
+| `.readOnly()` | `void` |  | in its set-up block only: after the block, a change is a ReadOnlyError (32.14) |
 | `.len()` | `int` |  | the number of elements |
 | `.contains(T x)` | `bool` |  | whether an element equals x |
 | `.indexOf(T x)` | `int` |  | the first position of x, or -1 |
@@ -208,3 +211,5 @@ Each built-in type has a class holding its functions as methods (Task 18.3.7):
 | `.values()` | `Collection<V>` |  | the values, in the same order - borrowed: a view of the Map (`.toList()` copies) |
 | `.len()` | `int` |  | the number of keys |
 | `.clear()` | `void` |  | remove every key |
+| `.noNull()` | `void` |  | in its set-up block only: m[k] = null written in the code is a compile error (32.14) |
+| `.readOnly()` | `void` |  | in its set-up block only: after the block, a change is a ReadOnlyError (32.14) |

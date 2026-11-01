@@ -341,6 +341,7 @@ class ErrorsMixin:
         (self.value_calls_fail) - so programs without errors get no checks at all."""
         functions = [d for d in program.declarations if isinstance(d, FunctionDecl)]
         self.value_calls_fail = False
+        self.collection_options = getattr(program, 'collection_options', False)   # 32.14
         # An interface's function (Task 32.5a) can fail when a function answering it can; an
         # Iterator's next() of a primitive past the end is an IndexError (D.094)
         answers = {}
@@ -559,6 +560,11 @@ class ErrorsMixin:
             return declaration.name in failing
         list_method = getattr(node, 'list_method', None)
         if list_method in _FAILING_LIST_METHODS:
+            return True
+        # options (Task 32.14): a change may be refused - checked once a program uses them
+        if getattr(self, 'collection_options', False) and (
+                list_method in ('add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy')
+                or getattr(node, 'map_method', None) in ('remove', 'clear')):
             return True
         if list_method in _CALLING_LIST_METHODS:
             return getattr(self, 'value_calls_fail', True)

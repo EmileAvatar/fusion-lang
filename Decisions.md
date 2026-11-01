@@ -110,7 +110,7 @@ COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just em
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
 COL.006 [BUILT] `Collection<T>` and `Iterator<T>` - a class of your own, a List and a Map (of `Entry<K, V>`) as Collection values (32.4, 32.6); arrays [PLANNED 45.10]
-COL.007 [PLANNED] List / Map options in form B: no duplicates, no null, read only (32.14)
+COL.007 [BUILT] List / Map options in the set-up block: noDuplicates, noNull, readOnly - a DuplicateError / NullError / ReadOnlyError (32.14)
 COL.008 [PLANNED] A Collections module: RingBuffer first (43.4)
 COL.009 [BUILT] `toList`, `toCSV`
 COL.010 [REJECTED] Turning off array bounds checks, even in unsafe mode

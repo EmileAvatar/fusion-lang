@@ -680,6 +680,20 @@ everywhere else it is shared (`byRef`) unless written `byVal`. Never null - just
 `xs.toList()` gives a copy of a List (`xs.toList(false)`: the same list, shared), and
 `scores.toList()` a new List from a one-dimensional array.
 
+#### List options: `noDuplicates()`, `noNull()`, `readOnly()` in the set-up block
+
+<!-- example: syntax_list_options | task: 32.14 -->
+```fusion
+void function main()
+    List<string> tags = ["a"] {
+        tags.noDuplicates()               // a value it has can't be added again
+        tags.add("b")
+        tags.readOnly()                   // after this block, no more changes
+    }
+    print("{@1}", tags.len())             // 2
+    // tags.add("c") here would be a compile error: read only after its set-up
+```
+
 #### Maps: `Map<K, V>` (also written `Dictionary<K, V>`)
 
 <!-- example: syntax_map_entries | task: 32.6 -->

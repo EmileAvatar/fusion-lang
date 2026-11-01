@@ -21,8 +21,10 @@ MUTATING_MAP_METHODS = {'remove', 'clear'}
 # Every List / Map method - another name on a list or map may be one of the program's own
 # functions called as a method (Task 44.2)
 LIST_METHOD_NAMES = {'add', 'insert', 'removeAt', 'remove', 'clear', 'len', 'contains', 'indexOf',
-                     'join', 'slice', 'sort', 'sortBy', 'filter', 'map', 'reduce', 'toList'}
-MAP_METHOD_NAMES = {'has', 'get', 'remove', 'keys', 'values', 'len', 'clear'}
+                     'join', 'slice', 'sort', 'sortBy', 'filter', 'map', 'reduce', 'toList',
+                     'noDuplicates', 'noNull', 'readOnly'}          # options: Task 32.14
+MAP_METHOD_NAMES = {'has', 'get', 'remove', 'keys', 'values', 'len', 'clear', 'noDuplicates',
+                    'noNull', 'readOnly'}
 MAP_KEY_TYPES = ('string', 'int', 'char')
 _SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
 
@@ -113,6 +115,21 @@ class CollectionRulesMixin:
 
     # ------------------------------------------------------------------ methods
 
+    def _collection_option(self, node, method: str, receiver, is_map: bool = False):
+        """noDuplicates() / noNull() / readOnly() (Task 32.14): set in the variable's own set-up
+        block - `List<string> names = [] { names.noDuplicates() }`."""
+        if node.arguments:
+            self.errors.append(SemanticError(f"'{method}' takes no arguments", node.location))
+        if not getattr(node, 'in_setup', False):
+            name = getattr(receiver, 'name', 'xs')
+            self.errors.append(SemanticError(
+                f"'{method}()' is set in the List's / Map's own set-up block - "
+                f"List<string> {name} = [] {{ {name}.{method}() }}", node.location))
+        elif is_map and method == 'noDuplicates':
+            self.errors.append(SemanticError("A Map's keys never repeat already - noDuplicates() is "
+                                             "for a List", node.location))
+        return self._void(node)
+
     def _collection_method_call(self, node: CallExpr) -> Optional[ASTNode]:
         """`xs.add(5)` on a List - checked here and marked for the generator
         (node.list_method). Returns the result type, or None when the receiver isn't a
@@ -143,6 +160,8 @@ class CollectionRulesMixin:
         element = receiver_type.element_type
         node.list_method = method
         node.list_type = receiver_type
+        if method in ('noDuplicates', 'noNull', 'readOnly'):
+            return self._collection_option(node, method, receiver)        # Task 32.14
         if method in MUTATING_LIST_METHODS:
             self._check_changeable(receiver, method)
         args = node.arguments
@@ -267,6 +286,8 @@ class CollectionRulesMixin:
         args = node.arguments
         int_type = PrimitiveType(location=node.location, name='int')
         bool_type = PrimitiveType(location=node.location, name='bool')
+        if method in ('noDuplicates', 'noNull', 'readOnly'):
+            return self._collection_option(node, method, receiver, is_map=True)    # 32.14
         expected = {'has': [key], 'get': [key, value], 'remove': [key], 'keys': [],
                     'values': [], 'len': [], 'clear': []}.get(method)
         if expected is None:

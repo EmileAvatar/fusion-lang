@@ -73,14 +73,14 @@ class CollectionsMixin:
                 lines.append(f'typedef struct {name}_s {{ int count; const void* fusion_class; '
                              f'{self.map_type(kind.key_type)}* keys; '
                              f'{self.map_type(kind.value_type)}* vals; int len; int cap; '
-                             f'int* slots; int nslots; int changes; }} {name}_s;')
+                             f'int* slots; int nslots; int changes; int flags; }} {name}_s;')
                 lines.append(f'static const void* {name}_class(void);')
             else:
                 element_c = self.map_type(kind.element_type)
                 # count and fusion_class first - laid out like an object, so a List is a
                 # Collection<T> value (Task 32.6)
                 lines.append(f'typedef struct {name}_s {{ int count; const void* fusion_class; '
-                             f'{element_c}* data; int len; int cap; int changes; }} {name}_s;')
+                             f'{element_c}* data; int len; int cap; int changes; int flags; }} {name}_s;')
                 lines.append(f'static const void* {name}_class(void);')
             lines.append(f'typedef {name}_s* {name};')
         lines += self.list_protos + ['']
@@ -274,6 +274,43 @@ class CollectionsMixin:
         lines.append(f'static const void* {name}_class(void) {{ return &fusion_class_{name}; }}')
         return lines
 
+    def _option_checks(self, functions: dict, name: str, element, T: str, is_map: bool) -> None:
+        """noDuplicates / noNull / readOnly (Task 32.14): the option functions, and a check at
+        the start of each function that changes the List / Map - a DuplicateError, NullError or
+        ReadOnlyError; a value refused is freed."""
+        functions[f'void {name}_noDuplicates({name} l)'] = ['l->flags |= 1;']
+        functions[f'void {name}_noNull({name} l)'] = ['l->flags |= 2;']
+        functions[f'void {name}_readOnly({name} l)'] = ['l->flags |= 4;']
+        read_only = (f'if (l->flags & 4) {{ fusion_fail(FUSION_KIND_ReadOnlyError, NULL, '
+                     f'"the {"Map" if is_map else "List"} is read only"); return{{}}; }}')
+        if isinstance(element, PrimitiveType) and element.name == 'string':
+            is_null = 'v.data == NULL'
+        elif self.is_class_type(element) or isinstance(element, (ListType, MapType)):
+            is_null = 'v == NULL'
+        elif isinstance(element, EnumType):
+            is_null = 'v == FUSION_ENUM_NULL'
+        else:
+            is_null = None
+        free_v = ' '.join(self.free_lines(element, 'v'))
+        for signature in list(functions):
+            method = signature.split(f'{name}_', 1)[1].split('(', 1)[0]
+            if method not in (('remove', 'clear') if is_map else
+                              ('add', 'insert', 'removeAt', 'remove', 'clear', 'sortBy')):
+                continue
+            result = '' if signature.startswith('void ') else ' false'
+            m = 'm' if is_map else 'l'
+            refused = read_only.replace('l->flags', f'{m}->flags').replace('return{}', f'return{result}')
+            if not is_map and method in ('add', 'insert'):
+                refused = refused.replace('fusion_fail(', f'{free_v} fusion_fail(', 1)   # v is ours
+            checks = [refused]
+            if not is_map and method in ('add', 'insert'):
+                if is_null is not None:
+                    checks.append(f'if ((l->flags & 2) && {is_null}) {{ {free_v} fusion_fail(FUSION_KIND_NullError, '
+                                  f'NULL, "the List takes no null (noNull)"); return; }}')
+                checks.append(f'if ((l->flags & 1) && {name}_contains(l, v)) {{ {free_v} fusion_fail('
+                              f'FUSION_KIND_DuplicateError, NULL, "the List has it already (noDuplicates)"); return; }}')
+            functions[signature] = checks + functions[signature]
+
     def nullable_item(self, element) -> bool:
         """An Iterator's next() gives null past the end for this type (D.094)."""
         return isinstance(element, (ListType, MapType, EnumType)) or self.is_class_type(element) or (
@@ -429,6 +466,7 @@ class CollectionsMixin:
                      else '(a > b) - (a < b)')
             functions[f'int {name}_order({T} a, {T} b)'] = [f'return {order};']
             functions[f'void {name}_sort({name} l)'] = [f'{name}_sortBy(l, {name}_order);']
+        self._option_checks(functions, name, element, T, is_map=False)      # Task 32.14
         for signature, body in functions.items():
             self.list_protos.append(f'static inline {signature};')
             self.list_bodies += [f'static inline {signature} {{'] + \
@@ -537,6 +575,8 @@ class CollectionsMixin:
             return f'{name}_insert({target}, {self.visit(args[0])}, {self.owned_value(args[1], element)}, {where})'
         if method == 'removeAt':
             return f'{name}_removeAt({target}, {self.visit(args[0])}, {where})'
+        if method in ('noDuplicates', 'noNull', 'readOnly'):
+            return f'{name}_{method}({target})'           # Task 32.14
         if method in ('clear', 'sort'):
             return f'{name}_{method}({target})'
         if method == 'sortBy':
@@ -730,6 +770,7 @@ class CollectionsMixin:
                 '}',
                 'return true;'],
         }
+        self._option_checks(functions, name, value, V, is_map=True)        # Task 32.14
         for signature, body in functions.items():
             self.list_protos.append(f'static inline {signature};')
             self.list_bodies += [f'static inline {signature} {{'] + \
@@ -749,6 +790,8 @@ class CollectionsMixin:
             return f'{name}_getOr({target}, {self.visit(args[0])}, {self.visit(args[1])})'
         if method in ('keys', 'values'):
             return f'{name}_{method}View({target})'      # a borrowed view (32.6, D.095)
+        if method in ('noNull', 'readOnly'):
+            return f'{name}_{method}({target})'           # Task 32.14
         return f'{name}_{method}({target}, {self.visit(args[0])})'   # has, remove
 
     # ------------------------------------------------------------------ text <-> lists (18.5.3)

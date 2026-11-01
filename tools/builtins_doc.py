@@ -61,6 +61,9 @@ LIST_METHODS = [
     ('removeAt(int at)', 'void', True, 'remove the element at a position (IndexError)'),
     ('remove(T x)', 'bool', False, 'remove the first element equal to x; false if none'),
     ('clear()', 'void', False, 'remove every element'),
+    ('noDuplicates()', 'void', False, 'in its set-up block only: adding a value it has is a DuplicateError (32.14)'),
+    ('noNull()', 'void', False, 'in its set-up block only: adding null is a NullError (32.14)'),
+    ('readOnly()', 'void', False, 'in its set-up block only: after the block, a change is a ReadOnlyError (32.14)'),
     ('len()', 'int', False, 'the number of elements'),
     ('contains(T x)', 'bool', False, 'whether an element equals x'),
     ('indexOf(T x)', 'int', False, 'the first position of x, or -1'),
@@ -82,6 +85,8 @@ MAP_METHODS = [
     ('values()', 'Collection<V>', False, 'the values, in the same order - borrowed: a view of the Map (`.toList()` copies)'),
     ('len()', 'int', False, 'the number of keys'),
     ('clear()', 'void', False, 'remove every key'),
+    ('noNull()', 'void', False, 'in its set-up block only: m[k] = null written in the code is a compile error (32.14)'),
+    ('readOnly()', 'void', False, 'in its set-up block only: after the block, a change is a ReadOnlyError (32.14)'),
 ]
 
 

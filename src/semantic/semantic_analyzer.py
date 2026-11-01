@@ -19,6 +19,7 @@ from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly
 from .interfaces import check_interfaces
+from .setup_blocks import check_collection_options
 from .inheritance import expand_inheritance
 from .class_rules import check_visibility_written, check_copy_fields
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
@@ -264,6 +265,7 @@ class SemanticAnalyzer:
         # readonly parameters: never changed, passed on to a change or kept (Task 32.2e)
         self.errors.extend(check_readonly(ast))
         self.errors.extend(check_copy_fields(ast))       # nocopy / noshare (Task 32.5b)
+        self.errors.extend(check_collection_options(ast))   # readOnly / noNull (Task 32.14)
         if self.visibility_required:                    # Task 32.2h
             self.errors.extend(check_visibility_written(ast))
         # Constructors that can't be told apart, or call each other in a circle (32.2b)

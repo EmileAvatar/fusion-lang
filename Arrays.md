@@ -214,6 +214,19 @@ sharedThreads = 10    # default: the pool's size
 
 ---
 
+#### Options, set in its set-up block (built - Task 32.14, tests/test_collection_options.py)
+
+```fusion
+List<string> names = [] {
+    names.noDuplicates()       // adding a value it has: a DuplicateError
+    names.noNull()             // adding null: a NullError
+    names.readOnly()           // after the block, a change is a ReadOnlyError
+}
+```
+A compile error where it can be seen (`names.add(...)` after the block), else an error while
+running (the List passed to a function that changes it); a refused value is freed. A Map takes
+`noNull()` and `readOnly()` (its keys never repeat already). Options anywhere else: an error.
+
 ## 5. Maps
 
 **Built (Task 32.6, tests/test_map_collection.py):** a Map is a `Collection<Entry<K, V>>` - an

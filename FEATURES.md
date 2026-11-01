@@ -217,8 +217,9 @@ are in `task/featuresArchive.md`.
 		the object made when declared; `s = null` lets the old object go and makes a new
 		default one (user, 2026-10-30); arrays / Lists / Maps implement it), `Cloneable`
 		(`clone()` - copies of objects, byVal / toList on a List of objects, nocopy / noshare)
-	[ ] 32.14 List / Map options set in form B (user, 2026-10-30): no duplicates, no null,
-		read only after set-up - `List<string> names = List<string>() { names.noDuplicates() }`
+	[DONE] 32.14 List / Map options in the set-up block (tests/test_collection_options.py)
+		noDuplicates(), noNull(), readOnly() (after the block) - a DuplicateError / NullError / ReadOnlyError
+		a compile error where it can be seen, else while running (D.086); a refused value is freed
 	[DONE] 32.4 `Collection<T>`, `Iterator<T>`, `foreach` (tests/test_foreach.py, Arrays.md section 6)
 		`foreach (T x in c)` / `foreach x in c` over arrays, Lists, Maps and a Collection<T> class
 		a collection gives a new Iterator<T> from iterator() per loop - nested loops work (D.089)

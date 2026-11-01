@@ -87,6 +87,7 @@ def expand_setup_blocks(program) -> List[SemanticError]:
                         errors.extend(_check_changes(s.setup, s.name, known,
                                                      "after the block"))
                         s.setup.sets_up = s.name     # may change a const / let (32.2e)
+                        _collection_options(s, program)                       # 32.14
                         s.has_setup = True
                         statements.append(s.setup)
                         s.setup = None
@@ -95,3 +96,83 @@ def expand_setup_blocks(program) -> List[SemanticError]:
         visit(function.body)
         _walk([function.body], visit)
     return errors
+
+
+# List / Map options (Task 32.14, user decisions 2026-10-30 / 31): set in the variable's form B
+# block - `List<string> names = [] { names.noDuplicates() }`
+COLLECTION_OPTIONS = ('noDuplicates', 'noNull', 'readOnly')
+
+
+def _collection_options(decl, program) -> None:
+    """Mark each option call in a List / Map's set-up block; readOnly() takes effect after the
+    block, so it moves to the block's end."""
+    from src.parser.ast_nodes import ListType, MapType
+    if not isinstance(decl.var_type, (ListType, MapType)):
+        return
+    options, last = set(), []
+    for statement in decl.setup.statements:
+        call = statement.expression if isinstance(statement, ExpressionStmt) else None
+        if isinstance(call, CallExpr) and isinstance(call.callee, MemberExpr) \
+                and getattr(call.callee.object, 'name', None) == decl.name \
+                and call.callee.member in COLLECTION_OPTIONS:
+            call.in_setup = True
+            options.add(call.callee.member)
+            if call.callee.member == 'readOnly':
+                last.append(statement)
+    if options:
+        decl.collection_options = options
+        program.collection_options = True
+        decl.setup.statements = [s for s in decl.setup.statements if s not in last] + last
+
+
+def check_collection_options(program) -> List[SemanticError]:
+    """After type checking (32.14): a readOnly List / Map isn't changed after its set-up; a
+    noNull one isn't given a null - a compile error where it can be seen (D.086); anything else
+    is a ReadOnlyError / NullError while running."""
+    from dataclasses import fields as dataclass_fields, is_dataclass
+    from src.parser.ast_nodes import IdentifierExpr, IndexExpr, LiteralExpr
+    from .collection_rules import MUTATING_LIST_METHODS, MUTATING_MAP_METHODS
+    errors = []
+    changing = MUTATING_LIST_METHODS | MUTATING_MAP_METHODS
+
+    def walk(node, options):
+        if isinstance(node, list):
+            for item in node:
+                walk(item, options)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if isinstance(node, VarDeclStmt) and getattr(node, 'collection_options', None):
+            options[node.name] = node.collection_options
+        if isinstance(node, BlockStmt) and getattr(node, 'sets_up', None) in options:
+            return                                  # its own set-up may change it
+        if isinstance(node, CallExpr) and isinstance(node.callee, MemberExpr) \
+                and isinstance(node.callee.object, IdentifierExpr) and not getattr(node, 'in_setup', False):
+            name, member = node.callee.object.name, node.callee.member
+            given = options.get(name, ())
+            if 'readOnly' in given and member in changing:
+                errors.append(SemanticError(f"'{name}' is read only after its set-up - it can't change "
+                                            f"({member})", node.location))
+            if 'noNull' in given and member in ('add', 'insert') and any(
+                    isinstance(a, LiteralExpr) and a.type_hint == 'null' for a in node.arguments):
+                errors.append(SemanticError(f"'{name}' takes no null (noNull)", node.location))
+        if isinstance(node, AssignmentStmt) and isinstance(node.target, IndexExpr) \
+                and isinstance(node.target.array, IdentifierExpr) \
+                and 'noNull' in options.get(node.target.array.name, ()) \
+                and isinstance(node.value, LiteralExpr) and node.value.type_hint == 'null':
+            errors.append(SemanticError(f"'{node.target.array.name}' takes no null (noNull)", node.location))
+        if isinstance(node, AssignmentStmt) and isinstance(node.target, IndexExpr) \
+                and isinstance(node.target.array, IdentifierExpr) \
+                and 'readOnly' in options.get(node.target.array.name, ()):
+            errors.append(SemanticError(f"'{node.target.array.name}' is read only after its set-up - "
+                                        f"it can't change", node.location))
+        for f in dataclass_fields(node):
+            if f.name not in ('location', 'inferred_type', 'declaration', 'scope', 'callee_declaration',
+                              'resolved_arguments'):
+                walk(getattr(node, f.name), options)
+
+    for d in program.declarations:
+        if isinstance(d, FunctionDecl) and d.body is not None:
+            walk(d.body, {})
+    return errors
+
