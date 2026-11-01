@@ -57,6 +57,7 @@ Car mine = fleet.removeAt(0)   // taking an element out is a move
 | `f(readonly a)` (at the call) | - | - | borrow, no change | borrow, no change | read-only borrow |
 | `T b = list[i]` / `T b = obj.field` | copy | copy | **local borrow** - the owner is frozen while `b` is used | local borrow | reader |
 | `this.f = a`, `list.add(a)`, `return a` | copy | copy | **move** | move | one more reader |
+| `f(a)` where f keeps its parameter (D.100) | copy | copy | **move** (worked out from f's body) | move | one more reader |
 | `a = T(...)` after a move | - | - | allowed: alive again | allowed | allowed |
 
 #### Truth table 2: a struct holding a collection (D4)
@@ -271,3 +272,7 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 | 2026-10-31 | Two or more threads using a value: a temporary service owns it, the threads borrow, ownership comes back when they end (D21-D27) |
 | 2026-10-31 | Several resources used by one thread: a group service, written or made by the compiler; it owns them while it runs, then each variable owns its value again (D.077 - replaces the fixed order) |
 | 2026-10-31 | Send / sync worked out by the compiler, explained in Fusion's words (D37-D39) |
+| 2026-11-01 | A struct holding an object moves as a whole; `byVal` copies it and clones the object; `byRef` borrows it (D.097) |
+| 2026-11-01 | A function that keeps a parameter takes it - the call moves the argument; worked out from the body, shown by `--interface` (D.100) |
+| 2026-11-01 | A local borrow freezes its owner until the borrow's last use (D.101) |
+| 2026-11-01 | Built with "share" as the default; "move" once everything is migrated (D.102) |

@@ -28,6 +28,66 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 Plan and answers: task/taskSummaryArchive.md. Tests: tests/test_let_var_match.py.
 
+## TASK 48: Ownership - move, borrow, share - PLAN (2026-11-01; answers below)
+
+Design: Ownership.md (R1-R8, truth tables 1-4); decisions D.014, D.025, D.026, D.033, D.080;
+the record D1-D49 in Notes/Ownership_Decisions_2026-10-31.md.
+
+- **Approach:** compile-time rules first, run time unchanged
+  - 48.1-48.5 are checks in the compiler only; the C code keeps today's counting, so a
+    program that compiles behaves as now (no new crash or leak risk)
+  - 48.6 then removes the counting where a move proves one owner (the speed gain)
+- **New pass:** `src/semantic/ownership.py`, after type checking, one function at a time
+  - each variable's state along every path: alive, moved (where, to what), moved on some path
+  - `if` / `match`: dead after it if any branch moved it and didn't give a new value
+  - loops: a move inside is an error unless each pass gives a new value (run the body twice)
+  - `try` / `catch`: moved in the `try` = maybe moved in the `catch` and after
+  - `return` / `break` / `continue` end a path
+- **48.0 The rules:** Ownership.md is the spec; the exact error texts written there with 48.1
+  (open question 1 in section 8)
+- **48.1 Moving** (Lists, Maps, objects, structs holding them; strings and plain structs copy)
+  - moves: `T b = a`, `b = a`, `this.f = a`, `x.f = a`, `list.add(a)` / insert / `m[k] = a`,
+    a List literal `[a, b]`, `return a`
+  - use after a move: "'a' was moved to 'b' on line 2 - use byVal a for a copy"; `a = T(...)`
+    brings it back
+  - a struct's field can't be moved out (D.026): `Car c = order.car` is a borrow (48.2)
+  - **setting** `[memory] assignment = "move" | "share"`; "share" = today's behaviour, no
+    move errors
+  - migrate the tests, examples, SYNTAX_REFERENCE.md and the self-hosted compiler
+    (`check.py --selfhost`) that rely on `b = a` sharing - `byVal` or restructured
+- **48.2 Borrowing**
+  - passing borrows: `f(a)` - `a` is back after the call
+  - a parameter is a borrow: storing it (`this.f = p`, `list.add(p)`) or returning it is an
+    error (R5) - but see question A (constructors that keep what they're given)
+  - a local borrow: `Car c = fleet[0]`, `for c in fleet`, `List<int> xs = order.items`; the
+    owner can't change while the borrow is still used (until its last use - question C)
+  - taking out is a move: `removeAt` / `removeLast` / `pop`
+  - a lambda can't capture a borrow
+- **48.3 At the call:** `show(readonly acc)`, `f(byVal a)`, `f(byRef a)` - truth table 4; the
+  readonly analysis (32.2e, readonly.py) already follows each call; a non-Fusion library:
+  a warning
+- **48.4** `--interface` shows each public function's result: reads / changes / keeps each
+  parameter
+- **48.5 `shared`:** `shared Car c = a` - counted readers; only the holder that made it
+  shared changes it or lends it `byRef`
+- **48.6** counting removed where a move proves one owner (covers 38.2); leak check and the
+  object-lifetime tests (32.10c) must still pass
+- **48.7** SYNTAX_REFERENCE.md examples (moving, borrowing, shared), a demo program; tests with
+  and without null checks (Rule 4b); each truth-table row a test (Rule 4c)
+- **48.8** release the `Unique` keyword (D.080)
+- **Order:** 48.1 (behind the setting, default "share" while building - question D), 48.2,
+  48.3, 48.5, then migrate and switch the default to "move", 48.4, 48.6, 48.8, 48.7 - each
+  shipped on its own
+- **Settings:** `[memory] assignment` ("move" default | "share") - into
+  files/fusionSettings.xml, project_config, showcase [built] when 48.1 lands
+- **Answers (user, 2026-11-01):**
+  - A. Worked out: a function whose body keeps a parameter takes it - the call moves the
+    argument (like `list.add`), `--interface` shows it; no new word (D.100)
+  - B. A struct made locally moves as a whole, so ownership works the same everywhere;
+    `byVal r` copies it and clones its object; `byRef r` borrows it (D.097 updated)
+  - C. A local borrow freezes its owner until the borrow's last use (D.101)
+  - D. Build with "share" as the default; switch to "move" once everything is migrated (D.102)
+
 ## TASK 32: Classes and interfaces - COMPLETE (2026-11-01)
 
 Plan and answers: task/taskSummaryArchive.md. Example: examples/classes_demo.fusion.
