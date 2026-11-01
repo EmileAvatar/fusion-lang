@@ -158,6 +158,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Classes: visibility, constructors, static set-up (forms A, B, C), Default, ToString - truth tables | `Classes.md` |
 | How a .fusion file is laid out: namespace, imports, the preferred order | `files/FusionTemplate.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |
+| Why 30 languages were made; what each domain (OS, GPU, games, mobile, ...) needs, Fusion now vs planned | `files/Programming Languages Pain points.md` |
 | Compiler source | `src/` - `src/CLAUDE.md` explains the pipeline; each subfolder's `CLAUDE.md` has one line per file |
 | Tests / examples | `tests/`, `examples/` |
 
