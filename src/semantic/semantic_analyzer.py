@@ -53,7 +53,8 @@ class SemanticAnalyzer:
     def __init__(self, structs_config: Optional[StructsConfig] = None,
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
-                 conditions_config=None, visibility_config=None, interfaces_config=None):
+                 conditions_config=None, visibility_config=None, interfaces_config=None,
+                 collections_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -76,6 +77,9 @@ class SemanticAnalyzer:
         self.visibility_required = bool(getattr(visibility_config, 'required', False))
         # [interfaces] defaultMethods (Task 32.5a, D.006): an interface's function may have code
         self.default_methods = bool(getattr(interfaces_config, 'default_methods', False))
+        # [collections] allowChangeWhileLooping (Task 32.4, D.058)
+        self.type_checker.allow_change_while_looping = bool(
+            getattr(collections_config, 'allow_change_while_looping', False))
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 

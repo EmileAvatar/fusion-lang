@@ -120,6 +120,12 @@
     </setting>
   </section>
 
+  <section name="collections" description="Arrays, Lists, Maps and collection classes">
+    <setting name="allowChangeWhileLooping" type="bool" default="false" task="32.4">
+      <description>A collection class of your own may be changed inside a loop over it (its own rules decide); false: blocked - Fusion's own arrays, Lists and Maps never are</description>
+    </setting>
+  </section>
+
   <section name="interfaces" description="Interfaces">
     <setting name="defaultMethods" type="bool" default="false" task="32.5a">
       <description>An interface's function may have code, used by a class that doesn't give its own; false: an interface names its functions only</description>

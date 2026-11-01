@@ -297,8 +297,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # but C needs them declared first: lifted lambdas go after the forward declarations
         # (they may call any function), and typedefs right after the includes. Insert the
         # later position first so the earlier index stays valid
-        if self.lambda_definitions or getattr(self, 'boxed_enums', None):
-            self.output[lambda_index:lambda_index] = self.lambda_definitions + self.box_equality_lines()
+        if self.lambda_definitions or getattr(self, 'boxed_enums', None) or getattr(self, 'collect_helpers', None):
+            self.output[lambda_index:lambda_index] = self.lambda_definitions + self.box_equality_lines() \
+                + self.collect_helper_lines()
         # List function bodies (Task 18.5.1) go last of everything inserted here - they
         # call struct, equality and wrapper helpers
         self.output[typedef_index:typedef_index] = self.collection_body_lines()
@@ -729,6 +730,26 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                     params = 'int argc, char** argv'   # for --headless (fusion_init)
                 self.emit(f'{return_type} {func_name}({params});')
         self.emit()  # Blank line
+
+    def collect_helper(self, list_c: str, collection: str, element) -> str:
+        """fusion_collect_X: a List of every item a Collection<X>'s iterator() gives (32.4)."""
+        helpers = self.__dict__.setdefault('collect_helpers', {})
+        name = f'fusion_collect_{list_c}'
+        if name not in helpers:
+            iterator = collection.replace('Collection<', 'Iterator<', 1)
+            c, i = self._mangle_function_name(collection), self._mangle_function_name(iterator)
+            helpers[name] = [
+                f'static {list_c} {name}(void* c) {{',
+                f'    {list_c} l = {list_c}_new();',
+                f'    void* it = c ? {c}__iterator(c) : NULL;',
+                f'    while (it && {i}__hasNext(it)) {list_c}_add(l, {i}__next(it));',
+                f'    fusion_release_{i}(&it);',
+                '    return l;',
+                '}']
+        return name
+
+    def collect_helper_lines(self) -> list:
+        return [line for lines in getattr(self, 'collect_helpers', {}).values() for line in lines]
 
     def _c_arguments(self, parameters) -> str:
         """The C names a call passes on for these parameters (a wrapper's call - 32.5a)."""
@@ -1957,6 +1978,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         body may change the list safely. A list made just for the loop is freed after it."""
         iterable, element = node.iterable, node.element_type
         iterable_type = iterable.inferred_type
+        collected = getattr(node, 'collected', None)       # a class's Collection<X> (32.4)
+        if collected is not None:
+            iterable_type = collected[0]
         watched = None
         self.temp_count = getattr(self, 'temp_count', 0) + 1
         n = self.temp_count
@@ -1966,7 +1990,15 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.push_scope('block')
         if isinstance(iterable_type, (ListType, MapType)):
             list_c = self.map_type(iterable_type)
-            if isinstance(iterable, (IdentifierExpr, MemberExpr, IndexExpr)):
+            if collected is not None:
+                # its iterator() gives the items, gathered into a List for the loop (32.4)
+                helper = self.collect_helper(list_c, collected[1], element)
+                # a null collection object is a NullError, as `.` on it is (Rule 4b)
+                needed = self.object_needed(self.visit(iterable), iterable.inferred_type, iterable)
+                self.emit_line(f'{list_c} fusion_iter_{n} = {helper}((void*)({needed}))')
+                self.register_owned(f'fusion_iter_{n}', iterable_type)
+                source = f'fusion_iter_{n}->'
+            elif isinstance(iterable, (IdentifierExpr, MemberExpr, IndexExpr)):
                 self.emit_line(f'{list_c} fusion_iter_{n} = {self.visit(iterable)}')
                 source = f'fusion_iter_{n}->'
                 # Elements added or removed while looping: an error, never a skip (27.2e)

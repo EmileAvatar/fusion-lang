@@ -17,7 +17,8 @@
 //   ToString        [built 32.5b]     how an object prints
 //   Cloneable       [built 32.5b]     a class that makes its own copy
 //   Default         [built 32.5b]     a variable of the type is never null
-//   Collection<T>   [designed 32.4]   anything foreach can loop over
+//   Iterator<T>     [built 32.4]      hasNext / next - a collection gives a new one per loop
+//   Collection<T>   [built 32.4]      anything foreach can loop over
 //   List<T>         [designed 32.6]   List as an interface, with a default implementation
 //   Service<T>      [designed 42.21]  every kind of service (BasicService, HotPathService, ...)
 //
@@ -69,7 +70,13 @@ class Settings implements Default {
 
 
 // ---------------------------------------------------------------------------------------------
-// [designed 32.4] Collection<T> - anything foreach can loop over (Decisions.md D.085)
+// [built 32.4] Iterator<T> - one pass over a collection (Decisions.md D.089)
+//     interface Iterator<T> {
+//         bool function hasNext()
+//         T function next()
+//     }
+// [built 32.4] Collection<T> - anything foreach can loop over (Decisions.md D.085)
+//         Iterator<T> function iterator()           // a new one for each loop - nested loops work
 //     interface Collection<T> {
 //         bool function add(T item)                      // true when it was added
 //         bool function remove(T item)                   // removes one; true when one was there
@@ -83,7 +90,8 @@ class Settings implements Default {
 //     }
 // Arrays, Lists and Maps implement it, and so can a class of your own. A looped collection
 // isn't changed inside the loop - your own only with [collections] allowChangeWhileLooping.
-// Still to decide: how foreach walks your own one (an iterator?); what arrays and Maps give.
+// [designed 32.6] arrays, Lists and Maps as Collection<T> values, each its own implementation -
+// an array's blocks removing an item (D.090).
 // ---------------------------------------------------------------------------------------------
 class Team implements Collection<Person> {
     List<Person> people

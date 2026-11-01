@@ -1,0 +1,9 @@
+void function main()
+    List<string> names = ["Ann", "Bob"]
+    foreach (string n in names)           // or: foreach n in names
+        print(n)
+    int[3] scores = [7, 8, 9]
+    foreach s in scores
+        write("{s} ")
+    print("")
+    // names.add("Cy") inside the loop would be a compile error - build a new List instead

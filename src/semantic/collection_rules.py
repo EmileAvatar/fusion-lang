@@ -283,6 +283,57 @@ class CollectionRulesMixin:
 
     # ------------------------------------------------------------------ for ... in
 
+    def _collection_of(self, type_node):
+        """The Collection<X> interface a class implements, or None (Task 32.4)."""
+        decl = self.struct_declaration(type_node)
+        name = next((n for n in getattr(decl, 'all_interfaces', ()) if n.startswith('Collection<')), None)
+        if name is None and getattr(decl, 'is_interface', False) and decl.name.startswith('Collection<'):
+            name = decl.name
+        return self.struct_named(name) if name else None
+
+    def _no_change_while_looping(self, node, iterable_type) -> None:
+        """D.058 (Task 32.4): the collection being looped over isn't changed inside the loop -
+        Fusion's own never; a class of your own only with [collections]
+        allowChangeWhileLooping. A compile error here; a change this can't see is a
+        ModifiedWhileLoopingError while running."""
+        from dataclasses import fields as dataclass_fields, is_dataclass
+        looped = node.iterable
+        if not isinstance(looped, IdentifierExpr):
+            return
+        own = self._collection_of(iterable_type) is not None
+        if own and getattr(self, 'allow_change_while_looping', False):
+            return
+        changing = MUTATING_MAP_METHODS if isinstance(iterable_type, MapType) else MUTATING_LIST_METHODS
+        decl = self.struct_declaration(iterable_type) if own else None
+
+        def changes(member):
+            if not own:
+                return member in changing
+            method = next((m for m in decl.methods if getattr(m, 'method_name', None) == member), None) \
+                or getattr(decl, 'inherited', {}).get(member)
+            return member in ('add', 'remove', 'addAll', 'removeAll', 'keepOnly', 'retainAll', 'clear') \
+                or getattr(method, 'changes_this', False)
+
+        def walk(n):
+            if isinstance(n, list):
+                for item in n:
+                    walk(item)
+                return
+            if not is_dataclass(n) or isinstance(n, type):
+                return
+            if isinstance(n, CallExpr) and isinstance(n.callee, MemberExpr) \
+                    and isinstance(n.callee.object, IdentifierExpr) \
+                    and n.callee.object.name == looped.name and changes(n.callee.member):
+                hint = (" - or [collections] allowChangeWhileLooping = true for a class of your own"
+                        if own else "")
+                self.errors.append(SemanticError(
+                    f"'{looped.name}' is being looped over - it can't change inside the loop "
+                    f"({n.callee.member}); build a new one instead{hint}", n.location))
+            for f in dataclass_fields(n):
+                if f.name not in ('location', 'inferred_type', 'declaration', 'scope'):
+                    walk(getattr(n, f.name))
+        walk(node.body)
+
     def _check_for_iterable(self, node) -> None:
         """`for x in range(...)`, `for x in xs` (a List or an array): the loop variable gets
         the element type. Anything else is an error - it used to loop 0..9 silently."""
@@ -298,13 +349,25 @@ class CollectionRulesMixin:
             element = iterable_type.key_type      # a map's keys, in the order they were added
         elif isinstance(iterable_type, ArrayType):
             element = iterable_type.element_type
+        elif self._collection_of(iterable_type) is not None:
+            # a class implementing Collection<X> (Task 32.4): its iterator() gives the items
+            iface = self._collection_of(iterable_type)
+            element = iface.element_type
+            node.collected = (ListType(location=iterable.location, element_type=element), iface.name)
         else:
             if not (isinstance(iterable_type, PrimitiveType) and iterable_type.name == 'void'):
                 self.errors.append(SemanticError(
-                    f"'for ... in' needs range(...), a List, a Map or an array, got "
+                    f"'for ... in' needs range(...), a List, a Map, an array or a class "
+                    f"implementing Collection<T>, got "
                     f"{self.type_to_string(iterable_type)}", iterable.location))
             return
         node.element_type = element
+        declared = getattr(node, 'declared_type', None)            # foreach (T x in c) - 32.4
+        if declared is not None and not self.types_equal(declared, element):
+            self.errors.append(SemanticError(
+                f"foreach ({self.type_to_string(declared)} {node.variable} in ...): its items are "
+                f"{self.type_to_string(element)}", node.location))
+        self._no_change_while_looping(node, iterable_type)          # D.058
         scope = getattr(node, 'scope', None)
         if scope is not None and node.variable in scope.symbols:
             scope.symbols[node.variable].data_type = element

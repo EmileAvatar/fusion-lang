@@ -121,7 +121,8 @@ def compile_file(source_path: str) -> int:
                                 modules_config=project_config.modules,
                                 conditions_config=project_config.conditions,
                                 visibility_config=project_config.visibility,
-                                interfaces_config=project_config.interfaces)
+                                interfaces_config=project_config.interfaces,
+                                collections_config=project_config.collections)
     success = analyzer.analyze(ast)
 
     if not success:

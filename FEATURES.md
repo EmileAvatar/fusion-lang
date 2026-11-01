@@ -124,9 +124,7 @@ are in `task/featuresArchive.md`.
 		(see Later: "Map keys")
 	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` /
 		`sliceAt` as quick typing) - the same rules as List (see Later: "List slice")
-	[ ] 45.9 `foreach (string item in names)` over arrays, lists and maps - the item's type is
-		the collection's; adding / removing that collection inside is a compile error;
-		`continue` / `break` allowed (user, 2026-10-27)
+	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
 	[ ] 45.7 The array being looped over can't be changed inside the loop (user, 2026-10-31, D.058)
 		Any loop: `for` and `foreach` - a compile error where seen, else ModifiedWhileLoopingError
 		Build a new array from it instead: loop over `a`, add to `b`
@@ -221,10 +219,14 @@ are in `task/featuresArchive.md`.
 		(`clone()` - copies of objects, byVal / toList on a List of objects, nocopy / noshare)
 	[ ] 32.14 List / Map options set in form B (user, 2026-10-30): no duplicates, no null,
 		read only after set-up - `List<string> names = List<string>() { names.noDuplicates() }`
-	[ ] 32.4 A `Collection` interface (user, 2026-10-27 - Arrays.md section 6): arrays, lists and
-		maps implement it; `foreach` works on any class that does, and the class decides its
-		own rules (adding / removing while looping, threads, special actions)
+	[DONE] 32.4 `Collection<T>`, `Iterator<T>`, `foreach` (tests/test_foreach.py, Arrays.md section 6)
+		`foreach (T x in c)` / `foreach x in c` over arrays, Lists, Maps and a Collection<T> class
+		a collection gives a new Iterator<T> from iterator() per loop - nested loops work (D.089)
+		the looped collection never changes inside a loop - a compile error (D.058); your own class
+			only with `[collections] allowChangeWhileLooping` (default false)
 	[ ] 32.6 `List<T>` as an interface with a default implementation - never null
+		arrays, Lists and Maps as Collection<T> / Iterator<T> values (`Collection<int> c = xs`) (D.090)
+		each its own implementation - an array's blocks removing an item
 	[ ] 32.11 `[source] caseSensitive` (default true); false: the compiler lists names that differ only in case
 	[ ] 32.12 A comma after a struct field or a multi-line enum value is ignored
 	[ ] 32.3 Example (was 16.2: classes, interfaces & enums)

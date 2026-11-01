@@ -103,10 +103,91 @@ def _add_builtin_interfaces(program, structs) -> List[SemanticError]:
     return errors
 
 
+# Iterator<T> and Collection<T> (Task 32.4, Decisions.md D.085, D.089): made for each element
+# type a program uses. (result, name, parameters) - 'T' is the element type, 'Iterator' /
+# 'Collection' the same interface for it
+GENERIC_INTERFACES = {
+    'Iterator': [('bool', 'hasNext', []), ('T', 'next', [])],
+    'Collection': [('Iterator', 'iterator', []), ('bool', 'add', [('T', 'item')]),
+                   ('bool', 'remove', [('T', 'item')]), ('int', 'length', []),
+                   ('bool', 'isEmpty', []), ('bool', 'contains', [('T', 'item')]),
+                   ('bool', 'addAll', [('Collection', 'items')]),
+                   ('bool', 'removeAll', [('Collection', 'items')]),
+                   ('bool', 'keepOnly', [('Collection', 'items')]), ('void', 'clear', [])],
+}
+
+
+def _generic_kinds(program) -> list:
+    """Every Iterator<X> / Collection<X> written in the program (Task 32.4)."""
+    found = []
+
+    def walk(node):
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if isinstance(node, StructType) and getattr(node, 'type_args', None):
+            found.append(node)
+        for f in fields(node):
+            if f.name not in ('location', 'inferred_type', 'declaration', 'scope'):
+                walk(getattr(node, f.name))
+    for d in program.declarations:
+        walk(d)
+        found += getattr(d, 'interface_kinds', [])
+    return found
+
+
+def _add_generic_interfaces(program, structs) -> List[SemanticError]:
+    from src.parser.parser import type_text
+    errors, made = [], {}
+    pending = list(_generic_kinds(program))
+    while pending:
+        kind = pending.pop()
+        if kind.name in made or kind.name in structs and not getattr(structs[kind.name], 'builtin', False):
+            continue
+        if kind.name in structs:
+            continue
+        base, element = kind.name.split('<', 1)[0], kind.type_args[0]
+        where = kind.location
+        decl = StructDecl(location=where, name=kind.name, fields=[], is_class=True, is_interface=True)
+        decl.builtin, decl.element_type = True, element
+
+        def resolve(text):
+            if text == 'T':
+                return copy.deepcopy(element)
+            if text in GENERIC_INTERFACES:
+                other = StructType(location=where, name=f'{text}<{type_text(element)}>')
+                other.type_args = [element]
+                pending.append(other)
+                return other
+            return PrimitiveType(location=where, name=text)
+        for result, method_name, params in GENERIC_INTERFACES[base]:
+            method = FunctionDecl(location=where, return_type=resolve(result), name=f'{kind.name}.{method_name}',
+                                  parameters=[ParameterDecl(location=where, name='this', default_value=None,
+                                                            param_type=StructType(location=where, name=kind.name))]
+                                  + [ParameterDecl(location=where, name=n, default_value=None, param_type=resolve(t))
+                                     for t, n in params],
+                                  body=None, is_public=True)
+            method.method_name, method.method_of, method.interface_of = method_name, kind.name, kind.name
+            method.changes_this = method_name in ('add', 'remove', 'addAll', 'removeAll', 'keepOnly', 'clear')
+            decl.methods.append(method)
+            program.declarations.append(method)
+        program.declarations.insert(0, decl)
+        structs[kind.name] = made[kind.name] = decl
+    for name in GENERIC_INTERFACES:
+        if name in structs and not getattr(structs[name], 'builtin', False):
+            errors.append(SemanticError(f"'{name}' is Fusion's own interface - give yours another name",
+                                        structs[name].location))
+    return errors
+
+
 def check_interfaces(program, default_methods: bool = False) -> List[SemanticError]:
     errors = []
     structs = {d.name: d for d in program.declarations if isinstance(d, StructDecl)}
     errors += _add_builtin_interfaces(program, structs)
+    errors += _add_generic_interfaces(program, structs)          # Task 32.4
     interfaces = {n: d for n, d in structs.items() if d.is_interface}
 
     # What each interface builds on: interfaces only, never in a circle

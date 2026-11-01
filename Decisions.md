@@ -108,8 +108,8 @@ COL.001 [BUILT] Fixed-size arrays, bounds always checked
 COL.002 [PLANNED] Arrays know their length, grow and shrink at the end, `+`, `copyPart` (Task 45)
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
-COL.005 [PLANNED] `foreach`; changing a collection inside it is an error (45.9)
-COL.006 [PLANNED] A `Collection` interface - `foreach` on any class that implements it (32.4)
+COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
+COL.006 [BUILT] `Collection<T>` and `Iterator<T>` - a class of your own can be looped over (32.4); arrays, Lists, Maps as their values [PLANNED 32.6]
 COL.007 [PLANNED] List / Map options in form B: no duplicates, no null, read only (32.14)
 COL.008 [PLANNED] A Collections module: RingBuffer first (43.4)
 COL.009 [BUILT] `toList`, `toCSV`
@@ -332,3 +332,5 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.086 | A rule that is broken: a compile error wherever it can be seen, else a run-time error | GOL.008 | 2026-10-31 | - | ACTIVE |
 | D.087 | An interface can build on several: `interface D implements A, B, C` | CLS.006 | 2026-10-31 | taskSummary2.md (32.5) | ACTIVE (planned) |
 | D.088 | A copy of an object is usually a new default object with each field set byVal from the original; `Cloneable` and a written `clone()` only for a `nocopy` field | CLS.008 | 2026-10-31 | Object_Lifetime.md 4b | ACTIVE (planned) |
+| D.089 | `Iterator<T>`: `bool hasNext()`, `T next()`; a collection gives a new one from `iterator()` for each loop (a loop inside a loop works); `foreach` needs it - for your own classes too | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
+| D.090 | Arrays, Lists and Maps implement Collection<T> and Iterator<T> - each its own implementation: an array's blocks removing an item, a List's / Map's allows it (code to an interface) | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE (planned - 32.6) |

@@ -200,6 +200,18 @@ CONDITION_NUMBERS = ("positive", "nonzero", "off")
 
 
 @dataclass
+class CollectionsConfig:
+    """Collections (Task 32.4, user decision 2026-10-31 - Decisions.md D.058).
+
+    Attributes:
+        allow_change_while_looping: True lets a collection class of your own be changed
+            inside a loop over it (its own rules decide). False (the default): blocked, as
+            Fusion's own collections always are.
+    """
+    allow_change_while_looping: bool = False
+
+
+@dataclass
 class InterfacesConfig:
     """Interfaces (Task 32.5a, user decision 2026-10-28 - Decisions.md D.006).
 
@@ -274,6 +286,7 @@ class ProjectConfig:
     modules: ModulesConfig = field(default_factory=ModulesConfig)
     visibility: VisibilityConfig = field(default_factory=VisibilityConfig)
     interfaces: InterfacesConfig = field(default_factory=InterfacesConfig)
+    collections: CollectionsConfig = field(default_factory=CollectionsConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
@@ -467,6 +480,21 @@ def _load_modules_section(data: dict, config_path: str) -> ModulesConfig:
                 f"{config_path}: modules.variables must be true or false, got {value!r}")
         modules.variables = value
     return modules
+
+
+def _load_collections_section(data: dict, config_path: str) -> CollectionsConfig:
+    """Parse and validate the [collections] section (Task 32.4)."""
+    collections = CollectionsConfig()
+    section = _require_table(data, "collections", config_path)
+    for key, value in section.items():
+        if key != "allowChangeWhileLooping":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting collections.{key} (known: ['allowChangeWhileLooping'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: collections.allowChangeWhileLooping must be true or false, got {value!r}")
+        collections.allow_change_while_looping = value
+    return collections
 
 
 def _load_interfaces_section(data: dict, config_path: str) -> InterfacesConfig:
@@ -711,6 +739,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         modules=_load_modules_section(data, config_path),
         visibility=_load_visibility_section(data, config_path),
         interfaces=_load_interfaces_section(data, config_path),
+        collections=_load_collections_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),

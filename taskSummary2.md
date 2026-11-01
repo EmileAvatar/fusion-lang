@@ -559,8 +559,11 @@ Kept under Task 22 until the renumbering is approved.
 - 32.7 done: inheritance.py - a child's struct starts with the parent's fields (a pragma lets
   C use it as the parent); virtual functions through a hidden X.virtual table; Employee.init
   for super(...); typeOf via the class chain
-- **Next Action:** 32.4 + 32.6 (Collection<T>, foreach) - two open points first (iterator?
-  what arrays and Maps give)
+- 32.4 done (user, 2026-11-01: a collection gives a new Iterator<T> per loop; arrays / Lists /
+  Maps implement Collection<T> and Iterator<T>, an array's own implementation blocks remove):
+  Iterator<X> / Collection<X> made per element type; foreach over a class collects its
+  iterator's items into a List, then the List loop runs
+- **Next Action:** 32.6 (arrays, Lists, Maps as Collection<T> values; List as an interface)
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

@@ -4547,6 +4547,9 @@ layer = "std"                  # std (default) | alloc | core
 [modules]                      # Task 44.1 - see "Constants"
 variables = true               # module-level variables; constants are always allowed
 
+[collections]                  # Task 32.4 - foreach, Collection<T>
+allowChangeWhileLooping = false   # true: a collection class of your own may change in a loop
+
 [interfaces]                   # Task 32.5a - see "Interfaces and Contracts"
 defaultMethods = false         # true: an interface's function may have code (a default)
 

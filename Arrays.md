@@ -260,7 +260,23 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
 
 ---
 
-## 6. foreach - looping without changing (planned, user 2026-10-27)
+## 6. foreach - looping without changing (built - Task 32.4, tests/test_foreach.py)
+
+**Built:** `foreach (string n in names)` or `foreach n in names` over an array, a List, a Map
+(its keys) or a class implementing `Collection<T>`; changing the looped collection inside is a
+compile error (any loop - D.058), a class of your own only with `[collections]
+allowChangeWhileLooping = true`. A collection of your own gives a **new** `Iterator<T>` from
+`iterator()` for each loop (`hasNext()`, `next()`), so a loop inside a loop over it works:
+
+```fusion
+class Team implements Collection<Person>
+    Iterator<Person> function iterator() : TeamIterator(people)   // and the other Collection functions
+class TeamIterator implements Iterator<Person>
+    bool function hasNext() : at < people.len()
+    Person function next() ...
+```
+Planned (32.6): arrays, Lists and Maps as `Collection<T>` values themselves (`Collection<int> c
+= xs`), each with its own implementation - an array's blocks removing an item.
 
 `foreach` goes over an array, list or map like `for x in`, but **promises not to change it**:
 adding or removing items of that collection inside a `foreach` is a **compile error**. `continue`
@@ -371,5 +387,6 @@ original alone.
 | 2026-10-29 | `toList(copy = true)` on a List and an array; setting an array / List / Map to null is an error unless its nullable setting allows it |
 | 2026-10-29 | Arrays, Lists and Maps are references (shared) in normal code - a variable, parameter, class field, element - and copied inside a struct; `byVal` copies in normal code, `byRef` shares in a struct field. Never null, just empty |
 | 2026-10-31 | Planned (Task 48): Lists and Maps move on assignment, `byVal` copies, reading an element or passing borrows; a struct's collection only lends itself (Ownership.md) |
+| 2026-11-01 | `Iterator<T>` (hasNext, next); a collection gives a new one from `iterator()` for each loop; foreach needs it; arrays, Lists and Maps implement Collection<T> and Iterator<T> - an array's own implementation blocks remove (D.089, D.090) |
 | 2026-10-31 | Planned (47.5): `fixed(n)` - only the size is limited, the values may change (`const`: nothing changes); lower fine, never higher; starts empty, grows up to it, memory reserved once |
 | 2026-10-27 | Map values of any type; keys a non-empty fixed string or a whole number 0 or above; a map may bring its own hashing and key rules |

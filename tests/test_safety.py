@@ -418,11 +418,12 @@ def test_single_equals_outside_a_condition_says_to_use_double(body):
 
 
 def test_changing_a_collection_while_looping_is_an_error():
-    lines, stderr = run_failing(main(
+    # through another function - written in the loop it is a compile error (D.058)
+    lines, stderr = run_failing('void function cut(List<int> v)\n    v.removeAt(0)\n\n' + main(
         'List<int> xs = [1, 2, 3]\n'
         'for x in xs\n'
         '    if x == 2\n'
-        '        xs.removeAt(0)\n'
+        '        cut(xs)\n'
         '    print("{x}")'))
     assert lines == ['1', '2']
     assert 'the List changed while a for loop went over it (an element was added or removed ' \

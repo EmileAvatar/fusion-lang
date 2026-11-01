@@ -1050,6 +1050,25 @@ void function main()
 class being inherited or a function overridden; `protected` is for the class and the classes
 below it. Fusion favours holding an object (composition) over inheritance.
 
+#### `foreach`, and a collection of your own: `Collection<T>`, `Iterator<T>`
+
+<!-- example: syntax_foreach | task: 32.4 -->
+```fusion
+void function main()
+    List<string> names = ["Ann", "Bob"]
+    foreach (string n in names)           // or: foreach n in names
+        print(n)
+    int[3] scores = [7, 8, 9]
+    foreach s in scores
+        write("{s} ")
+    print("")
+    // names.add("Cy") inside the loop would be a compile error - build a new List instead
+```
+A class of your own can be looped over: `class Team implements Collection<Person>` gives
+`Iterator<Person> function iterator()` (a new one each time) and the other Collection functions
+(add, remove, length, isEmpty, contains, addAll, removeAll, keepOnly, clear); the iterator
+`implements Iterator<Person>` with `bool function hasNext()` and `Person function next()`.
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->
@@ -1378,6 +1397,9 @@ required = false                 # true: public / internal / private written eve
 
 [interfaces]
 defaultMethods = false           # true: an interface's function may have code (a default)
+
+[collections]
+allowChangeWhileLooping = false  # true: a collection class of your own may change inside a loop over it
 
 [conditions]
 numbers = "positive"             # if / while count: count > 0 (default); "nonzero": count != 0;

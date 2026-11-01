@@ -17,6 +17,23 @@ from src.parser.ast_nodes import *
 PASSING_WORDS = {'byVal': True, 'byValue': True, 'byRef': False}
 
 
+
+# Fusion's own generic interfaces (Task 32.4): Iterator<T>, Collection<T>
+GENERIC_INTERFACE_NAMES = ('Iterator', 'Collection')
+
+
+def type_text(t) -> str:
+    """A type as written - `Person`, `int`, `List<int>` - the name of a generic interface's
+    element type (`Collection<List<int>>`)."""
+    name = getattr(t, 'name', None)
+    if type(t).__name__ == 'ListType':
+        return f'List<{type_text(t.element_type)}>'
+    if type(t).__name__ == 'MapType':
+        return f'Map<{type_text(t.key_type)}, {type_text(t.value_type)}>'
+    if type(t).__name__ == 'ArrayType':
+        return f'{type_text(t.element_type)}[]'
+    return name or type(t).__name__
+
 class ParserError(Exception):
     """Exception raised for parser errors.
 
@@ -49,6 +66,7 @@ class Parser:
             tokens: List of tokens from lexer (must include EOF token)
         """
         self.tokens = tokens
+        self.generic_interfaces = []   # Iterator<Person>, Collection<int> ... (Task 32.4)
         self.current = 0
         # Inside an if / while / else-if condition `=` compares, like `==` (Task 18.3.5)
         self.in_condition = False
@@ -820,6 +838,8 @@ class Parser:
                 name += '.' + self.advance().value
             if name in COLLECTION_TYPE_NAMES and self.check(TokenType.LESS):
                 base_type = self.parse_collection_type(token)
+            elif name in GENERIC_INTERFACE_NAMES and self.check(TokenType.LESS):
+                base_type = self._generic_interface_type(token, name)      # Task 32.4
             elif name == 'bytes':
                 # Raw bytes (Task 18.3.8) - a built-in type, not a keyword
                 base_type = PrimitiveType(location=token.location, name='bytes')
@@ -1062,6 +1082,8 @@ class Parser:
         # For loop
         if self.match(TokenType.FOR):
             return self.parse_for_statement()
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'foreach' and self._is_foreach():
+            return self.parse_foreach_statement()                      # Task 32.4
 
         # match (Task 25.3); `fall match` falls through until break (Task 30.13) - `fall` is
         # a word only right before `match`
@@ -1625,6 +1647,53 @@ class Parser:
             body=body
         )
 
+    def _is_foreach(self) -> bool:
+        """`foreach (T x in c)` or `foreach x in c` - a word, not a keyword (Task 32.4)."""
+        if self.peek(1).type == TokenType.IDENTIFIER and self.peek(2).type == TokenType.IN:
+            return True
+        if self.peek(1).type != TokenType.LPAREN:
+            return False
+        depth, i = 0, 1
+        while self.current + i < len(self.tokens):
+            kind = self.peek(i).type
+            if kind == TokenType.LPAREN:
+                depth += 1
+            elif kind == TokenType.RPAREN:
+                depth -= 1
+                if depth == 0:
+                    return False
+            elif kind == TokenType.IN and depth == 1:
+                return True
+            elif kind in (TokenType.NEWLINE, TokenType.EOF):
+                return False
+            i += 1
+        return False
+
+    def parse_foreach_statement(self) -> ASTNode:
+        """`foreach (string n in names)` / `foreach n in names` (Task 32.4, D.049): a loop over
+        any collection - an array, List, Map (its keys) or a class implementing
+        Collection<T>; the item's written type must be the collection's."""
+        start = self.advance()
+        declared = None
+        parens = self.match(TokenType.LPAREN)
+        if parens and not (self.check(TokenType.IDENTIFIER) and self.peek(1).type == TokenType.IN):
+            declared = self.parse_type()
+        variable = self.consume(TokenType.IDENTIFIER, "Expected the item's name in foreach").value
+        self.consume(TokenType.IN, "Expected 'in' after the item in foreach")
+        iterable = self.parse_expression()
+        if parens:
+            self.consume(TokenType.RPAREN, "Expected ')' after the collection in foreach")
+        while self.match(TokenType.NEWLINE):
+            pass
+        body = self.parse_block_statement()
+        if self.match(TokenType.END):
+            if not self.match(TokenType.FOR):
+                self.consume(TokenType.IDENTIFIER, "Expected 'foreach' after 'End'")
+        loop = ForStmt(location=start.location, variable=variable, iterable=iterable, body=body)
+        loop.is_foreach = True
+        loop.declared_type = declared
+        return loop
+
     def parse_for_statement(self) -> ASTNode:
         """Parse for loop: for i in range { body }
 
@@ -1990,11 +2059,31 @@ class Parser:
                            name=name_token.value, initializer=initializer, is_const=is_const)
 
     def _implements_list(self) -> list:
-        """`implements A, B, C` - the IMPLEMENTS token already consumed (Task 32.5a)."""
-        names = [self.consume(TokenType.IDENTIFIER, "Expected an interface's name after 'implements'").value]
+        """`implements A, B, C` - the IMPLEMENTS token already consumed (Task 32.5a);
+        `Collection<Person>` too (Task 32.4)."""
+        names = [self._interface_name()]
         while self.match(TokenType.COMMA):
-            names.append(self.consume(TokenType.IDENTIFIER, "Expected an interface's name after ','").value)
+            names.append(self._interface_name())
         return names
+
+    def _interface_name(self) -> str:
+        token = self.consume(TokenType.IDENTIFIER, "Expected an interface's name after 'implements'")
+        if token.value in GENERIC_INTERFACE_NAMES and self.check(TokenType.LESS):
+            kind = self._generic_interface_type(token, token.value)
+            self.generic_interfaces.append(kind)
+            return kind.name
+        return token.value
+
+    def _generic_interface_type(self, token, name: str) -> StructType:
+        """`Iterator<Person>`, `Collection<int>` (Task 32.4): one of Fusion's own interfaces,
+        made for that element type - the name holds it (`Collection<Person>`)."""
+        self.consume(TokenType.LESS, "Expected '<'")
+        element = self.parse_type()
+        self.consume(TokenType.GREATER, f"Expected '>' after the type in {name}<...>")
+        kind = StructType(location=token.location, name=f'{name}<{type_text(element)}>')
+        kind.type_args = [element]
+        self.generic_interfaces.append(kind)
+        return kind
 
     def parse_interface_declaration(self) -> StructDecl:
         """`interface Shape` (Task 32.5a, D.087): function signatures only - what, not how.
@@ -2038,6 +2127,7 @@ class Parser:
             self.consume(TokenType.INTERFACE, "Expected 'interface' after 'End'")
         decl = StructDecl(location=start.location, name=name, fields=[], is_class=True,
                           is_interface=True, interfaces=parents)
+        decl.interface_kinds = [k for k in self.generic_interfaces if k.name in parents]   # 32.4
         for method in methods:
             method.method_name, method.method_of = method.name, name
             method.name = f'{name}.{method.name}'
@@ -2274,6 +2364,7 @@ class Parser:
         decl = StructDecl(location=class_token.location, name=name, fields=fields, is_class=True,
                           static_fields=static_fields, static_block=static_block,
                           interfaces=interfaces, class_parent=parent)
+        decl.interface_kinds = [k for k in self.generic_interfaces if k.name in interfaces]   # 32.4
         self.attach_methods(decl, methods)
         for method in static_methods:                # no `this` (Task 32.2c)
             method.method_name, method.method_of = method.name, name

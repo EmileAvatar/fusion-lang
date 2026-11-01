@@ -41,7 +41,10 @@ def mangle_function_name(name: str) -> str:
     """
     if name == 'main':
         return name
-    # A module's name: money.round -> fu_money__round (Task 18.4.2)
+    # A module's name: money.round -> fu_money__round (Task 18.4.2); a generic interface:
+    # Collection<Person> -> fu_Collection_Person (Task 32.4)
+    for text, c in (('<', '_'), ('>', ''), (', ', '_'), (',', '_'), ('[]', '_array'), (' ', '')):
+        name = name.replace(text, c)
     return 'fu_' + name.replace('.', '__')
 
 

@@ -139,12 +139,15 @@ def test_for_each():
 def test_changing_a_list_while_looping_over_it_is_an_error():
     # Task 27.2e (user decision 2026-10-17): adding or removing elements of the list being
     # looped over is a ModifiedWhileLoopingError - never a skipped element. Setting an
-    # element's value is fine
-    assert run_ok(main(
+    # element's value is fine. Written in the loop it is a compile error (D.058, Task 32.4);
+    # through another function, the run-time error
+    assert run_ok(
+        'void function grow(List<string> v, string s)\n    v.add(s + "!")\n\n'
+        'void function drop(Map<string, int> mm, string k)\n    mm.remove(k)\n\n' + main(
         'List<string> xs = ["a", "b"]\n'
         'try\n'
         '    for s in xs\n'
-        '        xs.add(s + "!")\n'
+        '        grow(xs, s)\n'
         'catch e\n'
         '    print("{e.kind}")\n'
         'for s in xs\n'
@@ -154,7 +157,7 @@ def test_changing_a_list_while_looping_over_it_is_an_error():
         'try\n'
         '    for k in m\n'
         '        m["a"] = 2\n'               # a value replaced: fine
-        '        m.remove(k)\n'               # a key removed: the error, after this pass
+        '        drop(m, k)\n'                # a key removed: the error, after this pass
         'catch e\n'
         '    print("{e.kind}")\n'
         'print("{@1} {@2} {@3}", xs.len(), xs[0], m.len())'
@@ -196,7 +199,12 @@ def test_run_time_errors(statement, message):
     ('List<int> xs\nxs.add()', "List method 'add' takes 1 argument(s), got 0"),
     ('List<int> xs\nList<int> ys = xs.filter((int x) : x * 2)', "'filter' needs a function (int) -> bool"),
     ('const List<int> xs = [1]\nxs.add(2)', "'add' can't change constant 'xs'"),
-    ('for x in 5\n    print("x")', "'for ... in' needs range(...), a List, a Map or an array, got int"),
+    ('for x in 5\n    print("x")', "'for ... in' needs range(...), a List, a Map, an array or a class implementing Collection<T>, got int"),
+    ('List<int> xs = [1]\n    foreach x in xs\n        xs.add(2)',
+     "'xs' is being looped over - it can't change inside the loop (add); build a new one instead"),
+    ('List<int> xs = [1]\n    for x in xs\n        xs.removeAt(0)', "'xs' is being looped over"),
+    ('List<int> xs = [1]\n    foreach (string s in xs)\n        print(s)',
+     "foreach (string s in ...): its items are int"),
     ('List<int> xs\nprint("{xs}")', "Can't print a whole List<int> value"),
     ('List<void> xs', "A List can't hold void"),
     ('List<int> xs\nList<string> ys = xs', "Cannot assign List<int> to variable of type List<string>"),
