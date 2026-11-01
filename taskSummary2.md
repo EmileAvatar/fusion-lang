@@ -566,7 +566,10 @@ Kept under Task 22 until the renumbering is approved.
 - 32.6 List part done: a List's struct now starts like an object (count, class table); a
   List<X> table answers Collection<X> when the program uses it; a list iterator object;
   fixed on the way: assigning to an interface / parent variable set by the value's type
-- **Next Action:** the Map question (32.6), then 32.14, 32.11, 32.12, 32.3
+- User 2026-11-01: next() past the end gives null (D.091 - an error only for a genuine
+  failure); Map = Collection<Entry<K, V>> + keys() / values() borrowed (D.092); struct commas
+  needed only on one line (D.093) - 32.12 done; C.011 (value types can't be null) open
+- **Next Action:** 32.6 the Map part, then 32.14, 32.11, 32.3
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

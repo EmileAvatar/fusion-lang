@@ -2197,6 +2197,17 @@ class Parser:
                 )
             item = self.parse_struct_field()
             (methods if isinstance(item, FunctionDecl) else fields).append(item)
+            # A comma: needed between fields on one line (`{ int x, int y }`); after the last
+            # field of a line it isn't needed, and is ignored (Task 32.12, D.093)
+            if self.match(TokenType.COMMA):
+                if self.check(TokenType.NEWLINE) or self.check(closing):
+                    pass
+                else:
+                    continue
+            elif not (self.check(TokenType.NEWLINE) or self.check(closing) or self.is_at_end()) \
+                    and not isinstance(item, FunctionDecl):
+                raise ParserError(self.peek(), f"Fields on one line are separated by commas - "
+                                               f"struct {name_token.value} {{ int x, int y }}")
             while self.match(TokenType.NEWLINE):
                 pass
 

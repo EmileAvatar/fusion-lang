@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (none open - C.001-C.010 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065, D.077, D.080)
+  (open: C.011 - C.001-C.010 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065, D.077, D.080)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -71,7 +71,7 @@ SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints
 SYN.037 [DESIGN] Semicolons accepted; reading code written in other languages' syntax
 SYN.038 [DESIGN] A minimum variable-name length in strict mode (default 3; loop counters and type parameters excepted)
 SYN.039 [BUILT] `and`, `or`, `not`; a lambda as `func(int x) : x * 2`
-SYN.040 [PLANNED] `[source] caseSensitive` (default true) (32.11); a comma after a struct field is ignored (32.12)
+SYN.040 [PLANNED] `[source] caseSensitive` (default true) (32.11)
 
 #### TYP - types
 TYP.001 [BUILT] int, float, double, bool, char, byte - overflow checked; `[numbers] overflowWrap` wraps
@@ -152,6 +152,7 @@ STC.004 [BUILT] A struct as text: `"{e}"` -> `name : "Jeff",age : 30`
 STC.005 [REJECTED] A struct implementing an interface - a struct only holds values
 STC.006 [PLANNED] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (Task 48)
 STC.007 [DESIGN] Classes inside structs (a setting, off)
+STC.008 [BUILT] Commas between struct fields: needed on one line (`struct Point { int x, int y }`), not needed on new lines (32.12)
 
 #### CLS - classes
 CLS.001 [BUILT] Classes: objects by reference, counted, freed when the last holder goes
@@ -334,3 +335,7 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.088 | A copy of an object is usually a new default object with each field set byVal from the original; `Cloneable` and a written `clone()` only for a `nocopy` field | CLS.008 | 2026-10-31 | Object_Lifetime.md 4b | ACTIVE (planned) |
 | D.089 | `Iterator<T>`: `bool hasNext()`, `T next()`; a collection gives a new one from `iterator()` for each loop (a loop inside a loop works); `foreach` needs it - for your own classes too | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
 | D.090 | Arrays, Lists and Maps implement Collection<T> and Iterator<T> - each its own implementation: an array's blocks removing an item, a List's / Map's allows it (code to an interface) | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE (planned - 32.6) |
+| D.091 | `Iterator<T>.next()` past the end gives null - never an error: an error is for a genuine failure, never to steer a loop; its documentation says so | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
+| D.092 | A Map is a `Collection<Entry<K, V>>` (each entry its key and value); `keys()` and `values()` give its keys and its values as borrowed collections | COL.006 | 2026-11-01 | Arrays.md 5 | ACTIVE (planned - 32.6) |
+| D.093 | Struct fields: a comma is needed between fields on one line; on new lines it isn't needed (ignored if written) | STC.008 | 2026-11-01 | SYNTAX_REFERENCE.md | ACTIVE |
+| C.011 | **CLASH:** D.091 - next() past the end gives null; NUL.001 / D.063 - an int, string or struct is never null. For a List<int> the iterator now gives the type's default (0, ""). Suggest: keep the default for a value type (written in next()'s documentation) - or always check hasNext() first | COL.006 | - | Arrays.md 6 | CLASH - check |

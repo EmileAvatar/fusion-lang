@@ -73,7 +73,7 @@ class Settings implements Default {
 // [built 32.4] Iterator<T> - one pass over a collection (Decisions.md D.089)
 //     interface Iterator<T> {
 //         bool function hasNext()
-//         T function next()
+//         T function next()                    // past the end: null, never an error (D.091)
 //     }
 // [built 32.4] Collection<T> - anything foreach can loop over (Decisions.md D.085)
 //         Iterator<T> function iterator()           // a new one for each loop - nested loops work

@@ -815,3 +815,21 @@ def test_structs_end_to_end():
     assert stdout.splitlines() == [
         "3 4 9 4", "12 8", "inside: 999", "after: 3", "Grace 15", "[] 0",
     ]
+
+
+# ---------------------------------------------------------------- 32.12 commas between fields
+
+def test_a_comma_is_needed_only_between_fields_on_one_line():
+    # Task 32.12 (user, 2026-11-01 - D.093): on new lines a comma isn't needed (ignored if
+    # written); on one line it separates the fields
+    code, out, err = compile_and_run('struct Point { int x, int y }\n\n'
+                                     'struct Size\n    int w,\n    int h\n\n'
+                                     + main('Point p = Point(1, 2)\nSize s = Size(3, 4)\n'
+                                            'print("{@1} {@2} {@3} {@4}", p.x, p.y, s.w, s.h)'))
+    assert code == 0, err
+    assert out.split()[:4] == ['1', '2', '3', '4']
+
+
+def test_fields_on_one_line_without_a_comma_are_an_error():
+    with pytest.raises(ParserError, match="Fields on one line are separated by commas"):
+        parse('struct Point { int x int y }\n')

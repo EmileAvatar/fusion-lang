@@ -115,8 +115,9 @@ class CollectionsMixin:
                 f'*r = *o; r->fusion_count = 1; r->l = {name}_retain(o->l); FUSION_OBJECT_MADE(); return r; }}',
                 f'static bool {it}_hasNext(void* p) {{ {it}* o = ({it}*)p; return o->at < o->l->len; }}',
                 f'static {T} {it}_next(void* p) {{ {it}* o = ({it}*)p; '
-                f'if (o->at >= o->l->len) {{ fusion_fail(FUSION_KIND_IndexError, NULL, "next() past the end"); '
-                f'return {self.error_value(element)}; }} {T} v = {copy("o->l->data[o->at]")}; o->at++; return v; }}',
+                # past the end: null - not an error (D.091)
+                f'if (o->at >= o->l->len) return {self.error_value(element)}; '
+                f'{T} v = {copy("o->l->data[o->at]")}; o->at++; return v; }}',
                 f'static const fusion_fn {it}_fns[] = {{ (fusion_fn){it}_hasNext, (fusion_fn){it}_next }};',
                 f'static const fusion_itable_t {it}_tables[] = {{ {{ fusion_iface_{I}, {it}_fns }} }};',
                 f'static const fusion_class_t fusion_class_{it} = {{ "{iterator} of a List", NULL, {it}_release, {it}_clone, 1, {it}_tables }};',

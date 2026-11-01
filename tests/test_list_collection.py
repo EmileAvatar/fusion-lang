@@ -71,15 +71,16 @@ def test_strings_and_objects_are_freed():
     assert run(source) == ['ab', 'Ann Bob 2']
 
 
-def test_next_past_the_end_is_an_index_error():
-    assert run(main('List<int> xs = [1]\n'
-                    'Collection<int> c = xs\n'
-                    'Iterator<int> it = c.iterator()\n'
-                    'int a = it.next()\n'
-                    'try\n'
-                    '    int b = it.next()\n'
-                    'catch IndexError e\n'
-                    '    print("past the end")')) == ['past the end']
+def test_next_past_the_end_is_null_not_an_error():
+    # D.091: an error is for a genuine failure, never to end a loop - past the end: null
+    source = ('class Person\n    public string name = "Ann"\n\n'
+              + main('List<Person> xs = [Person()]\n'
+                     'Collection<Person> c = xs\n'
+                     'Iterator<Person> it = c.iterator()\n'
+                     'Person a = it.next()\n'
+                     'Person b = it.next()\n'
+                     'print("{a.name} {b}")'))
+    assert run(source) == ['Ann null']
 
 
 def test_without_a_null_check_a_null_collection_is_a_null_error():

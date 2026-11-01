@@ -1086,6 +1086,22 @@ A class of your own can be looped over: `class Team implements Collection<Person
 (add, remove, length, isEmpty, contains, addAll, removeAll, keepOnly, clear); the iterator
 `implements Iterator<Person>` with `bool function hasNext()` and `Person function next()`.
 
+#### Commas between struct fields
+
+<!-- example: syntax_struct_commas | task: 32.12 -->
+```fusion
+struct Point { int x, int y }             // on one line: commas between the fields
+
+struct Size
+    int w                                 // on new lines: no comma needed
+    int h
+
+void function main()
+    Point p = Point(1, 2)
+    Size s = Size(3, 4)
+    print("{@1} {@2} {@3}", p.x + p.y, s.w, s.h)
+```
+
 #### Methods inside a struct (`[structs] functions = true`)
 
 <!-- example: syntax_struct_methods | task: 32.1 -->
