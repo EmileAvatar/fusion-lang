@@ -5981,6 +5981,89 @@ predictable arithmetic; this module's job is everything a real financial applica
 on top of that.
 
 
+---
+
+## 🔌 HIDL Library: Hardware Testing Ideas from Maia
+
+**Status:** Idea (user, 2026-11-01). **Not in the core:** it belongs in the HIDL library,
+made for hardware (FEATURES.md Task 41, 41.10). Source: https://maia-eda.net/ (read
+2026-11-01: its main page and its "DUT testing" page).
+
+**What Maia is:** a small C-like language for writing **self-checking testbenches** for
+hardware designs in Verilog or VHDL. Its compiler (`mtv`) turns a Maia program into a
+Verilog testbench that runs in an ordinary simulator, and `rtv` runs batches and
+regressions. You don't need to know Verilog to use it. Its compilers are free downloads,
+but the site says "All Rights Reserved" and names no open-source licence: take ideas from
+it, not code.
+
+| Maia idea | What it is | Value for Fusion's HIDL library |
+|---|---|---|
+| **A `DUT` block** | Declares the device under test: its ports, directions, bit widths and clock | A natural form for HIDL's hardware description. One declaration could serve both for driving the device and for testing it |
+| **Drive / expect vectors** | Declare the format with `[CLK, RST] -> [Q]`, then each line is a test, e.g. `[.C, 1] -> [0]` (clock pulse, RST high, expect Q = 0) | Very short test lines (concise syntax). A failure reports the line, the time, and the expected and actual values (clear errors) |
+| **Pipeline depth `->n`** | The expected output arrives n clocks later, and n can be computed while running | Hardware timing stated in the test itself, not hand-counted |
+| **Clocks and timing** | `create_clock`, periods and waveforms, in a syntax compatible with SDC (the standard file format for chip timing constraints) | Reusing an industry format instead of inventing one |
+| **`trigger f() when cond`** | Runs a function when a condition becomes true; `when all` runs it again each time | Fits embedded interrupts; might also fit services reacting to events |
+| **Bits as types** | Any bit width, 2-state and 4-state values (0 / 1 / X / Z) and bit slices | HIDL needs these for registers. A bit slice like `reg[7:4]` could also be useful in ordinary Fusion for flags and protocols (a separate decision) |
+| **Self-checking by design** | A test reports its own pass count and every failure | The same idea could serve testing in Fusion generally |
+
+**Not to take:** its full C preprocessor (Fusion's design avoids one) and its Verilog-only
+output - HIDL is meant to generate Fusion code.
+
+**Not read yet:** Maia's pages on 4-state values, K-maps, streams and its type system. Read
+them when Task 41 starts.
+
+---
+
+## 📄 Data Formats Module: JSON, XML, TOML, YAML, INI, MD
+
+**Status:** Idea (user, 2026-11-01) - in fusionlib, not the core (FEATURES.md 43.2,
+Decisions.md MOD.009 / D.098).
+
+**1. Read into memory, change, save.** Each format is loaded into an in-memory document
+that is easy to read and change, then saved again:
+
+- formats: JSON, XML, TOML, YAML, INI, MD (Markdown); CSV and more later
+- `load(path)` / `save(path)`, and from or to a string
+- recovering from minor syntax mistakes where that is safe (from 43.2)
+- once the compiler is written in Fusion, it replaces the compiler's Python readers for
+  `fusion.toml` / `.yaml` / `.json` / `.ini` (Task 31)
+
+**2. A document written in the code.** JSON and XML may be written directly in the source,
+inside a multi-line string (`"""..."""`, Later in FEATURES.md, STR.008), marked with its
+format - the user's example:
+
+```fusion
+(FILE_LANG.XML)"""
+<settings>
+    <port>8080</port>
+</settings>
+""".save("settings.xml")
+```
+
+This makes working with embedded XML (or JSON) easy when it's needed: no escaping of quotes,
+and the value is a document, not plain text.
+
+**Open questions (for when it is designed):**
+- **The marker's form.** The example reads like a cast (D.082 - casts are written in front).
+  To settle: the name `FILE_LANG` and its values (an enum of formats?), and whether a short
+  form is wanted as well.
+- **Checked when compiling.** The compiler could check the embedded document's syntax, so a
+  broken XML or JSON literal is a compile error, not an error while running (fits D.086:
+  a compile error first).
+- **Values inside it.** If `{name}` interpolation is allowed inside, each value must be
+  escaped for its format (no XML / JSON injection - "never trust code").
+- **Which formats in the code.** JSON and XML first (the user's choice); TOML, YAML, INI and
+  MD can still be loaded and saved.
+
+---
+
+## 📦 fusionlib: Every Planned Module (names only)
+
+**Status:** To plan (user, 2026-11-01 - FEATURES.md 43.6): a list of every Fusion library
+module, just its name first; each is designed later, one at a time.
+
+---
+
 # ✔ Summary
 
 These packages extend Fusion without affecting the minimal core.

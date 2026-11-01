@@ -260,6 +260,8 @@ are in `task/featuresArchive.md`.
 	[ ] 41.7 Multi-language code generation (stretch)
 	[ ] 41.8 Simulator & tooling (stretch)
 	[ ] 41.9 Docs & examples
+	[ ] 41.10 Hardware testing ideas from Maia (maia-eda.net): a DUT block, drive / expect vectors,
+		clocks, bit widths - in the HIDL library, not the core (FutureFeatures.md "HIDL Library")
 
 #### 42 Concurrency: services and threads (user, 2026-10-23) [ ]
 	Goal: a million requests on one machine with many cores - no data races by construction,
@@ -394,20 +396,26 @@ are in `task/featuresArchive.md`.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
 		zones; epochs; durations and time calculations (a Math sub-module, user). Duration
 		literals map to int milliseconds until then (42.16)
-	[ ] 43.5 The study of collection kinds - Java, C#, Rust, Go, Python - which to offer in fusionlib (was 32.9)
-	[ ] 43.4 Collections module (user, 2026-10-30): more collection types beyond the core ones
-		that are always there (array, List, Map) - first a RingBuffer: a fixed number of
-		slots used round and round, the newest replacing the oldest; more later (with 43.5)
+	[ ] 43.2 Data formats module (user, 2026-10-28; extended 2026-11-01 - FutureFeatures.md
+		"Data Formats Module"): JSON, XML, TOML, YAML, INI, MD (and CSV, others) read into an
+		in-memory document, easy to read and change, then saved - load / save, from or to a
+		string; recovering from minor syntax mistakes where that is safe. In fusionlib, not the core.
+		Replaces the compiler's Python readers (Task 31) once the compiler is written in Fusion -
+		a big task, after Fusion modules exist
+		[ ] JSON and XML written in the code: (FILE_LANG.XML)"""...""".save("a.xml") - needs
+			multi-line strings (Later); the marker's form, compile-time checks, escaping open
 	[ ] 43.3 Currency module (user, 2026-10-29): how `money` (47.2) is used per currency -
 		currency definitions with their decimal places (USD 2, JPY 0, KWD 3) and so their
 		units (USD 100, JPY 100 in whole steps, KWD 1000), formatting, parsing, and exchange-
 		rate conversion with rates the developer supplies.
 		Hard rule: it never fetches prices or rates from an external API - the developer
 		using it fetches the rates and gives them to it (see CLAUDE.md project notes)
-	[ ] 43.2 Data formats module (user, 2026-10-28): read and write TOML, JSON, YAML, INI, XML,
-		CSV (and others) in Fusion itself - recovering from broken settings and minor syntax
-		mistakes where that is safe. Replaces the compiler's Python readers (Task 31) once
-		the compiler is written in Fusion - a big task, after Fusion modules exist
+	[ ] 43.4 Collections module (user, 2026-10-30): more collection types beyond the core ones
+		that are always there (array, List, Map) - first a RingBuffer: a fixed number of
+		slots used round and round, the newest replacing the oldest; more later (with 43.5)
+	[ ] 43.5 The study of collection kinds - Java, C#, Rust, Go, Python - which to offer in fusionlib (was 32.9)
+	[ ] 43.6 Plan every fusionlib module - just its name first (user, 2026-11-01); each designed
+		later, one at a time (FutureFeatures.md "fusionlib: Every Planned Module")
 
 ---
 

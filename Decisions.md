@@ -180,6 +180,8 @@ MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); 
 MOD.006 [DESIGN] Working with other code: loading a DLL, assembly blocks, calling outside compilers
 MOD.007 [DESIGN] Callbacks and events
 MOD.008 [DESIGN] Grouped import blocks
+MOD.009 [DESIGN] Data formats module (fusionlib): JSON, XML, TOML, YAML, INI, MD to an in-memory document, load / save; JSON and XML written in the code: `(FILE_LANG.XML)"""..."""` (43.2)
+MOD.010 [DESIGN] HIDL library: hardware testing in the style of Maia - a DUT block, drive / expect vectors, clocks, bit widths (41.10)
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
@@ -342,3 +344,5 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.095 | A Map's `keys()` / `values()` are borrowed views - `Collection<K>` / `Collection<V>` looking into the Map, no copy; removing from one removes the entry, adding gives false; `.toList()` on any Collection gives a copy (replaces keys() / values() as List copies) | COL.006 | 2026-11-01 | Arrays.md 5 | ACTIVE |
 | D.096 | `foreach k in m` gives a Map's keys; `foreach (Entry<K, V> e in m)` each key and value | COL.005 | 2026-11-01 | Arrays.md 5 | ACTIVE |
 | D.097 | A struct may hold an object: null until set, shared (not copied) when the struct is copied - an object isn't a value; arrays, Lists and Maps in a struct stay never null and copied with it | STC.007 | 2026-11-01 | SYNTAX_REFERENCE.md | ACTIVE |
+| D.098 | Data formats live in fusionlib, not the core: JSON, XML, TOML, YAML, INI, MD read into memory, load / save; JSON and XML may be written in the code as `(FILE_LANG.XML)"""..."""` (form to be designed) | MOD.009 | 2026-11-01 | FutureFeatures.md | ACTIVE |
+| D.099 | Hardware testing ideas (from Maia) go in the HIDL library, not the core | MOD.010 | 2026-11-01 | FutureFeatures.md | ACTIVE |
