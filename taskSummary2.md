@@ -577,7 +577,9 @@ Kept under Task 22 until the renumbering is approved.
   is copied; the old error and the planned [structs] classes setting are gone
 - 32.14 done: options marked in the set-up block (readOnly moved to its end), flags in the
   List / Map struct, checks at the start of each changing function; DuplicateError, ReadOnlyError
-- **Next Action:** 32.11 ([source] caseSensitive), then 32.3 (the example)
+- 32.11 done: src/semantic/case_names.py - program names, a type's members, a function's own
+  (with the program's and its class's); checked before any rewrite
+- **Next Action:** 32.3 (the example), then archive Task 32
   - then the rest of Task 32
   - then Task 48 (ownership) - user, 2026-10-31
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)

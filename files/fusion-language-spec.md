@@ -94,6 +94,15 @@ characters such as fullwidth or mathematical letters (`ｆｏｏ`). Known limita
 identifiers written *entirely* in different look-alike scripts aren't caught in opt-in mode -
 full Unicode TR39 confusable detection is deferred, which is why ASCII-only is the default.
 
+**3. Names are case sensitive by default** (`count` and `Count` are two names, as in most
+languages). A project that wants one name whatever its case turns it off; then two names
+that differ only in case are an error, each pair listed (Task 32.11):
+
+```toml
+[source]
+caseSensitive = false
+```
+
 **3. `\uXXXX` escapes** - exactly four hex digits, in string and char literals:
 
 ```fusion

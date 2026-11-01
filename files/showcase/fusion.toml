@@ -29,6 +29,9 @@ blockStyles = ["indent", "end", "braces"]
 [source]
 # [built] Identifiers ASCII-only unless turned on (look-alike letter defense)
 allowUnicodeIdentifiers = false
+# [built] count and Count are two names; false: names that differ only in case are an
+# error, each pair listed (Task 32.11)
+caseSensitive = true
 
 [strings]
 # [built] utf-8 or ascii; [designed] utf-16 / utf-32

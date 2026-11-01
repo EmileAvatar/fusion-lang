@@ -122,6 +122,7 @@ def compile_file(source_path: str) -> int:
                                 conditions_config=project_config.conditions,
                                 visibility_config=project_config.visibility,
                                 interfaces_config=project_config.interfaces,
+                                source_config=project_config.source,
                                 collections_config=project_config.collections)
     success = analyzer.analyze(ast)
 

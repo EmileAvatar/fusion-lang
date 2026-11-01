@@ -1466,6 +1466,7 @@ allowMixed = true
 
 [source]
 allowUnicodeIdentifiers = false
+caseSensitive = true            # false: names that differ only in case (count / Count) are an error
 
 [strings]
 encoding = "utf-8"               # utf-8 (default) | ascii - also named: utf-16, utf-32 (future)

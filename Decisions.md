@@ -71,7 +71,7 @@ SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints
 SYN.037 [DESIGN] Semicolons accepted; reading code written in other languages' syntax
 SYN.038 [DESIGN] A minimum variable-name length in strict mode (default 3; loop counters and type parameters excepted)
 SYN.039 [BUILT] `and`, `or`, `not`; a lambda as `func(int x) : x * 2`
-SYN.040 [PLANNED] `[source] caseSensitive` (default true) (32.11)
+SYN.040 [BUILT] `[source] caseSensitive` (default true); false: names that differ only in case are an error, each pair listed (32.11)
 
 #### TYP - types
 TYP.001 [BUILT] int, float, double, bool, char, byte - overflow checked; `[numbers] overflowWrap` wraps

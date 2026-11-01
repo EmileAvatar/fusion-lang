@@ -46,6 +46,9 @@
     <setting name="allowUnicodeIdentifiers" type="bool" default="false" task="19.6">
       <description>Allow letters beyond ASCII in names (a security risk: look-alike letters)</description>
     </setting>
+    <setting name="caseSensitive" type="bool" default="true" task="32.11">
+      <description>count and Count are two names; false: names that differ only in case are an error, each pair listed</description>
+    </setting>
   </section>
 
   <section name="structs" description="Struct rules">

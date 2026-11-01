@@ -19,6 +19,7 @@ from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly
 from .interfaces import check_interfaces
+from .case_names import check_case_names
 from .setup_blocks import check_collection_options
 from .inheritance import expand_inheritance
 from .class_rules import check_visibility_written, check_copy_fields
@@ -54,7 +55,7 @@ class SemanticAnalyzer:
     def __init__(self, structs_config: Optional[StructsConfig] = None,
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
-                 conditions_config=None, visibility_config=None, interfaces_config=None,
+                 conditions_config=None, visibility_config=None, interfaces_config=None, source_config=None,
                  collections_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
@@ -78,6 +79,8 @@ class SemanticAnalyzer:
         self.visibility_required = bool(getattr(visibility_config, 'required', False))
         # [interfaces] defaultMethods (Task 32.5a, D.006): an interface's function may have code
         self.default_methods = bool(getattr(interfaces_config, 'default_methods', False))
+        # [source] caseSensitive (Task 32.11): false - names differing only in case are errors
+        self.case_sensitive = bool(getattr(source_config, 'case_sensitive', True))
         # [collections] allowChangeWhileLooping (Task 32.4, D.058)
         self.type_checker.allow_change_while_looping = bool(
             getattr(collections_config, 'allow_change_while_looping', False))
@@ -107,6 +110,9 @@ class SemanticAnalyzer:
         # Clear previous results
         self.errors.clear()
         self.warnings.clear()
+
+        if not self.case_sensitive:       # 32.11 - the names as written, before any rewrite
+            self.errors.extend(check_case_names(ast))
 
         # Pass 0: string templates (Task 29.3) - every use becomes a format() call or a
         # lambda, before anything else looks at the program

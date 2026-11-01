@@ -98,6 +98,7 @@ class IndentationConfig:
 class SourceConfig:
     """Source-text rules passed to the lexer (Task 19.6)."""
     allow_unicode_identifiers: bool = DEFAULT_ALLOW_UNICODE_IDENTIFIERS
+    case_sensitive: bool = True   # false: names that differ only in case are an error (32.11)
 
 
 @dataclass
@@ -676,6 +677,12 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
                 f"got {allow_unicode!r}"
             )
         source.allow_unicode_identifiers = allow_unicode
+    if "caseSensitive" in source_section:
+        case_sensitive = source_section["caseSensitive"]
+        if not isinstance(case_sensitive, bool):
+            raise ProjectConfigError(
+                f"{config_path}: source.caseSensitive must be true or false, got {case_sensitive!r}")
+        source.case_sensitive = case_sensitive
 
     structs = _load_structs_section(data, config_path)
     strings = _load_strings_section(data, config_path)

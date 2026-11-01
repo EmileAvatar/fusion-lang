@@ -234,7 +234,8 @@ are in `task/featuresArchive.md`.
 		[DONE] next() past the end (D.094): null for a string, List, Map, object or enum; a primitive:
 			an IndexError "check hasNext() first"; a null string prints null, `s is null` works
 		[POSTPONED to 33] Another implementation behind `List<T>` - needs generic classes of your own
-	[ ] 32.11 `[source] caseSensitive` (default true); false: the compiler lists names that differ only in case
+	[DONE] 32.11 `[source] caseSensitive` (default true) (tests/test_case_sensitive.py)
+		false: names that differ only in case are an error, each pair listed once
 	[DONE] 32.12 Commas between struct fields (tests/test_structs.py): needed on one line, not on new lines (D.093)
 	[ ] 32.3 Example (was 16.2: classes, interfaces & enums)
 
