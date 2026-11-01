@@ -103,3 +103,27 @@ def test_with_a_null_check_the_code_runs_on():
 
 def test_a_list_of_another_type_isnt_that_collection():
     assert "Collection<string>" in errors_of(main('List<int> xs = [1]\nCollection<string> c = xs'))
+
+
+def test_next_past_the_end_a_string_is_null_an_int_an_index_error():
+    # D.094 (user, 2026-11-01): a string, List, Map, object or enum - null (no more items),
+    # whatever the nullable settings say; a primitive can't be null - an IndexError that says
+    # to check hasNext() first. hasNext() is the way: foreach never fails
+    assert run(main('List<string> words = ["a"]\n'
+                    'Collection<string> w = words\n'
+                    'Iterator<string> si = w.iterator()\n'
+                    'string first = si.next()\n'
+                    'string none = si.next()\n'
+                    'print("{first} {none}")\n'
+                    'if none is null\n'
+                    '    print("no more")\n'
+                    'List<int> xs = [1]\n'
+                    'Collection<int> c = xs\n'
+                    'Iterator<int> it = c.iterator()\n'
+                    'while it.hasNext()\n'
+                    '    print("{@1}", it.next())\n'
+                    'try\n'
+                    '    int x = it.next()\n'
+                    'catch IndexError e\n'
+                    '    print(e.message)')) == [
+        'a null', 'no more', '1', 'next() past the end of the List - check hasNext() first']

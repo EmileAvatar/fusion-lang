@@ -963,7 +963,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             node.both_null = True                 # `null == null` - true (Task 32.2g)
             return PrimitiveType(location=node.location, name='bool')
         node.can_be_null = isinstance(operand_type, EnumType) or (
-            self.is_class(operand_type) and not self.is_default_type(operand_type))   # 32.5b
+            self.is_class(operand_type) and not self.is_default_type(operand_type)) or (   # 32.5b
+            # a string, List or Map from an Iterator's next() past the end (D.094)
+            isinstance(operand_type, (ListType, MapType))
+            or (isinstance(operand_type, PrimitiveType) and operand_type.name == 'string'))
         if not node.can_be_null and not (isinstance(operand_type, PrimitiveType)
                                          and operand_type.name == 'void'):
             self.warnings.append(SemanticError(

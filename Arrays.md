@@ -277,8 +277,10 @@ class TeamIterator implements Iterator<Person>
 ```
 **Built (32.6, tests/test_list_collection.py):** a List is a `Collection<T>` value -
 `Collection<int> c = xs` holds the same List, every Collection function works on it, and
-`c.iterator()` gives an `Iterator<int>` - `next()` past the end gives **null**, never an error
-(D.091; an int's or a string's: its default - clash C.011). Still
+`c.iterator()` gives an `Iterator<int>`. **`hasNext()` is the way to check** - false when no
+items are left, so `foreach` never fails. `next()` past the end (D.094): **null** for a string,
+List, Map, object or enum - whatever the nullable settings say, null means no more items; a
+primitive (`int`, `double` ...) can't be null: an IndexError, "check hasNext() first". Still
 planned: an array (once on the heap - 45.10, its own implementation blocks removing an item)
 and a Map as `Collection<T>` values - a Map as `Collection<Entry<K, V>>`, with `keys()` and
 `values()` giving its keys and values as borrowed collections (D.092).

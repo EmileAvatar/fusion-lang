@@ -205,6 +205,11 @@ class EnumsMixin:
         operator = '!=' if node.negated else '=='
         if self.is_class_type(node.operand.inferred_type):
             return f'(({code}) {operator} NULL)'          # an object (Task 32.10b)
+        kind = node.operand.inferred_type
+        if isinstance(kind, PrimitiveType) and kind.name == 'string':
+            return f'(({code}).data {operator} NULL)'     # an Iterator's null (D.094)
+        if type(kind).__name__ in ('ListType', 'MapType'):
+            return f'(({code}) {operator} NULL)'
         if self.data_struct(node.operand.inferred_type) is not None:
             return f'(({code}).tag {operator} FUSION_ENUM_NULL)'
         return f'(({code}) {operator} FUSION_ENUM_NULL)'

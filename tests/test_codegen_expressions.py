@@ -423,7 +423,7 @@ class TestStringInterpolation:
             ]
         )
         result = gen.visit_InterpolatedStringExpr(node)
-        assert result == 'fusion_str_format("Pi: %f, name: %s", pi, name.data)'
+        assert result == 'fusion_str_format("Pi: %f, name: %s", pi, fusion_str_text(name))'
 
     def test_interpolation_missing_inferred_type_raises(self):
         """Codegen must not silently guess when semantic analysis hasn't run."""

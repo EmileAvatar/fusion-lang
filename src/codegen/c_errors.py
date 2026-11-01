@@ -341,7 +341,8 @@ class ErrorsMixin:
         (self.value_calls_fail) - so programs without errors get no checks at all."""
         functions = [d for d in program.declarations if isinstance(d, FunctionDecl)]
         self.value_calls_fail = False
-        # An interface's function (Task 32.5a) can fail when a function answering it can
+        # An interface's function (Task 32.5a) can fail when a function answering it can; an
+        # Iterator's next() of a primitive past the end is an IndexError (D.094)
         answers = {}
         for d in program.declarations:
             for iface, pairs in list(getattr(d, 'interface_impls', {}).items()) + \
@@ -349,6 +350,12 @@ class ErrorsMixin:
                 for method, answer in pairs:
                     if answer is not None and answer is not method:
                         answers.setdefault(method.name, set()).add(answer.name)
+        declared = {d.name: d for d in program.declarations if type(d).__name__ == 'StructDecl'}
+        for f in functions:
+            iface = declared.get(getattr(f, 'interface_of', None) or '')
+            if iface is not None and iface.name.startswith('Iterator<') and f.method_name == 'next' \
+                    and not self.nullable_item(iface.element_type):
+                f.returns_error = True
         # A function that can call itself can fail: a StackOverflowError (Task 27.2c)
         self.recursive_functions = self.find_recursive_functions(program)
         while True:

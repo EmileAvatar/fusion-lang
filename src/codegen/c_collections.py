@@ -115,8 +115,9 @@ class CollectionsMixin:
                 f'*r = *o; r->fusion_count = 1; r->l = {name}_retain(o->l); FUSION_OBJECT_MADE(); return r; }}',
                 f'static bool {it}_hasNext(void* p) {{ {it}* o = ({it}*)p; return o->at < o->l->len; }}',
                 f'static {T} {it}_next(void* p) {{ {it}* o = ({it}*)p; '
-                # past the end: null - not an error (D.091)
-                f'if (o->at >= o->l->len) return {self.error_value(element)}; '
+                # past the end (D.094): null - a string, List, Map, object or enum - never an
+                # error; a primitive (int, double ...) can't be null: an IndexError
+                f'if (o->at >= o->l->len) {self._past_the_end(element)} '
                 f'{T} v = {copy("o->l->data[o->at]")}; o->at++; return v; }}',
                 f'static const fusion_fn {it}_fns[] = {{ (fusion_fn){it}_hasNext, (fusion_fn){it}_next }};',
                 f'static const fusion_itable_t {it}_tables[] = {{ {{ fusion_iface_{I}, {it}_fns }} }};',
@@ -151,6 +152,19 @@ class CollectionsMixin:
                 f'static const void* {name}_class(void) {{ return &fusion_class_{name}; }}',
             ]
         return lines
+
+    def nullable_item(self, element) -> bool:
+        """An Iterator's next() gives null past the end for this type (D.094)."""
+        return isinstance(element, (ListType, MapType, EnumType)) or self.is_class_type(element) or (
+            isinstance(element, PrimitiveType) and element.name == 'string')
+
+    def _past_the_end(self, element) -> str:
+        if isinstance(element, PrimitiveType) and element.name == 'string':
+            return 'return (fusion_string){NULL, 0, 0, 0};'
+        if self.nullable_item(element):
+            return f'return {self.error_value(element)};'
+        return (f'{{ fusion_fail(FUSION_KIND_IndexError, NULL, "next() past the end of the List - '
+                f'check hasNext() first"); return {self.error_value(element)}; }}')
 
     def collection_body_lines(self) -> list:
         return (['// Lists (Task 18.5.1) - functions'] + self.list_bodies + ['']) if self.list_bodies else []

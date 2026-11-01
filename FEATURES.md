@@ -230,7 +230,8 @@ are in `task/featuresArchive.md`.
 		[POSTPONED to 45.10] An array as a Collection<T> value - arrays on the heap first; removing blocked
 		[ ] A Map as a Collection<Entry<K, V>> value (D.092): a built-in Entry<K, V> (key, value)
 			`keys()` / `values()` - its keys and values as borrowed collections
-		[DONE] next() past the end gives null, not an error (D.091); value types: clash C.011
+		[DONE] next() past the end (D.094): null for a string, List, Map, object or enum; a primitive:
+			an IndexError "check hasNext() first"; a null string prints null, `s is null` works
 		[POSTPONED to 33] Another implementation behind `List<T>` - needs generic classes of your own
 	[ ] 32.11 `[source] caseSensitive` (default true); false: the compiler lists names that differ only in case
 	[DONE] 32.12 Commas between struct fields (tests/test_structs.py): needed on one line, not on new lines (D.093)

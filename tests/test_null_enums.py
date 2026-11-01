@@ -94,9 +94,10 @@ def test_errors(source, message):
 
 
 def test_a_value_that_can_never_be_null_gives_a_warning():
-    analyzer, _, ok = analyze(main('string t = "x"\nif t == null\n    print("x")'))
+    # (a string can be: an Iterator's next() past the end gives a null one - D.094)
+    analyzer, _, ok = analyze(main('int t = 5\nif t == null\n    print("x")'))
     assert ok
-    assert any('A string is never null - this test is always false' in str(w)
+    assert any('A int is never null - this test is always false' in str(w)
                for w in analyzer.get_warnings())
 
 

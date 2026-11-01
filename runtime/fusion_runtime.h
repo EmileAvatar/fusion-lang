@@ -281,6 +281,9 @@ static inline void fusion_dealloc(void* p) {
 
 // An independent copy. Text from the source never changes, so it's shared rather than
 // copied - except under the leak check, where every copy is real so every free is tested
+// A string's text for printf - a null string (an Iterator's next() past the end, D.094)
+// prints null
+static inline const char* fusion_str_text(fusion_string s) { return s.data ? s.data : "null"; }
 static inline fusion_string fusion_str_copy(fusion_string s) {
     fusion_string r;
 #ifndef FUSION_LEAK_CHECK

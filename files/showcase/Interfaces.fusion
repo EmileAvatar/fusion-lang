@@ -73,7 +73,11 @@ class Settings implements Default {
 // [built 32.4] Iterator<T> - one pass over a collection (Decisions.md D.089)
 //     interface Iterator<T> {
 //         bool function hasNext()
-//         T function next()                    // past the end: null, never an error (D.091)
+//         bool function hasNext()              // the way to check: false when there are no more
+//         T function next()                    // past the end (D.094): null for a string, List, Map,
+//                                              // object or enum, whatever the nullable settings say;
+//                                              // a primitive (int, double ...): an IndexError -
+//                                              // "check hasNext() first". foreach uses hasNext()
 //     }
 // [built 32.4] Collection<T> - anything foreach can loop over (Decisions.md D.085)
 //         Iterator<T> function iterator()           // a new one for each loop - nested loops work

@@ -40,6 +40,8 @@ maxLength = "max"
 # [designed] Identical text stored once (Task 29.4 - postponed to Task 38)
 pooling = false
 # [designed] Strings may be null (default false - "" instead) (Task 30.3)
+# [built] Note: an Iterator's next() past the end gives null for a string, List or Map
+# whatever this says - null means no more items; check hasNext() first (D.094)
 nullable = false
 
 [numbers]
@@ -80,6 +82,8 @@ numbers = "positive"
 [arrays]
 # [designed] Arrays may be null (default false - [] instead) (Task 30.3); they grow at the
 # end (Task 45)
+# [built] Note: an Iterator's next() past the end gives null for a string, List or Map
+# whatever this says - null means no more items; check hasNext() first (D.094)
 nullable = false
 
 [collections]

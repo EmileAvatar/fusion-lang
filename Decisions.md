@@ -7,7 +7,7 @@ features only - no bug fixes, no discussions.
 
 - **Section 1** - every feature, one line each: `AREA.NNN [STATUS] description`
 - **Section 2** - the decisions behind them, in a table; a clash between two is marked `CLASH`
-  (open: C.011 - C.001-C.010 settled 2026-10-31: D.025-D.028, D.057, D.058, D.064, D.065, D.077, D.080)
+  (none open - C.001-C.011 settled: D.025-D.028, D.057, D.058, D.064, D.065, D.077, D.080, D.094)
 - Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
   designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
 - Detail lives elsewhere: status `FEATURES.md`, what works `SYNTAX_REFERENCE.md`, settings
@@ -335,7 +335,7 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.088 | A copy of an object is usually a new default object with each field set byVal from the original; `Cloneable` and a written `clone()` only for a `nocopy` field | CLS.008 | 2026-10-31 | Object_Lifetime.md 4b | ACTIVE (planned) |
 | D.089 | `Iterator<T>`: `bool hasNext()`, `T next()`; a collection gives a new one from `iterator()` for each loop (a loop inside a loop works); `foreach` needs it - for your own classes too | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
 | D.090 | Arrays, Lists and Maps implement Collection<T> and Iterator<T> - each its own implementation: an array's blocks removing an item, a List's / Map's allows it (code to an interface) | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE (planned - 32.6) |
-| D.091 | `Iterator<T>.next()` past the end gives null - never an error: an error is for a genuine failure, never to steer a loop; its documentation says so | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
+| D.091 | `Iterator<T>.next()` past the end is not an error for what can be null - an error is for a genuine failure, never to steer a loop; `hasNext()` is the way to check, and Fusion's own code uses it | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
 | D.092 | A Map is a `Collection<Entry<K, V>>` (each entry its key and value); `keys()` and `values()` give its keys and its values as borrowed collections | COL.006 | 2026-11-01 | Arrays.md 5 | ACTIVE (planned - 32.6) |
 | D.093 | Struct fields: a comma is needed between fields on one line; on new lines it isn't needed (ignored if written) | STC.008 | 2026-11-01 | SYNTAX_REFERENCE.md | ACTIVE |
-| C.011 | **CLASH:** D.091 - next() past the end gives null; NUL.001 / D.063 - an int, string or struct is never null. For a List<int> the iterator now gives the type's default (0, ""). Suggest: keep the default for a value type (written in next()'s documentation) - or always check hasNext() first | COL.006 | - | Arrays.md 6 | CLASH - check |
+| D.094 | `next()` past the end: null for a string, List, Map, object or enum - whatever the nullable settings say (null = no more items); a primitive (int, double ...): an IndexError saying "check hasNext() first"; written in next()'s documentation and next to the nullable settings | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |

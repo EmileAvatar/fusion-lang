@@ -146,7 +146,9 @@ class RuntimeLoweringMixin:
         """A value as a printf argument - a string value prints its text (Task 18.3.1)."""
         inferred = getattr(expr, 'inferred_type', None)
         if isinstance(inferred, PrimitiveType) and inferred.name == 'string':
-            return f'{code}.data'
+            if type(expr).__name__ == 'LiteralExpr':
+                return f'{code}.data'                 # a literal is never null
+            return f'fusion_str_text({code})'      # a null one prints null (D.094)
         if isinstance(inferred, PrimitiveType) and inferred.name == 'char':
             return f'fusion_char_text({code}).bytes'
         if isinstance(inferred, PrimitiveType) and inferred.name == 'bytes':

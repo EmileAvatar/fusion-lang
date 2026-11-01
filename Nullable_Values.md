@@ -244,3 +244,4 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 | 2026-10-27 | Numbers as bool only in `if` / `while` conditions (with and / or / not); `count == true` follows the setting; `count === true` false; `bool b = count` always an error |
 | 2026-10-27 | `.len` and `.length` both; the conditional operator `(c) ? a : b` |
 | 2026-10-31 | `null == null` and `null is null` are true, `null != null` false (a bug gave false - Task 32.2g) |
+| 2026-11-01 | An Iterator's `next()` past the end gives null for a string, List or Map too - whatever the nullable settings say (null = no more items); `s is null` works on them; a null string prints `null`. A primitive gives an IndexError (D.094) |
