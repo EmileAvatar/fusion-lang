@@ -336,3 +336,107 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 	[DONE] 49.9 A check in check.py: every feature line has a known area and status; IDs unique and in order
 		`decisions` in check.py (tests/test_decisions_file.py): lines under their own area, numbered in
 		order, decision rows in order naming a feature that exists, C rows marked CLASH
+
+#### 32 Methods on structs, then classes and interfaces (user, 2026-10-11) [DONE 2026-11-01]
+	[DONE] 32.0 Settings housekeeping (tests/test_settings_formats.py) - user, 2026-10-28: names in camelCase, read case-insensitively,
+		`_` ignored (`tab_width` = `tabWidth`); `[numbers] overflowWrap` (default false) takes
+		over arithmetic wrapping from `[safety] mode = "unsafe"`; `[safety] mode` = safe
+		(default; `normal` accepted) / strict (every warning is an error) / unsafe
+	[DONE] 32.1 Methods on the program's own structs (`[structs] functions = true`;
+		tests/test_struct_methods.py) - (`p.move(1, 2)`) - built-in types have them (18.3.7);
+		also 44.2
+	[DONE] 32.2 Classes, the rest (plan: taskSummary2.md; truth tables: Classes.md - user, 2026-10-30)
+		[DONE] 32.2a Visibility (tests/test_visibility.py): class fields private, functions /
+			constructors public by default; module level: structs, classes, enums public,
+			functions / variables private; fixed: classes and struct methods in modules
+		[DONE] 32.2b Several constructors, chosen by the values given; `this(...)` on the first
+			line; a circle, two alike, no match or two matches: compile errors
+			(tests/test_classes.py)
+		[DONE] 32.2c `static` (tests/test_statics.py): fields, const static, static methods; set-up
+			forms A (direct), B (self set-up), C (`static { }`) in that order before main;
+			classes by dependency; a circle is an error showing the whole chain; freed last
+		[DONE] 32.2d Form B on any variable (tests/test_setup_blocks.py) - `Car c = new Car() {
+			c.setEngine("V6") }`: locals, let / const, Lists, class fields (any value, set by each
+			constructor first); the block changes its own variable only
+		[DONE] 32.2e `readonly` parameters (tests/test_readonly.py) - never changed, deeply;
+			passing on is an error only when the other function changes it (calls followed); a
+			variable sharing it is readonly; keeping it is an error; a set-up block may change
+			the const / let it sets up
+		[DONE] 32.2f Printing an object (tests/test_object_text.py): the class name (null:
+			`null`) in print / format / "{x}" / toString, one warning per class until ToString (32.5)
+		[DONE] 32.2g The `null == null` bug - gave false (the null had no type); now true, as
+			`null is null` (tests/test_classes.py)
+		[DONE] 32.2h Visibility levels (tests/test_visibility_levels.py): private (the class) /
+			internal (the namespace; without one, the module) / public; `namespace A.B` the
+			file's first line; module functions public by default; private on a top-level item
+			is an error; [visibility] required (default false)
+		[DONE] 32.10a Lists and Maps are references with a count (tests/test_shared_collections.py):
+			shared in normal code, copied in a struct; `byVal` copies, a `byRef` field shares
+			(user, 2026-10-29 - truth table in Arrays.md section 1)
+		[DONE] 32.10a.1 `toList(copy = true)` on a List (false: shared) and a one-dimensional
+			array (a copy); null on an array / List / Map names the planned nullable setting
+		[DONE] 32.10b Minimal classes (tests/test_classes.py): fields, methods, one constructor
+			(or none), `new` optional, objects by reference with a count, null, NullError on
+			`.`, `==` is the same object; a failing constructor frees its object
+		[DONE] 32.10c The catalogue (tests/test_object_lifetime.py): U1-U5, U8, U9, D1-D9,
+			R1-R5, C1-C4, T1-T3, O1, O2 - each checks the moment its object is freed
+			(-DFUSION_TRACE_OBJECTS); fixed: `for x in [A(), A()]` made new objects every pass
+		[DONE] 32.10d Cycles (tests/test_object_lifetime.py): a warning where a class can hold
+			itself (directly, through other classes, Lists, Maps, arrays) - once per circle;
+			the leak check stops a program that keeps one (exit 5)
+		[DONE] 32.10e No counting where one owner is proven (tests/test_object_lifetime.py): a
+			local returned is moved - no copy, no counting, not freed (every constructor's
+			`return this`, a returned string or List); not through a finally
+	[DONE] 32.8 Structs building on structs (tests/test_struct_parents.py): `implements`
+		(`extends` / `includes`); an Employee goes where a Person is expected (a copy of its
+		Person part); Person's methods work on it; same-name fields warn, `e.Person.tel`;
+		`"{e}"` prints every field
+	[DONE] 32.13 A struct as text (tests/test_struct_parents.py): `"{e}"` gives
+		`name : "Jeff",age : 30`; `x.toCSV(delimiter = ",")` on a struct, a one-dimensional
+		array or a List of structs - one heading row (`Person.name`, ...), one row per struct
+	[DONE] 32.7 Inheritance (tests/test_inheritance.py, Classes.md section 8): one parent - `inherits` / `extends`
+		fields, functions and interfaces inherited; override (required), sealed, abstract, protected
+		a call through a parent runs the object's own function (the class table)
+		super(...) runs the parent's constructor code; super.f() the parent's own code
+		typeOf(x): Person.Employee.Manager; casts down checked while running; favour composition (D.083)
+	[DONE] 32.5 Interfaces - also the built-in ones (Classes.md sections 5, 6): `ToString`
+		[DONE] 32.5a Interfaces (tests/test_interfaces.py, Classes.md section 7): `interface`, `implements` (several)
+			an interface building on several; as a type (variables, parameters, Lists); the object's own function runs
+			`x is Circle`; casts written in front, a CastError when wrong; readonly followed through
+			default methods behind `[interfaces] defaultMethods` (default false)
+			Later: a cast between numbers `(int)d` (TYP.016)
+		[DONE] 32.5b ToString, Default, Cloneable; copies of objects; nocopy / noshare
+			[DONE] ToString (tests/test_object_text.py): print / format / "{x}" / toString(x) use it,
+				also through an interface value; added to a program only when a class implements it
+			[DONE] Copies of objects (tests/test_object_copies.py): `byVal` - a new object, each field byVal (D.088)
+				Lists / Maps of objects and interface values too; Cloneable with its own clone()
+				nocopy (set only in a constructor or clone()); noshare (handed out only as byVal)
+			[DONE] Default (tests/test_default_interface.py): a local, field or static of the type is made
+				when declared; `= null` makes a new one; a constructor without arguments (may be private)
+		(how an object prints; without it the class name and a warning), `Default` (a
+		constructor with no arguments, may be private - a variable of the type is never null,
+		the object made when declared; `s = null` lets the old object go and makes a new
+		default one (user, 2026-10-30); arrays / Lists / Maps implement it), `Cloneable`
+		(`clone()` - copies of objects, byVal / toList on a List of objects, nocopy / noshare)
+	[DONE] 32.14 List / Map options in the set-up block (tests/test_collection_options.py)
+		noDuplicates(), noNull(), readOnly() (after the block) - a DuplicateError / NullError / ReadOnlyError
+		a compile error where it can be seen, else while running (D.086); a refused value is freed
+	[DONE] 32.4 `Collection<T>`, `Iterator<T>`, `foreach` (tests/test_foreach.py, Arrays.md section 6)
+		`foreach (T x in c)` / `foreach x in c` over arrays, Lists, Maps and a Collection<T> class
+		a collection gives a new Iterator<T> from iterator() per loop - nested loops work (D.089)
+		the looped collection never changes inside a loop - a compile error (D.058); your own class
+			only with `[collections] allowChangeWhileLooping` (default false)
+	[DONE] 32.6 `List<T>` as an interface with a default implementation - never null
+		[DONE] A List as a Collection<T> value (tests/test_list_collection.py): `Collection<int> c = xs`
+			its class table answers every Collection function; c.iterator() an Iterator<T> object
+		[POSTPONED to 45.10] An array as a Collection<T> value - arrays on the heap first; removing blocked
+		[DONE] A Map as a Collection<Entry<K, V>> (tests/test_map_collection.py): Entry<K, V> (key, value)
+			`keys()` / `values()` borrowed views (D.095); `.toList()` copies; typed foreach gives entries (D.096)
+		[DONE] next() past the end (D.094): null for a string, List, Map, object or enum; a primitive:
+			an IndexError "check hasNext() first"; a null string prints null, `s is null` works
+		[POSTPONED to 33] Another implementation behind `List<T>` - needs generic classes of your own
+	[DONE] 32.11 `[source] caseSensitive` (default true) (tests/test_case_sensitive.py)
+		false: names that differ only in case are an error, each pair listed once
+	[DONE] 32.12 Commas between struct fields (tests/test_structs.py): needed on one line, not on new lines (D.093)
+	[DONE] 32.3 Example (was 16.2): examples/classes_demo.fusion - classes, interfaces, inheritance,
+		casts, structs building on structs, a struct holding an object, enums with match, List options

@@ -1,0 +1,87 @@
+// Fusion Classes Demo (Task 32.3)
+// A small library: classes, interfaces, inheritance, casts, structs building on structs,
+// a struct holding an object, enums with match, foreach, a Collection and List options
+
+enum Kind: Book Film Game
+
+interface Priced
+    float function price()
+
+interface Lendable implements Priced          // an interface building on another
+    int function days()
+
+class Media implements Lendable
+    public string title
+    public Kind kind
+    constructor(string title, Kind kind)
+        this.title = title
+        this.kind = kind
+    float function price() : 2.0
+    int function days() : 14
+    string function describe() : title + " (" + label(kind) + ")"
+
+class Film inherits Media                     // one parent; Film is a Media
+    public int minutes
+    constructor(string title, int minutes)
+        super(title, Kind.Film)
+        this.minutes = minutes
+    override float function price() : 3.5
+    override int function days() : 7
+    override string function describe() : super.describe() + ", {minutes} min"
+
+class Game inherits Media
+    constructor(string title)
+        super(title, Kind.Game)
+    override float function price() : 5.0
+
+string function label(Kind k)
+    match k                                   // every value needs a case
+        case Book: return "book"
+        case Film: return "film"
+        case Game: return "game"
+
+float function total(Collection<Media> items)  // any List of Media is a Collection
+    float sum = 0.0
+    foreach m in items
+        sum = sum + m.price()
+    return sum
+
+struct Place
+    string room
+
+struct Shelf implements Place                 // Place's fields first, then its own
+    int row
+    Media featured                            // an object: null until set
+
+void function main()
+    List<Media> stock = [Media("Dune", Kind.Book), Film("Alien", 117), Game("Tetris")]
+    foreach m in stock
+        print("{@1}: {@2} for {@3} days", m.describe(), formatNumber(m.price(), "0.00"), m.days())
+    print("total {@1}", formatNumber(total(stock), "0.00"))
+
+    Lendable lent = stock[1]                  // a class value as one of its interfaces
+    print("lent for {@1} days", lent.days())
+    if lent is Film
+        Film f = (Film)lent                   // back to the class - checked while running
+        print("{f.title} runs {f.minutes} minutes")
+    try
+        Game g = (Game)lent                   // not a Game: a CastError
+    catch CastError e
+        print(e.message)
+    print(typeOf(stock[2]))                   // Media.Game
+
+    Shelf s = Shelf("Hall", 2)
+    if s.featured is null
+        s.featured = stock[0]
+    print("{s.room} row {s.row}: {@1}", s.featured.title)
+
+    List<string> tags = [] {
+        tags.noDuplicates()                   // a value it has can't be added again
+    }
+    tags.add("classic")
+    foreach t in ["new", "classic"]
+        try
+            tags.add(t)
+        catch DuplicateError e
+            print("{t}: {@1}", e.message)
+    print("{@1} tags", tags.len())

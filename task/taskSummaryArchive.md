@@ -6003,3 +6003,201 @@ null` gives a value; no `case null` -> NullError caught by `catch`).
 - 49.6 done: Notes, FutureFeatures, the archive - 11 feature lines, D.078, D.079; clash C.010 open
 - C.010 settled: no `.move()` or `Unique<T>` - assigning moves (D.080)
 - 49.7 done: the code - 4 feature lines, D.081; old GC / Unique text fixed; 48.8 releases `Unique`
+
+## TASK 32: Classes and interfaces - COMPLETE (2026-11-01)
+
+User (2026-10-28): "code to an interface, not a concrete type" - the principle has a name:
+**"Program to an interface, not an implementation"** (the Gang of Four's *Design Patterns*,
+1994); in SOLID it is the **Dependency Inversion Principle** (the D). Java's
+`List<String> names = new ArrayList<>()` is the classic example. `foreach` works on anything
+that implements a `Collection` interface (Java: `Iterable`). An array has one fixed
+implementation; a `List` has a default implementation (never null) and can be given another.
+
+Already decided (FEATURES 32): objects by reference, value types copied; `inherits` (alias
+`extends`) for classes; interface names need no `I` prefix; several constructors;
+`this(...)`; a circle of constructors is an error; class objects can be null (30.2).
+
+**Decisions (user, 2026-10-28):**
+1. `implements` is written out - clear and familiar (Java, C#)
+2. Default methods in an interface (a method with a body): built now, as a setting, **off by
+   default** - `[interfaces] default_methods = false`
+3. A struct does **not** implement an interface - it only holds values. But a struct can
+   build on another struct: it gets that struct's fields and adds its own (below)
+4. Collection implementations (which `List` / `Map` kinds besides the defaults): a mini-task
+   of its own - study Java's and other languages' collections, pick the best cases. They
+   live in Fusion modules (fusionlib), not in the compiler; a few core ones are built in
+   (arrays, List, Map)
+5. Freeing objects: when it goes out of scope, like Rust (the default) - **and** reference
+   counting: an object is freed when the last reference to it goes (at the end of the scope
+   of the last variable holding it). The basics now; Task 38 continues (Weak for cycles, ...)
+6. **Testing rule from now on: test with and without null checking** - a null without a check
+   is a NullError that a `catch` handles; with `?.` the code runs on (CLAUDE.md)
+
+**Classes and interfaces (proposed syntax):**
+```
+interface Shape                          // a contract: what, not how
+    float function area()
+
+class Circle implements Shape
+    float radius
+    constructor(float r)
+        radius = r
+    float function area() : 3.14159 * radius * radius
+
+void function report(Shape s)            // coded to the interface: any Shape works
+    print("{@1}", s.area())              // s null: a NullError (catchable)
+
+void function report2(Shape s)           // the same, with null checking
+    print("{@1}", s?.area())             // s null: area() is not run; prints null
+
+List<string> names                       // List is an interface: the default implementation,
+                                         // never null
+foreach (string n in names)              // anything that implements Collection
+```
+
+**32.8 (structs building on structs) - DONE 2026-10-29:** its plan and decisions are in
+task/taskSummaryArchive.md (Task 32.8); `typeOf` and converting back are in 32.7 below.
+
+**Sub-tasks (order):**
+- 32.1 Methods on structs (`p.move(1, 2)`); `[structs] functions` setting (default off -
+  decided 2026-10-24)
+- 32.8 Structs building on structs (`implements`), same-name fields, printing a whole struct
+- 32.2 Classes: fields, methods, constructors (several, `this(...)`), objects by reference,
+  null by default, `this`; freed by scope and reference counting (decision 5)
+- 30.2 (from Task 30) the null guard: `?.`, `??`, `== null`, NullError - tested both ways
+- 32.5 Interfaces: `interface`, `implements` (several), an interface as a type (variables,
+  parameters, lists); the object's own method runs (in C: a table of function pointers per
+  class); a missing method is a compile error; default methods behind the setting
+- 32.4 The `Collection` interface and `foreach` (45.9): arrays, List, Map implement it; a class
+  of your own can, and decides its own looping rules
+- 32.6 `List` as an interface with a default implementation (never null)
+- 32.9 Mini-task: collection implementations - study Java / C# / Rust / Go / Python, choose
+  (for fusionlib); the core ones built in
+- 32.7 Inheritance: `inherits` / `extends`, `override`, the parent's method; using a parent
+  type (user, 2026-10-29): `typeOf(x)` gives the whole chain, top type first - an Employee
+  held as a Person shows `Person.Employee` - so the program can decide whether to convert it
+  back to an Employee (how the conversion is written: part of 32.7)
+- 32.3 Example program (classes, interfaces, structs building on structs, enums)
+- **Settings:** `[structs] functions` (32.1, default false), `[interfaces] default_methods`
+  (32.5, default false) - into files/fusionSettings.xml when built; showcase updated
+- Note: an interface of the program's own with a type parameter (`Repository<T>`) needs
+  generics (Task 33); the built-in `Collection<T>` / `List<T>` can come first
+
+**Follow-up answers (user, 2026-10-28):**
+1. Names stay case-sensitive - and a setting: `[source] case_sensitive = true` (default).
+   false: `name` and `Name` are the same name. Its description warns to choose it with care;
+   when off, the compiler lists every group of names that differ only in case
+2. No commas: a comma after a struct field (or after a value of a multi-line enum) is
+   ignored - people may be used to typing one. A struct is always written over several lines;
+   only an enum may be one line, without commas (`enum Light: Red Yellow Green`)
+3. `implements` for structs too; `extends` and `includes` as quick-typing alternatives
+4. Yes - and every way an object gains or loses a reference must be listed and handled: a
+   mini-task of its own (32.10), very important to get right - the catalogue:
+   **Object_Lifetime.md** (5 questions there)
+
+**More sub-tasks:**
+- **32.0 Settings housekeeping (user, 2026-10-28) - built code, so planned first:**
+  - Setting names in **camelCase** (professional look): `tabWidth`, `allowMixed`,
+    `allowUnicodeIdentifiers`, `maxNestingDepth`, `stringWarnLength`, `holdCollections`,
+    `maxLength`, `autoWidening`, `maxCallDepth`, `waitAtExit`, ... - read **case-insensitively**
+    (`tabwidth`, `TabWidth` work too). The template, loader, docs, tests, showcase, examples
+  - `[numbers] overflowWrap` (default false) takes over arithmetic wrapping from `[safety] mode
+    = "unsafe"`
+  - `[safety] mode`: `safe` (default; `normal` still accepted), `strict` (warnings become
+    errors), `unsafe` (the whole project - memory / assembly; nothing more yet). The old
+    `mode = "unsafe"` that wrapped arithmetic: a clear error - "now `[numbers] overflowWrap =
+    true`"
+  - Answers (user, 2026-10-28): `_` may be used and is ignored (a reading aid some people
+    prefer) - `tab_width`, `tabWidth`, `TABWIDTH` are the same; new files are written in
+    camelCase. `strict`: every warning becomes an error. Approved - build it now
+- **32.2 plan (2026-10-30, third version - answers in; truth tables in Classes.md)** - the
+  rest of a class (interfaces 32.5, inheritance 32.7 and `?.` 30.2 stay their own sub-tasks):
+  - **32.2a Visibility:** class fields private, functions and constructors public by
+    default; a class always has a default constructor. Module level: structs, classes and
+    enums public by default, functions and module variables private (Classes.md section 1)
+  - **32.2b Constructors:** several, chosen by the arguments; `this(...)`; a circle is an
+    error; a private constructor is used only inside the class - forms A, B, C and its
+    methods (section 2)
+  - **32.2c `static`:** forms A (direct), B (self set-up - its own field, reads statics
+    already set up), C (`static { }` - any static); A, then B, then C; classes set up by
+    dependency, found by following what the set-up names until nothing new; a circle is a
+    compile error showing the whole chain (`Car -> Engine -> Parts -> Factory -> Car`: "Factory
+    can't use Car - Car is still being set up"); before `main`; freed last; static methods,
+    plain statics (section 3)
+  - **32.2d Form B on any variable:** a local, a field, a static (section 4) - its block
+    changes that variable only
+  - **32.2e `readonly` parameters** - done (plan in task/taskSummaryArchive.md)
+  - **32.2f Printing an object:** the class name with a warning until ToString (32.5) -
+    section 6
+  - **32.2g** the `null == null` bug (gives false)
+  - **With 32.5 (interfaces):** `ToString`, `Default` (never null - the object made when
+    declared, its constructor may be private; section 5), `Cloneable` / `clone()`, copies of
+    objects, nocopy / noshare
+  - **Tests:** each table row in Classes.md; with and without null checks (4b); the lifetime
+    trace for statics (freed last) and the set-up order
+  - **Settings:** none
+- 32.10 (object lifetime) - DONE 2026-10-30: its plan and answers are in
+  task/taskSummaryArchive.md (Task 32.10)
+- 32.11 `[source] case_sensitive` (default true); off: the compiler lists names that differ
+  only in case
+- 32.12 Commas after struct fields / multi-line enum values are ignored
+- **Settings (added):** `[source] case_sensitive`
+
+#### The rest of Task 32 - plan (2026-10-31, approved with the answers below)
+
+- **Answers (user, 2026-10-31):**
+  - Q1 a cast is written in front: `Shape shp = (Shape)aCircle` - fails when aCircle isn't a Shape
+  - Q2 yes; Fusion's rule: favour composition over inheritance
+  - Q3 a `Collection<T>` interface in Fusion's words, starting from Java's (below)
+  - Q4 Fusion's own collections never change while looped; a class of your own may, only
+    with `[collections] allowChangeWhileLooping = true` (default false - blocked)
+  - Q5 always a compile error where it can be seen, else a run-time error
+  - Q6 yes, several: `interface D implements A, B, C`
+  - Q7 yes - 32.9 moves to Task 43
+  - Q8 yes - a copy is usually a new default object, each field set byVal from the original
+
+- **One mechanism under it all:** each class gets a table in C (its name, its parent, its functions)
+  - every object points to its class's table
+  - a call through an interface or a parent type looks the function up there (as C++ / Java do)
+  - the same table gives `typeOf(x)` and `x is Circle` while the program runs
+- **32.5a Interfaces:** `interface Shape` with function signatures only
+  - `class Circle implements Shape, Printable` - several; a missing function is a compile error
+  - an interface as a type: variables, parameters, results, List / Map elements
+  - the object's own function runs; with and without null checks (Rule 4b)
+  - `interface D implements A, B, C` - an interface building on several (Q6)
+  - default methods behind `[interfaces] defaultMethods` (default false - D.006)
+  - casting written in front: `(Shape)aCircle`, `(Circle)shp` - a compile error where it can be
+    seen, else a CastError; `x is Circle` tests first (Q1)
+- **32.5b The built-in interfaces**
+  - `ToString`: `string function toString()` - used by print, `"{x}"`, format, a struct's field (D.043)
+  - `Default`: a constructor with no arguments; a variable of the type is never null (D.010)
+  - copies of objects: `byVal obj` / `copy(x)` - a new default object, each field set byVal (D.033, Q8)
+  - `nocopy` / `noshare` fields (D.034); `Cloneable` + a written `clone()` - needed only with a `nocopy` field (Q8)
+- **32.7 Inheritance:** `class Manager inherits Employee` (`extends` as quick typing) - one parent only
+  - Fusion's rule: favour composition over inheritance - docs and examples hold an object first (Q2)
+  - the parent's fields and functions; a Manager is used where an Employee is expected
+  - replacing a parent's function needs `override`; `sealed` stops it; `abstract` class / function (Q2)
+  - `protected`: the class and its children
+  - `super(...)` on the child constructor's first line, `super.drive()` for the parent's version (Q2)
+  - `typeOf(x)`: the chain, top type first - `Person.Employee.Manager`
+- **32.4 + 32.6 Collections as interfaces**
+  - `Collection<T>` (Q3, from Java's): add, remove, length, isEmpty, contains; addAll, removeAll,
+    keepOnly (Java's retainAll, kept as an alias), clear - see the open points below
+  - `foreach (string n in names)` (45.9, D.049); a class of your own implements `Collection<Person>`
+  - changing the looped collection: Fusion's own never; your own only with
+    `[collections] allowChangeWhileLooping = true` (default false) - D.058, Q4
+  - open points (before 32.4): how `foreach` walks a collection of your own (an iterator?); which
+    parts arrays (grow only at the end) and Maps (keys and values) implement
+  - `List<T>` is an interface with a default implementation, never null (32.6)
+- **32.14 List / Map options in form B:** `noDuplicates()`, `noNull()`, `readOnly()` (after the set-up)
+  - breaking one: a compile error where it can be seen, else DuplicateError / NullError / ReadOnlyError (Q5)
+- **32.11** `[source] caseSensitive` (default true); false: the compiler lists names that differ only in case
+- **32.12** A comma after a struct field or a multi-line enum value is ignored
+- **32.9** The study of collection kinds - moved to Task 43 (43.5)
+- **32.3** An example program: classes, interfaces, inheritance, structs, enums
+- **Order:** 32.5a, 32.5b, 32.7, 32.4 + 32.6, 32.14, 32.11, 32.12, 32.3 - each shipped on its own
+- **Settings:** `[interfaces] defaultMethods` (false), `[source] caseSensitive` (true),
+  `[collections] allowChangeWhileLooping` (false) - into fusionSettings.xml when built
+- **Tests:** a truth table per sub-task in Classes.md (Rule 4c); each row a test; with and without null checks
+
+---

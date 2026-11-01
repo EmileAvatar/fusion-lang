@@ -367,6 +367,7 @@ EXPECTED_OUTPUTS = {
     'style_braces': 'box: big\ncoin: small\ntotal 7, countdown 0',
     'style_end': 'box: big\ncoin: small\ntotal 7, countdown 0',
     'wordcount': '17 words, 10 different\nthe.....   4\nbrown...   2\ndog.....   2\nfox.....   2\nquick...   2',
+    'classes_demo': 'Dune (book): 2.00 for 14 days\nAlien (film), 117 min: 3.50 for 7 days\nTetris (game): 5.00 for 14 days\ntotal 10.50\nlent for 7 days\nAlien runs 117 minutes\na Film is not a Game\nMedia.Game\nHall row 2: Dune\nclassic: the List has it already (noDuplicates)\n2 tags',
     'structs_demo':'a = (3, 4), b = (10, 4)\na + b = (13, 8)\nInside moveRight: x = 103\nAfter moveRight: a.x = 3\nAda: health 75.000000, score 15\nNewcomer score: 0, health 100.000000\nDune Messiah is available\nOrigin: (0, 0)\nNamed point: (7, 8)\nLinus: health 100.000000, score 42\nShifted: (8, 9)\nLinus (42) beat Ada (15)\nbox: max.x = 4, bigger max.x = 40\nBlue total 22, first position x = 1\nDiagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4\nAll struct tests passed!',
 }
 
