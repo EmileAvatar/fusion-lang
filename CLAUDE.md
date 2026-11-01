@@ -222,4 +222,12 @@ When a language feature or spec changes, update every affected file without aski
 - **Repository is public** on GitHub (`EmileAvatar/fusion-lang`); history was scrubbed of a
   personal email on 2026-08-04
 - **Name conflict:** another language is called Fusion (fusion-lang.org). Keep the name
-  during development; rename once the language works reliably, before 1.0
+  during development; rename once the language works reliably, before 1.0. Naming candidate
+  (user, 2026-11-01): **MaiaFusion** (MyFusion / MaiFusion didn't sit right) - decide only
+  once the self-hosted compiler works 100% with all major features. Check first: "Maia" is
+  already the name of the maia-eda.net verification language (below)
+- **To check for HIDL (Task 41):** https://maia-eda.net/ - Maia, a small C-like language for
+  self-checking HDL testbenches (compiles to a Verilog testbench). Its ideas we could use:
+  a `DUT` block (ports, widths, clocks), drive / expect vectors (`[CLK, RST] -> [Q]`),
+  pipeline depth `->n`, clock / timing declarations, `trigger f() when cond`, arbitrary bit
+  widths, 2- / 4-state values (X, Z), bit slices
