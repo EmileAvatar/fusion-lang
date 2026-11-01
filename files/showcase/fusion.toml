@@ -72,8 +72,8 @@ stringWarnLength = 64
 holdCollections = true
 # [built] Methods inside a struct - p.move(1, 2) changes p (Task 32.1); off by default
 functions = false
-# [designed] Classes inside structs - off by default
-classes = false
+# [rejected] A setting for objects inside structs - a struct may always hold one: null until set,
+# shared when the struct is copied (user, 2026-11-01 - D.097)
 
 [conditions]
 # [built] A number as a condition: positive (above zero is true) | nonzero (C, Python) | off

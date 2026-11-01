@@ -1426,7 +1426,7 @@ replaced, but the object can still change. A constructor that fails frees its ha
 object. In C an object is `fu_Car*` with `fusion_count` first and helpers `__make`,
 `__retain`, `__release`, `__set`; the constructor is the function `Car.new`. Not yet: several
 constructors, inheritance, interfaces, private / static, `?.`, copies of objects (clone), a
-struct holding an object (`[structs] classes`), printing a whole object.
+printing a whole object. (Since built: a struct holding an object - D.097.)
 
 Decided in the showcase
 review (user, 2026-10-23/24, FEATURES Later): operator overloading off by default
@@ -1893,7 +1893,7 @@ Employee e = Employee("Jeff", "E7")
 welcome(e)                  // Hi Jeff
 print("{e}")                // Jeff, E7
 ```
- Settings decided (user, 2026-10-24): a struct is never null; `[structs]` holding List / Map on (built), functions on structs off by default (32.1), classes inside structs off by default
+ Settings decided (user, 2026-10-24): a struct is never null; `[structs]` holding List / Map on (built), functions on structs off by default (32.1); a struct may hold an object - null until set, shared when the struct is copied (user, 2026-11-01)
 
 Description: Lightweight value types for copying data around an application and reading or
 changing it conveniently.
@@ -6240,7 +6240,8 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
   a whole, and its fields are only borrowed (D.026)
 * **Allowed Types**: primitives, strings, other structs, arrays, Lists and Maps
   (`[structs] holdCollections`, default on)
-* **Not Allowed**: implementing an interface; classes inside a struct (a setting, off)
+* **Objects**: a struct may hold one - null until set, shared when the struct is copied (D.097)
+* **Not Allowed**: implementing an interface
 * **Use Case**: Pure data containers for performance
 
 ---

@@ -732,7 +732,9 @@ class MemoryManagementMixin:
                 field_type = field.field_type
                 # A struct's List / Map is copied with it - shared only if the field is
                 # byRef (Task 32.10a, user decision 2026-10-29)
-                copy = self.copy_code if getattr(field, 'by_ref', False) else self.clone_code
+                # an object is shared by the copy - it isn't a value (D.097)
+                copy = self.copy_code if getattr(field, 'by_ref', False) \
+                    or self.is_class_type(field.field_type) else self.clone_code
                 if isinstance(field_type, ArrayType):
                     element = field_type.element_type
                     copy_body.append(

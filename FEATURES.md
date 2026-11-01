@@ -24,7 +24,7 @@ setting, a fixed rule, or is discarded. Example - structs:
 - it may hold empty or filled `List`, `Map`, `string` (a setting, on by default since it is
   built);
 - functions on structs: a setting, off by default;
-- classes inside structs: a setting, off by default.
+- holding an object: allowed - null until set, shared when the struct is copied (user, 2026-11-01).
 
 ---
 
@@ -598,7 +598,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[ ] Struct settings (user, 2026-10-24): a struct is a value type and never null - it always
 		has a value, so it may hold an empty List / Map / string but never null. In
 		fusion.toml [structs]: holding List / Map (on by default - built), functions on
-		structs (off by default, Task 32.1), classes inside structs (off by default)
+		structs (off by default, Task 32.1); an object in a struct: allowed since 2026-11-01 (D.097)
 	[DONE] Open: `int?` - decided with Task 30 (user, 2026-10-27): no `T?` types at all; `?` is
 		used on a variable (`x?.method()`), and only class objects and enums can be null
 		(Nullable_Values.md)

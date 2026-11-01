@@ -54,6 +54,11 @@ class StructTextMixin:
             frees.append(f'    fusion_str_free(&t{number});')
             return f't{number}.data'
 
+        if self.is_class_type(kind):
+            # an object field (D.097): its toString(), else its class name; null - null
+            if self.has_to_string():
+                return '%s', [temporary(f'fusion_object_text({code})')]
+            return '%s', [f'fusion_class_name({code})']
         if isinstance(kind, StructType):
             if csv:
                 return '%s', [temporary(f'{self._csv_row_helper(kind)}({code}, d)')]

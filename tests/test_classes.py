@@ -129,8 +129,6 @@ def test_a_constructor_that_fails_half_way_frees_the_object():
 
 
 @pytest.mark.parametrize('source, message', [
-    ('struct S\n    Car c\n\nclass Car\n    public int n\n\nvoid function main()\n    S s\n',
-     "Struct 'S' can't hold a class object (field 'c')"),
     ('class Car\n    public int n\n\nvoid function main()\n    int x = null\n',
      "A int can't be null - only a class object or an enum can"),
 ])

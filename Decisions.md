@@ -151,7 +151,7 @@ STC.003 [BUILT] A struct building on a struct (`implements` / `extends` / `inclu
 STC.004 [BUILT] A struct as text: `"{e}"` -> `name : "Jeff",age : 30`
 STC.005 [REJECTED] A struct implementing an interface - a struct only holds values
 STC.006 [PLANNED] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (Task 48)
-STC.007 [DESIGN] Classes inside structs (a setting, off)
+STC.007 [BUILT] A struct may hold an object - null until set, shared when the struct is copied (no setting)
 STC.008 [BUILT] Commas between struct fields: needed on one line (`struct Point { int x, int y }`), not needed on new lines (32.12)
 
 #### CLS - classes
@@ -341,3 +341,4 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.094 | `next()` past the end: null for a string, List, Map, object or enum - whatever the nullable settings say (null = no more items); a primitive (int, double ...): an IndexError saying "check hasNext() first"; written in next()'s documentation and next to the nullable settings | COL.006 | 2026-11-01 | Arrays.md 6 | ACTIVE |
 | D.095 | A Map's `keys()` / `values()` are borrowed views - `Collection<K>` / `Collection<V>` looking into the Map, no copy; removing from one removes the entry, adding gives false; `.toList()` on any Collection gives a copy (replaces keys() / values() as List copies) | COL.006 | 2026-11-01 | Arrays.md 5 | ACTIVE |
 | D.096 | `foreach k in m` gives a Map's keys; `foreach (Entry<K, V> e in m)` each key and value | COL.005 | 2026-11-01 | Arrays.md 5 | ACTIVE |
+| D.097 | A struct may hold an object: null until set, shared (not copied) when the struct is copied - an object isn't a value; arrays, Lists and Maps in a struct stay never null and copied with it | STC.007 | 2026-11-01 | SYNTAX_REFERENCE.md | ACTIVE |

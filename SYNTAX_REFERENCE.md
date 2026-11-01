@@ -1101,6 +1101,29 @@ A class of your own can be looped over: `class Team implements Collection<Person
 (add, remove, length, isEmpty, contains, addAll, removeAll, keepOnly, clear); the iterator
 `implements Iterator<Person>` with `bool function hasNext()` and `Person function next()`.
 
+#### A struct holding an object
+
+<!-- example: syntax_struct_objects | task: 32.6 -->
+```fusion
+class Person
+    public string name
+    constructor(string name)
+        this.name = name
+
+struct Record
+    int id
+    Person person                         // an object: null until set
+    List<int> scores                      // never null - empty
+
+void function main()
+    Record r
+    if r.person is null
+        r.person = Person("Ann")
+    Record copy = r                       // the copy shares the Person, copies the List
+    copy.person.name = "Bo"
+    print("{r.person.name} {@1}", r.scores.len())   // Bo 0
+```
+
 #### Commas between struct fields
 
 <!-- example: syntax_struct_commas | task: 32.12 -->

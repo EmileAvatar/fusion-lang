@@ -199,7 +199,7 @@ When a language feature or spec changes, update every affected file without aski
   (`Concurrency.md`, `Concurrency_Traps.md`, FEATURES.md Task 42)
 - **Features become settings:** design each feature so a project can switch it in
   `fusion.toml` where that makes sense, with a safe default (e.g. `[structs]`: holding
-  List / Map on, functions on structs off, classes inside structs off). Reviewing an idea
+  List / Map on, functions on structs off; a struct may hold an object). Reviewing an idea
   means deciding: a setting, a fixed rule, or discarded (FEATURES.md, top)
 - **Method names say what they do (user, 2026-10-27):** a verb where possible -
   `copyPart`, `removeLast`, `removeRange`, `insertAll`; a method that changes the

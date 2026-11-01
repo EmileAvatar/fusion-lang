@@ -1,0 +1,17 @@
+class Person
+    public string name
+    constructor(string name)
+        this.name = name
+
+struct Record
+    int id
+    Person person                         // an object: null until set
+    List<int> scores                      // never null - empty
+
+void function main()
+    Record r
+    if r.person is null
+        r.person = Person("Ann")
+    Record copy = r                       // the copy shares the Person, copies the List
+    copy.person.name = "Bo"
+    print("{r.person.name} {@1}", r.scores.len())   // Bo 0
