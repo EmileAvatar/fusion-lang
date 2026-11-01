@@ -123,6 +123,7 @@ def compile_file(source_path: str) -> int:
                                 visibility_config=project_config.visibility,
                                 interfaces_config=project_config.interfaces,
                                 source_config=project_config.source,
+                                memory_config=project_config.memory,
                                 collections_config=project_config.collections)
     success = analyzer.analyze(ast)
 

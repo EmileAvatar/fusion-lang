@@ -1039,6 +1039,29 @@ A class with a `nocopy` field (a connection, a lock) can't be copied unless it i
 `Cloneable` with its own `Car function clone()`, which `byVal` then calls; a `nocopy` field is set
 only in a constructor or `clone()`. A `noshare` field is never handed out - `return byVal log`.
 
+#### Moving: `[memory] assignment = "move"`
+
+<!-- example: syntax_moving | task: 48.1 -->
+```fusion
+class Car
+    public string color
+    constructor(string color)
+        this.color = color
+
+void function main()
+    Car a = Car("red")
+    Car b = a                     // with "move": b owns the car now
+    // print(a.color) here: 'a' was moved to 'b' on line 8 - use byVal a for a copy
+    a = Car("blue")               // a new value brings a back
+    Car c = byVal b               // a copy: two cars
+    c.color = "green"
+    print("{a.color} {b.color} {c.color}")   // blue red green
+```
+A List, a Map, an object and a struct holding one move; numbers, strings and plain structs
+are copied. Moving in only one branch of an `if`, or in a loop without a new value each
+pass, is an error where the name is used next. `"share"` (the default until Task 48 is
+complete, D.102) keeps two names on one object.
+
 #### `Default`: an object that is never null
 
 <!-- example: syntax_default | task: 32.5b -->
@@ -1474,6 +1497,9 @@ maxLength = "max"               # no limit (default); a number = longer strings 
 
 [stdlib]
 layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)
+
+[memory]
+assignment = "share"             # share (default for now) | move: Car b = a hands it over (Task 48)
 
 [modules]
 variables = true                 # module-level variables (constants are always allowed)

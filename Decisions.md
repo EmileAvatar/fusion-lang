@@ -185,7 +185,7 @@ MOD.010 [DESIGN] HIDL library: hardware testing in the style of Maia - a DUT blo
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
-MEM.002 [PLANNED] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies (48.1)
+MEM.002 [BUILT] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies - with `[memory] assignment = "move"`; "share" the default until migrated (48.1, D.102)
 MEM.003 [PLANNED] Passing and reading an element borrow; a borrow is never stored (48.2)
 MEM.004 [PLANNED] `shared`: read only except to the holder that made it shared (48.5)
 MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; `Shared<T>` / `Weak<T>` (Task 38) - single ownership is the default, no `Unique<T>` (D.080)

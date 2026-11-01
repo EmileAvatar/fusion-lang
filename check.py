@@ -115,6 +115,7 @@ def compile_and_run_leak_checked(source: str, source_path: str):
                                     visibility_config=config.visibility,
                                     interfaces_config=config.interfaces,
                                     source_config=config.source,
+                                    memory_config=config.memory,
                                     collections_config=config.collections)
         if not analyzer.analyze(ast):
             return None, '\n'.join(str(e) for e in analyzer.get_errors())

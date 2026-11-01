@@ -1,0 +1,13 @@
+class Car
+    public string color
+    constructor(string color)
+        this.color = color
+
+void function main()
+    Car a = Car("red")
+    Car b = a                     // with "move": b owns the car now
+    // print(a.color) here: 'a' was moved to 'b' on line 8 - use byVal a for a copy
+    a = Car("blue")               // a new value brings a back
+    Car c = byVal b               // a copy: two cars
+    c.color = "green"
+    print("{a.color} {b.color} {c.color}")   // blue red green

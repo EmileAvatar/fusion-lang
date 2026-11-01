@@ -20,6 +20,7 @@ from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly
 from .interfaces import check_interfaces
 from .case_names import check_case_names
+from .ownership import check_ownership
 from .setup_blocks import check_collection_options
 from .inheritance import expand_inheritance
 from .class_rules import check_visibility_written, check_copy_fields
@@ -55,7 +56,7 @@ class SemanticAnalyzer:
     def __init__(self, structs_config: Optional[StructsConfig] = None,
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
-                 conditions_config=None, visibility_config=None, interfaces_config=None, source_config=None,
+                 conditions_config=None, visibility_config=None, interfaces_config=None, source_config=None, memory_config=None,
                  collections_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
@@ -79,6 +80,8 @@ class SemanticAnalyzer:
         self.visibility_required = bool(getattr(visibility_config, 'required', False))
         # [interfaces] defaultMethods (Task 32.5a, D.006): an interface's function may have code
         self.default_methods = bool(getattr(interfaces_config, 'default_methods', False))
+        # [memory] assignment (Task 48.1): "move" - use after a move is an error
+        self.assignment = getattr(memory_config, 'assignment', 'share')
         # [source] caseSensitive (Task 32.11): false - names differing only in case are errors
         self.case_sensitive = bool(getattr(source_config, 'case_sensitive', True))
         # [collections] allowChangeWhileLooping (Task 32.4, D.058)
@@ -272,6 +275,8 @@ class SemanticAnalyzer:
         self.errors.extend(check_readonly(ast))
         self.errors.extend(check_copy_fields(ast))       # nocopy / noshare (Task 32.5b)
         self.errors.extend(check_collection_options(ast))   # readOnly / noNull (Task 32.14)
+        if self.assignment == 'move':                        # Task 48.1
+            self.errors.extend(check_ownership(ast))
         if self.visibility_required:                    # Task 32.2h
             self.errors.extend(check_visibility_written(ast))
         # Constructors that can't be told apart, or call each other in a circle (32.2b)

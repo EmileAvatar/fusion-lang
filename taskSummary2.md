@@ -88,6 +88,11 @@ the record D1-D49 in Notes/Ownership_Decisions_2026-10-31.md.
   - C. A local borrow freezes its owner until the borrow's last use (D.101)
   - D. Build with "share" as the default; switch to "move" once everything is migrated (D.102)
 
+- 48.1 done: src/semantic/ownership.py - each variable's state on every path (moved, maybe
+  moved, the loop's earlier pass); runs only with assignment = "move"; the C code unchanged.
+  Under "move" today: 14 errors in 8 programs (FEATURES 48.9); `Circle c = (Circle)first`
+  moves `first` too - worth a look at 48.2 (a cast back to the class could be a borrow)
+
 ## TASK 32: Classes and interfaces - COMPLETE (2026-11-01)
 
 Plan and answers: task/taskSummaryArchive.md. Example: examples/classes_demo.fusion.
@@ -446,6 +451,7 @@ Kept under Task 22 until the renumbering is approved.
 - 32.11 done: src/semantic/case_names.py - program names, a type's members, a function's own
   (with the program's and its class's); checked before any rewrite
 - 32.3 done: examples/classes_demo.fusion; Task 32 complete and archived (2026-11-01)
-- **Next Action:** Task 48 (ownership) - a plan first (Rule 1) - user, 2026-10-31
+- Task 48 plan answered (user, 2026-11-01 - D.100-D.102); 48.1 (moving) done
+- **Next Action:** 48.2 (borrowing) - Task 48 plan above
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29

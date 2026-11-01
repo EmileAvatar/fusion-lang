@@ -213,6 +213,18 @@ class CollectionsConfig:
 
 
 @dataclass
+class MemoryConfig:
+    """Memory (Task 48, Ownership.md - Decisions.md D.014, D.102).
+
+    Attributes:
+        assignment: "move" - `Car b = a` hands the object over and `a` can't be used until it
+            gets a new value (`byVal a` copies); "share" - two names, one object. "share" is
+            the default while Task 48 is built; "move" once everything is migrated (D.102).
+    """
+    assignment: str = "share"
+
+
+@dataclass
 class InterfacesConfig:
     """Interfaces (Task 32.5a, user decision 2026-10-28 - Decisions.md D.006).
 
@@ -287,6 +299,7 @@ class ProjectConfig:
     modules: ModulesConfig = field(default_factory=ModulesConfig)
     visibility: VisibilityConfig = field(default_factory=VisibilityConfig)
     interfaces: InterfacesConfig = field(default_factory=InterfacesConfig)
+    memory: MemoryConfig = field(default_factory=MemoryConfig)
     collections: CollectionsConfig = field(default_factory=CollectionsConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
@@ -496,6 +509,21 @@ def _load_collections_section(data: dict, config_path: str) -> CollectionsConfig
                 f"{config_path}: collections.allowChangeWhileLooping must be true or false, got {value!r}")
         collections.allow_change_while_looping = value
     return collections
+
+
+def _load_memory_section(data: dict, config_path: str) -> MemoryConfig:
+    """Parse and validate the [memory] section (Task 48.1)."""
+    memory = MemoryConfig()
+    section = _require_table(data, "memory", config_path)
+    for key, value in section.items():
+        if key != "assignment":
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting memory.{key} (known: ['assignment'])")
+        if value not in ("move", "share"):
+            raise ProjectConfigError(
+                f"{config_path}: memory.assignment must be \"move\" or \"share\", got {value!r}")
+        memory.assignment = value
+    return memory
 
 
 def _load_interfaces_section(data: dict, config_path: str) -> InterfacesConfig:
@@ -746,6 +774,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         modules=_load_modules_section(data, config_path),
         visibility=_load_visibility_section(data, config_path),
         interfaces=_load_interfaces_section(data, config_path),
+        memory=_load_memory_section(data, config_path),
         collections=_load_collections_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),

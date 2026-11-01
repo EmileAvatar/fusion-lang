@@ -169,15 +169,13 @@ are in `task/featuresArchive.md`.
 		R6 `shared`: counted, read only except to the holder that made it shared
 		R7 The thread boundary: two or more threads using a value - one writer, a service (42.19)
 		R8 Copies are written: `byVal x` (objects: `clone()`, 32.5)
-	[ ] 48.1 Moving
-		Assignment, `this.f = a`, `list.add(a)`, `return a` move
+	[DONE] 48.1 Moving (tests/test_ownership_moves.py) - `[memory] assignment = "move"`; "share" the default (D.102)
+		Assignment, `x.f = a`, `list.add(a)` / insert, `m[k] = a`, `[a, b]`, `return a` move
 		Use after a move: a compile error; a new value brings the name back
-		A move in one branch of an `if`: dead after it unless every branch gives a new value
+		A move in one branch of an `if` / `match`: maybe moved after it; in a `try`: maybe moved in the `catch`
 		A move inside a loop: an error unless each pass gives a new value
-		Lists and Maps move too; strings stay values (copied)
-		A struct holding a List / Map / object moves as a whole
-		A struct's fields can't be moved out - only borrowed (D.026)
-		Migrate tests and examples that rely on `b = a` sharing
+		Lists, Maps, objects, interface values and structs holding them move; strings and plain structs copy
+		A struct's fields can't be moved out - only borrowed (D.026): with 48.2
 	[ ] 48.2 Borrowing
 		Passing to a function borrows (changeable unless readonly)
 		Reading an element or a field (`Car c = fleet[0]`) is a local borrow - the owner is frozen while it is used
@@ -197,6 +195,9 @@ are in `task/featuresArchive.md`.
 	[ ] 48.6 Counting removed where moves make it unnecessary (covers 38.2)
 	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
+	[ ] 48.9 Migrate, then make "move" the default (D.102) - after 48.5
+		Under "move" today (2026-11-01): 14 errors in 8 programs - 7 SYNTAX_REFERENCE examples,
+		classes_demo, and selfhost/codegen/codegen.fusion (`inner = ctx`, 2 places)
 
 ## Phase 3 - the advanced parts
 

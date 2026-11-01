@@ -129,6 +129,14 @@
     </setting>
   </section>
 
+  <section name="memory" description="How values are owned (Ownership.md)">
+    <setting name="assignment" type="choice" default="share" task="48.1">
+      <description>move: Car b = a hands the object over - a can't be used until it gets a new value (byVal a copies); share: two names, one object. The default becomes move once Task 48 is complete (D.102)</description>
+      <value>move</value>
+      <value>share</value>
+    </setting>
+  </section>
+
   <section name="interfaces" description="Interfaces">
     <setting name="defaultMethods" type="bool" default="false" task="32.5a">
       <description>An interface's function may have code, used by a class that doesn't give its own; false: an interface names its functions only</description>
