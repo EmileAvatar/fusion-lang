@@ -399,6 +399,9 @@ are in `task/featuresArchive.md`.
 	[ ] 42.27 A system shutdown is always handled (user, 2026-11-02): the interrupt reaches services and loops
 		where the critical logic is - the log file and database connections closed, nothing left unstable
 		(the `Shutdown` setting, `final` clean-up 42.4)
+	[ ] 42.28 Recheck later: an identity for everything (user, 2026-11-02 - FutureFeatures.md "An Identity
+		for Everything"): a GUID per name and a small database of the hierarchy with the code's hashes, so
+		the compiler can tell by GUID which variables / objects are in a thread or a group service
 	(The thread view in the editor: 36.6. The service reference: files/Service.md)
 
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
