@@ -209,9 +209,10 @@ are in `task/featuresArchive.md`.
 	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
 	[ ] 48.9 Migrate, then make "move" the default (D.102) - after 48.5
-		Under "move" today (2026-11-02, after 48.2): 18 errors in 8 programs - 6 SYNTAX_REFERENCE examples,
-		classes_demo (`s.featured = stock[0]`), selfhost codegen (`inner = ctx`; `Out(genIf(.., ctx ..), ctx)`)
-		and selfhost lexer (`Token(.., s.parts, ..)` moves a field out)
+		Under "move" today (2026-11-02, after 48.3): 19 errors in 8 programs - 12 in 6 SYNTAX_REFERENCE
+		examples (`b = a` sharing), classes_demo (`s.featured = stock[0]`), 7 in the self-hosted compiler:
+		codegen `inner = ctx`, `Out(genIf(.., ctx ..), ctx)`, `ctx = o.ctx` in a loop, `params` moved into a
+		Sig in a loop (3); lexer `Token(.., s.parts, ..)` moves a field out
 
 ## Phase 3 - the advanced parts
 

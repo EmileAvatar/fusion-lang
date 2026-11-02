@@ -77,10 +77,11 @@ class _Moved:
 
 
 class _Borrow:
-    """A local that borrows: the owner's path and the line it was borrowed on."""
+    """A local that borrows: the owner's path, the line it was borrowed on, and the borrow it
+    was given (`Car d = c`), if any."""
 
-    def __init__(self, owner: Path, line: int):
-        self.owner, self.line = owner, line
+    def __init__(self, owner: Path, line: int, given: Optional[str] = None):
+        self.owner, self.line, self.given = owner, line, given
 
 
 State = Dict[str, _Moved]
@@ -250,7 +251,7 @@ class _FunctionCheck:
                 elif part is not None:
                     self.borrows[name] = _Borrow(part, line)
                 elif isinstance(source, IdentifierExpr) and source.name in self.borrows:
-                    self.borrows[name] = _Borrow(self.borrows[source.name].owner, line)
+                    self.borrows[name] = _Borrow(self.borrows[source.name].owner, line, source.name)
                 elif isinstance(source, IdentifierExpr) and name not in self.origin and \
                         name not in self.params and \
                         (source.name in self.origin or source.name in self.params):
@@ -580,11 +581,13 @@ class _FunctionCheck:
         return found
 
     def _family(self, name: str) -> Set[str]:
-        """A borrow and the locals given it."""
+        """A borrow and the locals given it (not other borrows of the same owner)."""
         names = {name}
-        for other, borrow in self.borrows.items():
-            if other != name and borrow.owner == self.borrows[name].owner:
-                names.add(other)
+        grew = True
+        while grew:
+            more = {other for other, borrow in self.borrows.items() if borrow.given in names}
+            grew = not more <= names
+            names |= more
         return names
 
     @staticmethod

@@ -151,6 +151,19 @@ def test_changing_through_the_borrow_alone_is_fine():
     assert run(source) == ['blue', 'blue']
 
 
+def test_another_borrow_of_the_same_owner_is_not_an_alias():
+    # syntax_borrowing: 'first' ends at its last use, though 'c' borrows from fleet later
+    source = CAR + main('List<Car> fleet = [Car("red")]\nCar first = fleet[0]\nprint(first.color)\n'
+                        'fleet.add(Car("blue"))\nfor c in fleet\n    print(c.color)')
+    assert errors(source) == []
+
+
+def test_a_local_given_the_borrow_extends_it():
+    source = CAR + main('List<Car> fleet = [Car("red")]\nCar first = fleet[0]\nCar same = first\n'
+                        'fleet.clear()\nprint(same.color)')
+    assert any("'fleet' can't change while 'first' borrows from it" in e for e in errors(source))
+
+
 # ---------- a for loop ----------
 
 def test_a_for_loop_cant_change_its_collection():
