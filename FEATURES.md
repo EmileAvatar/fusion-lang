@@ -389,6 +389,16 @@ are in `task/featuresArchive.md`.
 		Settings: Core, Ring, Producers, WhenFull (never WAIT), Wait, Budget, Priority, Prefault, WarmUp
 		Project defaults: `[hotpath]` in fusion.toml
 	[ ] 42.25 Examples per processor kept busy: CPU (trading), GPU, FPGA, NIC, DSP / audio, radio, NPU (files/Service.md table)
+	[ ] 42.26 A block that can't sleep or be interrupted (user, 2026-11-02 - FutureFeatures.md "Threads,
+		Schedulers and Services" 2): within one loop iteration the thread doesn't sleep, yield or take an
+		interrupt; interrupts and requests wait in its mailbox until the next safe point (builds on `check interrupt`)
+		Starving others: a request timeout (seconds) and / or `sleepEvery(5)`; long-running work (a large file
+			loaded or downloaded) always on its own thread
+		Issues: the OS can always pause a thread (only the hot path avoids it); safe points outside loops;
+			how far the mailbox grows meanwhile
+	[ ] 42.27 A system shutdown is always handled (user, 2026-11-02): the interrupt reaches services and loops
+		where the critical logic is - the log file and database connections closed, nothing left unstable
+		(the `Shutdown` setting, `final` clean-up 42.4)
 	(The thread view in the editor: 36.6. The service reference: files/Service.md)
 
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
