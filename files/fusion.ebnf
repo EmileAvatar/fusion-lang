@@ -357,6 +357,7 @@ primary =
     | lambda_expression
     | match_expression                    (* Task 46.2 *)
     | passing primary                     (* byVal a - a copy; byRef a - shared, 32.10a *)
+    | "readonly" primary                  (* at a call: f(readonly a) - the caller's demand, 48.3 *)
     | "this"
     | "null"
     | "(" type_name ")" unary ;          (* a cast, written in front: (Shape)aCircle - D.082 *)
@@ -748,9 +749,6 @@ DEDENT = ? decrease indentation level ? ;
 (* ===================================================================== *)
 (* PLANNED - ownership, hot paths, fixed (designed 2026-10-31: Ownership.md) *)
 (* ===================================================================== *)
-
-(* Task 48.3: readonly / byVal / byRef written at the call *)
-call_argument = [ "readonly" | passing ] expression ;
 
 (* Task 48.5: several holders - read only except to the holder that made it shared *)
 shared_declaration = "shared" type_name identifier "=" expression ;

@@ -190,11 +190,16 @@ are in `task/featuresArchive.md`.
 		A cast moves, back to the class too; `byVal` copies, `byRef` borrows (D.104, user)
 		[POSTPONED to working programs] Review: a method's `this` is always borrowed (D.103, user) - recheck once
 			working programs can verify it independently
-	[ ] 48.3 At the call: `byVal`, `byRef`, `readonly`
-		`log(readonly acc)`: the caller's demand - an error if log changes it
+	[DONE] 48.3 At the call: `byVal`, `byRef`, `readonly` (tests/test_ownership_at_the_call.py)
+		`log(readonly acc)`: the caller's demand - an error if log changes or keeps it, through every call; every mode
 		The same project: errors at the call and at the line that changes it
-		A Fusion library: only its signature counts - the caller is responsible
-		A library not written in Fusion: a warning when a borrowed value is passed (user)
+		`byRef` on an object too (was List / Map only); with "move" byRef / readonly only lend - an error given to
+			a function that keeps it, or stored; `Car b = byRef a` is a local borrow
+		Found with it: a NullError inside a called function skipped the caller's catch (the '.' check didn't
+			count as failing) - fixed
+		[POSTPONED to 39.3] A Fusion library: only its signature counts - the caller is responsible
+		[POSTPONED to 39.3] A library not written in Fusion: a warning when a borrowed value is passed (user) -
+			Fusion has no libraries / extern functions yet
 	[ ] 48.4 `--interface` shows the readonly result of each public function
 	[ ] 48.5 `shared` objects
 		`shared Car c = a`: one more reader (counted)

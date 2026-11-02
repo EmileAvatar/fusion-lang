@@ -48,7 +48,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from src.parser.ast_nodes import (
     ArrayLiteralExpr, ArrayType, AssignmentStmt, BlockStmt, BreakStmt, CallExpr, CastExpr,
     ContinueStmt, ExpressionStmt, ForStmt, FunctionDecl, IdentifierExpr, IfStmt, IndexExpr,
-    LambdaExpr, ListType, MapType, MatchStmt, MemberExpr, NamedArgument, ReturnStmt,
+    LambdaExpr, ListType, MapType, MatchStmt, MemberExpr, NamedArgument, PassingExpr, ReturnStmt,
     StructDecl, StructType, ThrowStmt, TryStmt, TypeNode, UncheckedStmt, VarDeclStmt, WhileStmt,
 )
 from .collection_rules import MUTATING_LIST_METHODS, MUTATING_MAP_METHODS
@@ -119,6 +119,11 @@ def _path(expr) -> Optional[Path]:
             and getattr(expr, 'map_method', None) in _VIEWS:
         return _path(expr.callee.object)
     return None
+
+
+def _lent(expr) -> bool:
+    """`byRef a` / `readonly a`: lent, not handed over (Task 48.3)."""
+    return isinstance(expr, PassingExpr) and not expr.by_val
 
 
 def _part(expr) -> Optional[Path]:
@@ -240,7 +245,9 @@ class _FunctionCheck:
                     continue
                 part = _part(value)
                 source = _bare(value)
-                if part is not None:
+                if _lent(source) and _path(source.value) is not None:
+                    self.borrows[name] = _Borrow(_path(source.value), line)
+                elif part is not None:
                     self.borrows[name] = _Borrow(part, line)
                 elif isinstance(source, IdentifierExpr) and source.name in self.borrows:
                     self.borrows[name] = _Borrow(self.borrows[source.name].owner, line)
@@ -284,6 +291,13 @@ class _FunctionCheck:
         value = _bare(expr)
         if isinstance(value, LambdaExpr):
             self._captures(value, local)
+            return
+        if _lent(value):
+            if local is None:
+                text = _text(value.value)
+                self._error(f"'{'readonly' if value.is_readonly else 'byRef'} {text}' only lends "
+                            f"it - a borrow can't be stored or returned; give {text} itself (a "
+                            f"move) or byVal {text} (a copy)", expr)
             return
         if not self.moving(getattr(expr, 'inferred_type', None)):
             return
@@ -334,7 +348,14 @@ class _FunctionCheck:
                 self._move(argument, f"'{decl.name}'", state)
             return
         for i, argument in enumerate(_arguments(node)):
-            if (id(decl), i) in self.taken:
+            if (id(decl), i) in self.taken and _lent(argument):
+                self.expression(argument, state)
+                text = _text(argument.value)
+                self._error(f"{_who(decl)} keeps its '{decl.parameters[i].name}' - "
+                            f"'{'readonly' if argument.is_readonly else 'byRef'} {text}' only "
+                            f"lends it for the call; give {text} itself (a move) or byVal {text} "
+                            f"(a copy)", argument)
+            elif (id(decl), i) in self.taken:
                 self._move(argument, f"'{_who(decl)}' (which keeps it)", state)
             else:
                 self.expression(argument, state)

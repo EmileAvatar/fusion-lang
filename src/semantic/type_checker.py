@@ -1386,11 +1386,19 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         value_type = self.visit(node.value)
         if node.by_val and self.holds_objects(value_type):
             self.no_object_copies(value_type, node.location)          # D.088 (32.5b)
+        if node.is_readonly:
+            if isinstance(value_type, PrimitiveType):
+                self.errors.append(SemanticError(
+                    f"readonly at a call is for a value the function could change - a "
+                    f"{self.type_to_string(value_type)} is copied anyway", node.location))
+            return value_type
         if not node.by_val and not self._is_collection(value_type) \
+                and not self.is_class(value_type) \
+                and not getattr(self.struct_declaration(value_type), 'is_interface', False) \
                 and not (isinstance(value_type, PrimitiveType) and value_type.name == 'void'):
             self.errors.append(SemanticError(
-                f"byRef works on a List or Map (shared already in normal code); a value of "
-                f"type {self.type_to_string(value_type)} is copied - sharing one comes later",
+                f"byRef works on a List, a Map or an object; a value of type "
+                f"{self.type_to_string(value_type)} is copied - sharing one comes later",
                 node.location))
         return value_type
 

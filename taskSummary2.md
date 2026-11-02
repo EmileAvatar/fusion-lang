@@ -98,6 +98,10 @@ the record D1-D49 in Notes/Ownership_Decisions_2026-10-31.md.
   programs (FEATURES 48.9). Taking an element out waits for a `removeAt` that returns it
 - User (2026-11-02): `this` always borrowed - correct for now, review with working programs
   (D.103); a cast moves, back to the class too, unless byVal / byRef is written (D.104)
+- 48.3 done: `f(readonly a)` parsed (PassingExpr.is_readonly), checked in every mode by
+  readonly.py `check_readonly_calls` (two errors, truth table 4); byRef on objects; move-mode
+  lending rules in ownership.py. Library rows postponed to 39.3. Fixed on the way: '.' on a
+  null object inside a called function didn't make it "can fail" - the caller's catch was skipped
 
 ## TASK 32: Classes and interfaces - COMPLETE (2026-11-01)
 
@@ -458,6 +462,6 @@ Kept under Task 22 until the renumbering is approved.
   (with the program's and its class's); checked before any rewrite
 - 32.3 done: examples/classes_demo.fusion; Task 32 complete and archived (2026-11-01)
 - Task 48 plan answered (user, 2026-11-01 - D.100-D.102); 48.1 (moving) done
-- **Next Action:** 48.3 (at the call: `byVal`, `byRef`, `readonly`) - Task 48 plan above
+- **Next Action:** 48.5 (`shared` objects) - Task 48 plan above
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29

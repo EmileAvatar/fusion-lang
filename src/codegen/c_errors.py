@@ -42,7 +42,7 @@ from .c_runtime import escape_c_text
 from src.parser.ast_nodes import (ArrayType, BinaryExpr, CallExpr, ErrorDecl, ErrorMakeExpr, ErrorType,
                                   FunctionDecl, FunctionType, IdentifierExpr, IndexExpr,
                                   InterpolatedStringExpr, LambdaExpr, ListType, MapType,
-                                  PrimitiveType, ThrowStmt)
+                                  MemberExpr, PrimitiveType, ThrowStmt)
 
 # List methods whose C function takes `where` - they report errors (Task 26.4)
 _FAILING_LIST_METHODS = ('insert', 'removeAt', 'slice')
@@ -436,6 +436,8 @@ class ErrorsMixin:
         """True for an expression that can raise an error (Task 26.4)."""
         if isinstance(node, CallExpr):
             return self.call_can_fail(node, failing)
+        if isinstance(node, MemberExpr) and self._null_checked(node.object):
+            return True                     # a null object is a NullError (Task 32.10b)
         if isinstance(node, IndexExpr):
             kind = getattr(node.array, 'inferred_type', None)
             return isinstance(kind, (ListType, MapType, ArrayType)) or (
@@ -553,10 +555,19 @@ class ErrorsMixin:
         return getattr(self, 'max_length', None) is not None and isinstance(kind, PrimitiveType) \
             and kind.name == 'string' and (not isinstance(node, BinaryExpr) or node.operator == '+')
 
+    def _null_checked(self, value) -> bool:
+        """An object used through `.` - checked for null, unless it is `this`."""
+        return self.is_class_type(getattr(value, 'inferred_type', None)) and \
+            not (isinstance(value, IdentifierExpr) and value.name == 'this')
+
     def call_can_fail(self, node: CallExpr, failing=None) -> bool:
         failing = self.failing_functions if failing is None else failing
         declaration = getattr(node, 'callee_declaration', None)
         if isinstance(declaration, FunctionDecl):
+            params, arguments = declaration.parameters, node.arguments
+            if getattr(node, 'struct_method', False) and params and params[0].name == 'this' \
+                    and arguments and self._null_checked(arguments[0]):
+                return True                 # a method called on a null object (Task 32.10b)
             return declaration.name in failing
         list_method = getattr(node, 'list_method', None)
         if list_method in _FAILING_LIST_METHODS:

@@ -125,7 +125,7 @@ COL.016 [REJECTED] `type()` / `type(N)` arrays meaning read-only or fixed size -
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value
 FUN.002 [BUILT] `try` / `catch` / `finally` / `throw`; custom error types
 FUN.003 [BUILT] `readonly` parameters: never changed, deeply - worked out through the calls
-FUN.004 [PLANNED] `readonly` / `byVal` / `byRef` written at the call (48.3)
+FUN.004 [BUILT] `readonly` / `byVal` / `byRef` written at the call (48.3); library rows wait for 39.3
 FUN.005 [PLANNED] Several return values per function beyond the Error (`[functions] multipleReturns`, off)
 FUN.006 [BUILT] Files, program arguments, console input, `exit`, `run` (another program)
 FUN.007 [BUILT] Endless recursion is a catchable StackOverflowError (`[safety] maxCallDepth`)

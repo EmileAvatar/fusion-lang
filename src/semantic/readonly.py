@@ -20,8 +20,9 @@ changes its object is found the same way. `byVal a` (a copy) is never the parame
 from typing import Dict, List, Set, Tuple
 
 from src.parser.ast_nodes import (
-    ArrayType, AssignmentStmt, CallExpr, FunctionDecl, IdentifierExpr, IndexExpr, ListType,
-    MapType, MemberExpr, ReturnStmt, StructDecl, StructType, VarDeclStmt,
+    ArrayType, AssignmentStmt, CallExpr, FunctionDecl, FunctionType, IdentifierExpr, IndexExpr,
+    ListType, MapType, MemberExpr, NamedArgument, PassingExpr, ReturnStmt, StructDecl,
+    StructType, VarDeclStmt,
 )
 from .collection_rules import MUTATING_LIST_METHODS, MUTATING_MAP_METHODS
 from .errors import SemanticError
@@ -37,6 +38,102 @@ def check_readonly(program) -> List[SemanticError]:
         return []
     functions, found, changed = _parameter_uses(program)
     return _errors(functions, found, changed)
+
+
+def check_readonly_calls(program) -> List[SemanticError]:
+    """`f(readonly acc)` - the caller's demand (Task 48.3, Ownership.md truth table 4): f must
+    not change or keep it, nor pass it on to a function that does. Two errors when it does:
+    at the call, naming the line that changes it, and at that line, naming the call - so the
+    one who adds the change sees it too. A function value can't be looked into: an error."""
+    demands, placed = [], set()
+
+    def visit(n):
+        if isinstance(n, PassingExpr) and n.is_readonly:
+            demands.append(n)
+        elif isinstance(n, CallExpr):
+            for a in n.arguments:
+                value = a.value if isinstance(a, NamedArgument) else a
+                if isinstance(value, PassingExpr) and value.is_readonly:
+                    placed.add(id(value))
+        return n
+    _walk(program.declarations, visit)
+    if not demands:
+        return []
+    errors = [SemanticError("readonly is written at a call - f(readonly a) - or on a parameter",
+                            d.location) for d in demands if id(d) not in placed]
+    functions, found, changed = _parameter_uses(program)
+
+    def who(f) -> str:
+        if getattr(f, 'is_constructor', False):
+            return f.method_of
+        return getattr(f, 'method_name', None) or f.name
+
+    def where(key, seen):
+        """The first event that changes (or keeps) a parameter, following the calls."""
+        for kind, node, extra in found.get(key, []):
+            if kind != 'pass':
+                return kind, node, key
+            if extra in changed and extra not in seen:
+                return where(extra, seen | {extra})
+        return None
+
+    calls = []
+    _walk(program.declarations, lambda n: calls.append(n) or n if isinstance(n, CallExpr) else n)
+    for call in calls:
+        given = [a.value if isinstance(a, NamedArgument) else a for a in call.arguments]
+        for arg in given:
+            if not (isinstance(arg, PassingExpr) and arg.is_readonly):
+                continue
+            text = _written(arg.value)
+            line = getattr(arg.location, 'line', 0)
+            copy = f"pass byVal {text} for a copy"
+            method = getattr(call, 'list_method', None) or getattr(call, 'map_method', None)
+            decl = call.callee_declaration
+            if method is not None:
+                if method in MUTATING_LIST_METHODS | MUTATING_MAP_METHODS | {'add', 'insert'}:
+                    errors.append(SemanticError(
+                        f"{method} keeps what it is given - '{text}' is passed readonly; {copy}",
+                        arg.location))
+                continue
+            if isinstance(decl, FunctionDecl):
+                resolved = call.resolved_arguments or []
+                index = next((i for i, r in enumerate(resolved) if r is arg), None)
+                if index is None or (decl.name, index) not in changed:
+                    continue
+                param = decl.parameters[index].name
+                found_at = where((decl.name, index), {(decl.name, index)})
+                if found_at is None:
+                    continue
+                kind, node, (deep, deep_index) = found_at
+                done = {'keep': 'keeps', 'unknown': 'passes on to a function value'}.get(kind, 'changes')
+                at = getattr(getattr(node, 'location', None), 'line', 0)
+                errors.append(SemanticError(
+                    f"{who(decl)} {done} '{param}' (line {at}) - '{text}' is passed readonly; "
+                    f"{copy}", arg.location))
+                deep_param = functions[deep].parameters[deep_index].name
+                errors.append(SemanticError(
+                    f"{who(functions[deep])} {done} '{deep_param}' here - line {line} passes "
+                    f"'{text}' to {who(decl)} as readonly", node.location))
+            elif isinstance(call.callee, IdentifierExpr) and call.callee.name in MUTATING_BUILTINS \
+                    and given and given[0] is arg:
+                errors.append(SemanticError(
+                    f"{call.callee.name} changes its first value - '{text}' is passed readonly; "
+                    f"{copy}", arg.location))
+            elif isinstance(getattr(call.callee, 'inferred_type', None), FunctionType):
+                errors.append(SemanticError(
+                    f"A function value can't be looked into - '{text}' is passed readonly; "
+                    f"{copy}", arg.location))
+    unique = {}
+    for e in errors:                 # a class's methods are reached twice
+        unique.setdefault((e.message, str(e.location)), e)
+    return list(unique.values())
+
+
+def _written(expr) -> str:
+    """`order.items` as written."""
+    if isinstance(expr, MemberExpr):
+        return f"{_written(expr.object)}.{expr.member}"
+    return getattr(expr, 'name', 'it')
 
 
 def changed_parameters(program) -> Set[Tuple[str, int]]:
@@ -85,6 +182,8 @@ def _parameter_uses(program):
             return [('pass', function, (answer, index)) for answer in answers.get(function.name, [])]
 
         def mine(e) -> bool:
+            if isinstance(e, PassingExpr) and not e.by_val and not e.is_readonly:
+                e = e.value                       # `byRef a` - a itself (48.3)
             return place(e) and _root(e) in tracked
 
         def visit(n):

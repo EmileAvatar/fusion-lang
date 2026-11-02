@@ -101,6 +101,10 @@ borrowed; the whole struct moves or is borrowed. Arrays, Lists and Maps move in 
 | a field moved out (D.026) | `'order.items' is part of 'order' and can't be moved out - use byVal order.items for a copy` |
 | an element moved out | `An element of 'fleet' can't be moved out - use byVal for a copy` |
 | a function value capturing a borrow | `A function value can't capture 'first' - it borrows from 'fleet' (line 8); copy it first (byVal first)` |
+| `readonly` at the call, the call (48.3) | `log changes 'a' (line 9) - 'acc' is passed readonly; pass byVal acc for a copy` |
+| `readonly` at the call, the changing line | `log changes 'a' here - line 13 passes 'acc' to log as readonly` |
+| `byRef` / `readonly` to a function that keeps it | `park keeps its 'c' - 'byRef a' only lends it for the call; give a itself (a move) or byVal a (a copy)` |
+| `byRef` stored | `'byRef a' only lends it - a borrow can't be stored or returned; give a itself (a move) or byVal a (a copy)` |
 
 **What it gains:** a moved object needs no count change - counting stays only for `shared`
 objects and service handles (the 32.10e "proven single owner" goal, made the rule; Task

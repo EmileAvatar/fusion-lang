@@ -99,7 +99,7 @@ def test_a_list_freed_when_the_last_holder_lets_go():
     ('void function f(byRef int x)\n    print("a")\n\nvoid function main()\n    f(1)\n',
      "byRef works on a List or Map parameter (shared already); a parameter of type int"),
     ('struct S\n    int n\n\nvoid function main()\n    S s\n    S t = byRef s\n',
-     "byRef works on a List or Map (shared already in normal code); a value of type S is copied"),
+     "byRef works on a List, a Map or an object; a value of type S is copied"),
 ])
 def test_byref_errors(source, message):
     assert message in errors_of(source)

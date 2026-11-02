@@ -537,10 +537,12 @@ class ObjectMakeExpr(ASTNode):
 class PassingExpr(ASTNode):
     """`byVal a` - a copy (deep: a List / Map is copied, not shared) - or `byRef a`, the same
     value shared (Task 32.10a, user decisions 2026-10-28 / 29). In normal code a List / Map
-    is shared and a struct copied unless written otherwise."""
+    is shared and a struct copied unless written otherwise. `f(readonly a)` - the caller's
+    demand at a call: f borrows it and must not change it (Task 48.3); by_val is False."""
     value: ASTNode
     by_val: bool = True
     inferred_type: Optional['TypeNode'] = None
+    is_readonly: bool = False
 
 
 @dataclass

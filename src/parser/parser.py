@@ -403,6 +403,12 @@ class Parser:
             word = self.advance()
             return PassingExpr(location=word.location, value=self.parse_unary(),
                                by_val=passing)
+        # `f(readonly acc)` - the caller's demand: this call doesn't change acc (Task 48.3)
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'readonly' \
+                and self.peek(1).type in (TokenType.IDENTIFIER, TokenType.LPAREN):
+            word = self.advance()
+            return PassingExpr(location=word.location, value=self.parse_unary(),
+                               by_val=False, is_readonly=True)
 
         return self.parse_call()
 

@@ -1098,6 +1098,36 @@ adds or returns it) - then the call moves it. An element or a field read into a 
 for loop's variable, borrow: the owner can't change until the borrow's last use, and a borrow
 can't be stored or returned (`byVal` copies it). A field or an element can't be moved out.
 
+#### At the call: `readonly`, `byVal`, `byRef`
+
+<!-- example: syntax_at_the_call | task: 48.3 -->
+```fusion
+class Account
+    public int balance = 5
+    public int logged = 0
+
+void function show(Account a)          // only reads a
+    print("balance {a.balance}")
+
+void function log(Account a)           // changes a
+    a.logged = a.logged + 1
+
+void function main()
+    Account acc = Account()
+    show(readonly acc)                 // the caller's demand: show must not change acc
+    // log(readonly acc) here: log changes 'a' (line 9) - 'acc' is passed readonly; pass byVal acc for a copy
+    log(byVal acc)                     // log changes a copy
+    print("logged {acc.logged}")       // logged 0
+    log(acc)                           // a borrow: log may change it, then hands it back
+    log(byRef acc)                     // the same, written out
+    print("logged {acc.logged}")       // logged 2
+```
+`readonly` at a call is checked through every call the function makes; when it changes or
+keeps the value there are two errors - at the call, and at the line that changes it, naming
+the call. `byRef` works on a List, a Map and an object. With `[memory] assignment = "move"`,
+`byRef` / `readonly` only lend: given to a function that keeps its parameter, they are an
+error, and `Car b = byRef a` is a local borrow.
+
 #### `Default`: an object that is never null
 
 <!-- example: syntax_default | task: 32.5b -->

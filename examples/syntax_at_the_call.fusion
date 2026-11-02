@@ -1,0 +1,19 @@
+class Account
+    public int balance = 5
+    public int logged = 0
+
+void function show(Account a)          // only reads a
+    print("balance {a.balance}")
+
+void function log(Account a)           // changes a
+    a.logged = a.logged + 1
+
+void function main()
+    Account acc = Account()
+    show(readonly acc)                 // the caller's demand: show must not change acc
+    // log(readonly acc) here: log changes 'a' (line 9) - 'acc' is passed readonly; pass byVal acc for a copy
+    log(byVal acc)                     // log changes a copy
+    print("logged {acc.logged}")       // logged 0
+    log(acc)                           // a borrow: log may change it, then hands it back
+    log(byRef acc)                     // the same, written out
+    print("logged {acc.logged}")       // logged 2

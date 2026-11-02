@@ -1407,6 +1407,17 @@ function value. A variable that shares it (`Account b = a`) is readonly too; kee
 (a field, a List, a module variable, `return a`) is an error; `byVal a` is a copy. A set-up
 block (form B, C) may still change the const / let it sets up.
 
+**readonly, byVal, byRef at the call (Task 48.3, built - Ownership.md section 4):**
+`show(readonly acc)` is the caller's demand: the call must not change or keep `acc`, checked
+through every call `show` makes (truth table 4). When it does: an error at the call, naming
+the line that changes it, and one at that line, naming the call. A value that is copied
+anyway (an int, a string) can't be passed readonly; `readonly` stands only at a call or on a
+parameter; through a function value it can't be checked - an error. `log(byVal acc)` gives a
+copy; `log(byRef acc)` lends it, changeable (a List, a Map or an object). With
+`[memory] assignment = "move"`, `byRef` and `readonly` only lend: given to a function that
+keeps its parameter (D.100), stored or returned, they are an error; `Car b = byRef a` is a
+local borrow of `a`.
+
 **Form B on any variable (Task 32.2d, built - Classes.md section 4):** a block right after
 a declaration's value sets that variable up further: a local (`Car c = new Car() { c.speed =
 4 }`, also `let` / `const`, Lists and Maps), a class field, a static (32.2c). The block may

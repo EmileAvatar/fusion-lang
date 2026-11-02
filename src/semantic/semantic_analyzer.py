@@ -17,7 +17,7 @@ from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
 from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
-from .readonly import check_readonly
+from .readonly import check_readonly, check_readonly_calls
 from .interfaces import check_interfaces
 from .case_names import check_case_names
 from .ownership import check_ownership
@@ -273,6 +273,7 @@ class SemanticAnalyzer:
         self.errors.extend(static_setup_order(ast))
         # readonly parameters: never changed, passed on to a change or kept (Task 32.2e)
         self.errors.extend(check_readonly(ast))
+        self.errors.extend(check_readonly_calls(ast))      # f(readonly acc) (Task 48.3)
         self.errors.extend(check_copy_fields(ast))       # nocopy / noshare (Task 32.5b)
         self.errors.extend(check_collection_options(ast))   # readOnly / noNull (Task 32.14)
         if self.assignment == 'move':                        # Task 48.1
