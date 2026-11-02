@@ -30,6 +30,22 @@ from .statics import _root, _walk
 
 
 def check_readonly(program) -> List[SemanticError]:
+    if not any(p.is_readonly for d in program.declarations
+               for f in ([d] if isinstance(d, FunctionDecl) else
+                         d.methods + d.static_methods if isinstance(d, StructDecl) else [])
+               for p in f.parameters):
+        return []
+    functions, found, changed = _parameter_uses(program)
+    return _errors(functions, found, changed)
+
+
+def changed_parameters(program) -> Set[Tuple[str, int]]:
+    """(function name, parameter index) of each parameter a function changes, keeps or passes
+    on to a change - the borrow check uses it too (Task 48.2)."""
+    return _parameter_uses(program)[2]
+
+
+def _parameter_uses(program):
     functions: Dict[str, FunctionDecl] = {}
     for d in program.declarations:
         for f in ([d] if isinstance(d, FunctionDecl) else
@@ -46,8 +62,6 @@ def check_readonly(program) -> List[SemanticError]:
             for method, answer in pairs:
                 if answer is not None and answer is not method:
                     answers.setdefault(method.name, []).append(answer.name)
-    if not any(p.is_readonly for f in functions.values() for p in f.parameters):
-        return []
     classes = {d.name for d in program.declarations if isinstance(d, StructDecl) and d.is_class}
 
     def shared(t) -> bool:
@@ -132,7 +146,10 @@ def check_readonly(program) -> List[SemanticError]:
         if not more:
             break
         changed |= more
+    return functions, found, changed
 
+
+def _errors(functions, found, changed) -> List[SemanticError]:
     errors, seen = [], set()
     for f in functions.values():
         if getattr(f, 'interface_of', None):

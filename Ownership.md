@@ -86,6 +86,22 @@ borrowed; the whole struct moves or is borrowed. Arrays, Lists and Maps move in 
 | a function value capturing a borrow | an error (R5); capturing a moved value or a copy is fine |
 | a borrow alive while the owner is used | reading the owner: fine if the borrow only reads; changing it: an error |
 
+#### The error texts (48.1, 48.2)
+
+| Case | Message |
+|---|---|
+| use after a move | `'a' was moved to 'b' on line 8 - use byVal a for a copy` |
+| moved on some paths | `'a' may have been moved to 'b' on line 8 - give it a new value on every path, or use byVal a for a copy` |
+| moved in a loop | `'c' was moved to 'cars' (add) on line 10, in an earlier pass of the loop - give it a new value each pass, or use byVal c for a copy` |
+| a function that keeps it (D.100) | `'a' was moved to 'park' (which keeps it) on line 14 - use byVal a for a copy` |
+| the owner changed while borrowed (D.101) | `'fleet' can't change while 'first' borrows from it (line 8, last used on line 10)` |
+| the owner read while the borrow changes it (R4) | `'fleet' can't be read while 'first', borrowed from it on line 8, changes it` |
+| a for loop's collection | `'xs' can't change while a for loop walks it (line 3)` |
+| a borrow stored or returned (R5) | `'c' borrows from 'fleet' (line 9) - a borrow can't be stored or returned; use byVal c for a copy` |
+| a field moved out (D.026) | `'order.items' is part of 'order' and can't be moved out - use byVal order.items for a copy` |
+| an element moved out | `An element of 'fleet' can't be moved out - use byVal for a copy` |
+| a function value capturing a borrow | `A function value can't capture 'first' - it borrows from 'fleet' (line 8); copy it first (byVal first)` |
+
 **What it gains:** a moved object needs no count change - counting stays only for `shared`
 objects and service handles (the 32.10e "proven single owner" goal, made the rule; Task
 38.2 is covered by it).
@@ -255,7 +271,6 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 
 ## 8. Questions still open
 
-- The exact error texts (written with the first sub-task)
 - How far `--interface` shows the readonly results of private functions (likely: public only)
 
 ## 9. Decisions log

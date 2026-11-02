@@ -92,6 +92,11 @@ the record D1-D49 in Notes/Ownership_Decisions_2026-10-31.md.
   moved, the loop's earlier pass); runs only with assignment = "move"; the C code unchanged.
   Under "move" today: 14 errors in 8 programs (FEATURES 48.9); `Circle c = (Circle)first`
   moves `first` too - worth a look at 48.2 (a cast back to the class could be a borrow)
+- 48.2 done: ownership.py - kept parameters found across the calls (D.100), local borrows and
+  for loops freeze their owner until the last use (D.101), R4, R5, no field / element moved out;
+  the readonly analysis' core is shared (`changed_parameters`). Under "move": 18 errors in 8
+  programs (FEATURES 48.9). Open for the user: `this` always borrowed; taking an element out
+  waits for a `removeAt` that returns it; a cast back to the class still moves
 
 ## TASK 32: Classes and interfaces - COMPLETE (2026-11-01)
 
@@ -452,6 +457,6 @@ Kept under Task 22 until the renumbering is approved.
   (with the program's and its class's); checked before any rewrite
 - 32.3 done: examples/classes_demo.fusion; Task 32 complete and archived (2026-11-01)
 - Task 48 plan answered (user, 2026-11-01 - D.100-D.102); 48.1 (moving) done
-- **Next Action:** 48.2 (borrowing) - Task 48 plan above
+- **Next Action:** 48.3 (at the call: `byVal`, `byRef`, `readonly`) - Task 48 plan above
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29

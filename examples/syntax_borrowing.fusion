@@ -1,0 +1,26 @@
+class Car
+    public string color
+    constructor(string color)
+        this.color = color
+
+class Garage
+    public Car car
+    void function park(Car c)          // keeps c in a field: park takes it (D.100)
+        this.car = c
+
+void function paint(Car c)             // only changes c: a borrow
+    c.color = "blue"
+
+void function main()
+    List<Car> fleet = [Car("red"), Car("white")]
+    Car first = fleet[0]               // a borrow: fleet is frozen while 'first' is used
+    paint(first)                       // passing borrows: first is back after the call
+    print(first.color)                 // blue - the last use of 'first'
+    fleet.add(Car("black"))            // fine: the borrow has ended
+    Garage g = Garage()
+    Car mine = Car("green")
+    g.park(mine)                       // with "move": mine is moved into the garage
+    // print(mine.color) here: 'mine' was moved to 'park' (which keeps it) on line 22
+    for c in fleet
+        print(c.color)                 // c borrows each car; g.car = c would be an error
+    print("{@1} cars, {g.car.color} parked", fleet.len())

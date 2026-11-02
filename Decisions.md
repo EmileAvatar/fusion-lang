@@ -186,7 +186,7 @@ MOD.010 [DESIGN] HIDL library: hardware testing in the style of Maia - a DUT blo
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
 MEM.002 [BUILT] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies - with `[memory] assignment = "move"`; "share" the default until migrated (48.1, D.102)
-MEM.003 [PLANNED] Passing and reading an element borrow; a borrow is never stored (48.2)
+MEM.003 [BUILT] Passing and reading an element borrow; a borrow is never stored (48.2) - with `[memory] assignment = "move"`
 MEM.004 [PLANNED] `shared`: read only except to the holder that made it shared (48.5)
 MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; `Shared<T>` / `Weak<T>` (Task 38) - single ownership is the default, no `Unique<T>` (D.080)
 MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`
@@ -346,6 +346,6 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.097 | A struct may hold an object: null until set. Under `[memory] assignment = "move"` the struct moves as a whole (its object with it), `byVal` copies it and clones the object, `byRef` borrows it; under "share" a copied struct shares its object - an object isn't a value. Arrays, Lists and Maps in a struct stay never null | STC.007 | 2026-11-01 | Ownership.md 2 | ACTIVE |
 | D.098 | Data formats live in fusionlib, not the core: JSON, XML, TOML, YAML, INI, MD read into memory, load / save; JSON and XML may be written in the code as `(FILE_LANG.XML)"""..."""` (form to be designed) | MOD.009 | 2026-11-01 | FutureFeatures.md | ACTIVE |
 | D.099 | Hardware testing ideas (from Maia) go in the HIDL library, not the core | MOD.010 | 2026-11-01 | FutureFeatures.md | ACTIVE |
-| D.100 | A function whose body keeps a parameter (stores or returns it) takes it: the call moves the argument, like `list.add`; worked out from the body, shown by `--interface` - no written word | MEM.003 | 2026-11-01 | Ownership.md 2 | ACTIVE (planned) |
-| D.101 | A local borrow (`Car c = fleet[0]`, `for c in fleet`) freezes its owner until the borrow's last use, not the end of its block | MEM.003 | 2026-11-01 | Ownership.md 2 | ACTIVE (planned) |
+| D.100 | A function whose body keeps a parameter (stores or returns it) takes it: the call moves the argument, like `list.add`; worked out from the body, shown by `--interface` - no written word | MEM.003 | 2026-11-01 | Ownership.md 2 | ACTIVE |
+| D.101 | A local borrow (`Car c = fleet[0]`, `for c in fleet`) freezes its owner until the borrow's last use, not the end of its block | MEM.003 | 2026-11-01 | Ownership.md 2 | ACTIVE |
 | D.102 | Task 48 is built with `[memory] assignment = "share"` as the default; the default becomes "move" once tests, examples and the self-hosted compiler are migrated | MEM.002 | 2026-11-01 | taskSummary2.md (48) | ACTIVE (planned) |

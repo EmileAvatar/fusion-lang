@@ -175,13 +175,18 @@ are in `task/featuresArchive.md`.
 		A move in one branch of an `if` / `match`: maybe moved after it; in a `try`: maybe moved in the `catch`
 		A move inside a loop: an error unless each pass gives a new value
 		Lists, Maps, objects, interface values and structs holding them move; strings and plain structs copy
-		A struct's fields can't be moved out - only borrowed (D.026): with 48.2
-	[ ] 48.2 Borrowing
-		Passing to a function borrows (changeable unless readonly)
-		Reading an element or a field (`Car c = fleet[0]`) is a local borrow - the owner is frozen while it is used
-		A struct's collection only lends itself - never moved out (user)
-		Taking an element out: `removeAt` / `removeLast` (a move)
-		A function value can't capture a borrow
+		A struct's fields can't be moved out - only borrowed (D.026): done in 48.2
+	[DONE] 48.2 Borrowing (tests/test_ownership_borrows.py)
+		Passing to a function borrows; a function that keeps a parameter (stores, adds, returns it) takes it -
+			the call moves it, followed through the calls (D.100); a method's `this` is always borrowed
+		An element, a field or a for loop's variable is a local borrow - the owner is frozen until its last use (D.101);
+			while the borrow changes it, the owner can't be read either (R4)
+		A borrow can't be stored or returned; a field or an element can't be moved out (D.026) - `byVal` copies
+		A struct made with a List / object moves it; a for loop's collection can't change (beyond D.058's method calls)
+		[POSTPONED to 33] Taking an element out as a move: `removeAt` returns nothing today - needs a method
+			that returns the element (`removeAt` / `removeLast` giving it back)
+		[POSTPONED to closures] A function value can't capture a borrow - ready, but lambdas can't capture yet
+		Not followed yet: the classes answering an interface / virtual function, a function value that keeps a value
 	[ ] 48.3 At the call: `byVal`, `byRef`, `readonly`
 		`log(readonly acc)`: the caller's demand - an error if log changes it
 		The same project: errors at the call and at the line that changes it
@@ -196,8 +201,9 @@ are in `task/featuresArchive.md`.
 	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
 	[ ] 48.9 Migrate, then make "move" the default (D.102) - after 48.5
-		Under "move" today (2026-11-01): 14 errors in 8 programs - 7 SYNTAX_REFERENCE examples,
-		classes_demo, and selfhost/codegen/codegen.fusion (`inner = ctx`, 2 places)
+		Under "move" today (2026-11-02, after 48.2): 18 errors in 8 programs - 6 SYNTAX_REFERENCE examples,
+		classes_demo (`s.featured = stock[0]`), selfhost codegen (`inner = ctx`; `Out(genIf(.., ctx ..), ctx)`)
+		and selfhost lexer (`Token(.., s.parts, ..)` moves a field out)
 
 ## Phase 3 - the advanced parts
 

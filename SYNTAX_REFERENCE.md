@@ -1062,6 +1062,42 @@ are copied. Moving in only one branch of an `if`, or in a loop without a new val
 pass, is an error where the name is used next. `"share"` (the default until Task 48 is
 complete, D.102) keeps two names on one object.
 
+#### Borrowing: passing, elements, for loops
+
+<!-- example: syntax_borrowing | task: 48.2 -->
+```fusion
+class Car
+    public string color
+    constructor(string color)
+        this.color = color
+
+class Garage
+    public Car car
+    void function park(Car c)          // keeps c in a field: park takes it (D.100)
+        this.car = c
+
+void function paint(Car c)             // only changes c: a borrow
+    c.color = "blue"
+
+void function main()
+    List<Car> fleet = [Car("red"), Car("white")]
+    Car first = fleet[0]               // a borrow: fleet is frozen while 'first' is used
+    paint(first)                       // passing borrows: first is back after the call
+    print(first.color)                 // blue - the last use of 'first'
+    fleet.add(Car("black"))            // fine: the borrow has ended
+    Garage g = Garage()
+    Car mine = Car("green")
+    g.park(mine)                       // with "move": mine is moved into the garage
+    // print(mine.color) here: 'mine' was moved to 'park' (which keeps it) on line 22
+    for c in fleet
+        print(c.color)                 // c borrows each car; g.car = c would be an error
+    print("{@1} cars, {g.car.color} parked", fleet.len())
+```
+With `"move"`: passing a value lends it for the call, unless the function keeps it (stores,
+adds or returns it) - then the call moves it. An element or a field read into a local, and a
+for loop's variable, borrow: the owner can't change until the borrow's last use, and a borrow
+can't be stored or returned (`byVal` copies it). A field or an element can't be moved out.
+
 #### `Default`: an object that is never null
 
 <!-- example: syntax_default | task: 32.5b -->
