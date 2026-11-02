@@ -256,3 +256,20 @@ def test_share_has_no_borrow_errors():
     source = CAR + main('List<Car> fleet = [Car("red")]\nCar first = fleet[0]\nfleet.clear()\n'
                         'print("{@1}", fleet.len())')
     assert errors(source, {}) == []
+
+
+# ---------- a cast back to the class moves unless byVal / byRef is written (D.104) ----------
+
+SHAPES = 'interface Shape\n    int function sides()\n\n' \
+         'class Square implements Shape\n    int function sides() : 4\n\n'
+
+
+@pytest.mark.parametrize('cast, moves', [
+    ('Square q = (Square)s', True),
+    ('Square q = byVal (Square)s', False),
+    ('Square q = byRef (Square)s', False),
+])
+def test_a_cast_back_to_the_class(cast, moves):
+    source = SHAPES + main(f'Shape s = Square()\n{cast}\nprint("{{@1}}", s.sides())')
+    found = errors(source)
+    assert any("'s' was moved to 'q'" in e for e in found) == moves, found

@@ -95,8 +95,9 @@ the record D1-D49 in Notes/Ownership_Decisions_2026-10-31.md.
 - 48.2 done: ownership.py - kept parameters found across the calls (D.100), local borrows and
   for loops freeze their owner until the last use (D.101), R4, R5, no field / element moved out;
   the readonly analysis' core is shared (`changed_parameters`). Under "move": 18 errors in 8
-  programs (FEATURES 48.9). Open for the user: `this` always borrowed; taking an element out
-  waits for a `removeAt` that returns it; a cast back to the class still moves
+  programs (FEATURES 48.9). Taking an element out waits for a `removeAt` that returns it
+- User (2026-11-02): `this` always borrowed - correct for now, review with working programs
+  (D.103); a cast moves, back to the class too, unless byVal / byRef is written (D.104)
 
 ## TASK 32: Classes and interfaces - COMPLETE (2026-11-01)
 

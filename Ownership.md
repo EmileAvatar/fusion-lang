@@ -291,3 +291,5 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 | 2026-11-01 | A function that keeps a parameter takes it - the call moves the argument; worked out from the body, shown by `--interface` (D.100) |
 | 2026-11-01 | A local borrow freezes its owner until the borrow's last use (D.101) |
 | 2026-11-01 | Built with "share" as the default; "move" once everything is migrated (D.102) |
+| 2026-11-02 | A method's `this` is always borrowed, never taken - for now; reviewed once working programs verify it (D.103) |
+| 2026-11-02 | A cast moves, back to the class too, unless `byVal` (a copy) or `byRef` (a borrow) is written (D.104) |

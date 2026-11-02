@@ -187,6 +187,9 @@ are in `task/featuresArchive.md`.
 			that returns the element (`removeAt` / `removeLast` giving it back)
 		[POSTPONED to closures] A function value can't capture a borrow - ready, but lambdas can't capture yet
 		Not followed yet: the classes answering an interface / virtual function, a function value that keeps a value
+		A cast moves, back to the class too; `byVal` copies, `byRef` borrows (D.104, user)
+		[POSTPONED to working programs] Review: a method's `this` is always borrowed (D.103, user) - recheck once
+			working programs can verify it independently
 	[ ] 48.3 At the call: `byVal`, `byRef`, `readonly`
 		`log(readonly acc)`: the caller's demand - an error if log changes it
 		The same project: errors at the call and at the line that changes it
