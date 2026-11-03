@@ -180,6 +180,7 @@ When a language feature or spec changes, update every affected file without aski
 |---|---|
 | Any implemented feature | `FEATURES.md`, `SYNTAX_REFERENCE.md`, an example program, its `Decisions.md` line ([BUILT]) |
 | Any language decision (new, changed, postponed, rejected) | `Decisions.md` (Rule 3b) |
+| Any new or changed language feature or rule - built, decided, postponed or rejected (user, 2026-11-03) | `files/showcase/` stays the up-to-date reference for the whole language: `Fusion_showcase.fusion` (every feature, its tag [built] / [designed] / [idea] / [rejected] kept current) and the topic file it belongs to (`Ownership.fusion`, `Interfaces.fusion`, or a new one for a new topic, listed in the main file); an ownership / readonly / const rule also in `.claude/skills/fusion-ownership/SKILL.md` |
 | Syntax (lambdas, blocks, types, keywords, operators) | `files/fusion.ebnf`, `files/fusion-language-spec.md`, `SYNTAX_REFERENCE.md` |
 | String interpolation | language spec, `SYNTAX_REFERENCE.md`, examples |
 | Standard library module | language spec |

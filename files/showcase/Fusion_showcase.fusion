@@ -4,7 +4,10 @@
 //
 // A picture of the whole language: what works now and what is still to come. It does NOT
 // compile and is not meant to run (built examples that do: SYNTAX_REFERENCE.md, examples/).
-// Its settings: fusion.toml in this folder.
+// Its settings: fusion.toml in this folder. Topics shown in full, in this folder:
+//   Interfaces.fusion   Fusion's own interfaces
+//   Ownership.fusion    moving, borrowing, readonly, const - allowed and not allowed
+// Kept up to date with every new or changed feature (CLAUDE.md, auto-update policy).
 //
 // Every feature has a comment line before it: a tag, then a one-line description.
 //   [built]     works in the compiler today
