@@ -1,0 +1,243 @@
+// =============================================================================================
+// Fusion_template.fusion - the shape of every Fusion construct, with its choices (2026-11-03)
+// =============================================================================================
+//
+// One line per construct, written as a template: each < > is a choice or a name of your own.
+// It does NOT compile. Real code for each: Fusion_showcase.fusion (the whole language),
+// Ownership.fusion, Interfaces.fusion; built examples: SYNTAX_REFERENCE.md. The grammar:
+// files/fusion.ebnf. How a file is laid out (order of its parts): files/FusionTemplate.md.
+//
+// How to read it
+//   <a | b | c>             write one of them
+//   <(nothing) | a | b>     writing nothing is allowed - the comment after says what it means
+//   [ ... ]                 may be left out           { ... }   may be repeated
+//   <Name> <Type> <value> <statements> <condition>    your own
+//   words outside < >       written as they are
+// Tags, as in the showcase: [built] works today; [designed] decided, not built (task number)
+//
+// Kept up to date with every new or changed feature (CLAUDE.md, auto-update policy).
+// =============================================================================================
+
+
+// =============================================================================================
+// 1. A file [built]
+// =============================================================================================
+
+[namespace <Name>{.<Name>}]                  // first line if present - a line, not a folder
+{import <module>[.<Name> | .* | as <alias>]} // next, before everything else; Core always there
+
+
+// =============================================================================================
+// 2. Visibility - <visibility: (nothing) | public | internal | private> [built] (Classes.md 1)
+// =============================================================================================
+//
+//   where                         (nothing) means     notes
+//   module: struct, class, enum,  public              private here is an error - write internal
+//           interface, error,
+//           function
+//   module: variable / constant   private (its module)
+//   class:  field                 private
+//   class:  function, constructor public
+//   class:  any member            -                   protected: the class and its children
+//
+//   public: everyone; internal: the namespace (without one, the module); private: the class
+//   (a member) or the module (a module variable). [visibility] required = true: always write it
+
+
+// =============================================================================================
+// 3. Module level [built]
+// =============================================================================================
+
+<visibility> <Type> <Name> [= <value>]                        // a module variable (44.1)
+<visibility> const <Type> <Name> = <value>                    // a module constant
+template string <Name> = "<text with {@1} {@2}>"              // used as <Name>(a, b) (29.3)
+
+
+// =============================================================================================
+// 4. Functions [built]
+// =============================================================================================
+
+<visibility> <Type: void | <Type>{, <Type>}> [, Error] function <Name>(<parameters>) <body>
+//   [, Error]   it can fail: `return Error("...")`; `Error function f()` when it returns nothing
+//   <body>      an indented block | { braces } | `: <expression>` on one line
+//               | <statements> End function
+// [designed 50.1] <visibility> readonly <Type> function <Name>(...) - a read-only result
+// [designed]      async <Type> function ... (Task 42); overloading by parameter types (SYN.025)
+
+// A parameter:
+<mode: (nothing) | readonly | let | var> <passing: (nothing) | byVal | byRef> <Type> <Name> [= <value>]
+//   mode     (nothing): the function may change it if it is a List, Map or object, and the
+//            caller sees it; readonly: never changed, kept or passed to a changer (deep, 32.2e);
+//            let: the parameter is never given a new value (46.1)
+//   passing  (nothing): numbers, strings and plain structs a copy; List, Map, object lent for
+//            the call (a function that keeps it takes it - D.100); byVal: a copy always;
+//            byRef: the caller's own - a List, Map or object
+//   readonly stands alone: never with let / var / byVal / byRef
+//   = <value>   a default; then callers may leave it out or name it: f(<Name> = <value>)
+
+// main:
+void function main(<(nothing) | string... args>)
+
+// A function value and a lambda (18.1.3):
+(<Type>{, <Type>}) : <Type> <Name> = func(<Type> <Name>{, <Type> <Name>}) : <expression>
+//   also written (<Type> x) : <expression>; it can't capture outer variables yet (closures:
+//   SYN.028)
+
+
+// =============================================================================================
+// 5. Classes [built] (Classes.md)
+// =============================================================================================
+
+<kind: (nothing) | abstract | sealed> class <Name> [extends <Parent>] [implements <Interface>{, <Interface>}]
+//   (nothing): may be extended; abstract: never made itself; sealed: never extended
+//   extends (or inherits): one parent (32.7)
+
+    // A field - (nothing) visibility: private
+    <visibility> <copying: (nothing) | nocopy | noshare> <Type> <Name> [= <value>] [{ <set-up statements> }]
+    //   nocopy: the object can't be copied unless the class is Cloneable (D.034)
+    //   noshare: the field is never handed out - always copied
+    //   a set-up block (form B) right after the value sets this field up
+
+    // Statics (32.2c) - form A, form B, form C
+    <visibility> static <Type> <NAME> = <value>
+    <visibility> static <Type> <NAME> = <value> { <statements changing NAME only> }
+    static { <statements setting any static of the class> }
+    <visibility> const static <Type> <NAME> = <value> [{ <statements> }]   // a class constant
+    // [designed] `const` alone in a class, static by itself (CLS.012)
+
+    // A constructor - (nothing) visibility: public; none written: <Name>() with defaults
+    <visibility> <constructor | <Name>>(<parameters>)
+        [this(<arguments>)]                         // first line: another constructor makes it
+        [super(<arguments>)]                        // first line: the parent's constructor
+        <statements>
+
+    // A function (method) - (nothing) visibility: public; `this` is always borrowed (D.103)
+    <visibility> <kind: (nothing) | static | override | sealed | abstract> <Type> function <Name>(<parameters>) <body>
+    //   (nothing): a child class may replace it with override; override: replaces the
+    //   parent's (required - D.084); sealed: no child may replace it; abstract: no body, in
+    //   an abstract class; static: no `this`
+
+    // [designed] A property (CLS.011)
+    <visibility> <Type> property <Name>
+        get <block>
+        set(<value name>) <block>
+
+// Making one: <Name>(<arguments>) or new <Name>(<arguments>), then [{ <set-up statements> }]
+
+
+// =============================================================================================
+// 6. Structs [built] - values; a constructor <Name>(...) with every field, in order
+// =============================================================================================
+
+<visibility> struct <Name> [<extends | includes | implements> <Struct>]   // builds on a struct: its fields first (32.8)
+    <passing: (nothing) | byRef> <Type> <Name> [= <constant>]
+    //   (nothing): a List / Map field belongs to the struct (moves with it; byVal copies it);
+    //   byRef: shared by copies of the struct. Fields are only borrowed, never taken out
+    //   (D.026) - unless [memory] moveFieldOut = true (D.108)
+    [<Type> function <Name>(<parameters>) <body>]      // only with [structs] functions = true
+// on one line: struct <Name> { <Type> <Name>, <Type> <Name> }
+
+
+// =============================================================================================
+// 7. Interfaces [built] (Interfaces.fusion)
+// =============================================================================================
+
+<visibility> interface <Name> [implements <Interface>{, <Interface>}]
+    <Type> function <Name>(<parameters>) [: <expression> | <block>]
+    //   a body (a default) only with [interfaces] defaultMethods = true
+
+
+// =============================================================================================
+// 8. Enums and error types [built]
+// =============================================================================================
+
+<visibility> enum <Name>
+    <Value> [(<Type> <Name>{, <Type> <Name>})]       // a value, with data or without
+// on one line: enum <Name> : <Value>, <Value>, <Value>
+
+<visibility> error <Name> [: <Parent error>]
+    [message = "<text>"]                            // a default message / code
+    [code = <int>]
+    <Type> <Name>                                   // its own fields
+
+
+// =============================================================================================
+// 9. Variables [built]
+// =============================================================================================
+
+<Type> <Name> [= <value>] [{ <set-up statements> }]   // explicit type; may be set later
+<let | var> <Name> [= <value>]                       // the type from the value; let: set once
+const <Type> <Name> = <value> [{ <set-up statements> }]   // never changes - deep for List,
+                                                     // Map, struct; an object [designed 50.2]
+<Type> <Name>, <Error | <ErrorType>> <err> = <call that can fail>   // capture its error (26)
+
+
+// =============================================================================================
+// 10. Handing a value over: <passing> where it is used [built] (Ownership.fusion)
+// =============================================================================================
+//
+//   <Type> <b> = <passing: (nothing) | byVal | byRef> <a>
+//   <function>(<passing: (nothing) | byVal | byRef | readonly> <a>)
+//
+//   written      a number, string,     a List, Map, object, or a struct holding one
+//                plain struct
+//   (nothing)    a copy                assigning moves it; passing lends it for the call
+//   byVal        a copy                a copy (deep: objects cloned)
+//   byRef        -                     a borrow, changeable (a plain struct: not yet)
+//   readonly     error (copied anyway) at a call only: the call must not change it
+//
+//   return <a>   a value the function made moves to the caller; a part of its object (a
+//                getter) lends from it (D.109, D.111); [designed 50.1] a readonly result
+
+
+// =============================================================================================
+// 11. Statements [built]
+// =============================================================================================
+
+if <condition> <block> {else if <condition> <block>} [else <block>]
+
+<(nothing) | fall> match <value>                   // fall: falls through until break (30.13)
+    case <Value>{, <Value>} [(<name | _>{, <name | _>})] <: <statement> | <block>>
+    case null <: <statement> | <block>>             // at most one (30.12)
+    <else | _> <: <statement> | <block>>            // required unless every enum value is there
+<Type> <Name> = match <value>                       // match as a value (46.2)
+    <Value>{, <Value>} : <expression>
+    else : <expression>
+
+for <Name> in <List | Map | array | range(<from>, <to>) | <value>.keys()> <block>
+foreach <Name> in <Collection> <block>             // any Collection, your own class too
+while <condition> <block>
+break | continue | return [<value>]
+
+try <block>
+    {catch [<ErrorType>] [<name>] <block>}           // a bare catch must be last
+    [finally <block>]
+throw <ErrorType>("<message>"[, <field> = <value>])
+
+unchecked <block>                                   // whole-number + - * wrap around here
+
+
+// =============================================================================================
+// 12. Expressions [built] - the less common ones
+// =============================================================================================
+
+(<condition>) ? <value> : <value>
+<value> <is | is not> <Type>                        // what an object is while running
+(<Type>)<value>                                     // a cast, written in front (D.082) - moves
+typeOf(<value>)                                     // "Person.Employee.Manager"
+"text {<name>} {<name>.<field>}"                    // interpolation; {@1} in print / template
+// [designed 30.2] <value>?.<member>   <value>?.null   <value> ?? <default>
+
+
+// =============================================================================================
+// 13. Settings that change what these mean - fusion.toml (the full list: fusion.toml here)
+// =============================================================================================
+//
+//   [memory]      assignment = <move | share>, moveFieldOut = <false | true>
+//   [visibility]  required = <false | true>
+//   [structs]     functions = <false | true>, holdCollections = <true | false>
+//   [interfaces]  defaultMethods = <false | true>
+//   [collections] allowChangeWhileLooping = <false | true>
+//   [source]      caseSensitive = <true | false>
+//   [numbers]     overflowWrap = <false | true>
+//   [conditions]  numbers = <...>              (Nullable_Values.md)

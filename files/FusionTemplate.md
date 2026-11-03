@@ -2,8 +2,9 @@
 
 The layout of a `.fusion` file (user decisions 2026-10-30). Two things are **enforced** by the
 compiler; the rest is the **preferred layout** - Fusion's own libraries follow it, and other
-code is free to order things as it needs. Modifiers (`public`, `internal`, `private`,
-`static`, `const`, ...) will be added to this template later.
+code is free to order things as it needs. Every construct with its modifiers (`public`,
+`internal`, `private`, `static`, `const`, `readonly`, `byVal`, ...) and what leaving one out
+means: `files/showcase/Fusion_template.fusion`.
 
 ---
 

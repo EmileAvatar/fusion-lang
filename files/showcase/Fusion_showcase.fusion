@@ -7,6 +7,7 @@
 // Its settings: fusion.toml in this folder. Topics shown in full, in this folder:
 //   Interfaces.fusion   Fusion's own interfaces
 //   Ownership.fusion    moving, borrowing, readonly, const - allowed and not allowed
+//   Fusion_template.fusion  the shape of every construct, each choice as <a | b | c>
 // Kept up to date with every new or changed feature (CLAUDE.md, auto-update policy).
 //
 // Every feature has a comment line before it: a tag, then a one-line description.
