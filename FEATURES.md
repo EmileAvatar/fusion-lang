@@ -220,6 +220,18 @@ are in `task/featuresArchive.md`.
 		[DONE] A for loop may set an element's value (27.2e) - unless the elements move
 		[DONE] "move" the default
 
+#### 50 readonly results and a deep const (user, 2026-11-03) [ ] - after Task 48
+	Rules shown: files/showcase/Ownership.fusion; the skill .claude/skills/fusion-ownership
+	[ ] 50.1 A readonly result, part of the signature (D.110): `public readonly Engine function getEngine()`
+		The caller gets a read-only borrow: `e.kind = ...`, passing e to a function that changes it - errors
+		No `readonly` in that function's body - `return readonly this.engine` is an error (the signature says it)
+		`Engine e = byRef car.getEngine()`: an error - byRef asks to change what is readonly
+		`byVal car.getEngine()`: a copy the caller may change
+		Open (user): what such a function may return - a member of the class, a new object - decided while building
+	[ ] 50.2 `const` on an object is deep (D.112): `const Car c` - no field set, no method that changes it;
+		a `byVal` copy (or a function returning one) may change (today only Lists, Maps and structs are deep)
+	[ ] 50.3 Tests - every allowed / not allowed case of D.110-D.112 (Rule 4c); Ownership.fusion tags [built]
+
 ## Phase 3 - the advanced parts
 
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]

@@ -137,6 +137,7 @@ FUN.012 [POSTPONED] More error types (Network, Timeout, Parse, Cancelled, Assert
 FUN.013 [DESIGN] Every error carries a stack trace
 FUN.014 [BUILT] 96 built-in functions, 16 List and 7 Map methods, each with its `[stdlib]` layer - the list: files/Builtins.md (generated)
 FUN.015 [BUILT] Built-in error types in a tree (IndexError, KeyError, FileError, OverflowError, NullError, ...) - a parent catches its children
+FUN.016 [PLANNED] A readonly result: `readonly Engine function getEngine()` - the caller gets a read-only borrow; part of the signature (50.1, D.110)
 
 #### NUL - null
 NUL.001 [BUILT] Value types are never null; class objects and enums can be
@@ -194,6 +195,7 @@ MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`
 MEM.007 [BUILT] The leak check: every example and test
 MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep(x)` always deep
 MEM.009 [DESIGN] Arena / region memory (many objects freed together); memory-mapped resources
+MEM.010 [PLANNED] `const` on an object is deep - no field set, no changing method; a `byVal` copy may change (50.2, D.112)
 
 #### CON - concurrency
 CON.001 [PLANNED] `service`: shared state with one owner (reserved keyword); version one (42.0-42.2)
@@ -357,3 +359,6 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.107 | The self-hosted compiler keeps `[memory] assignment = "share"` (selfhost/fusion.toml) until its context handling is reworked for "move" with Task 35 | MEM.002 | 2026-11-03 | selfhost/fusion.toml | ACTIVE |
 | D.108 | A struct's fields are only borrowed, changed through the borrow, never taken out (D.026 stays); `[memory] moveFieldOut = true` allows it as Rust does - a field leaves a struct the function owns, and the struct can't be used until it gets a new value. Default false | STC.001 | 2026-11-03 | Ownership.md 2 | ACTIVE |
 | D.109 | A function returning a part of its object (`return this.engine`, `this.people[i]`) or of a parameter it borrows lends from it - the result is a borrow of the argument, frozen while used, never stored; so does one returning a new object made with such a part (an iterator holding its collection) | MEM.003 | 2026-11-03 | Ownership.md 2 | ACTIVE |
+| D.110 | `readonly` on a function's result is part of its signature: the caller gets a read-only borrow; no `readonly` inside that function's body (`return readonly x` an error); `byRef` on its result an error; `byVal` a changeable copy | FUN.016 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (planned) |
+| D.111 | What a function returns: a single object it made moves to the caller; a member fetched from the class is a borrow, changeable unless the signature says `readonly` (D.109, D.110) | MEM.003 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE |
+| D.112 | `const` protects the whole object (fields, changing methods), as it does Lists, Maps and structs; a `byVal` copy - also one a method returns - may change | MEM.010 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (planned) |

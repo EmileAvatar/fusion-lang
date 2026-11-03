@@ -468,6 +468,9 @@ Kept under Task 22 until the renumbering is approved.
   are the main open question (asked the user)
 - 48.9 done (2026-11-03): "move" is the default. A getter lends (D.109, user); tests of "share"
   itself carry @pytest.mark.share (tests/conftest.py); selfhost pinned (D.107)
+- User (2026-11-03): readonly results in the signature (D.110), what a function returns (D.111),
+  const deep on objects (D.112) - Task 50, after 48; the rules in files/showcase/Ownership.fusion
+  and the skill .claude/skills/fusion-ownership/SKILL.md
 - **Next Action:** 48.4 (`--interface` shows what each public function does with its parameters)
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29

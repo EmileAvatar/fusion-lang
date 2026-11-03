@@ -155,6 +155,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Single values, arrays, lists, maps: what each does, when (not) to use it | `Arrays.md` |
 | When a class object is freed: every way it gains or loses a reference | `Object_Lifetime.md` |
 | Ownership: moves, borrows, `shared`, readonly caller / called, one writer across threads (Task 48) | `Ownership.md` |
+| Every ownership / readonly / const rule as code - allowed and not allowed, [built] / [designed] | `files/showcase/Ownership.fusion`; the skill `.claude/skills/fusion-ownership` |
 | Classes: visibility, constructors, static set-up (forms A, B, C), Default, ToString - truth tables | `Classes.md` |
 | How a .fusion file is laid out: namespace, imports, the preferred order | `files/FusionTemplate.md` |
 | Read before picking future features | `FutureFeaturesCaution.md`, then `FutureFeatures.md` |

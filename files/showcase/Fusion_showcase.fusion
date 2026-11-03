@@ -849,17 +849,17 @@ void function errors() {
 
 
 // =============================================================================================
-// 17. Memory (Task 38)
+// 17. Memory (Task 38, Task 48) - every ownership rule: files/showcase/Ownership.fusion
 // =============================================================================================
 
 void function memory() {
-    // [built] Strings, lists, maps and structs are values: copied and freed automatically
+    // [built] One owner: assigning moves a List, Map or object, `byVal` copies, `byRef` and
+    //         passing borrow (Task 48, D.102) - the full rules: Ownership.fusion
     List<string> names = ["a", "b"]
-    // [designed] Unique<T>: one owner; moving it must be written as .move()
-    Unique<Ship> solo = Unique.create<Ship>("Solo", 50.0)
-    Unique<Ship> taken = solo.move()
-    // [rejected] Moving a Unique by plain assignment (C++ style) - a compile error instead
-    //            (decided 2026-09-13)
+    List<string> moved = names
+    List<string> copy = byVal moved
+    // [rejected] Unique<T> and .move() - assigning moves by itself (D.080, 2026-10-31; replaces
+    //            the 2026-09-13 design)
     // [designed] Shared<T>: counted owners; the count is always atomic
     Shared<Ship> shared = Shared.create<Ship>("Hub", 10.0)
     Shared<Ship> another = shared

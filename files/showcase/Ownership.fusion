@@ -1,0 +1,351 @@
+// =============================================================================================
+// Ownership.fusion - every ownership, borrowing, readonly and const rule (Task 48, 2026-11-03)
+// =============================================================================================
+//
+// Who owns a value, what assigning, passing and returning do, and what readonly / const
+// protect. Like Fusion_showcase.fusion it does NOT compile as a whole: it shows the errors
+// too. Working examples: SYNTAX_REFERENCE.md (syntax_moving, syntax_borrowing,
+// syntax_at_the_call, syntax_getters). The full design and truth tables: Ownership.md; the
+// decisions: Decisions.md (D.0xx below); the short rule list for Claude:
+// .claude/skills/fusion-ownership/SKILL.md - keep the three in step.
+//
+// Each line is marked
+//   // ok                      allowed
+//   // ERROR: <message>        a compile error, with the compiler's message ("line N" = where)
+// and each feature tagged
+//   [built]      works in the compiler today
+//   [designed]   decided, not built yet - the task number says which task builds it
+//   [postponed]  decided to wait          [rejected]  decided against
+//
+// Settings (fusion.toml [memory]):
+//   assignment = "move"     [built] the default (D.102) - "share": two names, one object
+//   moveFieldOut = false    [built] true: a field may leave a struct the function owns (D.108)
+//
+// Sections
+//    1 What moves, what is copied        8 At the call: readonly, byVal, byRef
+//    2 Moving                            9 readonly parameters
+//    3 Copying: byVal                   10 readonly results
+//    4 Passing borrows; keeping takes   11 const and let
+//    5 Local borrows                    12 Casts
+//    6 A struct's fields                13 Not in Fusion (yet)
+//    7 Getters and iterators lend
+// =============================================================================================
+
+class Engine
+    public string kind = "V8"
+
+class Car
+    public string color
+    public Engine engine = Engine()
+    constructor(string color)
+        this.color = color
+    Engine function getEngine() : this.engine          // a getter: lends from the car (D.109)
+    void function paint(string c)
+        color = c
+
+class Garage
+    public Car car
+    public List<Car> cars = []
+    void function park(Car c)                          // keeps c in a field: takes it (D.100)
+        this.car = c
+    Car function at(int i) : this.cars[i]              // an element getter: lends too
+
+struct Order
+    int id
+    List<int> items                                    // belongs to the Order (D.026)
+
+struct Point { int x, int y }
+
+interface Shape
+    float function area()
+
+class Circle implements Shape
+    public float r
+    constructor(float r)
+        this.r = r
+    float function area() : r * r
+
+void function twice(int n)
+    print("{n} {n}")
+
+void function repaint(Car c)                           // only changes c: a borrow
+    c.color = "blue"
+
+void function show(readonly Car c)                     // promises to only read c (32.2e)
+    print(c.color)
+
+
+// =============================================================================================
+// 1. What moves, what is copied [built]
+// =============================================================================================
+//
+//   moves when handed over:  List, Map, a class object, an interface value,
+//                            a struct holding any of them (moves as a whole - D.097)
+//   copied:                  int, float, bool, char, byte, string, a struct of plain values
+//
+// "Handed over": `T b = a`, `b = a`, `x.f = a`, `list.add(a)` / `insert`, `m[k] = a`, a List
+// literal `[a, b]`, a struct made with it `Order(1, xs)`, `return a`, and a call to a function
+// that keeps that parameter (section 4). Passing to any other function lends it (section 4).
+
+
+// =============================================================================================
+// 2. Moving [built] (48.1 - D.014, D.102)
+// =============================================================================================
+
+void function moving()
+    Car a = Car("red")
+    Car b = a                          // ok - b owns the car now
+    print(a.color)                     // ERROR: 'a' was moved to 'b' on line N - use byVal a for a copy
+    a = Car("green")                   // ok - a new value brings a back
+    print(a.color)                     // ok
+
+    Car c = Car("red")
+    Car d = Car("blue")
+    if c.color == "red"
+        d = c                          // moved on one path only
+    print(c.color)                     // ERROR: 'c' may have been moved to 'd' on line N - give it a new value on every path, or use byVal c for a copy
+
+    List<Car> all = []
+    Car e = Car("red")
+    for i in range(0, 3)
+        all.add(e)                     // ERROR: 'e' was moved to 'all' (add) on line N, in an earlier pass of the loop - give it a new value each pass, or use byVal e for a copy
+    for i in range(0, 3)
+        Car f = Car("red")
+        all.add(f)                     // ok - a new car each pass
+
+    Order o = Order(1, [1, 2])
+    Order p = o                        // ok - a struct holding a List moves as a whole
+    print("{o.id}")                    // ERROR: 'o' was moved to 'p' on line N - use byVal o for a copy
+    int n = 5
+    int m = n                          // ok - copied
+    print("{n} {m}")                   // ok
+
+
+// =============================================================================================
+// 3. Copying: byVal [built] (32.10a, 32.5b, D.097)
+// =============================================================================================
+
+void function copying()
+    Car a = Car("red")
+    Car b = byVal a                    // ok - a new Car with a new Engine (clone, deep)
+    b.engine.kind = "V6"
+    print("{a.engine.kind} {b.engine.kind}")   // V8 V6
+    Order o = Order(1, [1])
+    Order p = byVal o                  // ok - a struct copied with its List (and its objects - D.097)
+    p.items.add(2)
+    print("{@1} {@2}", o.items.len(), p.items.len())   // 1 2
+
+
+// =============================================================================================
+// 4. Passing borrows; a function that keeps a parameter takes it [built] (48.2 - D.100, D.103)
+// =============================================================================================
+
+void function passing()
+    Car a = Car("red")
+    repaint(a)                         // ok - lent for the call: a is back afterwards
+    print(a.color)                     // ok - blue
+    Garage g = Garage()
+    g.park(a)                          // park keeps its parameter: the call moves a (D.100)
+    print(a.color)                     // ERROR: 'a' was moved to 'park' (which keeps it) on line N - use byVal a for a copy
+    Car b = Car("red")
+    g.park(byVal b)                    // ok - park keeps a copy
+    print(b.color)                     // ok
+    b.paint("green")                   // ok - a method's `this` is always borrowed, never taken (D.103)
+    print(b.color)                     // ok
+
+
+// =============================================================================================
+// 5. Local borrows: an element, a field, a for loop [built] (48.2 - D.101, R4, R5)
+// =============================================================================================
+
+void function borrowing()
+    List<Car> fleet = [Car("red"), Car("white")]
+    Car first = fleet[0]               // ok - a borrow: fleet is frozen while 'first' is used
+    fleet.clear()                      // ERROR: 'fleet' can't change while 'first' borrows from it (line N, last used on line M)
+    print(first.color)                 // the borrow's last use
+    fleet.add(Car("black"))            // ok - after the last use the owner may change again
+
+    Car second = fleet[1]
+    second.color = "grey"              // ok - a change through the borrow reaches fleet[1]
+    print("{@1}", fleet.len())         // ERROR: 'fleet' can't be read while 'second', borrowed from it on line N, changes it (R4)
+    print(second.color)
+
+    Garage g = Garage()
+    Car third = fleet[0]
+    g.car = third                      // ERROR: 'third' borrows from 'fleet' (line N) - a borrow can't be stored or returned; use byVal third for a copy
+    g.car = byVal third                // ok - a copy
+    g.cars.add(fleet[0])               // ERROR: An element of 'fleet' can't be moved out - use byVal for a copy
+
+    for c in fleet                     // c borrows each car in turn
+        print(c.color)                 // ok
+        c.color = "blue"               // ok - changes the car in fleet
+        g.cars.add(c)                  // ERROR: 'c' borrows from 'fleet' (line N) - a borrow can't be stored or returned; use byVal c for a copy
+        fleet.add(Car("x"))            // ERROR: 'fleet' is being looped over - it can't change inside the loop (add); build a new one instead (D.058)
+        fleet[0] = Car("x")            // ERROR: 'fleet' can't change while a for loop walks it (line N) - its elements are objects the loop borrows
+
+    List<int> xs = [1, 2]
+    for x in xs
+        xs[0] = x                      // ok - an int element's value set while looping (27.2e)
+
+    Car best = fleet[0]
+    for c in fleet
+        if c.color == "white"
+            best = c                   // ok - a local given a borrow is a borrow too
+    print(best.color)                  // ok - fleet stays frozen until here
+
+
+// =============================================================================================
+// 6. A struct's fields: borrowed, never taken out [built] (D.026, D.108)
+// =============================================================================================
+
+List<int> function itemsOf(Order order)
+    return order.items                 // ok - a part of a parameter it borrows: the result lends (D.109)
+
+List<int> function made()
+    Order o = Order(1, [1, 2])
+    return o.items                     // ERROR: 'o.items' is part of 'o' and can't be moved out - use byVal o.items for a copy
+
+void function fields()
+    Order o = Order(1, [1, 2])
+    List<int> xs = o.items             // ok - a borrow of o's List: o is frozen while xs is used
+    xs.add(3)                          // ok - changes o.items
+    o.id = 2                           // ok - another field: not frozen
+    o.items = [9]                      // ERROR: 'o.items' can't change while 'xs' borrows from it (line N, last used on line M)
+    print("{@1}", xs.len())
+    List<List<int>> keep = []
+    keep.add(o.items)                  // ERROR: 'o.items' is part of 'o' and can't be moved out - use byVal o.items for a copy
+    keep.add(byVal o.items)            // ok
+    // [built] With [memory] moveFieldOut = true (as Rust): keep.add(o.items) takes the field out,
+    // and o can't be used until it gets a new value:
+    //   'o' gave its field 'items' to 'keep' (add) on line N - it can't be used until it gets a new value; or use byVal o.items for a copy
+
+
+// =============================================================================================
+// 7. Getters and iterators lend [built] (D.109, D.111)
+// =============================================================================================
+//
+// A function returning a part of its object (or of a parameter it borrows) lends from it;
+// so does one returning a new object made with such a part (an iterator holding its
+// collection). A single object the function made itself moves to the caller (D.111).
+
+Car function newCar() : Car("red")     // ok - made here: moves to the caller
+
+void function getters()
+    Car car = Car("red")
+    Engine e = car.getEngine()         // ok - e borrows from car (car frozen while e is used)
+    e.kind = "V6"                      // ok - reaches car.engine
+    car.engine = Engine()              // ERROR: 'car' can't change while 'e' borrows from it (line N, last used on line M)
+    print(e.kind)
+    List<Engine> spares = []
+    spares.add(car.getEngine())        // ERROR: getEngine's result borrows from 'car' - a borrow can't be stored or returned; use byVal for a copy
+    spares.add(byVal car.getEngine())  // ok - a copy
+    Car mine = newCar()                // ok - owned
+    Garage g = Garage()
+    g.cars.add(Car("red"))
+    Car c = g.at(0)                    // ok - borrows from g
+    print(c.color)
+
+
+// =============================================================================================
+// 8. At the call: readonly, byVal, byRef [built] (48.3 - D13-D20, truth table 4)
+// =============================================================================================
+
+void function atTheCall()
+    Car a = Car("red")
+    show(readonly a)                   // ok - show only reads
+    repaint(readonly a)                // ERROR: repaint changes 'c' (line N) - 'a' is passed readonly; pass byVal a for a copy
+    //                                    and at repaint's line: repaint changes 'c' here - line M passes 'a' to repaint as readonly
+    repaint(byVal a)                   // ok - repaint changes a copy
+    repaint(byRef a)                   // ok - lent, changeable (the same as repaint(a))
+    Garage g = Garage()
+    g.park(byRef a)                    // ERROR: park keeps its 'c' - 'byRef a' only lends it for the call; give a itself (a move) or byVal a (a copy)
+    Car b = byRef a                    // ok - a local borrow of a (a frozen while b is used)
+    g.car = byRef a                    // ERROR: 'byRef a' only lends it - a borrow can't be stored or returned; give a itself (a move) or byVal a (a copy)
+    int n = 1
+    twice(readonly n)                  // ERROR: readonly at a call is for a value the function could change - a int is copied anyway
+
+
+// =============================================================================================
+// 9. readonly parameters [built] (32.2e - FUN.003, D.011): deep, followed through every call
+// =============================================================================================
+
+Engine function look(readonly Car c)
+    print(c.color)                     // ok - reading
+    Car alias = c                      // ok - alias is readonly too
+    c.color = "x"                      // ERROR: 'c' is readonly - look may read it but not change it
+    c.paint("x")                       // ERROR: 'c' is readonly - look calls paint, which changes c
+    repaint(c)                         // ERROR: 'c' is readonly - look passes it to repaint, which changes it (use a copy: byVal c)
+    return c.engine                    // ERROR: 'c' is readonly - look can't keep it (in a field, a List or by returning it) where it could change later (use a copy: byVal c)
+// `readonly byVal Car c` - ERROR: 'readonly' stands alone - it already means the function can't change the value
+
+
+// =============================================================================================
+// 10. readonly results [designed Task 50.1] (D.110)
+// =============================================================================================
+//
+// readonly on the result is part of the signature: the caller gets a read-only borrow.
+//
+//   public readonly Engine function engineOf()
+//       return this.engine                     // ok
+//       return readonly this.engine            // ERROR: the signature says readonly already
+//
+//   Engine e = car.engineOf()                  // ok - a read-only borrow of car
+//   e.kind = "V6"                              // ERROR - e is readonly
+//   Engine f = byRef car.engineOf()            // ERROR - byRef asks to change what is readonly
+//   Engine g = byVal car.engineOf()            // ok - a copy the caller may change
+//
+// Open (user): what such a function may return besides a member - decided while building.
+
+
+// =============================================================================================
+// 11. const and let [built], deep const on an object [designed Task 50.2] (D.112)
+// =============================================================================================
+
+void function constants()
+    let c = Car("red")
+    c = Car("blue")                    // ERROR: 'c' is a let - it can't change once set
+    c.color = "blue"                   // ok - let only stops a new value
+    const List<int> xs = [1]
+    xs.add(2)                          // ERROR: 'add' can't change constant 'xs'
+    const Order o = Order(1, [1])
+    o.id = 2                           // ERROR: Cannot assign to field 'id' of constant 'o'
+    const Car k = Car("red")
+    k = Car("blue")                    // ERROR: Cannot assign to constant: 'k'
+    k.color = "blue"                   // [designed 50.2] an ERROR - today allowed (const isn't deep on objects yet)
+    k.paint("blue")                    // [designed 50.2] an ERROR - today allowed
+    Car copy = byVal k                 // ok - a copy may change
+    copy.color = "blue"                // ok
+    const Point p = Point(1, 2) {
+        p.x = 5                        // ok - its own set-up block may still change it (D.009)
+    }
+
+
+// =============================================================================================
+// 12. Casts [built] (D.082, D.104)
+// =============================================================================================
+
+void function casts(Shape s)
+    Shape t = (Shape)Circle(1.0)       // ok
+    Circle c = (Circle)t               // ok - moves t, like any assignment (D.104)
+    print("{@1}", t.area())            // ERROR: 't' was moved to 'c' on line N - use byVal t for a copy
+    Shape u = Circle(2.0)
+    Circle d = byRef (Circle)u         // ok - a borrow; u stays usable after d's last use
+    Circle e = byVal (Circle)u         // ok - a copy
+
+
+// =============================================================================================
+// 13. Not in Fusion (yet)
+// =============================================================================================
+//
+// [postponed] `shared Car c = a` - counted readers, read only except to the holder that made
+//             it shared: not until a real need; byRef shares an object meanwhile (D.106)
+// [rejected]  `Unique<T>` and `.move()` - assigning moves by itself (D.080)
+// [designed]  Taking an element out as a move - `Car c = fleet.removeAt(0)` needs a removeAt
+//             that returns the element (48.2, postponed to Task 33)
+// [designed]  A function value can't capture a borrow - ready, waits for closures (48.2)
+// [built]     "share" keeps today's counting: [memory] assignment = "share" - two names, one
+//             object; the self-hosted compiler uses it until Task 35 (D.107)
+
+
+void function main()
+    moving()
