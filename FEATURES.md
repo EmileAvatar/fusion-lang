@@ -201,14 +201,14 @@ are in `task/featuresArchive.md`.
 		[POSTPONED to 39.3] A library not written in Fusion: a warning when a borrowed value is passed (user) -
 			Fusion has no libraries / extern functions yet
 	[ ] 48.4 `--interface` shows the readonly result of each public function
-	[ ] 48.5 `shared` objects
-		`shared Car c = a`: one more reader (counted)
-		Only the holder that made it shared changes it
-		`f(byRef pool)` from that holder lends the right to change it
+	[POSTPONED to a real need] 48.5 `shared` objects (user, 2026-11-03 - D.106): not added yet; assignment
+		moves, `byVal` copies, `byRef` already shares the object; the word kept for when a real need shows
+		The design if it comes back: `shared Car c = a` one more reader; only the holder that made it
+			shared changes it; `f(byRef pool)` from that holder lends the right to change it
 	[ ] 48.6 Counting removed where moves make it unnecessary (covers 38.2)
 	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
-	[ ] 48.9 Migrate, then make "move" the default (D.102) - after 48.5
+	[ ] 48.9 Migrate, then make "move" the default (D.102) - next (48.5 postponed)
 		Under "move" today (2026-11-02, after 48.3): 19 errors in 8 programs - 12 in 6 SYNTAX_REFERENCE
 		examples (`b = a` sharing), classes_demo (`s.featured = stock[0]`), 7 in the self-hosted compiler:
 		codegen `inner = ctx`, `Out(genIf(.., ctx ..), ctx)`, `ctx = o.ctx` in a loop, `params` moved into a

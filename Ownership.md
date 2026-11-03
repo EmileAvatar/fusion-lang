@@ -114,6 +114,9 @@ objects and service handles (the 32.10e "proven single owner" goal, made the rul
 
 ## 3. `shared` objects (D11, D12)
 
+**Postponed (user, 2026-11-03 - D.106):** not added until a real need shows. Assignment moves,
+`byVal a` copies, and `byRef a` already shares the object. The design below is kept for then.
+
 ```fusion
 shared Car pool = Car("van")   // counted; this holder may change it
 shared Car mine = pool         // one more reader
@@ -297,3 +300,4 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 | 2026-11-01 | Built with "share" as the default; "move" once everything is migrated (D.102) |
 | 2026-11-02 | A method's `this` is always borrowed, never taken - for now; reviewed once working programs verify it (D.103) |
 | 2026-11-02 | A cast moves, back to the class too, unless `byVal` (a copy) or `byRef` (a borrow) is written (D.104) |
+| 2026-11-03 | No `shared` yet - assignment moves, `byVal` copies, `byRef` shares; `shared` waits for a real need (D.106) |

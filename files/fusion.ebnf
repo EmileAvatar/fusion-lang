@@ -750,7 +750,8 @@ DEDENT = ? decrease indentation level ? ;
 (* PLANNED - ownership, hot paths, fixed (designed 2026-10-31: Ownership.md) *)
 (* ===================================================================== *)
 
-(* Task 48.5: several holders - read only except to the holder that made it shared *)
+(* Task 48.5, POSTPONED (D.106): several holders - read only except to the holder that made it
+   shared; not added until a real need - byRef shares an object meanwhile *)
 shared_declaration = "shared" type_name identifier "=" expression ;
 
 (* Task 42.23 / 42.24: hotpath on a function (the checks) or a service (a dedicated thread) *)

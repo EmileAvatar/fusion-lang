@@ -68,8 +68,8 @@ the record D1-D49 in Notes/Ownership_Decisions_2026-10-31.md.
   a warning
 - **48.4** `--interface` shows each public function's result: reads / changes / keeps each
   parameter
-- **48.5 `shared`:** `shared Car c = a` - counted readers; only the holder that made it
-  shared changes it or lends it `byRef`
+- **48.5 `shared`:** POSTPONED (user, 2026-11-03 - D.106): assignment moves, `byVal` copies,
+  `byRef` already shares - `shared` waits for a real need
 - **48.6** counting removed where a move proves one owner (covers 38.2); leak check and the
   object-lifetime tests (32.10c) must still pass
 - **48.7** SYNTAX_REFERENCE.md examples (moving, borrowing, shared), a demo program; tests with
@@ -462,6 +462,6 @@ Kept under Task 22 until the renumbering is approved.
   (with the program's and its class's); checked before any rewrite
 - 32.3 done: examples/classes_demo.fusion; Task 32 complete and archived (2026-11-01)
 - Task 48 plan answered (user, 2026-11-01 - D.100-D.102); 48.1 (moving) done
-- **Next Action:** 48.5 (`shared` objects) - Task 48 plan above
+- **Next Action:** 48.9 (migrate the tests, examples and self-hosted compiler; then "move" the default)
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29

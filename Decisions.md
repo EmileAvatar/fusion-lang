@@ -188,7 +188,7 @@ MOD.011 [DESIGN] Language modules `Lang.<language>.Fusion`: each brings its lexe
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
 MEM.002 [BUILT] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies - with `[memory] assignment = "move"`; "share" the default until migrated (48.1, D.102)
 MEM.003 [BUILT] Passing and reading an element borrow; a borrow is never stored (48.2) - with `[memory] assignment = "move"`
-MEM.004 [PLANNED] `shared`: read only except to the holder that made it shared (48.5)
+MEM.004 [POSTPONED] `shared`: read only except to the holder that made it shared (48.5) - not until a real need (D.106)
 MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; `Shared<T>` / `Weak<T>` (Task 38) - single ownership is the default, no `Unique<T>` (D.080)
 MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`
 MEM.007 [BUILT] The leak check: every example and test
@@ -353,3 +353,4 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.103 | A method's `this` is always borrowed: calling `car.register()` never moves `car`, even when the method keeps `this` - for now; reviewed once working programs can verify it | MEM.003 | 2026-11-02 | Ownership.md 9 | ACTIVE |
 | D.104 | A cast moves like any assignment - `Circle c = (Circle)first` moves `first` (back to the class too); `byVal` copies, `byRef` borrows | MEM.002 | 2026-11-02 | Ownership.md 9 | ACTIVE |
 | D.105 | Multi-language support (`Lang.<language>.Fusion` modules: migrate or compile other languages) comes after self-hosting (Task 35); the core compiler holds no other language's logic | MOD.011 | 2026-11-03 | files/Fusion_Multi_Language_Compiler_Architecture.md | ACTIVE (planned) |
+| D.106 | No `shared` yet: assignment moves, `byVal` copies, `byRef` already shares an object - `shared` waits for a real need | MEM.004 | 2026-11-03 | Ownership.md 3 | ACTIVE |
