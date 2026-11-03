@@ -21,6 +21,7 @@ def run(source: str) -> list:
     return [line for line in out.strip().splitlines() if not line.startswith('[freed')]
 
 
+@pytest.mark.share
 def test_every_collection_function_on_a_list():
     assert run(main('List<int> xs = [1, 2, 3]\n'
                     'Collection<int> c = xs\n'
@@ -57,13 +58,13 @@ def test_strings_and_objects_are_freed():
     source = ('class Person\n    public string name\n    constructor(string name)\n'
               '        this.name = name\n\n'
               + main('List<string> words = ["a"]\n'
-                     'Collection<string> w = words\n'
+                     'Collection<string> w = byRef words\n'
                      'w.add("b")\n'
                      'foreach s in w\n'
                      '    write(s)\n'
                      'print("")\n'
                      'List<Person> people = [Person("Ann")]\n'
-                     'Collection<Person> c = people\n'
+                     'Collection<Person> c = byRef people\n'
                      'c.add(Person("Bob"))\n'
                      'foreach p in c\n'
                      '    write("{p.name} ")\n'
@@ -110,7 +111,7 @@ def test_next_past_the_end_a_string_is_null_an_int_an_index_error():
     # whatever the nullable settings say; a primitive can't be null - an IndexError that says
     # to check hasNext() first. hasNext() is the way: foreach never fails
     assert run(main('List<string> words = ["a"]\n'
-                    'Collection<string> w = words\n'
+                    'Collection<string> w = byRef words\n'
                     'Iterator<string> si = w.iterator()\n'
                     'string first = si.next()\n'
                     'string none = si.next()\n'

@@ -260,6 +260,7 @@ def test_o3_o4_a_warning_where_a_class_can_hold_itself():
     assert len(warnings) == 2
 
 
+@pytest.mark.share
 def test_o3_a_circle_kept_is_reported_by_the_leak_check(tmp_path):
     code, lines, err = built(CIRCLE + main('A a = A()\n'
                                            'B b = B()\n'
@@ -277,6 +278,7 @@ def test_o3_a_circle_kept_is_reported_by_the_leak_check(tmp_path):
     # O4: an object holding itself
     ('Node n = Node()\nn.next = n\nn.next = null\nprint("broken")', ['broken', '[freed Node]']),
 ])
+@pytest.mark.share
 def test_a_circle_broken_is_freed(body, freed, tmp_path):
     assert traced(CIRCLE + main(body), tmp_path) == freed
 

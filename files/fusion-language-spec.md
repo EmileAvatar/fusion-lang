@@ -4571,8 +4571,8 @@ variables = true               # module-level variables; constants are always al
 allowChangeWhileLooping = false   # true: a collection class of your own may change in a loop
 
 [memory]                       # Task 48 - Ownership.md
-assignment = "share"           # move: `Car b = a` hands it over, `a` is dead until a new value;
-                               # share: two names, one object (the default until Task 48 is done)
+assignment = "move"            # move (default, Task 48.9): `Car b = a` hands it over, `a` is dead
+                               # until a new value; share: two names, one object
 moveFieldOut = false           # true: a field may be moved out of a struct the function owns -
                                # the struct is then unusable (as Rust); false: fields only borrowed
 

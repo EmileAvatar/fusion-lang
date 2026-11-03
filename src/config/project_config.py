@@ -217,14 +217,14 @@ class MemoryConfig:
     """Memory (Task 48, Ownership.md - Decisions.md D.014, D.102).
 
     Attributes:
-        assignment: "move" - `Car b = a` hands the object over and `a` can't be used until it
-            gets a new value (`byVal a` copies); "share" - two names, one object. "share" is
-            the default while Task 48 is built; "move" once everything is migrated (D.102).
+        assignment: "move" (the default since Task 48.9, D.102) - `Car b = a` hands the
+            object over and `a` can't be used until it gets a new value (`byVal a` copies,
+            `byRef a` borrows); "share" - two names, one object.
         move_field_out: a field may be moved out of a struct the function owns, as in Rust -
             the struct can't be used afterwards until it gets a new value. False (the
             default): a struct's fields are only borrowed (D.026, user 2026-11-03).
     """
-    assignment: str = "share"
+    assignment: str = "move"
     move_field_out: bool = False
 
 

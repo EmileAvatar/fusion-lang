@@ -64,6 +64,7 @@ def test_char_keys_and_counting():
     )) == ['3 2 1 3']
 
 
+@pytest.mark.share
 def test_maps_are_shared():
     assert run_ok('Map<string, int> function scores() \n    Map<string, int> m\n    m["x"] = 1\n    return m\n\n'
                   'int function total(Map<string, int> m) : m.values().toList().reduce(0, (int s, int x) : s + x)\n\n'
@@ -103,9 +104,9 @@ def test_nested_and_in_structs():
         'deep["a"]["b"] = 7\n'
         'Person p = Person("Ada", Map<string, int>())\n'
         'p.scores["math"] = 90\n'
-        'Person q = p\n'
+        'Person q = byVal p\n'
         'q.scores["math"] = 50\n'
-        'List<Map<string, int>> rows = [p.scores, q.scores]\n'
+        'List<Map<string, int>> rows = [byVal p.scores, byVal q.scores]\n'
         'print("{@1} {@2} {@3} {@4} {@5}", groups["admins"][1], groups.keys().toList()[1], deep["a"]["b"], p.scores["math"], rows[1]["math"])'
     )) == ['ben users 7 90 50']
 

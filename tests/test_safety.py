@@ -251,6 +251,7 @@ def test_max_call_depth_in_fusion_toml(tmp_path):
 
 # ---------------------------------------------------------------- 27.3 features together
 
+@pytest.mark.share
 def test_a_struct_holding_collections_and_enums_is_a_value():
     assert run_ok(
         'enum Role\n    Admin\n    Guest(string invitedBy)\n'
@@ -372,7 +373,7 @@ def test_across_modules(tmp_path):
             'import shapes.Shape\n'
             'void function main()\n'
             '    shapes.Drawing d = shapes.Drawing("d", [Shape.Circle(1), Shape.Box(2, 3)])\n'
-            '    shapes.Drawing copy = d\n'
+            '    shapes.Drawing copy = byVal d\n'
             '    copy.shapes.add(Shape.Box(-1, 1))\n'
             '    int total = 0\n'
             '    for s in copy.shapes\n'
@@ -417,6 +418,7 @@ def test_single_equals_outside_a_condition_says_to_use_double(body):
         parse(main(body))
 
 
+@pytest.mark.share
 def test_changing_a_collection_while_looping_is_an_error():
     # through another function - written in the loop it is a compile error (D.058)
     lines, stderr = run_failing('void function cut(List<int> v)\n    v.removeAt(0)\n\n' + main(

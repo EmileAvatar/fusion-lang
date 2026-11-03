@@ -34,7 +34,11 @@ Borrowing (48.2):
   function value, and the owner can't change until the borrow's last use (D.101); while the
   borrow changes it, the owner can't even be read (R4). A for loop's collection can't change
   in the loop
-- a field or an element can't be moved out (`return order.items`) - `byVal` copies it
+- a method returning its own field or element (`return this.engine`) lends it: the call's
+  result borrows from the object (`Engine e = car.getEngine()` - car frozen while e is used,
+  D.109); the same for a part of any borrowed parameter, and for a new object made with one
+  and returned (an iterator holding its collection). Stored or returned elsewhere: an error
+- any other field or element can't be moved out (`return order.items`) - `byVal` copies it
   (D.026); with `[memory] moveFieldOut = true` a field may leave a struct the function owns,
   and the struct can't be used until it gets a new value (as in Rust)
 
@@ -189,7 +193,7 @@ def _merge(states: List[Optional[State]], loop: bool = False) -> Optional[State]
 
 class _FunctionCheck:
     def __init__(self, function, moving, errors: List[SemanticError], taken, changed,
-                 own_struct=None):
+                 own_struct=None, lends=frozenset()):
         self.moving = moving           # does a value of this type move?
         self.own_struct = own_struct   # [memory] moveFieldOut: is this a struct's type?
         self.errors = errors
@@ -202,6 +206,9 @@ class _FunctionCheck:
         self.loops: List[dict] = []    # each enclosing loop: its breaks and continues
         self.log: List[tuple] = []     # every move, in order - a catch may start after any of them
         self.kept: Set[str] = set()    # parameters this function keeps (D.100)
+        self.lends = lends             # (id(function), index): its result borrows from that one
+        self.indexes = {p.name: i for i, p in enumerate(function.parameters)}   # `this` too
+        self.lent: Set[str] = set()    # parameters this function's result borrows from (D.109)
         self.borrows: Dict[str, _Borrow] = {}
         self.origin: Dict[str, str] = {}   # a local naming a parameter's value: which one
         self._find_borrows(function.body)
@@ -252,7 +259,10 @@ class _FunctionCheck:
                 source = _bare(value)
                 if self._field_out(source):
                     continue                   # the field leaves the struct: owned, not borrowed
-                if _lent(source) and _path(source.value) is not None:
+                lending = self._lending(source)
+                if lending is not None:
+                    self.borrows[name] = _Borrow(lending, line)
+                elif _lent(source) and _path(source.value) is not None:
                     self.borrows[name] = _Borrow(_path(source.value), line)
                 elif part is not None:
                     self.borrows[name] = _Borrow(part, line)
@@ -295,11 +305,34 @@ class _FunctionCheck:
                     f"for a copy")
         self._error(text, node)
 
-    def _move(self, expr, to: str, state: State, local: Optional[str] = None) -> None:
+    def _lending(self, value) -> Optional[Path]:
+        """`car.getEngine()` when getEngine returns a part of its object: what it borrows from."""
+        value = _bare(value)
+        if not isinstance(value, CallExpr) or not isinstance(value.callee_declaration, FunctionDecl):
+            return None
+        for i, argument in enumerate(_arguments(value)):
+            if (id(value.callee_declaration), i) in self.lends and _path(argument) is not None:
+                return _path(argument)
+        return None
+
+    def _lend(self, root: str) -> bool:
+        """Returning a borrow of a parameter the function doesn't own: its result lends it."""
+        if root in self.indexes and (root == 'this' or root not in self.mine):
+            self.lent.add(root)
+            return True
+        return False
+
+    def _move(self, expr, to: str, state: State, local: Optional[str] = None,
+              returning: bool = False) -> None:
         """Hand a value over - to a local variable, or (local None) somewhere it is kept:
         check it, then mark it moved."""
-        self.expression(expr, state)
         value = _bare(expr)
+        if returning and isinstance(value, CallExpr) and isinstance(value.callee, IdentifierExpr) \
+                and isinstance(value.callee_declaration, (FunctionDecl, StructDecl)):
+            # a new object made with a part of this, returned: the result lends it (D.109)
+            self._call(value, state, returning=True)
+        else:
+            self.expression(expr, state)
         if isinstance(value, LambdaExpr):
             self._captures(value, local)
             return
@@ -312,7 +345,16 @@ class _FunctionCheck:
             return
         if not self.moving(getattr(expr, 'inferred_type', None)):
             return
+        lending = self._lending(value)
+        if lending is not None:
+            if local is None and not (returning and self._lend(lending[0])):
+                self._error(f"{_who(value.callee_declaration)}'s result borrows from "
+                            f"'{'.'.join(lending)}' - a borrow can't be stored or returned; use "
+                            f"byVal for a copy", expr)
+            return
         part = _part(value)
+        if part is not None and returning and self._lend(part[0]):
+            return                             # a getter: the result borrows from it (D.109)
         if part is not None and self._field_out(value):
             root = value.object.name
             state[root] = _Moved(_line(expr), to, field=value.member)
@@ -330,7 +372,7 @@ class _FunctionCheck:
             return
         name = value.name
         if name in self.borrows:
-            if local is None:
+            if local is None and not (returning and self._lend(self.borrows[name].owner[0])):
                 borrow = self.borrows[name]
                 self._error(f"'{name}' borrows from '{'.'.join(borrow.owner)}' (line {borrow.line}) "
                             f"- a borrow can't be stored or returned; use byVal {name} for a copy",
@@ -368,11 +410,11 @@ class _FunctionCheck:
             elif local is None and self.origin.get(name, name) in self.params:
                 self.kept.add(self.origin.get(name, name))
 
-    def _call(self, node: CallExpr, state: State) -> None:
+    def _call(self, node: CallExpr, state: State, returning: bool = False) -> None:
         decl = node.callee_declaration
         if isinstance(decl, StructDecl) and not decl.is_class:
             for argument in _arguments(node):          # a struct keeps what it is made with
-                self._move(argument, f"'{decl.name}'", state)
+                self._move(argument, f"'{decl.name}'", state, returning=returning)
             return
         for i, argument in enumerate(_arguments(node)):
             if (id(decl), i) in self.taken and _lent(argument):
@@ -383,7 +425,7 @@ class _FunctionCheck:
                             f"lends it for the call; give {text} itself (a move) or byVal {text} "
                             f"(a copy)", argument)
             elif (id(decl), i) in self.taken:
-                self._move(argument, f"'{_who(decl)}' (which keeps it)", state)
+                self._move(argument, f"'{_who(decl)}' (which keeps it)", state, returning=returning)
             else:
                 self.expression(argument, state)
 
@@ -485,7 +527,7 @@ class _FunctionCheck:
             return state
         if isinstance(node, ReturnStmt):
             if node.value is not None:             # returning hands it to the caller
-                self._move(node.value, 'the caller', state)
+                self._move(node.value, 'the caller', state, returning=True)
             return None
         if isinstance(node, ThrowStmt):
             self.expression(node.value, state)
@@ -675,6 +717,9 @@ class _FunctionCheck:
             if isinstance(looped, IdentifierExpr) and isinstance(at, CallExpr) \
                     and isinstance(at.callee, MemberExpr) and _path(at.callee.object) == (looped.name,):
                 continue                # found already: "being looped over" (D.058)
+            if looped is not None and isinstance(at, IndexExpr) \
+                    and not self.moving(getattr(at, 'inferred_type', None)):
+                continue                # an element's value set: fine (27.2e) - unless it moves
             self._error(f"'{owner}' can't change {while_text}", at)
         # R4: while the borrow changes it (not just names something else), nobody else reads it
         if names and any(path[0] in names and not rebind for path, _, rebind in changes):
@@ -733,8 +778,8 @@ class _FunctionCheck:
             if isinstance(decl, FunctionDecl):
                 for i, argument in enumerate(_arguments(node)):
                     path = _path(argument)
-                    if path is not None and ((decl.name, i) in self.changed
-                                             or (id(decl), i) in self.taken):
+                    if path is not None and (id(decl), i) not in self.lends \
+                            and ((decl.name, i) in self.changed or (id(decl), i) in self.taken):
                         changes.append((path, argument, False))
             elif isinstance(node.callee, IdentifierExpr) and node.callee.name in MUTATING_BUILTINS \
                     and node.arguments and _path(node.arguments[0]) is not None:
@@ -787,17 +832,20 @@ def check_ownership(program, move_field_out: bool = False) -> List[SemanticError
     changed = changed_parameters(program)
     # the parameters each function keeps, followed through the calls until nothing new turns up
     taken: Set[Tuple[int, int]] = set()
+    lends: Set[Tuple[int, int]] = set()      # results that borrow from a parameter (D.109)
     while True:
         errors: List[SemanticError] = []
-        more = set()
+        more, lending = set(), set()
         for function in functions:
-            check = _FunctionCheck(function, moving, errors, taken, changed, own_struct)
+            check = _FunctionCheck(function, moving, errors, taken, changed, own_struct, lends)
             check.block(function.body.statements, {})
             more |= {(id(function), check.params[name]) for name in check.kept}
-        if more <= taken:
+            lending |= {(id(function), check.indexes[name]) for name in check.lent}
+        if more <= taken and lending <= lends:
             break
         taken |= more
+        lends |= lending
     for function in functions:
         _FunctionCheck(function, moving, errors, taken, changed,
-                       own_struct).frozen(function.body.statements)
+                       own_struct, lends).frozen(function.body.statements)
     return errors

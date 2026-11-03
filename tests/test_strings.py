@@ -27,9 +27,10 @@ ECHO = 'string function echo(string s)\n    return s\n'
 BOOK = 'struct Book\n    string title\n    string[2] tags\n\n'
 
 
-def run_ok(source: str) -> list:
-    """Compile and run under the leak check; return stdout lines."""
-    exit_code, stdout, stderr = compile_and_run(source)
+def run_ok(source: str, options: dict = None) -> list:
+    """Compile and run under the leak check; return stdout lines. options: the analyzer's
+    (SHARE - `[memory] assignment = "share"`, for a test of that setting)."""
+    exit_code, stdout, stderr = compile_and_run(source, analyzer_options=options)
     assert exit_code == 0, f"exit {exit_code}: {stderr}"
     return stdout.splitlines()
 
@@ -278,9 +279,9 @@ def test_changing_a_struct_parameter_never_touches_the_caller():
 # 18.3.2 - String operations
 # ============================================================
 
-def run_error(source: str) -> str:
+def run_error(source: str, options: dict = None) -> str:
     """Compile and run a program expected to stop with a run-time error; return stderr."""
-    exit_code, stdout, stderr = compile_and_run(source)
+    exit_code, stdout, stderr = compile_and_run(source, analyzer_options=options)
     assert exit_code == 1, f"expected a run-time error, got exit {exit_code}: {stdout}{stderr}"
     return stderr
 

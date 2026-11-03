@@ -1,0 +1,17 @@
+class Engine
+    public string kind
+    constructor(string kind)
+        this.kind = kind
+
+class Car
+    public Engine engine = Engine("V8")
+    Engine function getEngine() : this.engine     // returns its own field: a borrow of the car
+
+void function main()
+    Car car = Car()
+    Engine e = car.getEngine()         // e borrows from car - car is frozen while e is used
+    e.kind = "V6"                      // a change through the borrow reaches the car
+    print(car.engine.kind)             // V6 - e's last use is over, car may be used again
+    Engine spare = byVal car.getEngine()   // a copy, to keep
+    car.engine = Engine("V12")
+    print("{spare.kind} {car.engine.kind}")    // V6 V12

@@ -22,6 +22,7 @@ def run(source: str) -> list:
     return out.strip().splitlines()
 
 
+@pytest.mark.share
 def test_shared_in_normal_code_and_copied_with_byval():
     lines = run('void function grow(List<int> xs)\n    xs.add(9)\n\n'
                 'void function look(byVal List<int> xs)\n    xs.add(100)\n\n'
@@ -43,6 +44,7 @@ def test_shared_in_normal_code_and_copied_with_byval():
     assert lines == ['3 3 4', '1 1 2']
 
 
+@pytest.mark.share
 def test_a_struct_copies_its_lists_unless_byref():
     lines = run('struct Order\n    List<string> items\n    byRef List<string> log\n\n'
                 'void function fill(Order o)\n    o.items.add("from function")\n\n'
@@ -79,6 +81,7 @@ def test_returned_and_module_level_lists():
     assert lines == ['2 5 3 2']
 
 
+@pytest.mark.share
 def test_a_list_freed_when_the_last_holder_lets_go():
     # Each pass makes a list, shares it and drops both holders - the leak check would stop
     # the program if one were kept, and a list freed while still held would crash it

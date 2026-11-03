@@ -21,6 +21,9 @@ from .readonly import check_readonly, check_readonly_calls
 from .interfaces import check_interfaces
 from .case_names import check_case_names
 from .ownership import check_ownership
+
+# [memory] assignment when no setting is given: "move" since Task 48.9 (D.102)
+DEFAULT_ASSIGNMENT = 'move'
 from .setup_blocks import check_collection_options
 from .inheritance import expand_inheritance
 from .class_rules import check_visibility_written, check_copy_fields
@@ -81,7 +84,7 @@ class SemanticAnalyzer:
         # [interfaces] defaultMethods (Task 32.5a, D.006): an interface's function may have code
         self.default_methods = bool(getattr(interfaces_config, 'default_methods', False))
         # [memory] assignment (Task 48.1): "move" - use after a move is an error
-        self.assignment = getattr(memory_config, 'assignment', 'share')
+        self.assignment = getattr(memory_config, 'assignment', DEFAULT_ASSIGNMENT)
         self.move_field_out = getattr(memory_config, 'move_field_out', False)
         # [source] caseSensitive (Task 32.11): false - names differing only in case are errors
         self.case_sensitive = bool(getattr(source_config, 'case_sensitive', True))

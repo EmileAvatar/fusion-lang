@@ -169,7 +169,7 @@ are in `task/featuresArchive.md`.
 		R6 `shared`: counted, read only except to the holder that made it shared
 		R7 The thread boundary: two or more threads using a value - one writer, a service (42.19)
 		R8 Copies are written: `byVal x` (objects: `clone()`, 32.5)
-	[DONE] 48.1 Moving (tests/test_ownership_moves.py) - `[memory] assignment = "move"`; "share" the default (D.102)
+	[DONE] 48.1 Moving (tests/test_ownership_moves.py) - `[memory] assignment = "move"`, the default since 48.9 (D.102)
 		Assignment, `x.f = a`, `list.add(a)` / insert, `m[k] = a`, `[a, b]`, `return a` move
 		Use after a move: a compile error; a new value brings the name back
 		A move in one branch of an `if` / `match`: maybe moved after it; in a `try`: maybe moved in the `catch`
@@ -208,15 +208,17 @@ are in `task/featuresArchive.md`.
 	[ ] 48.6 Counting removed where moves make it unnecessary (covers 38.2)
 	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
-	[ ] 48.9 Migrate, then make "move" the default (D.102) - next (48.5 postponed)
+	[DONE] 48.9 Migrate, then make "move" the default (D.102)
 		[DONE] The examples: byRef where sharing is meant, byVal where a copy (6 SYNTAX_REFERENCE, classes_demo)
 		[DONE] The self-hosted compiler pinned to "share" (selfhost/fusion.toml, D.107) - its context handling
 			is reworked for "move" with Task 35
 		[DONE] `[memory] moveFieldOut` (default false, D.108): fields only borrowed; true = as Rust, a field may
 			leave a struct the function owns and the struct is gone
 		[DONE] `byVal` on a struct clones its objects too (D.097 - was shared); a case's names are new variables
-		[ ] The tests: 38 fail with "move" as the default (+108 self-host - fixed by the pin)
-		[ ] "move" the default
+		[DONE] A getter lends - its result borrows from the object; an iterator made with its collection too (D.109)
+		[DONE] The tests: written for "move" (byRef / byVal), or `@pytest.mark.share` where "share" itself is tested
+		[DONE] A for loop may set an element's value (27.2e) - unless the elements move
+		[DONE] "move" the default
 
 ## Phase 3 - the advanced parts
 

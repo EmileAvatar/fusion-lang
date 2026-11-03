@@ -9,6 +9,8 @@
 Every program runs with the leak check. With and without null checks (Rule 4b).
 """
 
+import pytest
+
 from tests.test_end_to_end import compile_and_run
 from tests.test_structs import main
 
@@ -24,6 +26,7 @@ def run(source: str) -> list:
     return [line for line in out.strip().splitlines() if not line.startswith('[freed')]
 
 
+@pytest.mark.share
 def test_a_copy_shares_the_object_and_copies_the_list():
     assert run(PEOPLE + main('Record a = Record(1, "first", Person("Ann"), [1])\n'
                              'Record b = a\n'

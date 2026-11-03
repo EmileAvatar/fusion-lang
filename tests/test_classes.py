@@ -52,7 +52,7 @@ def run(source: str) -> list:
 
 def test_fields_methods_and_the_constructor():
     lines = run(CARS + main('Car honda = Car("Honda")\n'
-                            'Engine e = honda.getEngine()\n'
+                            'Engine e = byVal honda.getEngine()\n'
                             'honda.swapEngine("V6")\n'
                             'honda.drive("work")\n'
                             'print("{honda.name} {honda.speed} {honda.engine.kind} {e.kind} {@1}", '
@@ -60,6 +60,7 @@ def test_fields_methods_and_the_constructor():
     assert lines == ['Honda 15 V6 V8 1']
 
 
+@pytest.mark.share
 def test_objects_are_shared_and_compared_by_identity():
     lines = run(CARS + main('Car honda = Car("Honda")\n'
                             'Car same = honda\n'

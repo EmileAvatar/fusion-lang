@@ -12,13 +12,13 @@ rules that come from moving need `[memory] assignment = "move"`.
 
 import pytest
 
+from tests.test_end_to_end import SHARE
 from tests.test_ownership_moves import CAR, errors, run
 from tests.test_structs import main
 
 ACCOUNT = ('class Account\n    public int balance = 5\n    public int logged = 0\n\n'
            'void function show(Account a)\n    print("{a.balance}")\n\n'
            'void function log(Account a)\n    a.logged = a.logged + 1\n\n')
-SHARE = {}
 
 
 # ---------- truth table 4: readonly at the call ----------

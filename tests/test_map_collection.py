@@ -10,6 +10,8 @@
 Every program runs with the leak check. With and without null checks (Rule 4b).
 """
 
+import pytest
+
 from tests.test_end_to_end import compile_and_run
 from tests.test_structs import errors_of, main
 
@@ -31,15 +33,16 @@ def test_foreach_gives_keys_or_entries_when_typed():
 
 
 def test_a_map_as_a_collection_of_entries():
-    assert run(main(AGES + 'Collection<Entry<string, int>> c = ages\n'
+    assert run(main(AGES + 'Collection<Entry<string, int>> c = byRef ages\n'
                            'c.add(Entry<string, int>("cy", 50))\n'
                            'print("{@1} {@2} {@3}", c.length(), c.contains(Entry<string, int>("ann", 30)), '
                            'c.contains(Entry<string, int>("ann", 31)))\n'
-                           'print("{@1} {@2}", c.remove(Entry<string, int>("bob", 40)), ages.len())\n'
+                           'print("{@1} {@2}", c.remove(Entry<string, int>("bob", 40)), c.length())\n'
                            'c.clear()\n'
                            'print("{@1}", c.isEmpty())')) == ['3 true false', 'true 2', 'true']
 
 
+@pytest.mark.share
 def test_keys_and_values_are_borrowed_views_to_list_a_copy():
     assert run(main(AGES + 'Collection<string> ks = ages.keys()\n'
                            'List<string> copy = ages.keys().toList()\n'

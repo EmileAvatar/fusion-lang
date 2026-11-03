@@ -1062,8 +1062,8 @@ void function main()
 ```
 A List, a Map, an object and a struct holding one move; numbers, strings and plain structs
 are copied. Moving in only one branch of an `if`, or in a loop without a new value each
-pass, is an error where the name is used next. `"share"` (the default until Task 48 is
-complete, D.102) keeps two names on one object.
+pass, is an error where the name is used next. "move" is the default (D.102); `"share"`
+keeps two names on one object.
 
 #### Borrowing: passing, elements, for loops
 
@@ -1130,6 +1130,32 @@ keeps the value there are two errors - at the call, and at the line that changes
 the call. `byRef` works on a List, a Map and an object. With `[memory] assignment = "move"`,
 `byRef` / `readonly` only lend: given to a function that keeps its parameter, they are an
 error, and `Car b = byRef a` is a local borrow.
+
+#### A getter lends: its result borrows from the object
+
+<!-- example: syntax_getters | task: 48.9 -->
+```fusion
+class Engine
+    public string kind
+    constructor(string kind)
+        this.kind = kind
+
+class Car
+    public Engine engine = Engine("V8")
+    Engine function getEngine() : this.engine     // returns its own field: a borrow of the car
+
+void function main()
+    Car car = Car()
+    Engine e = car.getEngine()         // e borrows from car - car is frozen while e is used
+    e.kind = "V6"                      // a change through the borrow reaches the car
+    print(car.engine.kind)             // V6 - e's last use is over, car may be used again
+    Engine spare = byVal car.getEngine()   // a copy, to keep
+    car.engine = Engine("V12")
+    print("{spare.kind} {car.engine.kind}")    // V6 V12
+```
+A function returning a part of its object (or of a parameter it borrows) lends from it - so
+does one returning a new object made with such a part, like an iterator holding its
+collection (D.109). The result can't be stored or returned elsewhere; `byVal` copies it.
 
 #### `Default`: an object that is never null
 
@@ -1568,7 +1594,7 @@ maxLength = "max"               # no limit (default); a number = longer strings 
 layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)
 
 [memory]
-assignment = "share"             # share (default for now) | move: Car b = a hands it over (Task 48)
+assignment = "move"              # move (default): Car b = a hands it over | share: two names, one object
 moveFieldOut = false             # true: a field may leave a struct you own; the struct is then gone
 
 [modules]

@@ -67,7 +67,7 @@ def test_a_constructor_without_super_runs_the_parents_without_arguments():
 def test_is_a_cast_down_and_type_of():
     assert run(PEOPLE + main('Person p = Manager("Cy")\n'
                              'if p is Employee\n'
-                             '    Employee e = (Employee)p\n'
+                             '    Employee e = byRef (Employee)p\n'
                              '    print("{@1}", e.salary)\n'
                              'print(typeOf(p))\n'
                              'print(typeOf(Person("A")))\n'
@@ -77,7 +77,7 @@ def test_is_a_cast_down_and_type_of():
 def test_a_wrong_cast_is_a_cast_error():
     assert run(PEOPLE + main('Person p = Person("Ann")\n'
                              'try\n'
-                             '    Employee e = (Employee)p\n'
+                             '    Employee e = byRef (Employee)p\n'
                              'catch CastError err\n'
                              '    print(err.message)')) == ['a Person is not a Employee']
 
@@ -93,7 +93,7 @@ def test_without_a_null_check_a_null_parent_is_a_null_error():
 
 def test_with_a_null_check_the_code_runs_on():
     assert run(PEOPLE + main('Person p\n'
-                             'Employee e = (Employee)p\n'
+                             'Employee e = byRef (Employee)p\n'
                              'if e is null\n'
                              '    print("null stays null")\n'
                              'print(typeOf(p))')) == ['null stays null', 'null']

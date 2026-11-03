@@ -68,6 +68,7 @@ def test_filter_map_reduce():
                   )) == ['2 #4 10 #1#2#3#4', '#4']
 
 
+@pytest.mark.share
 def test_a_list_is_shared_and_byval_copies():
     # Task 32.10a (user, 2026-10-29): a List is a reference in normal code
     assert run_ok(main(
@@ -81,6 +82,7 @@ def test_a_list_is_shared_and_byval_copies():
     )) == ['changed 3 changed 3 4']
 
 
+@pytest.mark.share
 def test_a_function_changes_the_callers_list():
     assert run_ok('int function total(List<int> xs) : xs.reduce(0, (int s, int x) : s + x)\n\n'
                   'List<int> function grow(List<int> xs)\n    xs.add(100)\n    return xs\n\n'
@@ -91,6 +93,7 @@ def test_a_function_changes_the_callers_list():
                   )) == ['3 3 103 Grace']     # shared: grow added to xs itself (32.10a)
 
 
+@pytest.mark.share
 def test_lists_in_structs_and_lists_of_lists():
     assert run_ok('struct Team\n    string name\n    List<string> members\n\n' + main(
         'Team t = Team("core", ["Ada"])\n'
@@ -136,6 +139,7 @@ def test_for_each():
     )) == ['7', '8', 'ab 10']
 
 
+@pytest.mark.share
 def test_changing_a_list_while_looping_over_it_is_an_error():
     # Task 27.2e (user decision 2026-10-17): adding or removing elements of the list being
     # looped over is a ModifiedWhileLoopingError - never a skipped element. Setting an

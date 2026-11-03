@@ -172,8 +172,10 @@ def test_a_for_loop_cant_change_its_collection():
     source = main('List<int> xs = [1, 2]\nfor x in xs\n    xs.add(x)')
     assert errors(source) == ["'xs' is being looped over - it can't change inside the loop (add); "
                               "build a new one instead"]
-    source = main('List<int> xs = [1, 2]\nfor x in xs\n    xs[0] = x')
-    assert errors(source) == ["'xs' can't change while a for loop walks it (line 3)"]
+    # an element's value set is fine (27.2e) - unless the elements move: the loop borrows one
+    assert errors(main('List<int> xs = [1, 2]\nfor x in xs\n    xs[0] = x')) == []
+    source = CAR + main('List<Car> fleet = [Car("red")]\nfor c in fleet\n    fleet[0] = Car("blue")')
+    assert errors(source) == ["'fleet' can't change while a for loop walks it (line 8)"]
 
 
 def test_a_for_loop_variable_is_a_borrow():
@@ -204,9 +206,10 @@ def test_a_borrow_cant_be_stored():
                               "or returned; use byVal first for a copy"]
 
 
-def test_a_borrow_cant_be_returned():
-    source = CAR + 'Car function first(List<Car> fleet)\n    Car c = fleet[0]\n    return c\n\n' + \
-        main('print(first([Car("red")]).color)')
+def test_a_borrow_of_a_local_cant_be_returned():
+    # the List ends with the function - a borrow of it can't leave (of a parameter: D.109)
+    source = CAR + 'Car function first()\n    List<Car> fleet = [Car("red")]\n    Car c = fleet[0]\n' \
+        '    return c\n\n' + main('print(first().color)')
     assert any("'c' borrows from 'fleet'" in e for e in errors(source))
 
 
@@ -221,7 +224,8 @@ def test_a_borrow_cant_be_given_to_a_function_that_keeps_it():
     ('return order.items[0]', None),
 ])
 def test_a_field_cant_be_moved_out(line, found):
-    source = ORDER + f'List<int> function items(Order order)\n    {line}\n\n' + main('print("x")')
+    source = ORDER + f'List<int> function items()\n    Order order = Order(1, [1])\n    {line}\n\n' + \
+        main('print("x")')
     if found is None:       # an int element is a copy
         source = source.replace('List<int> function', 'int function')
         assert errors(source) == []
@@ -324,3 +328,61 @@ def test_the_setting_is_read_and_checked(tmp_path):
     (tmp_path / 'fusion.toml').write_text('[memory]\nmoveFieldOut = "yes"\n')
     with pytest.raises(ProjectConfigError, match='moveFieldOut must be a boolean'):
         load_project_config(str(tmp_path / 'p.fusion'))
+
+
+# ---------- a getter lends: its result borrows from the object (D.109, user 2026-11-03) ----------
+
+SHOP = CAR + ('class Garage\n    public Car car\n    public List<Car> cars = []\n'
+              '    Car function getCar()\n        return this.car\n'
+              '    Car function at(int i)\n        return this.cars[i]\n'
+              '    Car function first()\n        return this.at(0)\n\n')
+
+
+def test_a_getter_lends_from_the_object():
+    source = SHOP + main('Garage g = Garage()\ng.car = Car("red")\nCar c = g.getCar()\nc.color = "blue"\n'
+                         'print(g.car.color)')
+    assert run(source) == ['blue']            # not a copy: the change reaches the garage
+
+
+def test_the_object_is_frozen_while_the_result_is_used():
+    source = SHOP + main('Garage g = Garage()\ng.car = Car("red")\nCar c = g.getCar()\n'
+                         'g.car = Car("blue")\nprint(c.color)')
+    assert any("'g' can't change while 'c' borrows from it" in e for e in errors(source))
+
+
+@pytest.mark.parametrize('call', ['g.at(0)', 'g.first()'])
+def test_an_element_getter_and_one_calling_it_lend_too(call):
+    source = SHOP + main(f'Garage g = Garage()\ng.cars.add(Car("red"))\nCar c = {call}\n'
+                         f'g.cars.clear()\nprint(c.color)')
+    assert any("'g' can't change while 'c' borrows from it" in e for e in errors(source))
+
+
+def test_a_getters_result_cant_be_stored():
+    source = SHOP + main('Garage g = Garage()\ng.car = Car("red")\nList<Car> all = []\nall.add(g.getCar())')
+    assert errors(source) == ["getCar's result borrows from 'g' - a borrow can't be stored or "
+                              "returned; use byVal for a copy"]
+    copied = SHOP + main('Garage g = Garage()\ng.car = Car("red")\nList<Car> all = []\n'
+                         'all.add(byVal g.getCar())\nprint("{@1}", all.len())')
+    assert run(copied) == ['1']
+
+
+def test_a_getter_on_a_null_object():
+    # Rule 4b: without a check a NullError, with one the code runs on
+    source = SHOP + main('Garage g = null\ntry\n    Car c = g.getCar()\ncatch NullError e\n    print("null")')
+    assert run(source) == ['null']
+    checked = SHOP + main('Garage g = null\nif g is not null\n    print(g.getCar().color)\nprint("done")')
+    assert run(checked) == ['done']
+
+
+def test_an_iterator_made_with_the_collection_lends_from_it():
+    # D.109 (user, 2026-11-03): returning a new object made with a part of this lends this
+    source = CAR + ('class Walker\n    List<Car> cars\n    int at = 0\n    constructor(List<Car> cars)\n'
+                    '        this.cars = cars\n    bool function more() : at < cars.len()\n\n'
+                    'class Fleet\n    public List<Car> cars = []\n'
+                    '    Walker function walk() : Walker(this.cars)\n\n')
+    fine = source + main('Fleet f = Fleet()\nf.cars.add(Car("red"))\nWalker w = f.walk()\nprint("{@1}", w.more())')
+    assert run(fine) == ['true']
+    frozen = source + main('Fleet f = Fleet()\nWalker w = f.walk()\nf.cars.clear()\nprint("{@1}", w.more())')
+    assert any("'f' can't change while 'w' borrows from it" in e for e in errors(frozen))
+    stored = source + main('Fleet f = Fleet()\nList<Walker> all = []\nall.add(f.walk())')
+    assert any("walk's result borrows from 'f'" in e for e in errors(stored))

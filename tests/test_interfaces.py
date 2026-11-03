@@ -59,8 +59,8 @@ def test_the_objects_own_function_runs():
 
 def test_a_class_implements_several_and_each_interface_sees_it():
     assert run(SHAPES + main('Circle c = Circle(1.0)\n'
-                             'Shape s = c\n'
-                             'Named n = c\n'
+                             'Shape s = byRef c\n'
+                             'Named n = byRef c\n'
                              'print("{@1} {@2}", s.name(), n.name())')) == ['circle circle']
 
 
@@ -84,11 +84,11 @@ def test_an_interface_building_on_several():
 def test_is_and_a_cast_back_to_the_class():
     assert run(SHAPES + main('Shape s = Circle(2.0)\n'
                              'if s is Circle\n'
-                             '    Circle c = (Circle)s\n'
+                             '    Circle c = byRef (Circle)s\n'
                              '    print("circle {@1}", c.r)\n'
                              'if s is not Square\n'
                              '    print("not a square")\n'
-                             'Named n = (Named)s\n'
+                             'Named n = byRef (Named)s\n'
                              'print(n.name())')) == ['circle 2.000000', 'not a square', 'circle']
 
 

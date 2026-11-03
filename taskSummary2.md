@@ -466,6 +466,8 @@ Kept under Task 22 until the renumbering is approved.
   setting (D.108); byVal on a struct clones its objects; a case's names are new variables. With
   "move" the default: 38 tests fail - getters (`return this.engine`, `return this.people[i]`)
   are the main open question (asked the user)
-- **Next Action:** 48.9 (the tests; then "move" the default)
+- 48.9 done (2026-11-03): "move" is the default. A getter lends (D.109, user); tests of "share"
+  itself carry @pytest.mark.share (tests/conftest.py); selfhost pinned (D.107)
+- **Next Action:** 48.4 (`--interface` shows what each public function does with its parameters)
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29

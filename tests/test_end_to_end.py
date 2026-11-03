@@ -12,6 +12,12 @@ from src.lexer import Lexer
 from src.parser.parser import Parser
 from src.semantic import SemanticAnalyzer
 from src.codegen import CCodeGenerator
+from src.config.project_config import MemoryConfig
+
+
+# `[memory] assignment = "share"` - for the tests of that setting (two names, one object;
+# a struct copied with its Lists) once "move" is the default (Task 48.9, D.102)
+SHARE = {'memory_config': MemoryConfig(assignment='share')}
 
 
 def compile_and_run(fusion_code: str, safety_mode: str = 'safe',

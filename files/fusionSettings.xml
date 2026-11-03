@@ -130,8 +130,8 @@
   </section>
 
   <section name="memory" description="How values are owned (Ownership.md)">
-    <setting name="assignment" type="choice" default="share" task="48.1">
-      <description>move: Car b = a hands the object over - a can't be used until it gets a new value (byVal a copies); share: two names, one object. The default becomes move once Task 48 is complete (D.102)</description>
+    <setting name="assignment" type="choice" default="move" task="48.9">
+      <description>move (the default): Car b = a hands the object over - a can't be used until it gets a new value (byVal a copies, byRef a borrows); share: two names, one object (D.102)</description>
       <value>move</value>
       <value>share</value>
     </setting>

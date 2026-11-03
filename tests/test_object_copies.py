@@ -56,6 +56,7 @@ def test_a_copy_of_a_list_of_objects_copies_the_objects():
                            'print("{@1} {@2}", cars[0].name, more[0].name)')) == ['A B']
 
 
+@pytest.mark.share
 def test_a_copy_through_an_interface_is_made_by_the_objects_class():
     source = ('interface Shape\n    float function area()\n\n'
               'class Square implements Shape\n'

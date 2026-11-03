@@ -71,7 +71,9 @@ borrowed; the whole struct moves or is borrowed. Arrays, Lists and Maps move in 
 |---|---|
 | `List<int> xs = order.items` | a **borrow** of the struct's List - `order` is frozen while `xs` is used |
 | `xs.add(5)` on that borrow | changes `order.items` (a changing borrow) |
-| `this.keep = order.items` / `return order.items` | an error: a borrow can't be stored or returned - `byVal order.items` copies it |
+| `this.keep = order.items` | an error: a borrow can't be stored - `byVal order.items` copies it |
+| `return order.items` in a function given `order` (a getter, `return this.items`) | lends: the result borrows from the argument - frozen while used, never stored (D.109) |
+| `return order.items` of an `order` the function made itself | an error: the borrow would outlive its owner |
 | `Order o2 = order` | moves the whole struct, its List with it |
 | `Order o2 = byVal order` | a deep copy - two Lists |
 | `order.items = other` | moves `other` into the struct (the old List is freed) |
@@ -303,3 +305,5 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 | 2026-11-03 | No `shared` yet - assignment moves, `byVal` copies, `byRef` shares; `shared` waits for a real need (D.106) |
 | 2026-11-03 | The self-hosted compiler stays on "share" until Task 35 (D.107) |
 | 2026-11-03 | Fields only borrowed (D.026 stays); `[memory] moveFieldOut = true` lets a field leave a struct the function owns, as Rust - the struct is then unusable (D.108) |
+| 2026-11-03 | A getter lends: returning a part of the object (or a new object made with one - an iterator) gives a borrow of it (D.109) |
+| 2026-11-03 | "move" is the default (48.9) - examples and tests migrated; the tests of "share" itself run with `@pytest.mark.share` |

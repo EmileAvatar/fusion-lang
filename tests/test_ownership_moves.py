@@ -13,7 +13,7 @@ import pytest
 
 from src.config.project_config import MemoryConfig, load_project_config
 from src.semantic import SemanticAnalyzer
-from tests.test_end_to_end import compile_and_run
+from tests.test_end_to_end import SHARE, compile_and_run
 from tests.test_structs import main, parse
 
 MOVE = {'memory_config': MemoryConfig(assignment='move')}
@@ -181,9 +181,9 @@ def test_with_a_null_check_the_code_runs_on():
 
 def test_share_keeps_two_names_on_one_object():
     source = CAR + main('Car a = Car("red")\nCar b = a\nb.color = "blue"\nprint(a.color)')
-    assert errors(source, {}) == []
-    assert run(source, {}) == ['blue']
-    assert MemoryConfig().assignment == 'share'          # the default while Task 48 is built
+    assert errors(source, SHARE) == []
+    assert run(source, SHARE) == ['blue']
+    assert MemoryConfig().assignment == 'move'           # the default since Task 48.9 (D.102)
 
 
 def test_the_setting_is_read(tmp_path):
