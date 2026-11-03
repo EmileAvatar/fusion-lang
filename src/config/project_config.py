@@ -220,8 +220,12 @@ class MemoryConfig:
         assignment: "move" - `Car b = a` hands the object over and `a` can't be used until it
             gets a new value (`byVal a` copies); "share" - two names, one object. "share" is
             the default while Task 48 is built; "move" once everything is migrated (D.102).
+        move_field_out: a field may be moved out of a struct the function owns, as in Rust -
+            the struct can't be used afterwards until it gets a new value. False (the
+            default): a struct's fields are only borrowed (D.026, user 2026-11-03).
     """
     assignment: str = "share"
+    move_field_out: bool = False
 
 
 @dataclass
@@ -516,9 +520,15 @@ def _load_memory_section(data: dict, config_path: str) -> MemoryConfig:
     memory = MemoryConfig()
     section = _require_table(data, "memory", config_path)
     for key, value in section.items():
+        if key == "moveFieldOut":
+            if not isinstance(value, bool):
+                raise ProjectConfigError(
+                    f"{config_path}: memory.moveFieldOut must be a boolean, got {value!r}")
+            memory.move_field_out = value
+            continue
         if key != "assignment":
             raise ProjectConfigError(
-                f"{config_path}: unknown setting memory.{key} (known: ['assignment'])")
+                f"{config_path}: unknown setting memory.{key} (known: ['assignment', 'moveFieldOut'])")
         if value not in ("move", "share"):
             raise ProjectConfigError(
                 f"{config_path}: memory.assignment must be \"move\" or \"share\", got {value!r}")

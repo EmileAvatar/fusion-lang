@@ -13,6 +13,6 @@ void function main()
     Car b = byVal a                       // a new Car - and a new Engine
     b.engine.kind = "V6"
     print("{a.engine.kind} {b.engine.kind}")   // V8 V6
-    Car c = a                             // the same car (shared)
+    Car c = byRef a                       // the same car, borrowed (Car c = a moves it)
     c.engine.kind = "V12"
     print(a.engine.kind)                  // V12

@@ -209,10 +209,14 @@ are in `task/featuresArchive.md`.
 	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
 	[ ] 48.9 Migrate, then make "move" the default (D.102) - next (48.5 postponed)
-		Under "move" today (2026-11-02, after 48.3): 19 errors in 8 programs - 12 in 6 SYNTAX_REFERENCE
-		examples (`b = a` sharing), classes_demo (`s.featured = stock[0]`), 7 in the self-hosted compiler:
-		codegen `inner = ctx`, `Out(genIf(.., ctx ..), ctx)`, `ctx = o.ctx` in a loop, `params` moved into a
-		Sig in a loop (3); lexer `Token(.., s.parts, ..)` moves a field out
+		[DONE] The examples: byRef where sharing is meant, byVal where a copy (6 SYNTAX_REFERENCE, classes_demo)
+		[DONE] The self-hosted compiler pinned to "share" (selfhost/fusion.toml, D.107) - its context handling
+			is reworked for "move" with Task 35
+		[DONE] `[memory] moveFieldOut` (default false, D.108): fields only borrowed; true = as Rust, a field may
+			leave a struct the function owns and the struct is gone
+		[DONE] `byVal` on a struct clones its objects too (D.097 - was shared); a case's names are new variables
+		[ ] The tests: 38 fail with "move" as the default (+108 self-host - fixed by the pin)
+		[ ] "move" the default
 
 ## Phase 3 - the advanced parts
 

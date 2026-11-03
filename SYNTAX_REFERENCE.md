@@ -627,9 +627,9 @@ void function main()
     print("{@1} {@2}", big.len(), total)
 
     List<string> names = ["Ada", "Grace"]
-    List<string> copy = byVal names               // a copy - `copy = names` would share it
+    List<string> copy = byVal names               // a copy - `copy = names` would move it
     copy.add("Linus")
-    Team t = Team("core", names)                  // a struct holds its own copy
+    Team t = Team("core", byVal names)            // a copy - names alone would move into it
     t.members.add("Ken")
     print("{@1} {@2} {@3}", names.len(), copy.len(), t.members[2])
 
@@ -658,23 +658,26 @@ void function tryOut(byVal List<int> xs) // a copy - the caller's list stays as 
 
 void function main()
     List<int> a = [1]
-    List<int> b = a                     // the same list
+    List<int> b = byRef a               // the same list, borrowed (b = a would move it)
     b.add(2)
+    print("{@1}", b.len())              // 2 - the borrow's last use
     List<int> c = byVal a               // a copy
     c.add(3)
     c.add(4)
     addTo(a)
     tryOut(a)
-    print("{@1} {@2} {@3}", a.len(), b.len(), c.len())   // 3 3 4
+    print("{@1} {@2}", a.len(), c.len())   // 3 4
 
     Order first = Order(["tea"], ["opened"])
-    Order second = first                // a struct is copied - its items too, not its log
+    Order second = byVal first          // a copy - its items too, not its log
     second.items.add("cake")
     second.log.add("copied")
     print("{@1} {@2} {@3}", first.items.len(), second.items.len(), first.log.len())   // 1 2 2
 ```
-Rule of thumb: in a struct a List / Map is copied (`byVal`) unless the field says `byRef`;
-everywhere else it is shared (`byRef`) unless written `byVal`. Never null - just empty
+Rule of thumb: assigning a List / Map moves it (`[memory] assignment = "move"`); `byVal`
+copies it and `byRef` borrows it; passing it to a function lends it for the call. In a struct
+copied with `byVal`, a `byRef` field stays shared (with `"share"`, assigning shares a List and
+copies a struct). Never null - just empty
 (`xs = null` is an error). Maps work the same way. Arrays follow once they can grow (Task 45).
 
 `xs.toList()` gives a copy of a List (`xs.toList(false)`: the same list, shared), and
@@ -829,10 +832,10 @@ void function main()
     Car mine = Car("Honda")             // new Car("Honda") is the same
     Car fast = Car("BMW", 90)           // the second constructor
     print("{fast.name} {fast.speed}")   // BMW 90
-    Car shared = mine                   // the same car - an object is shared, not copied
-    shared.drive()
+    Car same = byRef mine               // the same car, borrowed (Car b = mine hands it over)
+    same.drive()
+    print("{@1}", same == mine)         // true - the same object
     print("{mine.name} {mine.speed} {mine.engine.kind}")   // Honda 15 V8
-    print("{@1}", shared == mine)       // true - the same object
     Car none                            // null
     if none is null
         print("no car")
@@ -1031,7 +1034,7 @@ void function main()
     Car b = byVal a                       // a new Car - and a new Engine
     b.engine.kind = "V6"
     print("{a.engine.kind} {b.engine.kind}")   // V8 V6
-    Car c = a                             // the same car (shared)
+    Car c = byRef a                       // the same car, borrowed (Car c = a moves it)
     c.engine.kind = "V12"
     print(a.engine.kind)                  // V12
 ```
@@ -1194,7 +1197,7 @@ int function total(Collection<int> c)       // any Collection<int> - a List, or 
 
 void function main()
     List<int> xs = [1, 2, 3]
-    Collection<int> c = xs                  // the same List
+    Collection<int> c = byRef xs            // the same List, borrowed
     c.add(4)
     print("{@1} {@2}", total(xs), xs.len())  // 10 4
 ```
@@ -1222,9 +1225,9 @@ void function main()
     Record r
     if r.person is null
         r.person = Person("Ann")
-    Record copy = r                       // the copy shares the Person, copies the List
+    Record copy = byVal r                 // a copy: its own Person and List (r alone would move)
     copy.person.name = "Bo"
-    print("{r.person.name} {@1}", r.scores.len())   // Bo 0
+    print("{r.person.name} {copy.person.name} {@1}", r.scores.len())   // Ann Bo 0
 ```
 
 #### Commas between struct fields
@@ -1566,6 +1569,7 @@ layer = "std"                    # std (default) | alloc (no OS: no print, files
 
 [memory]
 assignment = "share"             # share (default for now) | move: Car b = a hands it over (Task 48)
+moveFieldOut = false             # true: a field may leave a struct you own; the struct is then gone
 
 [modules]
 variables = true                 # module-level variables (constants are always allowed)

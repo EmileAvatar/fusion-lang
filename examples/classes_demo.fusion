@@ -72,7 +72,7 @@ void function main()
 
     Shelf s = Shelf("Hall", 2)
     if s.featured is null
-        s.featured = stock[0]
+        s.featured = byVal stock[0]           // a copy - an element can't be moved out
     print("{s.room} row {s.row}: {@1}", s.featured.title)
 
     List<string> tags = [] {

@@ -151,7 +151,7 @@ STC.003 [BUILT] A struct building on a struct (`implements` / `extends` / `inclu
 STC.004 [BUILT] A struct as text: `"{e}"` -> `name : "Jeff",age : 30`
 STC.005 [REJECTED] A struct implementing an interface - a struct only holds values
 STC.006 [PLANNED] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (Task 48)
-STC.007 [BUILT] A struct may hold an object - null until set, shared when the struct is copied (no setting)
+STC.007 [BUILT] A struct may hold an object - null until set; with "share" a copied struct shares it, `byVal` clones it (D.097)
 STC.008 [BUILT] Commas between struct fields: needed on one line (`struct Point { int x, int y }`), not needed on new lines (32.12)
 
 #### CLS - classes
@@ -354,3 +354,5 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.104 | A cast moves like any assignment - `Circle c = (Circle)first` moves `first` (back to the class too); `byVal` copies, `byRef` borrows | MEM.002 | 2026-11-02 | Ownership.md 9 | ACTIVE |
 | D.105 | Multi-language support (`Lang.<language>.Fusion` modules: migrate or compile other languages) comes after self-hosting (Task 35); the core compiler holds no other language's logic | MOD.011 | 2026-11-03 | files/Fusion_Multi_Language_Compiler_Architecture.md | ACTIVE (planned) |
 | D.106 | No `shared` yet: assignment moves, `byVal` copies, `byRef` already shares an object - `shared` waits for a real need | MEM.004 | 2026-11-03 | Ownership.md 3 | ACTIVE |
+| D.107 | The self-hosted compiler keeps `[memory] assignment = "share"` (selfhost/fusion.toml) until its context handling is reworked for "move" with Task 35 | MEM.002 | 2026-11-03 | selfhost/fusion.toml | ACTIVE |
+| D.108 | A struct's fields are only borrowed, changed through the borrow, never taken out (D.026 stays); `[memory] moveFieldOut = true` allows it as Rust does - a field leaves a struct the function owns, and the struct can't be used until it gets a new value. Default false | STC.001 | 2026-11-03 | Ownership.md 2 | ACTIVE |

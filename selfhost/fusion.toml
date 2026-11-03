@@ -1,0 +1,7 @@
+# The self-hosted compiler's settings (everything else: the defaults)
+
+[memory]
+# Pinned to "share" (user, 2026-11-03 - D.107): the code generator hands its context (Ctx,
+# a struct holding a Map and a List) on and changes it through copies that share the Map.
+# Reworked for "move" with Task 35 (self-hosting phase 2).
+assignment = "share"

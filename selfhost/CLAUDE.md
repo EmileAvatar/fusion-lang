@@ -9,6 +9,8 @@ until self-hosting is fully independent (Task 35).
 - `parser/ast.fusion` - the syntax tree: enum Node, enum TypeRef (28.3)
 - `parser/parser.fusion` - tokens -> tree; each function returns {node, pos} (28.3)
 - `codegen/codegen.fusion` - tree -> C, checking types in the same walk (28.4 + 28.5)
+- `fusion.toml` - `[memory] assignment = "share"`: pinned until the code generator's context
+  handling is reworked for "move" (Task 35, D.107)
 
 Tests: tests/test_selfhost.py builds this with the Python compiler, then compares the tokens
 on every example and, for each program in SLICES, what the built program prints.

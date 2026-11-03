@@ -652,6 +652,11 @@ class MemoryManagementMixin:
             if decl.is_interface or has_children:
                 return f'fusion_clone_object({code})'      # its own class makes it (32.5b, 32.7)
             return f'fusion_clone_{self._struct_c_name(type_node)}({code})'
+        if isinstance(type_node, StructType) and self.is_managed(type_node) \
+                and not getattr(type_node.declaration or self.struct_decls.get(type_node.name),
+                                'is_class', False):
+            # byVal on a struct: its objects cloned too (D.097); a byRef field stays shared
+            return f'fusion_clone_{self._struct_c_name(type_node)}({code})'
         return self.copy_code(type_node, code)
 
     def error_value(self, type_node) -> str:
@@ -724,7 +729,7 @@ class MemoryManagementMixin:
             if struct.is_class or not self.is_managed(struct_type):
                 continue
             c = self._struct_c_name(struct_type)
-            copy_body, free_body = [], []
+            copy_body, clone_body, free_body = [], [], []
             for field in struct.fields:
                 if not self.is_managed(field.field_type):
                     continue
@@ -733,18 +738,24 @@ class MemoryManagementMixin:
                 # A struct's List / Map is copied with it - shared only if the field is
                 # byRef (Task 32.10a, user decision 2026-10-29)
                 # an object is shared by the copy - it isn't a value (D.097)
-                copy = self.copy_code if getattr(field, 'by_ref', False) \
-                    or self.is_class_type(field.field_type) else self.clone_code
-                if isinstance(field_type, ArrayType):
-                    element = field_type.element_type
-                    copy_body.append(
-                        f'    for (int i = 0; i < {field_type.size}; i++) '
-                        f'{name}[i] = {copy(element, f"{name}[i]")};')
-                else:
-                    copy_body.append(f'    {name} = {copy(field_type, name)};')
+                by_ref = getattr(field, 'by_ref', False)
+                copy = self.copy_code if by_ref or self.is_class_type(field.field_type) \
+                    else self.clone_code
+                # byVal (fusion_clone_): the objects too - only a byRef field is shared
+                clone = self.copy_code if by_ref else self.clone_code
+                for body, make in ((copy_body, copy), (clone_body, clone)):
+                    if isinstance(field_type, ArrayType):
+                        element = field_type.element_type
+                        body.append(
+                            f'    for (int i = 0; i < {field_type.size}; i++) '
+                            f'{name}[i] = {make(element, f"{name}[i]")};')
+                    else:
+                        body.append(f'    {name} = {make(field_type, name)};')
                 free_body += ['    ' + line for line in self.free_lines(
                     field_type, f'v->{self._field_name(field.name)}')]
             lines += [f'static inline {c} fusion_copy_{c}({c} v) {{'] + copy_body + \
+                     ['    return v;', '}',
+                      f'static inline {c} fusion_clone_{c}({c} v) {{'] + clone_body + \
                      ['    return v;', '}',
                       f'static inline void fusion_free_{c}({c}* v) {{'] + free_body + ['}',
                       f'static inline void fusion_set_{c}({c}* dst, {c} value) {{ '

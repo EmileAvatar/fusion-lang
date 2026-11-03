@@ -4573,6 +4573,8 @@ allowChangeWhileLooping = false   # true: a collection class of your own may cha
 [memory]                       # Task 48 - Ownership.md
 assignment = "share"           # move: `Car b = a` hands it over, `a` is dead until a new value;
                                # share: two names, one object (the default until Task 48 is done)
+moveFieldOut = false           # true: a field may be moved out of a struct the function owns -
+                               # the struct is then unusable (as Rust); false: fields only borrowed
 
 [interfaces]                   # Task 32.5a - see "Interfaces and Contracts"
 defaultMethods = false         # true: an interface's function may have code (a default)

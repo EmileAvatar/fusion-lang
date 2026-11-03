@@ -198,3 +198,11 @@ def test_a_bad_value_is_an_error(tmp_path):
     (tmp_path / 'p.fusion').write_text('')
     with pytest.raises(ProjectConfigError, match='memory.assignment must be'):
         load_project_config(str(tmp_path / 'p.fusion'))
+
+
+def test_a_case_name_is_a_new_variable():
+    # selfhost codegen: `case Function(name, params)` after an outer `params` was moved
+    source = 'enum Shape\n    Box(List<int> sizes)\n    Dot\n\nstruct Keep\n    List<int> sizes\n\n' + \
+        main('List<int> sizes = [1]\nKeep k = Keep(sizes)\nShape s = Shape.Box([2, 3])\nmatch s\n'
+             '    case Box(sizes)\n        print("{@1}", sizes.len())\n    case Dot\n        print("dot")')
+    assert errors(source) == []

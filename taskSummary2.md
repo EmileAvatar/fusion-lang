@@ -462,6 +462,10 @@ Kept under Task 22 until the renumbering is approved.
   (with the program's and its class's); checked before any rewrite
 - 32.3 done: examples/classes_demo.fusion; Task 32 complete and archived (2026-11-01)
 - Task 48 plan answered (user, 2026-11-01 - D.100-D.102); 48.1 (moving) done
-- **Next Action:** 48.9 (migrate the tests, examples and self-hosted compiler; then "move" the default)
+- 48.9 so far (2026-11-03): examples migrated; selfhost pinned to share (D.107); moveFieldOut
+  setting (D.108); byVal on a struct clones its objects; a case's names are new variables. With
+  "move" the default: 38 tests fail - getters (`return this.engine`, `return this.people[i]`)
+  are the main open question (asked the user)
+- **Next Action:** 48.9 (the tests; then "move" the default)
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29

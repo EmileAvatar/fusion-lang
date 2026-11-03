@@ -34,8 +34,9 @@ Borrowing (48.2):
   function value, and the owner can't change until the borrow's last use (D.101); while the
   borrow changes it, the owner can't even be read (R4). A for loop's collection can't change
   in the loop
-- a field or an element can't be moved out (`return order.items`) - `byVal` copies it,
-  `removeAt` takes an element out
+- a field or an element can't be moved out (`return order.items`) - `byVal` copies it
+  (D.026); with `[memory] moveFieldOut = true` a field may leave a struct the function owns,
+  and the struct can't be used until it gets a new value (as in Rust)
 
 The C code is unchanged - the counting still frees every object (48.6 removes it where a move
 proves one owner). Not followed yet: a function value that keeps what it is given, the
@@ -69,11 +70,12 @@ Path = Tuple[str, ...]
 class _Moved:
     """Where a variable was moved: the line, what took it, and whether only some paths did."""
 
-    def __init__(self, line: int, to: str, maybe: bool = False, loop: bool = False):
-        self.line, self.to, self.maybe, self.loop = line, to, maybe, loop
+    def __init__(self, line: int, to: str, maybe: bool = False, loop: bool = False,
+                 field: Optional[str] = None):
+        self.line, self.to, self.maybe, self.loop, self.field = line, to, maybe, loop, field
 
     def as_maybe(self, loop: bool = False) -> '_Moved':
-        return _Moved(self.line, self.to, True, self.loop or loop)
+        return _Moved(self.line, self.to, True, self.loop or loop, self.field)
 
 
 class _Borrow:
@@ -186,8 +188,10 @@ def _merge(states: List[Optional[State]], loop: bool = False) -> Optional[State]
 
 
 class _FunctionCheck:
-    def __init__(self, function, moving, errors: List[SemanticError], taken, changed):
+    def __init__(self, function, moving, errors: List[SemanticError], taken, changed,
+                 own_struct=None):
         self.moving = moving           # does a value of this type move?
+        self.own_struct = own_struct   # [memory] moveFieldOut: is this a struct's type?
         self.errors = errors
         self.taken = taken             # (id(function), index) of each parameter a function keeps
         self.changed = changed         # (name, index) of each parameter a function changes
@@ -246,6 +250,8 @@ class _FunctionCheck:
                     continue
                 part = _part(value)
                 source = _bare(value)
+                if self._field_out(source):
+                    continue                   # the field leaves the struct: owned, not borrowed
                 if _lent(source) and _path(source.value) is not None:
                     self.borrows[name] = _Borrow(_path(source.value), line)
                 elif part is not None:
@@ -274,7 +280,11 @@ class _FunctionCheck:
         if moved is None:
             return
         name = node.name
-        if moved.loop:
+        if moved.field and not moved.maybe and not moved.loop:
+            text = (f"'{name}' gave its field '{moved.field}' to {moved.to} on line {moved.line} - "
+                    f"it can't be used until it gets a new value; or use byVal {name}.{moved.field} "
+                    f"for a copy")
+        elif moved.loop:
             text = (f"'{name}' was moved to {moved.to} on line {moved.line}, in an earlier pass of "
                     f"the loop - give it a new value each pass, or use byVal {name} for a copy")
         elif moved.maybe:
@@ -303,6 +313,11 @@ class _FunctionCheck:
         if not self.moving(getattr(expr, 'inferred_type', None)):
             return
         part = _part(value)
+        if part is not None and self._field_out(value):
+            root = value.object.name
+            state[root] = _Moved(_line(expr), to, field=value.member)
+            self.log.append((root, state[root]))
+            return
         if part is not None:
             if local is None and isinstance(value, MemberExpr):
                 self._error(f"'{_text(value)}' is part of '{'.'.join(part[:-1])}' and can't be "
@@ -328,6 +343,17 @@ class _FunctionCheck:
             return
         state[name] = _Moved(_line(expr), to)
         self.log.append((name, state[name]))
+
+    def _field_out(self, value) -> bool:
+        """`o.ctx` with [memory] moveFieldOut, o a struct this function owns (not a parameter
+        it borrows, not a borrow): the field may be taken out, o is then gone."""
+        if self.own_struct is None or not isinstance(value, MemberExpr) \
+                or not isinstance(value.object, IdentifierExpr):
+            return False
+        name = value.object.name
+        return name in self.locals and name not in self.borrows and name not in self.origin \
+            and (name not in self.params or name in self.mine) \
+            and self.own_struct(getattr(value.object, 'inferred_type', None))
 
     def _captures(self, function: LambdaExpr, local: Optional[str]) -> None:
         """A function value that is kept (not just passed to a call) can't hold a borrow; one
@@ -480,7 +506,7 @@ class _FunctionCheck:
             return _merge([then, other])
         if isinstance(node, MatchStmt):
             self.expression(node.subject, state)
-            ends = [self.statement(case.body, dict(state)) for case in node.cases]
+            ends = [self._case(case, state) for case in node.cases]
             ends.append(self.statement(node.else_body, dict(state))
                         if node.else_body is not None else dict(state))
             return _merge(ends)
@@ -506,6 +532,19 @@ class _FunctionCheck:
             return self.statement(node.body, state)
         self.expression(node, state)               # anything else: check what it reads
         return state
+
+    def _case(self, case, state: State) -> Optional[State]:
+        """A case's names (`case Function(name, params)`) are new for its body: a variable
+        of the same name outside is set aside, then back as it was."""
+        bound = {b for pattern in case.patterns for b in pattern.bindings}
+        head = dict(state)
+        outside = {name: head.pop(name) for name in bound if name in head}
+        end = self.statement(case.body, head)
+        if end is not None:
+            for name in bound:
+                end.pop(name, None)
+            end.update(outside)
+        return end
 
     def _loop(self, node, state: State) -> Optional[State]:
         """Run the body twice: the second pass starts where the first ended, so a move not
@@ -732,8 +771,12 @@ def _moving_types(program):
     return moving
 
 
-def check_ownership(program) -> List[SemanticError]:
+def check_ownership(program, move_field_out: bool = False) -> List[SemanticError]:
     moving = _moving_types(program)
+    structs = {d.name for d in program.declarations if isinstance(d, StructDecl)
+               and not d.is_class and not getattr(d, 'is_interface', False)}
+    own_struct = (lambda t: isinstance(t, StructType) and t.name in structs) \
+        if move_field_out else None
     functions, seen = [], set()
     for d in program.declarations:
         for f in ([d] if isinstance(d, FunctionDecl) else
@@ -748,12 +791,13 @@ def check_ownership(program) -> List[SemanticError]:
         errors: List[SemanticError] = []
         more = set()
         for function in functions:
-            check = _FunctionCheck(function, moving, errors, taken, changed)
+            check = _FunctionCheck(function, moving, errors, taken, changed, own_struct)
             check.block(function.body.statements, {})
             more |= {(id(function), check.params[name]) for name in check.kept}
         if more <= taken:
             break
         taken |= more
     for function in functions:
-        _FunctionCheck(function, moving, errors, taken, changed).frozen(function.body.statements)
+        _FunctionCheck(function, moving, errors, taken, changed,
+                       own_struct).frozen(function.body.statements)
     return errors

@@ -31,10 +31,10 @@ void function main()
     Car mine = Car("Honda")             // new Car("Honda") is the same
     Car fast = Car("BMW", 90)           // the second constructor
     print("{fast.name} {fast.speed}")   // BMW 90
-    Car shared = mine                   // the same car - an object is shared, not copied
-    shared.drive()
+    Car same = byRef mine               // the same car, borrowed (Car b = mine hands it over)
+    same.drive()
+    print("{@1}", same == mine)         // true - the same object
     print("{mine.name} {mine.speed} {mine.engine.kind}")   // Honda 15 V8
-    print("{@1}", shared == mine)       // true - the same object
     Car none                            // null
     if none is null
         print("no car")

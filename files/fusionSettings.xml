@@ -135,6 +135,9 @@
       <value>move</value>
       <value>share</value>
     </setting>
+    <setting name="moveFieldOut" type="bool" default="false" task="48.9">
+      <description>A field may be moved out of a struct the function owns, as in Rust - the struct can't be used afterwards until it gets a new value; false: a struct's fields are only borrowed, never taken out (D.026)</description>
+    </setting>
   </section>
 
   <section name="interfaces" description="Interfaces">

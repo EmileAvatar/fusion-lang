@@ -10,6 +10,7 @@ check - the counting is unchanged until 48.6.
 
 import pytest
 
+from src.config.project_config import MemoryConfig
 from tests.test_ownership_moves import CAR, errors, run
 from tests.test_structs import main
 
@@ -286,3 +287,40 @@ def test_a_cast_back_to_the_class(cast, moves):
     source = SHAPES + main(f'Shape s = Square()\n{cast}\nprint("{{@1}}", s.sides())')
     found = errors(source)
     assert any("'s' was moved to 'q'" in e for e in found) == moves, found
+
+
+# ---------- [memory] moveFieldOut (user, 2026-11-03): off - fields are only borrowed ----------
+
+FIELD_OUT = {'memory_config': MemoryConfig(assignment='move', move_field_out=True)}
+HOLDER = CAR + 'struct Holder\n    Car car\n    int n\n\n' + GARAGE
+
+
+def test_a_field_cant_be_taken_out_by_default():
+    source = HOLDER + main('Holder h = Holder(Car("red"), 1)\nGarage g = Garage()\ng.park(h.car)')
+    assert any("'h.car' is part of 'h' and can't be moved out" in e for e in errors(source))
+
+
+def test_with_move_field_out_the_struct_is_gone_after():
+    source = HOLDER + main('Holder h = Holder(Car("red"), 1)\nGarage g = Garage()\ng.park(h.car)\n'
+                           'print("{h.n}")')
+    found = errors(source, FIELD_OUT)
+    assert found == ["'h' gave its field 'car' to 'park' (which keeps it) on line 18 - it can't be "
+                     "used until it gets a new value; or use byVal h.car for a copy"], found
+    fine = HOLDER + main('Holder h = Holder(Car("red"), 1)\nGarage g = Garage()\ng.park(h.car)\n'
+                         'print(g.car.color)')
+    assert run(fine, FIELD_OUT) == ['red']
+
+
+def test_move_field_out_never_from_a_parameter():
+    source = HOLDER + 'void function keep(Holder h, Garage g)\n    g.park(h.car)\n\n' + main('print("x")')
+    assert any("'h.car' is part of 'h'" in e for e in errors(source, FIELD_OUT))
+
+
+def test_the_setting_is_read_and_checked(tmp_path):
+    from src.config.project_config import ProjectConfigError, load_project_config
+    (tmp_path / 'p.fusion').write_text('')
+    (tmp_path / 'fusion.toml').write_text('[memory]\nmoveFieldOut = true\n')
+    assert load_project_config(str(tmp_path / 'p.fusion')).memory.move_field_out is True
+    (tmp_path / 'fusion.toml').write_text('[memory]\nmoveFieldOut = "yes"\n')
+    with pytest.raises(ProjectConfigError, match='moveFieldOut must be a boolean'):
+        load_project_config(str(tmp_path / 'p.fusion'))

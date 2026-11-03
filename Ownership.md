@@ -301,3 +301,5 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 | 2026-11-02 | A method's `this` is always borrowed, never taken - for now; reviewed once working programs verify it (D.103) |
 | 2026-11-02 | A cast moves, back to the class too, unless `byVal` (a copy) or `byRef` (a borrow) is written (D.104) |
 | 2026-11-03 | No `shared` yet - assignment moves, `byVal` copies, `byRef` shares; `shared` waits for a real need (D.106) |
+| 2026-11-03 | The self-hosted compiler stays on "share" until Task 35 (D.107) |
+| 2026-11-03 | Fields only borrowed (D.026 stays); `[memory] moveFieldOut = true` lets a field leave a struct the function owns, as Rust - the struct is then unusable (D.108) |

@@ -82,6 +82,7 @@ class SemanticAnalyzer:
         self.default_methods = bool(getattr(interfaces_config, 'default_methods', False))
         # [memory] assignment (Task 48.1): "move" - use after a move is an error
         self.assignment = getattr(memory_config, 'assignment', 'share')
+        self.move_field_out = getattr(memory_config, 'move_field_out', False)
         # [source] caseSensitive (Task 32.11): false - names differing only in case are errors
         self.case_sensitive = bool(getattr(source_config, 'case_sensitive', True))
         # [collections] allowChangeWhileLooping (Task 32.4, D.058)
@@ -277,7 +278,7 @@ class SemanticAnalyzer:
         self.errors.extend(check_copy_fields(ast))       # nocopy / noshare (Task 32.5b)
         self.errors.extend(check_collection_options(ast))   # readOnly / noNull (Task 32.14)
         if self.assignment == 'move':                        # Task 48.1
-            self.errors.extend(check_ownership(ast))
+            self.errors.extend(check_ownership(ast, self.move_field_out))
         if self.visibility_required:                    # Task 32.2h
             self.errors.extend(check_visibility_written(ast))
         # Constructors that can't be told apart, or call each other in a circle (32.2b)
