@@ -446,6 +446,26 @@ are in `task/featuresArchive.md`.
 	[ ] 43.6 Plan every fusionlib module - just its name first (user, 2026-11-01); each designed
 		later, one at a time (FutureFeatures.md "fusionlib: Every Planned Module")
 
+#### 49 Multi-language support: `Lang.<language>.Fusion` modules (user, 2026-11-03) [POSTPONED to 35]
+	Design: files/Fusion_Multi_Language_Compiler_Architecture.md - after self-hosting (D.105)
+	A language module brings its own lexer, parser, AST and rules; the compiler loads it through one
+		injection point and never holds C / Java / Python logic itself (MOD.011; SYN.037)
+	Two capabilities: migrate (source -> Migration IR -> Fusion AST -> new .fusion files, the
+		original never changed) and compile the language by its own rules (separate, later)
+	[ ] 49.1 The language-module contract and the injection point: registry, capabilities, versions
+	[ ] 49.2 `Lang.Fusion.Fusion` first - Fusion as its own module proves the design
+	[ ] 49.3 A Fusion source writer: Fusion AST -> readable .fusion (today's code generator writes C) -
+		also serves formatting and upgrading old syntax
+	[ ] 49.4 The Migration IR - small, grown from real translations (not the Task 40 backend IR)
+	[ ] 49.5 `Lang.C.Fusion`: a subset of C, then C -> Fusion for types, functions, expressions,
+		control flow; checked by Fusion's own semantic pass
+	[ ] 49.6 Pointers, allocation and lifetimes -> Fusion ownership (needs Task 48)
+	[ ] 49.7 A migration report and sidecar notes per node: converted, needs review, unsupported
+	[ ] 49.8 Compiling C itself through its module (separate from migrating; GCC does it today)
+	[ ] 49.9 C++, Java, Python modules - each on its own
+	Open: language modules are code the compiler runs - trust and sandboxing (Task 39);
+		their name next to `fusionlib.Lang` (FutureFeatures.md "Cross-Language Compilation Support")
+
 ---
 
 ## Old task numbers (renumbered 2026-10-11)

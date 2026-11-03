@@ -182,6 +182,7 @@ MOD.007 [DESIGN] Callbacks and events
 MOD.008 [DESIGN] Grouped import blocks
 MOD.009 [DESIGN] Data formats module (fusionlib): JSON, XML, TOML, YAML, INI, MD to an in-memory document, load / save; JSON and XML written in the code: `(FILE_LANG.XML)"""..."""` (43.2)
 MOD.010 [DESIGN] HIDL library: hardware testing in the style of Maia - a DUT block, drive / expect vectors, clocks, bit widths (41.10)
+MOD.011 [DESIGN] Language modules `Lang.<language>.Fusion`: each brings its lexer, parser, AST and rules through one injection point - migrate a language to new .fusion files, or compile it by its own rules (Task 49)
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
@@ -351,3 +352,4 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.102 | Task 48 is built with `[memory] assignment = "share"` as the default; the default becomes "move" once tests, examples and the self-hosted compiler are migrated | MEM.002 | 2026-11-01 | taskSummary2.md (48) | ACTIVE (planned) |
 | D.103 | A method's `this` is always borrowed: calling `car.register()` never moves `car`, even when the method keeps `this` - for now; reviewed once working programs can verify it | MEM.003 | 2026-11-02 | Ownership.md 9 | ACTIVE |
 | D.104 | A cast moves like any assignment - `Circle c = (Circle)first` moves `first` (back to the class too); `byVal` copies, `byRef` borrows | MEM.002 | 2026-11-02 | Ownership.md 9 | ACTIVE |
+| D.105 | Multi-language support (`Lang.<language>.Fusion` modules: migrate or compile other languages) comes after self-hosting (Task 35); the core compiler holds no other language's logic | MOD.011 | 2026-11-03 | files/Fusion_Multi_Language_Compiler_Architecture.md | ACTIVE (planned) |

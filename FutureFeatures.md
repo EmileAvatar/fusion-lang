@@ -729,6 +729,11 @@ When implementing these features, update:
 
 ## 🌍 Cross-Language Compilation Support
 
+**Superseded in part (user, 2026-11-03):** the design is now
+`files/Fusion_Multi_Language_Compiler_Architecture.md` - `Lang.<language>.Fusion` modules
+through one injection point, a Migration IR, new .fusion files; after self-hosting (FEATURES.md
+Task 49, D.105). Semicolons and the parser notes below still stand (SYN.037).
+
 **Status:** 📝 Proposed (Post-MVP)
 **Priority:** Medium (after working compiler is complete)
 **Purpose:** Enable Fusion to compile and interoperate with code from other languages
@@ -6077,7 +6082,7 @@ All of them are **modular**, **opt-in**, and **domain-specific**, designed to gr
 **Status:** Notes and designs (user, 2026-11-02), not decisions. Some will become tasks
 (42.26 and 42.27 already are), others are for future discussion. Moved here from CLAUDE.md's
 project notes, with the user's clarifications and the useful ideas from the ChatGPT review
-(`Notes/Fusion_Memory_Ownership_and_Services.md` - it saw only `files/Service.md`, so it is
+(`files/Fusion_Memory_Ownership_and_Services.md` - it saw only `files/Service.md`, so it is
 taken as ideas, not plans).
 
 #### Language documentaries
