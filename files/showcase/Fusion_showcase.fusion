@@ -761,8 +761,9 @@ class Inventory {
 
 // [idea] Value types with built-in methods (52.4, TYP.017): a string or an array acts as if it
 // implements Length - Fusion makes it internal to the type, so length() works on null and ""
-//     string? name = null
-//     int n = name.length()        // -1: no data (D.055 - being rechecked, 52.5)
+//     string? name = null                  // only with [strings] nullable = true
+//     if name.length() > 0 { ... }         // -1 in a comparison: false (D.055); "" gives 0
+//     int n = name.length()                // NullError - outside a comparison a null is an error
 
 // [idea] Extension methods: add a method to a type you didn't write
 extend string {

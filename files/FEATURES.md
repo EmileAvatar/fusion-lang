@@ -255,9 +255,9 @@ are in `task/featuresArchive.md`.
 	[ ] 52.4 A `Length` interface (TYP.017): strings and arrays (value types) carry `length()` as if they
 		were objects - made internal to the type by Fusion, so `s.length()` works on null and "" alike;
 		later more built-in methods the same way - design first
-	[ ] 52.5 Recheck D.055: a nullable string / array on null - `length()` gives -1; a List / Map / object
-		on null gives null. To check: an int result can't be null (D.063) - so what type is
-		`list?.length()`? And -1 used in a sum goes unnoticed (D.003) - ask the user
+	[ ] 52.5 Build D.055 (decided 2026-11-07): `length()` never null - 0 empty, -1 null (string, array, List,
+		Map with `nullable` on); the -1 only in a comparison (`if` / `while`), elsewhere a NullError (a compile
+		error where it can be seen); tests with and without a null check (Rule 4b)
 
 ## Phase 3 - the advanced parts
 

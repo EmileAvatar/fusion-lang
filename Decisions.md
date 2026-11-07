@@ -94,7 +94,7 @@ TYP.013 [DESIGN] Autoboxing (`(42).toString()`) - the type classes (`Int`, `Stri
 TYP.014 [DESIGN] A `bit` type and bit-level operations
 TYP.015 [DESIGN] `decimal(p, s)`: an exact fixed-point number - after `money` (47.2.3)
 TYP.016 [BUILT] A cast written in front: `(Shape)aCircle` - a compile error where it can be seen, else a CastError (32.5a); between numbers `(int)d` later
-TYP.017 [DESIGN] Value types have built-in methods through internal interfaces - `Length` with `length()` on strings and arrays, working on null and "" alike (52.4)
+TYP.017 [DESIGN] Value types have built-in methods through internal interfaces - `Length` with `length()` on strings, arrays, Lists and Maps, working on null and "" alike (52.4, D.055)
 
 #### STR - strings
 STR.001 [BUILT] Strings are values, freed automatically; changed in place (`s[i] = c`)
@@ -311,7 +311,7 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.052 | A null in a `match` goes to `case null`, else to `else`; neither: a NullError | every value handled; a null never slips through | SYN.007 | 2026-10-28 | files/Nullable_Values.md 8 | ACTIVE |
 | D.053 | `?.` is a guard: a null object's function isn't run, no error, false in an `if`; `??` gives a default | short code for "if not null"; no crash | NUL.003 | 2026-10-27 | files/Nullable_Values.md 3 | ACTIVE (planned) |
 | D.054 | Null checks: `==`, `===`, `is null`; `x?.null` as quick typing; no `x!` | familiar checks; `x!` would crash on null | NUL.003 | 2026-10-27 | files/Nullable_Values.md 3 | ACTIVE (planned) |
-| D.055 | `string?.length()` / `array?.length` on null give -1; everything else gives null | -1 shows a nullable string / array holds no data; other objects give null (being rechecked - 52.5) | NUL.003 | 2026-10-27 | files/Nullable_Values.md 5 | ACTIVE (planned) |
+| D.055 | `length()` never gives null: 0 when empty, -1 when the string, array, List or Map is null (possible only with its `nullable` setting on). The -1 is allowed only in a comparison (`if` / `while`); anywhere else a null gives a NullError (a compile error where it can be seen) | an int is never null (D.063); -1 can't slip into a sum unnoticed (D.003) | NUL.003 | 2026-11-07 | files/Nullable_Values.md 3 | ACTIVE (planned) |
 | D.056 | Numbers as conditions only in `if` / `while`: `[conditions] numbers` = positive (default) / nonzero / off; `bool b = count` is an error | `if count` is familiar; outside conditions an int stays an int | SYN.005 | 2026-10-27 | files/Nullable_Values.md 4 | ACTIVE |
 | D.057 | A List, Map or array used by two or more threads gets a temporary service (D.017); `[collections] threads` only picks its worker: a shared pool (default) or a dedicated thread | no data races (D.017); the worker is only a tuning choice | CON.003 | 2026-10-31 | files/Concurrency.md 3.12 | ACTIVE (planned) |
 | D.058 | The collection being looped over can't be changed inside the loop - Fusion's own collections never; a class of your own only with `[collections] allowChangeWhileLooping = true` (default false); build a new one (`b`) instead | changing while looping skips items or crashes | COL.005 | 2026-10-31 | files/Arrays.md 6 | ACTIVE |

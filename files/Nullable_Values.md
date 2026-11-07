@@ -94,9 +94,12 @@ Person pep                      // never set: null
   `someObject?.someMethod() ?? value`. Use it only where a null can actually arrive
 - **The conditional operator** works on one line and gives a value:
   `int age = (person?.getAge()) ? person.getAge() : -1`
-- **Length on a null:** `string?.length()` and `array?.length` give -1 when the string or
-  array is null (only when nullable strings or arrays are switched on). An empty one gives
-  0. Every other member or method gives null
+- **Length on a null (user, 2026-11-07 - D.055):** `length()` never gives null. An empty
+  string, array, List or Map gives 0; a null one gives -1 - possible only when that kind's
+  `nullable` setting is on. The -1 may be used **only in a comparison** (`if` / `while`):
+  `if names.length() > 0`. Anywhere else - assigned, added up, passed on - a null gives a
+  NullError (a compile error where it can be seen), so -1 never slips into a sum.
+  `s.length()` and `s?.length()` mean the same. Every other member or method of a null gives null
 
 ---
 
@@ -149,8 +152,8 @@ and an empty one has length 0.
 
 | Expression | null | `""` / `[]` | `"abc"` / `[1, 2, 3]` | Use case |
 |---|---|---|---|---|
-| `s.length()` / `a.length` | NullError | 0 | 3 | everyday length, when the value is always there |
-| `s?.length()` / `a?.length` | -1 | 0 | 3 | a length from data that may not be loaded yet |
+| `if s.length() > 0` (also `s?.length()`) | -1, so false | 0, so false | 3, so true | in a comparison: a null gives -1 (D.055) |
+| `int n = s.length()` / `total += s.length()` | NullError | 0 | 3 | outside a comparison a null is an error - never -1 |
 | `if s?.length()` - "positive" (default) | false | false | true | "has text?" - missing and empty both count as no |
 | `if s?.length()` - "nonzero" | **true** (-1) | false | true | (C / Python habit - a trap here) |
 | `if s?.length()` - "off" | compile error | compile error | compile error | projects that want bool-only conditions |
@@ -238,7 +241,7 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 | 2026-10-27 | `?.` is a guard: a null object's method is not run, no error; in an `if` it is false |
 | 2026-10-27 | `??` gives a default when a value is expected and none is there |
 | 2026-10-27 | Checks: `==`, `===`, `is null`; `x?.null` / `!x?.null` as quick typing; no `x!` |
-| 2026-10-27 | `string?.length()` / `array?.length` on null give -1; everything else gives null |
+| 2026-11-07 | `length()` never gives null: 0 empty, -1 null (string, array, List, Map with `nullable` on); -1 only in a comparison, elsewhere a NullError (D.055) |
 | 2026-10-27 | `[conditions] numbers` = "positive" (default) / "nonzero" / "off"; an editor hint shows the setting (36.7) |
 | 2026-10-27 | Warnings: a guarded value in a comparison; `??` after `?.length()` |
 | 2026-10-27 | Numbers as bool only in `if` / `while` conditions (with and / or / not); `count == true` follows the setting; `count === true` false; `bool b = count` always an error |
