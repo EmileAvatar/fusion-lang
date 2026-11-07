@@ -244,6 +244,20 @@ are in `task/featuresArchive.md`.
 	[ ] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first
 	[ ] 51.6 A link check in check.py
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
+#### 52 Classes and value types - follow-ups from the decision reasons (user, 2026-11-07) [ ]
+	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
+	[ ] 52.1 Form D (CLS.016): a set-up block on an abstract class or an interface - where it is
+		implemented in place (form B sets a value up; form D gives the missing functions) - design first
+	[ ] 52.2 Recheck `implements Default` (CLS.014, D.010): a variable of the type is never null in every
+		case (fields, statics, Lists, after a move); the developer writes the default values - tests per case
+	[POSTPONED - a setting later] 52.3 `private` on a top-level item allowed by a setting (CLS.017, D.008);
+		off for now - private hides a class's detail, internal is for the namespace / module
+	[ ] 52.4 A `Length` interface (TYP.017): strings and arrays (value types) carry `length()` as if they
+		were objects - made internal to the type by Fusion, so `s.length()` works on null and "" alike;
+		later more built-in methods the same way - design first
+	[ ] 52.5 Recheck D.055: a nullable string / array on null - `length()` gives -1; a List / Map / object
+		on null gives null. To check: an int result can't be null (D.063) - so what type is
+		`list?.length()`? And -1 used in a sum goes unnoticed (D.003) - ask the user
 
 ## Phase 3 - the advanced parts
 

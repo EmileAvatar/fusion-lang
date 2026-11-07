@@ -94,6 +94,7 @@ TYP.013 [DESIGN] Autoboxing (`(42).toString()`) - the type classes (`Int`, `Stri
 TYP.014 [DESIGN] A `bit` type and bit-level operations
 TYP.015 [DESIGN] `decimal(p, s)`: an exact fixed-point number - after `money` (47.2.3)
 TYP.016 [BUILT] A cast written in front: `(Shape)aCircle` - a compile error where it can be seen, else a CastError (32.5a); between numbers `(int)d` later
+TYP.017 [DESIGN] Value types have built-in methods through internal interfaces - `Length` with `length()` on strings and arrays, working on null and "" alike (52.4)
 
 #### STR - strings
 STR.001 [BUILT] Strings are values, freed automatically; changed in place (`s[i] = c`)
@@ -175,6 +176,8 @@ CLS.012 [DESIGN] A constant in a class is always static
 CLS.013 [DESIGN] `abstract`, `sealed`, `virtual`, `override`, `protected` - reserved words, for inheritance (32.7)
 CLS.014 [BUILT] `implements Default` - a variable, field or static of the type is never null; `= null` makes a new one (32.5b)
 CLS.015 [BUILT] `implements ToString` - print, format, "{x}", toString(x) use its toString(), also through an interface (32.5b)
+CLS.016 [DESIGN] Form D: a set-up block on an abstract class or an interface implements it in place (52.1)
+CLS.017 [POSTPONED] A setting allowing `private` on a top-level item (meaning its module); off for now (52.3)
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
@@ -259,11 +262,11 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.003 | No silent changes: an impossible value is an error, never cut or adjusted | a silently changed value is a hidden bug; an error shows it | GOL.008 | 2026-10 | - | ACTIVE |
 | D.004 | Method names say what they do (`copyPart`, `removeLast`); short names are aliases (`slice`, `pop`) | code reads clearly; changing vs copying is visible in the name | SYN.011 | 2026-10-27 | CLAUDE.md | ACTIVE |
 | D.005 | The shortest readable syntax; well-known long names kept as aliases | less to type and read; familiar names still work | SYN | 2026-10 | - | ACTIVE |
-| D.006 | `implements` written out; default methods in interfaces a setting, off | ? | CLS.006 | 2026-10-28 | files/taskSummary2.md | ACTIVE |
+| D.006 | `implements` written out; default methods in interfaces a setting, off | implements is easy to read; a default method may not be used as meant - opt in | CLS.006 | 2026-10-28 | files/taskSummary2.md | ACTIVE |
 | D.007 | Nothing written: fields and module variables private, everything else public | a safe default: data hidden, behaviour usable | CLS.004 | 2026-10-30 | files/Classes.md 1 | ACTIVE |
-| D.008 | `private` on a top-level item is an error - write `internal` | ? | CLS.004 | 2026-10-30 | files/Classes.md 1 | ACTIVE |
-| D.009 | Form B may change only its own variable (and the const / let it sets up) | ? | SYN.013 | 2026-10-30 | files/Classes.md 4 | ACTIVE |
-| D.010 | `Default` type: `s = null` lets the old object go and makes a new default one | ? | CLS.006 | 2026-10-30 | files/Classes.md 5 | ACTIVE |
+| D.008 | `private` on a top-level item is an error - write `internal` | private hides a class's detail; internal lets the namespace / module use it (a setting later - CLS.017) | CLS.004 | 2026-10-30 | files/Classes.md 1 | ACTIVE |
+| D.009 | Form B may change only its own variable (and the const / let it sets up) | sets an object up without a builder or another constructor - complex set-up in place | SYN.013 | 2026-10-30 | files/Classes.md 4 | ACTIVE |
+| D.010 | `Default` type: `s = null` lets the old object go and makes a new default one | a new object is always there, never null; the developer decides its default values | CLS.006 | 2026-10-30 | files/Classes.md 5 | ACTIVE |
 | D.011 | readonly is deep; passing it on is an error only when that function changes it | readonly holds through calls; readers may still be passed it freely | FUN.003 | 2026-10-30 | files/Object_Lifetime.md 3 | ACTIVE |
 | D.012 | Test every nullable feature with and without a null check | a null is shown to be caught, and the checks to work | NUL.002 | 2026-10-28 | CLAUDE.md 4b | ACTIVE |
 | D.013 | OWNERSHIP is always the first memory choice; GC / MANUAL only where a project needs them | memory stability: no crashes, no leaks (instability, security holes) | MEM.001 | 2026-10-29 | files/Object_Lifetime.md 1 | ACTIVE |
@@ -277,7 +280,7 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.021 | `money` is a long of minor units; the Currency module enforces each currency's steps | exact money: no float rounding | TYP.003 | 2026-10-29 | FEATURES 47.2 | ACTIVE (planned) |
 | D.022 | The core and every module never fetch prices or rates; the developer passes them in | the developer controls where data comes from; the core never calls out | SET.006 | 2026-10-29 | CLAUDE.md | ACTIVE |
 | D.023 | Settings named in camelCase, read case-insensitively, `_` ignored | forgiving to read, one style to write | SET.001 | 2026-10-28 | fusionSettings.xml | ACTIVE |
-| D.024 | `service` is a reserved keyword | ? | CON.001 | 2026-10-29 | Service.md | ACTIVE |
+| D.024 | `service` is a reserved keyword | services are a core feature of Fusion - a major selling point | CON.001 | 2026-10-29 | Service.md | ACTIVE |
 | D.025 | Arrays, Lists, Maps move in normal code; inside a struct they can only be borrowed | one owner; a struct stays whole (D.015) | COL.002 | 2026-10-31 | files/Ownership.md 2 | ACTIVE (planned) |
 | D.026 | A struct's fields can't be moved out, only borrowed; the whole struct moves or is borrowed | a struct missing a field cannot be used safely | STC.001 | 2026-10-31 | files/Ownership.md 2 | ACTIVE (planned; replaces "copied with its Lists" when Task 48 is built) |
 | D.027 | No GC by default - OWNERSHIP first; a GC only when made in code or when a project's `fusion.toml` chooses it | OWNERSHIP first (D.013); a GC only by choice | MEM.005 | 2026-10-31 | files/Object_Lifetime.md 1 | ACTIVE |
@@ -308,7 +311,7 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.052 | A null in a `match` goes to `case null`, else to `else`; neither: a NullError | every value handled; a null never slips through | SYN.007 | 2026-10-28 | files/Nullable_Values.md 8 | ACTIVE |
 | D.053 | `?.` is a guard: a null object's function isn't run, no error, false in an `if`; `??` gives a default | short code for "if not null"; no crash | NUL.003 | 2026-10-27 | files/Nullable_Values.md 3 | ACTIVE (planned) |
 | D.054 | Null checks: `==`, `===`, `is null`; `x?.null` as quick typing; no `x!` | familiar checks; `x!` would crash on null | NUL.003 | 2026-10-27 | files/Nullable_Values.md 3 | ACTIVE (planned) |
-| D.055 | `string?.length()` / `array?.length` on null give -1; everything else gives null | ? | NUL.003 | 2026-10-27 | files/Nullable_Values.md 5 | ACTIVE (planned) |
+| D.055 | `string?.length()` / `array?.length` on null give -1; everything else gives null | -1 shows a nullable string / array holds no data; other objects give null (being rechecked - 52.5) | NUL.003 | 2026-10-27 | files/Nullable_Values.md 5 | ACTIVE (planned) |
 | D.056 | Numbers as conditions only in `if` / `while`: `[conditions] numbers` = positive (default) / nonzero / off; `bool b = count` is an error | `if count` is familiar; outside conditions an int stays an int | SYN.005 | 2026-10-27 | files/Nullable_Values.md 4 | ACTIVE |
 | D.057 | A List, Map or array used by two or more threads gets a temporary service (D.017); `[collections] threads` only picks its worker: a shared pool (default) or a dedicated thread | no data races (D.017); the worker is only a tuning choice | CON.003 | 2026-10-31 | files/Concurrency.md 3.12 | ACTIVE (planned) |
 | D.058 | The collection being looped over can't be changed inside the loop - Fusion's own collections never; a class of your own only with `[collections] allowChangeWhileLooping = true` (default false); build a new one (`b`) instead | changing while looping skips items or crashes | COL.005 | 2026-10-31 | files/Arrays.md 6 | ACTIVE |
