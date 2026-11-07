@@ -51,8 +51,9 @@ From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in on
   ACTIVE decision, tell the user before going further
 - Each decision row has a short "why"; Claude may add a row as `PROPOSED` - only the user
   makes it `ACTIVE` (user, 2026-11-07)
-- A question not decided yet goes into `OpenQuestions.md` (one line, `Q.NNN`) instead of a
-  guess; once answered, the answer goes into `Decisions.md` and the line is removed
+- A question not decided yet goes into `OpenQuestions.md` (`Q.NNN`, with an example code
+  block showing Claude's understanding and the options A / B / C - user, 2026-11-07) instead
+  of a guess; once answered, the answer goes into `Decisions.md` and the question is removed
 - After the user decides: update the feature line and the decision row in the same session;
   a replaced decision is removed (git keeps the history); a conflict is a `CLASH` row until
   the user settles it
