@@ -903,11 +903,11 @@ Let me start implementing if statement parsing...
 ## See Also
 
 ### Internal Documentation
-- [taskSummary.md](taskSummary.md) - Current markdown-based task tracking
-- [CLAUDE.md](CLAUDE.md) - Current session instructions for Claude
-- [FutureFeatures.md](FutureFeatures.md) - Post-MVP enhancements
-- [fusion.ebnf](files/fusion.ebnf) - Grammar specification (used in task context)
-- [fusion-language-spec.md](files/fusion-language-spec.md) - Language reference
+- [taskSummary.md](../task/taskSummary.md) - Current markdown-based task tracking
+- [CLAUDE.md](../CLAUDE.md) - Current session instructions for Claude
+- [files/FutureFeatures.md](FutureFeatures.md) - Post-MVP enhancements
+- [fusion.ebnf](fusion.ebnf) - Grammar specification (used in task context)
+- [fusion-language-spec.md](fusion-language-spec.md) - Language reference
 
 ### External Resources
 - [Taskr.one](https://taskr.one) - Production task management system (inspiration)

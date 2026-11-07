@@ -1,8 +1,8 @@
 # The `service` keyword
 
 The reference for Fusion's `service` design: what it is, how it is used, and every setting.
-The background (the traps, principles and other languages) is in `Concurrency.md`, with an
-overview in `Concurrency_Traps.md`. The status is tracked in `FEATURES.md` Task 42.
+The background (the traps, principles and other languages) is in `files/Concurrency.md`, with an
+overview in `files/Concurrency_Traps.md`. The status is tracked in `files/FEATURES.md` Task 42.
 
 **Status: designed, not built.** Version one was agreed on 2026-10-24, and the settings
 on 2026-10-24 (user).
@@ -188,7 +188,7 @@ service(person).Timeout = 60s               // the same as 60000
 int wait = toDuration("2min")               // 120000 - from text
 ```
 
-A full time module comes later (FEATURES.md Task 43): hours, minutes, seconds,
+A full time module comes later (files/FEATURES.md Task 43): hours, minutes, seconds,
 milliseconds and nanoseconds, days, months and years, time zones, epochs, and calculations
 with them.
 
@@ -243,7 +243,7 @@ service(log).Timeout = config.concurrency.timeouts.file_lock    // 5s from fusio
 service(archive).Timeout = 30s                                  // this one needs longer
 ```
 
-The values started from what other systems use (`Concurrency.md` 3.7).
+The values started from what other systems use (`files/Concurrency.md` 3.7).
 
 #### Which value wins
 
@@ -260,7 +260,7 @@ They never stop the program from running, and a machine that matches no level ge
 
 ## Custom schedulers, rules and priorities
 
-Each is a class with one method (agreed 2026-10-24; more in `Concurrency.md` 3.8).
+Each is a class with one method (agreed 2026-10-24; more in `files/Concurrency.md` 3.8).
 
 ```fusion
 class WritesFirst implements Scheduler {
@@ -424,7 +424,7 @@ queue, and its worker carries it out atomically.
 ## Ownership in a service (agreed 2026-10-31)
 
 A service is the one writer of what it holds. These rules come from the ownership design
-(`Ownership.md`; the record: `Notes/Ownership_Decisions_2026-10-31.md`). FEATURES.md 42.18.
+(`files/Ownership.md`; the record: `Notes/Ownership_Decisions_2026-10-31.md`). files/FEATURES.md 42.18.
 
 | # | Rule | Why |
 |---|---|---|
@@ -432,14 +432,14 @@ A service is the one writer of what it holds. These rules come from the ownershi
 | S2 | **The service owns its value; a request borrows it** for the call - to change it or only read it, as the called function's signature says | the owner / borrower model |
 | S3 | **Nothing escapes a request** - it can't return, store or capture a reference to the inside (`byVal` copies it out) | no back door around the worker |
 | S4 | **Readers in parallel** - readonly requests may run together; a changing request runs alone. `Readers = PARALLEL \| SERIAL` | `show` and `log` |
-| S5 | **Temporary services** - made when two or more threads use one value, gone when the last ends; ownership comes back (Ownership.md section 6) | the user's design |
+| S5 | **Temporary services** - made when two or more threads use one value, gone when the last ends; ownership comes back (files/Ownership.md section 6) | the user's design |
 | S6 | **What goes into a request** - borrowed for the request only, moved in (send), or copied | a borrow never outlives its owner |
 | S7 | **A thread using two or more resources gets a group service** (written, or made by the compiler); waiting inside a request for another thread's result is an error | no deadlocks (P2) |
 | S8 | **Plain counts inside a service**; only handles use atomic counts | speed - an object inside is never reached by two threads |
-| S9 | **The thread-boundary table** - what may reach another thread (Ownership.md truth table 5) | the compiler check |
+| S9 | **The thread-boundary table** - what may reach another thread (files/Ownership.md truth table 5) | the compiler check |
 | S10 | **A `Service` interface** that every kind of service implements (below) | program to an interface |
 
-**Several resources** (Ownership.md section 7, D.077): a **service** manages one resource, a
+**Several resources** (files/Ownership.md section 7, D.077): a **service** manages one resource, a
 **group service** several. A thread that uses two or more resources - a database and its
 log - gets a group service: written by the developer ("Group services" below) or made by the
 compiler. It owns them while its requests run, then each variable owns its value again.
@@ -447,7 +447,7 @@ compiler. It owns them while its requests run, then each variable owns its value
 ## The Service interface (agreed 2026-10-31)
 
 Code to an interface: `Service` is the interface; each kind of service implements it.
-FEATURES.md 42.21. Needs interfaces (Task 32.5).
+files/FEATURES.md 42.21. Needs interfaces (Task 32.5).
 
 ```fusion
 interface Service<T>                    // T: the kind of request
@@ -459,7 +459,7 @@ interface Service<T>                    // T: the kind of request
     int function waiting()              // requests in the mailbox
 
 class BasicService implements Service      // a mailbox and one worker thread (version one)
-class SharedService implements Service     // the temporary one (Ownership.md section 6)
+class SharedService implements Service     // the temporary one (files/Ownership.md section 6)
 class FileService implements Service       // one writer per file
 class DatabaseService implements Service   // one connection, queries in turn
 class HotPathService implements Service    // a dedicated thread that never sleeps (below)
@@ -480,7 +480,7 @@ Settings are checked against the implementation: `service(trading).Core` exists 
 ## Hot-path services (`hotpath service`, agreed 2026-10-31)
 
 A hot path is a **dedicated thread that never sleeps**: it keeps one processor busy all the
-time - a CPU core, or a CPU core feeding a GPU or a chip on some hardware. FEATURES.md
+time - a CPU core, or a CPU core feeding a GPU or a chip on some hardware. files/FEATURES.md
 42.23-42.24.
 
 ```fusion

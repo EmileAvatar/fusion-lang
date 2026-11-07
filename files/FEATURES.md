@@ -10,11 +10,11 @@ The single place to see what is done, open, or postponed. One line per item.
   renumbered from 25 on 2026-10-11)
 - Only open and postponed items are kept here; a finished one moves to
   `task/featuresArchive.md` when its task is complete
-- Find things: `grep -n "\[ \]" FEATURES.md` (open), `grep -n "POSTPONED" FEATURES.md`,
-  `grep -rn "18\.3\.2" FEATURES.md taskSummary2.md task/` (one item everywhere)
-- Detail: active task -> `taskSummary2.md`; finished -> `task/taskSummaryArchive.md`;
+- Find things: `grep -n "\[ \]" files/FEATURES.md` (open), `grep -n "POSTPONED" files/FEATURES.md`,
+  `grep -rn "18\.3\.2" files/FEATURES.md files/taskSummary2.md task/` (one item everywhere)
+- Detail: active task -> `files/taskSummary2.md`; finished -> `task/taskSummaryArchive.md`;
   not started -> `task/taskBacklog.md`. What the language can do today, with examples ->
-  `SYNTAX_REFERENCE.md`
+  `files/SYNTAX_REFERENCE.md`
 
 **Features become settings (user, 2026-10-24).** Each feature is designed so a project can
 turn it on or off in `fusion.toml` where that makes sense, with a safe default. When an item
@@ -80,7 +80,7 @@ are in `task/featuresArchive.md`.
 
 ---
 
-#### 45 Arrays that grow at the end (user, 2026-10-27 - Arrays.md) [ ]
+#### 45 Arrays that grow at the end (user, 2026-10-27 - files/Arrays.md) [ ]
 	Today an array's size is fixed when it is made, and the compiler must know it. An array
 	will grow and shrink at its end only (an item never moves position); a List changes
 	anywhere.
@@ -106,7 +106,7 @@ are in `task/featuresArchive.md`.
 		Any loop: `for` and `foreach` - a compile error where seen, else ModifiedWhileLoopingError
 		Build a new array from it instead: loop over `a`, add to `b`
 	[ ] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19) - with Task 42
-	[ ] 45.6 Docs and examples: Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
+	[ ] 45.6 Docs and examples: files/Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
 
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ]
 	After Task 32 and 36.0. The type table: files/FusionTypes.html
@@ -137,7 +137,7 @@ are in `task/featuresArchive.md`.
 		`EARTH(5.976e24)`, read with a method for each field (`Planet.EARTH.mass()`); the data
 		is const and byVal, set once; the constructor is always private. An enum is always
 		const and static - `const static enum Planet` is accepted and changes nothing
-	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - Ownership.md, files/Service.md)
+	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - files/Ownership.md, files/Service.md)
 		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
 		`fixed(10) string name`: at most 10 characters, kept inline - no heap
 		`fixed(10) int numbers[]`, or `fixed int numbers[10]` (the size written in the array)
@@ -157,7 +157,7 @@ are in `task/featuresArchive.md`.
 
 #### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ]
 	After all of Task 32 (user)
-	Design and truth tables: Ownership.md
+	Design and truth tables: files/Ownership.md
 	Decisions D1-D49: Notes/Ownership_Decisions_2026-10-31.md
 	Settings: [memory] assignment = "move" (default) | "share"
 	[ ] 48.0 The rules (from Rust's borrow checker)
@@ -206,7 +206,7 @@ are in `task/featuresArchive.md`.
 		The design if it comes back: `shared Car c = a` one more reader; only the holder that made it
 			shared changes it; `f(byRef pool)` from that holder lends the right to change it
 	[ ] 48.6 Counting removed where moves make it unnecessary (covers 38.2)
-	[ ] 48.7 Examples and SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
+	[ ] 48.7 Examples and files/SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
 	[DONE] 48.9 Migrate, then make "move" the default (D.102)
 		[DONE] The examples: byRef where sharing is meant, byVal where a copy (6 SYNTAX_REFERENCE, classes_demo)
@@ -232,6 +232,19 @@ are in `task/featuresArchive.md`.
 		a `byVal` copy (or a function returning one) may change (today only Lists, Maps and structs are deep)
 	[ ] 50.3 Tests - every allowed / not allowed case of D.110-D.112 (Rule 4c); Ownership.fusion tags [built]
 
+#### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon
+	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
+	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: files/taskSummary2.md Task 51
+	[DONE] 51.1 Root files moved to files/ (debug scripts to debug/); the root keeps CLAUDE.md, README.md,
+		Decisions.md, main.py, check.py, pytest.ini; paths in code and docs updated
+	[ ] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
+		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
+	[ ] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
+	[ ] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
+	[ ] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first
+	[ ] 51.6 A link check in check.py
+	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
+
 ## Phase 3 - the advanced parts
 
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]
@@ -246,7 +259,7 @@ are in `task/featuresArchive.md`.
 	[ ] 36.4 Others as needed: Notepad++ (user-defined language), Vim / Neovim, tree-sitter grammar
 	[ ] 36.6 Later: a thread view - a "stack of threads" (what each thread does, which variables
 		and files / sockets / databases it touches), profiling, graphs and heat maps
-		(user, 2026-10-23; Concurrency.md section 3.3 H - design later)
+		(user, 2026-10-23; files/Concurrency.md section 3.3 H - design later)
 	[ ] 36.5 Later: a language server (LSP) - errors as you type, go to definition, completion -
 		built on the self-hosted compiler, one server for every editor
 	[ ] 36.7 A hint showing how number conditions are set for the project (`[conditions]
@@ -256,7 +269,7 @@ are in `task/featuresArchive.md`.
 	[ ] 37.1 Stdlib runtime lowering decision (was 15.2)
 	[ ] 37.2 Operator operands evaluated in C's order (`next(c) - next(c)`); call arguments are
 		left-to-right already (was 15.12)
-	[ ] 37.3 Incremental builds, stable symbol identities (ChatGPT review; notes.md step 5)
+	[ ] 37.3 Incremental builds, stable symbol identities (ChatGPT review; files/notes.md step 5)
 
 #### 38 Memory model: Unique / Shared / Weak, GC as a project option (was 15.5) [ ]
 	[ ] 38.1 Scope it (semantics decided in 12.7, not built)
@@ -295,15 +308,15 @@ are in `task/featuresArchive.md`.
 	[ ] 41.8 Simulator & tooling (stretch)
 	[ ] 41.9 Docs & examples
 	[ ] 41.10 Hardware testing ideas from Maia (maia-eda.net): a DUT block, drive / expect vectors,
-		clocks, bit widths - in the HIDL library, not the core (FutureFeatures.md "HIDL Library")
+		clocks, bit widths - in the HIDL library, not the core (files/FutureFeatures.md "HIDL Library")
 
 #### 42 Concurrency: services and threads (user, 2026-10-23) [ ]
 	Goal: a million requests on one machine with many cores - no data races by construction,
 	deadlocks and freezes prevented by rules (any that slip through become clear errors), no
 	slowdown, a small memory / CPU footprint, very scalable. A resource becomes a service;
-	manual locking is a last resort. Design: Concurrency.md (sections 3-4); overview:
-	Concurrency_Traps.md. Plan first when the task starts.
-	[ ] 42.0 Version one (agreed 2026-10-24, Concurrency.md 3.11): five rules - one owner,
+	manual locking is a last resort. Design: files/Concurrency.md (sections 3-4); overview:
+	files/Concurrency_Traps.md. Plan first when the task starts.
+	[ ] 42.0 Version one (agreed 2026-10-24, files/Concurrency.md 3.11): five rules - one owner,
 		each operation one step, copies out, handles shared; the compiler picks plain variable
 		/ atomic / mailbox on a shared pool (never a thread per service); waits in order,
 		`async` to not wait, not re-entrant by default; `service(x).run { }` for several steps;
@@ -340,8 +353,8 @@ are in `task/featuresArchive.md`.
 		key (0.2.1), priority, an internal counter and helper functions that track threads as
 		they are created and end
 	[ ] 42.8 Default timeouts and other defaults per resource kind - confirm the exact values
-		(starting point: Concurrency.md 3.7)
-	[ ] 42.9 (after version one) Custom contention rules and schedulers (Concurrency.md 3.8); Rule.HIERARCHY default
+		(starting point: files/Concurrency.md 3.7)
+	[ ] 42.9 (after version one) Custom contention rules and schedulers (files/Concurrency.md 3.8); Rule.HIERARCHY default
 	[ ] 42.10 Trap checks: warnings by default, errors when fusion.toml says so (two resources
 		per thread, shared variables, missing timeouts, services blocking on each other)
 	[ ] 42.11 (after version one) Possible service settings to go through (user + Claude, 2026-10-23):
@@ -361,6 +374,10 @@ are in `task/featuresArchive.md`.
 		(default WAIT), Timeout, final, Scheduler (IMMEDIATE), Priority ("5.4.1"), Rule
 		(HIERARCHY), WorkerThreadType, ThreadPool, run - defaults in fusion.toml
 		[concurrency.defaults]; the rest are secondary settings (Coalesce, BatchSize, ...)
+		[ ] Priority "5.4.1" (user, 2026-11-07): weighted turns - in every 10, high gets 5,
+			medium 4, low 1, so low-priority work never starves; custom shares allowed
+			A level with no work gives its turns to the others (no turn wasted)
+			Turns are spread through the cycle (H M H M H L ...), not in blocks of 5
 	[ ] 42.15 WorkerThreadType per resource: AUTO (default - SHARED as more threads read it,
 		SINGLE when its work is heavy) | SINGLE (workers dedicated to this resource: one thread
 		or its own ThreadPool) | SHARED (shared workers from a specific ThreadPool); can be set
@@ -368,9 +385,17 @@ are in `task/featuresArchive.md`.
 		method per class (files/Service.md)
 	[ ] 42.16 Duration literals: `500ms`, `5s`, `2min`, `1h` - an int of milliseconds for now;
 		also read from text (strings, fusion.toml). The full time module: Task 43.1
+		[ ] Two precisions (user, 2026-11-07): everyday code and ordinary services - `int`
+			milliseconds (`ms`, `s`, `min`, `h`); hot path (42.23, 42.24) - `long` nanoseconds
+			(`ns`, `us`; needs `long`, 47), where Fusion controls the CPU directly (a pinned core
+			that spins), not the operating system. Nanoseconds are exact for measuring (a
+			monotonic clock); an OS sleep / wake is only ~1 ms (Windows) / ~50 us (Linux)
+		[ ] Kept separate (user, 2026-11-07): two different kinds of timing, never mixed or
+			converted into each other - `1s` / `2min` stay int milliseconds for convenience;
+			nanoseconds are always long, so the two can't be confused. Mixing them is an error
 	[ ] 42.13 The compiler checks P9 (a service handling a request calls only down the
 		hierarchy, or sends without waiting) across modules - to be designed
-	[ ] 42.17 Collections and threads (Concurrency.md 3.12; settled 2026-10-31, D.057)
+	[ ] 42.17 Collections and threads (files/Concurrency.md 3.12; settled 2026-10-31, D.057)
 		An array, List or Map used by two or more threads gets a temporary service (42.19)
 		`[collections] threads` picks its worker: "shared" pool (default) | "dedicated"
 		`sharedThreads = 10` (default): the pool's size
@@ -385,14 +410,14 @@ are in `task/featuresArchive.md`.
 		S8 Plain counts inside a service, atomic only for handles
 		S9 The thread-boundary check (42.22)
 		S10 The Service interface (42.21)
-	[ ] 42.19 Temporary services (Ownership.md section 6)
+	[ ] 42.19 Temporary services (files/Ownership.md section 6)
 		Two or more threads use one variable: the compiler makes `service(acc)`
 		The service owns it; the thread functions borrow it
 		One request = one whole call (`deposit(acc)`); the others wait in the mailbox
 		The parent's own use while threads run is a request too
 		The last thread ends: the variable owns its value again
 		`[concurrency] autoService = "on"` (a note per variable) | "warn" | "off" (an error)
-	[ ] 42.20 Several resources: the group service (Ownership.md section 7, D.077)
+	[ ] 42.20 Several resources: the group service (files/Ownership.md section 7, D.077)
 		A service manages one resource; a group service several
 		A thread using two or more resources: a group service - written (42.3) or made by the compiler
 		It owns them while its requests run; its worker borrows them
@@ -402,7 +427,7 @@ are in `task/featuresArchive.md`.
 		`interface Service<T>`: send, `T fetch()` (the worker's next request), start, stop, state, waiting
 		BasicService (one worker thread), SharedService (temporary), FileService, DatabaseService, HotPathService
 		Settings checked against the implementation (`Core` only on a HotPathService)
-	[ ] 42.22 The thread boundary - send and sync (Ownership.md truth table 5)
+	[ ] 42.22 The thread boundary - send and sync (files/Ownership.md truth table 5)
 		send: a value goes to another thread, the sender no longer has it
 		sync: many threads use a value through a service; only its thread changes it
 		Worked out by the compiler, never written; errors say send / copy / service
@@ -422,7 +447,7 @@ are in `task/featuresArchive.md`.
 		Settings: Core, Ring, Producers, WhenFull (never WAIT), Wait, Budget, Priority, Prefault, WarmUp
 		Project defaults: `[hotpath]` in fusion.toml
 	[ ] 42.25 Examples per processor kept busy: CPU (trading), GPU, FPGA, NIC, DSP / audio, radio, NPU (files/Service.md table)
-	[ ] 42.26 A block that can't sleep or be interrupted (user, 2026-11-02 - FutureFeatures.md "Threads,
+	[ ] 42.26 A block that can't sleep or be interrupted (user, 2026-11-02 - files/FutureFeatures.md "Threads,
 		Schedulers and Services" 2): within one loop iteration the thread doesn't sleep, yield or take an
 		interrupt; interrupts and requests wait in its mailbox until the next safe point (builds on `check interrupt`)
 		Starving others: a request timeout (seconds) and / or `sleepEvery(5)`; long-running work (a large file
@@ -432,7 +457,7 @@ are in `task/featuresArchive.md`.
 	[ ] 42.27 A system shutdown is always handled (user, 2026-11-02): the interrupt reaches services and loops
 		where the critical logic is - the log file and database connections closed, nothing left unstable
 		(the `Shutdown` setting, `final` clean-up 42.4)
-	[ ] 42.28 Recheck later: an identity for everything (user, 2026-11-02 - FutureFeatures.md "An Identity
+	[ ] 42.28 Recheck later: an identity for everything (user, 2026-11-02 - files/FutureFeatures.md "An Identity
 		for Everything"): a GUID per name and a small database of the hierarchy with the code's hashes, so
 		the compiler can tell by GUID which variables / objects are in a thread or a group service
 	(The thread view in the editor: 36.6. The service reference: files/Service.md)
@@ -443,7 +468,7 @@ are in `task/featuresArchive.md`.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
 		zones; epochs; durations and time calculations (a Math sub-module, user). Duration
 		literals map to int milliseconds until then (42.16)
-	[ ] 43.2 Data formats module (user, 2026-10-28; extended 2026-11-01 - FutureFeatures.md
+	[ ] 43.2 Data formats module (user, 2026-10-28; extended 2026-11-01 - files/FutureFeatures.md
 		"Data Formats Module"): JSON, XML, TOML, YAML, INI, MD (and CSV, others) read into an
 		in-memory document, easy to read and change, then saved - load / save, from or to a
 		string; recovering from minor syntax mistakes where that is safe. In fusionlib, not the core.
@@ -462,7 +487,12 @@ are in `task/featuresArchive.md`.
 		slots used round and round, the newest replacing the oldest; more later (with 43.5)
 	[ ] 43.5 The study of collection kinds - Java, C#, Rust, Go, Python - which to offer in fusionlib (was 32.9)
 	[ ] 43.6 Plan every fusionlib module - just its name first (user, 2026-11-01); each designed
-		later, one at a time (FutureFeatures.md "fusionlib: Every Planned Module")
+		later, one at a time (files/FutureFeatures.md "fusionlib: Every Planned Module")
+	[POSTPONED to 42 + file I/O] 43.7 File handle manager (user, 2026-11-07): a FileManager
+		(later the same for databases) keeps every open file, keyed by its path - each file its
+		own service with its own reader / writer thread; parts of the program (or a file the user
+		picks) opening the same file get the handle already open, not a second one that clashes.
+		Opening a file directly, without the manager, still works as usual
 
 #### 49 Multi-language support: `Lang.<language>.Fusion` modules (user, 2026-11-03) [POSTPONED to 35]
 	Design: files/Fusion_Multi_Language_Compiler_Architecture.md - after self-hosting (D.105)
@@ -482,7 +512,7 @@ are in `task/featuresArchive.md`.
 	[ ] 49.8 Compiling C itself through its module (separate from migrating; GCC does it today)
 	[ ] 49.9 C++, Java, Python modules - each on its own
 	Open: language modules are code the compiler runs - trust and sandboxing (Task 39);
-		their name next to `fusionlib.Lang` (FutureFeatures.md "Cross-Language Compilation Support")
+		their name next to `fusionlib.Lang` (files/FutureFeatures.md "Cross-Language Compilation Support")
 
 ---
 
@@ -511,7 +541,7 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 Kept in Fusion's design, deliberately postponed - the simple version comes first.
 	[POSTPONED - after Task 32] The builder pattern (user, 2026-10-30): a separate object that
 		collects settings, then `build()` makes the result - a different idea from form B
-		set-up (Classes.md section 4)
+		set-up (files/Classes.md section 4)
 	From the Rust videos (user, 2026-10-29 - Notes/Program lang Compare.md):
 	[ ] Errors for tools and AI agents: every error in one form (line, what failed, a `fix:`
 		hint), and an optional machine-readable output (`--errors json`)
@@ -540,7 +570,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[REPLACED by 47.2 - a long of minor units, never a decimal] money type (user, 2026-10-24 / 10-27): strict decimal for currency, default 0, written-out
 		conversions, rounding half away from zero + a rounding-mode enum (files/Literals.md
 		"Money", spec "Complete Type Specifications")
-	[ ] Lists (user, 2026-10-27 - Arrays.md): add many at once (another list, a group of
+	[ ] Lists (user, 2026-10-27 - files/Arrays.md): add many at once (another list, a group of
 		values); capacity and a growth buffer that can be set; a kept sort order (every
 		added item goes into its sorted place)
 	[ ] List copyPart (user, 2026-10-27): rename `slice` to `copyPart(start, count)`, `slice` kept
@@ -577,7 +607,7 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		structs (off by default, Task 32.1); an object in a struct: allowed since 2026-11-01 (D.097)
 	[DONE] Open: `int?` - decided with Task 30 (user, 2026-10-27): no `T?` types at all; `?` is
 		used on a variable (`x?.method()`), and only class objects and enums can be null
-		(Nullable_Values.md)
+		(files/Nullable_Values.md)
 	Showcase [idea] list - to go through one by one (files/showcase/, user 2026-10-24):
 	[ ] Import only some names from a module: `import geometry { square, circle }`
 	[ ] A whole-program setting read from fusion.toml at compile time (`config.build.mode`)

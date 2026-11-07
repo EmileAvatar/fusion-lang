@@ -4,10 +4,10 @@
 **Last Updated:** 2026-10-07
 **Purpose:** Track proposed features and enhancements for post-MVP implementation
 
-> **Read `FutureFeaturesCaution.md` first.** The first goal is a simple working language;
+> **Read `files/FutureFeaturesCaution.md` first.** The first goal is a simple working language;
 > everything in this document is a menu of possibilities, not a commitment - some features
 > will be built, some will change, and some will never be added. Core-language work (Task 18
-> in `taskSummary2.md`) comes before any of it.
+> in `files/taskSummary2.md`) comes before any of it.
 
 ---
 
@@ -731,7 +731,7 @@ When implementing these features, update:
 
 **Superseded in part (user, 2026-11-03):** the design is now
 `files/Fusion_Multi_Language_Compiler_Architecture.md` - `Lang.<language>.Fusion` modules
-through one injection point, a Migration IR, new .fusion files; after self-hosting (FEATURES.md
+through one injection point, a Migration IR, new .fusion files; after self-hosting (files/FEATURES.md
 Task 49, D.105). Semicolons and the parser notes below still stand (SYN.037).
 
 **Status:** 📝 Proposed (Post-MVP)
@@ -5140,7 +5140,7 @@ over `decimal` and costs almost nothing extra once `decimal` itself is built.
 **Priority:** Medium (a real, common source of bugs in other languages - accidental
 mutation of a string another part of the program still holds a reference to - but not
 blocking anything currently built)
-**Source:** User request (2026-09-27) - also logged as **Task 17** in `taskSummary2.md`
+**Source:** User request (2026-09-27) - also logged as **Task 17** in `files/taskSummary2.md`
 
 #### Mutable strings (default) vs. fixed/immutable strings
 
@@ -5812,7 +5812,7 @@ Missing or planned features:
 
 here is an updated summary from chat gpt to be reviewed as well
 
-Here is the **clean, concise, ready-to-paste section** for **FutureFeatures.md**, following your structure and style.
+Here is the **clean, concise, ready-to-paste section** for **files/FutureFeatures.md**, following your structure and style.
 It fits naturally into your existing document and uses wording consistent with the rest of the Fusion spec.
 
 
@@ -5991,7 +5991,7 @@ on top of that.
 ## 🔌 HIDL Library: Hardware Testing Ideas from Maia
 
 **Status:** Idea (user, 2026-11-01). **Not in the core:** it belongs in the HIDL library,
-made for hardware (FEATURES.md Task 41, 41.10). Source: https://maia-eda.net/ (read
+made for hardware (files/FEATURES.md Task 41, 41.10). Source: https://maia-eda.net/ (read
 2026-11-01: its main page and its "DUT testing" page).
 
 **What Maia is:** a small C-like language for writing **self-checking testbenches** for
@@ -6021,7 +6021,7 @@ them when Task 41 starts.
 
 ## 📄 Data Formats Module: JSON, XML, TOML, YAML, INI, MD
 
-**Status:** Idea (user, 2026-11-01) - in fusionlib, not the core (FEATURES.md 43.2,
+**Status:** Idea (user, 2026-11-01) - in fusionlib, not the core (files/FEATURES.md 43.2,
 Decisions.md MOD.009 / D.098).
 
 **1. Read into memory, change, save.** Each format is loaded into an in-memory document
@@ -6034,7 +6034,7 @@ that is easy to read and change, then saved again:
   `fusion.toml` / `.yaml` / `.json` / `.ini` (Task 31)
 
 **2. A document written in the code.** JSON and XML may be written directly in the source,
-inside a multi-line string (`"""..."""`, Later in FEATURES.md, STR.008), marked with its
+inside a multi-line string (`"""..."""`, Later in files/FEATURES.md, STR.008), marked with its
 format - the user's example:
 
 ```fusion
@@ -6064,7 +6064,7 @@ and the value is a document, not plain text.
 
 ## 📦 fusionlib: Every Planned Module (names only)
 
-**Status:** To plan (user, 2026-11-01 - FEATURES.md 43.6): a list of every Fusion library
+**Status:** To plan (user, 2026-11-01 - files/FEATURES.md 43.6): a list of every Fusion library
 module, just its name first; each is designed later, one at a time.
 
 ---
@@ -6100,7 +6100,7 @@ The user's original note: `go.run(variables we need to use)(option how to schedu
 
 - The first brackets name the variables the thread uses (a capture list): the compiler knows
   exactly what crosses into the thread - each moved, borrowed or put in a temporary service
-  (Ownership.md R7, Service.md S5)
+  (files/Ownership.md R7, Service.md S5)
 - The second brackets choose a scheduler. **Optional:** by default there is none, and the
   extra brackets are left out
 - **For now, the form is** `{ ... }.scheduler(x)` on the block - for example
@@ -6121,7 +6121,7 @@ The user's original note: `go.run(variables we need to use)(option how to schedu
 - Interrupts and requests that arrive meanwhile go into the thread's **mailbox queue**, and
   are handled at the next safe point - data is never left half-changed
 - This is cooperative scheduling with safe points (Erlang; Go before 1.14) - it builds on the
-  `check interrupt` block after a loop (`Concurrency.md` "Cancellation / interrupt")
+  `check interrupt` block after a loop (`files/Concurrency.md` "Cancellation / interrupt")
 - **Issues to design for:**
   - **A long iteration could starve the other work** (why Go added preemption in 1.14). The
     user's answers:
@@ -6198,7 +6198,7 @@ setting (finish the mailbox, or drop it) and `final` clean-up (42.4).
 
 ## 🆔 An Identity for Everything: a GUID per Name, a Small Database of the Hierarchy
 
-**Status:** Idea for future consideration (user, 2026-11-02) - recheck later (FEATURES.md
+**Status:** Idea for future consideration (user, 2026-11-02) - recheck later (files/FEATURES.md
 42.28). Related: SET.024 (an IDE module with a symbol database), 36.5 (language server),
 36.6 (the thread view), and "Threads, Schedulers and Services" above.
 
@@ -6265,7 +6265,7 @@ already mangles names for C (`fu_Car__drive`).
 
 ## 🌌 Far Future (after self-hosting): traits from variables, types made while running, DLCs and mods
 
-**Status:** 💭 Far-future discussion (user, 2026-10-31) - not in FEATURES.md or Decisions.md
+**Status:** 💭 Far-future discussion (user, 2026-10-31) - not in files/FEATURES.md or Decisions.md
 yet; recheck after self-hosting (Task 35). Beyond the current scope.
 
 ### 1. Interfaces held in a variable, used as traits
@@ -6335,7 +6335,7 @@ plugins; Rust procedural macros; RimWorld's Harmony (a base mod other mods build
 **Points to design then (Claude's notes, 2026-10-31):**
 - **Fragmentation:** every mod lowers to base Fusion or the IR (Task 40); a tool shows the
   plain result; a module's public interface stays expressible in base Fusion, so code with
-  and without a mod works together (FutureFeaturesCaution.md, Caution 3)
+  and without a mod works together (files/FutureFeaturesCaution.md, Caution 3)
 - **Security:** a mod runs code while building - sandboxed, with capability signatures
   (Task 39); official DLCs signed; tiers: DLC, verified mod, community mod
 - **Compiler updates:** the framework is a stable, versioned API; each mod states the API
@@ -6346,7 +6346,7 @@ plugins; Rust procedural macros; RimWorld's Harmony (a base mod other mods build
   settings, so they are the first built-in "mods"
 - **The 85% goal:** some features exclude each other (GC and ownership, exceptions and error
   returns); measure by what developers can do, not by a count of features
-  (FutureFeaturesCaution.md, Caution 2)
+  (files/FutureFeaturesCaution.md, Caution 2)
 
 
 

@@ -1,4 +1,4 @@
-"""Tests for Task 32.2e - readonly parameters (Object_Lifetime.md section 3), and set-up
+"""Tests for Task 32.2e - readonly parameters (files/Object_Lifetime.md section 3), and set-up
 blocks that may still change the const / let they set up (user, 2026-10-30).
 
 A readonly parameter is read, never changed: not assigned, not through a field or element,

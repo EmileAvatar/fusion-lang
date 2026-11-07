@@ -7,7 +7,7 @@ Android app, ...) needs from a language. It helps decide what Fusion should take
 then more features, one at a time. The "planned" items below are for later. None of them is
 a reason to stop the working-language work.
 
-Status in this file is as of 2026-11-01. The live status is in `FEATURES.md` and `Decisions.md`.
+Status in this file is as of 2026-11-01. The live status is in `files/FEATURES.md` and `Decisions.md`.
 
 ---
 
@@ -59,12 +59,12 @@ Also worth knowing:
 
 | Pain point | Languages that chased it | Fusion's answer |
 |---|---|---|
-| Speed vs. safety | C → Java → Rust | OWNERSHIP by default; GC and MANUAL only as project options (`Object_Lifetime.md`, Task 48) |
+| Speed vs. safety | C → Java → Rust | OWNERSHIP by default; GC and MANUAL only as project options (`files/Object_Lifetime.md`, Task 48) |
 | Portability | COBOL, C, Java | Compiles to C now; LLVM and other targets later (Task 40) |
 | Too complex, too big | ALGOL 68 → Pascal, C++ → Go, Kotlin | Concise syntax, familiar defaults; a simple working language first |
 | Programming for everyone | BASIC, Smalltalk, Python | Readable syntax; clear error messages that say what to do |
-| Null crashes | Kotlin, Swift | Nullable values as a setting, `?.` / `??`, a NullError that `catch` handles (`Nullable_Values.md`) |
-| Concurrency is hard | Erlang, Clojure, Go, Elixir, Rust | Services instead of locks; one writer; no data races by construction (Task 42, `Concurrency.md`) |
+| Null crashes | Kotlin, Swift | Nullable values as a setting, `?.` / `??`, a NullError that `catch` handles (`files/Nullable_Values.md`) |
+| Concurrency is hard | Erlang, Clojure, Go, Elixir, Rust | Services instead of locks; one writer; no data races by construction (Task 42, `files/Concurrency.md`) |
 | Staying up, failing safely | Erlang, Elixir, Ada | Errors that `catch` handles; supervisors and restarts not designed yet |
 | No type checking at scale | TypeScript, Ada | Static types from the start |
 | The two-language problem | Julia, Python + C | Native speed with high-level syntax (a C backend) |
@@ -139,4 +139,4 @@ These don't block the working language. They are recorded here so they aren't fo
    a setting, a fixed rule, a module, or not for Fusion.
 
 **The order stays the same:** a working language first, with some features and not all of
-them; then more, one at a time (`FutureFeaturesCaution.md`).
+them; then more, one at a time (`files/FutureFeaturesCaution.md`).

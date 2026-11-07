@@ -4,8 +4,8 @@
 //
 // Who owns a value, what assigning, passing and returning do, and what readonly / const
 // protect. Like Fusion_showcase.fusion it does NOT compile as a whole: it shows the errors
-// too. Working examples: SYNTAX_REFERENCE.md (syntax_moving, syntax_borrowing,
-// syntax_at_the_call, syntax_getters). The full design and truth tables: Ownership.md; the
+// too. Working examples: files/SYNTAX_REFERENCE.md (syntax_moving, syntax_borrowing,
+// syntax_at_the_call, syntax_getters). The full design and truth tables: files/Ownership.md; the
 // decisions: Decisions.md (D.0xx below); the short rule list for Claude:
 // .claude/skills/fusion-ownership/SKILL.md - keep the three in step.
 //

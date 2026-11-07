@@ -5,7 +5,7 @@ description: Fusion's ownership, borrowing, readonly and const rules - what move
 
 # Fusion ownership rules
 
-The rules as they stand. The full design and truth tables are in `Ownership.md`, every rule as
+The rules as they stand. The full design and truth tables are in `files/Ownership.md`, every rule as
 code (allowed / not allowed, [built] / [designed]) in `files/showcase/Ownership.fusion`, the
 decisions in `Decisions.md`. **Keep these four in step**: a rule changed in one is changed in
 all, in the same session (Rule 3b), with a test for each allowed and not-allowed case (Rule 4c).

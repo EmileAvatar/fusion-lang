@@ -366,7 +366,7 @@ class InterpolatedStringExpr(ASTNode):
 
     Represented as a single ordered list of text/expression segments (rather than two
     parallel arrays) so the structure cannot desync between text and interpolated
-    expressions - see taskSummary2.md Task 12.4.
+    expressions - see files/taskSummary2.md Task 12.4.
 
     Attributes:
         segments: Ordered list of StringTextPart, StringExprPart and StringPositionalPart
@@ -935,7 +935,7 @@ class ArrayType(TypeNode):
     Fixed-size only (Task 9 v1) - size is either given explicitly (`int[5]`) or left
     unresolved (`int[]`, size=None) until the semantic analyzer infers it from an array
     literal initializer. Not nullable, not a function parameter/return type yet - see
-    taskSummary2.md Task 9 for the deferred nullable-array design.
+    files/taskSummary2.md Task 9 for the deferred nullable-array design.
 
     Attributes:
         element_type: Type of each array element

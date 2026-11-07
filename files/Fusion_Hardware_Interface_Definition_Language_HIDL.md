@@ -7,7 +7,7 @@
 > a consumer/generator that reads a HIDL spec and produces typed Fusion bindings - alongside
 > whatever other languages also choose to consume the same spec. Earlier drafts of this
 > document (including the title and Section 1 below) described HIDL as being "for Fusion";
-> that framing is superseded by this note. Tracked as Task 13 in `taskSummary2.md` (blocked,
+> that framing is superseded by this note. Tracked as Task 13 in `files/taskSummary2.md` (blocked,
 > future work).
 
 ## 1. Overview

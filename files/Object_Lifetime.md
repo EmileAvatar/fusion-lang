@@ -12,7 +12,7 @@ Still designed only: GC and MANUAL, `free` / `deallocate`, statics, copies of ob
 Weak references and more moves (Task 38).
 **Planned (Task 48, user 2026-10-31):** assigning moves - `Car b = a` leaves `a` unusable,
 `byVal` copies, passing borrows; counting stays only for `shared` objects and service
-handles. The rules and truth tables: `Ownership.md` - they replace "`b = a` shares" below
+handles. The rules and truth tables: `files/Ownership.md` - they replace "`b = a` shares" below
 once built (`[memory] assignment = "share"` keeps it).
 
 ---
@@ -120,7 +120,7 @@ void function render()
 - A class object passed is borrowed - no count change while the call runs
 - **Rule of thumb (user, 2026-10-29):** in a struct, Arrays / Lists / Maps are `byVal` (copied
   with it) unless the field says `byRef`; everywhere else they are `byRef` (shared) unless
-  written `byVal`. The truth table is in Arrays.md section 1
+  written `byVal`. The truth table is in files/Arrays.md section 1
 
 **Modifiers on a parameter:**
 
@@ -611,7 +611,7 @@ None - the truth tables are settled (user, 2026-10-28). Reviewing them once more
 32 starts is still welcome.
 
 The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mode`) are task
-32.0 - see taskSummary2.md.
+32.0 - see files/taskSummary2.md.
 
 ---
 
@@ -641,4 +641,4 @@ The settings changes this brought (camelCase names, `overflowWrap`, `[safety] mo
 | 2026-10-29 | Lists and Maps become references with a count (shared in normal code, copied in a struct, `byVal` copies) - the same counting the class objects use. A class with no constructor: `Car()` - value fields at their defaults, objects null; its methods set them. 32.10 builds a minimal class together with the counting |
 | 2026-10-29 | OWNERSHIP is always the first choice - no crashes, no leaks (they cause instability and security holes). Counting is skipped where the compiler proves a single owner |
 | 2026-10-31 | Built (32.5b): `byVal` copies objects - a new object, each field byVal; Cloneable / clone(); nocopy (set only in a constructor or clone()) and noshare (handed out only as a copy) |
-| 2026-10-31 | Planned (Task 48): assigning moves by default (Lists, Maps, objects); `byVal` copies; passing / reading an element borrows; `shared` for several holders; the rules in Ownership.md |
+| 2026-10-31 | Planned (Task 48): assigning moves by default (Lists, Maps, objects); `byVal` copies; passing / reading an element borrows; `shared` for several holders; the rules in files/Ownership.md |

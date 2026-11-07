@@ -384,7 +384,7 @@ def main():
         print_error(f"Examples directory not found: {examples_dir}")
         return 1
 
-    # syntax_*.fusion are generated from SYNTAX_REFERENCE.md (Task 23) - check.py builds and
+    # syntax_*.fusion are generated from files/SYNTAX_REFERENCE.md (Task 23) - check.py builds and
     # runs those under the leak check; this script covers the hand-written demos
     fusion_files = [f for f in examples_dir.glob('*.fusion') if not f.name.startswith('syntax_')]
     # Example projects of several files: examples/<name>/main.fusion (Task 18.4.4)

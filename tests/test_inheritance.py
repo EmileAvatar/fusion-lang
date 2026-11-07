@@ -1,11 +1,11 @@
-"""Tests for Task 32.7 - inheritance (Classes.md section 8, Decisions.md D.083, D.084).
+"""Tests for Task 32.7 - inheritance (files/Classes.md section 8, Decisions.md D.083, D.084).
 
     class Employee inherits Person        // `extends` as quick typing; one parent only
         override string function greet() : super.greet() + "!"
         constructor(string n)
             super(n)                       // the parent's constructor, on the first line
 
-Each test is a row of the truth table in Classes.md section 8. Fusion favours composition
+Each test is a row of the truth table in files/Classes.md section 8. Fusion favours composition
 (holding an object) over inheritance (D.083). Every program runs with the leak check. With and
 without null checks (Rule 4b).
 """

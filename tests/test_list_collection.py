@@ -1,4 +1,4 @@
-"""Tests for Task 32.6 - a List is a Collection<T> value (Decisions.md D.090, Arrays.md section 6).
+"""Tests for Task 32.6 - a List is a Collection<T> value (Decisions.md D.090, files/Arrays.md section 6).
 
     List<int> xs = [1, 2, 3]
     Collection<int> c = xs          // the same List - its own implementation answers

@@ -309,7 +309,7 @@ class StructParentRulesMixin:
                 f"elements or fields one at a time")
 
     def warn_object_text(self, type_node, location) -> None:
-        """An object printed or made text shows its class name only (Task 32.2f, Classes.md
+        """An object printed or made text shows its class name only (Task 32.2f, files/Classes.md
         section 6) - a warning until the class can implement ToString (Task 32.5)."""
         struct = self.struct_declaration(type_node)
         warned = self.__dict__.setdefault('warned_object_text', set())   # once per class

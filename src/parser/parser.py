@@ -824,7 +824,7 @@ class Parser:
 
         Array size, if given, must be an integer literal for now (e.g. `int[5]`) - an
         arbitrary size expression (`int[n]`) is not yet supported. Multi-dimensional
-        arrays (`int[][]`) are not yet supported either - see taskSummary2.md Task 9.
+        arrays (`int[][]`) are not yet supported either - see files/taskSummary2.md Task 9.
 
         Returns:
             TypeNode (PrimitiveType, or ArrayType wrapping one, for MVP)
@@ -1012,7 +1012,7 @@ class Parser:
         """Parse interpolated string from parts list.
 
         Builds a single ordered list of segments (StringTextPart / StringExprPart) rather
-        than splitting text and expressions into two parallel arrays - see taskSummary2.md
+        than splitting text and expressions into two parallel arrays - see files/taskSummary2.md
         Task 12.4. The lexer already hands over an ordered, tagged sequence; this just
         carries that order onto the AST node instead of discarding it.
 
@@ -2292,7 +2292,7 @@ class Parser:
             if self.check(closing) or self.is_at_end():
                 break
             # public / private on a member (Task 32.2a): fields private, functions and
-            # constructors public when nothing is written (Classes.md section 1)
+            # constructors public when nothing is written (files/Classes.md section 1)
             written = None              # True public, False private, 'internal' (32.2h)
             if self.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.INTERNAL, TokenType.PROTECTED):
                 written = {TokenType.PUBLIC: True, TokenType.PRIVATE: False,

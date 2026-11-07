@@ -479,7 +479,7 @@ When the time comes, execute in this order:
 7. Update all files/*.md specifications
 8. Update README.md with new positioning
 9. Update task/*.md files
-10. Update FutureFeatures.md
+10. Update files/FutureFeatures.md
 
 **Phase 3: Code Update (1 day)**
 11. Rename file extension (.fusion → .{new})

@@ -1,4 +1,4 @@
-"""readonly parameters (Task 32.2e, user decisions 2026-10-30 - Object_Lifetime.md section 3).
+"""readonly parameters (Task 32.2e, user decisions 2026-10-30 - files/Object_Lifetime.md section 3).
 
     void function show(readonly Account a)
         print(a.balance)             // reading - fine
@@ -41,7 +41,7 @@ def check_readonly(program) -> List[SemanticError]:
 
 
 def check_readonly_calls(program) -> List[SemanticError]:
-    """`f(readonly acc)` - the caller's demand (Task 48.3, Ownership.md truth table 4): f must
+    """`f(readonly acc)` - the caller's demand (Task 48.3, files/Ownership.md truth table 4): f must
     not change or keep it, nor pass it on to a function that does. Two errors when it does:
     at the call, naming the line that changes it, and at that line, naming the call - so the
     one who adds the change sees it too. A function value can't be looked into: an error."""

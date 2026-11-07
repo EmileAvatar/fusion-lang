@@ -1,4 +1,4 @@
-"""Tests for Task 32.5b - Default: a variable of the type is never null (Classes.md section 5,
+"""Tests for Task 32.5b - Default: a variable of the type is never null (files/Classes.md section 5,
 Decisions.md D.010).
 
     class Settings implements Default
@@ -6,7 +6,7 @@ Decisions.md D.010).
     Settings s                       // made: the compiler calls Settings()
     s = null                         // the old object goes; a new default one comes
 
-Each test is a row of the table in Classes.md section 5. Every program runs with the leak
+Each test is a row of the table in files/Classes.md section 5. Every program runs with the leak
 check. With and without null checks (Rule 4b): a Default value is never null - `.` never
 fails, and `is null` is always false (a warning).
 """

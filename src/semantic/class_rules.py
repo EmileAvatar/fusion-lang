@@ -1,6 +1,6 @@
 """Class rules checked over the whole program (Task 32.10d).
 
-Cycles (Object_Lifetime.md O3 / O4): with OWNERSHIP an object is freed when its count reaches
+Cycles (files/Object_Lifetime.md O3 / O4): with OWNERSHIP an object is freed when its count reaches
 0 - two objects that hold each other (`a.friend = b; b.friend = a`), or one that holds itself
 (`node.next = node`), keep each other's count above 0 and are never freed. The compiler
 can't see the objects, but it can see the types: a class whose fields can lead back to the

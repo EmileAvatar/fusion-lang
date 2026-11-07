@@ -3,7 +3,7 @@
 **Status: a proposal only (2026-10-24), not part of the design yet.** It collects the ways a
 value could be written directly in Fusion source. Some of these may become Fusion literals.
 Others will belong to a future class that handles units (time, data sizes, money) instead of
-being part of the language itself. Nothing here is scheduled in `FEATURES.md` yet.
+being part of the language itself. Nothing here is scheduled in `files/FEATURES.md` yet.
 
 ---
 
@@ -54,14 +54,14 @@ glued on, and makes one token.
 
 | Kind | Examples | Notes |
 |---|---|---|
-| Durations | `500ms`, `5s`, `2min`, `1h` | Agreed for services: an `int` of milliseconds (FEATURES.md 42.16) |
+| Durations | `500ms`, `5s`, `2min`, `1h` | Agreed for services: an `int` of milliseconds (files/FEATURES.md 42.16) |
 | More durations | `10ns`, `10us`, `1d` | Nanoseconds, microseconds, days |
 | Data sizes | `512B`, `4KB`, `5MB`, `5GB`, `5GiB` | `B` byte, `b` bit; 1000 or 1024 (rule 4) |
 | Unsigned | `10u` | The spec designs `uint` |
 | Money to decimal | `decimal total = 19.99m` | See "Money" below |
 | Scientific | `1.5e3`, `2E-8` | 1500.0, 0.00000002 |
 | Percent | `50%` | 0.5 |
-| Date / time | `2026-10-24`, `14:30` | Better in the Time module (FEATURES.md 43.1) |
+| Date / time | `2026-10-24`, `14:30` | Better in the Time module (files/FEATURES.md 43.1) |
 
 #### Money
 
@@ -97,7 +97,7 @@ Money gets its **own dedicated, strict type** (to be designed), not a literal of
    be decided, never guessed.
 5. **Months and years are not durations.** A month is 28-31 days, and a year is 365 or 366,
    so `1month` can't be a fixed number of milliseconds. They belong to the calendar part of
-   the Time module (FEATURES.md 43.1).
+   the Time module (files/FEATURES.md 43.1).
 6. **Inside hex, letters are digits.** In `0x1d`, the `d` is a hex digit (the value 29), not
    a double suffix.
 

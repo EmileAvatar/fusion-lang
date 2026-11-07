@@ -3,7 +3,7 @@
 A showcase: one short example per **implemented** feature. Every ` ```fusion ` block is a
 complete program that `python check.py` compiles and runs, so this file can't drift from the
 compiler. The marker above each block (`<!-- example: name | task: N -->`) names the program
-`python check.py --build-examples` writes to `examples/`. Planned features are listed in `FEATURES.md`; the full design is in
+`python check.py --build-examples` writes to `examples/`. Planned features are listed in `files/FEATURES.md`; the full design is in
 `files/fusion-language-spec.md`.
 
 When a feature ships, add its example here (Auto-Update Policy in `CLAUDE.md`).
@@ -844,8 +844,8 @@ void function main()
 ```
 In a class, fields are private and functions and constructors public unless written
 otherwise (`mine.trips` outside Car is an error); at module level, structs, classes and enums
-are public, functions and module variables private (Classes.md section 1). An object is
-freed when the last place holding it lets go (Object_Lifetime.md). `.` on null is a NullError
+are public, functions and module variables private (files/Classes.md section 1). An object is
+freed when the last place holding it lets go (files/Object_Lifetime.md). `.` on null is a NullError
 that `catch` handles. Two objects that hold each other (`a.friend = b` and
 `b.friend = a`) are never freed: a class that can hold itself gets a warning, and setting
 one of the fields to null breaks the circle (Weak references come with Task 38).

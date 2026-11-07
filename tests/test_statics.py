@@ -1,4 +1,4 @@
-"""Tests for Task 32.2c - a class's statics (Classes.md section 3).
+"""Tests for Task 32.2c - a class's statics (files/Classes.md section 3).
 
 Forms A (direct), B (a block that sets up its own field) and C (`static { }`, any static),
 run in that order before main; classes set up in the order they depend on each other; a

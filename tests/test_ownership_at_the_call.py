@@ -1,4 +1,4 @@
-"""Tests for Task 48.3 - at the call: `byVal`, `byRef`, `readonly` (Ownership.md section 4,
+"""Tests for Task 48.3 - at the call: `byVal`, `byRef`, `readonly` (files/Ownership.md section 4,
 truth tables 1 and 4; D13-D20).
 
     show(readonly acc)        // fine: show only reads

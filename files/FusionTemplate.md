@@ -84,8 +84,8 @@ class RingBuffer implements Sized
         ...
 ```
 
-`implements`, interfaces, `static` and `namespace` are designed - see `Classes.md` and
-`FEATURES.md` Task 32 for what is built.
+`implements`, interfaces, `static` and `namespace` are designed - see `files/Classes.md` and
+`files/FEATURES.md` Task 32 for what is built.
 
 ---
 
@@ -102,5 +102,5 @@ class RingBuffer implements Sized
 | `private` inside an interface | an error | |
 
 `[visibility] required = true` (built, Task 32.2h) makes writing the level mandatory - a
-missing one is an error. `namespace` and `internal` are built too. Details: `Classes.md`
+missing one is an error. `namespace` and `internal` are built too. Details: `files/Classes.md`
 section 1.

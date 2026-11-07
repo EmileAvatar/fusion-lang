@@ -69,7 +69,7 @@ def _same_signature(a: FunctionDecl, b: FunctionDecl) -> bool:
 
 # Fusion's own interfaces (Task 32.5b) - added to a program only when something uses them
 BUILTIN_INTERFACES = {
-    'ToString': [('string', 'toString')],      # how an object prints (Classes.md section 6)
+    'ToString': [('string', 'toString')],      # how an object prints (files/Classes.md section 6)
     'Cloneable': [],                           # its own clone() - checked below (32.5b, D.088)
     'Default': [],                             # never null - set up below (32.5b, D.010)
 }
@@ -424,7 +424,7 @@ def default_object(name: str, location):
 
 
 def _set_up_defaults(program, structs) -> List[SemanticError]:
-    """Default (Task 32.5b, D.010 - Classes.md section 5): a variable or field of the type is
+    """Default (Task 32.5b, D.010 - files/Classes.md section 5): a variable or field of the type is
     never null - with no value, or `= null`, the compiler makes `Settings()`. The class needs a
     constructor without arguments (it may be private), and can't hold itself."""
     from src.parser.ast_nodes import LiteralExpr, VarDeclStmt

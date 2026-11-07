@@ -2,13 +2,13 @@
 
 Fusion's borrow rules: who owns a value, what assigning and passing do, and how one writer is
 kept when threads share a value. Taken from Rust's borrow checker, made simpler where Fusion
-can be. **Status: designed, not built** - FEATURES.md Task 48 (after all of Task 32), the
+can be. **Status: designed, not built** - files/FEATURES.md Task 48 (after all of Task 32), the
 thread parts Task 42. The decisions and the discussion behind them:
 `Notes/Ownership_Decisions_2026-10-31.md` (D1-D49).
 
-Related: `Object_Lifetime.md` (the counting that is built today), `files/Service.md` (the
-service side), `Concurrency.md` section 3.13 (threads), `Arrays.md` (Lists and Maps),
-`Classes.md`.
+Related: `files/Object_Lifetime.md` (the counting that is built today), `files/Service.md` (the
+service side), `files/Concurrency.md` section 3.13 (threads), `files/Arrays.md` (Lists and Maps),
+`files/Classes.md`.
 
 ---
 

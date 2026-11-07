@@ -4,7 +4,7 @@
 //
 // The interfaces Fusion itself provides. Like Fusion_showcase.fusion it does NOT compile: a
 // built-in interface can't be declared again, so each is shown as a comment, then a class
-// using it. Working examples: SYNTAX_REFERENCE.md (syntax_interfaces, syntax_to_string,
+// using it. Working examples: files/SYNTAX_REFERENCE.md (syntax_interfaces, syntax_to_string,
 // syntax_object_copies, syntax_default).
 //
 //   [built]     works in the compiler today

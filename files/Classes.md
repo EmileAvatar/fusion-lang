@@ -94,7 +94,7 @@ class Garage
 | Two classes whose set-up uses each other? | A compile error that shows the whole circle, e.g. `Car -> Engine -> Parts -> Factory -> Car`: "Factory can't use Car - Car is still being set up (Car -> Engine -> Parts -> Factory -> Car)" |
 | Something the compiler can't see in advance (a call through a function value)? | A clear run-time error: "Car's statics aren't set up yet" |
 | When does it all run? | Before `main` |
-| When are statics freed? | Last, when the program ends (Object_Lifetime.md U10) - after module variables |
+| When are statics freed? | Last, when the program ends (files/Object_Lifetime.md U10) - after module variables |
 | Static methods | No `this`: `Car.make("x")` |
 | Plain statics | `static int count` - set up like form A (0 when no value is given) |
 
@@ -130,7 +130,7 @@ with `this(...)`). Changing another variable in the block is a compile error.
 
 **Not the builder pattern:** form B sets up one variable right where it is made. A builder (a
 separate object that collects settings, then `build()` makes the result) is a different idea,
-noted for later (FEATURES.md Later).
+noted for later (files/FEATURES.md Later).
 
 ---
 
@@ -256,4 +256,4 @@ class Employee inherits Person           // `extends` as quick typing
 | 2026-10-31 | Inheritance built (32.7): one parent, override / sealed / abstract / protected, super, typeOf; favour composition (D.083, D.084) |
 | 2026-10-31 | The built-in interfaces built (32.5b): ToString, Cloneable (with nocopy / noshare), Default; byVal copies objects |
 | 2026-10-31 | Interfaces built (32.5a): several per class, an interface building on several, casts written in front, `is`, default methods behind `[interfaces] defaultMethods` (D.082, D.087) |
-| 2026-10-31 | Planned (Task 48, Ownership.md): `Car b = a` moves - `a` can't be used after it; `byVal` copies (`clone()`), passing borrows; `shared Car c = a` is read only except to the holder that made it shared, `byRef` from it lends change; `[memory] assignment = "move"` (default) / `"share"` |
+| 2026-10-31 | Planned (Task 48, files/Ownership.md): `Car b = a` moves - `a` can't be used after it; `byVal` copies (`clone()`), passing borrows; `shared Car c = a` is read only except to the holder that made it shared, `byRef` from it lends change; `[memory] assignment = "move"` (default) / `"share"` |

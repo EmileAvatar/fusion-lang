@@ -129,7 +129,7 @@
     </setting>
   </section>
 
-  <section name="memory" description="How values are owned (Ownership.md)">
+  <section name="memory" description="How values are owned (files/Ownership.md)">
     <setting name="assignment" type="choice" default="move" task="48.9">
       <description>move (the default): Car b = a hands the object over - a can't be used until it gets a new value (byVal a copies, byRef a borrows); share: two names, one object (D.102)</description>
       <value>move</value>

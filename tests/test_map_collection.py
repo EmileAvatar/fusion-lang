@@ -1,5 +1,5 @@
 """Tests for Task 32.6 - a Map is a Collection<Entry<K, V>>; keys() / values() are borrowed views
-(Decisions.md D.092, D.095, D.096; Arrays.md section 5).
+(Decisions.md D.092, D.095, D.096; files/Arrays.md section 5).
 
     foreach k in ages                          // the keys, as before
     foreach (Entry<string, int> e in ages)     // each key and value

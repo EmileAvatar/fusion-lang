@@ -6,7 +6,7 @@ Description: A modern programming language combining the performance of C, struc
 
 ---
 
-**Status lines (Task 22.7b):** each major section below starts with a `**Status:**` line matching `FEATURES.md` - `[DONE n]` built (task n), `[PARTLY]` some of it built, `[PLANNED n]` scheduled as task n, `[DESIGN]` the intended design with no task yet. What works today, with examples: `SYNTAX_REFERENCE.md`.
+**Status lines (Task 22.7b):** each major section below starts with a `**Status:**` line matching `files/FEATURES.md` - `[DONE n]` built (task n), `[PARTLY]` some of it built, `[PLANNED n]` scheduled as task n, `[DESIGN]` the intended design with no task yet. What works today, with examples: `files/SYNTAX_REFERENCE.md`.
 
 ---
 
@@ -192,7 +192,7 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
 
 ## Data Types and Variables
 
-**Status:** [PARTLY] int, float, double, bool, char, string, byte / bytes, const and fixed-size arrays are built (01-04, 08, 09, 18.3); every array index is checked - outside the array is an IndexError (27.1); strings can be changed in place, `s[i] = c`, and a const string is fixed (29.1-29.2); nullability [PLANNED 30 - designed 2026-10-27, `Nullable_Values.md`]; type-inferred const, `long` and other sized types: no task yet
+**Status:** [PARTLY] int, float, double, bool, char, string, byte / bytes, const and fixed-size arrays are built (01-04, 08, 09, 18.3); every array index is checked - outside the array is an IndexError (27.1); strings can be changed in place, `s[i] = c`, and a const string is fixed (29.1-29.2); nullability [PLANNED 30 - designed 2026-10-27, `files/Nullable_Values.md`]; type-inferred const, `long` and other sized types: no task yet
 
 Description: Type system combining static typing with clear null safety rules.
 
@@ -201,7 +201,7 @@ Description: Type system combining static typing with clear null safety rules.
 ### Type Categories
 
 Description: Fusion distinguishes between value types and reference types for null safety.
-Full design: `Nullable_Values.md` (user decisions 2026-10-27, Task 30 - planned).
+Full design: `files/Nullable_Values.md` (user decisions 2026-10-27, Task 30 - planned).
 
 * **Value Types**: Cannot be null, always have a value
      * Primitives: byte, ubyte, short, ushort, int, uint, long, ulong
@@ -283,7 +283,7 @@ Objects | YES | `obj == null`, `obj === null`, `obj is null`, `obj?.null` (quick
 Using a possibly-null object: `obj?.method()` is a guard - on null the method is not run and
 nothing errors (in an `if`, the condition is false); `obj?.method() ?? fallback` gives a
 default; plain `obj.method()` on null is a NullError. Truth tables and when to use `?.`:
-`Nullable_Values.md`.
+`files/Nullable_Values.md`.
 
 ---
 
@@ -461,7 +461,7 @@ team.scores = podium()     // an array field too
 * Under the hood, C can't return an array, so it's returned inside a hidden struct and
   copied out
 
-**Not yet implemented (see taskSummary2.md Task 9 for the full list and reasoning):**
+**Not yet implemented (see files/taskSummary2.md Task 9 for the full list and reasoning):**
 - Multi-dimensional arrays (`int[][]`)
 - An array size given as anything other than an integer literal (`int[n]` where `n` is a
   variable is not supported; only `int[5]`-style literal sizes are)
@@ -483,7 +483,7 @@ Description: Strings are **values**, like structs (decided 2026-10-09, Task 18.3
 
 **Implementation status:** 18.3.1 (values, automatic cleanup, comparison), 18.3.2
 (operations below) and 18.3.2b (Unicode by default) are implemented; interpolated strings
-outside `print` are 18.3.3 - see `FEATURES.md`.
+outside `print` are 18.3.3 - see `files/FEATURES.md`.
 
 * **Length (Task 18.3.4b, user decisions 2026-10-09):** strings grow as large as the machine
   allows - there is no limit by default (`[strings] maxLength = "max"`). A project for a
@@ -1374,14 +1374,14 @@ Spaceship, Error function loadAndValidateShip(string filename)
 
 **Status:** a minimal class is built (Task 32.10b) - the rest [PLANNED 32].
 
-**Visibility (Task 32.2a, built - Classes.md section 1):** in a class, fields are **private**
+**Visibility (Task 32.2a, built - files/Classes.md section 1):** in a class, fields are **private**
 and functions and constructors **public** unless `public` / `private` is written; a private
 member is used only by the class's own functions (another object of the same class
 included); a private constructor means only the class makes its objects. At module level,
 structs, classes and enums are public by default, functions and module variables private
 (`private struct Helper`, `public int function api()`).
 
-**Statics (Task 32.2c, built - Classes.md section 3):** `static` fields belong to the class -
+**Statics (Task 32.2c, built - files/Classes.md section 3):** `static` fields belong to the class -
 one for the whole program, read as `Car.count` (or `count` inside Car); `const static` ones
 are set only in the class's set-up. Three set-up forms, run in this order before `main`:
 **A** `public const static Car CAR = new Car()`; **B** `= new Car() { CAR3.speed = 4 }` - a
@@ -1394,11 +1394,11 @@ being set up is a compile error showing the chain. `static` methods have no `thi
 when the program ends. In C a static is a module variable (`fusion_g_Car__count`) and a
 class's set-up the function `Car.__setup`, called first in main.
 
-**Printing an object (Task 32.2f, built - Classes.md section 6):** in `print` / `format`,
+**Printing an object (Task 32.2f, built - files/Classes.md section 6):** in `print` / `format`,
 `"{car}"` and `toString(car)` an object shows its class name (`Car`; a null one `null`), with a
 warning once per class until it can implement ToString (Task 32.5) - then its `toString()`.
 
-**readonly parameters (Task 32.2e, built - Object_Lifetime.md section 3):** `void function
+**readonly parameters (Task 32.2e, built - files/Object_Lifetime.md section 3):** `void function
 show(readonly Account a)` - the function reads `a` but never changes it, deeply: not
 assigned, not through a field or element, not by a List / Map method or a method that
 changes its object, not passed to a parameter another function changes (worked out by
@@ -1407,7 +1407,7 @@ function value. A variable that shares it (`Account b = a`) is readonly too; kee
 (a field, a List, a module variable, `return a`) is an error; `byVal a` is a copy. A set-up
 block (form B, C) may still change the const / let it sets up.
 
-**readonly, byVal, byRef at the call (Task 48.3, built - Ownership.md section 4):**
+**readonly, byVal, byRef at the call (Task 48.3, built - files/Ownership.md section 4):**
 `show(readonly acc)` is the caller's demand: the call must not change or keep `acc`, checked
 through every call `show` makes (truth table 4). When it does: an error at the call, naming
 the line that changes it, and one at that line, naming the call. A value that is copied
@@ -1418,7 +1418,7 @@ copy; `log(byRef acc)` lends it, changeable (a List, a Map or an object). With
 keeps its parameter (D.100), stored or returned, they are an error; `Car b = byRef a` is a
 local borrow of `a`.
 
-**Form B on any variable (Task 32.2d, built - Classes.md section 4):** a block right after
+**Form B on any variable (Task 32.2d, built - files/Classes.md section 4):** a block right after
 a declaration's value sets that variable up further: a local (`Car c = new Car() { c.speed =
 4 }`, also `let` / `const`, Lists and Maps), a class field, a static (32.2c). The block may
 change only its own variable (an assignment to, or a method call on, another variable is a
@@ -1426,7 +1426,7 @@ compile error); variables declared in it are its own. A class field's value may 
 expression: each constructor sets the field and runs its block first, in field order, before
 its own body - not again when it hands over with `this(...)`.
 
-**Constructors (Task 32.2b, built - Classes.md section 2):** a class may have several; a call
+**Constructors (Task 32.2b, built - files/Classes.md section 2):** a class may have several; a call
 picks the one whose parameters take the values given - by their number, then their types,
 and when several fit, the one whose types match exactly (two that can't be told apart, or a
 call that fits none or two equally, is a compile error). `this(...)` on a constructor's first
@@ -1440,7 +1440,7 @@ constructor - `constructor(...)`, or `Car(...)` named like the class; none writt
 with every value field at its default and every object null. `Car("x")` and `new Car("x")`
 are the same. An object lives on the heap with a **count**: a variable holds a reference
 (null until set), `b = a` shares it, passing borrows it, and it is freed when its last holder
-lets go - with what it holds (Object_Lifetime.md). `.` on null is a NullError; `== null` /
+lets go - with what it holds (files/Object_Lifetime.md). `.` on null is a NullError; `== null` /
 `is null`; `==` on two objects asks whether they are the same object. A `let` object can't be
 replaced, but the object can still change. A constructor that fails frees its half-made
 object. In C an object is `fu_Car*` with `fusion_count` first and helpers `__make`,
@@ -1690,7 +1690,7 @@ int value = grid.Cell[5, 3]
 
 ### Inheritance
 
-**Status:** [DONE 32.7] one parent (`inherits` / `extends`), `override`, `sealed`, `abstract`, `protected`, `super(...)` / `super.f()`, `typeOf(x)` - the truth table: Classes.md section 8. Favour composition over inheritance (D.083).
+**Status:** [DONE 32.7] one parent (`inherits` / `extends`), `override`, `sealed`, `abstract`, `protected`, `super(...)` / `super.f()`, `typeOf(x)` - the truth table: files/Classes.md section 8. Favour composition over inheritance (D.083).
 
 Description: Single inheritance with interface support.
 
@@ -1786,7 +1786,7 @@ int maxConn = Config.MAX_CONNECTIONS
 
 ## Interfaces and Contracts
 
-**Status:** [DONE 32.5a] `interface`, `implements` (several), an interface building on several, an interface as a type, `is`, casts written in front, default methods behind `[interfaces] defaultMethods` - the truth table: Classes.md section 7; the built-in ToString, Default, Cloneable [DONE 32.5b] - copies of objects with `byVal`, `nocopy` / `noshare` fields
+**Status:** [DONE 32.5a] `interface`, `implements` (several), an interface building on several, an interface as a type, `is`, casts written in front, default methods behind `[interfaces] defaultMethods` - the truth table: files/Classes.md section 7; the built-in ToString, Default, Cloneable [DONE 32.5b] - copies of objects with `byVal`, `nocopy` / `noshare` fields
 
 Description: Java-style interfaces with modern enhancements.
 
@@ -1921,7 +1921,7 @@ changing it conveniently.
 **Implementation status (Task 18.2):** 18.2.1 (core structs), 18.2.2 (named construction,
 `Point(y = 4, x = 3)`) and 18.2.3 (nested structs, array fields, arrays of structs) are
 implemented, and so are arrays as function return values (18.2.4) - see "Array return
-values". See `taskSummary2.md`.
+values". See `files/taskSummary2.md`.
 
 ---
 
@@ -2649,7 +2649,7 @@ end loop
 ## Null Handling
 
 **Status:** [PLANNED 30] - designed 2026-10-27 (user decisions). Full write-up with truth
-tables and when (not) to use `?.`: `Nullable_Values.md`.
+tables and when (not) to use `?.`: `files/Nullable_Values.md`.
 
 Description: No value is null unless it can be, and a missing object never crashes the
 program by surprise. The problem it solves: in Java, C#, C, JavaScript and Python any
@@ -2823,7 +2823,7 @@ int[] doubled = numbers.map(lambda x: x * 2)
 * **Arrays and null:** arrays are never null by default (`[arrays] nullable = false`), so
   `numbers.length` is always safe - 0 for an empty array. With `nullable = true`,
   `numbers?.length` is -1 on a null array and `numbers?[0]` is null; see "Null Handling"
-  and `Nullable_Values.md` (Task 30, planned)
+  and `files/Nullable_Values.md` (Task 30, planned)
 
 ---
 
@@ -2855,7 +2855,7 @@ semantics below are the authoritative, decided design - this section is the memo
 ADR that Task 12.7 exists to produce. **Not yet implemented in the compiler**: `Unique`,
 `Shared`, and `Weak` are currently reserved keywords only (tokenized, nothing else) - there
 is no parser, semantic-analysis, or codegen support yet. Building that is separate future
-work, unblocked by this decision but not scoped or scheduled here (see taskSummary2.md
+work, unblocked by this decision but not scoped or scheduled here (see files/taskSummary2.md
 Task 30, which depends on this section's Weak/nullability decisions).
 
 ---
@@ -2889,7 +2889,7 @@ Description: Explicit lifetime control without garbage collection pauses.
        `.move()` of 2026-09-13):** under OWNERSHIP every object has one owner, and
        assigning it moves it (`Car b = a`); `byVal` copies, `byRef` borrows. So no
        `Unique<T>` wrapper is needed - single ownership is what every object already has
-       (Ownership.md)
+       (files/Ownership.md)
      * **Use-after-move is a compile-time error where provable, a runtime crash with a
        clear message otherwise** - structurally the same hybrid analysis already decided
        for Task 30's nullable arrays (definite/maybe/unknown state tracked through
@@ -3015,7 +3015,7 @@ Raw Pointers | Embedded/FFI only | High | Maximum
 ### Ownership: move, borrow, share
 
 **Status:** [PLANNED 48] designed 2026-10-31 (user). The rules and truth tables:
-`Ownership.md`; the decisions: `Notes/Ownership_Decisions_2026-10-31.md`.
+`files/Ownership.md`; the decisions: `Notes/Ownership_Decisions_2026-10-31.md`.
 
 * **Assigning moves:** `Car b = a` hands the object over - using `a` afterwards is a compile
   error until it gets a new value. Lists and Maps move too; strings and plain structs copy
@@ -3039,8 +3039,8 @@ Raw Pointers | Embedded/FFI only | High | Maximum
 
 ## Threading and Concurrency Model
 
-**Status:** [DESIGN] FEATURES.md Task 42. The current design, newer than this section:
-`Concurrency.md` (terms, traps, the model, other languages), `Concurrency_Traps.md` (overview
+**Status:** [DESIGN] files/FEATURES.md Task 42. The current design, newer than this section:
+`files/Concurrency.md` (terms, traps, the model, other languages), `files/Concurrency_Traps.md` (overview
 tables) and `files/Service.md` (the `service` keyword: a shared resource becomes a service
 instead of every caller locking it). Where they differ from this section, they win
 
@@ -3337,7 +3337,7 @@ else
 ### One writer, temporary services, hot paths
 
 **Status:** [PLANNED 42.18-42.25] designed 2026-10-31 (user) - `files/Service.md`,
-`Concurrency.md` 3.13, `Ownership.md` sections 5-7.
+`files/Concurrency.md` 3.13, `files/Ownership.md` sections 5-7.
 
 * **One writer:** a service's worker thread is the only writer of what it holds
 * **Temporary services:** two or more threads using one variable - the compiler makes
@@ -3834,7 +3834,7 @@ float function calculateDistance(float x1, float y1, float x2, float y2)
 
 ## Async and Concurrency
 
-**Status:** [DESIGN] FEATURES.md Task 42 - see `Concurrency.md` and `files/Service.md`
+**Status:** [DESIGN] files/FEATURES.md Task 42 - see `files/Concurrency.md` and `files/Service.md`
 
 Description: Built-in support for asynchronous programming.
 
@@ -4514,7 +4514,7 @@ settings and are checked by the same rules.
 * **Reading:** Python's own readers for TOML, JSON and INI, PyYAML for YAML (`safe_load` -
   never runs code from the file; needed only by a YAML project). Fusion's own readers - also
   for XML and CSV, and recovering from small mistakes - come with its data-formats module
-  (FEATURES.md 43.2); a dedicated `config.fusion` program will create settings files
+  (files/FEATURES.md 43.2); a dedicated `config.fusion` program will create settings files
 
 **Format decision (2026-09-13, extended by Task 31 above):** an optional `fusion.toml` file, using TOML - chosen over YAML (would
 need a new dependency; the project has none today) and a custom Fusion-native format (would
@@ -4528,7 +4528,7 @@ or INI can still configure a project. TOML stays the documented default. All fou
 through one shared validation path, so they always mean the same thing; finding more than
 one config file in the same place is planned to be an error rather than a silent choice.
 YAML is the only format that adds a dependency (PyYAML), loaded only when a project uses it.
-Tracked as Task 31 in `FEATURES.md`. **Until Task 31 ships, only `fusion.toml` works.**
+Tracked as Task 31 in `files/FEATURES.md`. **Until Task 31 ships, only `fusion.toml` works.**
 
 **Lookup decision:** the compiler looks for `fusion.toml` next to the source file being
 compiled first, then in the current working directory. A missing file is not an error - every
@@ -4570,7 +4570,7 @@ variables = true               # module-level variables; constants are always al
 [collections]                  # Task 32.4 - foreach, Collection<T>
 allowChangeWhileLooping = false   # true: a collection class of your own may change in a loop
 
-[memory]                       # Task 48 - Ownership.md
+[memory]                       # Task 48 - files/Ownership.md
 assignment = "move"            # move (default, Task 48.9): `Car b = a` hands it over, `a` is dead
                                # until a new value; share: two names, one object
 moveFieldOut = false           # true: a field may be moved out of a struct the function owns -
@@ -6205,7 +6205,7 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 * **Never null by default**: arrays, lists, maps and strings are empty, not null
 * **With `nullable = true`**: `array?.length` is -1 on null, `array?[0]` is null
-* Task 30, planned - `Nullable_Values.md`
+* Task 30, planned - `files/Nullable_Values.md`
 
 ---
 

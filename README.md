@@ -38,7 +38,7 @@ Syntax is a preference, not a limitation.
 
 Fusion aims to be memory-safe and free of data races by construction, without a garbage
 collector by default: every value has one owner, assigning moves it, passing lends it, and a
-value several threads use gets exactly one writer - a service. The rules: `Ownership.md`.
+value several threads use gets exactly one writer - a service. The rules: `files/Ownership.md`.
 
 ## Status
 
@@ -49,9 +49,9 @@ exists today is a compiler, written in Python, that proves the pipeline:
 Fusion source -> C -> GCC -> native executable
 ```
 
-- **What the language can do today, with examples:** [SYNTAX_REFERENCE.md](SYNTAX_REFERENCE.md)
+- **What the language can do today, with examples:** [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md)
   and the programs in [examples/](examples/)
-- **Status of every task and feature - done, open, postponed:** [FEATURES.md](FEATURES.md)
+- **Status of every task and feature - done, open, postponed:** [files/FEATURES.md](files/FEATURES.md)
 - **Next major goal:** a simple self-hosting compiler - Fusion compiling Fusion - as a first
   test run; the Python compiler stays in use until the self-hosted one is fully independent
 
@@ -90,7 +90,7 @@ Fusion source -> C -> GCC -> native executable
 
 2. Install Python dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install -r files/requirements.txt
    ```
 
 3. Verify GCC is installed:
@@ -126,7 +126,7 @@ hello_world.exe
 ## Example Programs
 
 [examples/](examples/) holds one program for every section of
-[SYNTAX_REFERENCE.md](SYNTAX_REFERENCE.md), fuller demos (`fizzbuzz`, `structs_demo`,
+[files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md), fuller demos (`fizzbuzz`, `structs_demo`,
 `control_flow`, ...) and projects of several files (`shop`, `wordcount`). Build them all with
 `python check.py --build-examples`; [examples/CLAUDE.md](examples/CLAUDE.md) explains the
 folder.
@@ -150,9 +150,9 @@ fusion-lang/
 ├── task/                # Task archive, backlog, automation notes
 ├── main.py              # Compiler entry point
 ├── check.py             # Runs every check
-├── FEATURES.md          # Status of every task and feature
-├── SYNTAX_REFERENCE.md  # What works today, with examples
-├── taskSummary2.md      # The active task's plan
+├── files/FEATURES.md          # Status of every task and feature
+├── files/SYNTAX_REFERENCE.md  # What works today, with examples
+├── files/taskSummary2.md      # The active task's plan
 └── CLAUDE.md            # Rules for the AI assistant
 ```
 
@@ -179,11 +179,11 @@ python -m pytest tests/ --cov=src --cov-report=html
 - **[CLAUDE.md](CLAUDE.md)** - Quick reference for AI assistant
 - **[fusion-language-spec.md](files/fusion-language-spec.md)** - Complete language specification
 - **[fusion.ebnf](files/fusion.ebnf)** - EBNF grammar specification
-- **[FutureFeaturesCaution.md](FutureFeaturesCaution.md)** - Project review and cautions: why a simple working core language comes before the larger planned features, a proposed answer to ecosystem fragmentation, a guide to choosing memory strategies, and the library trust/sandboxing/security design
+- **[files/FutureFeaturesCaution.md](files/FutureFeaturesCaution.md)** - Project review and cautions: why a simple working core language comes before the larger planned features, a proposed answer to ecosystem fragmentation, a guide to choosing memory strategies, and the library trust/sandboxing/security design
 - **[Fusion_domain.md](files/Fusion_domain.md)** - Visual, domain-first hierarchy of everything Fusion supports or plans to support (types, control flow, OOP, memory model, concurrency, stdlib) - a feature map, not a build-status tracker
-- **[FEATURES.md](FEATURES.md)** - Status of every task and feature
-- **[SYNTAX_REFERENCE.md](SYNTAX_REFERENCE.md)** - What the language can do today, with examples
-- **[taskSummary2.md](taskSummary2.md)** - The active task's plan
+- **[files/FEATURES.md](files/FEATURES.md)** - Status of every task and feature
+- **[files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md)** - What the language can do today, with examples
+- **[files/taskSummary2.md](files/taskSummary2.md)** - The active task's plan
 - **[taskSummary.md](task/taskSummary.md)** - Archived MVP progress (Tasks 1-4)
 - **[taskSummaryArchive.md](task/taskSummaryArchive.md)** - Detail of finished tasks
 
@@ -223,7 +223,7 @@ Contributions are welcome! Fusion is an open-source project built collaborativel
 1. **Fork the repository** on GitHub
 2. **Create a feature branch**: `git checkout -b feature/my-new-feature`
 3. **Follow the PLAN FIRST methodology** (see [CLAUDE.md](CLAUDE.md)):
-   - Read [FEATURES.md](FEATURES.md) and [taskSummary2.md](taskSummary2.md) to see where things stand
+   - Read [files/FEATURES.md](files/FEATURES.md) and [files/taskSummary2.md](files/taskSummary2.md) to see where things stand
    - Plan your changes before implementation
    - Update task tracking after each sub-task
 4. **Add tests**: All new features must have corresponding tests
@@ -247,7 +247,7 @@ Contributions are welcome! Fusion is an open-source project built collaborativel
 - Everything at once: `python check.py` - all must pass before submitting a PR
 
 ### Areas for Contribution
-- **Language Features**: see the open tasks in [FEATURES.md](FEATURES.md)
+- **Language Features**: see the open tasks in [files/FEATURES.md](files/FEATURES.md)
 - **Standard Library**: Implement fusionlib modules (IO, Collections, Net, etc.)
 - **Optimizations**: Code generation improvements, performance tuning
 - **Documentation**: Tutorials, examples, language guides
@@ -317,7 +317,7 @@ Want to contribute? See the [Contributing](#contributing) section above!
 - **GitHub Repository**: https://github.com/EmileAvatar/fusion-lang
 - **Language Specification**: [files/fusion-language-spec.md](files/fusion-language-spec.md)
 - **EBNF Grammar**: [files/fusion.ebnf](files/fusion.ebnf)
-- **Status of every feature**: [FEATURES.md](FEATURES.md)
+- **Status of every feature**: [files/FEATURES.md](files/FEATURES.md)
 - **Issues & Bug Reports**: https://github.com/EmileAvatar/fusion-lang/issues
 
 ---

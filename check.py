@@ -6,8 +6,8 @@ summary - full output only for what failed:
 
     python check.py                   everything below
     python check.py --quick           unit tests only
-    python check.py --status          open items from FEATURES.md + the next action (no build)
-    python check.py --build-examples  write SYNTAX_REFERENCE.md programs to examples/, build
+    python check.py --status          open items from files/FEATURES.md + the next action (no build)
+    python check.py --build-examples  write files/SYNTAX_REFERENCE.md programs to examples/, build
                                       every example (.c + .exe), regenerate #list.csv and
                                       #run.bat (Task 23 - see examples/CLAUDE.md)
     python check.py --fix-ascii       non-ASCII characters -> \\uXXXX escapes, only where the
@@ -27,9 +27,9 @@ summary - full output only for what failed:
 Checks:
     tests     pytest (every end-to-end test already runs under the string leak check)
     examples  tests/verify_examples.py - compile, run, compare output
-    leaks     every examples/*.fusion and every SYNTAX_REFERENCE.md program, built with
+    leaks     every examples/*.fusion and every files/SYNTAX_REFERENCE.md program, built with
               -DFUSION_LEAK_CHECK and run: exit 3 = a string never freed, 4 = freed twice
-    reference every ```fusion block in SYNTAX_REFERENCE.md compiles and runs (exit 0), and
+    reference every ```fusion block in files/SYNTAX_REFERENCE.md compiles and runs (exit 0), and
               its copy in examples/ is up to date
     builtins  files/Builtins.md matches the compiler's built-in functions and methods
     runtime   runtime/fusion_runtime.h matches the run-time the compiler writes into C files
@@ -53,7 +53,7 @@ ROOT = Path(__file__).resolve().parent
 EXAMPLES = ROOT / 'examples'
 sys.path.insert(0, str(ROOT))
 
-# SYNTAX_REFERENCE.md: `<!-- example: <file name> | task: <task> -->` right above a block
+# files/SYNTAX_REFERENCE.md: `<!-- example: <file name> | task: <task> -->` right above a block
 EXAMPLE_MARKER = re.compile(r'<!-- example: (\S+) \| task: (\S+) -->\n```fusion\n(.*?)```', re.S)
 
 # Hand-written demos without "(Task N)" in their first line
@@ -142,13 +142,13 @@ def compile_and_run_leak_checked(source: str, source_path: str):
 def reference_programs():
     """Every ```fusion block - a single-file example program. A block fenced as
     ```fusion multi-file (part of a project of several files) is documentation only."""
-    text = (ROOT / 'SYNTAX_REFERENCE.md').read_text(encoding='utf-8')
+    text = (ROOT / 'files' / 'SYNTAX_REFERENCE.md').read_text(encoding='utf-8')
     return re.findall(r'```fusion\n(.*?)```', text, re.S)
 
 
 def reference_examples():
-    """(file name, task, code) for every marked SYNTAX_REFERENCE.md program."""
-    text = (ROOT / 'SYNTAX_REFERENCE.md').read_text(encoding='utf-8')
+    """(file name, task, code) for every marked files/SYNTAX_REFERENCE.md program."""
+    text = (ROOT / 'files' / 'SYNTAX_REFERENCE.md').read_text(encoding='utf-8')
     return EXAMPLE_MARKER.findall(text)
 
 
@@ -157,7 +157,7 @@ def check_reference_sync():
     examples = reference_examples()
     problems = []
     if len(examples) != len(reference_programs()):
-        problems.append('a ```fusion block in SYNTAX_REFERENCE.md has no '
+        problems.append('a ```fusion block in files/SYNTAX_REFERENCE.md has no '
                         '<!-- example: name | task: N --> marker above it')
     for name, _, code in examples:
         path = EXAMPLES / f'{name}.fusion'
@@ -328,7 +328,7 @@ def build_examples():
 
 
 def check_leaks():
-    # Reference programs are checked from SYNTAX_REFERENCE.md itself; their copies in
+    # Reference programs are checked from files/SYNTAX_REFERENCE.md itself; their copies in
     # examples/ (syntax_*) would only repeat them
     programs = [(example_name(p), p.read_text(encoding='utf-8'), str(p))
                 for p in example_sources() if not p.name.startswith('syntax_')]
@@ -485,7 +485,7 @@ def fix_ascii_files(paths):
 # ---------------------------------------------------------------- status
 
 def show_status():
-    features = (ROOT / 'FEATURES.md').read_text(encoding='utf-8').splitlines()
+    features = (ROOT / 'files' / 'FEATURES.md').read_text(encoding='utf-8').splitlines()
     open_items = [line.strip() for line in features if line.strip().startswith('[ ]')]
     postponed = [line for line in features if '[POSTPONED' in line]
     # Finished items live in task/featuresArchive.md (archived 2026-10-27)
@@ -493,12 +493,12 @@ def show_status():
     archived = archive.read_text(encoding='utf-8').splitlines() if archive.exists() else []
     done = [line for line in archived + features if line.strip().startswith('[DONE]')
             or (line.startswith('#### ') and line.rstrip().endswith('[DONE]'))]
-    print(f'FEATURES.md: {len(done)} done (task/featuresArchive.md), {len(open_items)} open, '
+    print(f'files/FEATURES.md: {len(done)} done (task/featuresArchive.md), {len(open_items)} open, '
           f'{len(postponed)} postponed')
-    # The next open sub-tasks, in the order FEATURES.md lists them
+    # The next open sub-tasks, in the order files/FEATURES.md lists them
     for line in [item for item in open_items if re.match(r'\[ \] \d+\.', item)][:8]:
         print('  ' + line)
-    summary = (ROOT / 'taskSummary2.md').read_text(encoding='utf-8').splitlines()
+    summary = (ROOT / 'files' / 'taskSummary2.md').read_text(encoding='utf-8').splitlines()
     for line in reversed(summary):
         if 'Next Action' in line:
             print('Next:', line.split('Next Action:**', 1)[-1].strip())

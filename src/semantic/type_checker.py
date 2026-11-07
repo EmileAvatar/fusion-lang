@@ -116,7 +116,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         For expression nodes (anything with an `inferred_type` field), the resolved type
         is also written back onto the node itself, so later compiler stages - the code
         generator in particular - can read the type instead of re-deriving or guessing it.
-        See taskSummary2.md Task 12.1/12.2.
+        See files/taskSummary2.md Task 12.1/12.2.
 
         Args:
             node: AST node to visit
@@ -1286,7 +1286,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
     def _check_private_field(self, node, struct) -> None:
         """A class's private field (the default) is used only by the class's own functions -
-        Task 32.2a, Classes.md section 1."""
+        Task 32.2a, files/Classes.md section 1."""
         owner = self.struct_declaration(getattr(node.object, 'inferred_type', None)) or struct
         if not getattr(owner, 'is_class', False):
             return

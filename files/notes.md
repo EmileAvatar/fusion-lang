@@ -1,7 +1,7 @@
 Notes 
 Sectsion below can be set to IGNORE, PLANNED, PARTIAL, DONE
 IGNORE - ignore for now
-PLANNED - added to FutureFeatures.md
+PLANNED - added to files/FutureFeatures.md
 PARTIAL - partially planned/ignored
 DONE - done already
 
@@ -12,10 +12,10 @@ this one done already
 the icon 🏗️ will be fusion offical icon.
 sub folders "icons and images" contain "icons" folder and "images" folder contains varrious icons and images variants. 
 
-![alt text](<icons and Images/icons/building_construction_3d.png>)
+![alt text](<../icons and Images/icons/building_construction_3d.png>)
 
 also another icon
-![alt text](<icons and Images/images/1f3d7.png>)
+![alt text](<../icons and Images/images/1f3d7.png>)
 
 ---
 DONE

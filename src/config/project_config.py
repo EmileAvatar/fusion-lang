@@ -214,7 +214,7 @@ class CollectionsConfig:
 
 @dataclass
 class MemoryConfig:
-    """Memory (Task 48, Ownership.md - Decisions.md D.014, D.102).
+    """Memory (Task 48, files/Ownership.md - Decisions.md D.014, D.102).
 
     Attributes:
         assignment: "move" (the default since Task 48.9, D.102) - `Car b = a` hands the

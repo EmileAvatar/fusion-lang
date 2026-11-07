@@ -3,18 +3,18 @@
 A one-page overview of what goes wrong when code runs on several threads, the general fix
 for each problem, and which of Fusion's concurrency principles prevents it. It is meant as a
 quick reference and template for people and AI tools working on Fusion. The full
-explanation, with code, is in [Concurrency.md](Concurrency.md):
+explanation, with code, is in [files/Concurrency.md](Concurrency.md):
 - Section 2: the traps;
 - Section 3: the principles and real-world cases;
 - Section 4: other languages.
 
-**Status:** these are ideas for a future task (FEATURES.md Task 42), not built. This file may
+**Status:** these are ideas for a future task (files/FEATURES.md Task 42), not built. This file may
 change as the design develops.
 
 **Fusion's concurrency goal:** a million requests on one machine with many cores, with no
 data races by construction, deadlocks and freezes prevented by rules (any that slip through
 become clear errors), and no slowdown, using as little memory and CPU as possible.
-Version one of `service`: [Concurrency.md](Concurrency.md) section 3.11. 
+Version one of `service`: [files/Concurrency.md](Concurrency.md) section 3.11. 
 The core idea: **a resource becomes a service, instead of every caller updating it by hand.** 
 Manual locking is a last resort.
 
@@ -34,12 +34,12 @@ Manual locking is a last resort.
 | P8 | Weighted Turns | Priorities get shares of the turns; low priority still runs; priority is inherited |
 | P9 | Services Never Block on Each Other | While handling a request, a service calls only down the hierarchy, or sends without waiting |
 | P10 | Visible Concurrency | Editor tools and compiler warnings show who touches what |
-| P11 | One Writer (2026-10-31) | Assigning moves; a value two threads use gets a (temporary) service as its only writer; readers may run together (Ownership.md, Concurrency.md 3.13) |
+| P11 | One Writer (2026-10-31) | Assigning moves; a value two threads use gets a (temporary) service as its only writer; readers may run together (files/Ownership.md, files/Concurrency.md 3.13) |
 
-Send / sync in Fusion's words (Ownership.md truth table 5): **send** - a value goes to another
+Send / sync in Fusion's words (files/Ownership.md truth table 5): **send** - a value goes to another
 thread and the sender no longer has it; **sync** - many threads use it through a service.
 
-Collections (Concurrency.md 3.12): an array's add / remove at the end takes an implicit
+Collections (files/Concurrency.md 3.12): an array's add / remove at the end takes an implicit
 atomic lock; a List or Map is served by a shared or dedicated thread (P1 in small).
 
 A deadlock needs four conditions at once (Coffman, 1971): mutual exclusion, hold and wait,
@@ -98,4 +98,4 @@ preemption** and **circular wait**.
 - **Reviewing concurrent code:** go through the traps column, and look for the "What goes
   wrong" pattern.
 - **Adding a trap, principle or case:** add a row here, and the full write-up in
-  `Concurrency.md` (CLAUDE.md asks for both to be kept in step).
+  `files/Concurrency.md` (CLAUDE.md asks for both to be kept in step).

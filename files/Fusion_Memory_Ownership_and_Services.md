@@ -545,11 +545,11 @@ These points should be checked against the existing Fusion decisions before impl
 
 Use these documents as the source of truth when refining this proposal:
 
-- `Ownership.md` — ownership rules and thread-boundary rules.
+- `files/Ownership.md` — ownership rules and thread-boundary rules.
 - `Notes/Ownership_Decisions_2026-10-31.md` — recorded ownership decisions.
 - `Service.md` — service keyword, mailbox, worker, settings, service classes, group services and hot-path services.
-- `Concurrency.md` — concurrency background and design reasoning.
-- `Concurrency_Traps.md` — concurrency traps and failure modes.
-- `FEATURES.md` — implementation status and task tracking, including Task 42.
+- `files/Concurrency.md` — concurrency background and design reasoning.
+- `files/Concurrency_Traps.md` — concurrency traps and failure modes.
+- `files/FEATURES.md` — implementation status and task tracking, including Task 42.
 
 **Status distinction:** The ownership and service rules described in the existing design documents are the agreed design. The general architecture diagram and the memory-budget/resource-lifetime extensions in this document are explanatory or proposed material; they should not silently be treated as implemented features or new decisions.

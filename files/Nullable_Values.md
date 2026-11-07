@@ -2,7 +2,7 @@
 
 How Fusion handles "nothing here": which values can be null, the `?.` guard, `??`, number
 conditions, and when (not) to use them. A design document for Task 30, kept in step with
-`FEATURES.md` Task 30 and the plan in `taskSummary2.md`. Status: **being designed**
+`files/FEATURES.md` Task 30 and the plan in `files/taskSummary2.md`. Status: **being designed**
 (user decisions 2026-10-27) - nothing here is built yet.
 
 ---
@@ -48,7 +48,7 @@ unless the code allows it, and `?.` reads through a possibly-missing value safel
 | int, float, bool, char, byte | No | 0 / false / '\0' | values |
 | struct | No | every field's default | a value type (user, 2026-10-24) |
 | **string** | **No** - unless the project allows it | `""` | a value with methods; a setting can allow null (below) |
-| **array, List, Map** | **No** - unless the project allows it | empty (`[]`, no keys) | like strings (user, 2026-10-27); see `Arrays.md` |
+| **array, List, Map** | **No** - unless the project allows it | empty (`[]`, no keys) | like strings (user, 2026-10-27); see `files/Arrays.md` |
 | class object (Task 32) | **Yes** | null | objects are references |
 | **enum** | **Yes** | null - **not** the first value (user, 2026-10-27) | treated as a reference type, like a class: an unset `Status s` must not silently mean `OK` |
 

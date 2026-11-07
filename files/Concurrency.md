@@ -924,7 +924,7 @@ The same view would show:
 
 Graphs and heat maps come later. Most of this is known **before** the program runs, because
 the compiler sees which variables and resources each function touches. The rest comes from
-tracing while it runs. (Noted in `FEATURES.md` under Task 36.)
+tracing while it runs. (Noted in `files/FEATURES.md` under Task 36.)
 
 ### 3.4 The principles - a catalogue
 
@@ -1370,7 +1370,7 @@ Links:
 
 ### 3.10 Future tasks
 
-Scheduled in `FEATURES.md` Task 42:
+Scheduled in `files/FEATURES.md` Task 42:
 - **42.8:** the exact default values (3.7 is the starting point).
 - **42.7:** the `Thread` class: its internal counter (IDs), and helpers that track threads as
   they start and end.
@@ -1382,9 +1382,9 @@ Scheduled in `FEATURES.md` Task 42:
 ### 3.12 Collections and threads (user, 2026-10-27)
 
 Settled 2026-10-31 (Decisions.md D.057): an array, list or map used by two or more threads
-gets a **temporary service** (section 3.13, `Ownership.md` section 6) - no lock written by
+gets a **temporary service** (section 3.13, `files/Ownership.md` section 6) - no lock written by
 hand, and no separate atomic lock for arrays. The setting picks the service's worker
-(FEATURES.md 42.17, 45.8; `Arrays.md`):
+(files/FEATURES.md 42.17, 45.8; `files/Arrays.md`):
 - Default (user, 2026-10-27): **shared** - a pool of 10 threads;
   `"dedicated"` gives a busy list or map its own:
 
@@ -1491,7 +1491,7 @@ void function worker(Order order, Totals totals) {
 - units (`service(a, b)`);
 - custom schedulers and contention rules;
 - machine-dependent profiles;
-- most of the settings in FEATURES.md 42.11.
+- most of the settings in files/FEATURES.md 42.11.
 
 Version one needs four settings: `Mailbox`, `WhenFull`, `Timeout` and `final`. The
 execution profiles ChatGPT suggested (LOCAL, SERIAL, PARALLEL, IO, REALTIME) are dropped:
@@ -1529,8 +1529,8 @@ order be replayed.
 
 ### 3.13 One writer: ownership across threads (agreed 2026-10-31)
 
-The thread side of the ownership design (`Ownership.md` sections 5-7; the record:
-`Notes/Ownership_Decisions_2026-10-31.md`). FEATURES.md Task 48 and 42.18-42.25.
+The thread side of the ownership design (`files/Ownership.md` sections 5-7; the record:
+`Notes/Ownership_Decisions_2026-10-31.md`). files/FEATURES.md Task 48 and 42.18-42.25.
 
 #### Why `b = a` sharing one object is dangerous across threads
 
@@ -1539,7 +1539,7 @@ The thread side of the ownership design (`Ownership.md` sections 5-7; the record
 - Across threads it corrupts: two `deposit` calls read 100 and both write 110 (a lost update,
   trap 1); two threads changing a plain count at once free an object still in use, or free it
   twice (a crash or a security hole); a reader sees half of a two-field change
-- So assigning moves (Ownership.md R2), and a value two threads use gets one writer (R7)
+- So assigning moves (files/Ownership.md R2), and a value two threads use gets one writer (R7)
 
 #### The rules
 
@@ -1547,17 +1547,17 @@ The thread side of the ownership design (`Ownership.md` sections 5-7; the record
   (files/Service.md S1-S10)
 - **A temporary service:** when two or more threads use one variable, the compiler makes
   `service(acc)`; it owns the value, the thread functions borrow it, and ownership comes back
-  when the last thread ends (Ownership.md truth tables 6, 7)
+  when the last thread ends (files/Ownership.md truth tables 6, 7)
 - **One request = one whole call:** `deposit(acc)` on thread 2 waits in the mailbox while
   thread 1's runs
 - **Readers in parallel:** a readonly signature or call makes a request a read - reads run
   together, a change runs alone
 - **send / sync, in Fusion's words:** send - a value goes to another thread and the sender no
   longer has it (a Go channel send, checked); sync - many threads use a value through a
-  service, and only its thread changes it (Ownership.md truth table 5)
+  service, and only its thread changes it (files/Ownership.md truth table 5)
 - **Several resources:** a thread that uses two or more (a database and a log file) gets a
   **group service** - written or made by the compiler; it owns them while its requests run,
-  then each variable owns its value again (P2; D.077; Ownership.md section 7). Waiting
+  then each variable owns its value again (P2; D.077; files/Ownership.md section 7). Waiting
   inside a request for another thread's result is an error
 - **Go has the pattern, not the check:** a pointer sent down a channel can still be used on
   both sides; Fusion makes that a compile error

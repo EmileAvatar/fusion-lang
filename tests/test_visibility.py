@@ -1,4 +1,4 @@
-"""Tests for Task 32.2a - what is public when nothing is written (Classes.md section 1).
+"""Tests for Task 32.2a - what is public when nothing is written (files/Classes.md section 1).
 
 Inside a class: fields private, functions and constructors public - `public` / `private`
 written out changes one member. At module level: structs, classes and enums public; functions

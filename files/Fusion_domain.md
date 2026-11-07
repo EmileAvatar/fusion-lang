@@ -9,7 +9,7 @@ OOP, concurrency, standard library), not by compiler internals.
 mark items as implemented/planned/aspirational - that level of engineering detail lives
 elsewhere and changes far more often than the shape of the language itself:
 - **`../taskSummary2.md`** - what's actually built, tested, and in progress right now
-- **`FutureFeatures.md`** (repo root) - detailed proposals, tradeoffs, and open questions
+- **`files/FutureFeatures.md`** (repo root) - detailed proposals, tradeoffs, and open questions
   for individual features (e.g. the `decimal`/`Currency` numeric types, the Currency
   Module, IDE tooling, cross-language compilation)
 
@@ -388,7 +388,7 @@ one.
 
 **Related documents:**
 - `../taskSummary2.md` - active task tracking and current build status
-- `FutureFeatures.md` (repo root) - detailed feature proposals and open design questions
+- `files/FutureFeatures.md` (repo root) - detailed feature proposals and open design questions
 - `fusion-language-spec.md` - the complete language specification
 - `fusion.ebnf` - formal grammar
 - `Fusion_Hardware_Interface_Definition_Language_HIDL.md` - full HIDL vision document

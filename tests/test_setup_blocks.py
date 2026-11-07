@@ -1,4 +1,4 @@
-"""Tests for Task 32.2d - form B on any variable (Classes.md section 4).
+"""Tests for Task 32.2d - form B on any variable (files/Classes.md section 4).
 
 A block right after a value sets that variable up further: a local (typed, `let`, `const`), a
 List, a field of a class (each constructor runs it first, before its own body - once, also

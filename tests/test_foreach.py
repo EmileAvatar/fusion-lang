@@ -1,4 +1,4 @@
-"""Tests for Task 32.4 - foreach, Iterator<T>, Collection<T> (Arrays.md section 6, Decisions.md
+"""Tests for Task 32.4 - foreach, Iterator<T>, Collection<T> (files/Arrays.md section 6, Decisions.md
 D.049, D.058, D.085, D.089).
 
     foreach (string n in names)          // or: foreach n in names

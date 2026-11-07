@@ -6,7 +6,7 @@
 edits.py defines EDITS, a list of (file, old, new) tuples, applied in order:
 
     EDITS = [
-        ('FEATURES.md', '[ ] 22.11 tools/patch.py', '[DONE] 22.11 tools/patch.py'),
+        ('files/FEATURES.md', '[ ] 22.11 tools/patch.py', '[DONE] 22.11 tools/patch.py'),
     ]
 
 Each `old` must occur exactly once in its file (after the earlier edits to that file), or

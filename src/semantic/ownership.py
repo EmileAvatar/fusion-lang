@@ -1,4 +1,4 @@
-"""Ownership: moving and borrowing (Tasks 48.1, 48.2 - Ownership.md sections 1-2, truth tables
+"""Ownership: moving and borrowing (Tasks 48.1, 48.2 - files/Ownership.md sections 1-2, truth tables
 1-3; D.100, D.101).
 
     [memory]

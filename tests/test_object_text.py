@@ -1,4 +1,4 @@
-"""Tests for Task 32.2f - printing an object (Classes.md section 6).
+"""Tests for Task 32.2f - printing an object (files/Classes.md section 6).
 
 Until a class can implement ToString (Task 32.5) an object prints as its class name - in
 print / format, "{car}" and toString(car) - with one warning per class. With and without

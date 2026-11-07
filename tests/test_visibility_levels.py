@@ -1,5 +1,5 @@
 """Tests for Task 32.2h - private / internal / public, namespaces, `[visibility] required`
-(Classes.md section 1, files/FusionTemplate.md).
+(files/Classes.md section 1, files/FusionTemplate.md).
 
 private - the class; internal - the namespace (a file without one: its module); public -
 everyone. Nothing written: fields and module variables private, everything else public.

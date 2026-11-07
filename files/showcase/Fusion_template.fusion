@@ -4,7 +4,7 @@
 //
 // One line per construct, written as a template: each < > is a choice or a name of your own.
 // It does NOT compile. Real code for each: Fusion_showcase.fusion (the whole language),
-// Ownership.fusion, Interfaces.fusion; built examples: SYNTAX_REFERENCE.md. The grammar:
+// Ownership.fusion, Interfaces.fusion; built examples: files/SYNTAX_REFERENCE.md. The grammar:
 // files/fusion.ebnf. How a file is laid out (order of its parts): files/FusionTemplate.md.
 //
 // How to read it
@@ -28,7 +28,7 @@
 
 
 // =============================================================================================
-// 2. Visibility - <visibility: (nothing) | public | internal | private> [built] (Classes.md 1)
+// 2. Visibility - <visibility: (nothing) | public | internal | private> [built] (files/Classes.md 1)
 // =============================================================================================
 //
 //   where                         (nothing) means     notes
@@ -85,7 +85,7 @@ void function main(<(nothing) | string... args>)
 
 
 // =============================================================================================
-// 5. Classes [built] (Classes.md)
+// 5. Classes [built] (files/Classes.md)
 // =============================================================================================
 
 <kind: (nothing) | abstract | sealed> class <Name> [extends <Parent>] [implements <Interface>{, <Interface>}]
@@ -240,4 +240,4 @@ typeOf(<value>)                                     // "Person.Employee.Manager"
 //   [collections] allowChangeWhileLooping = <false | true>
 //   [source]      caseSensitive = <true | false>
 //   [numbers]     overflowWrap = <false | true>
-//   [conditions]  numbers = <...>              (Nullable_Values.md)
+//   [conditions]  numbers = <...>              (files/Nullable_Values.md)

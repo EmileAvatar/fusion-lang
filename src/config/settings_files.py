@@ -15,7 +15,7 @@ the one set of checks in project_config.py gives all four the same meaning.
 
 The readers are Python's (tomllib, json, configparser) and PyYAML (safe_load - never runs
 code from the file), loaded only when a project has a YAML file. Fusion's own readers come
-with its data-formats module (FEATURES.md 43.2).
+with its data-formats module (files/FEATURES.md 43.2).
 """
 
 import configparser

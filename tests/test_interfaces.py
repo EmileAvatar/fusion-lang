@@ -1,4 +1,4 @@
-"""Tests for Task 32.5a - interfaces (Classes.md section 7, Decisions.md D.082, D.087).
+"""Tests for Task 32.5a - interfaces (files/Classes.md section 7, Decisions.md D.082, D.087).
 
     interface Shape                      // function signatures only - what, not how
         float function area()
@@ -8,7 +8,7 @@
     if s is Circle                       // what it is while running
         Circle c = (Circle)s             // a cast written in front - a CastError when wrong
 
-Each test is a row of the truth table in Classes.md section 7. Every program runs with the
+Each test is a row of the truth table in files/Classes.md section 7. Every program runs with the
 leak check (exit 5: an object never freed). With and without null checks (Rule 4b).
 """
 

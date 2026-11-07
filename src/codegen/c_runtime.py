@@ -9,7 +9,7 @@ recursively generate code for sub-expressions, and existing tests call some of t
 (visit_InterpolatedStringExpr, _generate_interpolated_print) directly as instance
 methods on a CCodeGenerator.
 
-Task 12.11 (decided 2026-09-13, see taskSummary2.md) considered replacing this per-builtin
+Task 12.11 (decided 2026-09-13, see files/taskSummary2.md) considered replacing this per-builtin
 special-casing with a general runtime-API lowering layer (Fusion stdlib call -> runtime API
 -> backend-specific implementation), so future stdlib functions wouldn't each need a new
 special case here. Decision: defer - only 2 builtins exist (print, len) and `import` has no
@@ -106,7 +106,7 @@ class RuntimeLoweringMixin:
         """Look up the correct printf format specifier for an expression's resolved type.
 
         Reads `inferred_type`, populated by the semantic analyzer's TypeChecker (see
-        taskSummary2.md Task 12.1-12.3), instead of guessing based on MVP-era defaults.
+        files/taskSummary2.md Task 12.1-12.3), instead of guessing based on MVP-era defaults.
         Guessing wrong here is exactly the bug class that broke FizzBuzz's numeric output
         (Task 6.2) - so a missing/unrecognized type is a hard compiler error, not a silent
         fallback.

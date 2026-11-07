@@ -3,7 +3,7 @@
 // =============================================================================================
 //
 // A picture of the whole language: what works now and what is still to come. It does NOT
-// compile and is not meant to run (built examples that do: SYNTAX_REFERENCE.md, examples/).
+// compile and is not meant to run (built examples that do: files/SYNTAX_REFERENCE.md, examples/).
 // Its settings: fusion.toml in this folder. Topics shown in full, in this folder:
 //   Interfaces.fusion   Fusion's own interfaces
 //   Ownership.fusion    moving, borrowing, readonly, const - allowed and not allowed
@@ -211,7 +211,7 @@ void function collections() {
     Map<string, int> ages
     ages["Alice"] = 30
     print("{@1}", ages.get("Zed", 0))
-    // [idea] Map literals (FEATURES.md "Later")
+    // [idea] Map literals (files/FEATURES.md "Later")
     Map<string, int> stock = {"apples": 3, "pears": 0}
     // [built] Lists of lists
     List<List<int>> grid = [[1, 2], [3, 4]]

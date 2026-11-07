@@ -1,9 +1,9 @@
 # Future Features - Cautions & Review
 
-**Read this before picking up anything from `FutureFeatures.md`.**
+**Read this before picking up anything from `files/FutureFeatures.md`.**
 
 **Created:** 2026-10-07, from a project review by Claude (Opus 5.5) requested by the user
-**Companion to:** `FutureFeatures.md` (what Fusion *could* become) and `taskSummary2.md`
+**Companion to:** `files/FutureFeatures.md` (what Fusion *could* become) and `files/taskSummary2.md`
 (what is actually being built)
 
 ---
@@ -12,10 +12,10 @@
 
 > **The first goal is a simple working language. Complex features come after.**
 
-`FutureFeatures.md` is a menu of possibilities, not a list of commitments. Some features in
+`files/FutureFeatures.md` is a menu of possibilities, not a list of commitments. Some features in
 it will be built, some will change shape, and some will never be added. Nothing there should
 be started while the core language is still missing the basics every program needs. That
-core work is tracked as **Task 18 (Core Language Foundation)** in `taskSummary2.md`.
+core work is tracked as **Task 18 (Core Language Foundation)** in `files/taskSummary2.md`.
 
 ---
 
@@ -41,7 +41,7 @@ core work is tracked as **Task 18 (Core Language Foundation)** in `taskSummary2.
 
 ### Caution 1 - The documented vision far outweighs the implemented core
 
-`FutureFeatures.md` is ~5,800 lines. As of 2026-10-07 the compiler:
+`files/FutureFeatures.md` is ~5,800 lines. As of 2026-10-07 the compiler:
 - compiles one file at a time
 - has no `import`
 - has no structs or classes
@@ -133,7 +133,7 @@ matter, and they work together:
   can't be re-derived, see section 5.)
 
 The signatures live in the module's interface (Task 18.4 should record them from day one)
-and later in the Symbol-ID index (FutureFeatures.md, Compiler Infrastructure).
+and later in the Symbol-ID index (files/FutureFeatures.md, Compiler Infrastructure).
 
 ```text
 module TextUtils
@@ -241,7 +241,7 @@ chain responsible. Tracked as Task 19.2.
   clear reason** - and that the default ecosystem is built so most libraries fit tight
   profiles naturally.
 - Automatic inference has a compile-time cost on large projects. The Symbol-ID index's
-  incremental analysis (FutureFeatures.md) is what keeps that tractable.
+  incremental analysis (files/FutureFeatures.md) is what keeps that tractable.
 
 ### Prior art worth studying for this specifically
 
@@ -282,7 +282,7 @@ signature (section 3.1), so importers always know which strategy each part uses.
 - Every explicit allocation must have a matching deallocation. In sandboxed code, anything
   the library fails to free is reclaimed by the host (section 5.2)
 - Marked with a `###<NNNN>` design-rule reference explaining *why* it's needed
-  (FutureFeatures.md, Unsafe Mode Enhancements)
+  (files/FutureFeatures.md, Unsafe Mode Enhancements)
 - Shows up as `unsafe`/`raw_memory` in the capability signature, so project restrictions
   (section 3.8) can forbid it outright
 

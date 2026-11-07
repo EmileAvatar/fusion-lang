@@ -1,6 +1,6 @@
 """Tests for Task 32.10a - Lists and Maps are references with a count.
 
-User decisions 2026-10-29 (the truth table in Arrays.md section 1):
+User decisions 2026-10-29 (the truth table in files/Arrays.md section 1):
 - in normal code - a variable, parameter, element - a List / Map is shared: `b = a`, passing
   and returning give the same one; `byVal a` (or byValue) copies it, deeply
 - inside a struct it is copied with the struct, unless the field is `byRef`

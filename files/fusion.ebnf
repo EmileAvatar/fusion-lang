@@ -347,7 +347,7 @@ postfix =
     } ;
     (* Arrays are not nullable in Task 9 v1, so "?[", "?.", and null-check don't apply
        to arrays yet, and "." is only for struct fields (arr.length is Task 14) - see the deferred nullability task noted under Task 9 in
-       taskSummary2.md, tracked alongside Task 12.7's memory model work. len(arr) is the
+       files/taskSummary2.md, tracked alongside Task 12.7's memory model work. len(arr) is the
        only way to get an array's size for now, as a builtin function call, not new syntax. *)
 
 primary =
@@ -747,7 +747,7 @@ DEDENT = ? decrease indentation level ? ;
 *)
 
 (* ===================================================================== *)
-(* PLANNED - ownership, hot paths, fixed (designed 2026-10-31: Ownership.md) *)
+(* PLANNED - ownership, hot paths, fixed (designed 2026-10-31: files/Ownership.md) *)
 (* ===================================================================== *)
 
 (* Task 48.5, POSTPONED (D.106): several holders - read only except to the holder that made it

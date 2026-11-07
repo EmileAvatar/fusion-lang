@@ -1,4 +1,4 @@
-"""Tests for Task 32.5b - copies of objects (Decisions.md D.088, D.034; Object_Lifetime.md 4b).
+"""Tests for Task 32.5b - copies of objects (Decisions.md D.088, D.034; files/Object_Lifetime.md 4b).
 
     Car b = byVal a                // a new Car, each field copied byVal - its engine and lists too
     class Account implements Cloneable

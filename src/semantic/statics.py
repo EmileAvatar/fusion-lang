@@ -1,4 +1,4 @@
-"""A class's statics (Task 32.2c, user decisions 2026-10-30 - Classes.md section 3).
+"""A class's statics (Task 32.2c, user decisions 2026-10-30 - files/Classes.md section 3).
 
     class Garage
         public const static Car CAR = new Car()          // form A - direct

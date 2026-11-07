@@ -1,4 +1,4 @@
-"""Tests for Task 32.10c - every case in Object_Lifetime.md's catalogue.
+"""Tests for Task 32.10c - every case in files/Object_Lifetime.md's catalogue.
 
 Each program is built with -DFUSION_TRACE_OBJECTS, so every object freed shows `[freed A]` in
 the output where it happens - a test checks the object went at the right moment, not only

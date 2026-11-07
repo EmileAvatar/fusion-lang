@@ -2,8 +2,8 @@
 
 The four ways Fusion holds data: what each can do, when to use it, and when not to.
 Decisions by the user, 2026-10-27. Status marks: **built** (works today) and **planned**
-(designed, scheduled in `FEATURES.md`). Every built-in method is listed in
-`files/Builtins.md`. Null rules: `Nullable_Values.md`.
+(designed, scheduled in `files/FEATURES.md`). Every built-in method is listed in
+`files/Builtins.md`. Null rules: `files/Nullable_Values.md`.
 
 ---
 
@@ -48,15 +48,15 @@ struct Order
     byRef List<string> log   // shared by the copies
 ```
 
-The counting (Object_Lifetime.md section 5) frees a List or Map when its last holder lets go.
+The counting (files/Object_Lifetime.md section 5) frees a List or Map when its last holder lets go.
 **Arrays** follow the same rule once they live on the heap and know their own length (Task
 45); until then an array keeps today's behaviour (fixed size, copied).
 
-**Planned - moving by default (Task 48, user 2026-10-31 - Ownership.md):** the table above
+**Planned - moving by default (Task 48, user 2026-10-31 - files/Ownership.md):** the table above
 is today's rule. With Task 48 `List<int> b = a` **moves** (a is no longer usable), `byVal`
 copies, and code that reads an element or passes a List borrows it. A collection inside a
 struct only lends itself - `List<string> xs = order.items` is a borrow, never a move
-(Ownership.md truth tables 1, 2). Arrays follow the same rule once on the heap (45.10). A
+(files/Ownership.md truth tables 1, 2). Arrays follow the same rule once on the heap (45.10). A
 struct's fields are only ever borrowed; the whole struct moves (Decisions.md D.025, D.026).
 `[memory] assignment = "share"` keeps today's sharing.
 
@@ -148,7 +148,7 @@ for x in a
 ```
 
 **Threads** (planned, Task 42): an array used by two or more threads gets a temporary service
-(`Ownership.md` section 6, `Concurrency.md` 3.12).
+(`files/Ownership.md` section 6, `files/Concurrency.md` 3.12).
 
 **Use an array when:**
 - you collect values in arrival order and read them back by position - readings from a
@@ -192,7 +192,7 @@ All methods: `add`, `insert`, `removeAt`, `remove`, `clear`, `len`, `contains`, 
 - **Changing it while looping**: the collection being looped over can't be changed inside the loop (user, 2026-10-31, Decisions.md D.058) - build a new one instead. Today a change inside `for x in list` is a
   ModifiedWhileLoopingError (never a skipped item)
 - **Threads** (Task 42): a list or map used by two or more threads gets a temporary service;
-  this setting picks its worker (`Concurrency.md` 3.12). Shared by default:
+  this setting picks its worker (`files/Concurrency.md` 3.12). Shared by default:
 
 ```toml
 [collections]
@@ -395,9 +395,9 @@ original alone.
 
 | Date | Decision |
 |---|---|
-| 2026-10-27 | Arrays, lists and maps are never null: empty when declared (`Nullable_Values.md`) |
+| 2026-10-27 | Arrays, lists and maps are never null: empty when declared (`files/Nullable_Values.md`) |
 | 2026-10-27 | Arrays grow and shrink at the end only (add one, combine arrays); an item never moves position. Lists add, remove and reorder anywhere |
-| 2026-10-27 | `int numbers[]` and `int[] numbers` declare an empty array - waits for growing arrays (FEATURES.md Task 45) |
+| 2026-10-27 | `int numbers[]` and `int[] numbers` declare an empty array - waits for growing arrays (files/FEATURES.md Task 45) |
 | 2026-10-27 | Lists: capacity and a growth buffer, and a kept sort order (planned) |
 | 2026-10-27 | Taking a part (`slice`) gives a copy; the original is unchanged |
 | 2026-10-27 | `a + b` combines arrays; `removeLast()` removes the last item, `pop()` is quick typing for it |
@@ -413,7 +413,7 @@ original alone.
 | 2026-10-27 | Lists / maps and threads: shared by default, `[collections] threads = "shared"`, `shared_threads = 10` |
 | 2026-10-29 | `toList(copy = true)` on a List and an array; setting an array / List / Map to null is an error unless its nullable setting allows it |
 | 2026-10-29 | Arrays, Lists and Maps are references (shared) in normal code - a variable, parameter, class field, element - and copied inside a struct; `byVal` copies in normal code, `byRef` shares in a struct field. Never null, just empty |
-| 2026-10-31 | Planned (Task 48): Lists and Maps move on assignment, `byVal` copies, reading an element or passing borrows; a struct's collection only lends itself (Ownership.md) |
+| 2026-10-31 | Planned (Task 48): Lists and Maps move on assignment, `byVal` copies, reading an element or passing borrows; a struct's collection only lends itself (files/Ownership.md) |
 | 2026-11-01 | A Map is a Collection<Entry<K, V>>; keys() / values() are borrowed views (.toList() copies); foreach k in m gives keys, typed Entry gives entries (D.092, D.095, D.096) |
 | 2026-11-01 | `Iterator<T>` (hasNext, next); a collection gives a new one from `iterator()` for each loop; foreach needs it; arrays, Lists and Maps implement Collection<T> and Iterator<T> - an array's own implementation blocks remove (D.089, D.090) |
 | 2026-10-31 | Planned (47.5): `fixed(n)` - only the size is limited, the values may change (`const`: nothing changes); lower fine, never higher; starts empty, grows up to it, memory reserved once |

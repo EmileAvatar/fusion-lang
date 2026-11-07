@@ -152,7 +152,7 @@ def render() -> tuple:
              'do not edit by hand.',
              '`python check.py` fails when this file no longer matches the compiler.', '',
              f'{len(functions)} functions, {len(LIST_METHODS)} List methods, '
-             f'{len(MAP_METHODS)} Map methods. Examples of each are in `SYNTAX_REFERENCE.md`.',
+             f'{len(MAP_METHODS)} Map methods. Examples of each are in `files/SYNTAX_REFERENCE.md`.',
              '', '- **Layer:** the lowest `[stdlib] layer` that allows it - `core` (no heap), '
              '`alloc` (no operating system), `std` (everything)',
              '- **Fails:** it can raise an error (catch it with `try`, or capture it); any '
