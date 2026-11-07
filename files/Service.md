@@ -557,4 +557,6 @@ allocate.
 
 ## Not decided yet
 
-- How "undone where possible" (group rule 7) works in detail.
+- How "undone where possible" (group rule 7) works in detail - decided in part (D.120): Fusion
+  undoes what it can, the developer handles the error, else it bubbles up; a `Transaction`
+  interface to be designed (42.29).

@@ -280,7 +280,7 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 
 ## 8. Questions still open
 
-- How far `--interface` shows the readonly results of private functions (likely: public only)
+- None open - `--interface` shows public and internal functions, never private (D.115)
 
 ## 9. Decisions log
 
@@ -306,4 +306,8 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 | 2026-11-03 | The self-hosted compiler stays on "share" until Task 35 (D.107) |
 | 2026-11-03 | Fields only borrowed (D.026 stays); `[memory] moveFieldOut = true` lets a field leave a struct the function owns, as Rust - the struct is then unusable (D.108) |
 | 2026-11-03 | A getter lends: returning a part of the object (or a new object made with one - an iterator) gives a borrow of it (D.109) |
+| 2026-11-07 | A readonly result: a member, a new object or a number; `readonly` on a copy is a warning (D.113) |
+| 2026-11-07 | Storing `this` shares the object, counted - freed when the last holder lets go (D.103) |
+| 2026-11-07 | R4 relaxed: the owner may be read while a borrow changes it; only changing it another way is an error (D.123) |
+| 2026-11-07 | A setting per borrow rule (D.124) |
 | 2026-11-03 | "move" is the default (48.9) - examples and tests migrated; the tests of "share" itself run with `@pytest.mark.share` |

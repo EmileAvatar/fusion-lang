@@ -69,6 +69,14 @@ Handed over = `T b = a`, `b = a`, `x.f = a`, `list.add(a)` / `insert`, `m[k] = a
 | `const Car k`: `k = ..` | error | - |
 | a match `case X(name)` | `name` is a new variable for that case | 48.9 |
 
+## Decided 2026-11-07, not built yet
+
+- R4 relaxed (D.123, 48.10): while `c` borrows and changes `fleet[0]`, `fleet` may still be read; only
+  changing it another way is an error (today reading is an error too)
+- Storing `this` (`cars.add(this)`) shares the object, counted (D.103, 48.12)
+- `readonly` on a copy - a number result, `f(readonly n)` - a warning, not an error (D.113, 50.4)
+- A setting per borrow rule (D.124, 48.11)
+
 ## Designed, not built (Task 50 - after Task 48)
 
 - **A readonly result** (D.110): `public readonly Engine function getEngine()` - part of the

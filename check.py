@@ -363,7 +363,7 @@ def check_ascii():
     return not bad, 'ok' if not bad else f'{len(bad)} line(s)', '\n'.join(bad[:20])
 
 
-FEATURE_LINE = re.compile(r'^([A-Z]{3})\.(\d{3}) \[(BUILT|PLANNED|DESIGN|POSTPONED|REJECTED)\] \S')
+FEATURE_LINE = re.compile(r'^([A-Z]{3})\.(\d{3}) \[(BUILT|PARTIAL|PLANNED|DESIGN|POSTPONED|REJECTED)\] \S')
 AREA_HEADING = re.compile(r'^#### ([A-Z]{3}) - ')
 
 
@@ -384,7 +384,7 @@ def decision_problems(text: str) -> list:
             continue
         match = FEATURE_LINE.match(line)
         if not match:
-            problems.append(f'line {number}: not "AREA.NNN [BUILT|PLANNED|DESIGN|POSTPONED|REJECTED] text"')
+            problems.append(f'line {number}: not "AREA.NNN [BUILT|PARTIAL|PLANNED|DESIGN|POSTPONED|REJECTED] text"')
             continue
         code, n = match.group(1), int(match.group(2))
         if code != area:
@@ -424,7 +424,8 @@ def check_decisions():
     decisions = len(re.findall(r'^\| D\.\d{3} ', text, re.M))
     clashes = len(re.findall(r'^\| C\.\d{3} ', text, re.M))
     proposed = len(re.findall(r'^\| D\.\d{3} \|.*\| PROPOSED[^|]*\|$', text, re.M))
-    summary = f'{features} features, {decisions} decisions ({proposed} proposed), {clashes} clash(es) open'
+    partial = len(re.findall(r'^[A-Z]{3}\.\d{3} \[PARTIAL\]', text, re.M))
+    summary = f'{features} features ({partial} partial), {decisions} decisions ({proposed} proposed), {clashes} clash(es) open'
     return not problems, summary if not problems else f'{len(problems)} problem(s)', '\n'.join(problems[:20])
 
 

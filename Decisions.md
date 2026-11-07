@@ -12,8 +12,11 @@ features only - no bug fixes, no discussions.
   the feature, the date, where the detail is, and its status: `ACTIVE` (decided by the user) or
   `PROPOSED` (suggested by Claude, not official until the user makes it ACTIVE). Only decisions
   made are kept - a replaced one is removed, not marked superseded
-- Status words: `[BUILT]` works today · `[PLANNED]` designed, not built · `[DESIGN]` to be
-  designed · `[POSTPONED]` waits for something · `[REJECTED]` decided against
+- Status words: `[BUILT]` implemented · `[PARTIAL]` some parts built, some still planned or in
+  design - every PARTIAL is resolved before self-hosting counts as complete (Task 35) ·
+  `[PLANNED]` designed, not built · `[DESIGN]` still being planned / designed · `[POSTPONED]`
+  waits for something · `[REJECTED]` decided against
+- Kept up to date at the end of every task and session (user, 2026-11-07)
 - Detail lives elsewhere: status `files/FEATURES.md`, what works `files/SYNTAX_REFERENCE.md`, settings
   `files/fusionSettings.xml`, design documents (named in each row)
 - Built from every design document, note, setting and the compiler (Task 49, done 2026-10-31);
@@ -24,11 +27,11 @@ features only - no bug fixes, no discussions.
 ## 1. Fusion - the goal and the features
 
 #### GOL - the goal
-GOL.001 [DESIGN] An agnostic language: each project chooses safety, memory model, concurrency and backend in `fusion.toml`
+GOL.001 [PARTIAL] An agnostic language: each project chooses safety, memory model, concurrency and backend in `fusion.toml` - safety and memory settings built; concurrency and backends planned
 GOL.002 [BUILT] Compiles Fusion -> C -> a native program (GCC); the compiler is written in Python for now
 GOL.003 [PLANNED] Self-hosting: the compiler written in Fusion compiles itself (Task 35); Python retired after
 GOL.004 [DESIGN] A million requests on one machine: no data races by construction, no deadlocks, small footprint (Task 42)
-GOL.005 [PLANNED] Memory-safe without a GC by default: one owner, moves, borrows (Task 48)
+GOL.005 [PARTIAL] Memory-safe without a GC by default: one owner, moves, borrows built (Task 48); readonly results, deep const, storing `this` planned (Task 50, 48)
 GOL.006 [BUILT] Features become settings - a safe default, switchable per project
 GOL.007 [BUILT] A simple working language first, advanced features after
 GOL.008 [BUILT] Never trust code - a library is checked by what its signature promises
@@ -49,7 +52,7 @@ SYN.010 [BUILT] Equality `=`, `==`, `!=`, `===`, `!==`
 SYN.011 [BUILT] Method form: `name.toUpper()` is `String.toUpper(name)`; your own functions too (`p.moved(1, 2)`)
 SYN.012 [BUILT] `len` / `length`, with or without brackets
 SYN.013 [BUILT] Form B: a set-up block right after a value, on any variable, field or static
-SYN.014 [PLANNED] Duration literals `500ms`, `5s`, `2min` (42.16)
+SYN.014 [PLANNED] Duration literals: `500ms`, `5s`, `2min` an int of milliseconds; `ns`, `us` a long of nanoseconds (hot path) - never mixed (42.16)
 SYN.015 [REJECTED] An `I` prefix on interface names
 SYN.016 [BUILT] Identifiers are ASCII; Trojan Source and look-alike letters are rejected
 SYN.017 [BUILT] `_` for an unused `match` field
@@ -59,7 +62,7 @@ SYN.020 [DESIGN] `++` / `--` as statements only, never inside an expression
 SYN.021 [DESIGN] `if` as a value; do-while
 SYN.022 [DESIGN] Guards and ranges in match cases (`case x if x < 0`, `case 0...9`)
 SYN.023 [DESIGN] `assert cond, "message"` - an AssertionError when false
-SYN.024 [DESIGN] Type tests `if s is string`; `typeOf(x)` as text
+SYN.024 [BUILT] Type tests `if s is string`; `typeOf(x)` as text (32.5a, 32.7)
 SYN.025 [DESIGN] Extension methods (`extend string { }`); function overloading by parameter types
 SYN.026 [DESIGN] Copy with changes (`a with { x = 5 }`); tuples
 SYN.027 [DESIGN] Operands evaluated in one written order - today C's order (37.2)
@@ -69,7 +72,7 @@ SYN.030 [BUILT] `unchecked { }` - whole-number `+ - *` inside wrap around on pur
 SYN.031 [POSTPONED] `'` comments (VB style) - off so `'c'` works; maybe only at the start of a line
 SYN.032 [DESIGN] `#Region` / `#End Region`; documentation comments; documentation written from them
 SYN.033 [DESIGN] `loop { } end loop` with safety checks; loop labels; an iteration limit (`[safety] maxIterations`)
-SYN.034 [DESIGN] The `...` operator: ranges `1...100`, variadic `int... numbers`, spread `[...a, ...b]` (`string... args` of main is built)
+SYN.034 [PARTIAL] The `...` operator: variadic `string... args` of main built; ranges `1...100`, variadic `int... numbers`, spread `[...a, ...b]` designed
 SYN.035 [DESIGN] `**` (power) - read by the lexer, not built; annotations `@name(...)`
 SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints
 SYN.037 [DESIGN] Semicolons accepted; reading code written in other languages' syntax
@@ -93,7 +96,7 @@ TYP.012 [BUILT] Enum functions `values()`, `fromString()`; an enum prints its na
 TYP.013 [DESIGN] Autoboxing (`(42).toString()`) - the type classes (`Int`, `String`) are built
 TYP.014 [DESIGN] A `bit` type and bit-level operations
 TYP.015 [DESIGN] `decimal(p, s)`: an exact fixed-point number - after `money` (47.2.3)
-TYP.016 [BUILT] A cast written in front: `(Shape)aCircle` - a compile error where it can be seen, else a CastError (32.5a); between numbers `(int)d` later
+TYP.016 [PARTIAL] A cast written in front: `(Shape)aCircle` built - a compile error where it can be seen, else a CastError (32.5a); between numbers `(int)d` planned
 TYP.017 [DESIGN] Value types have built-in methods through internal interfaces - `Length` with `length()` on strings, arrays, Lists and Maps, working on null and "" alike (52.4, D.055)
 
 #### STR - strings
@@ -114,7 +117,7 @@ COL.002 [PLANNED] Arrays know their length, grow and shrink at the end, `+`, `co
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
-COL.006 [BUILT] `Collection<T>` and `Iterator<T>` - a class of your own, a List and a Map (of `Entry<K, V>`) as Collection values (32.4, 32.6); arrays [PLANNED 45.10]
+COL.006 [PARTIAL] `Collection<T>` and `Iterator<T>` - a class of your own, a List and a Map (of `Entry<K, V>`) built (32.4, 32.6); arrays planned (45.10)
 COL.007 [BUILT] List / Map options in the set-up block: noDuplicates, noNull, readOnly - a DuplicateError / NullError / ReadOnlyError (32.14)
 COL.008 [PLANNED] A Collections module: RingBuffer first (43.4)
 COL.009 [BUILT] `toList`, `toCSV`
@@ -130,7 +133,7 @@ COL.016 [REJECTED] `type()` / `type(N)` arrays meaning read-only or fixed size -
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value
 FUN.002 [BUILT] `try` / `catch` / `finally` / `throw`; custom error types
 FUN.003 [BUILT] `readonly` parameters: never changed, deeply - worked out through the calls
-FUN.004 [BUILT] `readonly` / `byVal` / `byRef` written at the call (48.3); library rows wait for 39.3
+FUN.004 [PARTIAL] `readonly` / `byVal` / `byRef` written at the call built (48.3); library rows wait for 39.3
 FUN.005 [PLANNED] Several return values per function beyond the Error (`[functions] multipleReturns`, off)
 FUN.006 [BUILT] Files, program arguments, console input, `exit`, `run` (another program)
 FUN.007 [BUILT] Endless recursion is a catchable StackOverflowError (`[safety] maxCallDepth`)
@@ -143,12 +146,15 @@ FUN.013 [DESIGN] Every error carries a stack trace
 FUN.014 [BUILT] 96 built-in functions, 16 List and 7 Map methods, each with its `[stdlib]` layer - the list: files/Builtins.md (generated)
 FUN.015 [BUILT] Built-in error types in a tree (IndexError, KeyError, FileError, OverflowError, NullError, ...) - a parent catches its children
 FUN.016 [PLANNED] A readonly result: `readonly Engine function getEngine()` - the caller gets a read-only borrow; part of the signature (50.1, D.110)
+FUN.017 [PLANNED] `readonly` on a copy (a number result, `f(readonly n)`) is a warning, not an error (50.4, D.113)
 
 #### NUL - null
 NUL.001 [BUILT] Value types are never null; class objects and enums can be
 NUL.002 [BUILT] A null without a check is a NullError a `catch` can handle; `null == null` is true
-NUL.003 [PLANNED] `?.`, `?.null`, `??`, `case null` (Task 30.2)
+NUL.003 [PARTIAL] `case null` built (30.12); `?.`, `?.null`, `??` planned (Task 30.2)
 NUL.004 [REJECTED] `T?` types - `?` goes on a variable (`x?.f()`), never on a type
+NUL.005 [PLANNED] A `?.` comparison is false on null and warns; `!` around one is a compile error - `[conditions]` setting allows it with a warning (52.7, D.116)
+NUL.006 [PLANNED] The compiler checks an object is made before it is used: a surely-null one passed is an error; a `?` parameter without a null check warns (52.7, D.117)
 
 #### STC - structs
 STC.001 [BUILT] Structs: value types, copied, never null; may hold Lists, Maps, strings
@@ -156,7 +162,7 @@ STC.002 [BUILT] Methods on structs (`[structs] functions`, default off)
 STC.003 [BUILT] A struct building on a struct (`implements` / `extends` / `includes`)
 STC.004 [BUILT] A struct as text: `"{e}"` -> `name : "Jeff",age : 30`
 STC.005 [REJECTED] A struct implementing an interface - a struct only holds values
-STC.006 [PLANNED] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (Task 48)
+STC.006 [BUILT] A struct's fields are only borrowed, never moved out; the whole struct moves or is borrowed (48.9, D.026, D.108)
 STC.007 [BUILT] A struct may hold an object - null until set; with "share" a copied struct shares it, `byVal` clones it (D.097)
 STC.008 [BUILT] Commas between struct fields: needed on one line (`struct Point { int x, int y }`), not needed on new lines (32.12)
 
@@ -173,24 +179,26 @@ CLS.009 [POSTPONED] The builder pattern (after Task 32)
 CLS.010 [BUILT] A warning for each circle of classes that could leak
 CLS.011 [DESIGN] Properties: `property Name: type { get; set; }`, computed and indexed ones
 CLS.012 [DESIGN] A constant in a class is always static
-CLS.013 [DESIGN] `abstract`, `sealed`, `virtual`, `override`, `protected` - reserved words, for inheritance (32.7)
+CLS.013 [BUILT] `abstract`, `sealed`, `override`, `protected` (32.7)
 CLS.014 [BUILT] `implements Default` - a variable, field or static of the type is never null; `= null` makes a new one (32.5b)
 CLS.015 [BUILT] `implements ToString` - print, format, "{x}", toString(x) use its toString(), also through an interface (32.5b)
-CLS.016 [DESIGN] Form D: a set-up block on an abstract class or an interface implements it in place (52.1)
+CLS.016 [POSTPONED] Form D: `{ }` on an abstract class or an interface makes a class right there - fields set, functions given, using the variables around it; after closures (52.1, D.119)
 CLS.017 [POSTPONED] A setting allowing `private` on a top-level item (meaning its module); off for now (52.3)
+CLS.018 [DESIGN] `virtual` - a reserved word, not used yet
+CLS.019 [PLANNED] An interface's functions are public or internal - `private` is a compile error (52.6, D.114)
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
 MOD.002 [BUILT] `--interface`: the public interface of the imported modules
 MOD.003 [POSTPONED] A Fusion library other programs load (`.dll` / `.so`) - needs `extern`
-MOD.004 [DESIGN] Library trust: capability signatures, sandboxing, supply-chain checks (Task 39)
+MOD.004 [DESIGN] Library trust: nothing trusted by default - a library without source is sandboxed (no files / network) unless the developer trusts it; capability signatures, supply-chain checks (Task 39, D.122)
 MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); `[modules] paths`
 MOD.006 [DESIGN] Working with other code: loading a DLL, assembly blocks, calling outside compilers
 MOD.007 [DESIGN] Callbacks and events
 MOD.008 [DESIGN] Grouped import blocks
 MOD.009 [DESIGN] Data formats module (fusionlib): JSON, XML, TOML, YAML, INI, MD to an in-memory document, load / save; JSON and XML written in the code: `(FILE_LANG.XML)"""..."""` (43.2)
 MOD.010 [DESIGN] HIDL library: hardware testing in the style of Maia - a DUT block, drive / expect vectors, clocks, bit widths (41.10)
-MOD.011 [DESIGN] Language modules `Lang.<language>.Fusion`: each brings its lexer, parser, AST and rules through one injection point - migrate a language to new .fusion files, or compile it by its own rules (Task 49)
+MOD.011 [DESIGN] Language modules `import Lang.Python.Fusion`: each brings its lexer, parser, AST and rules through one injection point - migrate a language to new .fusion files, or compile it by its own rules (Task 49)
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
@@ -203,6 +211,9 @@ MEM.007 [BUILT] The leak check: every example and test
 MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep(x)` always deep
 MEM.009 [DESIGN] Arena / region memory (many objects freed together); memory-mapped resources
 MEM.010 [PLANNED] `const` on an object is deep - no field set, no changing method; a `byVal` copy may change (50.2, D.112)
+MEM.011 [PLANNED] Storing `this` shares the object (counted): one car in several collections is one car, freed when the last holder lets go (48.12, D.103)
+MEM.012 [PLANNED] While a borrow changes a value, its owner may still be read - only changing it another way is an error (48.10, D.123)
+MEM.013 [PLANNED] A setting per borrow rule: one owner (`assignment`), one writer, a borrow never outlives its owner (48.11, D.124)
 
 #### CON - concurrency
 CON.001 [PLANNED] `service`: shared state with one owner (reserved keyword); version one (42.0-42.2)
@@ -224,6 +235,7 @@ CON.016 [PLANNED] A timeout means the caller stopped waiting; a request ends com
 CON.017 [PLANNED] Settings with `service(x).X = ...`: Mailbox, WhenFull, Timeout, Scheduler, Priority, Rule, WorkerThreadType, ThreadPool (42.2, 42.14)
 CON.018 [PLANNED] Every thread has an ID, a parent and a place in the hierarchy; the hierarchy decides who gets a resource (42.7, 42.9)
 CON.019 [PLANNED] Concurrency trap checks: warnings by default, errors when `fusion.toml` says so (42.10)
+CON.020 [DESIGN] A `Transaction` interface: commit gives OK / FAILED, rollback - marks a call as part of a transaction (42.29, D.120)
 
 #### SET - settings and tools
 SET.001 [BUILT] `fusion.toml` (or .yaml / .json / .ini); camelCase, read case-insensitively; a bad key is an error
@@ -359,7 +371,7 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.100 | A function whose body keeps a parameter (stores or returns it) takes it: the call moves the argument, like `list.add`; worked out from the body, shown by `--interface` - no written word | nothing extra to write: the compiler sees it; `--interface` shows it | MEM.003 | 2026-11-01 | files/Ownership.md 2 | ACTIVE |
 | D.101 | A local borrow (`Car c = fleet[0]`, `for c in fleet`) freezes its owner until the borrow's last use, not the end of its block | the shortest freeze: code after the last use is free | MEM.003 | 2026-11-01 | files/Ownership.md 2 | ACTIVE |
 | D.102 | Task 48 is built with `[memory] assignment = "share"` as the default; the default becomes "move" once tests, examples and the self-hosted compiler are migrated | built without breaking existing code; switched after migrating | MEM.002 | 2026-11-01 | files/taskSummary2.md (48) | ACTIVE (done 2026-11-03) |
-| D.103 | A method's `this` is always borrowed: calling `car.register()` never moves `car`, even when the method keeps `this` - for now; reviewed once working programs can verify it | a method call never loses its object - reviewed with working programs | MEM.003 | 2026-11-02 | files/Ownership.md 9 | ACTIVE |
+| D.103 | A method's `this` is always borrowed: calling `car.register()` never moves `car`. Storing `this` (`cars.add(this)`) shares the object, counted: several collections may hold one car; it is freed when the last holder lets go; an object made in a function and never stored is freed when the function ends | a method call never loses its object; a collection may refer to an object it didn't make | MEM.011 | 2026-11-07 | files/Ownership.md 9 | ACTIVE (planned) |
 | D.104 | A cast moves like any assignment - `Circle c = (Circle)first` moves `first` (back to the class too); `byVal` copies, `byRef` borrows | a cast is an assignment - one rule everywhere | MEM.002 | 2026-11-02 | files/Ownership.md 9 | ACTIVE |
 | D.105 | Multi-language support (`Lang.<language>.Fusion` modules: migrate or compile other languages) comes after self-hosting (Task 35); the core compiler holds no other language's logic | self-hosting first; the core holds no other language | MOD.011 | 2026-11-03 | files/Fusion_Multi_Language_Compiler_Architecture.md | ACTIVE (planned) |
 | D.106 | No `shared` yet: assignment moves, `byVal` copies, `byRef` already shares an object - `shared` waits for a real need | `byRef` already shares; no keyword until a real need | MEM.004 | 2026-11-03 | files/Ownership.md 3 | ACTIVE |
@@ -369,3 +381,15 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.110 | `readonly` on a function's result is part of its signature: the caller gets a read-only borrow; no `readonly` inside that function's body (`return readonly x` an error); `byRef` on its result an error; `byVal` a changeable copy | the signature tells the caller; the class protects its member | FUN.016 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (planned) |
 | D.111 | What a function returns: a single object it made moves to the caller; a member fetched from the class is a borrow, changeable unless the signature says `readonly` (D.109, D.110) | made here, nobody else owns it; a member stays the object's | MEM.003 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE |
 | D.112 | `const` protects the whole object (fields, changing methods), as it does Lists, Maps and structs; a `byVal` copy - also one a method returns - may change | `const` means nothing changes - the same for every kind | MEM.010 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (planned) |
+| D.113 | A readonly result may be a member (a read-only borrow), a new object (stays read-only for the caller) or a number (a copy); `readonly` on a copy - a result or `f(readonly n)` - is a warning, not an error | nothing can change a copy; the warning shows the word does nothing | FUN.017 | 2026-11-07 | files/Ownership.md | ACTIVE (planned) |
+| D.114 | An interface's functions are public or internal; `private` on one is a compile error | private defeats the purpose of an interface | CLS.019 | 2026-11-07 | files/Classes.md | ACTIVE (planned) |
+| D.115 | `--interface` shows a module's public and internal functions, never private ones | it shows what other modules may use | MOD.002 | 2026-11-07 | files/Ownership.md 8 | ACTIVE (planned) |
+| D.116 | A `?.` comparison is false on null and gives a warning; `!` around one is a compile error (a `[conditions]` setting allows it, then a warning); null is handled on its own: `if x is null ... else if ...` | null is neither true nor false - `!` would turn "unknown" into "yes" | NUL.005 | 2026-11-07 | files/Nullable_Values.md 5 | ACTIVE (planned) |
+| D.117 | The compiler checks an object is made before it is used: passing one that is surely null is a compile error; a parameter marked `?` without a null check warns; a `Default` type is never null - one left null and not made again is a compile error | NullErrors found at compile time (D.086) | NUL.006 | 2026-11-07 | files/Nullable_Values.md | ACTIVE (planned) |
+| D.118 | An RTOS (FreeRTOS, Zephyr) gets no layer of its own: the IO standard library covers what exists there, HIDL creates the tasks and timers | keeps the standard library one; hardware detail in HIDL | MOD.010 | 2026-11-07 | files/FEATURES.md 41 | ACTIVE |
+| D.119 | Form D: `{ }` on an abstract class or an interface makes a class right there; written like form B (fields and functions together) or with `implements { }`; may set up consts; its functions use the variables around them - so it comes after closures | set up and implement in one place, without a separate class | CLS.016 | 2026-11-07 | files/FEATURES.md 52.1 | ACTIVE (planned) |
+| D.120 | A failing operation: Fusion undoes what can be undone (default); the developer handles the error (try / catch / finally, or an Error returned); not handled, it bubbles up to the caller after the undo. A `Transaction` interface marks a call that commits (OK / FAILED) or rolls back - to be designed | the caller knows a transaction completed, or that nothing changed | CON.020 | 2026-11-07 | files/Service.md group rule 7 | ACTIVE (planned) |
+| D.121 | Language modules are imported as `import Lang.Python.Fusion` | its own top-level name, apart from fusionlib | MOD.011 | 2026-11-07 | files/Fusion_Multi_Language_Compiler_Architecture.md | ACTIVE (planned) |
+| D.122 | Nothing is trusted by default: a library is checked by its signature; one without source is sandboxed (no files / network) unless the developer trusts it (to run fast); the customer running the app may still forbid files / network | never trust code (GOL.008); the customer may not trust the developer's app | MOD.004 | 2026-11-07 | files/FEATURES.md 39 | ACTIVE (planned) |
+| D.123 | While a borrow changes a value (`Car c = fleet[0]`), its owner may still be read (`fleet.length()`); only changing it another way (`fleet[0] = ..`) is an error - unlike Rust | reading can't break the borrow; one writer is enough | MEM.012 | 2026-11-07 | files/Ownership.md R4 | ACTIVE (planned - changes 48.2) |
+| D.124 | Each borrow rule has its own setting: one owner (`[memory] assignment`), one writer, a borrow never outlives its owner - names decided when built | a project may loosen each rule on its own | MEM.013 | 2026-11-07 | files/Ownership.md | ACTIVE (planned) |

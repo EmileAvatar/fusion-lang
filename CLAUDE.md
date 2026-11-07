@@ -60,6 +60,9 @@ From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in on
 - Language features only - no bug fixes, no discussions; keep it small
 - Keep it ordered: a new line goes at the end of its area with the next number (STC.006 after
   STC.005), decisions by number (user, 2026-10-31)
+- Keep it up to date at the end of every task and session: `[DESIGN]` still being planned,
+  `[BUILT]` implemented, `[PARTIAL]` some parts built and some not - every PARTIAL resolved
+  before self-hosting is complete (user, 2026-11-07)
 
 ### Rule 4: Ship an example for every new feature
 When a language feature lands: add a short example to `files/SYNTAX_REFERENCE.md` (it becomes an
@@ -234,10 +237,10 @@ When a language feature or spec changes, update every affected file without aski
 - **Repository is public** on GitHub (`EmileAvatar/fusion-lang`); history was scrubbed of a
   personal email on 2026-08-04
 - **Name conflict:** another language is called Fusion (fusion-lang.org). Keep the name
-  during development; rename once the language works reliably, before 1.0. Naming candidate
-  (user, 2026-11-01): **MaiaFusion** (MyFusion / MaiFusion didn't sit right) - decide only
-  once the self-hosted compiler works 100% with all major features. Check first: "Maia" is
-  already the name of the maia-eda.net verification language (below)
+  during development; rename once the language works reliably, before 1.0. Naming candidates
+  (user, 2026-11-01 / 11-07): **CoreFusion**, **FusionCore**, **MaiaFusion** ("Fuse" is taken) -
+  decide only once the self-hosted compiler works 100% with all major features. Check first:
+  "Maia" is the maia-eda.net verification language (below); "Core" is core-lang.dev (Task 53)
 - **To check for HIDL (Task 41):** https://maia-eda.net/ - Maia, a small C-like language for
   self-checking HDL testbenches (compiles to a Verilog testbench). Its ideas we could use:
   a `DUT` block (ports, widths, clocks), drive / expect vectors (`[CLK, RST] -> [Q]`),

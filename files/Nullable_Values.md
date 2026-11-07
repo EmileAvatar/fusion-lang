@@ -227,7 +227,7 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 
 ## 7. Open points
 
-- The exact warning rules (section 5) - decided when Task 30.3 is built
+- The warning rules: decided 2026-11-07 (D.116, D.117) - see the log
 - Classes (Task 32) and `Weak<T>.lock()` (Task 38) use this model
 
 ## 8. Decisions log
@@ -247,4 +247,6 @@ fail loudly (plain `.`), or check first and handle it on purpose.
 | 2026-10-27 | Numbers as bool only in `if` / `while` conditions (with and / or / not); `count == true` follows the setting; `count === true` false; `bool b = count` always an error |
 | 2026-10-27 | `.len` and `.length` both; the conditional operator `(c) ? a : b` |
 | 2026-10-31 | `null == null` and `null is null` are true, `null != null` false (a bug gave false - Task 32.2g) |
+| 2026-11-07 | A `?.` comparison is false on null and warns; `!` around one is a compile error, a `[conditions]` setting allows it with a warning; handle null on its own with `if x is null ... else if` (D.116) |
+| 2026-11-07 | Made before use: passing a surely-null object is a compile error; a `?` parameter without a null check warns; a `Default` type left null is a compile error (D.117) |
 | 2026-11-01 | An Iterator's `next()` past the end gives null for a string, List or Map too - whatever the nullable settings say (null = no more items); `s is null` works on them; a null string prints `null`. A primitive gives an IndexError (D.094) |

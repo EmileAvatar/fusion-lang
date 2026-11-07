@@ -77,6 +77,7 @@ are in `task/featuresArchive.md`.
 	[ ] 35.3 The whole test suite runs against it
 	[ ] 35.4 Performance
 	[ ] 35.5 The Python compiler retired; docs
+	[ ] 35.6 No `[PARTIAL]` line left in Decisions.md - each finished or split (user, 2026-11-07)
 
 ---
 
@@ -200,7 +201,7 @@ are in `task/featuresArchive.md`.
 		[POSTPONED to 39.3] A Fusion library: only its signature counts - the caller is responsible
 		[POSTPONED to 39.3] A library not written in Fusion: a warning when a borrowed value is passed (user) -
 			Fusion has no libraries / extern functions yet
-	[ ] 48.4 `--interface` shows the readonly result of each public function
+	[ ] 48.4 `--interface` shows the readonly result of each public and internal function - never private (D.115)
 	[POSTPONED to a real need] 48.5 `shared` objects (user, 2026-11-03 - D.106): not added yet; assignment
 		moves, `byVal` copies, `byRef` already shares the object; the word kept for when a real need shows
 		The design if it comes back: `shared Car c = a` one more reader; only the holder that made it
@@ -209,6 +210,12 @@ are in `task/featuresArchive.md`.
 	[ ] 48.7 Examples and files/SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
 	[DONE] 48.9 Migrate, then make "move" the default (D.102)
+	[ ] 48.10 R4 changed (D.123): while a borrow changes a value its owner may still be read - only changing it
+		another way is an error (today reading is an error too - 48.2)
+	[ ] 48.11 A setting per borrow rule (D.124): one owner (`assignment`), one writer, a borrow never outlives
+		its owner - names decided when built; files/fusionSettings.xml then
+	[ ] 48.12 Storing `this` shares the object, counted (D.103): `cars.add(this)` - one car in several
+		collections; freed when the last holder lets go - check today's behaviour, tests
 		[DONE] The examples: byRef where sharing is meant, byVal where a copy (6 SYNTAX_REFERENCE, classes_demo)
 		[DONE] The self-hosted compiler pinned to "share" (selfhost/fusion.toml, D.107) - its context handling
 			is reworked for "move" with Task 35
@@ -230,7 +237,9 @@ are in `task/featuresArchive.md`.
 		Open (user): what such a function may return - a member of the class, a new object - decided while building
 	[ ] 50.2 `const` on an object is deep (D.112): `const Car c` - no field set, no method that changes it;
 		a `byVal` copy (or a function returning one) may change (today only Lists, Maps and structs are deep)
-	[ ] 50.3 Tests - every allowed / not allowed case of D.110-D.112 (Rule 4c); Ownership.fusion tags [built]
+	[ ] 50.3 Tests - every allowed / not allowed case of D.110-D.113 (Rule 4c); Ownership.fusion tags [built]
+	[ ] 50.4 `readonly` on a copy is a warning, not an error (D.113): a number result, and `f(readonly n)` on an
+		int / string (an error since 48.3)
 
 #### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon
 	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
@@ -241,12 +250,13 @@ are in `task/featuresArchive.md`.
 		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
 	[DONE] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
 	[ ] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
-	[ ] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first
+	[ ] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first;
+		no front matter for now - plain Markdown first (user, 2026-11-07)
 	[ ] 51.6 A link check in check.py
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
-#### 52 Classes and value types - follow-ups from the decision reasons (user, 2026-11-07) [ ]
+#### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]
 	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
-	[ ] 52.1 Form D (CLS.016): a set-up block on an abstract class or an interface - where it is
+	[POSTPONED to closures - SYN.028] 52.1 Form D (CLS.016, D.119): a set-up block on an abstract class or an interface - where it is
 		implemented in place (form B sets a value up; form D gives the missing functions) - design first
 	[ ] 52.2 Recheck `implements Default` (CLS.014, D.010): a variable of the type is never null in every
 		case (fields, statics, Lists, after a move); the developer writes the default values - tests per case
@@ -258,6 +268,17 @@ are in `task/featuresArchive.md`.
 	[ ] 52.5 Build D.055 (decided 2026-11-07): `length()` never null - 0 empty, -1 null (string, array, List,
 		Map with `nullable` on); the -1 only in a comparison (`if` / `while`), elsewhere a NullError (a compile
 		error where it can be seen); tests with and without a null check (Rule 4b)
+	[ ] 52.6 An interface's functions are public or internal - `private` on one a compile error (D.114, CLS.019)
+	[ ] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
+		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
+		`?` parameter without a null check - a warning; a `Default` left null - an error
+
+#### 53 Check the Core language (user, 2026-11-07) [ ]
+	https://core-lang.dev - its design (https://core-lang.dev/design.html - simplicity, which we share) and
+	code (https://codeberg.org/core-lang/core): ideas worth taking, and whether "CoreFusion" / "FusionCore"
+	clash with it (the rename - GOL.009, after self-hosting)
+	[ ] 53.1 Read its design principles - compare with Fusion's (Decisions.md GOL)
+	[ ] 53.2 The name: CoreFusion / FusionCore next to Core - a clash or not
 
 ## Phase 3 - the advanced parts
 
@@ -296,7 +317,9 @@ are in `task/featuresArchive.md`.
 	[ ] 39.1 Compiler-verified capability signatures (was 19.1; layers from 18.5.6 are the groundwork)
 	[ ] 39.2 Project restrictions (pragma Restrictions-style) (was 19.2)
 	[ ] 39.3 Closed, compiled, licensed libraries (was 19.3)
-	[ ] 39.4 Sandboxing and resource budgets (was 19.4)
+	[ ] 39.4 Sandboxing and resource budgets (was 19.4) - nothing trusted by default (D.122): a library without
+		source is sandboxed (no files / network) unless the developer trusts it; the customer running the app
+		may still forbid files / network
 	[ ] 39.5 Supply-chain security (was 19.5)
 	[POSTPONED - needs fusionlib.AI] 39.6 AI module input guard (was 19.7)
 
@@ -310,8 +333,8 @@ are in `task/featuresArchive.md`.
 	Note (user, 2026-10-24): the [stdlib] layers map to hardware - core: microcontrollers with
 	no heap, bare metal (Arduino AVR, Cortex-M0; 2-64 KB RAM); alloc: microcontrollers /
 	microprocessors with a heap, no OS or a small RTOS (ESP32, Cortex-M4/M7, STM32); std: a
-	full OS (PCs, servers, Raspberry Pi on Linux). Open: an RTOS (FreeRTOS, Zephyr) has
-	threads and timers but usually no files or console - its own layer, or optional std parts
+	full OS (PCs, servers, Raspberry Pi on Linux). An RTOS (FreeRTOS, Zephyr): no layer of its
+	own - the IO standard library covers what exists there, HIDL creates the tasks and timers (D.118)
 	[ ] 41.1 Grammar & format decision
 	[ ] 41.2 Scope v1 vs. future layers
 	[ ] 41.3 Memory model reconciliation
@@ -476,6 +499,9 @@ are in `task/featuresArchive.md`.
 		the compiler can tell by GUID which variables / objects are in a thread or a group service
 	(The thread view in the editor: 36.6. The service reference: files/Service.md)
 
+	[ ] 42.29 A `Transaction` interface (user, 2026-11-07 - D.120): commit gives OK / FAILED, rollback; marks a call
+		as part of a transaction - only OK commits. Design properly first. Also: a step that can't be undone
+		(a log line, a send) inside one - a warning "put it last, or in finally"?
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
 	The standard library's core modules, designed one at a time (spec "Fusion Standard
 	Library (fusionlib)"). Plan first.

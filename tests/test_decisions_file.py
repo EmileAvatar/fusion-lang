@@ -10,6 +10,7 @@ from check import ROOT, decision_problems
 GOOD = """#### SYN - syntax
 SYN.001 [BUILT] Three block styles
 SYN.002 [PLANNED] Duration literals
+SYN.003 [PARTIAL] Casts: objects built, numbers planned
 
 #### MEM - memory
 MEM.001 [DESIGN] A GC as an option
@@ -33,7 +34,7 @@ def test_the_real_file_is_in_shape():
 @pytest.mark.parametrize('old, new, problem', [
     ('SYN.002 [PLANNED]', 'SYN.003 [PLANNED]', 'SYN.003 - expected SYN.002'),           # a gap
     ('SYN.002 [PLANNED]', 'SYN.001 [PLANNED]', 'SYN.001 - expected SYN.002'),           # a repeat
-    ('SYN.002 [PLANNED]', 'SYN.002 [MAYBE]', 'not "AREA.NNN [BUILT|PLANNED'),           # an unknown status
+    ('SYN.002 [PLANNED]', 'SYN.002 [MAYBE]', 'not "AREA.NNN [BUILT|PARTIAL|PLANNED'),           # an unknown status
     ('MEM.001 [DESIGN]', 'SYN.003 [DESIGN]', 'SYN.003 is under the MEM heading'),       # the wrong area
     ('| D.002 |', '| D.003 |', 'D.003 - expected D.002'),                               # decisions out of order
     ('| SYN.001 | 2026', '| SYN.009 | 2026', 'names feature "SYN.009"'),                # a feature that doesn't exist
