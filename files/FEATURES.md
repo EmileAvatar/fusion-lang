@@ -237,7 +237,7 @@ are in `task/featuresArchive.md`.
 	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: files/taskSummary2.md Task 51
 	[DONE] 51.1 Root files moved to files/ (debug scripts to debug/); the root keeps CLAUDE.md, README.md,
 		Decisions.md, main.py, check.py, pytest.ini; paths in code and docs updated
-	[ ] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
+	[DONE] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
 		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
 	[ ] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
 	[ ] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)

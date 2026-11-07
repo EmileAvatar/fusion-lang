@@ -407,7 +407,10 @@ def decision_problems(text: str) -> list:
         if int(row.group(2)) != expected:
             problems.append(f'line {number}: D.{row.group(2)} - expected D.{expected:03d} (in order, no gaps)')
         expected = int(row.group(2)) + 1
-        feature = cells[1] if len(cells) > 1 else ''
+        feature = cells[2] if len(cells) > 2 else ''   # ID | Decision | Why | Feature | ...
+        status = next((c for c in reversed(cells) if c), '')
+        if not status.startswith(('ACTIVE', 'PROPOSED')):
+            problems.append(f'line {number}: D.{row.group(2)} status "{status}" - ACTIVE or PROPOSED')
         if feature not in features and feature not in areas:
             problems.append(f'line {number}: D.{row.group(2)} names feature "{feature}", which is not in section 1')
     return problems
@@ -420,7 +423,8 @@ def check_decisions():
     features = len(re.findall(r'^[A-Z]{3}\.\d{3} ', text, re.M))
     decisions = len(re.findall(r'^\| D\.\d{3} ', text, re.M))
     clashes = len(re.findall(r'^\| C\.\d{3} ', text, re.M))
-    summary = f'{features} features, {decisions} decisions, {clashes} clash(es) open'
+    proposed = len(re.findall(r'^\| D\.\d{3} \|.*\| PROPOSED[^|]*\|$', text, re.M))
+    summary = f'{features} features, {decisions} decisions ({proposed} proposed), {clashes} clash(es) open'
     return not problems, summary if not problems else f'{len(problems)} problem(s)', '\n'.join(problems[:20])
 
 

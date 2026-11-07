@@ -49,6 +49,8 @@ From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in on
 (`AREA.NNN [STATUS] ...`) and the latest decision on each subject in one table row.
 - Before designing anything: grep it for the subject; if a proposal goes against an
   ACTIVE decision, tell the user before going further
+- Each decision row has a short "why"; Claude may add a row as `PROPOSED` - only the user
+  makes it `ACTIVE` (user, 2026-11-07)
 - After the user decides: update the feature line and the decision row in the same session;
   a replaced decision is removed (git keeps the history); a conflict is a `CLASH` row until
   the user settles it

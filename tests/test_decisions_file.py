@@ -14,11 +14,11 @@ SYN.002 [PLANNED] Duration literals
 #### MEM - memory
 MEM.001 [DESIGN] A GC as an option
 
-| ID | Decision | Feature | Since | Detail | Status |
-|---|---|---|---|---|---|
-| D.001 | Blocks: any style | SYN.001 | 2026-10-31 | - | ACTIVE |
-| D.002 | No GC by default | MEM | 2026-10-31 | - | ACTIVE |
-| C.001 | **CLASH:** two rules disagree | MEM.001 | - | - | CLASH - check |
+| ID | Decision | Why | Feature | Since | Detail | Status |
+|---|---|---|---|---|---|---|
+| D.001 | Blocks: any style | each team its own style | SYN.001 | 2026-10-31 | - | ACTIVE |
+| D.002 | No GC by default | ? | MEM | 2026-10-31 | - | PROPOSED |
+| C.001 | **CLASH:** two rules disagree | - | MEM.001 | - | - | CLASH - check |
 """
 
 
@@ -38,6 +38,7 @@ def test_the_real_file_is_in_shape():
     ('| D.002 |', '| D.003 |', 'D.003 - expected D.002'),                               # decisions out of order
     ('| SYN.001 | 2026', '| SYN.009 | 2026', 'names feature "SYN.009"'),                # a feature that doesn't exist
     ('| C.001 | **CLASH:**', '| C.001 | **NOTE:**', 'C.001 is not marked CLASH'),
+    ('| - | ACTIVE |', '| - | MAYBE |', 'status "MAYBE" - ACTIVE or PROPOSED'),          # an unknown status
 ])
 def test_each_problem_is_reported(old, new, problem):
     broken = GOOD.replace(old, new)
