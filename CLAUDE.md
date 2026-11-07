@@ -51,6 +51,8 @@ From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in on
   ACTIVE decision, tell the user before going further
 - Each decision row has a short "why"; Claude may add a row as `PROPOSED` - only the user
   makes it `ACTIVE` (user, 2026-11-07)
+- A question not decided yet goes into `OpenQuestions.md` (one line, `Q.NNN`) instead of a
+  guess; once answered, the answer goes into `Decisions.md` and the line is removed
 - After the user decides: update the feature line and the decision row in the same session;
   a replaced decision is removed (git keeps the history); a conflict is a `CLASH` row until
   the user settles it
@@ -140,6 +142,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | What | Where |
 |---|---|
 | Every feature (one line) and the latest decision on each subject, clashes marked | `Decisions.md` |
+| Questions not decided yet, one line each | `OpenQuestions.md` |
 | Status of every open task/feature, postponed items | `files/FEATURES.md` |
 | Finished tasks and items (their files/FEATURES.md lines) | `task/featuresArchive.md` |
 | What the language can do now, with examples | `files/SYNTAX_REFERENCE.md` |
@@ -168,7 +171,7 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 | Tests / examples | `tests/`, `examples/` |
 
 Folders (user, 2026-11-07): the root keeps only `CLAUDE.md`, `README.md`, `Decisions.md`,
-`main.py`, `check.py`, `pytest.ini` (pytest finds it only there) and `.gitignore`; every other
+`OpenQuestions.md`, `main.py`, `check.py`, `pytest.ini` (pytest finds it only there) and `.gitignore`; every other
 document and file goes in `files/` (old debug scripts: `debug/`); tests in `tests/`; no
 `docs/` folder until the compiler goes live. `Notes/` is for
 our internal discussion (reviews, sources); `files/` is for developers who need to understand

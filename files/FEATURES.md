@@ -239,7 +239,7 @@ are in `task/featuresArchive.md`.
 		Decisions.md, main.py, check.py, pytest.ini; paths in code and docs updated
 	[DONE] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
 		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
-	[ ] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
+	[DONE] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
 	[ ] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
 	[ ] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first
 	[ ] 51.6 A link check in check.py
