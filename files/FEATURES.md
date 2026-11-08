@@ -588,6 +588,15 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 
 ---
 
+
+#### 54 Precepts: a project that behaves like C, Java, Python, Rust (user, 2026-11-08) [POSTPONED to 35]
+	A precept is a ready-made set of settings and behaviour, so a new project acts like a familiar
+	language without editing fusion.toml by hand: `c.precept.fusion`, `cpp.precept.fusion`,
+	`java.precept.fusion`, `python.precept.fusion`, `rust.precept.fusion` ... Built and checked only
+	after self-hosting (Task 35); goes with Task 49 (language modules)
+	[ ] 54.1 Design: what a precept holds (settings, defaults, warnings), how a project picks one, and
+		how its own fusion.toml overrides a precept's setting
+	[ ] 54.2 The first precepts, each tested against programs written the way that language works
 ## Later / advanced (after MVP)
 
 Kept in Fusion's design, deliberately postponed - the simple version comes first.

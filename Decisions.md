@@ -264,6 +264,7 @@ SET.021 [DESIGN] `[threads] enabled` - threads off for small devices
 SET.022 [DESIGN] Strict mode extras: null checks forced, `Weak<T>` an error, callbacks limited
 SET.023 [DESIGN] Tools: a formatter that converts between block styles, a debugger protocol, hot reloading, a bytecode VM
 SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactoring, a symbol database
+SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a ready-made set of settings so a project behaves like C, Java, Python, Rust; after self-hosting (Task 54)
 
 ---
 

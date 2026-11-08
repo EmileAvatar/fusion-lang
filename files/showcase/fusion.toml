@@ -8,6 +8,9 @@
 # [built] The same settings may also be written as fusion.yaml / .json / .ini (Task 31); in a
 # folder TOML is used first, then YAML, JSON, INI. Every built setting, its values and default:
 # files/fusionSettings.xml (the master template).
+# [idea] Precepts (Task 54, after self-hosting): start from a ready-made set that makes the
+# project behave like another language - precept = "java" (c.precept.fusion, java.precept.fusion, ...);
+# a setting written here overrides the precept's
 
 # [designed] The project itself: name, version, the file that holds main
 [project]
