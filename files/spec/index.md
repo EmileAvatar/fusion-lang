@@ -8,8 +8,11 @@ Each major section starts with a `**Status:**` line matching `files/FEATURES.md`
 built (task n), `[PARTLY]` some of it built, `[PLANNED n]` scheduled as task n, `[DESIGN]` the
 intended design with no task yet. What works today, with examples: `files/SYNTAX_REFERENCE.md`.
 
+000-009 are kept for the high-level files (user, 2026-11-08); the topics start at 010.
+
 | File | What it holds |
 |---|---|
+| [001 TomlSettings](001-TomlSettings.md) | Every project setting (`fusion.toml`): the built ones (generated) and the decided ones |
 | [010 Philosophy](010-Philosophy.md) | The principles every task follows; the three block styles and the source text rules |
 
 Still in `files/fusion-language-spec.md`: the semantic contract, types, arrays, strings,

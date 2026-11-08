@@ -260,6 +260,10 @@ are in `task/featuresArchive.md`.
 		Root navigation (user): Main -> Decisions -> OpenQuestions -> README, each linking to the spec index;
 			spec files link only to each other and their index - never back to the root
 		[DONE] index.md, 010-Philosophy (2026-11-08)
+		[DONE] 001-TomlSettings (user, 2026-11-08): every project setting; 000-009 kept for high-level files;
+			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
+		[ ] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
+			files/showcase/fusion.toml - into "Decided, not built"
 	[ ] 51.6 A link check in check.py
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]

@@ -416,6 +416,14 @@ def decision_problems(text: str) -> list:
     return problems
 
 
+def check_settings_doc():
+    """Task 51.5: files/spec/001-TomlSettings.md lists every built setting of files/fusionSettings.xml."""
+    sys.path.insert(0, str(ROOT / 'tools'))
+    from settings_doc import settings_problems
+    problems = settings_problems()
+    return not problems, 'files/spec/001-TomlSettings.md up to date' if not problems else 'out of date', '\n'.join(problems)
+
+
 def check_nav():
     """Task 51.5: the navigation lines of the root documents and files/spec/ are current."""
     sys.path.insert(0, str(ROOT / 'tools'))
@@ -628,7 +636,7 @@ def run_checks(quick: bool) -> bool:
     if not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
                    ('reference', check_reference_sync), ('builtins', check_builtins),
-                   ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav),
+                   ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav), ('settings', check_settings_doc),
                    ('ascii', check_ascii)]
     all_ok = True
     details = []

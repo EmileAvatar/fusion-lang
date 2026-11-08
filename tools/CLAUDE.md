@@ -6,5 +6,7 @@
   `check.py --builtins` and the "builtins" check
 - `doc_nav.py` - writes the navigation line at the top and bottom of the root documents and of
   files/spec/ (order: files/spec/index.md); the "nav" check in check.py (51.5)
+- `settings_doc.py` - writes the "Built" part of files/spec/001-TomlSettings.md from
+  files/fusionSettings.xml; the "settings" check in check.py (51.5)
 - `windows/fusion-file-preview.reg` - Explorer preview pane shows `.fusion` files as text (23.8)
 - `windows/fusion-file-preview-undo.reg` - removes that again

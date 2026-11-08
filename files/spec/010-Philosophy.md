@@ -1,4 +1,4 @@
-[Index](index.md) <!-- nav -->
+[< 001 TomlSettings](001-TomlSettings.md) | [Index](index.md) <!-- nav -->
 
 # 010 Philosophy and Syntax Overview
 
@@ -109,4 +109,4 @@ single byte in the generated C, so anything beyond U+007F belongs in a string.
 
 **5. Digits are ASCII** - other Unicode digits (e.g. Arabic-Indic `٣`) never start a number.
 
-[Index](index.md) <!-- nav -->
+[< 001 TomlSettings](001-TomlSettings.md) | [Index](index.md) <!-- nav -->
