@@ -1,4 +1,4 @@
-[< 010 Philosophy](010-Philosophy.md) | [Index](index.md) <!-- nav -->
+[< 010 Philosophy](010-Philosophy.md) | [Index](index.md) | [030 Types >](030-Types.md) <!-- nav -->
 
 # 020 The Semantic Contract
 
@@ -73,4 +73,4 @@
 * **Open (Task 37.2):** the two sides of other operators run in C's order - `next(c) -
   next(c)` may run the right call first. Write them on separate lines when the order matters
 
-[< 010 Philosophy](010-Philosophy.md) | [Index](index.md) <!-- nav -->
+[< 010 Philosophy](010-Philosophy.md) | [Index](index.md) | [030 Types >](030-Types.md) <!-- nav -->
