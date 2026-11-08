@@ -78,18 +78,30 @@ stringWarnLength = 64
 holdCollections = true
 # [built] Methods inside a struct - p.move(1, 2) changes p (Task 32.1); off by default
 functions = false
+# [designed] structB = byRef structA borrows instead of copying (32.10a)
+allowReference = false
 # [rejected] A setting for objects inside structs - a struct may always hold one: null until set,
 # shared when the struct is copied (user, 2026-11-01 - D.097)
 
 [conditions]
 # [built] A number as a condition: positive (above zero is true) | nonzero (C, Python) | off
 numbers = "positive"
+# [designed] "!" around a ?. comparison: allowed with a warning (true) or a compile error (D.116; name open)
+negateGuarded = false
 
 [arrays]
 # [designed] Arrays may be null (default false - [] instead) (Task 30.3); they grow at the
 # end (Task 45)
 # [built] Note: an Iterator's next() past the end gives null for a string, List or Map
 # whatever this says - null means no more items; check hasNext() first (D.094)
+nullable = false
+
+[lists]
+# [designed] Lists may be null (default false - empty instead) (D.044)
+nullable = false
+
+[maps]
+# [designed] Maps may be null (default false - empty instead) (D.044)
 nullable = false
 
 [collections]
@@ -140,6 +152,11 @@ assignment = "move"
 # [built] A field moved out of a struct the function owns, the struct unusable afterwards
 # (as Rust) - off: fields are only borrowed (D.026, user 2026-11-03)
 moveFieldOut = false
+# [designed] What copy(x) and byVal copy: "deep" | "shallow" (D.033)
+copy = "deep"
+# [designed] Borrow rule 2 - one writer at a time; rule 3 - a borrow never outlives its owner (D.124; names open)
+oneWriter = true
+borrowOutlive = true
 
 [threads]
 # [designed] Threads allowed at all (off for small devices)
@@ -153,6 +170,8 @@ poolSize = "auto"
 autoService = "on"
 # [designed] Readonly requests to a service run together ("parallel") or in turn (42.18 S4)
 readers = "parallel"
+# [designed] Resources (files, sockets, databases) are services; direct access only in unsafe mode (D.072)
+resourceAsService = true
 
 [hotpath]
 # [designed] Hot-path services: a dedicated thread that never sleeps (Task 42.23-42.24,
@@ -192,6 +211,11 @@ variables = true
 paths = ["lib", "vendor"]
 # [designed] Libraries must declare what they may do (files, network, ...) (Task 39)
 requireCapabilities = true
+
+[trust]
+# [designed] A library without source gets no files / network unless trusted (D.122, Task 39; names open)
+sandbox = true
+trusted = []
 
 [backend]
 # [built] "c"; [designed] "llvm" (Task 40)
