@@ -252,6 +252,14 @@ are in `task/featuresArchive.md`.
 	[DONE] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
 	[ ] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first;
 		no front matter for now - plain Markdown first (user, 2026-11-07)
+		[ ] Navigation (user, 2026-11-08 - mockup Notes/showcase): each file starts and ends with
+			`[< previous](..) | [Main](../../Main.md) | [next >](..)` - the first has no previous, the last no next;
+			files/spec/index.md lists every spec file as a link; Main.md's paths become clickable links;
+			a long file gets a contents list of links to its own sections; a script writes the nav lines
+			from the index order, so they never drift (tools/doc_nav.py, the "nav" check)
+		Root navigation (user): Main -> Decisions -> OpenQuestions -> README, each linking to the spec index;
+			spec files link only to each other and their index - never back to the root
+		[DONE] index.md, 010-Philosophy (2026-11-08)
 	[ ] 51.6 A link check in check.py
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]

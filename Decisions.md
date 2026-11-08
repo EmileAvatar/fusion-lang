@@ -1,3 +1,5 @@
+[< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->
+
 # Fusion - Decisions
 
 The single list of what Fusion is and what has been decided. Keep it small: one line per
@@ -393,3 +395,5 @@ SET.024 [DESIGN] An IDE module (fusionlib.IDE): code-quality overlays, refactori
 | D.122 | Nothing is trusted by default: a library is checked by its signature; one without source is sandboxed (no files / network) unless the developer trusts it (to run fast); the customer running the app may still forbid files / network | never trust code (GOL.008); the customer may not trust the developer's app | MOD.004 | 2026-11-07 | files/FEATURES.md 39 | ACTIVE (planned) |
 | D.123 | While a borrow changes a value (`Car c = fleet[0]`), its owner may still be read (`fleet.length()`); only changing it another way (`fleet[0] = ..`) is an error - unlike Rust | reading can't break the borrow; one writer is enough | MEM.012 | 2026-11-07 | files/Ownership.md R4 | ACTIVE (planned - changes 48.2) |
 | D.124 | Each borrow rule has its own setting: one owner (`[memory] assignment`), one writer, a borrow never outlives its owner - names decided when built | a project may loosen each rule on its own | MEM.013 | 2026-11-07 | files/Ownership.md | ACTIVE (planned) |
+
+[< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->

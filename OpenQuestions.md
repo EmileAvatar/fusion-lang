@@ -1,3 +1,5 @@
+[< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->
+
 # Fusion - Open Questions
 
 Questions not decided yet. Next to `Decisions.md`: when the user answers one, the answer goes
@@ -26,3 +28,5 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 None - Q.001-Q.012 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status
 PARTIAL; FEATURES 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the
 name). Next question: Q.013.
+
+[< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->

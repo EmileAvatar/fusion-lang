@@ -416,6 +416,15 @@ def decision_problems(text: str) -> list:
     return problems
 
 
+def check_nav():
+    """Task 51.5: the navigation lines of the root documents and files/spec/ are current."""
+    sys.path.insert(0, str(ROOT / 'tools'))
+    from doc_nav import nav_problems, wanted
+    problems = nav_problems()
+    summary = f'{len(wanted())} files navigable' if not problems else f'{len(problems)} problem(s)'
+    return not problems, summary, '\n'.join(problems)
+
+
 def check_decisions():
     path = ROOT / 'Decisions.md'
     text = path.read_text(encoding='utf-8')
@@ -619,7 +628,7 @@ def run_checks(quick: bool) -> bool:
     if not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
                    ('reference', check_reference_sync), ('builtins', check_builtins),
-                   ('runtime', check_runtime), ('decisions', check_decisions),
+                   ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav),
                    ('ascii', check_ascii)]
     all_ok = True
     details = []

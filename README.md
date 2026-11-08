@@ -1,3 +1,5 @@
+[< OpenQuestions](OpenQuestions.md) | [Main](Main.md) | [Spec](files/spec/index.md) <!-- nav -->
+
 # Fusion Programming Language 🏗️
 
 Fusion is not a traditional programming language. It is a configurable compiler platform where syntax is optional, behavior is declarative, and execution is pluggable.
@@ -325,3 +327,5 @@ Want to contribute? See the [Contributing](#contributing) section above!
 **Star ⭐ this repository if you find it interesting!**
 
 **Fusion Programming Language** - Write Once, Configure Anywhere 🏗️
+
+[< OpenQuestions](OpenQuestions.md) | [Main](Main.md) | [Spec](files/spec/index.md) <!-- nav -->

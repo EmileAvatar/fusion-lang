@@ -51,6 +51,52 @@ Settings: none. Source: user 2026-11-07, files/DocumentationSystemProposal.md (o
 	the design docs), each with where it belongs; answered -> removed, the answer goes to Decisions.md
 - 51.4 Main.md in the root: what Fusion is for + a map of every file (the "Where things are" table moves there from
 	CLAUDE.md; CLAUDE.md points to it)
+- 51.5 Navigation in every split file (user, 2026-11-08 - mockup in Notes/showcase): a top and bottom line
+	`[< previous](..) | [Main](../../Main.md) | [next >](..)`; files/spec/index.md links every file in order;
+	Main.md's paths become links; a long file gets its own contents list; tools/spec_nav.py writes the nav lines
+- 51.5 The spec's files (proposed 2026-11-08 - waiting for approval); numbers in tens leave room; lines = spec lines today
+	- One file per step (user): cut the section out of files/fusion-language-spec.md, add the nav lines, check, ship;
+		the old spec keeps a line "moved to files/spec/NNN-...md" until it is empty, then it is removed and every
+		reference (19 files) points to files/spec/index.md
+	- Nav line, top and bottom: `[< prev](..) | [Main](../../Main.md) | [Decisions](../../Decisions.md) | [next >](..)`
+	- index.md  the list of every spec file, each a link
+	- 010-Philosophy.md         philosophy, syntax overview (1-119)                        120
+	- 020-SemanticContract.md   the semantic contract (120-192)                             73
+	- 030-Types.md              type categories, specs, nullability, variables, constants   200
+	- 031-Arrays.md             arrays                                                      87
+	- 032-Strings.md            strings                                                     299
+	- 033-TypeCasting.md        type casting                                                53
+	- 040-Functions.md          declaring, main, block syntax, calling                      272
+	- 041-Lambdas.md            lambdas and function values                                 196
+	- 042-MultipleReturns.md    several return values, an Error returned                    73
+	- 050-Classes.md            class definition, static vs instance, properties            318
+	- 051-Inheritance.md        inheritance, static methods and constants                   96
+	- 052-Interfaces.md         interfaces                                                  57
+	- 060-Structs.md            structs and value types                                     237
+	- 061-Enums.md              enums                                                       234
+	- 070-ControlFlow.md        control flow                                                334
+	- 080-Null.md               null handling                                               112
+	- 081-Autoboxing.md         autoboxing                                                  86
+	- 090-Memory.md             memory management                                           193
+	- 100-Concurrency.md        threading model + async (one home for concurrency)          376
+	- 110-Generics.md           generics and templates                                      84
+	- 120-Errors.md             error handling                                              242
+	- 130-Comments.md           comments and code organisation                              140
+	- 131-AutoDocs.md           documentation written from the code                         153
+	- 140-Collections.md        collections (as built)                                      132
+	- 150-Modules.md            modules                                                     191
+	- 160-GameExample.md        a complete game example                                     229
+	- 170-Build.md              build, compilation, fusion.toml                             291
+	- 180-StandardLibrary.md    the standard library                                        151
+	- 181-fusionlib-Core.md     fusionlib: overview + core libraries                        332
+	- 182-fusionlib-Extended.md fusionlib: additional libraries                              236
+	- 183-fusionlib-IDE.md      fusionlib: IDE and development libraries + summary          217
+	- 190-Callbacks.md          callbacks and events                                        35
+	- 191-Interop.md            working with other code                                     61
+	- 200-ReservedWords.md      reserved words and operators                                222
+	- 210-FeaturesSummary.md    the language features summary                               235
+	- 220-Comparison.md         Fusion compared with other languages                        208
+	- Later (not this task): a topic with a design doc too (Classes.md, Ownership.md, ...) gets one home
 - 51.5 Split the spec into files/spec/NNN-Topic.md (100-200 lines each; fusion-language-spec.md is 6,574 lines,
 	files/FutureFeatures.md 6,360) - the file list shown to the user first
 - 51.6 A link check in check.py (every link and file name in the .md files exists)
