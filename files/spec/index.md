@@ -14,8 +14,9 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 |---|---|
 | [001 TomlSettings](001-TomlSettings.md) | Every project setting (`fusion.toml`): the built ones (generated) and the decided ones |
 | [010 Philosophy](010-Philosophy.md) | The principles every task follows; the three block styles and the source text rules |
+| [020 SemanticContract](020-SemanticContract.md) | What every built construct does, in one place - each rule tested |
 
-Still in `files/fusion-language-spec.md`: the semantic contract, types, arrays, strings,
+Still in `files/fusion-language-spec.md`: types, arrays, strings,
 functions, classes, structs, enums, control flow, null, memory, concurrency, generics, errors,
 comments, collections, modules, the game example, building, the standard library, interop,
 reserved words, the features summary, the language comparison.
