@@ -143,38 +143,12 @@ On a Dropbox copy of the repo, git may need `git config windows.appendAtomically
 
 ## Where things are
 
-| What | Where |
-|---|---|
-| Every feature (one line) and the latest decision on each subject, clashes marked | `Decisions.md` |
-| Questions not decided yet, one line each | `OpenQuestions.md` |
-| Status of every open task/feature, postponed items | `files/FEATURES.md` |
-| Finished tasks and items (their files/FEATURES.md lines) | `task/featuresArchive.md` |
-| What the language can do now, with examples | `files/SYNTAX_REFERENCE.md` |
-| Every built-in function and method (generated) | `files/Builtins.md` |
-| Every type: default, range, size, status (open in a browser; update by hand) | `files/FusionTypes.html` |
-| Active task plan + next action | `files/taskSummary2.md` |
-| Finished task detail, old sessions | `task/taskSummaryArchive.md` |
-| Not-started task write-ups | `task/taskBacklog.md` |
-| MVP history (Tasks 1-4) | `task/taskSummary.md` |
-| Commands we repeat / could automate | `task/automation.md` |
-| Full language design | `files/fusion-language-spec.md` (grep it) |
-| Grammar | `files/fusion.ebnf` |
-| Every project setting, its values and default (master template, read only) | `files/fusionSettings.xml` |
-| Null design: `?.`, `??`, number conditions, truth tables | `files/Nullable_Values.md` |
-| Single values, arrays, lists, maps: what each does, when (not) to use it | `files/Arrays.md` |
-| When a class object is freed: every way it gains or loses a reference | `files/Object_Lifetime.md` |
-| Ownership: moves, borrows, `shared`, readonly caller / called, one writer across threads (Task 48) | `files/Ownership.md` |
-| Every ownership / readonly / const rule as code - allowed and not allowed, [built] / [designed] | `files/showcase/Ownership.fusion`; the skill `.claude/skills/fusion-ownership` |
-| Classes: visibility, constructors, static set-up (forms A, B, C), Default, ToString - truth tables | `files/Classes.md` |
-| How a .fusion file is laid out: namespace, imports, the preferred order | `files/FusionTemplate.md` |
-| Read before picking future features | `files/FutureFeaturesCaution.md`, then `files/FutureFeatures.md` |
-| Multi-language support after self-hosting: `Lang.<language>.Fusion` modules, migration IR (Task 49) | `files/Fusion_Multi_Language_Compiler_Architecture.md` |
-| A review of memory, ownership and services (ChatGPT - ideas, not plans) | `files/Fusion_Memory_Ownership_and_Services.md` |
-| Why 30 languages were made; what each domain (OS, GPU, games, mobile, ...) needs, Fusion now vs planned | `files/Programming Languages Pain points.md` |
-| Compiler source | `src/` - `src/CLAUDE.md` explains the pipeline; each subfolder's `CLAUDE.md` has one line per file |
-| Tests / examples | `tests/`, `examples/` |
+`Main.md` is the map of every file, one line each - look there to find a document, and update
+it in the same session when a file is added, moved or removed (user, 2026-11-08). Most used:
+`Decisions.md`, `OpenQuestions.md`, `files/FEATURES.md`, `files/taskSummary2.md`,
+`files/SYNTAX_REFERENCE.md`, `files/fusion-language-spec.md` (grep it).
 
-Folders (user, 2026-11-07): the root keeps only `CLAUDE.md`, `README.md`, `Decisions.md`,
+Folders (user, 2026-11-07): the root keeps only `CLAUDE.md`, `README.md`, `Main.md`, `Decisions.md`,
 `OpenQuestions.md`, `main.py`, `check.py`, `pytest.ini` (pytest finds it only there) and `.gitignore`; every other
 document and file goes in `files/` (old debug scripts: `debug/`); tests in `tests/`; no
 `docs/` folder until the compiler goes live. `Notes/` is for

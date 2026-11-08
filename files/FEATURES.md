@@ -249,7 +249,7 @@ are in `task/featuresArchive.md`.
 	[DONE] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
 		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
 	[DONE] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
-	[ ] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
+	[DONE] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
 	[ ] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first;
 		no front matter for now - plain Markdown first (user, 2026-11-07)
 	[ ] 51.6 A link check in check.py

@@ -28,7 +28,7 @@ safety (bounds checks, the three-block-style check), 28 self-hosting test run.
 
 Plan and answers: task/taskSummaryArchive.md. Tests: tests/test_let_var_match.py.
 
-## TASK 51: Documentation clean-up - PLAN (2026-11-07, approved; 51.1-51.3 done; the 6 open whys answered - follow-ups in Task 52)
+## TASK 51: Documentation clean-up - PLAN (2026-11-07, approved; 51.1-51.4 done; the 6 open whys answered - follow-ups in Task 52)
 
 Settings: none. Source: user 2026-11-07, files/DocumentationSystemProposal.md (our formats kept)
 
