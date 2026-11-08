@@ -148,12 +148,121 @@ mode = "safe"              # "strict": every warning an error
 
 ## Decided, not built
 
-Being filled in (Task 51.5 part 2): every setting decided in `Decisions.md`, the design
-documents and `files/FEATURES.md`, one table per section - its values, default, decision and task.
+Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built yet - so not in
+`files/fusionSettings.xml`. A name marked *(name open)* is decided when built.
 
+#### [project]
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|
-| `[memory] oneWriter`, `borrowOutlive` (names decided when built) | `true` / `false` | `true` | Each borrow rule switched on its own | D.124, 48.11 |
-| `[conditions] negateGuarded` (name decided when built) | `true` / `false` | `false` | `!` around a `?.` comparison allowed, with a warning | D.116, 52.7 |
+| `name`, `version`, `main` | text | - | The project's name, version and the file that holds main | SET.019 |
+
+#### [strings]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `nullable` | `true` / `false` | `false` | A string may be null; false: "" instead | D.050, 30.3 |
+| `pooling` | `true` / `false` | `false` | Identical text stored once | 29.4 (postponed to 38) |
+
+#### [arrays], [lists], [maps]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `nullable` (each section) | `true` / `false` | `false` | An array / List / Map may be null; false: empty instead. `length()` on null: -1, only in a comparison | D.044, D.055, 30.3, 52.5 |
+| `[maps]` key already there on `add(otherMap)` *(name open)* | replace / keep / error | replace | What `add(otherMap)` does with a key both have | D.047 |
+
+#### [errors]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `stackTraces` | `true` / `false` | `true` | Every error carries a stack trace | FUN.013 |
+
+#### [structs]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `allowReference` | `true` / `false` | `false` | `structB = byRef structA` - a struct borrowed, not copied; false: an error | 32.10a |
+| `shareableListBehaviour` | `cloneable` / `none` | `cloneable` | Objects in a struct's List when the struct is copied | files/Object_Lifetime.md log |
+
+#### [functions]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `multipleReturns` | `true` / `false` | `false` | Several return values besides the Error | FUN.005 |
+
+#### [conditions]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `negateGuarded` *(name open)* | `true` / `false` | `false` | `!` around a `?.` comparison allowed, with a warning; false: a compile error | D.116, 52.7 |
+
+#### [safety]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `nullChecks` | `strict` / ... | `strict` | Strict mode: null checks forced, `Weak<T>` an error, callbacks limited | files/fusion-strict.md |
+| `maxIterations` | a whole number, 0 = no limit | `0` | The most passes a loop may make | SYN.033 |
+
+#### [memory]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `strategy` | `ownership` / `gc` / `manual` | `ownership` | How memory is managed - no GC unless chosen | D.013, D.027, Task 38 |
+| `copy` | `deep` / `shallow` | `deep` | What `copy(x)` and `byVal` copy | D.033, MEM.008 |
+| `oneWriter` *(name open)* | `true` / `false` | `true` | Rule 2: while a borrow changes a value, nothing else changes it | D.123, D.124, 48.11 |
+| `borrowOutlive` *(name open)* | `true` / `false` | `true` | Rule 3: a borrow is never kept past its owner's life | D.124, 48.11 |
+
+#### [threads], [concurrency], [collections]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `[threads] enabled` | `true` / `false` | `true` | Threads allowed at all (off for small devices) | Task 42 |
+| `[concurrency] autoService` | `on` / `warn` / `off` | `on` | Two or more threads using one variable: a temporary service is made (off: an error) | D.017, 42.19 |
+| `[concurrency] readers` | `parallel` / `inTurn` | `parallel` | Read-only requests to a service run together or in turn | 42.18 |
+| `[concurrency] resourceAsService` | `true` / `false` | `true` | Resources (files, sockets, databases) are services; direct access only in unsafe mode | D.072 |
+| `[concurrency.defaults]` Mailbox, WhenFull, Timeout, Scheduler, Priority, Rule, WorkerThreadType, ThreadPool | per setting (Priority `"5.4.1"`: weighted turns) | Mailbox 12, WhenFull WAIT, Scheduler IMMEDIATE, Rule HIERARCHY | The defaults every service starts from | 42.14 |
+| Trap checks *(name open)* | warning / error, per check | warning | Each concurrency trap check can be made an error | D.074, 42.10 |
+| `[collections] threads`, `sharedThreads` | `shared` / `dedicated`; a number | `shared`, `10` | The worker a List or Map used by several threads gets | D.057, 42.17 |
+
+#### [hotpath] (Task 42.23-42.24, files/Service.md)
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `enabled` | `true` / `false` | `true` | Hot-path services: a dedicated thread that never sleeps | D.019 |
+| `ring` | a power of 2 | `1024` | Input ring size per hot-path service | 42.24 |
+| `wait` | `spin` / `yield` | `spin` | How a hot-path worker waits - never parks | 42.24 |
+| `whenFull` | `drop` / `overwrite` / `coalesce` / `error` | `error` | When the ring is full - never waits | 42.24 |
+| `pinThreads` | `true` / `false` | `true` | Each hot-path worker on its own core | 42.24 |
+| `lockMemory` | `true` / `false` | `true` | Memory locked and touched at set-up - no page faults while running | 42.24 |
+| `checks` | `true` / `false` | `true` | Bounds and null checks kept inside a hot path (a few ns each) | 42.23 |
+| `loopLimit` | `true` / `false` | `true` | No unbounded loops inside one step (H5) | 42.23 |
+
+#### [modules], [trust]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `[modules] requireCapabilities` | `true` / `false` | `true` | Libraries declare what they may do (files, network, ...) | Task 39 |
+| `[trust] sandbox` *(name open)* | `true` / `false` | `true` | A library without source gets no files / network | D.122, 39.4 |
+| `[trust] trusted` *(name open)* | a list of library names | `[]` | Libraries the developer trusts - run without the sandbox | D.122, 39.4 |
+
+#### [backend], [build], [docs]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `[backend] platform` | `windows-x64` / `linux-x64` / `wasm` ... | the machine's | The platform to build for | SET.013 |
+| `[build] mode` | `debug` / `release` | `debug` | | SET.010 |
+| `[build] optimize` | `speed` / `size` / `none` | `none` | | SET.010 |
+| `[build] output` | `exe` / `lib` | `exe` | A program or a library (DLL / shared library) | SET.013 |
+| `[docs] generate`, `output` | `true` / `false`; a folder | `false`, `docs/` | Documentation made from `/** */` comments | SYN.032 |
+
+## Ideas - not decided yet
+
+| Setting | Values | What it would do | Where |
+|---|---|---|---|
+| `precept` | `c` / `cpp` / `java` / `python` / `rust` ... | Start from a ready-made set so the project behaves like that language | Task 54 (after self-hosting) |
+| `[indentation] blockStyles` | a list of `indent` / `end` / `braces` | Only some block styles allowed in this project | SET.010 |
+| `[language] operatorOverloading` | `true` / `false` | `+` on your own types - exceptional cases only | TYP.008 |
+| `[console] lineEnding` | `system` / `lf` / `crlf` | The line ending `println` uses | SET.010 |
+| `[threads] poolSize` | `auto` / a number | Threads in the pool (`auto`: one per core) | Task 42 |
+| `[hotpath] hugePages`, `budgetStrict` | `true` / `false` | Huge pages for rings; going over a Budget an error in test builds | 42.24 |
+| `[modules] paths` | a list of folders | Extra folders searched for imports | MOD.005 |
+| `[hardware] hidl` | a list of files | Hardware descriptions to import | Task 41 |
+| `[visibility]` private on a top-level item *(name open)* | `true` / `false` | `private` at the top level means its module | CLS.017, 52.3 |
+
+## Rejected
+
+| Setting | Why not |
+|---|---|
+| `[strings] mutable` | A string variable can always change in place; `const string` is fixed (29.1, 29.2) |
+| A setting for objects inside structs | A struct may always hold one (D.097) |
+| Turning off array bounds checks | They stay on, even in unsafe mode (27.1) |
+| Non-atomic `Shared` counts | Always atomic (2026-09-13) |
 
 [Index](index.md) | [010 Philosophy >](010-Philosophy.md) <!-- nav -->
