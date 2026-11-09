@@ -1,4 +1,4 @@
-[< 041 Lambdas](041-Lambdas.md) | [Index](index.md) <!-- nav -->
+[< 041 Lambdas](041-Lambdas.md) | [Index](index.md) | [050 Classes >](050-Classes.md) <!-- nav -->
 
 # 042 MultipleReturns
 
@@ -73,4 +73,4 @@ Spaceship, Error function loadAndValidateShip(string filename)
     return ship
 ```
 
-[< 041 Lambdas](041-Lambdas.md) | [Index](index.md) <!-- nav -->
+[< 041 Lambdas](041-Lambdas.md) | [Index](index.md) | [050 Classes >](050-Classes.md) <!-- nav -->
