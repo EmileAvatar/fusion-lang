@@ -16,8 +16,9 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [010 Philosophy](010-Philosophy.md) | The principles every task follows; the three block styles and the source text rules |
 | [020 SemanticContract](020-SemanticContract.md) | What every built construct does, in one place - each rule tested |
 | [030 Types](030-Types.md) | Value and reference types, every built-in type, nullability, variables, constants |
+| [031 Arrays](031-Arrays.md) | Fixed-size arrays: declaring, reading and writing, as parameters and return values |
 
-Still in `files/fusion-language-spec.md`: arrays, strings,
+Still in `files/fusion-language-spec.md`: strings,
 functions, classes, structs, enums, control flow, null, memory, concurrency, generics, errors,
 comments, collections, modules, the game example, building, the standard library, interop,
 reserved words, the features summary, the language comparison.

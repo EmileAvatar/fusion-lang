@@ -1,4 +1,4 @@
-[< 020 SemanticContract](020-SemanticContract.md) | [Index](index.md) <!-- nav -->
+[< 020 SemanticContract](020-SemanticContract.md) | [Index](index.md) | [031 Arrays >](031-Arrays.md) <!-- nav -->
 
 # 030 Types
 
@@ -200,4 +200,4 @@ function - `const int LIMIT = 3`, `int count = 0`, `public string version = "1.0
 name), and class-level constants (`public const MAX_SPEED: float = 1000.0`, shown later in
 this document under "Classes and Objects").
 
-[< 020 SemanticContract](020-SemanticContract.md) | [Index](index.md) <!-- nav -->
+[< 020 SemanticContract](020-SemanticContract.md) | [Index](index.md) | [031 Arrays >](031-Arrays.md) <!-- nav -->

@@ -259,7 +259,7 @@ are in `task/featuresArchive.md`.
 			from the index order, so they never drift (tools/doc_nav.py, the "nav" check)
 		Root navigation (user): Main -> Decisions -> OpenQuestions -> README, each linking to the spec index;
 			spec files link only to each other and their index - never back to the root
-		[DONE] index.md, 010-Philosophy, 020-SemanticContract, 030-Types (2026-11-08)
+		[DONE] index.md, 010-Philosophy, 020-SemanticContract, 030-Types, 031-Arrays (2026-11-09)
 		[DONE] 001-TomlSettings (user, 2026-11-08): every project setting; 000-009 kept for high-level files;
 			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
 		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
