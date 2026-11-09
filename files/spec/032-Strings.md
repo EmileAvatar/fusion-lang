@@ -1,4 +1,4 @@
-[< 031 Arrays](031-Arrays.md) | [Index](index.md) <!-- nav -->
+[< 031 Arrays](031-Arrays.md) | [Index](index.md) | [033 TypeCasting >](033-TypeCasting.md) <!-- nav -->
 
 # 032 Strings
 
@@ -321,4 +321,4 @@ string joined = original + " World"       // "Hello World"
 int n = toInt("42")                       // 42; toInt("12x") stops with a run-time error
 ```
 
-[< 031 Arrays](031-Arrays.md) | [Index](index.md) <!-- nav -->
+[< 031 Arrays](031-Arrays.md) | [Index](index.md) | [033 TypeCasting >](033-TypeCasting.md) <!-- nav -->
