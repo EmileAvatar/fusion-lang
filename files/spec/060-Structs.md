@@ -6,7 +6,8 @@ Contents: [Struct Rules](#struct-rules) | [Structure Definition](#structure-defi
 
 ## Structures and Value Types
 
-**Status:** [DONE 18.2] fields, value semantics, nesting, string / list fields; methods on structs built (32.1 - `[structs] functions = true`).
+**Status:** [DONE 18.2, 32] fields, value semantics, nesting, string fields; Lists and Maps in a struct (32.10a);
+an object in a struct (D.097); methods on structs (32.1 - `[structs] functions = true`).
 
 **Methods (Task 32.1, built):** with `[structs] functions = true` (off by default) a struct may hold functions
 - A method gets the struct as `this`, **by reference** - `p.move(1, 2)` changes `p`
@@ -98,15 +99,25 @@ changing it conveniently.
 
 ### Struct Rules
 
-Description: Structs are **pure value containers - fields only** (user decision, 2026-10-08).
+Description: Structs are **value containers** - copied, never null (user decision, 2026-10-08; since
+widened, see below).
 
-* **No methods, no operator overloading, no user-written constructors.** Behaviour belongs in
-  ordinary functions that take or return the struct
+* **Methods: off by default** - with `[structs] functions = true` a struct may hold functions
+  (Task 32.1, see "Methods" above); otherwise behaviour belongs in ordinary functions that take or
+  return the struct. No operator overloading, no user-written constructors
 * **One generated constructor:** the compiler creates `Point(...)`, taking every field in the
   order the fields are declared, so all values can be set at once
-* **Allowed field types (implemented):** `int`, `float`, `double`, `bool`, `char`, `string`,
-  other structs, and fixed-size arrays of any of these (`int[3] scores`, `Point[4] corners` -
-  the size is required, because a struct's size is fixed)
+* **Allowed field types (implemented):**
+  * `int`, `float`, `double`, `bool`, `char`, `string`, `byte`, `bytes`, enums
+  * other structs
+  * fixed-size arrays of any of these (`int[3] scores`, `Point[4] corners` - the size is required,
+    because a struct's size is fixed)
+  * **Lists and Maps** (`List<string> tags`, `Map<string, int> counts`) - with
+    `[structs] holdCollections = true`, the default (Task 32.10a); never null - an empty one to start
+  * **an object** (`Engine engine`) - **null until set** (D.097, STC.007):
+    * under `[memory] assignment = "move"` (the default) the struct moves as a whole, its object with it
+    * `byVal` copies the struct and clones the object; `byRef` borrows it
+    * under "share" a copied struct shares its object - an object isn't a value
 * **Nesting depth** is limited per project (`[structs]` in `fusion.toml`): with the defaults,
   a struct 3 levels deep compiles with a warning and 4 levels is an error.
   `max_nesting_depth = 1` turns nested structs off; raising it allows deeper ones. Depth
@@ -114,8 +125,7 @@ Description: Structs are **pure value containers - fields only** (user decision,
   structs counts like one struct
 * A struct can't contain itself, directly or through other structs (it would be infinitely
   large)
-* **Not allowed:** `void`, functions, object references, dynamic collections (List,
-  Dictionary, Set). If you need objects or behaviour, use a class (future)
+* **Not allowed:** `void`; a struct implementing an interface (STC.005 - a struct only holds values)
 
 ---
 
