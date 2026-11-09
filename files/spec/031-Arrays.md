@@ -1,4 +1,4 @@
-[< 030 Types](030-Types.md) | [Index](index.md) <!-- nav -->
+[< 030 Types](030-Types.md) | [Index](index.md) | [032 Strings >](032-Strings.md) <!-- nav -->
 
 # 031 Arrays
 
@@ -89,4 +89,4 @@ team.scores = podium()     // an array field too
   `len(arr)`, also on strings, bytes, lists and maps. Null-safe access (`arr?.length`, only
   when `[arrays] nullable = true`) - Task 30, planned; see "Null Handling"
 
-[< 030 Types](030-Types.md) | [Index](index.md) <!-- nav -->
+[< 030 Types](030-Types.md) | [Index](index.md) | [032 Strings >](032-Strings.md) <!-- nav -->

@@ -17,8 +17,9 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [020 SemanticContract](020-SemanticContract.md) | What every built construct does, in one place - each rule tested |
 | [030 Types](030-Types.md) | Value and reference types, every built-in type, nullability, variables, constants |
 | [031 Arrays](031-Arrays.md) | Fixed-size arrays: declaring, reading and writing, as parameters and return values |
+| [032 Strings](032-Strings.md) | Strings as values: length, ownership, comparison, operations, raw bytes, the string functions |
 
-Still in `files/fusion-language-spec.md`: strings,
+Still in `files/fusion-language-spec.md`: type casting,
 functions, classes, structs, enums, control flow, null, memory, concurrency, generics, errors,
 comments, collections, modules, the game example, building, the standard library, interop,
 reserved words, the features summary, the language comparison.
