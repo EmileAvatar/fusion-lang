@@ -8,84 +8,96 @@ Contents: [Class Definition](#class-definition) | [Static vs Instance Members](#
 
 **Status:** a minimal class is built (Task 32.10b) - the rest [PLANNED 32].
 
-**Visibility (Task 32.2a, built - files/Classes.md section 1):** in a class, fields are **private**
-and functions and constructors **public** unless `public` / `private` is written; a private
-member is used only by the class's own functions (another object of the same class
-included); a private constructor means only the class makes its objects. At module level,
-structs, classes and enums are public by default, functions and module variables private
-(`private struct Helper`, `public int function api()`).
+**Visibility (Task 32.2a, built - files/Classes.md section 1):**
+- In a class, fields are **private**; functions and constructors **public** - unless `public` / `private` is written
+- A private member is used only by the class's own functions (another object of the same class included)
+- A private constructor means only the class makes its objects
+- At module level, structs, classes and enums are public by default; functions and module variables private
+  (`private struct Helper`, `public int function api()`)
 
-**Statics (Task 32.2c, built - files/Classes.md section 3):** `static` fields belong to the class -
-one for the whole program, read as `Car.count` (or `count` inside Car); `const static` ones
-are set only in the class's set-up. Three set-up forms, run in this order before `main`:
-**A** `public const static Car CAR = new Car()`; **B** `= new Car() { CAR3.speed = 4 }` - a
-block that changes only its own field and reads statics already set up; **C** `static { }` -
-may set and change any static of the class (and gives a `const static` declared without a
-value its value). Classes are set up in the order they depend on each other, found by
-following what each set-up uses and what that calls; another class using a class still
-being set up is a compile error showing the chain. `static` methods have no `this`
-(`Car.make()`). A static field is private unless written public. Statics are freed last,
-when the program ends. In C a static is a module variable (`fusion_g_Car__count`) and a
-class's set-up the function `Car.__setup`, called first in main.
+**Statics (Task 32.2c, built - files/Classes.md section 3):**
+- `static` fields belong to the class - one for the whole program, read as `Car.count` (or `count` inside Car)
+- `const static` ones are set only in the class's set-up
+- Three set-up forms, run in this order before `main`:
+  - **A** `public const static Car CAR = new Car()`
+  - **B** `= new Car() { CAR3.speed = 4 }` - a block that changes only its own field and reads statics already set up
+  - **C** `static { }` - may set and change any static of the class (and gives a `const static` declared without
+    a value its value)
+- Classes are set up in the order they depend on each other, found by following what each set-up uses and what
+  that calls; another class using a class still being set up is a compile error showing the chain
+- `static` methods have no `this` (`Car.make()`)
+- A static field is private unless written public
+- Statics are freed last, when the program ends
+- In C: a static is a module variable (`fusion_g_Car__count`); a class's set-up is the function `Car.__setup`,
+  called first in main
 
-**Printing an object (Task 32.2f, built - files/Classes.md section 6):** in `print` / `format`,
-`"{car}"` and `toString(car)` an object shows its class name (`Car`; a null one `null`), with a
-warning once per class until it can implement ToString (Task 32.5) - then its `toString()`.
+**Printing an object (Task 32.2f, built - files/Classes.md section 6):**
+- In `print` / `format`, `"{car}"` and `toString(car)` an object shows its class name (`Car`; a null one `null`)
+- With a warning once per class until it can implement ToString (Task 32.5) - then its `toString()`
 
-**readonly parameters (Task 32.2e, built - files/Object_Lifetime.md section 3):** `void function
-show(readonly Account a)` - the function reads `a` but never changes it, deeply: not
-assigned, not through a field or element, not by a List / Map method or a method that
-changes its object, not passed to a parameter another function changes (worked out by
-following the calls - `readonly` needn't be written all the way down), not handed to a
-function value. A variable that shares it (`Account b = a`) is readonly too; keeping it
-(a field, a List, a module variable, `return a`) is an error; `byVal a` is a copy. A set-up
-block (form B, C) may still change the const / let it sets up.
+**readonly parameters (Task 32.2e, built - files/Object_Lifetime.md section 3):**
+- `void function show(readonly Account a)` - the function reads `a` but never changes it, deeply:
+  - not assigned, not through a field or element
+  - not by a List / Map method or a method that changes its object
+  - not passed to a parameter another function changes (worked out by following the calls - `readonly` needn't
+    be written all the way down)
+  - not handed to a function value
+- A variable that shares it (`Account b = a`) is readonly too
+- Keeping it (a field, a List, a module variable, `return a`) is an error; `byVal a` is a copy
+- A set-up block (form B, C) may still change the const / let it sets up
 
 **readonly, byVal, byRef at the call (Task 48.3, built - files/Ownership.md section 4):**
-`show(readonly acc)` is the caller's demand: the call must not change or keep `acc`, checked
-through every call `show` makes (truth table 4). When it does: an error at the call, naming
-the line that changes it, and one at that line, naming the call. A value that is copied
-anyway (an int, a string) can't be passed readonly; `readonly` stands only at a call or on a
-parameter; through a function value it can't be checked - an error. `log(byVal acc)` gives a
-copy; `log(byRef acc)` lends it, changeable (a List, a Map or an object). With
-`[memory] assignment = "move"`, `byRef` and `readonly` only lend: given to a function that
-keeps its parameter (D.100), stored or returned, they are an error; `Car b = byRef a` is a
-local borrow of `a`.
+- `show(readonly acc)` is the caller's demand: the call must not change or keep `acc`, checked through every call
+  `show` makes (truth table 4)
+- When it does: an error at the call, naming the line that changes it, and one at that line, naming the call
+- A value that is copied anyway (an int, a string) can't be passed readonly
+- `readonly` stands only at a call or on a parameter; through a function value it can't be checked - an error
+- `log(byVal acc)` gives a copy; `log(byRef acc)` lends it, changeable (a List, a Map or an object)
+- With `[memory] assignment = "move"`, `byRef` and `readonly` only lend: given to a function that keeps its
+  parameter (D.100), stored or returned, they are an error
+- `Car b = byRef a` is a local borrow of `a`
 
-**Form B on any variable (Task 32.2d, built - files/Classes.md section 4):** a block right after
-a declaration's value sets that variable up further: a local (`Car c = new Car() { c.speed =
-4 }`, also `let` / `const`, Lists and Maps), a class field, a static (32.2c). The block may
-change only its own variable (an assignment to, or a method call on, another variable is a
-compile error); variables declared in it are its own. A class field's value may be any
-expression: each constructor sets the field and runs its block first, in field order, before
-its own body - not again when it hands over with `this(...)`.
+**Form B on any variable (Task 32.2d, built - files/Classes.md section 4):**
+- A block right after a declaration's value sets that variable up further:
+  - a local (`Car c = new Car() { c.speed = 4 }`, also `let` / `const`, Lists and Maps)
+  - a class field
+  - a static (32.2c)
+- The block may change only its own variable (an assignment to, or a method call on, another variable is a
+  compile error); variables declared in it are its own
+- A class field's value may be any expression: each constructor sets the field and runs its block first, in
+  field order, before its own body - not again when it hands over with `this(...)`
 
-**Constructors (Task 32.2b, built - files/Classes.md section 2):** a class may have several; a call
-picks the one whose parameters take the values given - by their number, then their types,
-and when several fit, the one whose types match exactly (two that can't be told apart, or a
-call that fits none or two equally, is a compile error). `this(...)` on a constructor's first
-line lets another constructor make the object; this one's body then goes on. It can't use
-the object's fields (the object isn't made yet); constructors calling each other in a circle
-are a compile error. Named values with several constructors come later.
+**Constructors (Task 32.2b, built - files/Classes.md section 2):**
+- A class may have several
+- A call picks the one whose parameters take the values given - by their number, then their types, and when
+  several fit, the one whose types match exactly
+- Two that can't be told apart, or a call that fits none or two equally: a compile error
+- `this(...)` on a constructor's first line lets another constructor make the object; this one's body then goes on
+  - it can't use the object's fields (the object isn't made yet)
+  - constructors calling each other in a circle are a compile error
+- Named values with several constructors come later
 
-**Built (Task 32.10b, user decisions 2026-10-28 / 29):** `class Car` with fields (defaults
-allowed), methods (`this`; a field's bare name means `this.field`) and an optional
-constructor - `constructor(...)`, or `Car(...)` named like the class; none written: `Car()`
-with every value field at its default and every object null. `Car("x")` and `new Car("x")`
-are the same. An object lives on the heap with a **count**: a variable holds a reference
-(null until set), `b = a` shares it, passing borrows it, and it is freed when its last holder
-lets go - with what it holds (files/Object_Lifetime.md). `.` on null is a NullError; `== null` /
-`is null`; `==` on two objects asks whether they are the same object. A `let` object can't be
-replaced, but the object can still change. A constructor that fails frees its half-made
-object. In C an object is `fu_Car*` with `fusion_count` first and helpers `__make`,
-`__retain`, `__release`, `__set`; the constructor is the function `Car.new`. Not yet: several
-constructors, inheritance, interfaces, private / static, `?.`, copies of objects (clone), a
-printing a whole object. (Since built: a struct holding an object - D.097.)
+**Built (Task 32.10b, user decisions 2026-10-28 / 29):**
+- `class Car` with fields (defaults allowed), methods (`this`; a field's bare name means `this.field`) and an
+  optional constructor - `constructor(...)`, or `Car(...)` named like the class
+- No constructor written: `Car()` with every value field at its default and every object null
+- `Car("x")` and `new Car("x")` are the same
+- An object lives on the heap with a **count** (files/Object_Lifetime.md):
+  - a variable holds a reference (null until set)
+  - `b = a` shares it, passing borrows it
+  - it is freed when its last holder lets go - with what it holds
+- `.` on null is a NullError; `== null` / `is null`; `==` on two objects asks whether they are the same object
+- A `let` object can't be replaced, but the object can still change
+- A constructor that fails frees its half-made object
+- In C: an object is `fu_Car*` with `fusion_count` first and helpers `__make`, `__retain`, `__release`, `__set`;
+  the constructor is the function `Car.new`
+- Not yet: several constructors, inheritance, interfaces, private / static, `?.`, copies of objects (clone),
+  printing a whole object (since built: a struct holding an object - D.097)
 
-Decided in the showcase
-review (user, 2026-10-23/24, FEATURES Later): operator overloading off by default
-(`[language] operatorOverloading`); several return values only with `[functions]
-multiple_returns = true`; class objects are the only values that can be null (Task 30)
+**Decided in the showcase review (user, 2026-10-23/24, FEATURES Later):**
+- Operator overloading off by default (`[language] operatorOverloading`)
+- Several return values only with `[functions] multiple_returns = true`
+- Class objects are the only values that can be null (Task 30)
 
 Description: Object-oriented programming with modern features and clear syntax.
 

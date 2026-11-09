@@ -219,9 +219,30 @@ End function
 
 Description: Multiple ways to pass arguments for flexibility.
 
-**Long lines** (Task 44.3, implemented): inside `( )` and `[ ]` a line break only continues
-the line - no statement ends there and indentation isn't counted - so a long call or list
-can be written over several lines. Braces `{ }` still open blocks.
+**Long lines** (Task 44.3, implemented):
+- Inside `( )` and `[ ]` a line break only continues the line - no statement ends there
+- Indentation isn't counted there
+- So a long call or list can be written over several lines
+- Braces `{ }` still open blocks
+
+```fusion
+int function total(int a, int b, int c) : a + b + c
+
+void function main()
+    int[] scores = [10,              // [ still open: the list goes on
+                    20,
+                    30]              // ] closes it - the statement ends here
+    print("{@1} + {@2} + {@3} = {@4}",
+          scores[0],                 // ( still open: the call goes on
+          scores[1],
+          scores[2],
+          total(scores[0],           // a call inside a call - each ( must be closed
+                scores[1],
+                scores[2]))
+```
+
+Output: `10 + 20 + 30 = 60`. The same program, without the comments, is the tested example
+`syntax_long_lines` in `files/SYNTAX_REFERENCE.md`.
 
 * **Positional Arguments**: Standard calling
 
