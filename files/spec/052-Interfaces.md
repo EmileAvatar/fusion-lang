@@ -1,4 +1,4 @@
-[< 051 Inheritance](051-Inheritance.md) | [Index](index.md) <!-- nav -->
+[< 051 Inheritance](051-Inheritance.md) | [Index](index.md) | [060 Structs >](060-Structs.md) <!-- nav -->
 
 # 052 Interfaces
 
@@ -57,4 +57,4 @@ class GameObject implements Movable, Damageable
             Health = 0
 ```
 
-[< 051 Inheritance](051-Inheritance.md) | [Index](index.md) <!-- nav -->
+[< 051 Inheritance](051-Inheritance.md) | [Index](index.md) | [060 Structs >](060-Structs.md) <!-- nav -->

@@ -25,8 +25,11 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [050 Classes](050-Classes.md) | Class definition, static vs instance members, properties |
 | [051 Inheritance](051-Inheritance.md) | Inheritance; static methods and constants |
 | [052 Interfaces](052-Interfaces.md) | Interfaces: defining and implementing them |
+| [060 Structs](060-Structs.md) | Structs and value types: rules, definition, string fields, value semantics |
+| [061 Enums](061-Enums.md) | Enumerations: syntax, values, using them, their properties |
+| [070 ControlFlow](070-ControlFlow.md) | Conditionals, loops with safety checks, loop labels |
 
 Still in `files/fusion-language-spec.md`:
-structs, enums, control flow, null, memory, concurrency, generics, errors,
+null, memory, concurrency, generics, errors,
 comments, collections, modules, the game example, building, the standard library, interop,
 reserved words, the features summary, the language comparison.
