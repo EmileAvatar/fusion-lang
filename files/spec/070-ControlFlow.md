@@ -168,7 +168,7 @@ logMessage("INFO", "Starting", "Loading", "Complete")
 * **Automatic Compiler Protections**
 
 user added comment: can be seen if requested by option settings. not added by default. controled in project settings
-some apps the 10000000 might be two small for large database hanndlinng. verify speccific
+some apps the 10000000 might be two small for large database handling. verify specific
 Description: Compiler automatically adds safety checks to loops.
 
 ```

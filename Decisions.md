@@ -73,7 +73,7 @@ SYN.029 [BUILT] Comments `//` and `/* */`; `<>` as another way to write `!=`; he
 SYN.030 [BUILT] `unchecked { }` - whole-number `+ - *` inside wrap around on purpose
 SYN.031 [POSTPONED] `'` comments (VB style) - off so `'c'` works; maybe only at the start of a line
 SYN.032 [DESIGN] `#Region` / `#End Region`; documentation comments; documentation written from them
-SYN.033 [DESIGN] `loop { } end loop` with safety checks; loop labels; an iteration limit (`[safety] maxIterations`)
+SYN.033 [DESIGN] `loop { } end loop` with safety checks (`check` blocks - Task 56); loop labels; an iteration limit (`[safety] maxIterations`)
 SYN.034 [PARTIAL] The `...` operator: variadic `string... args` of main built; ranges `1...100`, variadic `int... numbers`, spread `[...a, ...b]` designed
 SYN.035 [DESIGN] `**` (power) - read by the lexer, not built; annotations `@name(...)`
 SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints

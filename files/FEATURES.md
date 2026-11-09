@@ -306,6 +306,28 @@ are in `task/featuresArchive.md`.
 		trade-offs) - https://www.infoq.com/presentations/domain-specific-languages/ - does Fusion want
 		internal DSLs (modules) or external ones (HIDL, Task 41)
 
+#### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [ ]
+	A loop's `end loop with {N}` part holds `check` blocks - a health / limit check, run every Nth pass -
+	and `check interrupt(signal, data)`, the loop's safe point for Shutdown / Pause / Stop (42.26, 42.27 build on it)
+	[ ] 56.1 Questions first (OpenQuestions.md, with example code and options A / B / C):
+		the name `check` - keep it, rename it, or drop the `with` part and keep only interrupts and the setting
+		`{N}` - every Nth pass: the right form, or a setting
+		the iteration limit: `[safety] maxIterations` (default 0 = no limit - decided) per project; per loop
+			`{100000}` or nothing; is 10,000,000 too small for large database work (user note in 070)
+		visible only when a setting asks for it (user note in 070) - what the compiler adds when the loop
+			says nothing
+		RAM / CPU monitoring and "adjusts limits to available RAM" (spec text, not decided) - keep or drop;
+			it costs speed on every loop and clashes with the hot path (42.23)
+		`#[max_iterations]` / `#[no_loop_protection]` in the spec - Fusion has no `#[...]` attributes: drop
+		`exit loop` / `continue loop` inside a check - the same as `break` / `continue`, or words of their own
+	[ ] 56.2 Bring files/spec/070-ControlFlow.md in line with the answers (old 1,000,000 default, the
+		attributes, `fusion.config.max_iterations` -> `[safety] maxIterations`)
+	[ ] 56.3 Make `check` a reserved word (src/lexer/keywords.py, the spec's Reserved Keywords) - a program
+		using `check` as a name gets a clear error
+	[ ] 56.4 Build `end loop with` + `check` blocks, then `{N}`; `[safety] maxIterations` built
+		(files/fusionSettings.xml); tests, an example in files/SYNTAX_REFERENCE.md (Rule 4)
+	[POSTPONED to 42] 56.5 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
+
 ## Phase 3 - the advanced parts
 
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]
