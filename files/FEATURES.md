@@ -320,6 +320,23 @@ are in `task/featuresArchive.md`.
 			it costs speed on every loop and clashes with the hot path (42.23)
 		`#[max_iterations]` / `#[no_loop_protection]` in the spec - Fusion has no `#[...]` attributes: drop
 		`exit loop` / `continue loop` inside a check - the same as `break` / `continue`, or words of their own
+		User's first answers (2026-11-09) - to confirm in 56.1, then Decisions.md:
+			Keep the name `check`; it can also serve as a debug tool
+			A check runs after each loop pass, by the iteration; it holds a single condition to be met
+			It is not for normal program control - only for what may affect the loop: a shutdown event,
+				a loop limit reached
+			Its job: exit the loop when the condition is true
+			No `break`, `continue` or `continue loop` in it - carrying on is implicit; it cannot fall through
+			It may contain `exit loop` - out of the inner loop or an outer one (loop labels)
+			Forms:
+				check <condition> { ... code block ... }   // cannot fall through
+				check                                      // every pass (or every {N}th, when {N} is set)
+				check 20                                   // every 20th pass
+				check >= 10000                             // when the pass count is 10000 or more
+				check !isHealthy()                         // run the method every pass
+				check 50 !isHealthy()                      // run the method every 50th pass
+				check InterruptSignal.Stop                 // when the interrupt is Stop, run the block
+				check interrupt(signal, data)              // several interrupts, handled in the block
 	[ ] 56.2 Bring files/spec/070-ControlFlow.md in line with the answers (old 1,000,000 default, the
 		attributes, `fusion.config.max_iterations` -> `[safety] maxIterations`)
 	[ ] 56.3 Make `check` a reserved word (src/lexer/keywords.py, the spec's Reserved Keywords) - a program
