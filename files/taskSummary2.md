@@ -544,6 +544,9 @@ Kept under Task 22 until the renumbering is approved.
 - User (2026-11-03): readonly results in the signature (D.110), what a function returns (D.111),
   const deep on objects (D.112) - Task 50, after 48; the rules in files/showcase/Ownership.fusion
   and the skill .claude/skills/fusion-ownership/SKILL.md
-- **Next Action:** 48.4 (`--interface` shows what each public function does with its parameters)
+- 51.5 (2026-11-09): spec split done up to 070-ControlFlow; long paragraphs split into bullets
+  as each file moves (user)
+- **Next Action:** 51.5 - 080-Null, 081-Autoboxing, 090-Memory, then the rest of the file list above
+  - then 48.4 (`--interface` shows what each public function does with its parameters)
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29
