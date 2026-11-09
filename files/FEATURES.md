@@ -292,6 +292,17 @@ are in `task/featuresArchive.md`.
 	[ ] 53.1 Read its design principles - compare with Fusion's (Decisions.md GOL)
 	[ ] 53.2 The name: CoreFusion / FusionCore next to Core - a clash or not
 
+#### 55 Review the ChatGPT notes: features, domains, DSLs (user, 2026-11-09) [ ]
+	From the user's Mac notes (ChatGPT - limited knowledge of Fusion); review with Claude Code: for each
+	idea decide a setting, a fixed rule, already decided / built, or discarded (Decisions.md, Rule 3b)
+	[ ] 55.1 Notes/Fusion_Language_Feature_Analysis.md - languages to study, features as settings,
+		config organisation, what must not be configurable, an injectable language architecture
+	[ ] 55.2 Notes/Fusion_Application_Domains_and_Targets.md - application domains, execution targets,
+		domain modules, capturing customer requirements
+	[ ] 55.3 DSLs: Martin Fowler, "Introduction to Domain Specific Languages" (external vs internal DSLs,
+		trade-offs) - https://www.infoq.com/presentations/domain-specific-languages/ - does Fusion want
+		internal DSLs (modules) or external ones (HIDL, Task 41)
+
 ## Phase 3 - the advanced parts
 
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]
