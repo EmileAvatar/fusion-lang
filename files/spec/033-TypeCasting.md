@@ -1,4 +1,4 @@
-[< 032 Strings](032-Strings.md) | [Index](index.md) <!-- nav -->
+[< 032 Strings](032-Strings.md) | [Index](index.md) | [040 Functions >](040-Functions.md) <!-- nav -->
 
 # 033 TypeCasting
 
@@ -53,4 +53,4 @@ string invalid = "abc"
 int result = int.tryParse(invalid) // Returns option type (may be none)
 ```
 
-[< 032 Strings](032-Strings.md) | [Index](index.md) <!-- nav -->
+[< 032 Strings](032-Strings.md) | [Index](index.md) | [040 Functions >](040-Functions.md) <!-- nav -->

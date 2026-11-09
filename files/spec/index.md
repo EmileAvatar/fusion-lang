@@ -19,8 +19,11 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [031 Arrays](031-Arrays.md) | Fixed-size arrays: declaring, reading and writing, as parameters and return values |
 | [032 Strings](032-Strings.md) | Strings as values: length, ownership, comparison, operations, raw bytes, the string functions |
 | [033 TypeCasting](033-TypeCasting.md) | Converting between types: when an int is used as a float, the conversion functions |
+| [040 Functions](040-Functions.md) | Declaring functions, main, the block styles, calling - default values, named arguments |
+| [041 Lambdas](041-Lambdas.md) | Lambdas and function values (function types) |
+| [042 MultipleReturns](042-MultipleReturns.md) | Several return values; an Error returned |
 
 Still in `files/fusion-language-spec.md`:
-functions, classes, structs, enums, control flow, null, memory, concurrency, generics, errors,
+classes, structs, enums, control flow, null, memory, concurrency, generics, errors,
 comments, collections, modules, the game example, building, the standard library, interop,
 reserved words, the features summary, the language comparison.
