@@ -15,12 +15,12 @@ Description: Java-style interfaces with modern enhancements.
 Description: Contract specification for implementation.
 
 ```
-interface IMovable
+interface Movable
     void function move(Vector3 direction, float deltaTime)
     void function stop()
     property Speed: float { get; }
 
-interface IDamageable
+interface Damageable
     property Health: float { get; set; }
     void function takeDamage(float amount)
     
@@ -36,7 +36,7 @@ interface IDamageable
 Description: Classes can implement multiple interfaces.
 
 ```
-class GameObject implements IMovable, IDamageable
+class GameObject implements Movable, Damageable
     property Speed: float { get; set; }
     property Health: float { get; set; }
     

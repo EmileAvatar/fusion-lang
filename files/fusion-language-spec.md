@@ -1614,7 +1614,7 @@ Description: Type-parameterized functions with constraints.
 
 ```
 // Generic function with constraints
-T function findMax<T>(List<T> items) where T implements IComparable<T>
+T function findMax<T>(List<T> items) where T implements Comparable<T>
     if items.isEmpty()
         throw Exception("Cannot find max of empty list")
     

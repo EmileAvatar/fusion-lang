@@ -2880,11 +2880,11 @@ class NumberBox<T> where T : Number
     private T value
 
 // ✅ Valid: Multiple constraints
-class Sortable<T> where T : IComparable, ICloneable
+class Sortable<T> where T : Comparable, Cloneable
     private List<T> items
 
     public void function sort()
-        items.sort()  // T implements IComparable
+        items.sort()  // T implements Comparable
 ```
 
 ---
