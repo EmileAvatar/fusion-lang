@@ -20,7 +20,7 @@ Gathered 2026-11-10 (Task 51.5a) from every concurrency source; decisions and cl
 |---|---|---|
 | 1 | [Summary and comparison](#1-summary-and-comparison) | Every way to do concurrency, compared - and the service against them; how languages do it |
 | 2 | [Traps](#2-traps) | The 17 traps, and which part of the service model solves each |
-| 3 | [The service model](#3-the-service-model) | Fusion's primary way: rules, settings, ownership, forms, hot path, threads |
+| 3 | [The service model](#3-the-service-model) | Fusion's primary way: rules, settings, ownership, forms, hot path, threads, channels, kinds of threads, sleep and wake |
 | 4 | [Other models](#4-other-models) | Threads, mutex, read-write lock, semaphore, atomics, condition variables, channels, async / await, ... |
 | 5 | [What is built](#5-what-is-built) | Today: reserved words only |
 | 6 | [To settle](#6-to-settle) | Clashes and gaps found - decided later |
@@ -355,6 +355,7 @@ hotpath void function step(Tick t)             // the checks without the thread
 | Reads and writes told apart | A scheduler knows each request's kind; a database with its own threads | idea (same, 3) |
 | Request order | A sequence number that only goes up, not time + thread id | idea (42.32) |
 | Cluster threads | Over several servers - a framework of its own | postponed (CON.009, 42.12) |
+| Two hierarchies (user, 2026-11-10) | **Levels**: System > Process > Pool > Thread > Task / goroutine > Channel - where concurrency sits; how a thread deals with the process above it and the tasks below it. **Family tree** (CON.018): who made whom - it breaks livelocks and deadlocks | design - both kept (D.129 proposed) |
 
 #### 3.12 Interrupts, shutdown, transactions
 
@@ -363,6 +364,7 @@ hotpath void function step(Tick t)             // the checks without the thread
 | A block that can't sleep or be interrupted | Within one loop pass the thread doesn't sleep, yield or take an interrupt; they wait in the mailbox until the next safe point | design (42.26) |
 | `check interrupt(signal, data)` | The loop's safe point for Shutdown / Pause / Stop | design (56.5, postponed to 42) |
 | Shutdown always handled | The interrupt reaches services and loops; logs and connections closed | design (42.27) |
+| A service's interrupt handler | `db.setCheckInterrupt(signal, data) { }` - what the service does for each interrupt ([3.14](#314-channels-in-a-service)) | design (42.37) |
 | A failing operation | Fusion undoes what it can; the developer handles the error; else it bubbles up | decided (D.120) |
 | A `Transaction` interface | commit gives OK / FAILED, rollback | design (CON.020, 42.29) |
 
@@ -376,6 +378,99 @@ hotpath void function step(Tick t)             // the checks without the thread
 | Memory budgets, run-time diagnostics | A limit per scope or service; mailbox pressure, memory per service | idea (FutureFeatures 5) |
 | An identity for everything | A GUID per name; which variables are in a thread or group | idea (42.28) |
 | Explaining services | Text boxes for people and for other AIs; diagrams; a comparison with actors | planned (42.30, 42.33) |
+
+#### 3.14 Channels in a service
+
+From the user (user, 2026-11-10 - provisional, subject to change): a channel is a named mailbox - a buffer of requests, named so developers
+can remember and use it. Every service (and group service) has one by default.
+
+| Channel | What it holds | Who sends | Who takes from it | Status |
+|---|---|---|---|---|
+| The default mailbox (no name) | The requests to the service - linked to the service itself, so it needs no name | Any thread that uses the service | The service's thread(s) | design |
+| A named channel | A named buffer of requests of one kind - e.g. `writes`, `reads`, `status` | Threads that send that kind of work | The next free thread of the service that handles it - several may be working | design (42.31, 42.34) |
+| The interrupt channel | Interrupts only (Shutdown, Pause, ...) | The OS (other threads too? - [section 6](#6-to-settle)) | The service: after each loop pass, at the loop or at the service | design (42.37) |
+| An outbound channel | Results on their way out, buffered - the service's thread keeps working | The service | The calling thread waiting for feedback, or other threads | design (42.34) |
+
+- Named channels are for a service with many threads, where some threads handle special work
+- A busy thread checks for an interrupt after each loop pass - at the loop (`check interrupt`, Task 56)
+  or at the service (its interrupt handler, below)
+- The loop checks of Task 56 could also be set on a service, saying how it handles them
+
+A service's interrupt handler (pseudo code - the design is subject to change):
+
+```fusion
+service Database db = Database()
+
+db.setCheckInterrupt(signal, data) {       // what this service does for each interrupt
+    // no `check interrupt` line here - that is only needed in a loop
+    if signal == InterruptSignal.Shutdown
+        saveProgress()
+        cleanup()
+        exit loop
+    if signal == InterruptSignal.Pause
+        waitForResume()
+        continue loop
+}
+```
+
+#### 3.15 Kinds of threads
+
+From the user (user, 2026-11-10 - provisional, subject to change): threads get named kinds, by their job.
+
+| Kind | Its job | How many |
+|---|---|---|
+| Worker | Does one specific task, whatever the request | Any number; often pooled |
+| Writer | The only thread that writes or changes the resource (P11) | One per resource |
+| Reader | Reads the resource without having to wait | Several; pooled or shared |
+| Field reader (named) | Reads only one part - e.g. a database connection on the user table, or the account table | One or more per part |
+| Watcher | Watches the mailbox and the named channels; wakes the writer, readers or scheduler | Often one shared thread for many services |
+| Scheduler | Watches too, and assigns threads to handle a request | One per service or group, or shared |
+| Outbound | Pushes results to other channels (an outbound channel, 3.14) | One, or shared |
+
+Not every thread is one kind:
+
+| Size of the service | How the kinds are combined |
+|---|---|
+| Small | One thread does every job - watcher, writer, reader, outbound |
+| Medium | One writer; readers pooled; a shared watcher wakes them |
+| Large | Each kind its own threads; field readers per part; a scheduler assigns the work; outbound threads push results |
+
+#### 3.16 Sleep and wake - the parent holds the channel
+
+From the user (user, 2026-11-10 - provisional, subject to change); to be designed further (42.36). It does the job of a condition variable
+([4.6](#46-condition-variable)) inside the service model:
+- A worker's condition variable is its mailbox or its named channel
+- The parent holds that channel - not the sleeping worker
+- The parent (its main thread, or a global shared thread - a watcher) checks the channel routinely,
+  with its own scheduling
+- A request is waiting: the parent wakes the worker; the worker does the work
+- The work done: the worker sleeps, or is suspended, until the parent wakes it again
+- The parent's rules: how often and for how long a channel is checked; how long a worker stays awake
+  (wake -> work -> sleep / suspend)
+- Example: `orders` - a main working thread or a global shared thread checks for orders, then wakes the
+  worker that does the work
+
+```text
+caller --send--> [orders mailbox] <--checks-- parent / watcher --wakes--> worker --> resource
+                                                                          worker done --> sleeps
+```
+
+#### 3.17 A thread holds no state
+
+From the user (user, 2026-11-10 - provisional, subject to change):
+- A thread holds no state data of its own - it uses the service's variables
+- Variables made inside `service(x).run { }` belong to that thread for that run - no `unsafe` needed
+- Thread-local storage as C, Java, Python and Rust have it (a global, one copy per thread) only in
+  `unsafe` - e.g. a `Lang.C.Fusion` module that needs it
+
+```fusion
+db.run {
+    int found = 0                          // this thread's, for this run - no unsafe needed
+    for row in db.users
+        if row.active
+            found += 1
+}
+```
 
 ---
 
@@ -403,6 +498,17 @@ go worker(jobs)                        // run worker on another thread (CON.012 
 #### 4.2 Mutex / lock
 
 Only one thread at a time may hold it; `using lock { }` unlocks at the end of the block, even on an error.
+
+Off by default (user, 2026-11-10 - provisional, subject to change; D.125 proposed): services are the default; a project switches locks on in
+`fusion.toml`, and a lock is written inside `unsafe` - it may cause deadlocks and race conditions, and the
+code shows it. A `Lang.C.Fusion` module may need `unsafe` for this. The same holds for the read-write lock,
+the semaphore and the condition variable (4.3, 4.4, 4.6). Lock ordering (always take lock A before lock B)
+matters only here - in the service model no thread holds two resources (P2).
+
+```toml
+[concurrency]
+locks = false        # default; true allows locks inside unsafe
+```
 
 ```fusion
 Mutex lock = Mutex()
@@ -457,11 +563,18 @@ hits.add(1)                            // safe from any number of threads
 A thread sleeps until another says "something changed" (the queue is no longer empty). Channels are
 built on it; most programs use a channel instead.
 
+In Fusion (user, 2026-11-10 - provisional): the parent holds the worker's channel, checks it and wakes the
+worker ([3.16](#316-sleep-and-wake---the-parent-holds-the-channel)); the raw form only with locks on,
+inside `unsafe` (4.2).
+
 #### 4.7 Channel
 
 A pipe from one thread to another: `send` puts a value in, `receive` takes one out, waiting until one
 arrives. Unbuffered: the sender waits for a receiver; buffered (N): it runs ahead until full; closing
 tells the receivers nothing more is coming. CON.012 (design); `<-` is read by the lexer.
+
+In a service (user, 2026-11-10 - provisional): a channel is a named mailbox - the default mailbox, named
+channels, the interrupt channel and outbound channels ([3.14](#314-channels-in-a-service)).
 
 ```fusion
 Channel<int> jobs = Channel.create<int>(10)    // room for 10 values
@@ -487,6 +600,16 @@ A way to wait without blocking a thread - mostly for I/O. An `async` function ca
 it until a result is ready, and the thread does other work meanwhile. A future is a value that exists
 later. Rule of thumb: threads for heavy computing, async for waiting. CON.012 (design).
 
+Both forms (user, 2026-11-10 - provisional; D.127 proposed): **A** `async` at a call - don't wait for a
+service (D.068); **B** an `async function` with `await`, as in C#, Python and JavaScript. `await` takes a
+Future from either.
+
+```fusion
+Future<int> f = async counter.get()       // A: the request is sent, this thread carries on
+doOtherWork()
+int value = await f                       // wait here for the answer
+```
+
 ```fusion
 async string, Error function fetchPage(string url) {
     Response r = await http.get(url)    // pauses here; the thread does other work meanwhile
@@ -503,7 +626,7 @@ List<string> pages = await all([a, b])     // wait for both
 | Way | What it is | In Fusion |
 |---|---|---|
 | Immutable data | Can't change after it is made - any number of threads may read it | Share a readonly value (D.028); `const` (D.112) |
-| Thread-local storage | Each thread its own copy - nothing to share | Not designed yet |
+| Thread-local storage | Each thread its own copy - nothing to share | A thread holds no state; variables made in `run { }` are its own; a true thread-local only in `unsafe` ([3.17](#317-a-thread-holds-no-state)) |
 
 #### 4.10 Cancellation / interrupt
 
@@ -524,19 +647,30 @@ design: the `check interrupt` block after a loop (Task 56, [3.12](#312-interrupt
 
 ## 6 To settle
 
-Found while gathering (2026-11-10, Task 51.5a step 2) - for decisions later, not guessed:
+Found while gathering (2026-11-10, Task 51.5a step 2). The user's answers (2026-11-10) are provisional,
+subject to change - recorded as PROPOSED rows in Decisions.md, not decided yet.
 
-| # | Subject | What clashes or is missing |
-|---|---|---|
-| 1 | Mutex / `using lock { }` | Primary is services; mutex for other languages and Lang modules - in normal code too, only in unsafe mode, or only through a Lang module? |
-| 2 | Channels | Next to `service(s).send(x)` - when to use which; 42.31 mentions named channels inside services |
-| 3 | `async` / `await` | D.068 has `async` at a call (don't wait for a service); section 4.8 has C#-style `async function` + `await` - one model or both |
-| 4 | files/Concurrency_Traps.md | Says an array's add / remove takes "an implicit atomic lock" - replaced by D.057 (a temporary service) |
-| 5 | files/Ownership.md truth table 5 | Calls strings "immutable" - they can change in place since 29.1 (still copied) |
-| 6 | The showcase section 18 | "Concurrency (no task yet)" - Task 42 exists; no `service` in it; `Mutex` tagged [designed] |
-| 7 | Old text (section 7) | "The compiler adds locks and orders them" - against P2 (no thread holds two resources); "hybrid model", the old "threading hierarchy" |
-| 8 | Thread-local storage | Not designed |
-| 9 | Condition variables | Wanted at all, or only inside channels / services |
+| # | Subject | What clashed | The user's answer (provisional) | Now in |
+|---|---|---|---|---|
+| 1 | Mutex / `using lock { }` | In normal code, unsafe only, or Lang modules only? | Only inside `unsafe`, and only with locks switched on in `fusion.toml` (off by default) - it may cause deadlocks and races; `Lang.C.Fusion` may use `unsafe` for it | 4.2; D.125 |
+| 2 | Channels | When a channel, when `service(s).send(x)` | A channel is a named mailbox in a service; every service has one default mailbox with no name; named channels for many threads with special work; an interrupt channel; outbound channels | 3.14; D.126 |
+| 3 | `async` / `await` | `async` at a call (D.068) or `async function` + `await` | Both forms | 4.8; D.127 |
+| 4 | files/Concurrency_Traps.md | "An implicit atomic lock" for arrays | An array uses a temporary service, like every collection (D.057) | fixed there |
+| 5 | files/Ownership.md truth table 5 | Strings called "immutable" | Immutable only when `const`; otherwise like an object - copied freely, changed by two or more threads through a temporary service | fixed there; D.128 |
+| 6 | The showcase section 18 | Outdated, no `service` | A task to rewrite it, with the new keywords | FEATURES 42.40 |
+| 7 | Old text (section 7) | Lock ordering; the old threading hierarchy | The compiler makes an automatic service; a developer may still lock (4.2) or write a service; lock ordering only with locks. Both hierarchies kept: levels and the family tree | 3.11, 4.2; D.129 |
+| 8 | Thread-local storage | Not designed | A thread holds no state - it uses the service's variables; variables made in `run { }` are its own; a true thread-local only in `unsafe` | 3.17; D.130 |
+| 9 | Condition variables | Wanted at all? | In a service: the parent holds the worker's channel, checks it, wakes the worker - to be designed further | 3.16; D.131 |
+
+Still open, from the answers:
+
+| # | Question |
+|---|---|
+| a | The interrupt channel: may other threads send to it, or only the OS? (both were said) |
+| b | The service's interrupt handler uses `continue loop`; a loop's `check` block never has `continue` (56.1) - the same rule, or different? |
+| c | The syntax of named and outbound channels (42.34) |
+| d | The kinds of threads: final names, and which the compiler picks by itself (42.35) |
+| e | Sleep and wake: the parent's rules - how often a channel is checked, how long a worker stays awake (42.36) |
 
 ---
 

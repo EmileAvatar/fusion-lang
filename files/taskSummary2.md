@@ -228,6 +228,8 @@ Settings: none. Source: user 2026-11-07, files/DocumentationSystemProposal.md (o
 			"Async/await for I/O"; the Async section's "thread-safe collections, atomic operations,
 				lock-free structures" - OLD
 			"Thread interrupts checked at end loop automatically" - OLD, now `check interrupt` (56)
+	Step 2 done 2026-11-10: the user answered all 9 (provisional) - spec 100 section 6, 3.14-3.17,
+		PROPOSED D.125-D.131, 42.34-42.40; 5 small questions (a-e) left in section 6. Next: step 3
 	Step 2 preview - clashes and gaps found (to settle or turn into Q.NNN):
 		1 `Mutex` / `using lock { }`: the showcase tags it [designed]; Conc section 1 explains it; the goal
 			says manual locking is a last resort - is it in Fusion at all (unsafe only? not at all?)

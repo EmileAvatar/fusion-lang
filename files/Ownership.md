@@ -50,7 +50,7 @@ Car mine = fleet.removeAt(0)   // taking an element out is a move
 
 | Operation | int, a struct of plain values | string | List, Map, object | a struct holding a List / Map / object | `shared` object |
 |---|---|---|---|---|---|
-| `T b = a` | copy | copy (immutable) | **move** | **move** (all of it) | one more reader (counted) |
+| `T b = a` | copy | copy | **move** | **move** (all of it) | one more reader (counted) |
 | `T b = byVal a` | copy | copy | copy (deep, `clone()`) | copy (deep) | a copy, not shared |
 | `f(a)` | copy | copy | **borrow** - changeable unless readonly | borrow | read-only borrow |
 | `f(byRef a)` | borrow, changeable | - | borrow, changeable | borrow, changeable | **lends the right to change it** |
@@ -184,10 +184,13 @@ log(acc)                  // fine: log borrows it, changes it, hands it back
 | Value | `go f(x)`, one thread | `go f(x)`, two or more threads | `go f(readonly x)` | `go f(byVal x)` | `service(s).send(x)` (into a mailbox) |
 |---|---|---|---|---|---|
 | int, plain struct | copied | copied | copied | copied | copied |
-| string | copied (immutable) | copied | copied | copied | copied |
+| string | copied | copied | copied | copied | copied |
 | List, Map, object | borrowed - the parent frozen | **sync**: a temporary service | read in parallel, frozen meanwhile | each thread its own | **send**: moved, the sender loses it |
 | a struct holding a List | borrowed | sync | read in parallel | each its own | send: moved |
 | `shared` object | read only | sync: a temporary service | read in parallel | a copy | an error - send a copy (`byVal`) |
+
+A string is immutable only when `const`; otherwise it is treated like an object - copied to another
+thread freely, changed by two or more threads through a temporary service (D.128 proposed, 2026-11-10).
 | service handle | shared (atomic count) | shared | shared | an error - a service can't be copied | the handle travels |
 | a function value holding a borrow | error | error | error | - | error |
 

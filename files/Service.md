@@ -560,3 +560,6 @@ allocate.
 - How "undone where possible" (group rule 7) works in detail - decided in part (D.120): Fusion
   undoes what it can, the developer handles the error, else it bubbles up; a `Transaction`
   interface to be designed (42.29).
+- Channels in a service (a default mailbox, named, interrupt and outbound channels), kinds of
+  threads, sleep and wake by the parent, a thread holding no state - the user's provisional answers
+  (2026-11-10): files/spec/100-Concurrency.md 3.14-3.17, PROPOSED D.125-D.131, FEATURES 42.34-42.40

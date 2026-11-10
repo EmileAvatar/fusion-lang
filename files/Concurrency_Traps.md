@@ -39,8 +39,8 @@ Manual locking is a last resort.
 Send / sync in Fusion's words (files/Ownership.md truth table 5): **send** - a value goes to another
 thread and the sender no longer has it; **sync** - many threads use it through a service.
 
-Collections (files/Concurrency.md 3.12): an array's add / remove at the end takes an implicit
-atomic lock; a List or Map is served by a shared or dedicated thread (P1 in small).
+Collections (files/Concurrency.md 3.12): a collection used by two or more threads - an array, a List
+or a Map - gets a temporary service (D.057), served by a shared or dedicated thread (P1 in small).
 
 A deadlock needs four conditions at once (Coffman, 1971): mutual exclusion, hold and wait,
 no preemption, and circular wait. P2 breaks **hold and wait**, and P3 breaks **no

@@ -277,8 +277,9 @@ are in `task/featuresArchive.md`.
 		[DONE] 1b Reorganised (user, 2026-11-10): Index; 1 summary and comparison; 2 traps (what solves each);
 			3 the service model (primary); 4 other models - mutex, channels, async ... (for Lang.<language>.Fusion,
 			Task 49); 5 built; 6 to settle (9 items); 7 the earlier text kept for review - tables throughout
-		[ ] 2 Clashes and gaps: sources that disagree, or old spec text no decision covers - into
-			OpenQuestions.md (example code, options A / B / C), not guessed
+		[DONE] 2 Clashes and gaps (2026-11-10): the user's provisional answers in spec 100 section 6;
+			PROPOSED D.125-D.131; new 3.14-3.17 (channels, kinds of threads, sleep and wake,
+			no thread state); 42.34-42.40; 5 small questions left in section 6
 		[ ] 3 Show the user the list and the proposed outline of 100-Concurrency.md - approval
 		[ ] 4 Rewrite 100-Concurrency.md from the list; old text that no longer holds goes (git keeps it)
 		[ ] 5 Decisions.md CON / THR lines and the showcase tags in step; python check.py; ship
@@ -600,6 +601,25 @@ are in `task/featuresArchive.md`.
 		Two text boxes, ready to copy: one for people, one for another AI - in files/Service.md or
 			files/Concurrency.md
 		Diagrams showing how a service works (callers, mailbox, worker, resource)
+	[ ] 42.34 Channels in a service (user, 2026-11-10 - provisional; D.126 proposed; spec 100 3.14)
+		A default mailbox with no name - every service and group service; named channels (writes, reads,
+			status) for many threads with special work; an interrupt channel; outbound channels
+		To settle: who may send to the interrupt channel (other threads, or only the OS); the syntax
+	[ ] 42.35 Kinds of threads (user, 2026-11-10 - spec 100 3.15): worker, writer, reader, field reader
+		(named), watcher, scheduler, outbound; one thread may do every job, some pooled or shared
+	[ ] 42.36 Sleep and wake (user, 2026-11-10 - D.131 proposed; spec 100 3.16): the parent holds the
+		worker's channel, checks it, wakes the worker; the parent's rules (how often, how long awake) - design
+	[ ] 42.37 A service's interrupt handler `service(x).setCheckInterrupt(signal, data) { }` (user, 2026-11-10 -
+		spec 100 3.14) - with 56.5; `continue loop` in it vs a loop's check block (56.1)
+	[ ] 42.38 Locks off by default (D.125 proposed): `[concurrency] locks` in fusion.toml, a lock inside
+		`unsafe`; the setting into 001-TomlSettings once decided
+	[ ] 42.39 A thread holds no state (D.130 proposed; spec 100 3.17): variables made in `run { }` are its
+		own; thread-local storage only in `unsafe`
+	[ ] 42.40 The showcase section 18 rewritten (user, 2026-11-10): files/showcase/Fusion_showcase.fusion
+		"Concurrency (no task yet)" -> services, temporary and group services, channels in a service, the
+		interrupt handler, `go`, async / await (both forms), a mutex inside `unsafe`, `check interrupt`
+		Keywords: `service`, `go`, `async`, `await` reserved already; reserve `unsafe` and `check` (56.3);
+			decide whether `channel` / `lock` are keywords or library types (`Channel<T>`, `Mutex`)
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
 	The standard library's core modules, designed one at a time (spec "Fusion Standard
 	Library (fusionlib)"). Plan first.

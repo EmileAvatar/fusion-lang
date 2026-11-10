@@ -238,6 +238,12 @@ CON.017 [PLANNED] Settings with `service(x).X = ...`: Mailbox, WhenFull, Timeout
 CON.018 [PLANNED] Every thread has an ID, a parent and a place in the hierarchy; the hierarchy decides who gets a resource (42.7, 42.9)
 CON.019 [PLANNED] Concurrency trap checks: warnings by default, errors when `fusion.toml` says so (42.10)
 CON.020 [DESIGN] A `Transaction` interface: commit gives OK / FAILED, rollback - marks a call as part of a transaction (42.29, D.120)
+CON.021 [DESIGN] Channels in a service: a default mailbox (no name), named channels, an interrupt channel, outbound channels (42.34)
+CON.022 [DESIGN] Kinds of threads: worker, writer, reader, field reader, watcher, scheduler, outbound - alone, combined or pooled (42.35)
+CON.023 [DESIGN] Sleep and wake: the parent holds the worker's channel and wakes it - instead of condition variables (42.36)
+CON.024 [DESIGN] A service's interrupt handler: `service(x).setCheckInterrupt(signal, data) { }` (42.37)
+CON.025 [DESIGN] Locks (mutex, read-write lock, semaphore, condition variable) off by default; on in `fusion.toml`, used inside `unsafe` (42.38)
+CON.026 [DESIGN] A thread holds no state: it uses the service's variables; thread-local storage only in `unsafe` (42.39)
 
 #### SET - settings and tools
 SET.001 [BUILT] `fusion.toml` (or .yaml / .json / .ini); camelCase, read case-insensitively; a bad key is an error
@@ -396,5 +402,12 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.122 | Nothing is trusted by default: a library is checked by its signature; one without source is sandboxed (no files / network) unless the developer trusts it (to run fast); the customer running the app may still forbid files / network | never trust code (GOL.008); the customer may not trust the developer's app | MOD.004 | 2026-11-07 | files/FEATURES.md 39 | ACTIVE (planned) |
 | D.123 | While a borrow changes a value (`Car c = fleet[0]`), its owner may still be read (`fleet.length()`); only changing it another way (`fleet[0] = ..`) is an error - unlike Rust | reading can't break the borrow; one writer is enough | MEM.012 | 2026-11-07 | files/Ownership.md R4 | ACTIVE (planned - changes 48.2) |
 | D.124 | Each borrow rule has its own setting: one owner (`[memory] assignment`), one writer, a borrow never outlives its owner - names decided when built | a project may loosen each rule on its own | MEM.013 | 2026-11-07 | files/Ownership.md | ACTIVE (planned) |
+| D.125 | Locks (mutex, read-write lock, semaphore, condition variable) are off by default - services are the default; `[concurrency] locks = true` in `fusion.toml` allows them, and a lock is written inside `unsafe` | a lock may cause deadlocks and races - the code shows it; other languages and `Lang.C.Fusion` still need locks | CON.025 | 2026-11-10 | files/spec/100-Concurrency.md 4.2 | PROPOSED |
+| D.126 | A channel is a named mailbox in a service: every service and group service has one default mailbox with no name; named channels (e.g. writes, reads, status) for many threads with special work; an interrupt channel; outbound channels so the service's thread keeps working | a name is easy to remember and use; one mailbox per kind of work | CON.021 | 2026-11-10 | files/spec/100-Concurrency.md 3.14 | PROPOSED |
+| D.127 | `async` / `await` in both forms: `async` at a call (don't wait for a service, D.068) and an `async function` with `await`; `await` takes a Future from either | other languages use the second; the first fits services | CON.012 | 2026-11-10 | files/spec/100-Concurrency.md 4.8 | PROPOSED |
+| D.128 | A string is immutable only when `const`; otherwise treated like an object: copied to another thread freely, changed by two or more threads through a temporary service | strings change in place since 29.1 | CON.006 | 2026-11-10 | files/Ownership.md truth table 5 | PROPOSED |
+| D.129 | Two thread hierarchies: the levels (System > Process > Pool > Thread > Task > Channel - where concurrency sits) and the family tree (who made whom - CON.018) | the levels show how threads deal with what is above and below; the family tree breaks livelocks and deadlocks | CON.018 | 2026-11-10 | files/spec/100-Concurrency.md 3.11 | PROPOSED |
+| D.130 | A thread holds no state: it uses the service's variables; variables made in `service(x).run { }` are that run's (no `unsafe`); true thread-local storage only in `unsafe` | state lives in the service - one owner | CON.026 | 2026-11-10 | files/spec/100-Concurrency.md 3.17 | PROPOSED |
+| D.131 | No condition variables in a service: the parent holds the worker's channel, checks it on its own schedule and wakes the worker; the worker sleeps or is suspended when done - to be designed further | the parent's rules decide; the sleeping thread holds nothing | CON.023 | 2026-11-10 | files/spec/100-Concurrency.md 3.16 | PROPOSED |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->
