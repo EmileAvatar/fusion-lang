@@ -31,8 +31,10 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [080 Null](080-Null.md) | Null handling: core principles, the ways to check, numbers as conditions |
 | [081 Autoboxing](081-Autoboxing.md) | Autoboxing: how it works, using it, the autobox classes |
 | [090 Memory](090-Memory.md) | Memory management: GC (optional), smart pointers, raw pointers; ownership - move, borrow, share |
+| [100 Concurrency](100-Concurrency.md) | Threads, message passing, shared memory, try-with-resources, interrupts, async / await, one writer, hot paths |
+| [110 Generics](110-Generics.md) | Generic classes and functions, several type parameters |
+| [120 Errors](120-Errors.md) | Error handling: several return values, an error returned, capturing it, chaining, the Error object, exceptions |
 
 Still in `files/fusion-language-spec.md`:
-concurrency, generics, errors,
 comments, collections, modules, the game example, building, the standard library, interop,
 reserved words, the features summary, the language comparison.

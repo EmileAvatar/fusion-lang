@@ -1,4 +1,4 @@
-[< 081 Autoboxing](081-Autoboxing.md) | [Index](index.md) <!-- nav -->
+[< 081 Autoboxing](081-Autoboxing.md) | [Index](index.md) | [100 Concurrency >](100-Concurrency.md) <!-- nav -->
 
 # 090 Memory
 
@@ -195,4 +195,4 @@ Raw Pointers | Embedded/FFI only | High | Maximum
   assignment = "move"            # "move" (default) | "share" - b = a: two names, one object
   ```
 
-[< 081 Autoboxing](081-Autoboxing.md) | [Index](index.md) <!-- nav -->
+[< 081 Autoboxing](081-Autoboxing.md) | [Index](index.md) | [100 Concurrency >](100-Concurrency.md) <!-- nav -->

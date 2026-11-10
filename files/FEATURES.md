@@ -263,7 +263,8 @@ are in `task/featuresArchive.md`.
 			040-Functions, 041-Lambdas, 042-MultipleReturns,
 			050-Classes, 051-Inheritance, 052-Interfaces,
 			060-Structs, 061-Enums, 070-ControlFlow,
-			080-Null, 081-Autoboxing, 090-Memory (2026-11-10)
+			080-Null, 081-Autoboxing, 090-Memory,
+			100-Concurrency, 110-Generics, 120-Errors (2026-11-10)
 		[DONE] 001-TomlSettings (user, 2026-11-08): every project setting; 000-009 kept for high-level files;
 			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
 		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
