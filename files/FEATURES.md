@@ -279,7 +279,7 @@ are in `task/featuresArchive.md`.
 			Task 49); 5 built; 6 to settle (9 items); 7 the earlier text kept for review - tables throughout
 		[DONE] 2 Clashes and gaps (2026-11-10): the user's provisional answers in spec 100 section 6;
 			PROPOSED D.125-D.131; new 3.14-3.17 (channels, kinds of threads, sleep and wake,
-			no thread state); 42.34-42.40; 5 small questions left in section 6
+			no thread state); 42.34-42.40; the 5 follow-up questions answered too (D.132, 3.18 baselines)
 		[ ] 3 Show the user the list and the proposed outline of 100-Concurrency.md - approval
 		[ ] 4 Rewrite 100-Concurrency.md from the list; old text that no longer holds goes (git keeps it)
 		[ ] 5 Decisions.md CON / THR lines and the showcase tags in step; python check.py; ship
@@ -604,13 +604,20 @@ are in `task/featuresArchive.md`.
 	[ ] 42.34 Channels in a service (user, 2026-11-10 - provisional; D.126 proposed; spec 100 3.14)
 		A default mailbox with no name - every service and group service; named channels (writes, reads,
 			status) for many threads with special work; an interrupt channel; outbound channels
-		To settle: who may send to the interrupt channel (other threads, or only the OS); the syntax
+		The interrupt channel: only the OS sends (D.132 proposed)
+		Design a `Channel` interface and a `ChannelType` enum (INBOUND, OUTBOUND) - first check how other
+			languages do it and best practice: Go channels, Rust mpsc / crossbeam, Java BlockingQueue,
+			C# System.Threading.Channels, Erlang mailboxes (pseudo code in spec 100 3.14)
 	[ ] 42.35 Kinds of threads (user, 2026-11-10 - spec 100 3.15): worker, writer, reader, field reader
 		(named), watcher, scheduler, outbound; one thread may do every job, some pooled or shared
+		The names are suggestions, perhaps an enum (`ThreadType`); the compiler tells threads apart by ID
 	[ ] 42.36 Sleep and wake (user, 2026-11-10 - D.131 proposed; spec 100 3.16): the parent holds the
-		worker's channel, checks it, wakes the worker; the parent's rules (how often, how long awake) - design
+		worker's channel, checks it, wakes the worker; a worker stays awake while it has tasks
+		The parent's timings: baseline from other languages gathered (spec 100 3.18 - Go, Tokio, .NET,
+			Erlang, Java); set and tuned once threads work
 	[ ] 42.37 A service's interrupt handler `service(x).setCheckInterrupt(signal, data) { }` (user, 2026-11-10 -
-		spec 100 3.14) - with 56.5; `continue loop` in it vs a loop's check block (56.1)
+		spec 100 3.14) - with 56.5; no `exit loop` / `continue loop` in it (D.132 proposed); not handled:
+			Shutdown terminates, Pause suspends, others nothing; interrupts only from the OS, passed down
 	[ ] 42.38 Locks off by default (D.125 proposed): `[concurrency] locks` in fusion.toml, a lock inside
 		`unsafe`; the setting into 001-TomlSettings once decided
 	[ ] 42.39 A thread holds no state (D.130 proposed; spec 100 3.17): variables made in `run { }` are its

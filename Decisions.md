@@ -238,10 +238,10 @@ CON.017 [PLANNED] Settings with `service(x).X = ...`: Mailbox, WhenFull, Timeout
 CON.018 [PLANNED] Every thread has an ID, a parent and a place in the hierarchy; the hierarchy decides who gets a resource (42.7, 42.9)
 CON.019 [PLANNED] Concurrency trap checks: warnings by default, errors when `fusion.toml` says so (42.10)
 CON.020 [DESIGN] A `Transaction` interface: commit gives OK / FAILED, rollback - marks a call as part of a transaction (42.29, D.120)
-CON.021 [DESIGN] Channels in a service: a default mailbox (no name), named channels, an interrupt channel, outbound channels (42.34)
+CON.021 [DESIGN] Channels in a service: a default mailbox (no name), named channels, an interrupt channel, outbound channels; a `Channel` interface and a `ChannelType` enum (42.34)
 CON.022 [DESIGN] Kinds of threads: worker, writer, reader, field reader, watcher, scheduler, outbound - alone, combined or pooled (42.35)
 CON.023 [DESIGN] Sleep and wake: the parent holds the worker's channel and wakes it - instead of condition variables (42.36)
-CON.024 [DESIGN] A service's interrupt handler: `service(x).setCheckInterrupt(signal, data) { }` (42.37)
+CON.024 [DESIGN] Interrupts only from the OS, passed on to every pool and child; a service's handler `service(x).setCheckInterrupt(signal, data) { }` (42.37)
 CON.025 [DESIGN] Locks (mutex, read-write lock, semaphore, condition variable) off by default; on in `fusion.toml`, used inside `unsafe` (42.38)
 CON.026 [DESIGN] A thread holds no state: it uses the service's variables; thread-local storage only in `unsafe` (42.39)
 
@@ -408,6 +408,7 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.128 | A string is immutable only when `const`; otherwise treated like an object: copied to another thread freely, changed by two or more threads through a temporary service | strings change in place since 29.1 | CON.006 | 2026-11-10 | files/Ownership.md truth table 5 | PROPOSED |
 | D.129 | Two thread hierarchies: the levels (System > Process > Pool > Thread > Task > Channel - where concurrency sits) and the family tree (who made whom - CON.018) | the levels show how threads deal with what is above and below; the family tree breaks livelocks and deadlocks | CON.018 | 2026-11-10 | files/spec/100-Concurrency.md 3.11 | PROPOSED |
 | D.130 | A thread holds no state: it uses the service's variables; variables made in `service(x).run { }` are that run's (no `unsafe`); true thread-local storage only in `unsafe` | state lives in the service - one owner | CON.026 | 2026-11-10 | files/spec/100-Concurrency.md 3.17 | PROPOSED |
-| D.131 | No condition variables in a service: the parent holds the worker's channel, checks it on its own schedule and wakes the worker; the worker sleeps or is suspended when done - to be designed further | the parent's rules decide; the sleeping thread holds nothing | CON.023 | 2026-11-10 | files/spec/100-Concurrency.md 3.16 | PROPOSED |
+| D.131 | No condition variables in a service: the parent holds the worker's channel, checks it on its own schedule and wakes the worker; a worker stays awake while it has tasks, sleeps when none are left or on Shutdown; the timings from other languages' baselines, tuned once threads work | the parent's rules decide; the sleeping thread holds nothing | CON.023 | 2026-11-10 | files/spec/100-Concurrency.md 3.16 | PROPOSED |
+| D.132 | An interrupt comes only from the OS (Shutdown, Pause, ...); threads send only messages / requests; the service or main thread passes it on to each pool and child, and each handles it. A service's handler (`setCheckInterrupt`) has no `exit loop` / `continue loop`. Not handled: Shutdown terminates the service (released at the end of its block), Pause suspends it, any other does nothing | a shutdown always reaches every thread; a service that ignores it still ends cleanly | CON.024 | 2026-11-10 | files/spec/100-Concurrency.md 3.14 | PROPOSED |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->

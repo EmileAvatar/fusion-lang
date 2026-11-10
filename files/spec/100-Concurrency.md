@@ -20,7 +20,7 @@ Gathered 2026-11-10 (Task 51.5a) from every concurrency source; decisions and cl
 |---|---|---|
 | 1 | [Summary and comparison](#1-summary-and-comparison) | Every way to do concurrency, compared - and the service against them; how languages do it |
 | 2 | [Traps](#2-traps) | The 17 traps, and which part of the service model solves each |
-| 3 | [The service model](#3-the-service-model) | Fusion's primary way: rules, settings, ownership, forms, hot path, threads, channels, kinds of threads, sleep and wake |
+| 3 | [The service model](#3-the-service-model) | Fusion's primary way: rules, settings, ownership, forms, hot path, threads, channels, kinds of threads, sleep and wake, baseline timings |
 | 4 | [Other models](#4-other-models) | Threads, mutex, read-write lock, semaphore, atomics, condition variables, channels, async / await, ... |
 | 5 | [What is built](#5-what-is-built) | Today: reserved words only |
 | 6 | [To settle](#6-to-settle) | Clashes and gaps found - decided later |
@@ -364,7 +364,7 @@ hotpath void function step(Tick t)             // the checks without the thread
 | A block that can't sleep or be interrupted | Within one loop pass the thread doesn't sleep, yield or take an interrupt; they wait in the mailbox until the next safe point | design (42.26) |
 | `check interrupt(signal, data)` | The loop's safe point for Shutdown / Pause / Stop | design (56.5, postponed to 42) |
 | Shutdown always handled | The interrupt reaches services and loops; logs and connections closed | design (42.27) |
-| A service's interrupt handler | `db.setCheckInterrupt(signal, data) { }` - what the service does for each interrupt ([3.14](#314-channels-in-a-service)) | design (42.37) |
+| A service's interrupt handler | `db.setCheckInterrupt(signal, data) { }` - what the service does for each interrupt; Shutdown not handled terminates it, Pause suspends it ([3.14](#314-channels-in-a-service)) | design (42.37) |
 | A failing operation | Fusion undoes what it can; the developer handles the error; else it bubbles up | decided (D.120) |
 | A `Transaction` interface | commit gives OK / FAILED, rollback | design (CON.020, 42.29) |
 
@@ -381,14 +381,14 @@ hotpath void function step(Tick t)             // the checks without the thread
 
 #### 3.14 Channels in a service
 
-From the user (user, 2026-11-10 - provisional, subject to change): a channel is a named mailbox - a buffer of requests, named so developers
+From the user (2026-11-10 - provisional, subject to change): a channel is a named mailbox - a buffer of requests, named so developers
 can remember and use it. Every service (and group service) has one by default.
 
 | Channel | What it holds | Who sends | Who takes from it | Status |
 |---|---|---|---|---|
 | The default mailbox (no name) | The requests to the service - linked to the service itself, so it needs no name | Any thread that uses the service | The service's thread(s) | design |
 | A named channel | A named buffer of requests of one kind - e.g. `writes`, `reads`, `status` | Threads that send that kind of work | The next free thread of the service that handles it - several may be working | design (42.31, 42.34) |
-| The interrupt channel | Interrupts only (Shutdown, Pause, ...) | The OS (other threads too? - [section 6](#6-to-settle)) | The service: after each loop pass, at the loop or at the service | design (42.37) |
+| The interrupt channel | Interrupts only (Shutdown, Pause, ...) | The OS only - threads send messages, not interrupts | The service or main thread, which passes it on to each pool and child; every thread and service handles it | design (42.37) |
 | An outbound channel | Results on their way out, buffered - the service's thread keeps working | The service | The calling thread waiting for feedback, or other threads | design (42.34) |
 
 - Named channels are for a service with many threads, where some threads handle special work
@@ -396,26 +396,66 @@ can remember and use it. Every service (and group service) has one by default.
   or at the service (its interrupt handler, below)
 - The loop checks of Task 56 could also be set on a service, saying how it handles them
 
+How an interrupt travels (user, 2026-11-10 - provisional):
+- Threads send only messages / requests - message passing in normal operation; a thread can't send an interrupt
+- An interrupt comes only from the OS (e.g. `InterruptSignal.Shutdown`)
+- The service, or the main thread, receives it and passes it on to each thread pool and child
+- Every thread and service must handle it - so children close and finish their tasks
+
+```text
+OS --Shutdown--> main thread / service --passes on--> thread pools --> each child thread / service
+```
+
 A service's interrupt handler (pseudo code - the design is subject to change):
+- The check is implicit - the handler is the check; no `check interrupt` line, no `exit loop` or
+  `continue loop` (those belong to a loop's `check` block, Task 56)
 
 ```fusion
 service Database db = Database()
 
 db.setCheckInterrupt(signal, data) {       // what this service does for each interrupt
-    // no `check interrupt` line here - that is only needed in a loop
     if signal == InterruptSignal.Shutdown
         saveProgress()
         cleanup()
-        exit loop
     if signal == InterruptSignal.Pause
         waitForResume()
-        continue loop
 }
+```
+
+When a service does not handle an interrupt:
+
+| Interrupt | Not handled |
+|---|---|
+| Shutdown | The service is terminated, and released when it reaches the end of its block |
+| Pause | The service is suspended |
+| Any other | Nothing happens |
+
+More interrupts may come later; only these two have a consequence when not handled.
+
+The `Channel` interface and the `ChannelType` enum (pseudo code - the design is subject to change; to be
+designed properly after checking how other languages do it, 42.34):
+
+```fusion
+enum ChannelType { INBOUND, OUTBOUND }
+
+interface Channel {
+    channel(string name, ChannelType type?)  // ChannelType optional
+    property Name (get, set)
+    property ChannelType (get)
+    property long getID()
+}
+
+db.channel("status", ChannelType.OUTBOUND)
+db.channel("write", ChannelType.INBOUND)
 ```
 
 #### 3.15 Kinds of threads
 
-From the user (user, 2026-11-10 - provisional, subject to change): threads get named kinds, by their job.
+From the user (2026-11-10 - provisional, subject to change): threads get named kinds, by their job.
+- The names are suggestions - they make it easier to tell the jobs apart; perhaps an enum (`ThreadType`)
+- The compiler tells threads apart by their ID, not their kind
+- Many threads with complex work: named kinds and named channels help; a small or single-thread
+  service doesn't need them
 
 | Kind | Its job | How many |
 |---|---|---|
@@ -437,7 +477,7 @@ Not every thread is one kind:
 
 #### 3.16 Sleep and wake - the parent holds the channel
 
-From the user (user, 2026-11-10 - provisional, subject to change); to be designed further (42.36). It does the job of a condition variable
+From the user (2026-11-10 - provisional, subject to change); to be designed further (42.36). It does the job of a condition variable
 ([4.6](#46-condition-variable)) inside the service model:
 - A worker's condition variable is its mailbox or its named channel
 - The parent holds that channel - not the sleeping worker
@@ -445,8 +485,9 @@ From the user (user, 2026-11-10 - provisional, subject to change); to be designe
   with its own scheduling
 - A request is waiting: the parent wakes the worker; the worker does the work
 - The work done: the worker sleeps, or is suspended, until the parent wakes it again
-- The parent's rules: how often and for how long a channel is checked; how long a worker stays awake
-  (wake -> work -> sleep / suspend)
+- A worker stays awake as long as it has tasks; with none left, or on Shutdown, it sleeps
+- The parent's rules: how often and for how long a channel is checked - set once threads work, starting
+  from the baseline below (3.18), then tuned
 - Example: `orders` - a main working thread or a global shared thread checks for orders, then wakes the
   worker that does the work
 
@@ -457,7 +498,7 @@ caller --send--> [orders mailbox] <--checks-- parent / watcher --wakes--> worker
 
 #### 3.17 A thread holds no state
 
-From the user (user, 2026-11-10 - provisional, subject to change):
+From the user (2026-11-10 - provisional, subject to change):
 - A thread holds no state data of its own - it uses the service's variables
 - Variables made inside `service(x).run { }` belong to that thread for that run - no `unsafe` needed
 - Thread-local storage as C, Java, Python and Rust have it (a global, one copy per thread) only in
@@ -471,6 +512,41 @@ db.run {
             found += 1
 }
 ```
+
+#### 3.18 Baseline timings from other languages
+
+Gathered 2026-11-10 (user: get baseline data from other languages, tune once a working system exists).
+Starting points only, not decisions - check them against current versions before use.
+
+| Runtime | What | Value |
+|---|---|---|
+| Go | sysmon (its watcher thread) sleeps between checks | 20 us at first, backing off to at most 10 ms when idle |
+| Go | A goroutine running without yielding is preempted after | about 10 ms |
+| Go | A thread stuck in a system call loses its processor after | about 20 us (one sysmon tick), when other work waits |
+| Go | The global run queue is checked | every 61st scheduling |
+| Rust (Tokio) | The global queue is checked | every 61 tasks (multi-thread), 31 (current-thread); adapted at run time |
+| Rust (Tokio) | I/O and timer events are polled | every 61 tasks |
+| Rust (Tokio) | An idle blocking-pool thread is kept alive | 10 s |
+| C# (.NET) | The thread pool may add or remove a thread | every 500 ms, or when a work item completes (hill climbing) |
+| C# (.NET) | Starvation check (all threads stuck?) | every 500 ms |
+| Erlang (BEAM) | A process runs before it is swapped out | 4000 reductions (2000 in older versions) |
+| Erlang (BEAM) | An idle scheduler | spins briefly before sleeping (`+sbwt`); `none` saves CPU, may add latency |
+| Java | An idle thread in a cached pool / ForkJoinPool is kept | 60 s (to confirm) |
+| OS (Linux, Windows) | A thread's time slice | a few ms (Linux) to tens of ms (Windows) (to confirm) |
+
+What it suggests for Fusion (to try, then tune):
+- A watcher that checks often while busy (microseconds) and backs off when idle (to ~10 ms) - as Go's sysmon
+- A fairness check every N requests (Go and Tokio use 61) so no channel starves
+- An idle worker sleeps at once; an idle pooled thread is released after seconds (Tokio 10 s, Java 60 s)
+
+Sources: [Go sysmon](https://golang.design/under-the-hood/en/part3concurrency/ch09sched/sysmon/),
+[Go commit f9066fe1](https://lab.nexedi.com/kirr/go/-/commit/f9066fe1c0a7181242f77d8534e0b6e112c982a9?w=1),
+[Go sysmon explained](https://internals-for-interns.com/posts/go-sysmon/),
+[Tokio Builder](https://docs.rs/tokio/1.22.0/tokio/runtime/struct.Builder.html),
+[CLR thread injection](https://mattwarren.org/2017/04/13/The-CLR-Thread-Pool-Thread-Injection-Algorithm),
+[.NET issue 46077](https://github.com/dotnet/runtime/issues/46077),
+[BEAM reductions (Lambda Days)](https://www.lambdadays.org/static/upload/media/1552665212914388thatonefornowbenmarx.pdf),
+[Riak sbwt tuning](https://github.com/basho/leveldb/wiki/riak-tuning-2)
 
 ---
 
@@ -662,15 +738,15 @@ subject to change - recorded as PROPOSED rows in Decisions.md, not decided yet.
 | 8 | Thread-local storage | Not designed | A thread holds no state - it uses the service's variables; variables made in `run { }` are its own; a true thread-local only in `unsafe` | 3.17; D.130 |
 | 9 | Condition variables | Wanted at all? | In a service: the parent holds the worker's channel, checks it, wakes the worker - to be designed further | 3.16; D.131 |
 
-Still open, from the answers:
+Answered 2026-11-10 (provisional):
 
-| # | Question |
-|---|---|
-| a | The interrupt channel: may other threads send to it, or only the OS? (both were said) |
-| b | The service's interrupt handler uses `continue loop`; a loop's `check` block never has `continue` (56.1) - the same rule, or different? |
-| c | The syntax of named and outbound channels (42.34) |
-| d | The kinds of threads: final names, and which the compiler picks by itself (42.35) |
-| e | Sleep and wake: the parent's rules - how often a channel is checked, how long a worker stays awake (42.36) |
+| # | Question | Answer | Now in |
+|---|---|---|---|
+| a | Who may send to the interrupt channel | Only the OS; threads send only messages / requests; the service or main thread passes the interrupt on to each pool and child | 3.14; D.132 |
+| b | `exit loop` / `continue loop` in the service's handler | No - they belong to a loop's `check` block; the check is implicit. Shutdown not handled: terminated and released at the end of its block; Pause: suspended; others: nothing | 3.14; D.132 |
+| c | The syntax of named channels | A `Channel` interface and a `ChannelType` enum (INBOUND, OUTBOUND) - pseudo code; to be designed after checking other languages | 3.14; 42.34 |
+| d | The kinds of threads | Names are suggestions, perhaps an enum; the compiler uses the thread ID; named channels for complex cases only | 3.15 |
+| e | The parent's rules | Can't be set before threads work; baseline data from other languages first, then tuned. A worker stays awake while it has tasks, sleeps when none are left or on Shutdown | 3.16, 3.18; 42.36 |
 
 ---
 
