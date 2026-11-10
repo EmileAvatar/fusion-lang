@@ -28,8 +28,11 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [060 Structs](060-Structs.md) | Structs and value types: rules, definition, string fields, value semantics |
 | [061 Enums](061-Enums.md) | Enumerations: syntax, values, using them, their properties |
 | [070 ControlFlow](070-ControlFlow.md) | Conditionals, loops with safety checks, loop labels |
+| [080 Null](080-Null.md) | Null handling: core principles, the ways to check, numbers as conditions |
+| [081 Autoboxing](081-Autoboxing.md) | Autoboxing: how it works, using it, the autobox classes |
+| [090 Memory](090-Memory.md) | Memory management: GC (optional), smart pointers, raw pointers; ownership - move, borrow, share |
 
 Still in `files/fusion-language-spec.md`:
-null, memory, concurrency, generics, errors,
+concurrency, generics, errors,
 comments, collections, modules, the game example, building, the standard library, interop,
 reserved words, the features summary, the language comparison.
