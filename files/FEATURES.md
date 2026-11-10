@@ -567,6 +567,24 @@ are in `task/featuresArchive.md`.
 	[ ] 42.29 A `Transaction` interface (user, 2026-11-07 - D.120): commit gives OK / FAILED, rollback; marks a call
 		as part of a transaction - only OK commits. Design properly first. Also: a step that can't be undone
 		(a log line, a send) inside one - a warning "put it last, or in finally"?
+	[ ] 42.30 Compare services with the actor model and other languages - Erlang / Elixir, Akka, Go, Rust
+		(user, 2026-11-10 - Notes/chat gpt actove vs service.md, from ChatGPT: limited knowledge of Fusion)
+		ChatGPT's name for it: an "Actor-inspired Resource Service Model" - the compiler finds the resources,
+			makes the services, decides how requests run; check what is new and what an actor already does
+	[ ] 42.31 Service forms, each configurable for its situation (user, 2026-11-10 - Notes/chatgpt serverices
+		understanding.md, ChatGPT: limited knowledge of Fusion); the hot path service (42.23) is one form
+		Auto lanes (like lanes at an airport): the primary thread full or heavy - a new lane for DBAccount;
+			could split by kind (one worker for Account, one for Price) when one is overloaded
+		A limit on the threads, or use of the thread pool
+		Forms: 1 a single thread; 2 several threads with a simple buffer; 100x many threads with ring
+			buffers, simple buffers, or channels (other threads send to a named channel); a shared buffer;
+			a buffer on the calling thread that the service asks for its requests
+	[ ] 42.32 Request order by a monotonically increasing sequence number, not time + thread id - the
+		time can differ per CPU core (user, 2026-11-10)
+	[ ] 42.33 Explain services to others (user, 2026-11-10): ChatGPT kept answering with the usual locks
+		Two text boxes, ready to copy: one for people, one for another AI - in files/Service.md or
+			files/Concurrency.md
+		Diagrams showing how a service works (callers, mailbox, worker, resource)
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
 	The standard library's core modules, designed one at a time (spec "Fusion Standard
 	Library (fusionlib)"). Plan first.
