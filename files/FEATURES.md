@@ -270,7 +270,9 @@ are in `task/featuresArchive.md`.
 		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
 			files/showcase/fusion.toml - into "Decided, not built"
 	[ ] 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - plan in files/taskSummary2.md
-		[ ] 1 Gather: go through every concurrency source; one list of what is built, decided, designed, an idea,
+		[DONE] 1 Gather (2026-11-10): the inventory in files/taskSummary2.md - 7 clashes / gaps found;
+			no line limit on the file for now (user)
+			was: go through every concurrency source; one list of what is built, decided, designed, an idea,
 			rejected or replaced - with where each comes from
 		[ ] 2 Clashes and gaps: sources that disagree, or old spec text no decision covers - into
 			OpenQuestions.md (example code, options A / B / C), not guessed

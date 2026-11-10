@@ -100,7 +100,7 @@ Settings: none. Source: user 2026-11-07, files/DocumentationSystemProposal.md (o
 - 51.5 Split the spec into files/spec/NNN-Topic.md (100-200 lines each; fusion-language-spec.md is 6,574 lines,
 	files/FutureFeatures.md 6,360) - the file list shown to the user first
 - 51.6 A link check in check.py (every link and file name in the .md files exists)
-- 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - PLAN, waiting for approval
+- 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - approved; step 1 done 2026-11-10
 	Why: the section was written before Task 42; Concurrency.md, Service.md and many decisions came after.
 		Its note says "where they differ, they win" - the file should say what holds today instead
 	Settings: none new - the concurrency settings already decided (001-TomlSettings "Decided, not built")
@@ -130,8 +130,118 @@ Settings: none. Source: user 2026-11-07, files/DocumentationSystemProposal.md (o
 		Traps prevented and how (table from Concurrency_Traps.md, short)
 		Interrupts and shutdown (42.26, 42.27, 56.5 check interrupt), transactions (42.29)
 		Settings (the table from 001), what is built today, what is still open (Q.NNN)
-		A contents list; 100-200 lines - where a design doc has the detail, link to it instead of copying
+		A contents list; where a design doc has the detail, link to it instead of copying
+		No line limit for now (user, 2026-11-10): gather everything first, decide on a split after
 	Step 4 Rewrite; Step 5 Decisions.md / showcase in step, check, ship
+	Step 1 - the inventory (2026-11-10). Status: BUILT / DECIDED (an ACTIVE decision) / PLANNED (a
+		FEATURES task, agreed) / DESIGN (being planned) / IDEA / POSTPONED / OLD (spec text no decision
+		covers). Sources: Dec = Decisions.md, F = FEATURES, Conc = files/Concurrency.md, Svc =
+		files/Service.md, Own = files/Ownership.md, Traps = files/Concurrency_Traps.md, FF = FutureFeatures
+		BUILT in the compiler today: only words - `service`, `go`, `async`, `await`, `Unique`, `Shared`,
+			`Weak` are keywords (src/lexer/keywords.py); `<-` read by the lexer; nothing parsed or run
+		The goal (CLAUDE.md, F 42): a million requests on one machine, many cores; no data races by
+			construction; deadlocks / freezes prevented by rules, any that slip through a clear error; no
+			slowdown; small memory / CPU footprint; manual locking a last resort
+		Principles P1-P11 (D.075, Traps): P1 resource as service, P2 one thread one resource, P3 the
+			hierarchy decides, P4 every wait has a deadline, P5 owned threads, P6 bounded mailboxes, P7 the
+			service owns its schedule, P8 weighted turns, P9 services never block on each other, P10 visible
+			concurrency, P11 one writer - DECIDED
+		The service - version one (F 42.0, Conc 3.11, Svc "The five rules"):
+			`service` reserved (D.024) - DECIDED
+			five rules: one owner; each call one step (D.067); anything read out a copy; handles shared;
+				the compiler picks plain variable / atomic / mailbox on a shared pool, never a thread per
+				service (CON.013) - PLANNED
+			calls wait in order; `async` at the call to not wait; not re-entrant (D.068, CON.014) - DECIDED
+			`service(x).run { }` - several steps as one (CON.015) - PLANNED
+			a timeout = the caller stopped waiting; a request ends completed / failed / timed out /
+				cancelled (CON.016) - PLANNED
+			made by a parent thread, outside loops (a class field or function variable); a warning when
+				no other thread uses it (D.066) - DECIDED
+			`service <type> <name>` - `service int counter = 0`, `service Car honda = ...` (F 42.1) - PLANNED
+			version one settings: Mailbox, WhenFull, Timeout, final (Conc 3.11); a cost prototype first
+		Settings (F 42.2, 42.14, 42.11; Svc; 001-TomlSettings):
+			`service(x).X = ...` only from the creating thread (F 42.2) - PLANNED
+			prime: Mailbox 12, WhenFull WAIT, Timeout, final, Scheduler IMMEDIATE, Priority "5.4.1",
+				Rule HIERARCHY, WorkerThreadType AUTO, ThreadPool, run - PLANNED (D.069, D.070)
+			Priority "5.4.1": weighted turns, spread through the cycle, unused turns passed on (F 42.14) - PLANNED
+			full mailbox: the sender waits or gets QueueFullError; a hot path never waits (D.070) - DECIDED
+			every wait has a timeout, defaults per resource kind (D.071; values to confirm F 42.8, Conc 3.7)
+			which value wins: built-in < fusion.toml < program defaults < service(x) in code (F 42.6)
+			settings that fit the machine, levels from MIN (F 42.6, CON.011) - DESIGN
+			secondary settings: Coalesce, BatchSize, ... the 42.11 list - POSTPONED (after version one)
+			durations `500ms`, `5s`, `2min`, `1h` = int ms; hot path `ns`, `us` = long ns, never mixed (F 42.16)
+			fusion.toml: [concurrency] autoService on / warn / off, readers parallel / inTurn,
+				resourceAsService true; [concurrency.defaults]; [threads] enabled; [collections] threads,
+				sharedThreads; [hotpath] ... (001-TomlSettings "Decided, not built")
+		Ownership across threads (Own 5-7, Conc 3.13, Svc "Ownership in a service"):
+			S1-S10: the worker the only writer; the service owns, a request borrows; nothing escapes a
+				request (byVal out); readers in parallel; temporary services; into a request borrowed /
+				moved / copied; a group service for two or more resources; plain counts inside, atomic
+				only for handles (D.018); the thread-boundary check; the Service interface - PLANNED (F 42.18)
+			temporary service: two or more threads use one variable - the compiler makes service(x), the
+				threads borrow it, one call at a time, ownership comes back after (D.017, F 42.19) - DECIDED
+			send / sync: send moves a value to another thread; sync = through a service; never written,
+				worked out by the compiler (D.028, F 42.22, Own truth table 5) - DECIDED
+			group service: a thread using two or more resources - written (`service(a, b) group`) or made
+				by the compiler; no thread holds two separate services (D.077, F 42.3, 42.20) - DECIDED
+			collections used by two or more threads: a temporary service; [collections] threads picks
+				the worker (D.057, F 42.17) - DECIDED
+			`shared` keyword - POSTPONED until a real need (D.106)
+		Service forms and interface:
+			`interface Service<T>`: send, fetch, start, stop, state, waiting; BasicService, SharedService,
+				FileService, DatabaseService, HotPathService (CON.005, F 42.21) - PLANNED (needs 32.5)
+			service classes `service class X { }` - each method one step (F 42.3b) - PLANNED, after v1
+			resources (files, sockets, pipes, databases) are services by default; direct only in unsafe
+				(D.072, F 42.5) - DECIDED
+			`final` clean-up; leaving scope releases every resource (F 42.4) - PLANNED
+			hot path: `hotpath` functions (H1-H9 checks) and `hotpath service` (T1-T8, a pinned thread
+				that never sleeps) (D.019, F 42.23-42.24) - DECIDED / PLANNED
+			forms by situation, auto lanes, thread limits, buffers and named channels (F 42.31) - IDEA
+			request order by a sequence number, not time (F 42.32) - IDEA
+		Threads and scheduling:
+			every thread: ID, parent, hierarchy key; the hierarchy decides who gets a resource (CON.018,
+				F 42.7, 42.9, Conc 3.3 A-B) - PLANNED; the Thread class - DESIGN
+			the OS scheduler by default, a Fusion scheduler for advanced use (D.073) - DECIDED
+			custom schedulers / rules / priorities: one method per class (Svc, F 42.9, 42.15) - POSTPONED
+			`go f(x)` - run on another thread (CON.012) - DESIGN; capture list `go.run(...)` - IDEA (FF 1)
+			`{ }.scheduler(x)` on a block (FF 1) - IDEA
+			reads / writes told apart; a database with its own threads (FF 3) - IDEA
+			a block that can't sleep or be interrupted; safe points (F 42.26, FF 2) - DESIGN
+			interrupts checked in loops (CON.012); `check interrupt(signal, data)` (F 56.5) - DESIGN
+			shutdown always handled: services and loops close what they hold (F 42.27, FF 4) - DESIGN
+			a Transaction interface: commit OK / FAILED, rollback (D.120, F 42.29) - DESIGN
+			an identity (GUID) for everything (F 42.28) - IDEA
+			cluster threads over several servers (CON.009, F 42.12) - POSTPONED
+		Checks and tools:
+			trap checks: warnings by default, errors when fusion.toml says so (D.074, CON.019, F 42.10)
+			P9 checked across modules (F 42.13) - PLANNED
+			the thread view in the editor (F 36.6); memory budgets, run-time diagnostics (FF 5) - IDEA
+		Explaining it: compare with the actor model (F 42.30); text boxes for people and AIs, diagrams
+			(F 42.33) - PLANNED
+		Old spec text (100-Concurrency.md today) - no decision covers it, or it goes against one:
+			"Hybrid model: message passing and shared memory"; "Approach 2: shared memory, must use
+				mutexes" - OLD
+			"Try-with-resources: the compiler adds locks automatically, orders them" - OLD (replaced by
+				services and P1, P2?)
+			Threading hierarchy System > Process > Pool > Thread > Task > Channel - OLD (CON.018 means
+				the thread family tree)
+			"Async/await for I/O"; the Async section's "thread-safe collections, atomic operations,
+				lock-free structures" - OLD
+			"Thread interrupts checked at end loop automatically" - OLD, now `check interrupt` (56)
+	Step 2 preview - clashes and gaps found (to settle or turn into Q.NNN):
+		1 `Mutex` / `using lock { }`: the showcase tags it [designed]; Conc section 1 explains it; the goal
+			says manual locking is a last resort - is it in Fusion at all (unsafe only? not at all?)
+		2 Channels (`Channel<T>`, `<-`): CON.012 [DESIGN] and the showcase - still wanted next to services,
+			or replaced by `service(s).send(x)`; F 42.31 mentions named channels
+		3 `async` / `await`: D.068 has `async` at the call (don't wait for a service); the showcase has
+			C#-style `async function` + `await` - one model or both
+		4 Traps line on arrays ("an array's add / remove takes an implicit atomic lock") - replaced by
+			D.057 (a temporary service); Concurrency_Traps.md to fix
+		5 Own truth table 5: "string copied (immutable)" - strings can change in place since 29.1;
+			still copied, the word "immutable" to fix
+		6 The showcase section 18 "Concurrency (no task yet)" - Task 42 exists; no `service` in it at all
+		7 "Try-with-resources: the compiler orders locks" vs P2 (no thread holds two resources) - drop
+			lock ordering
 
 ## TASK 48: Ownership - move, borrow, share - PLAN (2026-11-01; answers below)
 
