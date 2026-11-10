@@ -2,9 +2,550 @@
 
 # 100 Concurrency
 
-Contents: [Threading Hierarchy](#threading-hierarchy) | [Two Concurrency Approaches](#two-concurrency-approaches) | ["Share Memory by Communicating" Explained](#share-memory-by-communicating-explained) | [Try-With-Resources Pattern](#try-with-resources-pattern) | [Thread Interrupt Handling](#thread-interrupt-handling) | [Async/Await Pattern](#asyncawait-pattern) | [One writer, temporary services, hot paths](#one-writer-temporary-services-hot-paths) | [Thread Safety Summary](#thread-safety-summary) | [Async and Concurrency](#async-and-concurrency)
+**Status:** [DESIGN] - nothing is built yet beyond reserved words (section 5). files/FEATURES.md Task 42.
+Gathered 2026-11-10 (Task 51.5a) from every concurrency source; decisions and clashes are settled later
+(section 6). The full detail lives in:
+- [files/Service.md](../Service.md) - the `service` reference
+- [files/Concurrency.md](../Concurrency.md) - terms, traps with code, the model, real-world cases, other languages
+- [files/Concurrency_Traps.md](../Concurrency_Traps.md) - the overview tables
+- [files/Ownership.md](../Ownership.md) sections 5-7 - ownership across threads
 
-## Threading and Concurrency Model
+**Direction (user, 2026-11-10):** the service model is Fusion's **primary** way. The other ways
+(mutex, channels, async / await, ...) are implemented too - other languages use them, and the
+`Lang.<language>.Fusion` modules (Task 49 - `Lang.Python.Fusion`, `Lang.C.Fusion`) need them.
+
+## Index
+
+| # | Section | What it holds |
+|---|---|---|
+| 1 | [Summary and comparison](#1-summary-and-comparison) | Every way to do concurrency, compared - and the service against them; how languages do it |
+| 2 | [Traps](#2-traps) | The 17 traps, and which part of the service model solves each |
+| 3 | [The service model](#3-the-service-model) | Fusion's primary way: rules, settings, ownership, forms, hot path, threads |
+| 4 | [Other models](#4-other-models) | Threads, mutex, read-write lock, semaphore, atomics, condition variables, channels, async / await, ... |
+| 5 | [What is built](#5-what-is-built) | Today: reserved words only |
+| 6 | [To settle](#6-to-settle) | Clashes and gaps found - decided later |
+| 7 | [Earlier spec text](#7-earlier-spec-text-before-task-42) | The section as it was before Task 42 - kept for review |
+
+Status words used below: **decided** (an ACTIVE decision in Decisions.md), **planned** (an agreed
+FEATURES task), **design** (being planned), **idea**, **postponed**, **old** (spec text no decision covers).
+
+---
+
+## 1 Summary and comparison
+
+#### 1.1 The ways to do concurrency
+
+| Way | How it works | Data races | Deadlocks / freezes | Used by | In Fusion |
+|---|---|---|---|---|---|
+| **Service** | One owner per resource; callers send requests to its mailbox; its worker is the only writer | **None** - by construction | Prevented by rules (P2, P3, P4, P9); any left: a clear error | Fusion (Erlang's processes are the closest) | **Primary** - [3](#3-the-service-model) |
+| Mutex / lock | Only one thread at a time inside a critical section | Prevented only where the lock is used | Easy: forgotten unlock, two locks in different orders | C, C++, Java, C#, Go, Python, Rust | Other model - [4.2](#42-mutex--lock) |
+| Read-write lock | Many readers or one writer | As a mutex | As a mutex; writers can starve | C++, Java, C#, Go, Rust | Other model - [4.3](#43-read-write-lock) |
+| Semaphore | At most N threads inside | Not by itself | Possible | Most languages | Other model - [4.4](#44-semaphore) |
+| Atomic value | One variable changed in one indivisible step | None for that one variable | None | Most languages | Inside services (CON.013); other model - [4.5](#45-atomic-value) |
+| Condition variable | A thread sleeps until another signals | Needs a lock | Lost wake-ups | C, C++, Java, C#, Python | Other model - [4.6](#46-condition-variable) |
+| Channel | A pipe: one thread sends, another receives | None for what is sent | Nobody receiving: a freeze (Go: 58% of its freezes) | Go, C#, Rust, Kotlin | Other model - [4.7](#47-channel) |
+| Actor | An object with its own mailbox and state; messages only | None | Rare; timeouts by default (Erlang) | Erlang / Elixir, Akka, Orleans | The service is actor-inspired (42.30) |
+| async / await | A function pauses while it waits; the thread does other work | Depends on what is shared | Blocking inside async; sync-over-async | C#, JavaScript, Python, Rust, Kotlin | Other model - [4.8](#48-async--await-futures) |
+| Threads directly | Start a thread (`go f(x)`) | Whatever they share | Whatever they wait on | All | `go` - [4.1](#41-threads-and-thread-pools) |
+| Immutable data | Nothing changes, so anything may read it | None | None | Clojure, Haskell, Erlang | `readonly` / `const` sharing (D.028) - [4.9](#49-immutable-data-and-thread-local-storage) |
+| Thread-local storage | Each thread its own copy | None | None | Most languages | Other model - [4.9](#49-immutable-data-and-thread-local-storage) |
+| Event loop | One thread juggles many waits | None in your code | One blocking call stalls everything | Node.js, Python asyncio | Through async / await |
+
+#### 1.2 The service against the usual ways
+
+| Question | Locks (mutex) | Channels (Go) | Actors (Erlang) | Rust | **Fusion service** |
+|---|---|---|---|---|---|
+| Who may change shared data | Whoever holds the lock | The receiving goroutine, by convention | The actor only | The owner, checked at compile time | **The service's worker only** (S1) |
+| What the developer writes | Every lock and unlock | Channels, goroutines, selects | Processes and messages | Types, lifetimes, `Arc<Mutex<T>>` | **Nothing, or `service x`** - the compiler makes temporary services (D.017) |
+| A data race | Possible | Possible (a pointer sent and kept) | Impossible | Compile error | **Impossible - checked by the compiler** |
+| A deadlock | Possible | Possible | Rare | Possible | **Prevented** - one resource per thread (P2), the hierarchy decides (P3) |
+| A freeze | Silent | Silent unless all are stuck | Call timeout | Silent | **Every wait has a timeout** (P4) - a clear error |
+| Several values changed together | Lock all, in order | Send to one owner | One actor owns them | One lock around a struct | **A group service** (D.077) or `run { }` |
+| Cost when only one thread uses it | The lock | A channel | A process | None | **None - a plain variable** (CON.013) |
+
+#### 1.3 How languages handle a million requests (files/Concurrency.md section 4)
+
+| Language | A million requests | Data races | Deadlocks | Freezes |
+|---|---|---|---|---|
+| C | Event loop by hand (epoll / IOCP) | Undefined behaviour; tools only | Nothing | Silent hang |
+| C++ | Asio, coroutines | Undefined behaviour; tools only | `scoped_lock` for several locks | Silent hang |
+| Java | Virtual threads (21+) | Library tools; memory model | Detectable at run time | Pinning (fixed in 24) |
+| C# | async / await, bounded Channels | Library tools | Manual | Sync-over-async; cancellation tokens |
+| Go | Goroutines | Race detector (testing) | Reported only when all are stuck | Channels: 58% of freezes |
+| Python | asyncio, processes | GIL hides some | Nothing | Blocking in the event loop |
+| Rust | async (Tokio) | **Compile errors** | Not prevented | Blocking in async |
+| Erlang | Tiny processes, mailboxes | **None** (no sharing) | Call timeout by default | Supervisors restart |
+| Node.js | Event loop + worker pool | None in your code | Rare | One blocking call stalls all |
+
+| From | What Fusion takes |
+|---|---|
+| Erlang | Every resource a process with a mailbox (P1), call timeouts by default (P4), supervision trees (P5) - Erlang proves the million-connection goal |
+| Rust | Shared changeable data without protection is an error - in Fusion it becomes a temporary service first (D.028) |
+| Go | Cheap tasks over a few threads, a race detector, deadlines passed down to children; its bug study warns that channels alone don't stop freezes |
+| C# | Bounded channels with a chosen "when full" policy (P6) |
+| C++ | When several locks truly are needed (unsafe mode), take them all at once in a safe order |
+| Java | Virtual threads: plain blocking-style code can scale; tools must show who holds what (P10) |
+
+Fusion's own addition is the combination: **services by default, one resource per thread, the hierarchy
+deciding contention, and every wait with a deadline** - between them they break three of the four
+conditions a deadlock needs (Coffman, 1971: mutual exclusion, hold and wait, no preemption, circular
+wait; P2 breaks hold and wait, P3 no preemption and circular wait).
+
+---
+
+## 2 Traps
+
+Each trap with code that has the bug: [files/Concurrency.md](../Concurrency.md) section 2. The last
+column says what in the service model ([section 3](#3-the-service-model)) solves it.
+
+| # | Trap | What goes wrong | Usual fix | Solved in Fusion by | Principles |
+|---|---|---|---|---|---|
+| 1 | Race condition | Two threads change one value at once; updates are lost (`count += 1`) | A lock, or no shared changeable state | One writer: the worker ([3.8](#38-ownership-across-threads)); temporary services made by the compiler | P1, P10, P11 |
+| 2 | Check-then-act | The situation changes between a check and the action | Check and act in one step | Each call one step; `service(x).run { }` ([3.4](#34-the-five-rules-version-one)) | P1, P7 |
+| 3 | Deadlock | Two threads each hold what the other waits for | An order on locks; no waiting while holding | One resource per thread, group services ([3.8](#38-ownership-across-threads)); the hierarchy decides; timeouts | P2, P3, P4, P9 |
+| 4 | Forgotten unlock | An early return or error leaves a lock held | Release tied to a scope | No caller locks at all; `final` clean-up ([3.9](#39-service-forms-and-the-service-interface)) | P1 |
+| 5 | Livelock | Threads keep giving way and never progress | Break the symmetry | The hierarchy decides who wins ([3.11](#311-threads-and-scheduling)) | P3 |
+| 6 | Starvation | One thread never gets its turn | Fairness, aging | Weighted turns, priority "5.4.1"; bounded mailboxes ([3.7](#37-settings)) | P8, P6 |
+| 7 | Priority inversion | Important work waits behind unimportant work holding a lock | Priority inheritance | Weighted turns, priority inherited; no caller locks | P8, P1 |
+| 8 | Change never seen | One thread's write never becomes visible to another | Synchronising operations only | All changes go through the service | P1 |
+| 9 | Collection changed by two threads | Lost items, crashes, corrupted memory | One owner, or snapshots | A temporary service for a List / Map / array (D.057, [3.8](#38-ownership-across-threads)) | P1, P11 |
+| 10 | Channel with nobody receiving | A send or receive waits forever | A lifetime and owner per channel; time limits | Every wait has a timeout; bounded mailboxes; owned threads | P4, P5, P6 |
+| 11 | Blocking inside async | One slow call freezes every task on the thread | Separate executors | The service owns its schedule; long work on its own thread (42.26) | P7, P1 |
+| 12 | Forgetting `await` | A result and its error are silently dropped | No orphan tasks | Owned threads: errors go to the parent | P5 |
+| 13 | Sync-over-async deadlock | The main thread blocks on work that needs it | Never block a needed thread | Services never block on each other; timeouts | P9, P4 |
+| 14 | Errors lost in another thread | A background error never reaches the caller | Errors travel with results | Owned threads: the parent gets its children's errors | P5 |
+| 15 | Thread leaks, too many threads | Threads never end, or one per request | Bounded pools, owners | A shared pool, never a thread per service (CON.013); owned threads | P5, P6 |
+| 16 | UI changed from another thread | Random crashes, drawing glitches | Thread affinity, messages | The UI as a service | P1 |
+| 17 | Contention, false sharing | Correct but slow | Locality, share little | The service owns its schedule; readers in parallel; hot path with padded rings ([3.10](#310-hot-path)) | P7, P1 |
+
+---
+
+## 3 The service model
+
+#### 3.1 The goal
+
+A million requests on one machine with many cores - **no data races by construction**, deadlocks and
+freezes prevented by rules (any that slip through become clear errors), no slowdown, a small memory and
+CPU footprint, very scalable. A resource becomes a service instead of every caller locking it; manual
+locking is a last resort (CLAUDE.md, FEATURES Task 42).
+
+#### 3.2 The principles - decided (D.075)
+
+| | Principle | In one line |
+|---|---|---|
+| P1 | Resource as Service | One coordinator owns each resource; everyone else sends requests (`service` keyword) |
+| P2 | One Thread, One Resource | No thread holds or waits on two resources; things that change together form one unit - a group service (D.077) |
+| P3 | The Hierarchy Decides | When two threads want one resource, a rule (the senior thread, by default) picks the winner |
+| P4 | Every Wait Has a Deadline | Every thread, request and wait has a timeout; a freeze becomes an error |
+| P5 | Owned Threads | Every thread has a parent; parents wait for, cancel and get errors from their children |
+| P6 | Bounded Mailboxes | Every queue has a size and a stated "when full" policy |
+| P7 | The Service Owns Its Schedule | The service decides the order and what runs in parallel |
+| P8 | Weighted Turns | Priorities get shares of the turns; low priority still runs; priority is inherited |
+| P9 | Services Never Block on Each Other | While handling a request, a service calls only down the hierarchy, or sends without waiting |
+| P10 | Visible Concurrency | Editor tools and compiler warnings show who touches what |
+| P11 | One Writer | Assigning moves; a value two threads use gets a (temporary) service as its only writer; readers may run together |
+
+#### 3.3 What a service is
+
+`service` marks state that several threads share - a variable, a struct or a class object. `service` is
+a reserved keyword (D.024 - decided).
+
+```fusion
+service int counter = 0                     // a variable
+service Person person = Person("Ada")       // a struct
+service Car honda = Honda(Color.Black)      // a class object
+```
+
+#### 3.4 The five rules (version one)
+
+| # | Rule | Status |
+|---|---|---|
+| 1 | **One owner.** Each statement or call on a service is one indivisible step; anything read out is a **copy**; copying a service variable gives another **handle** | decided (D.067) |
+| 2 | **The compiler decides how it runs:** one thread - a plain variable (no cost); a simple value - CPU atomics; anything else - a mailbox served by workers from a shared pool, never a thread per service | planned (CON.013) |
+| 3 | **Code runs in order:** after `counter += 1`, `print(counter)` shows the new value; `async` at the call to not wait; one request at a time (not re-entrant) | decided (D.068) |
+| 4 | **Several steps as one:** `service(x).run { ... }` - a one-time atomic operation where it is written | planned (CON.015) |
+| 5 | **A timeout means the caller stopped waiting**, not that the work was undone; a request ends completed, failed, timed out or cancelled | planned (CON.016) |
+
+```fusion
+service(account).run {
+    if account.balance >= 800 {             // the check and the change are one step:
+        account.balance -= 800              // two withdrawals can't both pass the check
+    }
+}
+```
+
+Version one needs four settings: `Mailbox`, `WhenFull`, `Timeout`, `final`; a prototype measures the cost
+first (files/Concurrency.md 3.11).
+
+#### 3.5 Where a service is created - decided (D.066)
+
+- Only for state that several threads read or write
+- Outside loops: a class field, or a variable in a function
+- The parent thread creates it; its child threads use it; a child may create its own for its children
+- A warning when no other thread ever uses it
+
+```fusion
+void function processOrders(List<Order> orders) {
+    service Totals totals = Totals()        // the parent creates it, outside the loop
+    for order in orders {
+        go worker(order, totals)            // the children use it
+    }
+}
+
+void function worker(Order order, Totals totals) {
+    service List<Line> lines = []           // a child's own service, for its children
+    for item in order.items {
+        go priceLine(item, lines)
+    }
+    totals.add(order.id, lines)             // the result goes up to the parent's service
+}
+```
+
+#### 3.6 Using a service
+
+| Form | What it does | Status |
+|---|---|---|
+| `service <type> <name> = value` | Declares a service | planned (42.1) |
+| `service(name).Setting = value` | Changes a setting - only the creating thread | planned (42.2) |
+| `service(name).run { ... }` | A one-time atomic operation | planned (CON.015) |
+| `async` at a call | Sends a request without waiting for its reply | decided (D.068) |
+| `service class Name { ... }` | Every object is a service; each method one atomic step | planned, after version one (42.3b) |
+| `service(a, b, ...) group` | Two or more variables become one service | decided (D.077), after version one (42.3) |
+| `service(x).final = { ... }` | Extra clean-up; leaving scope always releases everything | planned (42.4) |
+
+#### 3.7 Settings
+
+Prime settings (files/Service.md; FEATURES 42.14) - defaults in `fusion.toml` `[concurrency.defaults]`:
+
+| Setting | What it does | Values | Default | Status |
+|---|---|---|---|---|
+| `Mailbox` | How many requests can wait | a number | 12 | planned |
+| `WhenFull` | A full mailbox | `WAIT` (the sender waits), `ERROR` (`QueueFullError`); a hot path never waits | `WAIT` | decided (D.070) |
+| `Timeout` | How long a caller waits | a duration (`5s`) | per kind of resource | decided (D.071); values to confirm (42.8) |
+| `final` | Extra clean-up when it goes out of scope | a block | none | planned |
+| `Scheduler` | The order requests run in | `IMMEDIATE`, `BATCHED`, custom | `IMMEDIATE` | planned |
+| `Priority` | Shares of the turns | `"5.4.1"` (high 5, medium 4, low 1 in 10), custom | `"5.4.1"` | planned (42.14) |
+| `Rule` | Who wins when two threads want it | `HIERARCHY`, custom | `HIERARCHY` | planned |
+| `WorkerThreadType` | Who does the work | `AUTO` (SHARED as more threads read, SINGLE when heavy), `SINGLE`, `SHARED` | `AUTO` | decided (D.069) |
+| `ThreadPool` | The pool that serves it | a pool, `ThreadPool(10)` | the program's shared pool | planned |
+| `Readers` | Readonly requests together or in turn | `PARALLEL`, `SERIAL` | `PARALLEL` | planned (S4) |
+
+| Rule | Detail | Status |
+|---|---|---|
+| Priority "5.4.1" | Weighted turns: in every 10, high 5, medium 4, low 1 - low never starves; turns spread through the cycle (H M H M H L ...); a level with no work gives its turns away | planned (42.14) |
+| Which value wins | Built-in defaults < `fusion.toml` < the program's defaults < `service(x)` in code | planned (42.6) |
+| Settings that fit the machine | Levels from MIN (embedded or unknown memory) up; a machine matching no level gets MIN | design (42.6, CON.011) |
+| Durations | `500ms`, `5s`, `2min`, `1h` - int milliseconds; hot path `ns`, `us` - long nanoseconds; never mixed | planned (42.16) |
+| Secondary settings | Coalesce, BatchSize, BatchDelay, IdleTimeout, OnError, RestartLimit, Name, Trace, Affinity, MemoryLimit, Lifetime, Snapshot, WarnAt, Retry, Shutdown, Access, Weight | postponed - after version one (42.11) |
+
+Project settings (files/spec/001-TomlSettings.md "Decided, not built"):
+
+| Setting | Values | Default | What it does |
+|---|---|---|---|
+| `[threads] enabled` | `true` / `false` | `true` | Threads allowed at all (off for small devices) |
+| `[concurrency] autoService` | `on` / `warn` / `off` | `on` | Two or more threads using one variable: a temporary service (off: an error) |
+| `[concurrency] readers` | `parallel` / `inTurn` | `parallel` | Read-only requests together or in turn |
+| `[concurrency] resourceAsService` | `true` / `false` | `true` | Files, sockets, databases are services; direct access only in unsafe mode |
+| `[concurrency.defaults]` | the prime settings | as above | The defaults every service starts from |
+| Trap checks *(name open)* | warning / error, per check | warning | Each trap check can be made an error (D.074) |
+| `[collections] threads`, `sharedThreads` | `shared` / `dedicated`; a number | `shared`, `10` | The worker a collection used by several threads gets |
+| `[hotpath] ...` | see [3.10](#310-hot-path) | | |
+
+#### 3.8 Ownership across threads
+
+Rules in a service (files/Service.md, FEATURES 42.18 - planned):
+
+| # | Rule |
+|---|---|
+| S1 | **The worker is the only writer** - nothing outside holds a reference to its inside |
+| S2 | **The service owns its value; a request borrows it** - to change or only read, as the called function's signature says |
+| S3 | **Nothing escapes a request** - no returning, storing or capturing a reference to the inside (`byVal` copies out) |
+| S4 | **Readers in parallel** - readonly requests together; a changing request alone |
+| S5 | **Temporary services** - made when two or more threads use one value, gone when the last ends |
+| S6 | **Into a request** - borrowed for the request only, moved in (send), or copied |
+| S7 | **Two or more resources: a group service**; waiting inside a request for another thread's result is an error |
+| S8 | **Plain counts inside a service**; only handles use atomic counts (D.018) |
+| S9 | **The thread-boundary table** (below) |
+| S10 | **A `Service` interface** every kind implements ([3.9](#39-service-forms-and-the-service-interface)) |
+
+| Rule | Detail | Status |
+|---|---|---|
+| Temporary service | Two or more threads use one variable: the compiler makes `service(x)`; the threads borrow it, one whole call at a time; the parent's own use is a request too; the last thread ends - the variable owns its value again | decided (D.017, 42.19) |
+| send / sync | **send** - a value goes to another thread and the sender no longer has it; **sync** - many threads use it through a service; never written, worked out by the compiler; errors say send / copy / service | decided (D.028, 42.22) |
+| Group service | A thread using two or more resources: they become one service - written or made by the compiler; it owns them while its requests run; no thread holds two separate services | decided (D.077, 42.3, 42.20) |
+| Collections | An array, List or Map used by two or more threads gets a temporary service; `[collections] threads` picks its worker | decided (D.057, 42.17) |
+| `shared` keyword | Not added until a real need shows - `byRef` already shares | postponed (D.106) |
+
+Truth table 5 - a value reaching another thread (files/Ownership.md):
+
+| Value | `go f(x)`, one thread | `go f(x)`, two or more threads | `go f(readonly x)` | `go f(byVal x)` | `service(s).send(x)` |
+|---|---|---|---|---|---|
+| int, plain struct | copied | copied | copied | copied | copied |
+| string | copied | copied | copied | copied | copied |
+| List, Map, object | borrowed - the parent frozen | **sync**: a temporary service | read in parallel, frozen meanwhile | each thread its own | **send**: moved, the sender loses it |
+| a struct holding a List | borrowed | sync | read in parallel | each its own | send: moved |
+| `shared` object | read only | sync | read in parallel | a copy | an error - send a copy |
+| service handle | shared (atomic count) | shared | shared | an error - a service can't be copied | the handle travels |
+| a function value holding a borrow | error | error | error | - | error |
+
+#### 3.9 Service forms and the Service interface
+
+```fusion
+interface Service<T>                    // T: the kind of request
+    void function send(T request)       // a caller puts a request in the mailbox
+    T function fetch()                  // the worker fetches its next request
+    void function start()
+    void function stop()
+    ServiceState function state()
+    int function waiting()              // requests in the mailbox
+```
+
+| Form | When | Implementation | Status |
+|---|---|---|---|
+| `service T x = ...` | A shared value | `BasicService` - a mailbox and one worker | planned (CON.005, 42.21 - needs interfaces) |
+| Two or more threads use a plain variable | Made by the compiler | `SharedService` (temporary) | decided (D.017) |
+| A file, socket, pipe or database | Resources are services by default | `FileService`, `DatabaseService` | decided (D.072, 42.5) |
+| `service class X { }` | Every object a service; each method one step | - | planned (42.3b) |
+| `service(a, b) group` | Several values changed together | a group service | decided (D.077) |
+| `hotpath service T x = ...` | A dedicated thread that never sleeps | `HotPathService` | decided (D.019) |
+| Lanes, thread limits, buffers, named channels | Each form configured for its situation | - | idea (42.31) |
+
+#### 3.10 Hot path
+
+A dedicated thread that never sleeps - it keeps one processor busy (decided D.019; FEATURES 42.23-42.24).
+
+```fusion
+hotpath service Trade trading = Trade("BTC-USD") {
+    service(trading).Core = 3                  // pinned to CPU core 3
+    service(trading).Ring = 4096               // input slots, a power of 2
+    service(trading).WhenFull = Full.COALESCE  // never WAIT (a compile error)
+    service(trading).Wait = Wait.SPIN          // never sleeps
+    service(trading).Budget = 50ns             // a warning when a step takes longer
+}
+
+hotpath void function step(Tick t)             // the checks without the thread
+```
+
+| | What the compiler checks (H) | | What happens while it runs (T) |
+|---|---|---|---|
+| H1 | No allocating | T1 | Pinned to a core, real-time priority |
+| H2 | No blocking | T2 | An input ring (power of 2, cache-line padded) |
+| H3 | No count changes | T3 | Wait SPIN (default) or YIELD - never PARK |
+| H4 | No unknown calls | T4 | Memory locked and touched at set-up |
+| H5 | No unbounded loops (a setting) | T5 | No replies - results go to other rings |
+| H6 | Errors stay inside | T6 | A latency histogram, the `Budget` warning |
+| H7 | Fixed-size ring messages | T7 | A watchdog |
+| H8 | Only the set-up allocates | T8 | Set-up, warm-up, running, drain, stop |
+| H9 | Sizes from the hardware | | |
+
+`[hotpath]` settings (001-TomlSettings): `enabled`, `ring` (1024), `wait` (spin), `whenFull` (error),
+`pinThreads`, `lockMemory`, `checks`, `loopLimit` - all on by default; ideas: `hugePages`, `budgetStrict`.
+
+#### 3.11 Threads and scheduling
+
+| Item | Detail | Status |
+|---|---|---|
+| Thread identity | Every thread has an ID (never reused, main = 0), a parent and a hierarchy key (0.2.1); the hierarchy decides who gets a resource | planned (CON.018, 42.7, 42.9) |
+| The Thread class | ID, GUID, hierarchy key, priority, helpers that track threads | design (42.7) |
+| Scheduler | The OS scheduler by default; a Fusion scheduler for advanced use | decided (D.073) |
+| Custom schedulers, rules, priorities | One method per class (files/Service.md) | postponed - after version one (42.9, 42.15) |
+| `go f(x)` | Run a function on another thread | design (CON.012) |
+| A capture list: `go.run(vars)(schedule) { }` | Names exactly what crosses into the thread | idea (FutureFeatures "Threads, Schedulers and Services" 1) |
+| `{ }.scheduler(x)` on a block | Which scheduler a block uses | idea (same, 1) |
+| Reads and writes told apart | A scheduler knows each request's kind; a database with its own threads | idea (same, 3) |
+| Request order | A sequence number that only goes up, not time + thread id | idea (42.32) |
+| Cluster threads | Over several servers - a framework of its own | postponed (CON.009, 42.12) |
+
+#### 3.12 Interrupts, shutdown, transactions
+
+| Item | Detail | Status |
+|---|---|---|
+| A block that can't sleep or be interrupted | Within one loop pass the thread doesn't sleep, yield or take an interrupt; they wait in the mailbox until the next safe point | design (42.26) |
+| `check interrupt(signal, data)` | The loop's safe point for Shutdown / Pause / Stop | design (56.5, postponed to 42) |
+| Shutdown always handled | The interrupt reaches services and loops; logs and connections closed | design (42.27) |
+| A failing operation | Fusion undoes what it can; the developer handles the error; else it bubbles up | decided (D.120) |
+| A `Transaction` interface | commit gives OK / FAILED, rollback | design (CON.020, 42.29) |
+
+#### 3.13 Checks and tools
+
+| Item | Detail | Status |
+|---|---|---|
+| Trap checks | Two resources per thread, shared variables, missing timeouts, services blocking on each other - warnings by default, errors by setting | decided (D.074, CON.019, 42.10) |
+| P9 across modules | A service calls only down the hierarchy | planned (42.13) |
+| The thread view in the editor | A stack of threads: who touches what | planned (36.6) |
+| Memory budgets, run-time diagnostics | A limit per scope or service; mailbox pressure, memory per service | idea (FutureFeatures 5) |
+| An identity for everything | A GUID per name; which variables are in a thread or group | idea (42.28) |
+| Explaining services | Text boxes for people and for other AIs; diagrams; a comparison with actors | planned (42.30, 42.33) |
+
+---
+
+## 4 Other models
+
+Implemented too, next to services (user, 2026-11-10): other languages use them, and the
+`Lang.<language>.Fusion` modules (Task 49) need them. The syntax below is as designed in
+files/Concurrency.md section 1 - not decided yet. Where each fits next to services: [section 6](#6-to-settle).
+
+#### 4.1 Threads and thread pools
+
+| Term | What it is |
+|---|---|
+| Process | A running program with its own memory |
+| Thread | A unit of work inside a process; threads share the process's memory |
+| Main thread | The first thread; often the only one allowed to touch the UI |
+| Thread pool | A fixed set of threads that take tasks from a queue - no thread per task |
+| Task / job | A piece of work handed to a pool |
+| Context switch | The OS pausing one thread and running another - at any point, even inside `count += 1` |
+
+```fusion
+go worker(jobs)                        // run worker on another thread (CON.012 - design)
+```
+
+#### 4.2 Mutex / lock
+
+Only one thread at a time may hold it; `using lock { }` unlocks at the end of the block, even on an error.
+
+```fusion
+Mutex lock = Mutex()
+int balance = 100
+
+void function withdraw(int amount) {
+    using lock {                       // locked here
+        if balance >= amount {
+            balance -= amount
+        }
+    }                                  // unlocked here, always
+}
+```
+
+#### 4.3 Read-write lock
+
+Many readers at once, or one writer alone.
+
+```fusion
+ReadWriteLock rw = ReadWriteLock()
+using rw.read() {
+    print(settings["theme"])           // many threads may read together
+}
+using rw.write() {
+    settings["theme"] = "dark"         // a writer waits until every reader is done
+}
+```
+
+#### 4.4 Semaphore
+
+A counter of permits: at most N threads inside at once. A mutex is a semaphore with one permit.
+
+```fusion
+Semaphore downloads = Semaphore(3)     // at most 3 downloads at the same time
+using downloads {
+    fetch(url)
+}
+```
+
+#### 4.5 Atomic value
+
+One variable whose operations (add, swap, compare-and-set) can't be interrupted - fast, but for one
+variable only. A service of a simple value uses them by itself (CON.013).
+
+```fusion
+Atomic<int> hits = Atomic<int>(0)
+hits.add(1)                            // safe from any number of threads
+```
+
+#### 4.6 Condition variable
+
+A thread sleeps until another says "something changed" (the queue is no longer empty). Channels are
+built on it; most programs use a channel instead.
+
+#### 4.7 Channel
+
+A pipe from one thread to another: `send` puts a value in, `receive` takes one out, waiting until one
+arrives. Unbuffered: the sender waits for a receiver; buffered (N): it runs ahead until full; closing
+tells the receivers nothing more is coming. CON.012 (design); `<-` is read by the lexer.
+
+```fusion
+Channel<int> jobs = Channel.create<int>(10)    // room for 10 values
+
+void function worker(Channel<int> input) {
+    for n in input {                           // receives until the channel is closed
+        print("square of {n} = {@1}", n * n)
+    }
+}
+
+void function main() {
+    go worker(jobs)
+    for i in range(1, 6) {
+        jobs.send(i)
+    }
+    jobs.close()                               // the worker's loop ends
+}
+```
+
+#### 4.8 async / await, futures
+
+A way to wait without blocking a thread - mostly for I/O. An `async` function can pause; `await` pauses
+it until a result is ready, and the thread does other work meanwhile. A future is a value that exists
+later. Rule of thumb: threads for heavy computing, async for waiting. CON.012 (design).
+
+```fusion
+async string, Error function fetchPage(string url) {
+    Response r = await http.get(url)    // pauses here; the thread does other work meanwhile
+    return await r.readBody()
+}
+
+Future<string> a = fetchPage("a")          // both downloads start now
+Future<string> b = fetchPage("b")
+List<string> pages = await all([a, b])     // wait for both
+```
+
+#### 4.9 Immutable data and thread-local storage
+
+| Way | What it is | In Fusion |
+|---|---|---|
+| Immutable data | Can't change after it is made - any number of threads may read it | Share a readonly value (D.028); `const` (D.112) |
+| Thread-local storage | Each thread its own copy - nothing to share | Not designed yet |
+
+#### 4.10 Cancellation / interrupt
+
+Asking a running thread to stop - cooperative: it checks at safe points and stops cleanly. In Fusion's
+design: the `check interrupt` block after a loop (Task 56, [3.12](#312-interrupts-shutdown-transactions)).
+
+---
+
+## 5 What is built
+
+| Item | Status |
+|---|---|
+| Keywords `service`, `go`, `async`, `await`, `Unique`, `Shared`, `Weak` | Reserved (src/lexer/keywords.py) - nothing parsed |
+| `<-` | Read by the lexer only |
+| Everything in sections 3 and 4 | Not built - FEATURES Task 42 (services), Task 49 (Lang modules), Task 56 (check) |
+
+---
+
+## 6 To settle
+
+Found while gathering (2026-11-10, Task 51.5a step 2) - for decisions later, not guessed:
+
+| # | Subject | What clashes or is missing |
+|---|---|---|
+| 1 | Mutex / `using lock { }` | Primary is services; mutex for other languages and Lang modules - in normal code too, only in unsafe mode, or only through a Lang module? |
+| 2 | Channels | Next to `service(s).send(x)` - when to use which; 42.31 mentions named channels inside services |
+| 3 | `async` / `await` | D.068 has `async` at a call (don't wait for a service); section 4.8 has C#-style `async function` + `await` - one model or both |
+| 4 | files/Concurrency_Traps.md | Says an array's add / remove takes "an implicit atomic lock" - replaced by D.057 (a temporary service) |
+| 5 | files/Ownership.md truth table 5 | Calls strings "immutable" - they can change in place since 29.1 (still copied) |
+| 6 | The showcase section 18 | "Concurrency (no task yet)" - Task 42 exists; no `service` in it; `Mutex` tagged [designed] |
+| 7 | Old text (section 7) | "The compiler adds locks and orders them" - against P2 (no thread holds two resources); "hybrid model", the old "threading hierarchy" |
+| 8 | Thread-local storage | Not designed |
+| 9 | Condition variables | Wanted at all, or only inside channels / services |
+
+---
+
+## 7 Earlier spec text (before Task 42)
+
+Kept as it was, for review - no decision covers most of it; section 6 lists what clashes. It goes once
+the questions are settled.
+
+### Threading and Concurrency Model
 
 **Status:** [DESIGN] files/FEATURES.md Task 42. The current design is newer than this section - where they
 differ, these win:
@@ -19,7 +560,7 @@ Note: This is a high-level overview. Full threading specification will be in a s
 
 ---
 
-### Threading Hierarchy
+#### Threading Hierarchy
 
 Description: Layers of concurrent execution units.
 
@@ -33,13 +574,13 @@ Extended Hierarchy: System → Process → Thread Pool → Thread → Task/Job �
 
 ---
 
-### Two Concurrency Approaches
+#### Two Concurrency Approaches
 
 Description: Fusion supports both paradigms for maximum flexibility.
 
 ---
 
-#### Approach 1: Message Passing (Recommended)
+##### Approach 1: Message Passing (Recommended)
 
 Description: Share memory by communicating (Go-style).
 
@@ -77,7 +618,7 @@ void function consumer()
 
 ---
 
-#### Approach 2: Shared Memory (Traditional)
+##### Approach 2: Shared Memory (Traditional)
 
 Description: Communicate by sharing memory (requires locks).
 
@@ -112,7 +653,7 @@ class Counter
 
 ---
 
-### "Share Memory by Communicating" Explained
+#### "Share Memory by Communicating" Explained
 
 Description: Understanding Go's concurrency philosophy.
 
@@ -166,7 +707,7 @@ end loop
 
 ---
 
-### Try-With-Resources Pattern
+#### Try-With-Resources Pattern
 
 Description: Automatic resource locking to prevent race conditions and deadlocks.
 
@@ -251,7 +792,7 @@ void function criticalSection()
 
 ---
 
-### Thread Interrupt Handling
+#### Thread Interrupt Handling
 
 Description: Cooperative multitasking via loop checks.
 
@@ -277,7 +818,7 @@ end loop with
 
 ---
 
-### Async/Await Pattern
+#### Async/Await Pattern
 
 Description: Modern asynchronous programming for I/O operations.
 
@@ -303,7 +844,7 @@ else
 
 ---
 
-### One writer, temporary services, hot paths
+#### One writer, temporary services, hot paths
 
 **Status:** [PLANNED 42.18-42.25] designed 2026-10-31 (user) - `files/Service.md`,
 `files/Concurrency.md` 3.13, `files/Ownership.md` sections 5-7.
@@ -323,7 +864,7 @@ else
 
 ---
 
-### Thread Safety Summary
+#### Thread Safety Summary
 
 Strategy | Pros | Cons | Use When
 ---|---|---|---
@@ -335,7 +876,7 @@ Async/Await | Clean syntax, efficient I/O | Not for CPU-bound | I/O operations
 
 ---
 
-## Async and Concurrency
+### Async and Concurrency
 
 **Status:** [DESIGN] files/FEATURES.md Task 42 - see `files/Concurrency.md` and `files/Service.md`
 

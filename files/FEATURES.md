@@ -274,6 +274,9 @@ are in `task/featuresArchive.md`.
 			no line limit on the file for now (user)
 			was: go through every concurrency source; one list of what is built, decided, designed, an idea,
 			rejected or replaced - with where each comes from
+		[DONE] 1b Reorganised (user, 2026-11-10): Index; 1 summary and comparison; 2 traps (what solves each);
+			3 the service model (primary); 4 other models - mutex, channels, async ... (for Lang.<language>.Fusion,
+			Task 49); 5 built; 6 to settle (9 items); 7 the earlier text kept for review - tables throughout
 		[ ] 2 Clashes and gaps: sources that disagree, or old spec text no decision covers - into
 			OpenQuestions.md (example code, options A / B / C), not guessed
 		[ ] 3 Show the user the list and the proposed outline of 100-Concurrency.md - approval
