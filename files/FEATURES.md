@@ -269,6 +269,14 @@ are in `task/featuresArchive.md`.
 			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
 		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
 			files/showcase/fusion.toml - into "Decided, not built"
+	[ ] 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - plan in files/taskSummary2.md
+		[ ] 1 Gather: go through every concurrency source; one list of what is built, decided, designed, an idea,
+			rejected or replaced - with where each comes from
+		[ ] 2 Clashes and gaps: sources that disagree, or old spec text no decision covers - into
+			OpenQuestions.md (example code, options A / B / C), not guessed
+		[ ] 3 Show the user the list and the proposed outline of 100-Concurrency.md - approval
+		[ ] 4 Rewrite 100-Concurrency.md from the list; old text that no longer holds goes (git keeps it)
+		[ ] 5 Decisions.md CON / THR lines and the showcase tags in step; python check.py; ship
 	[ ] 51.6 A link check in check.py
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]

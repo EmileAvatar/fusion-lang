@@ -100,6 +100,38 @@ Settings: none. Source: user 2026-11-07, files/DocumentationSystemProposal.md (o
 - 51.5 Split the spec into files/spec/NNN-Topic.md (100-200 lines each; fusion-language-spec.md is 6,574 lines,
 	files/FutureFeatures.md 6,360) - the file list shown to the user first
 - 51.6 A link check in check.py (every link and file name in the .md files exists)
+- 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - PLAN, waiting for approval
+	Why: the section was written before Task 42; Concurrency.md, Service.md and many decisions came after.
+		Its note says "where they differ, they win" - the file should say what holds today instead
+	Settings: none new - the concurrency settings already decided (001-TomlSettings "Decided, not built")
+		are listed in it, not changed
+	Step 1 Gather - the sources, read by grep and heading, not whole (Rule 8):
+		Decisions.md - every CON / THR line, the D rows they point to (and MEM rows about threads)
+		files/FEATURES.md Task 42 (42.1-42.33), 48 (threads side), 56 (check interrupt)
+		files/Concurrency.md (1,745 lines: terms, traps, ideas, other languages) - headings, then the parts
+			marked decided
+		files/Concurrency_Traps.md (overview tables), files/Service.md (the `service` reference)
+		files/Ownership.md (moving across threads), files/Object_Lifetime.md where it touches threads
+		files/FutureFeatures.md "Threads, Schedulers and Services" (line ~6080)
+		files/showcase/Fusion_showcase.fusion and Fusion_template.fusion - the concurrency tags
+		files/spec/001-TomlSettings.md - [threads], [concurrency], [hotpath], [collections] rows
+		Notes/ ChatGPT files - only as questions to check, never as decisions (limited knowledge of Fusion)
+		The output: a working list in this file - one line per item: status, the rule, its source
+	Step 2 Clashes and gaps - e.g. the spec's "Approach 2: shared memory (traditional)", its Mutex /
+		lock examples and async / await against "manual locking is a last resort" and services; each one
+		either already decided (cite it) or a Q.NNN in OpenQuestions.md
+	Step 3 Show the user: the list, the questions, and the outline - proposed:
+		Status and where the design lives (links)
+		The goal (a million requests, no data races by construction, freezes become errors)
+		The model: a resource becomes a service - callers send, one writer, the mailbox
+		Service forms: basic, shared, file, database, hot path (42.21-42.24, 42.31)
+		Threads: starting one, the pool, schedulers, priority
+		Ownership across threads (moving, `shared`, readonly)
+		Traps prevented and how (table from Concurrency_Traps.md, short)
+		Interrupts and shutdown (42.26, 42.27, 56.5 check interrupt), transactions (42.29)
+		Settings (the table from 001), what is built today, what is still open (Q.NNN)
+		A contents list; 100-200 lines - where a design doc has the detail, link to it instead of copying
+	Step 4 Rewrite; Step 5 Decisions.md / showcase in step, check, ship
 
 ## TASK 48: Ownership - move, borrow, share - PLAN (2026-11-01; answers below)
 
