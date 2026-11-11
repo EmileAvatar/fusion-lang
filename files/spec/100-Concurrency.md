@@ -23,8 +23,7 @@ Gathered 2026-11-10 (Task 51.5a) from every concurrency source; decisions and cl
 | 3 | [The service model](#3-the-service-model) | Fusion's primary way: rules, settings, ownership, forms, hot path, threads, channels, kinds of threads, sleep and wake, baseline timings |
 | 4 | [Other models](#4-other-models) | Threads, mutex, read-write lock, semaphore, atomics, condition variables, channels, async / await, ... |
 | 5 | [What is built](#5-what-is-built) | Today: reserved words only |
-| 6 | [To settle](#6-to-settle) | Clashes and gaps found - decided later |
-| 7 | [Earlier spec text](#7-earlier-spec-text-before-task-42) | The section as it was before Task 42 - kept for review |
+| 6 | [To settle](#6-to-settle) | The clashes found and the user's answers - PROPOSED until threads are built |
 
 Status words used below: **decided** (an ACTIVE decision in Decisions.md), **planned** (an agreed
 FEATURES task), **design** (being planned), **idea**, **postponed**, **old** (spec text no decision covers).
@@ -62,6 +61,26 @@ FEATURES task), **design** (being planned), **idea**, **postponed**, **old** (sp
 | A freeze | Silent | Silent unless all are stuck | Call timeout | Silent | **Every wait has a timeout** (P4) - a clear error |
 | Several values changed together | Lock all, in order | Send to one owner | One actor owns them | One lock around a struct | **A group service** (D.077) or `run { }` |
 | Cost when only one thread uses it | The lock | A channel | A process | None | **None - a plain variable** (CON.013) |
+
+The same counter both ways (from the earlier spec text):
+
+```fusion
+// With a lock - only with [concurrency] locks = true, inside unsafe (4.2)
+class Counter
+    private int count
+    private Mutex mutex = Mutex()
+
+    void function increment()
+        unsafe
+            using mutex
+                count += 1             // forget the lock once, and two threads lose an update
+```
+
+```fusion
+// With a service - the default
+service int counter = 0
+counter += 1                           // one step; the service's worker is the only writer (S1)
+```
 
 #### 1.3 How languages handle a million requests (files/Concurrency.md section 4)
 
@@ -310,6 +329,8 @@ interface Service<T>                    // T: the kind of request
 | `hotpath service T x = ...` | A dedicated thread that never sleeps | `HotPathService` | decided (D.019) |
 | Lanes, thread limits, buffers, named channels | Each form configured for its situation | - | idea (42.31) |
 
+A resource is released when its block ends - a file is closed, even on an error (`final` clean-up, 42.4).
+
 #### 3.10 Hot path
 
 A dedicated thread that never sleeps - it keeps one processor busy (decided D.019; FEATURES 42.23-42.24).
@@ -355,7 +376,19 @@ hotpath void function step(Tick t)             // the checks without the thread
 | Reads and writes told apart | A scheduler knows each request's kind; a database with its own threads | idea (same, 3) |
 | Request order | A sequence number that only goes up, not time + thread id | idea (42.32) |
 | Cluster threads | Over several servers - a framework of its own | postponed (CON.009, 42.12) |
+| `parallel for` | Each loop pass may run on a pool thread - `go` is used for now | idea (42.41) |
 | Two hierarchies (user, 2026-11-10) | **Levels**: System > Process > Pool > Thread > Task / goroutine > Channel - where concurrency sits; how a thread deals with the process above it and the tasks below it. **Family tree** (CON.018): who made whom - it breaks livelocks and deadlocks | design - both kept (D.129 proposed) |
+
+The levels (from the earlier spec text):
+
+| Level | What it is |
+|---|---|
+| System | The operating system, managing every process |
+| Process | A running program with its own memory |
+| Thread pool | A set of threads that take work from a queue |
+| Thread | A unit of work inside a process; threads share its memory |
+| Task / goroutine | A very light unit of work, run by a thread |
+| Channel / mailbox | Where requests wait between threads (3.14) |
 
 #### 3.12 Interrupts, shutdown, transactions
 
@@ -591,11 +624,13 @@ Mutex lock = Mutex()
 int balance = 100
 
 void function withdraw(int amount) {
-    using lock {                       // locked here
-        if balance >= amount {
-            balance -= amount
-        }
-    }                                  // unlocked here, always
+    unsafe {                           // a lock may deadlock or race - the code shows it
+        using lock {                   // locked here
+            if balance >= amount {
+                balance -= amount
+            }
+        }                              // unlocked here, always
+    }
 }
 ```
 
@@ -695,6 +730,10 @@ async string, Error function fetchPage(string url) {
 Future<string> a = fetchPage("a")          // both downloads start now
 Future<string> b = fetchPage("b")
 List<string> pages = await all([a, b])     // wait for both
+
+string page, Error err = await fetchPage("c")  // wait for one: the page, or the error
+if err
+    print("Error: {err.message}")
 ```
 
 #### 4.9 Immutable data and thread-local storage
@@ -724,7 +763,9 @@ design: the `check interrupt` block after a loop (Task 56, [3.12](#312-interrupt
 ## 6 To settle
 
 Found while gathering (2026-11-10, Task 51.5a step 2). The user's answers (2026-11-10) are provisional,
-subject to change - recorded as PROPOSED rows in Decisions.md, not decided yet.
+subject to change - PROPOSED rows in Decisions.md (D.125-D.132); they stay PROPOSED until threads are
+built (user, 2026-11-11). The earlier spec text is gone from this file (git keeps it): what still held
+moved into sections 1, 3 and 4.
 
 | # | Subject | What clashed | The user's answer (provisional) | Now in |
 |---|---|---|---|---|
@@ -734,7 +775,7 @@ subject to change - recorded as PROPOSED rows in Decisions.md, not decided yet.
 | 4 | files/Concurrency_Traps.md | "An implicit atomic lock" for arrays | An array uses a temporary service, like every collection (D.057) | fixed there |
 | 5 | files/Ownership.md truth table 5 | Strings called "immutable" | Immutable only when `const`; otherwise like an object - copied freely, changed by two or more threads through a temporary service | fixed there; D.128 |
 | 6 | The showcase section 18 | Outdated, no `service` | A task to rewrite it, with the new keywords | FEATURES 42.40 |
-| 7 | Old text (section 7) | Lock ordering; the old threading hierarchy | The compiler makes an automatic service; a developer may still lock (4.2) or write a service; lock ordering only with locks. Both hierarchies kept: levels and the family tree | 3.11, 4.2; D.129 |
+| 7 | The earlier spec text | Lock ordering; the old threading hierarchy | The compiler makes an automatic service; a developer may still lock (4.2) or write a service; lock ordering only with locks. Both hierarchies kept: levels and the family tree | 3.11, 4.2; D.129 |
 | 8 | Thread-local storage | Not designed | A thread holds no state - it uses the service's variables; variables made in `run { }` are its own; a true thread-local only in `unsafe` | 3.17; D.130 |
 | 9 | Condition variables | Wanted at all? | In a service: the parent holds the worker's channel, checks it, wakes the worker - to be designed further | 3.16; D.131 |
 
@@ -747,388 +788,5 @@ Answered 2026-11-10 (provisional):
 | c | The syntax of named channels | A `Channel` interface and a `ChannelType` enum (INBOUND, OUTBOUND) - pseudo code; to be designed after checking other languages | 3.14; 42.34 |
 | d | The kinds of threads | Names are suggestions, perhaps an enum; the compiler uses the thread ID; named channels for complex cases only | 3.15 |
 | e | The parent's rules | Can't be set before threads work; baseline data from other languages first, then tuned. A worker stays awake while it has tasks, sleeps when none are left or on Shutdown | 3.16, 3.18; 42.36 |
-
----
-
-## 7 Earlier spec text (before Task 42)
-
-Kept as it was, for review - no decision covers most of it; section 6 lists what clashes. It goes once
-the questions are settled.
-
-### Threading and Concurrency Model
-
-**Status:** [DESIGN] files/FEATURES.md Task 42. The current design is newer than this section - where they
-differ, these win:
-- [files/Concurrency.md](../Concurrency.md) - terms, traps, the model, other languages
-- [files/Concurrency_Traps.md](../Concurrency_Traps.md) - the overview tables
-- [files/Service.md](../Service.md) - the `service` keyword: a shared resource becomes a service instead of
-  every caller locking it
-
-Description: Hybrid concurrency model supporting both message passing and shared memory.
-
-Note: This is a high-level overview. Full threading specification will be in a separate detailed document.
-
----
-
-#### Threading Hierarchy
-
-Description: Layers of concurrent execution units.
-
-* **System**: Operating system managing all processes
-* **Process**: Isolated execution with own memory space
-* **Thread**: Lightweight unit within process, shares memory
-* **Task/Goroutine**: User-space thread, very lightweight
-* **Channel**: Communication queue between threads
-
-Extended Hierarchy: System → Process → Thread Pool → Thread → Task/Job → Channel/Queue
-
----
-
-#### Two Concurrency Approaches
-
-Description: Fusion supports both paradigms for maximum flexibility.
-
----
-
-##### Approach 1: Message Passing (Recommended)
-
-Description: Share memory by communicating (Go-style).
-
-* **Philosophy**: Don't share memory, send messages instead
-* **Benefits**: No locks needed, no race conditions, clearer ownership
-* **Use**: Default approach for most concurrent code
-
-**How It Works**
-
-* Threads don't share variables directly
-* Data sent through channels
-* Only one thread owns data at a time
-* Ownership transfers through channel
-
-**Analogy**: Sending emails vs writing on shared whiteboard
-
-```
-// Create channel
-Channel<Task> taskQueue = Channel.create<Task>()
-
-// Producer thread
-void function producer()
-    for i in range(100)
-        Task task = createTask(i)
-        taskQueue.send(task)  // Send to channel
-    end loop
-
-// Consumer thread
-void function consumer()
-    while true
-        Task task = taskQueue.receive()  // Receive from channel
-        processTask(task)
-    end loop
-```
-
----
-
-##### Approach 2: Shared Memory (Traditional)
-
-Description: Communicate by sharing memory (requires locks).
-
-* **Philosophy**: Multiple threads access same variables
-* **Requirement**: Must use locks/mutexes for synchronization
-* **Benefits**: Sometimes more natural for certain problems
-* **Use**: When message passing doesn't fit
-
-**How It Works**
-
-* Threads access shared variables
-* Mutex locks prevent race conditions
-* Must remember to lock/unlock
-
-```
-// Shared counter with mutex
-class Counter
-    private int count
-    private Mutex mutex
-    
-    void function increment()
-        mutex.lock()
-        count += 1
-        mutex.unlock()
-    
-    int function getCount()
-        mutex.lock()
-        int value = count
-        mutex.unlock()
-        return value
-```
-
----
-
-#### "Share Memory by Communicating" Explained
-
-Description: Understanding Go's concurrency philosophy.
-
-**Traditional Approach** (Shared Memory)
-
-* Multiple threads write to same variable
-* Use mutex to prevent conflicts
-* Easy to forget locks → bugs
-* Easy to deadlock
-
-```
-// Shared variable approach
-int sharedCounter = 0
-Mutex lock
-
-// Thread 1
-lock.acquire()
-sharedCounter += 1
-lock.release()
-
-// Thread 2
-lock.acquire()
-sharedCounter += 1
-lock.release()
-```
-
-**Go's Approach** (Message Passing)
-
-* Don't share variables
-* Send data through channels
-* Only one thread "owns" data
-* No locks needed
-
-```
-// Channel approach
-Channel<int> updates = Channel.create<int>()
-
-// Thread 1 sends update
-updates.send(1)
-
-// Thread 2 sends update
-updates.send(1)
-
-// Counter thread receives all updates
-int counter = 0
-while true
-    int update = updates.receive()
-    counter += update
-end loop
-```
-
----
-
-#### Try-With-Resources Pattern
-
-Description: Automatic resource locking to prevent race conditions and deadlocks.
-
-* **Automatic Locking**: Compiler adds locks automatically
-* **No Manual Lock/Unlock**: User doesn't need to manage locks
-* **Race Condition Prevention**: Automatic synchronization
-* **Deadlock Prevention**: Smart lock ordering by compiler
-
-**How It Works**
-
-* When thread/channel tries to access resource, it's locked automatically
-* Resource unlocked when done (scope ends or exception thrown)
-* Compiler analyzes code to prevent deadlocks
-* User can add custom locks if needed
-
-**File Handling Example**
-
-```
-// Automatic locking for file access
-using file = openFile("data.txt")
-    file.write("Some data")
-    file.flush()
-// File automatically closed and unlocked
-
-// Multiple threads accessing same file
-// Thread 1
-using file = openFile("shared.txt")
-    file.write("Thread 1 data")
-// Unlocked
-
-// Thread 2 (waits for Thread 1 to finish)
-using file = openFile("shared.txt")
-    file.write("Thread 2 data")
-// Unlocked
-```
-
-**Object/Variable Locking Example**
-
-```
-class Counter
-    private int count
-    
-    // Compiler automatically adds locking
-    void function increment()
-        using this  // Lock entire object
-            count += 1
-        // Unlocked
-    
-    int function getCount()
-        using this
-            return count
-
-// Multiple threads calling increment() - automatically synchronized
-Counter counter = Counter()
-
-// Thread 1
-counter.increment()  // Locked during execution
-
-// Thread 2
-counter.increment()  // Waits for Thread 1, then executes
-```
-
-**Manual Locking (When Needed)**
-
-```
-// User can specify custom locking
-Mutex customLock = Mutex()
-
-void function criticalSection()
-    using customLock
-        // Protected code
-        sharedVariable += 1
-    // Unlocked
-```
-
-**Compiler Optimizations**
-
-* Analyzes resource access patterns
-* Determines minimal locking needed
-* Orders locks to prevent deadlocks
-* Adds locks only where necessary for performance
-
----
-
-#### Thread Interrupt Handling
-
-Description: Cooperative multitasking via loop checks.
-
-* Threads can signal other threads to stop/pause
-* Checked at `end loop` automatically
-* Graceful shutdown possible
-
-```
-for item in largeDataset
-    processItem(item)
-    
-end loop with
-    check interrupt(signal, data)
-        if signal == InterruptSignal.Shutdown
-            saveProgress()
-            cleanup()
-            exit loop
-        
-        if signal == InterruptSignal.Pause
-            waitForResume()
-            continue loop
-```
-
----
-
-#### Async/Await Pattern
-
-Description: Modern asynchronous programming for I/O operations.
-
-```
-// Async function
-async Spaceship, Error function downloadShipData(string url)
-    Response response = await http.get(url)
-    
-    if response.statusCode != 200
-        return null, Error("HTTP error: {response.statusCode}")
-    
-    string data = await response.readBody()
-    Spaceship ship = parseShipData(data)
-    return ship, null
-
-// Calling async function
-Spaceship ship, Error err = await downloadShipData("https://api.ships.com/ship/1")
-if err
-    print("Error: {err.message}")
-else
-    print("Loaded ship: {ship.Name}")
-```
-
----
-
-#### One writer, temporary services, hot paths
-
-**Status:** [PLANNED 42.18-42.25] designed 2026-10-31 (user) - `files/Service.md`,
-`files/Concurrency.md` 3.13, `files/Ownership.md` sections 5-7.
-
-* **One writer:** a service's worker thread is the only writer of what it holds
-* **Temporary services:** two or more threads using one variable - the compiler makes
-  `service(acc)`; it owns the value, the threads borrow it, one call at a time; ownership
-  comes back when the last thread ends. `[concurrency] autoService = "on"` (a note) | "warn" | "off"
-* **Readers in parallel:** a readonly signature or call makes a request a read
-* **send / sync:** send - a value goes to another thread and the sender no longer has it;
-  sync - many threads use it through a service. Worked out by the compiler
-* **The `Service` interface:** `send`, `T fetch()`, ...; BasicService, SharedService,
-  FileService, DatabaseService, HotPathService implement it
-* **`hotpath service T x = ... { }`:** a dedicated thread that never sleeps - no allocating,
-  blocking or counting (checked), an input ring, pinned to a core. `hotpath void function f()`:
-  the checks without the thread. Defaults in `[hotpath]`
-
----
-
-#### Thread Safety Summary
-
-Strategy | Pros | Cons | Use When
----|---|---|---
-Message Passing | Safe, no locks, clear ownership | Learning curve | Default choice
-Shared Memory | Familiar, sometimes natural | Needs locks, error-prone | Specific performance needs
-Async/Await | Clean syntax, efficient I/O | Not for CPU-bound | I/O operations
-
-**Note**: Full threading specification with thread pools, synchronization primitives, and detailed examples will be in separate document.
-
----
-
-### Async and Concurrency
-
-**Status:** [DESIGN] files/FEATURES.md Task 42 - see `files/Concurrency.md` and `files/Service.md`
-
-Description: Built-in support for asynchronous programming.
-
-* Async/Await: Modern asynchronous pattern
-     * Native language support
-     * Task-based model
-     * Automatic state machine generation
-
-* Parallel Processing: Multi-threading support
-     * Thread-safe collections
-     * Atomic operations
-     * Lock-free structures
-
-```fusion
-// Async function - return-type-first syntax
-async Result<Spaceship, string> function downloadShipData(string url)
-    var response = await http.get(url)
-
-    if response.statusCode != 200
-        return Result.Error("HTTP error: {response.statusCode}")
-
-    var data = await response.readBody()
-    var ship = parseShipData(data)
-    return Result.Ok(ship)
-
-// Parallel processing
-async void function updateFleet(List<Spaceship> fleet, float deltaTime)
-    var tasks = List<Task>()
-
-    for ship in fleet
-        var task = async:
-            ship.update(deltaTime)
-        tasks.append(task)
-
-    await Task.waitAll(tasks)
-
-// Concurrent data structures
-var safeQueue = ConcurrentQueue<Task>()
-parallel for i in range(1000):
-    safeQueue.enqueue(createTask(i))
-```
 
 [< 090 Memory](090-Memory.md) | [Index](index.md) | [110 Generics >](110-Generics.md) <!-- nav -->

@@ -269,7 +269,7 @@ are in `task/featuresArchive.md`.
 			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
 		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
 			files/showcase/fusion.toml - into "Decided, not built"
-	[ ] 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - plan in files/taskSummary2.md
+	[DONE] 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - detail in task/taskSummaryArchive.md
 		[DONE] 1 Gather (2026-11-10): the inventory in files/taskSummary2.md - 7 clashes / gaps found;
 			no line limit on the file for now (user)
 			was: go through every concurrency source; one list of what is built, decided, designed, an idea,
@@ -280,9 +280,11 @@ are in `task/featuresArchive.md`.
 		[DONE] 2 Clashes and gaps (2026-11-10): the user's provisional answers in spec 100 section 6;
 			PROPOSED D.125-D.131; new 3.14-3.17 (channels, kinds of threads, sleep and wake,
 			no thread state); 42.34-42.40; the 5 follow-up questions answered too (D.132, 3.18 baselines)
-		[ ] 3 Show the user the list and the proposed outline of 100-Concurrency.md - approval
-		[ ] 4 Rewrite 100-Concurrency.md from the list; old text that no longer holds goes (git keeps it)
-		[ ] 5 Decisions.md CON / THR lines and the showcase tags in step; python check.py; ship
+		[DONE] 3 Shown (2026-11-11): D.125-D.132 stay PROPOSED for now; `parallel for` kept as an idea
+			(42.41); one file for now, split later; the showcase left for 42.40 (user)
+		[DONE] 4 Rewritten (2026-11-11): the earlier spec text removed - the levels to 3.11, a counter
+			with a Mutex and with a service in 1.2, an error return in 4.8, `unsafe` in the 4.2 example
+		[DONE] 5 Decisions.md in step (CON.021-026, D.125-D.132 PROPOSED); showcase -> 42.40; checked, shipped
 	[ ] 51.6 A link check in check.py
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]
@@ -627,6 +629,8 @@ are in `task/featuresArchive.md`.
 		interrupt handler, `go`, async / await (both forms), a mutex inside `unsafe`, `check interrupt`
 		Keywords: `service`, `go`, `async`, `await` reserved already; reserve `unsafe` and `check` (56.3);
 			decide whether `channel` / `lock` are keywords or library types (`Channel<T>`, `Mutex`)
+	[ ] 42.41 `parallel for` - each loop pass may run on a pool thread (idea, from the earlier spec text;
+		user, 2026-11-11: kept for the future, `go` used for now)
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
 	The standard library's core modules, designed one at a time (spec "Fusion Standard
 	Library (fusionlib)"). Plan first.
