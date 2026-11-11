@@ -264,7 +264,8 @@ are in `task/featuresArchive.md`.
 			050-Classes, 051-Inheritance, 052-Interfaces,
 			060-Structs, 061-Enums, 070-ControlFlow,
 			080-Null, 081-Autoboxing, 090-Memory,
-			100-Concurrency, 110-Generics, 120-Errors (2026-11-10)
+			100-Concurrency, 110-Generics, 120-Errors (2026-11-10), 130-Comments, 131-AutoDocs,
+			140-Collections (2026-11-11)
 		[DONE] 001-TomlSettings (user, 2026-11-08): every project setting; 000-009 kept for high-level files;
 			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
 		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
@@ -396,8 +397,8 @@ are in `task/featuresArchive.md`.
 		on a local just made (`Car c = Car()`) - a "last use" analysis over branches and loops
 	[ ] 38.3 Weak references - break a circle of objects (32.10d warns where one can form)
 	[ ] 38.4 Manual memory in `unsafe` (`allocate`, a raw malloc) never freed: the compiler frees it at the end
-		of the scope it is declared in (user, 2026-11-11 - D.134, files/Object_Lifetime.md 2); to confirm: one
-		returned or stored moves to its new owner
+		of the scope it is declared in (user, 2026-11-11 - D.134, files/Object_Lifetime.md 2); one returned or
+		stored moves to its new owner (user, 2026-11-11)
 
 #### 39 Library trust, isolation & security (was 19) [ ]
 	[ ] 39.1 Compiler-verified capability signatures (was 19.1; layers from 18.5.6 are the groundwork)

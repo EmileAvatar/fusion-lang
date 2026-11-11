@@ -34,7 +34,10 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [100 Concurrency](100-Concurrency.md) | Threads, message passing, shared memory, try-with-resources, interrupts, async / await, one writer, hot paths |
 | [110 Generics](110-Generics.md) | Generic classes and functions, several type parameters |
 | [120 Errors](120-Errors.md) | Error handling: several return values, an error returned, capturing it, chaining, the Error object, exceptions |
+| [130 Comments](130-Comments.md) | Comments: `//`, `/* */`, `'` (postponed), region blocks, documentation comments |
+| [131 AutoDocs](131-AutoDocs.md) | Documentation written from the code: the comment tags, `fusion doc generate` |
+| [140 Collections](140-Collections.md) | List, Map, text helpers, program arguments, console input, run, files, standard-library layers |
 
 Still in `files/fusion-language-spec.md`:
-comments, collections, modules, the game example, building, the standard library, interop,
+modules, the game example, building, the standard library, interop,
 reserved words, the features summary, the language comparison.

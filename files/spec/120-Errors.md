@@ -1,4 +1,4 @@
-[< 110 Generics](110-Generics.md) | [Index](index.md) <!-- nav -->
+[< 110 Generics](110-Generics.md) | [Index](index.md) | [130 Comments >](130-Comments.md) <!-- nav -->
 
 # 120 Errors
 
@@ -262,4 +262,4 @@ void function riskyOperation()
 * **Multiple Returns**: Expected errors (file not found, invalid input, network timeout)
 * **Exceptions**: Unexpected errors (out of memory, assertion failures, system errors)
 
-[< 110 Generics](110-Generics.md) | [Index](index.md) <!-- nav -->
+[< 110 Generics](110-Generics.md) | [Index](index.md) | [130 Comments >](130-Comments.md) <!-- nav -->

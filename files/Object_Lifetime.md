@@ -83,7 +83,7 @@ void function render()
   (`allocate`, a raw malloc) and never freed is freed by the compiler where its scope ends - the
   block it is declared in - so even primitive manual memory has some protection against leaks
   - Freed by hand earlier (`free` / `deallocate`): nothing more is added
-  - Returned or stored somewhere longer-lived: to confirm - moved to its new owner, as OWNERSHIP does
+  - Returned or stored somewhere longer-lived: it moves to its new owner, as OWNERSHIP does (user, 2026-11-11)
 - **Project-wide** (user, 2026-10-28): `[safety] mode = "safe"` (the default), `"strict"` -
   absolute strictness, for security or where no undetermined behaviour is allowed: what would
   be a warning is an error - or `"unsafe"`, only when the whole project needs it

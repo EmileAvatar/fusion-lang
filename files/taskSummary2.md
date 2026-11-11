@@ -547,7 +547,7 @@ Kept under Task 22 until the renumbering is approved.
   and the skill .claude/skills/fusion-ownership/SKILL.md
 - 51.5 (2026-11-09): spec split done up to 070-ControlFlow; long paragraphs split into bullets
   as each file moves (user)
-- **Next Action:** 51.5 - 130-Comments, 131-AutoDocs, 140-Collections, then the rest of the file list above (51.5a done 2026-11-11)
+- **Next Action:** 51.5 - 150-Modules, 160-GameExample, 170-Build, then the rest of the file list above
   - then 48.4 (`--interface` shows what each public function does with its parameters)
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29
