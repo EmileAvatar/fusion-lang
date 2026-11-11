@@ -149,13 +149,15 @@ Description: Manual memory management for embedded systems.
 * Requires `unsafe` blocks
 * Manual allocation and deallocation
 * Compiler warnings and restrictions
+* Freed at the end of its scope (user, 2026-11-11; D.134): memory allocated here and never freed is freed
+  by the compiler where its block ends - some protection even for manual memory
 
 ```
 unsafe
     Spaceship* rawPtr = allocate<Spaceship>(1)
     rawPtr.initialize("Manual", 200.0)
     // ... use pointer
-    deallocate(rawPtr)
+    deallocate(rawPtr)                 // forgotten: the compiler frees it at the block's end
 ```
 
 ---

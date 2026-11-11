@@ -395,6 +395,9 @@ are in `task/featuresArchive.md`.
 		it (`xs.add(b)`, `field = b`, `Car d = b`) moves it instead of counting; no null check
 		on a local just made (`Car c = Car()`) - a "last use" analysis over branches and loops
 	[ ] 38.3 Weak references - break a circle of objects (32.10d warns where one can form)
+	[ ] 38.4 Manual memory in `unsafe` (`allocate`, a raw malloc) never freed: the compiler frees it at the end
+		of the scope it is declared in (user, 2026-11-11 - D.134, files/Object_Lifetime.md 2); to confirm: one
+		returned or stored moves to its new owner
 
 #### 39 Library trust, isolation & security (was 19) [ ]
 	[ ] 39.1 Compiler-verified capability signatures (was 19.1; layers from 18.5.6 are the groundwork)
@@ -622,6 +625,8 @@ are in `task/featuresArchive.md`.
 			Shutdown terminates, Pause suspends, others nothing; interrupts only from the OS, passed down
 	[ ] 42.38 Locks off by default (D.125 proposed): `[concurrency] locks` in fusion.toml, a lock inside
 		`unsafe`; the setting into 001-TomlSettings once decided
+		The compiler unlocks a lock at the end of the scope it is declared in, even if the developer
+			forgot it (user, 2026-11-11 - D.133)
 	[ ] 42.39 A thread holds no state (D.130 proposed; spec 100 3.17): variables made in `run { }` are its
 		own; thread-local storage only in `unsafe`
 	[ ] 42.40 The showcase section 18 rewritten (user, 2026-11-10): files/showcase/Fusion_showcase.fusion

@@ -892,6 +892,10 @@ void function memory() {
         Ship* raw = allocate<Ship>(1)
         deallocate(raw)
     }
+    // [designed] Memory allocated in unsafe and never freed is freed at the end of its scope (D.134)
+    unsafe {
+        Ship* temp = allocate<Ship>(1)
+    }                                   // the compiler frees temp here
     // [designed] Garbage collection as a project option: fusion.toml [memory] strategy
 }
 
@@ -917,6 +921,11 @@ void function concurrency() {
     using lock {
         print("only one thread at a time")
     }
+    // [designed] A lock is unlocked at the end of its scope, even if the unlock is forgotten (D.133)
+    unsafe {
+        lock.lock()
+        print("no unlock written")
+    }                                   // the compiler unlocks here
     // [designed] await in a caller, with the error captured
     string page, err = await download("https://example.com")
     // [idea] Wait for several tasks together

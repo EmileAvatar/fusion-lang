@@ -208,7 +208,7 @@ MEM.002 [BUILT] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies
 MEM.003 [BUILT] Passing and reading an element borrow; a borrow is never stored (48.2) - with `[memory] assignment = "move"`
 MEM.004 [POSTPONED] `shared`: read only except to the holder that made it shared (48.5) - not until a real need (D.106)
 MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; `Shared<T>` / `Weak<T>` (Task 38) - single ownership is the default, no `Unique<T>` (D.080)
-MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`
+MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`; memory never freed is freed at the end of its scope (D.134)
 MEM.007 [BUILT] The leak check: every example and test
 MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep(x)` always deep
 MEM.009 [DESIGN] Arena / region memory (many objects freed together); memory-mapped resources
@@ -242,7 +242,7 @@ CON.021 [DESIGN] Channels in a service: a default mailbox (no name), named chann
 CON.022 [DESIGN] Kinds of threads: worker, writer, reader, field reader, watcher, scheduler, outbound - alone, combined or pooled (42.35)
 CON.023 [DESIGN] Sleep and wake: the parent holds the worker's channel and wakes it - instead of condition variables (42.36)
 CON.024 [DESIGN] Interrupts only from the OS, passed on to every pool and child; a service's handler `service(x).setCheckInterrupt(signal, data) { }` (42.37)
-CON.025 [DESIGN] Locks (mutex, read-write lock, semaphore, condition variable) off by default; on in `fusion.toml`, used inside `unsafe` (42.38)
+CON.025 [DESIGN] Locks (mutex, read-write lock, semaphore, condition variable) off by default; on in `fusion.toml`, used inside `unsafe`; unlocked at the end of their scope (42.38, D.133)
 CON.026 [DESIGN] A thread holds no state: it uses the service's variables; thread-local storage only in `unsafe` (42.39)
 
 #### SET - settings and tools
@@ -410,5 +410,7 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.130 | A thread holds no state: it uses the service's variables; variables made in `service(x).run { }` are that run's (no `unsafe`); true thread-local storage only in `unsafe` | state lives in the service - one owner | CON.026 | 2026-11-10 | files/spec/100-Concurrency.md 3.17 | PROPOSED |
 | D.131 | No condition variables in a service: the parent holds the worker's channel, checks it on its own schedule and wakes the worker; a worker stays awake while it has tasks, sleeps when none are left or on Shutdown; the timings from other languages' baselines, tuned once threads work | the parent's rules decide; the sleeping thread holds nothing | CON.023 | 2026-11-10 | files/spec/100-Concurrency.md 3.16 | PROPOSED |
 | D.132 | An interrupt comes only from the OS (Shutdown, Pause, ...); threads send only messages / requests; the service or main thread passes it on to each pool and child, and each handles it. A service's handler (`setCheckInterrupt`) has no `exit loop` / `continue loop`. Not handled: Shutdown terminates the service (released at the end of its block), Pause suspends it, any other does nothing | a shutdown always reaches every thread; a service that ignores it still ends cleanly | CON.024 | 2026-11-10 | files/spec/100-Concurrency.md 3.14 | PROPOSED |
+| D.133 | A lock is always released at the end of the scope it is declared in: the compiler adds the unlock even if the developer forgot it, also on an error | a forgotten unlock freezes every other thread; the scope ends it | CON.025 | 2026-11-11 | files/spec/100-Concurrency.md 4.2 | ACTIVE (planned) |
+| D.134 | Memory allocated by hand in `unsafe` (`allocate`, a raw malloc) and never freed is freed by the compiler at the end of the scope it is declared in | some memory protection even in primitive manual code - no leak from a forgotten free | MEM.006 | 2026-11-11 | files/Object_Lifetime.md 2 | ACTIVE (planned) |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->

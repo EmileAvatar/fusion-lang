@@ -614,6 +614,16 @@ code shows it. A `Lang.C.Fusion` module may need `unsafe` for this. The same hol
 the semaphore and the condition variable (4.3, 4.4, 4.6). Lock ordering (always take lock A before lock B)
 matters only here - in the service model no thread holds two resources (P2).
 
+Unlocked at the end of its scope (user, 2026-11-11; D.133): the compiler adds the unlock where the
+lock's scope ends - the block it is declared in - even if the developer forgot it; also on an error.
+
+```fusion
+unsafe {
+    lock.lock()
+    balance -= amount                  // no unlock written
+}                                      // the compiler unlocks here
+```
+
 ```toml
 [concurrency]
 locks = false        # default; true allows locks inside unsafe
