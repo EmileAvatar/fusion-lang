@@ -1,4 +1,4 @@
-[< 160 GameExample](160-GameExample.md) | [Index](index.md) <!-- nav -->
+[< 160 GameExample](160-GameExample.md) | [Index](index.md) | [180 StandardLibrary >](180-StandardLibrary.md) <!-- nav -->
 
 # 170 Build
 
@@ -213,4 +213,4 @@ import SpaceshipEngine
 Spaceship ship = SpaceshipEngine.createShip("Enterprise")
 ```
 
-[< 160 GameExample](160-GameExample.md) | [Index](index.md) <!-- nav -->
+[< 160 GameExample](160-GameExample.md) | [Index](index.md) | [180 StandardLibrary >](180-StandardLibrary.md) <!-- nav -->

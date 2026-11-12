@@ -40,7 +40,10 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [150 Modules](150-Modules.md) | Modules as folders, `import`, name rules, `--interface`, public / internal / private, namespaces; the earlier design |
 | [160 Game Example](160-GameExample.md) | A complete space game - the whole intended language in one program |
 | [170 Build](170-Build.md) | Compilation modes, the settings file (four formats, finding it, rules), build commands, targets, libraries |
+| [180 Standard Library](180-StandardLibrary.md) | What the standard library covers: collections, math, files, text and binary formats, languages, images; more library areas |
+| [181 fusionlib Core](181-fusionlib-Core.md) | fusionlib overview; the core libraries: Core (strings, interpolation, templates), Math, Collections, Threading, IO |
+| [182 fusionlib Extended](182-fusionlib-Extended.md) | The additional libraries: Net, Data, System, Lang, GUI, Graphics, Audio, Crypto, Database, Web, AI, ... |
 
 Still in `files/fusion-language-spec.md`:
-the standard library, interop,
+the IDE libraries, callbacks, interop,
 reserved words, the features summary, the language comparison.
