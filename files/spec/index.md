@@ -43,7 +43,9 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [180 Standard Library](180-StandardLibrary.md) | What the standard library covers: collections, math, files, text and binary formats, languages, images; more library areas |
 | [181 fusionlib Core](181-fusionlib-Core.md) | fusionlib overview; the core libraries: Core (strings, interpolation, templates), Math, Collections, Threading, IO |
 | [182 fusionlib Extended](182-fusionlib-Extended.md) | The additional libraries: Net, Data, System, Lang, GUI, Graphics, Audio, Crypto, Database, Web, AI, ... |
+| [183 fusionlib IDE](183-fusionlib-IDE.md) | The IDE and development libraries (Reflection, Test, Diagnostics, DocWiki); the library summary |
+| [190 Callbacks](190-Callbacks.md) | Callbacks with function values (built); events and type aliases (design) |
+| [191 Interop](191-Interop.md) | Working with other code: DLLs, other programs, assembly, outside compilers |
 
 Still in `files/fusion-language-spec.md`:
-the IDE libraries, callbacks, interop,
 reserved words, the features summary, the language comparison.

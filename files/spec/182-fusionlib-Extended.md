@@ -1,4 +1,4 @@
-[< 181 fusionlib-Core](181-fusionlib-Core.md) | [Index](index.md) <!-- nav -->
+[< 181 fusionlib-Core](181-fusionlib-Core.md) | [Index](index.md) | [183 fusionlib-IDE >](183-fusionlib-IDE.md) <!-- nav -->
 
 # 182 fusionlib Extended
 
@@ -240,4 +240,4 @@ Description: Machine learning and artificial intelligence.
 * Computer vision utilities
 * Pre-trained model integration
 
-[< 181 fusionlib-Core](181-fusionlib-Core.md) | [Index](index.md) <!-- nav -->
+[< 181 fusionlib-Core](181-fusionlib-Core.md) | [Index](index.md) | [183 fusionlib-IDE >](183-fusionlib-IDE.md) <!-- nav -->
