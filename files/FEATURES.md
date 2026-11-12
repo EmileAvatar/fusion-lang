@@ -690,6 +690,17 @@ are in `task/featuresArchive.md`.
 		injection point and never holds C / Java / Python logic itself (MOD.011; SYN.037)
 	Two capabilities: migrate (source -> Migration IR -> Fusion AST -> new .fusion files, the
 		original never changed) and compile the language by its own rules (separate, later)
+	[ ] 49.0 A gap table per language, before 49.1 (user, 2026-11-12): every feature of C, C++, Go, Java, C#,
+		Rust, Python, JavaScript - its syntax, meaning, run time and standard library - and where it belongs:
+		Fusion has it / partly / needs it; a gap is placed, not just listed:
+		In Fusion's core - only when Fusion itself wants it (closures 52.1, generics 33, GC 38, `extern`)
+		Only in that language's module - not part of Fusion: e.g. `Lang.C.Fusion` brings the C preprocessor,
+			macros and pointer arithmetic; Python's dynamic objects and `eval` only in `Lang.Python.Fusion`
+		Shared by a family of languages - one piece several modules use: the C family (C, C++, Objective-C),
+			the JVM (Java, Kotlin), .NET (C#, VB.NET), dynamic scripting (Python, JavaScript, Ruby)
+		A flavour or version of one language: C89 / C99 / C11 / GNU C, Python 2 / 3, Java 8 / 21, ...
+		Passed through: interop with the real library (FFI) instead of a rewrite - NumPy, the JDK
+		The table feeds the language modules (49.5, 49.9) and the precepts (Task 54)
 	[ ] 49.1 The language-module contract and the injection point: registry, capabilities, versions
 	[ ] 49.2 `Lang.Fusion.Fusion` first - Fusion as its own module proves the design
 	[ ] 49.3 A Fusion source writer: Fusion AST -> readable .fusion (today's code generator writes C) -
