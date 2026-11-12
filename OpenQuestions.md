@@ -25,26 +25,77 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
-#### Q.013 What makes a file part of a module: its folder, or a line in the file? (user, 2026-11-12)
+#### Q.013 Modules and namespaces: what makes a module, and what is a namespace for? (user, 2026-11-12, reframed)
 
-The user: "a module is not a separate module.fusion - it's just the line in the file that specifies
-which namespace / module the file belongs to". Built today (MOD.001, Task 18.4, 32.2h): the **folder**
-is the module, and an optional `namespace` line groups modules so they share internal names.
+**The user's view:** a module is one logical unit of related variables, interfaces, structs and classes -
+`Fusion.IO` holds everything about input / output, `Fusion.Database` everything about databases. A line at
+the top of a file says which module it belongs to (no `module.fusion`, D.135); later a module compiles
+into one DLL (MOD.003). A ChatGPT explanation the user shared (2026-11-12) adds: **module = ownership and boundaries**
+(what is public, what it depends on, what is compiled and shipped together); **namespace = naming only**
+(grouping names, no access rules); neither tied to folders.
+
+**Built today** (MOD.001, CLS.004, Task 18.4, 32.2h):
+- The **folder** is the module: `money/` is module `money`, `geometry/shapes/` is `geometry.shapes`
+- `namespace Shop.Tools` (optional, first line): modules sharing it see each other's `internal` names -
+  so today `internal` means "my namespace", not "my module"
+
+**How other languages do it:**
+
+| Language | The line in the file | Must the folder match? | The unit that is compiled / shipped |
+|---|---|---|---|
+| C# | `namespace Game.Inventory` (naming only) | No | The project (assembly, a DLL) |
+| Kotlin | `package game.inventory` | No | The Gradle module |
+| Java | `package game.inventory` | Yes | The JAR / Java module |
+| Go | `package inventory` | Yes - one folder, one package | The module (`go.mod`) |
+| Python | none - the file is the module | Yes | The package folder |
+| Rust | `mod inventory;` in the parent | Yes | The crate |
+
+**Part 1 - what makes a file part of a module:**
+- **A** As built: the folder is the module (Go / Python)
+- **B** A `module Fusion.IO` line, first in the file, decides it - wherever the file lives; folders only
+  tidy files away (C# / Kotlin). All files with the same line are one module and, later, one DLL
+- **C** Both: the folder by default; a `module` line, when written, overrides it
+- **D** A `module` line, and the folder must match it (Java) - the compiler checks
+
+**Part 2 - what a namespace is then:**
+- **A** Keep it as built: `namespace` lets several modules share `internal` names
+- **B** Drop `namespace`: the module is the boundary - `internal` means "my module"; dotted module names
+  (`Fusion.IO`, `Fusion.Database`) already group them
+- **C** A namespace only names a group inside a module (ChatGPT's design) - no access rules;
+  `internal` means "my module"
+
+What option B + B would look like (Claude's suggestion - a change to built behaviour):
 
 ```fusion
-// shop/cart.fusion - today: module `shop` because the file is in shop/
-namespace Shop.Tools        // optional: shares internal names with other Shop.Tools modules
+// src/io/file.fusion  (the folder doesn't matter)
+module Fusion.IO                                  // this file belongs to module Fusion.IO
 
-public class Cart
+public class File
     ...
+internal int function bufferSize() : 4096         // every file of Fusion.IO sees it; other modules don't
+
+// src/io/directory.fusion
+module Fusion.IO                                  // the same module, another file
+
+public class Directory
+    ...
+
+// main.fusion
+import Fusion.IO                                  // IO.File, IO.Directory (the last part, as built)
+import Fusion.IO.File                             // File - one name, no prefix
+import Fusion.Database as Db                      // an alias: Db.Connection
+
+IO.File log = IO.File("log.txt")
 ```
 
-- **A** Keep it as built: the folder is the module; the `namespace` line is the line the user means
-- **B** A `module Shop` line in the file decides its module, wherever the file is; folders only tidy
-  files away - changes built behaviour (imports, `--interface`, the loader)
-- **C** Both: the folder by default; a `module Shop` line, when written, overrides it
+What would change if B + B is chosen:
+- The loader finds a module's files by their `module` line, not their folder - it needs to know where
+  to look: the project folder, and `[modules] paths` (MOD.005)
+- `internal` moves from "my namespace" to "my module"; `namespace` goes (or becomes Part 2 C)
+- `--interface`, the examples with modules (`examples/shop/`, `examples/wordcount/`) and their tests
+- A file with no `module` line: the main program, or a module named after its folder (= C)
 
-Claude's reading: A - the `namespace` line already does what was described.
+Claude's reading: B + B - it matches "a line in the file", `Fusion.IO` as one unit, and one DLL per module.
 
 ---
 
