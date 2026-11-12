@@ -259,7 +259,7 @@ SET.009 [PLANNED] Errors for tools and AI agents: one form with a `fix:` hint; `
 SET.010 [DESIGN] `blockStyles` (only some block styles); `config.build.mode`; `[console] lineEnding`
 SET.011 [POSTPONED] `config.fusion` writes the settings file from the master template (31.6)
 SET.012 [POSTPONED] `console build / run / test / add` - one tool, after Python
-SET.013 [DESIGN] How a program is built: script mode, JIT, a library, other platforms (WebAssembly)
+SET.013 [DESIGN] How a program is built: script mode (a quick script run like Python, Task 58), JIT, a library, other platforms (WebAssembly)
 SET.014 [DESIGN] Library modules beyond the core (fusionlib): file formats, images, math, networking, graphics, audio, localization
 SET.015 [BUILT] `[indentation]` tabWidth, allowMixed; `[source]` allowUnicodeIdentifiers (default false)
 SET.016 [BUILT] `[stdlib] layer` = std (everything) / alloc (no OS: no print, no files) / core (no heap)

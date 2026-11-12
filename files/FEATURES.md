@@ -381,6 +381,17 @@ are in `task/featuresArchive.md`.
 		the showcase): bring them in line
 	[POSTPONED - needs `extern`] 57.6 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
 
+#### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ]
+	For a quick script (or a few): write it and run it, without setting up a whole compiled app
+	[ ] 58.1 Design, plan first: `fusion run tidy.fusion` (today `python main.py`); no project and no
+		fusion.toml needed (none written for a script); code at the top level runs in order, without a
+		`main` - or `main` still required; a `#!` first line on Linux / macOS; arguments and exit codes
+	[ ] 58.2 How it runs: compile in the background and run at once, the program cached so the next run
+		starts fast (C + GCC, as today) - or an interpreter later; compare start-up times
+	[ ] 58.3 What a script may use: the same language and checks as a compiled app (safe by default);
+		the std library layer
+	[ ] 58.4 Build it, with an example script and tests
+
 ## Phase 3 - the advanced parts
 
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]

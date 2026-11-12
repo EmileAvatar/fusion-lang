@@ -20,7 +20,8 @@ Description: Flexible compilation options for different targets and use cases.
 Description: Multiple ways to run and build Fusion code - the design; today only the executable mode
 exists, as `python main.py program.fusion`.
 
-* **Script Mode**: Interpreted execution
+* **Script Mode**: Interpreted execution - a quick script written and run like Python, no compiled
+  app to set up (user, 2026-11-12 - Task 58)
      * Run directly without compilation
      * Fast development iteration
      * Slower execution
