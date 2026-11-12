@@ -731,6 +731,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 		hint), and an optional machine-readable output (`--errors json`)
 	[POSTPONED - needs `extern`] A Fusion library other programs load: a `.dll` / `.so` with a
 		C interface, so Python and other languages can call Fusion code
+		A module compiled to a DLL: its folders and files become one library, ready for a larger
+			application (user, 2026-11-12 - MOD.003)
 	[POSTPONED - after the compiler no longer needs Python] `console` - one tool (not named
 		cargo): `console build / run / test / add` (packages)
 	[POSTPONED to 29.4] String pool (shared storage for identical text) - when pooling is on,

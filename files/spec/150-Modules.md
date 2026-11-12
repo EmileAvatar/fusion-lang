@@ -79,11 +79,12 @@ classes, interfaces, enums, error types, functions and module variables:
 
 | Earlier design | Today |
 |---|---|
-| A `module.fusion` file with `module X` and `export` lines | Not used: a folder is the module; names are public unless `internal` (built) |
+| A `module.fusion` file with `module X` and `export` lines | **No** (user, 2026-11-12; D.135): a module is not a separate file - a line at the top of a file says which namespace / module it belongs to (built: `namespace`); its variables, interfaces, structs and classes belong to that module. Folder or line: [Q.013](../../OpenQuestions.md) |
 | `export` / not exported | Replaced by `public` / `internal` / `private` (built) |
-| One class per file, the file named after the class | Not decided - any number of classes in a file works today |
+| One class per file, the file named after the class | **No** (user, 2026-11-12; D.135): a file may hold many classes - not a strict requirement |
 | A class nested inside a class | Not decided |
 | `import X`, `import X.Name`, `import X.*` | Built as shown above |
+| A module compiled to a DLL | Later (user, 2026-11-12): the folders and files of one module compile into one library (`.dll` / `.so`), ready for a larger application - postponed, needs `extern` (MOD.003) |
 
 ---
 

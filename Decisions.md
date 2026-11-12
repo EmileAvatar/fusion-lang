@@ -192,7 +192,7 @@ CLS.019 [PLANNED] An interface's functions are public or internal - `private` is
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
 MOD.002 [BUILT] `--interface`: the public interface of the imported modules
-MOD.003 [POSTPONED] A Fusion library other programs load (`.dll` / `.so`) - needs `extern`
+MOD.003 [POSTPONED] A Fusion library other programs load (`.dll` / `.so`) - a module's folders and files compiled into one library for a larger application; needs `extern`
 MOD.004 [DESIGN] Library trust: nothing trusted by default - a library without source is sandboxed (no files / network) unless the developer trusts it; capability signatures, supply-chain checks (Task 39, D.122)
 MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); `[modules] paths`
 MOD.006 [DESIGN] Working with other code: loading a DLL, assembly blocks, calling outside compilers
@@ -412,5 +412,6 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.132 | An interrupt comes only from the OS (Shutdown, Pause, ...); threads send only messages / requests; the service or main thread passes it on to each pool and child, and each handles it. A service's handler (`setCheckInterrupt`) has no `exit loop` / `continue loop`. Not handled: Shutdown terminates the service (released at the end of its block), Pause suspends it, any other does nothing | a shutdown always reaches every thread; a service that ignores it still ends cleanly | CON.024 | 2026-11-10 | files/spec/100-Concurrency.md 3.14 | PROPOSED |
 | D.133 | A lock is always released at the end of the scope it is declared in: the compiler adds the unlock even if the developer forgot it, also on an error | a forgotten unlock freezes every other thread; the scope ends it | CON.025 | 2026-11-11 | files/spec/100-Concurrency.md 4.2 | ACTIVE (planned) |
 | D.134 | Memory allocated by hand in `unsafe` (`allocate`, a raw malloc) and never freed is freed by the compiler at the end of the scope it is declared in; one returned or stored moves to its new owner | some memory protection even in primitive manual code - no leak from a forgotten free | MEM.006 | 2026-11-11 | files/Object_Lifetime.md 2 | ACTIVE (planned) |
+| D.135 | A file may hold many classes (one class per file is not required); there is no separate `module.fusion` file - a line at the top of a file says which namespace / module it belongs to | easier organisation; no extra file to keep in step | MOD.001 | 2026-11-12 | files/spec/150-Modules.md | ACTIVE |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->
