@@ -699,6 +699,8 @@ are in `task/featuresArchive.md`.
 		Shared by a family of languages - one piece several modules use: the C family (C, C++, Objective-C),
 			the JVM (Java, Kotlin), .NET (C#, VB.NET), dynamic scripting (Python, JavaScript, Ruby)
 		A flavour or version of one language: C89 / C99 / C11 / GNU C, Python 2 / 3, Java 8 / 21, ...
+			its own module named `Lang.<language>.<optional flavour>.Fusion` - `Lang.Python.2.Fusion`,
+			`Lang.Python.3.Fusion` (user, 2026-11-12 - D.137)
 		Passed through: interop with the real library (FFI) instead of a rewrite - NumPy, the JDK
 		The table feeds the language modules (49.5, 49.9) and the precepts (Task 54)
 	[ ] 49.1 The language-module contract and the injection point: registry, capabilities, versions

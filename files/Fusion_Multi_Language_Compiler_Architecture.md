@@ -21,6 +21,9 @@ Examples:
 -   `Lang.Python.Fusion` -- Python language support.
 -   `Lang.Fusion.Fusion` -- native Fusion language support.
 
+A flavour or version, when a language has several (user, 2026-11-12 - D.137):
+`Lang.<language>.<optional flavour>.Fusion` - `Lang.Python.2.Fusion`, `Lang.Python.3.Fusion`.
+
 A language module is more than a syntax definition. It is a
 self-contained language package that describes the language's grammar,
 tokens, parser behaviour, AST structure, type and semantic rules,
