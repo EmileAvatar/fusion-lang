@@ -12,7 +12,7 @@ behavior (the lexer's tab_width/allow_mixed). Since then [source] (Task 19.6) re
 lexer and [structs] (Task 18.2) reaches the semantic analyzer. [safety] and [backend] are parsed and
 validated here but not yet enforced anywhere else in the compiler - reserved for future
 work, the same "recognized, not yet implemented" status as the Unique/Shared/Weak keywords
-(see Task 12.7). See files/fusion-language-spec.md's "Project Configuration" section for
+(see Task 12.7). See files/spec/170-Build.md's "Project Configuration" section for
 the full schema and the rationale behind each decision (format, lookup order, v1 scope).
 
 A missing fusion.toml is not an error - it just means every setting uses its default,

@@ -1,4 +1,4 @@
-[< 131 AutoDocs](131-AutoDocs.md) | [Index](index.md) <!-- nav -->
+[< 131 AutoDocs](131-AutoDocs.md) | [Index](index.md) | [150 Modules >](150-Modules.md) <!-- nav -->
 
 # 140 Collections
 
@@ -145,4 +145,4 @@ bool same = ages == other       // the same keys with equal values, in any order
 Example program using all of it: `examples/wordcount/` - modules, a file, `List`, `Map`,
 `sortBy` and the text helpers (Task 18.5.7).
 
-[< 131 AutoDocs](131-AutoDocs.md) | [Index](index.md) <!-- nav -->
+[< 131 AutoDocs](131-AutoDocs.md) | [Index](index.md) | [150 Modules >](150-Modules.md) <!-- nav -->

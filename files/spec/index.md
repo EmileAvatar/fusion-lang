@@ -37,7 +37,10 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [130 Comments](130-Comments.md) | Comments: `//`, `/* */`, `'` (postponed), region blocks, documentation comments |
 | [131 AutoDocs](131-AutoDocs.md) | Documentation written from the code: the comment tags, `fusion doc generate` |
 | [140 Collections](140-Collections.md) | List, Map, text helpers, program arguments, console input, run, files, standard-library layers |
+| [150 Modules](150-Modules.md) | Modules as folders, `import`, name rules, `--interface`, public / internal / private, namespaces; the earlier design |
+| [160 Game Example](160-GameExample.md) | A complete space game - the whole intended language in one program |
+| [170 Build](170-Build.md) | Compilation modes, the settings file (four formats, finding it, rules), build commands, targets, libraries |
 
 Still in `files/fusion-language-spec.md`:
-modules, the game example, building, the standard library, interop,
+the standard library, interop,
 reserved words, the features summary, the language comparison.
