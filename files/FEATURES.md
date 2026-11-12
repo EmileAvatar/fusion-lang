@@ -267,7 +267,8 @@ are in `task/featuresArchive.md`.
 			100-Concurrency, 110-Generics, 120-Errors (2026-11-10), 130-Comments, 131-AutoDocs,
 			140-Collections (2026-11-11), 150-Modules, 160-GameExample, 170-Build (2026-11-12),
 			180-StandardLibrary, 181-fusionlib-Core, 182-fusionlib-Extended, 183-fusionlib-IDE,
-			190-Callbacks, 191-Interop (2026-11-12)
+			190-Callbacks, 191-Interop, 200-ReservedWords, 210-FeaturesSummary,
+			220-Comparison (2026-11-12) - every section moved
 		[DONE] 001-TomlSettings (user, 2026-11-08): every project setting; 000-009 kept for high-level files;
 			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
 		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
@@ -679,6 +680,10 @@ are in `task/featuresArchive.md`.
 	[ ] 43.5 The study of collection kinds - Java, C#, Rust, Go, Python - which to offer in fusionlib (was 32.9)
 	[ ] 43.6 Plan every fusionlib module - just its name first (user, 2026-11-01); each designed
 		later, one at a time (files/FutureFeatures.md "fusionlib: Every Planned Module")
+	[ ] 43.8 DocWiki (user, 2026-11-12 - files/spec/183-fusionlib-IDE.md): a separate app that runs alongside
+		the developer's app (a doc wiki made by hand or from sources, not part of the app's code), and
+		`Fusion.DocWiki` built into an app - its own wiki, e.g. showcasing the Fusion language or a library;
+		documents Fusion code, other languages and DLL files (even from another language), or a custom wiki
 	[POSTPONED to 42 + file I/O] 43.7 File handle manager (user, 2026-11-07): a FileManager
 		(later the same for databases) keeps every open file, keyed by its path - each file its
 		own service with its own reader / writer thread; parts of the program (or a file the user

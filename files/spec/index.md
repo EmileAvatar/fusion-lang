@@ -46,6 +46,8 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 | [183 fusionlib IDE](183-fusionlib-IDE.md) | The IDE and development libraries (Reflection, Test, Diagnostics, DocWiki); the library summary |
 | [190 Callbacks](190-Callbacks.md) | Callbacks with function values (built); events and type aliases (design) |
 | [191 Interop](191-Interop.md) | Working with other code: DLLs, other programs, assembly, outside compilers |
+| [200 Reserved Words](200-ReservedWords.md) | Reserved words (the compiler's list and the earlier design list), operators, precedence |
+| [210 Features Summary](210-FeaturesSummary.md) | A one-page summary of every feature, built and not built |
+| [220 Comparison](220-Comparison.md) | Fusion compared with C, Java, Python, VB.NET and Go |
 
-Still in `files/fusion-language-spec.md`:
-reserved words, the features summary, the language comparison.
+Every section is now here; `files/fusion-language-spec.md` holds only "Moved to" stubs (Task 51.5, 2026-11-12).

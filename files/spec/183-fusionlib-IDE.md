@@ -88,6 +88,19 @@ Description: Profiling, logging, and debugging utilities.
 
 Description: Automatic documentation generation and wiki creation during background compilation.
 
+**Two forms** (user, 2026-11-12 - FEATURES 43.8):
+
+| Form | What it is | Used for |
+|---|---|---|
+| A separate app | Runs alongside the developer's app; not part of the app's code | Making a doc wiki by hand or from sources |
+| Built into the app (`Fusion.DocWiki`) | The app's own implementation | A wiki for the developer's application - e.g. showcasing the Fusion language, or another app's library |
+
+What it can document:
+- Fusion code - from its comments and signatures ([131 AutoDocs](131-AutoDocs.md))
+- Other languages, and DLL files - even ones written in another language
+- A custom wiki - written by hand, no code behind it
+
+
 **Features**:
 * Automatic documentation extraction from code comments
 * Real-time wiki generation during IDE background compilation
