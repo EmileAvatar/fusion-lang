@@ -25,24 +25,7 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
-#### Q.013 Modules and namespaces: what makes a module, and what is a namespace for? (user, 2026-11-12, reframed)
-
-**The user's view:** a module is one logical unit of related variables, interfaces, structs and classes -
-`Fusion.IO` holds everything about input / output, `Fusion.Database` everything about databases. A line at
-the top of a file says which module it belongs to (no `module.fusion`, D.135); later a module compiles
-into one DLL (MOD.003). A ChatGPT explanation the user shared (2026-11-12) adds: **module = ownership and boundaries**
-(what is public, what it depends on, what is compiled and shipped together); **namespace = naming only**
-(grouping names, no access rules); neither tied to folders.
-
-**Built today** (MOD.001, CLS.004, Task 18.4, 32.2h):
-- The **folder** is the module: `money/` is module `money`, `geometry/shapes/` is `geometry.shapes`
-- `namespace Shop.Tools` (optional, first line): modules sharing it see each other's `internal` names -
-  so today `internal` means "my namespace", not "my module"
-
-**How other languages do it:**
-
-| Language | The line in the file | Must the folder match? | The unit that is compiled / shipped |
-|---|---|---|---|
+--|---|---|
 | C# | `namespace Game.Inventory` (naming only) | No | The project (assembly, a DLL) |
 | Kotlin | `package game.inventory` | No | The Gradle module |
 | Java | `package game.inventory` | Yes | The JAR / Java module |
@@ -99,7 +82,8 @@ Claude's reading: B + B - it matches "a line in the file", `Fusion.IO` as one un
 
 ---
 
-Q.001-Q.012 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status
+None open. Q.013 (modules and namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES
+Task 57. Q.001-Q.012 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status
 PARTIAL; FEATURES 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the
 name). Next question: Q.014.
 

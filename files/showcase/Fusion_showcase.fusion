@@ -59,6 +59,11 @@ namespace Fusion.Games {
     import physics
     import graphics
 }
+// [designed] A namespace is a supplier's group of modules (and a folder); a module is one unit of
+//        one file or several; a name in full is Namespace.Module.Name (D.136, Task 57 - syntax later)
+import SQL as Q
+Q.Database.createConnection("server")
+Fusion.Database.createConnection("server")
 
 // [designed] A module file names its module and what it exports (spec "Module Definition")
 module Showcase

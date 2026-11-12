@@ -364,6 +364,20 @@ are in `task/featuresArchive.md`.
 		(files/fusionSettings.xml); tests, an example in files/SYNTAX_REFERENCE.md (Rule 4)
 	[POSTPONED to 42] 56.5 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
 
+#### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [ ]
+	A namespace is a supplier's group of modules, and a folder holding them; a module is one logical unit
+		(one file or several); a name in full is `Namespace.Module.Name`
+	[ ] 57.1 Design (when it is built - user): the namespace and module lines in a file and their syntax; the
+		folder layout; what `internal` means (the module or the namespace); a file without a module line
+		(the main program); finding a module's files (`[modules] paths`, MOD.005); a plan before building
+	[ ] 57.2 Importing a namespace with an alias (`import SQL as Q`); `SQL.Database.createConnection(...)` next to
+		`Fusion.Database.createConnection(...)`
+	[ ] 57.3 Same namespace name from two suppliers: a reverse company domain in the namespace (`com.example.SQL`)
+	[ ] 57.4 Build it: the loader, `--interface`, the examples with modules (shop, wordcount) and their tests
+	[ ] 57.5 Fusion's own libraries under `namespace Fusion` (today's text says `namespace Core` - FusionTemplate.md,
+		the showcase): bring them in line
+	[POSTPONED - needs `extern`] 57.6 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
+
 ## Phase 3 - the advanced parts
 
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]

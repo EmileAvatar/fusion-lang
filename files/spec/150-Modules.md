@@ -79,10 +79,39 @@ classes, interfaces, enums, error types, functions and module variables:
 
 | Earlier design | Today |
 |---|---|
-| A `module.fusion` file with `module X` and `export` lines | **No** (user, 2026-11-12; D.135): a module is not a separate file - a line at the top of a file says which namespace / module it belongs to (built: `namespace`); its variables, interfaces, structs and classes belong to that module. Folder or line: [Q.013](../../OpenQuestions.md) |
+| A `module.fusion` file with `module X` and `export` lines | **No** (user, 2026-11-12; D.135): a module is not a separate file - a line at the top of a file says which namespace / module it belongs to; its variables, interfaces, structs and classes belong to that module - see "The direction" below (D.136) |
 | `export` / not exported | Replaced by `public` / `internal` / `private` (built) |
 | One class per file, the file named after the class | **No** (user, 2026-11-12; D.135): a file may hold many classes - not a strict requirement |
 | A class nested inside a class | Not decided |
+
+**The direction: namespaces and modules (user, 2026-11-12; D.136, Task 57 - designed when built):**
+
+| Word | What it is | Example |
+|---|---|---|
+| Namespace | A supplier's group of modules - also a folder holding them | `Fusion` (Fusion's own libraries), `SQL`, `MySQL` |
+| Module | One logical unit: one file or several, with related constants, variables, interfaces, structs, classes | `IO`, `Database` |
+| A full name | `Namespace.Module.Name` | `SQL.Database.createConnection(...)` |
+| A library | One module compiles to one library (later, MOD.003) | `Fusion.IO.dll` |
+| Two suppliers, one namespace name | A reverse company domain in the namespace keeps them apart | `com.example.SQL` |
+
+```fusion
+// pseudo code - the syntax is designed when it is built (57.1)
+namespace Fusion                 // Fusion's own libraries
+module IO                        // files with classes that belong to IO
+
+namespace SQL                    // another supplier's library
+module Database                  // its own way to connect to a database
+
+// a program using both
+import Fusion.Database
+import SQL as Q                   // a namespace imported with an alias
+Fusion.Database.createConnection(...)
+Q.Database.createConnection(...)
+```
+
+Today (built) the folder is the module and `namespace` lets modules share `internal` names - Task 57
+changes this.
+
 | `import X`, `import X.Name`, `import X.*` | Built as shown above |
 | A module compiled to a DLL | Later (user, 2026-11-12): the folders and files of one module compile into one library (`.dll` / `.so`), ready for a larger application - postponed, needs `extern` (MOD.003) |
 
