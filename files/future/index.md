@@ -30,3 +30,9 @@ Each file starts with a **Status:** line: the FEATURES task or Decisions.md line
 | [050 Imports](050-Imports.md) | Importing several names at once; parameter syntax | design - importing only some names (MOD.005), grouped import blocks (MOD.008) |
 | [060 Comments](060-Comments.md) | `'` comments at a line's start, `'''` comment blocks, the comment styles, notes | design - `'` comments postponed (SYN.031) |
 | [061 Comment Highlighting](061-CommentHighlighting.md) | Language-specific highlighting inside `'''` blocks | idea - no task (with SYN.036) |
+| [062 Comment Levels](062-CommentLevels.md) | Comment levels 0-5 and coding hints (developer experience) | design - comment levels and coding hints (SYN.036) |
+| [070 Naming Rules](070-NamingRules.md) | Option strict naming: when short names are fine, a minimum name length | design - a minimum variable-name length in strict mode, default 3 (SYN.038) |
+| [071 Naming Exceptions](071-NamingExceptions.md) | Loop counters and type parameters excepted; scope, errors, levels, IDE, benefits | design - with SYN.038 |
+| [080 Arrays](080-Arrays.md) | Advanced array declaration syntax | idea - multi-dimensional arrays postponed (COL.015) |
+| [081 Strings](081-Strings.md) | Mutable and fixed strings, templated fixed strings, string pooling | partly built - strings change in place, `const` strings never (Task 29, [032 Strings](../spec/032-Strings.md)) |
+| [090 Unsafe](090-Unsafe.md) | Unsafe mode enhancements | design - `unsafe` blocks and functions (MEM.006, D.030, D.031) |

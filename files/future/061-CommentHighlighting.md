@@ -1,4 +1,4 @@
-[< 060 Comments](060-Comments.md) | [Index](index.md) <!-- nav -->
+[< 060 Comments](060-Comments.md) | [Index](index.md) | [062 CommentLevels >](062-CommentLevels.md) <!-- nav -->
 
 # 061 Comment Highlighting
 
@@ -274,4 +274,4 @@ To avoid confusion:
 - ✅ Migration guides with side-by-side code
 - ✅ Interactive learning materials
 
-[< 060 Comments](060-Comments.md) | [Index](index.md) <!-- nav -->
+[< 060 Comments](060-Comments.md) | [Index](index.md) | [062 CommentLevels >](062-CommentLevels.md) <!-- nav -->
