@@ -32,8 +32,10 @@ files and chat; never in `.py`, `.c`, `.h`, `.fusion`, config, JSON or YAML. Use
   complete, its `[DONE]` lines move to `task/featuresArchive.md` (verbatim, same session).
   Tasks are `#### NN Title [status]`; sub-tasks are one tab + `[status] NN.N`; parts two
   tabs. Postponed advanced features are listed there too
-- **`files/taskSummary2.md`** - a working file only: the active task's detailed plan, the next
-  action, the latest session note
+- **`files/taskSummary2.md`** - the active plan only (user, 2026-11-13): the plan being worked on
+  and the next action - nothing done, nothing waiting; keep it small. Everything else moves
+  (verbatim) to `task/taskSummaryArchive.md` or `task/taskBacklog.md`
+- **`files/FEATURES.md`** holds the status: `[DONE]`, `[ ]`, `[POSTPONED to X]` with a one-line why
 - **`task/taskSummaryArchive.md`** - when a task **or a sub-task** is complete, move its
   detail there verbatim (same session); its `files/FEATURES.md` lines, marked `[DONE]`, move to
   `task/featuresArchive.md` when the whole task is complete

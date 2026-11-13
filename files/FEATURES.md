@@ -243,7 +243,7 @@ are in `task/featuresArchive.md`.
 
 #### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon
 	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
-	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: files/taskSummary2.md Task 51
+	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: task/taskSummaryArchive.md Task 51
 	[DONE] 51.1 Root files moved to files/ (debug scripts to debug/); the root keeps CLAUDE.md, README.md,
 		Decisions.md, main.py, check.py, pytest.ini; paths in code and docs updated
 	[DONE] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
@@ -274,7 +274,7 @@ are in `task/featuresArchive.md`.
 		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
 			files/showcase/fusion.toml - into "Decided, not built"
 	[DONE] 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - detail in task/taskSummaryArchive.md
-		[DONE] 1 Gather (2026-11-10): the inventory in files/taskSummary2.md - 7 clashes / gaps found;
+		[DONE] 1 Gather (2026-11-10): the inventory in task/taskSummaryArchive.md (51.5a) - 7 clashes / gaps found;
 			no line limit on the file for now (user)
 			was: go through every concurrency source; one list of what is built, decided, designed, an idea,
 			rejected or replaced - with where each comes from
@@ -290,7 +290,7 @@ are in `task/featuresArchive.md`.
 			with a Mutex and with a service in 1.2, an error return in 4.8, `unsafe` in the 4.2 example
 		[DONE] 5 Decisions.md in step (CON.021-026, D.125-D.132 PROPOSED); showcase -> 42.40; checked, shipped
 	[DONE] 51.5b Split files/FutureFeatures.md into files/future/ (index.md + NNN-Topic.md, 31 files) - plan in
-		files/taskSummary2.md, approved 2026-11-13 (6 files per step - user)
+		task/taskSummaryArchive.md, approved 2026-11-13 (6 files per step - user)
 		[DONE] 010-IDEModule, 011-IDEProjects, 012-IDEOverlays, 013-IDEOverlays2, 014-IDEOverlaySettings,
 			015-WebServers (2026-11-13)
 		[DONE] 000-Overview, 020-Settings, 030-LibraryLayout, 031-Regex, 032-DomainPackages, 033-Currency (2026-11-13)
@@ -298,7 +298,7 @@ are in `task/featuresArchive.md`.
 		[DONE] 062-CommentLevels, 070-NamingRules, 071-NamingExceptions, 080-Arrays, 081-Strings, 090-Unsafe (2026-11-13)
 		[DONE] 100-CLI, 101-CLICommands, 110-SymbolIDs, 111-Identity, 120-Threads, 130-FarFuture (2026-11-13) -
 			FutureFeatures.md is now a table of where each section went
-	[ ] 51.6 A link check in check.py
+	[ ] 51.6 A link check in check.py - plan in files/taskSummary2.md, waiting for approval
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]
 	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
