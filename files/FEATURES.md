@@ -8,9 +8,9 @@ Contents: [Preface](#preface) | [Index](#index) | [Phase 2](#phase-2) | [Phase 3
 ---
 
 <a id="preface"></a>
-## Preface [top](#top)
+## Preface [index](#index)
 
-#### The rules [top](#top)
+#### The rules [index](#index)
 
 - `[ ]` open · `[DONE]` finished · `[POSTPONED to X]` waits for X (a task, or a missing feature)
 - `##` = major sections only. Tasks: `#### NN Title [status]`. Sub-tasks: one tab +
@@ -27,7 +27,7 @@ Contents: [Preface](#preface) | [Index](#index) | [Phase 2](#phase-2) | [Phase 3
 - `taskSummary2.md` holds only the active plan; a postponed item says in one line what it waits for (user, 2026-11-13)
 - Links: every task heading has a fixed anchor line above it, `<a id="task-NN"></a>` (sections:
   `preface`, `index`, `phase-2`, ...) - the Index links to it; a new task gets one too. Each heading's
-  `[top](#top)` goes back to the top
+  `[index](#index)` goes back to the Index; the Index heading's `[top](#top)` to the top (user, 2026-11-13)
 
 **Features become settings (user, 2026-10-24).** Each feature is designed so a project can
 turn it on or off in `fusion.toml` where that makes sense, with a safe default. When an item
@@ -39,7 +39,7 @@ setting, a fixed rule, or is discarded. Example - structs:
 - functions on structs: a setting, off by default;
 - holding an object: allowed - null until set, shared when the struct is copied (user, 2026-11-01).
 
-#### The counts (2026-11-13 - `python check.py --status` gives them live) [top](#top)
+#### The counts (2026-11-13 - `python check.py --status` gives them live) [index](#index)
 
 | | Items |
 |---|---|
@@ -48,7 +48,7 @@ setting, a fixed rule, or is discarded. Example - structs:
 | Open (`[ ]`) - Phase 2 / Phase 3 | 69 / 97 |
 | Postponed - Phase 2 / Phase 3 | 18 / 5 |
 
-#### What is done [top](#top)
+#### What is done [index](#index)
 
 Every finished task and item is in `task/featuresArchive.md` (archived 2026-10-27 - this file
 keeps only what is open or postponed). Finished tasks keep their numbers; their plans and
@@ -63,7 +63,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 and safety), 28 (the self-hosting test run - report: `task/selfhost_report.md`). Their lines
 are in `task/featuresArchive.md`.
 
-#### Old task numbers (renumbered 2026-10-11) [top](#top)
+#### Old task numbers (renumbered 2026-10-11) [index](#index)
 
 Old notes, commits and code comments may use these. Old numbers are never reused.
 
@@ -122,10 +122,10 @@ then the open tasks, the postponed ones, and the phase's goal last.
 ---
 
 <a id="phase-2"></a>
-## Phase 2 - growing the language, then a fully independent compiler [top](#top)
+## Phase 2 - growing the language, then a fully independent compiler [index](#index)
 
 <a id="task-51"></a>
-#### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon [top](#top)
+#### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon [index](#index)
 	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
 	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: task/taskSummaryArchive.md Task 51
 	[DONE] 51.1 Root files moved to files/ (debug scripts to debug/); the root keeps CLAUDE.md, README.md,
@@ -188,13 +188,13 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 
 <a id="task-33"></a>
-#### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ] [top](#top)
+#### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ] [index](#index)
 	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
 <a id="task-45"></a>
-#### 45 Arrays that grow at the end (user, 2026-10-27 - files/Arrays.md) [ ] [top](#top)
+#### 45 Arrays that grow at the end (user, 2026-10-27 - files/Arrays.md) [ ] [index](#index)
 	Today an array's size is fixed when it is made, and the compiler must know it. An array
 	will grow and shrink at its end only (an item never moves position); a List changes
 	anywhere.
@@ -223,7 +223,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 45.6 Docs and examples: files/Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
 
 <a id="task-47"></a>
-#### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ] [top](#top)
+#### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ] [index](#index)
 	After Task 32 and 36.0. The type table: files/FusionTypes.html
 	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow
 		checked like int) and `short` (16-bit) - reserved words today, not built
@@ -271,7 +271,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		gives, so it is built in
 
 <a id="task-48"></a>
-#### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ] [top](#top)
+#### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ] [index](#index)
 	After all of Task 32 (user)
 	Design and truth tables: files/Ownership.md
 	Decisions D1-D49: Notes/Ownership_Decisions_2026-10-31.md
@@ -343,7 +343,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		[DONE] "move" the default
 
 <a id="task-50"></a>
-#### 50 readonly results and a deep const (user, 2026-11-03) [ ] - after Task 48 [top](#top)
+#### 50 readonly results and a deep const (user, 2026-11-03) [ ] - after Task 48 [index](#index)
 	Rules shown: files/showcase/Ownership.fusion; the skill .claude/skills/fusion-ownership
 	[ ] 50.1 A readonly result, part of the signature (D.110): `public readonly Engine function getEngine()`
 		The caller gets a read-only borrow: `e.kind = ...`, passing e to a function that changes it - errors
@@ -358,7 +358,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		int / string (an error since 48.3)
 
 <a id="task-52"></a>
-#### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ] [top](#top)
+#### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ] [index](#index)
 	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
 	[POSTPONED to closures - SYN.028] 52.1 Form D (CLS.016, D.119): a set-up block on an abstract class or an interface - where it is
 		implemented in place (form B sets a value up; form D gives the missing functions) - design first
@@ -378,7 +378,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		`?` parameter without a null check - a warning; a `Default` left null - an error
 
 <a id="task-53"></a>
-#### 53 Check the Core language (user, 2026-11-07) [ ] [top](#top)
+#### 53 Check the Core language (user, 2026-11-07) [ ] [index](#index)
 	https://core-lang.dev - its design (https://core-lang.dev/design.html - simplicity, which we share) and
 	code (https://codeberg.org/core-lang/core): ideas worth taking, and whether "CoreFusion" / "FusionCore"
 	clash with it (the rename - GOL.009, after self-hosting)
@@ -386,7 +386,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 53.2 The name: CoreFusion / FusionCore next to Core - a clash or not
 
 <a id="task-55"></a>
-#### 55 Review the ChatGPT notes: features, domains, DSLs (user, 2026-11-09) [ ] [top](#top)
+#### 55 Review the ChatGPT notes: features, domains, DSLs (user, 2026-11-09) [ ] [index](#index)
 	From the user's Mac notes (ChatGPT - limited knowledge of Fusion); review with Claude Code: for each
 	idea decide a setting, a fixed rule, already decided / built, or discarded (Decisions.md, Rule 3b)
 	[ ] 55.1 Notes/Fusion_Language_Feature_Analysis.md - languages to study, features as settings,
@@ -398,7 +398,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		internal DSLs (modules) or external ones (HIDL, Task 41)
 
 <a id="task-56"></a>
-#### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [ ] [top](#top)
+#### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [ ] [index](#index)
 	A loop's `end loop with {N}` part holds `check` blocks - a health / limit check, run every Nth pass -
 	and `check interrupt(signal, data)`, the loop's safe point for Shutdown / Pause / Stop (42.26, 42.27 build on it)
 	[ ] 56.1 Questions first (OpenQuestions.md, with example code and options A / B / C):
@@ -438,7 +438,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[POSTPONED to 42] 56.5 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
 
 <a id="task-57"></a>
-#### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [ ] [top](#top)
+#### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [ ] [index](#index)
 	A namespace is a supplier's group of modules, and a folder holding them; a module is one logical unit
 		(one file or several); a name in full is `Namespace.Module.Name`
 	[ ] 57.1 Design (when it is built - user): the namespace and module lines in a file and their syntax; the
@@ -453,7 +453,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[POSTPONED - needs `extern`] 57.6 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
 
 <a id="task-58"></a>
-#### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [top](#top)
+#### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [index](#index)
 	For a quick script (or a few): write it and run it, without setting up a whole compiled app
 	[ ] 58.1 Design, plan first: `fusion run tidy.fusion` (today `python main.py`); no project and no
 		fusion.toml needed (none written for a script); code at the top level runs in order, without a
@@ -465,7 +465,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 58.4 Build it, with an example script and tests
 
 <a id="task-59"></a>
-#### 59 Faster checks: run only the tests the change needs (user, 2026-11-13) [ ] [top](#top)
+#### 59 Faster checks: run only the tests the change needs (user, 2026-11-13) [ ] [index](#index)
 	The full suite takes ~4 minutes (2,710 tests; the end-to-end ones compile with GCC under the leak check)
 	[DONE] 59.1 Documents only changed: `--ship` runs only the document checks; `--full` forces every check;
 		`check.py --docs` (CLAUDE.md Rule 7)
@@ -477,20 +477,20 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		parallel (pytest-xdist), cache unchanged builds
 
 <a id="task-29"></a>
-#### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED] [top](#top)
+#### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED] [index](#index)
 	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
 		needs a reference count, as Task 38's Shared does (`[structs] stringStorage =
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
 <a id="task-31"></a>
-#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED] [top](#top)
+#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED] [index](#index)
 	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
 		settings file from the master template (user, 2026-10-28)
 	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
 
 <a id="task-35"></a>
-#### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ] [top](#top)
+#### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ] [index](#index)
 	[ ] 35.1 The self-hosted compiler covers the whole language
 	[ ] 35.2 Bootstrap twice: the compiler compiles itself, and that one compiles itself again
 	[ ] 35.3 The whole test suite runs against it
@@ -501,10 +501,10 @@ then the open tasks, the postponed ones, and the phase's goal last.
 ---
 
 <a id="phase-3"></a>
-## Phase 3 - the advanced parts [top](#top)
+## Phase 3 - the advanced parts [index](#index)
 
 <a id="task-36"></a>
-#### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ] [top](#top)
+#### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ] [index](#index)
 	(user request 2026-10-11 - after self-hosting, when the syntax has settled)
 	[ ] 36.0 First small version - right after Task 32 (user, 2026-10-29): VS Code and Sublime
 		Text / TextMate (macOS too) - keywords, types, numbers, strings with {name} / {@1},
@@ -523,14 +523,14 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		numbers`, Task 30.9) - e.g. on `if count` (user, 2026-10-27)
 
 <a id="task-37"></a>
-#### 37 Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) [ ] [top](#top)
+#### 37 Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) [ ] [index](#index)
 	[ ] 37.1 Stdlib runtime lowering decision (was 15.2)
 	[ ] 37.2 Operator operands evaluated in C's order (`next(c) - next(c)`); call arguments are
 		left-to-right already (was 15.12)
 	[ ] 37.3 Incremental builds, stable symbol identities (ChatGPT review; files/notes.md step 5)
 
 <a id="task-38"></a>
-#### 38 Memory model: Unique / Shared / Weak, GC as a project option (was 15.5) [ ] [top](#top)
+#### 38 Memory model: Unique / Shared / Weak, GC as a project option (was 15.5) [ ] [index](#index)
 	[ ] 38.1 Scope it (semantics decided in 12.7, not built)
 	[ ] 38.2 (covered by Task 48 - moving by default) More moves where one owner is proven (after 32.10e): a variable's last use storing
 		it (`xs.add(b)`, `field = b`, `Car d = b`) moves it instead of counting; no null check
@@ -541,7 +541,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		stored moves to its new owner (user, 2026-11-11)
 
 <a id="task-39"></a>
-#### 39 Library trust, isolation & security (was 19) [ ] [top](#top)
+#### 39 Library trust, isolation & security (was 19) [ ] [index](#index)
 	[ ] 39.1 Compiler-verified capability signatures (was 19.1; layers from 18.5.6 are the groundwork)
 	[ ] 39.2 Project restrictions (pragma Restrictions-style) (was 19.2)
 	[ ] 39.3 Closed, compiled, licensed libraries (was 19.3)
@@ -552,14 +552,14 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[POSTPONED - needs fusionlib.AI] 39.6 AI module input guard (was 19.7)
 
 <a id="task-40"></a>
-#### 40 IR layer and LLVM backend (was 11, 15.1) [ ] [top](#top)
+#### 40 IR layer and LLVM backend (was 11, 15.1) [ ] [index](#index)
 	[ ] 40.1 IR layer decision (was 15.1) - the IR expresses Fusion's meaning; the C and LLVM
 		backends only translate it (ChatGPT review)
 	[ ] 40.2-40.13 Environment, IR generator, types, functions, codegen, strings, stdlib,
 		optimization, tests, docs (was 11.2-11.13)
 
 <a id="task-41"></a>
-#### 41 HIDL - hardware interface definition language (was 13) [ ] [top](#top)
+#### 41 HIDL - hardware interface definition language (was 13) [ ] [index](#index)
 	Note (user, 2026-10-24): the [stdlib] layers map to hardware - core: microcontrollers with
 	no heap, bare metal (Arduino AVR, Cortex-M0; 2-64 KB RAM); alloc: microcontrollers /
 	microprocessors with a heap, no OS or a small RTOS (ESP32, Cortex-M4/M7, STM32); std: a
@@ -578,7 +578,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		clocks, bit widths - in the HIDL library, not the core (files/FutureFeatures.md "HIDL Library")
 
 <a id="task-42"></a>
-#### 42 Concurrency: services and threads (user, 2026-10-23) [ ] [top](#top)
+#### 42 Concurrency: services and threads (user, 2026-10-23) [ ] [index](#index)
 	Goal: a million requests on one machine with many cores - no data races by construction,
 	deadlocks and freezes prevented by rules (any that slip through become clear errors), no
 	slowdown, a small memory / CPU footprint, very scalable. A resource becomes a service;
@@ -783,7 +783,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		user, 2026-11-11: kept for the future, `go` used for now)
 
 <a id="task-43"></a>
-#### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ] [top](#top)
+#### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ] [index](#index)
 	The standard library's core modules, designed one at a time (spec "Fusion Standard
 	Library (fusionlib)"). Plan first.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
@@ -820,7 +820,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		Opening a file directly, without the manager, still works as usual
 
 <a id="task-49"></a>
-#### 49 Multi-language support: `Lang.<language>.Fusion` modules (user, 2026-11-03) [POSTPONED to 35] [top](#top)
+#### 49 Multi-language support: `Lang.<language>.Fusion` modules (user, 2026-11-03) [POSTPONED to 35] [index](#index)
 	Design: files/Fusion_Multi_Language_Compiler_Architecture.md - after self-hosting (D.105)
 	A language module brings its own lexer, parser, AST and rules; the compiler loads it through one
 		injection point and never holds C / Java / Python logic itself (MOD.011; SYN.037)
@@ -854,7 +854,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		their name next to `fusionlib.Lang` (files/FutureFeatures.md "Cross-Language Compilation Support")
 
 <a id="task-54"></a>
-#### 54 Precepts: a project that behaves like C, Java, Python, Rust (user, 2026-11-08) [POSTPONED to 35] [top](#top)
+#### 54 Precepts: a project that behaves like C, Java, Python, Rust (user, 2026-11-08) [POSTPONED to 35] [index](#index)
 	A precept is a ready-made set of settings and behaviour, so a new project acts like a familiar
 	language without editing fusion.toml by hand: `c.precept.fusion`, `cpp.precept.fusion`,
 	`java.precept.fusion`, `python.precept.fusion`, `rust.precept.fusion` ... Built and checked only
@@ -866,7 +866,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 ---
 
 <a id="later"></a>
-## Later / advanced (after MVP) [top](#top)
+## Later / advanced (after MVP) [index](#index)
 
 Kept in Fusion's design, deliberately postponed - the simple version comes first. Numbered L1, L2.1 ...
 (L for Later, so they never clash with task numbers); a group keeps related items together.
@@ -986,7 +986,7 @@ Each time a task or section is finished, this list is checked for items the curr
 ---
 
 <a id="known-limitations"></a>
-## Known limitations (by design for now) [top](#top)
+## Known limitations (by design for now) [index](#index)
 	[ ] A string-holding variable can't reuse the name of one in an enclosing block (clear error)
 	[ ] Single-quote comments disabled (clash with char literals) - 8 skipped tests
 	[ ] Identifiers ASCII-only unless fusion.toml opts in (text and chars are Unicode since 18.3.2b)
