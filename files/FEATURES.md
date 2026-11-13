@@ -1,14 +1,15 @@
+<a id="top"></a>
 # Fusion - Feature and Task Status
 
 The single place to see what is done, open, or postponed - one line per item.
 
-Contents: [Preface](#preface) | [Index](#index) | [Phase 2](#phase-2---growing-the-language-then-a-fully-independent-compiler) | [Phase 3](#phase-3---the-advanced-parts) | [Later](#later--advanced-after-mvp) | [Known limitations](#known-limitations-by-design-for-now)
+Contents: [Preface](#preface-top) | [Index](#index-top) | [Phase 2](#phase-2---growing-the-language-then-a-fully-independent-compiler-top) | [Phase 3](#phase-3---the-advanced-parts-top) | [Later](#later--advanced-after-mvp-top) | [Known limitations](#known-limitations-by-design-for-now-top)
 
 ---
 
-## Preface
+## Preface [top](#top)
 
-#### The rules
+#### The rules [top](#top)
 
 - `[ ]` open · `[DONE]` finished · `[POSTPONED to X]` waits for X (a task, or a missing feature)
 - `##` = major sections only. Tasks: `#### NN Title [status]`. Sub-tasks: one tab +
@@ -34,7 +35,7 @@ setting, a fixed rule, or is discarded. Example - structs:
 - functions on structs: a setting, off by default;
 - holding an object: allowed - null until set, shared when the struct is copied (user, 2026-11-01).
 
-#### The counts (2026-11-13 - `python check.py --status` gives them live)
+#### The counts (2026-11-13 - `python check.py --status` gives them live) [top](#top)
 
 | | Items |
 |---|---|
@@ -43,7 +44,7 @@ setting, a fixed rule, or is discarded. Example - structs:
 | Open (`[ ]`) - Phase 2 / Phase 3 | 69 / 97 |
 | Postponed - Phase 2 / Phase 3 | 18 / 5 |
 
-#### What is done
+#### What is done [top](#top)
 
 Every finished task and item is in `task/featuresArchive.md` (archived 2026-10-27 - this file
 keeps only what is open or postponed). Finished tasks keep their numbers; their plans and
@@ -58,7 +59,7 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 and safety), 28 (the self-hosting test run - report: `task/selfhost_report.md`). Their lines
 are in `task/featuresArchive.md`.
 
-#### Old task numbers (renumbered 2026-10-11)
+#### Old task numbers (renumbered 2026-10-11) [top](#top)
 
 Old notes, commits and code comments may use these. Old numbers are never reused.
 
@@ -78,46 +79,46 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 
 ---
 
-## Index
+## Index [top](#top)
 
 Every task in this file, in the order to work on them - not the number order: the active task first,
 then the open tasks, the postponed ones, and the phase's goal last.
 
 | Task | Title | Phase | Status |
 |---|---|---|---|
-| [51](#51-documentation-clean-up-folders-and-markdown-files-user-2026-11-07-----soon) | Documentation clean-up: folders and Markdown files | 2 | active |
-| [33](#33-generics-the-programs-own-generic-functions-and-types-user-2026-10-11--) | Generics: the program's own generic functions and types | 2 | open |
-| [34](#34-example-program-coverage-was-16--) | Example program coverage | 2 | open |
-| [45](#45-arrays-that-grow-at-the-end-user-2026-10-27---filesarraysmd--) | Arrays that grow at the end | 2 | open |
-| [47](#47-types-long-money-enums-with-fixed-data-user-2026-10-29--) | Types: long, money, enums with fixed data | 2 | open |
-| [48](#48-ownership-move-borrow-share-user-2026-10-31--) | Ownership: move, borrow, share | 2 | open |
-| [50](#50-readonly-results-and-a-deep-const-user-2026-11-03-----after-task-48) | readonly results and a deep const | 2 | open |
-| [52](#52-classes-value-types-and-null---follow-ups-from-the-open-questions-user-2026-11-07--) | Classes, value types and null - follow-ups from the open questions | 2 | open |
-| [53](#53-check-the-core-language-user-2026-11-07--) | Check the Core language | 2 | open |
-| [55](#55-review-the-chatgpt-notes-features-domains-dsls-user-2026-11-09--) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
-| [56](#56-loop-safety-the-check-keyword-user-2026-11-09---syn033-filesspec070-controlflowmd--) | Loop safety: the `check` keyword | 2 | open |
-| [57](#57-namespaces-and-modules-user-2026-11-12---d136-filesspec150-modulesmd--) | Namespaces and modules | 2 | open |
-| [58](#58-script-mode-fusion-written-and-run-like-a-python-script-user-2026-11-12---set013-filesspec170-buildmd--) | Script mode: Fusion written and run like a Python script | 2 | open |
-| [59](#59-faster-checks-run-only-the-tests-the-change-needs-user-2026-11-13--) | Faster checks: run only the tests the change needs | 2 | open |
-| [29](#29-strings---the-postponed-parts-290-293-296-done-2026-10-27-taskfeaturesarchivemd-postponed) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
-| [31](#31-settings-file-formats---the-postponed-parts-311-314-done-2026-10-28-taskfeaturesarchivemd-postponed) | Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) | 2 | postponed |
-| [35](#35-self-hosting-phase-2---fully-independent-was-109-1012--) | Self-hosting phase 2 - fully independent | 2 | open |
-| [36](#36-editor-support-syntax-highlighting-for-code-editors-and-ides-was-24--) | Editor support: syntax highlighting for code editors and IDEs | 3 | open |
-| [37](#37-deferred-decisions-rest-of-15---user-after-self-hosting-some-become-own-sub-tasks--) | Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) | 3 | open |
-| [38](#38-memory-model-unique--shared--weak-gc-as-a-project-option-was-155--) | Memory model: Unique / Shared / Weak, GC as a project option | 3 | open |
-| [39](#39-library-trust-isolation--security-was-19--) | Library trust, isolation & security | 3 | open |
-| [40](#40-ir-layer-and-llvm-backend-was-11-151--) | IR layer and LLVM backend | 3 | open |
-| [41](#41-hidl---hardware-interface-definition-language-was-13--) | HIDL - hardware interface definition language | 3 | open |
-| [42](#42-concurrency-services-and-threads-user-2026-10-23--) | Concurrency: services and threads | 3 | open |
-| [43](#43-core-modules-design-fusionlib-user-2026-10-24--) | Core modules design (fusionlib) | 3 | open |
-| [49](#49-multi-language-support-langlanguagefusion-modules-user-2026-11-03-postponed-to-35) | Multi-language support: `Lang.<language>.Fusion` modules | 3 | postponed to 35 |
-| [54](#54-precepts-a-project-that-behaves-like-c-java-python-rust-user-2026-11-08-postponed-to-35) | Precepts: a project that behaves like C, Java, Python, Rust | 3 | postponed to 35 |
+| [51](#51-documentation-clean-up-folders-and-markdown-files-user-2026-11-07-----soon-top) | Documentation clean-up: folders and Markdown files | 2 | active |
+| [33](#33-generics-the-programs-own-generic-functions-and-types-user-2026-10-11---top) | Generics: the program's own generic functions and types | 2 | open |
+| [45](#45-arrays-that-grow-at-the-end-user-2026-10-27---filesarraysmd---top) | Arrays that grow at the end | 2 | open |
+| [47](#47-types-long-money-enums-with-fixed-data-user-2026-10-29---top) | Types: long, money, enums with fixed data | 2 | open |
+| [48](#48-ownership-move-borrow-share-user-2026-10-31---top) | Ownership: move, borrow, share | 2 | open |
+| [50](#50-readonly-results-and-a-deep-const-user-2026-11-03-----after-task-48-top) | readonly results and a deep const | 2 | open |
+| [52](#52-classes-value-types-and-null---follow-ups-from-the-open-questions-user-2026-11-07---top) | Classes, value types and null - follow-ups from the open questions | 2 | open |
+| [53](#53-check-the-core-language-user-2026-11-07---top) | Check the Core language | 2 | open |
+| [55](#55-review-the-chatgpt-notes-features-domains-dsls-user-2026-11-09---top) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
+| [56](#56-loop-safety-the-check-keyword-user-2026-11-09---syn033-filesspec070-controlflowmd---top) | Loop safety: the `check` keyword | 2 | open |
+| [57](#57-namespaces-and-modules-user-2026-11-12---d136-filesspec150-modulesmd---top) | Namespaces and modules | 2 | open |
+| [58](#58-script-mode-fusion-written-and-run-like-a-python-script-user-2026-11-12---set013-filesspec170-buildmd---top) | Script mode: Fusion written and run like a Python script | 2 | open |
+| [59](#59-faster-checks-run-only-the-tests-the-change-needs-user-2026-11-13---top) | Faster checks: run only the tests the change needs | 2 | open |
+| [29](#29-strings---the-postponed-parts-290-293-296-done-2026-10-27-taskfeaturesarchivemd-postponed-top) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
+| [31](#31-settings-file-formats---the-postponed-parts-311-314-done-2026-10-28-taskfeaturesarchivemd-postponed-top) | Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) | 2 | postponed |
+| [35](#35-self-hosting-phase-2---fully-independent-was-109-1012---top) | Self-hosting phase 2 - fully independent | 2 | open |
+| [36](#36-editor-support-syntax-highlighting-for-code-editors-and-ides-was-24---top) | Editor support: syntax highlighting for code editors and IDEs | 3 | open |
+| [37](#37-deferred-decisions-rest-of-15---user-after-self-hosting-some-become-own-sub-tasks---top) | Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) | 3 | open |
+| [38](#38-memory-model-unique--shared--weak-gc-as-a-project-option-was-155---top) | Memory model: Unique / Shared / Weak, GC as a project option | 3 | open |
+| [39](#39-library-trust-isolation--security-was-19---top) | Library trust, isolation & security | 3 | open |
+| [40](#40-ir-layer-and-llvm-backend-was-11-151---top) | IR layer and LLVM backend | 3 | open |
+| [41](#41-hidl---hardware-interface-definition-language-was-13---top) | HIDL - hardware interface definition language | 3 | open |
+| [42](#42-concurrency-services-and-threads-user-2026-10-23---top) | Concurrency: services and threads | 3 | open |
+| [43](#43-core-modules-design-fusionlib-user-2026-10-24---top) | Core modules design (fusionlib) | 3 | open |
+| [49](#49-multi-language-support-langlanguagefusion-modules-user-2026-11-03-postponed-to-35-top) | Multi-language support: `Lang.<language>.Fusion` modules | 3 | postponed to 35 |
+| [54](#54-precepts-a-project-that-behaves-like-c-java-python-rust-user-2026-11-08-postponed-to-35-top) | Precepts: a project that behaves like C, Java, Python, Rust | 3 | postponed to 35 |
+| [L](#later--advanced-after-mvp-top) | Later / advanced - numbered L1, L2.1 ... | - | postponed |
 
 ---
 
-## Phase 2 - growing the language, then a fully independent compiler
+## Phase 2 - growing the language, then a fully independent compiler [top](#top)
 
-#### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon
+#### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon [top](#top)
 	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
 	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: task/taskSummaryArchive.md Task 51
 	[DONE] 51.1 Root files moved to files/ (debug scripts to debug/); the root keeps CLAUDE.md, README.md,
@@ -179,16 +180,12 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the old task numbers), an Index of every task in working order, then the phases
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 
-#### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ]
+#### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ] [top](#top)
 	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
-#### 34 Example program coverage (was 16) [ ]
-	[POSTPONED - needs threading, no task yet] 34.1 Multithreading / async example (was 16.4)
-	[POSTPONED to 38] 34.2 Memory model (Unique/Shared/Weak) example (was 16.6)
-
-#### 45 Arrays that grow at the end (user, 2026-10-27 - files/Arrays.md) [ ]
+#### 45 Arrays that grow at the end (user, 2026-10-27 - files/Arrays.md) [ ] [top](#top)
 	Today an array's size is fixed when it is made, and the compiler must know it. An array
 	will grow and shrink at its end only (an item never moves position); a List changes
 	anywhere.
@@ -216,7 +213,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19) - with Task 42
 	[ ] 45.6 Docs and examples: files/Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
 
-#### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ]
+#### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ] [top](#top)
 	After Task 32 and 36.0. The type table: files/FusionTypes.html
 	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow
 		checked like int) and `short` (16-bit) - reserved words today, not built
@@ -263,7 +260,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the fields (`MAX` or `max`); a field whose type differs per value is more than 47.3
 		gives, so it is built in
 
-#### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ]
+#### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ] [top](#top)
 	After all of Task 32 (user)
 	Design and truth tables: files/Ownership.md
 	Decisions D1-D49: Notes/Ownership_Decisions_2026-10-31.md
@@ -334,7 +331,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		[DONE] A for loop may set an element's value (27.2e) - unless the elements move
 		[DONE] "move" the default
 
-#### 50 readonly results and a deep const (user, 2026-11-03) [ ] - after Task 48
+#### 50 readonly results and a deep const (user, 2026-11-03) [ ] - after Task 48 [top](#top)
 	Rules shown: files/showcase/Ownership.fusion; the skill .claude/skills/fusion-ownership
 	[ ] 50.1 A readonly result, part of the signature (D.110): `public readonly Engine function getEngine()`
 		The caller gets a read-only borrow: `e.kind = ...`, passing e to a function that changes it - errors
@@ -348,7 +345,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 50.4 `readonly` on a copy is a warning, not an error (D.113): a number result, and `f(readonly n)` on an
 		int / string (an error since 48.3)
 
-#### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]
+#### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ] [top](#top)
 	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
 	[POSTPONED to closures - SYN.028] 52.1 Form D (CLS.016, D.119): a set-up block on an abstract class or an interface - where it is
 		implemented in place (form B sets a value up; form D gives the missing functions) - design first
@@ -367,14 +364,14 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
 		`?` parameter without a null check - a warning; a `Default` left null - an error
 
-#### 53 Check the Core language (user, 2026-11-07) [ ]
+#### 53 Check the Core language (user, 2026-11-07) [ ] [top](#top)
 	https://core-lang.dev - its design (https://core-lang.dev/design.html - simplicity, which we share) and
 	code (https://codeberg.org/core-lang/core): ideas worth taking, and whether "CoreFusion" / "FusionCore"
 	clash with it (the rename - GOL.009, after self-hosting)
 	[ ] 53.1 Read its design principles - compare with Fusion's (Decisions.md GOL)
 	[ ] 53.2 The name: CoreFusion / FusionCore next to Core - a clash or not
 
-#### 55 Review the ChatGPT notes: features, domains, DSLs (user, 2026-11-09) [ ]
+#### 55 Review the ChatGPT notes: features, domains, DSLs (user, 2026-11-09) [ ] [top](#top)
 	From the user's Mac notes (ChatGPT - limited knowledge of Fusion); review with Claude Code: for each
 	idea decide a setting, a fixed rule, already decided / built, or discarded (Decisions.md, Rule 3b)
 	[ ] 55.1 Notes/Fusion_Language_Feature_Analysis.md - languages to study, features as settings,
@@ -385,7 +382,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		trade-offs) - https://www.infoq.com/presentations/domain-specific-languages/ - does Fusion want
 		internal DSLs (modules) or external ones (HIDL, Task 41)
 
-#### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [ ]
+#### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [ ] [top](#top)
 	A loop's `end loop with {N}` part holds `check` blocks - a health / limit check, run every Nth pass -
 	and `check interrupt(signal, data)`, the loop's safe point for Shutdown / Pause / Stop (42.26, 42.27 build on it)
 	[ ] 56.1 Questions first (OpenQuestions.md, with example code and options A / B / C):
@@ -424,7 +421,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		(files/fusionSettings.xml); tests, an example in files/SYNTAX_REFERENCE.md (Rule 4)
 	[POSTPONED to 42] 56.5 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
 
-#### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [ ]
+#### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [ ] [top](#top)
 	A namespace is a supplier's group of modules, and a folder holding them; a module is one logical unit
 		(one file or several); a name in full is `Namespace.Module.Name`
 	[ ] 57.1 Design (when it is built - user): the namespace and module lines in a file and their syntax; the
@@ -438,7 +435,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the showcase): bring them in line
 	[POSTPONED - needs `extern`] 57.6 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
 
-#### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ]
+#### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [top](#top)
 	For a quick script (or a few): write it and run it, without setting up a whole compiled app
 	[ ] 58.1 Design, plan first: `fusion run tidy.fusion` (today `python main.py`); no project and no
 		fusion.toml needed (none written for a script); code at the top level runs in order, without a
@@ -449,7 +446,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the std library layer
 	[ ] 58.4 Build it, with an example script and tests
 
-#### 59 Faster checks: run only the tests the change needs (user, 2026-11-13) [ ]
+#### 59 Faster checks: run only the tests the change needs (user, 2026-11-13) [ ] [top](#top)
 	The full suite takes ~4 minutes (2,710 tests; the end-to-end ones compile with GCC under the leak check)
 	[DONE] 59.1 Documents only changed: `--ship` runs only the document checks; `--full` forces every check;
 		`check.py --docs` (CLAUDE.md Rule 7)
@@ -460,18 +457,18 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 59.4 Faster end-to-end tests where possible: build several programs per GCC call, run tests in
 		parallel (pytest-xdist), cache unchanged builds
 
-#### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED]
+#### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED] [top](#top)
 	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
 		needs a reference count, as Task 38's Shared does (`[structs] stringStorage =
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
-#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED]
+#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED] [top](#top)
 	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
 		settings file from the master template (user, 2026-10-28)
 	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
 
-#### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ]
+#### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ] [top](#top)
 	[ ] 35.1 The self-hosted compiler covers the whole language
 	[ ] 35.2 Bootstrap twice: the compiler compiles itself, and that one compiles itself again
 	[ ] 35.3 The whole test suite runs against it
@@ -481,9 +478,9 @@ then the open tasks, the postponed ones, and the phase's goal last.
 
 ---
 
-## Phase 3 - the advanced parts
+## Phase 3 - the advanced parts [top](#top)
 
-#### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]
+#### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ] [top](#top)
 	(user request 2026-10-11 - after self-hosting, when the syntax has settled)
 	[ ] 36.0 First small version - right after Task 32 (user, 2026-10-29): VS Code and Sublime
 		Text / TextMate (macOS too) - keywords, types, numbers, strings with {name} / {@1},
@@ -501,13 +498,13 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 36.7 A hint showing how number conditions are set for the project (`[conditions]
 		numbers`, Task 30.9) - e.g. on `if count` (user, 2026-10-27)
 
-#### 37 Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) [ ]
+#### 37 Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) [ ] [top](#top)
 	[ ] 37.1 Stdlib runtime lowering decision (was 15.2)
 	[ ] 37.2 Operator operands evaluated in C's order (`next(c) - next(c)`); call arguments are
 		left-to-right already (was 15.12)
 	[ ] 37.3 Incremental builds, stable symbol identities (ChatGPT review; files/notes.md step 5)
 
-#### 38 Memory model: Unique / Shared / Weak, GC as a project option (was 15.5) [ ]
+#### 38 Memory model: Unique / Shared / Weak, GC as a project option (was 15.5) [ ] [top](#top)
 	[ ] 38.1 Scope it (semantics decided in 12.7, not built)
 	[ ] 38.2 (covered by Task 48 - moving by default) More moves where one owner is proven (after 32.10e): a variable's last use storing
 		it (`xs.add(b)`, `field = b`, `Car d = b`) moves it instead of counting; no null check
@@ -517,7 +514,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		of the scope it is declared in (user, 2026-11-11 - D.134, files/Object_Lifetime.md 2); one returned or
 		stored moves to its new owner (user, 2026-11-11)
 
-#### 39 Library trust, isolation & security (was 19) [ ]
+#### 39 Library trust, isolation & security (was 19) [ ] [top](#top)
 	[ ] 39.1 Compiler-verified capability signatures (was 19.1; layers from 18.5.6 are the groundwork)
 	[ ] 39.2 Project restrictions (pragma Restrictions-style) (was 19.2)
 	[ ] 39.3 Closed, compiled, licensed libraries (was 19.3)
@@ -527,13 +524,13 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 39.5 Supply-chain security (was 19.5)
 	[POSTPONED - needs fusionlib.AI] 39.6 AI module input guard (was 19.7)
 
-#### 40 IR layer and LLVM backend (was 11, 15.1) [ ]
+#### 40 IR layer and LLVM backend (was 11, 15.1) [ ] [top](#top)
 	[ ] 40.1 IR layer decision (was 15.1) - the IR expresses Fusion's meaning; the C and LLVM
 		backends only translate it (ChatGPT review)
 	[ ] 40.2-40.13 Environment, IR generator, types, functions, codegen, strings, stdlib,
 		optimization, tests, docs (was 11.2-11.13)
 
-#### 41 HIDL - hardware interface definition language (was 13) [ ]
+#### 41 HIDL - hardware interface definition language (was 13) [ ] [top](#top)
 	Note (user, 2026-10-24): the [stdlib] layers map to hardware - core: microcontrollers with
 	no heap, bare metal (Arduino AVR, Cortex-M0; 2-64 KB RAM); alloc: microcontrollers /
 	microprocessors with a heap, no OS or a small RTOS (ESP32, Cortex-M4/M7, STM32); std: a
@@ -551,7 +548,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 41.10 Hardware testing ideas from Maia (maia-eda.net): a DUT block, drive / expect vectors,
 		clocks, bit widths - in the HIDL library, not the core (files/FutureFeatures.md "HIDL Library")
 
-#### 42 Concurrency: services and threads (user, 2026-10-23) [ ]
+#### 42 Concurrency: services and threads (user, 2026-10-23) [ ] [top](#top)
 	Goal: a million requests on one machine with many cores - no data races by construction,
 	deadlocks and freezes prevented by rules (any that slip through become clear errors), no
 	slowdown, a small memory / CPU footprint, very scalable. A resource becomes a service;
@@ -755,7 +752,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 42.41 `parallel for` - each loop pass may run on a pool thread (idea, from the earlier spec text;
 		user, 2026-11-11: kept for the future, `go` used for now)
 
-#### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
+#### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ] [top](#top)
 	The standard library's core modules, designed one at a time (spec "Fusion Standard
 	Library (fusionlib)"). Plan first.
 	[ ] 43.1 Time: hours, minutes, seconds, milliseconds, nanoseconds; days, months, years; time
@@ -791,7 +788,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		picks) opening the same file get the handle already open, not a second one that clashes.
 		Opening a file directly, without the manager, still works as usual
 
-#### 49 Multi-language support: `Lang.<language>.Fusion` modules (user, 2026-11-03) [POSTPONED to 35]
+#### 49 Multi-language support: `Lang.<language>.Fusion` modules (user, 2026-11-03) [POSTPONED to 35] [top](#top)
 	Design: files/Fusion_Multi_Language_Compiler_Architecture.md - after self-hosting (D.105)
 	A language module brings its own lexer, parser, AST and rules; the compiler loads it through one
 		injection point and never holds C / Java / Python logic itself (MOD.011; SYN.037)
@@ -824,7 +821,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	Open: language modules are code the compiler runs - trust and sandboxing (Task 39);
 		their name next to `fusionlib.Lang` (files/FutureFeatures.md "Cross-Language Compilation Support")
 
-#### 54 Precepts: a project that behaves like C, Java, Python, Rust (user, 2026-11-08) [POSTPONED to 35]
+#### 54 Precepts: a project that behaves like C, Java, Python, Rust (user, 2026-11-08) [POSTPONED to 35] [top](#top)
 	A precept is a ready-made set of settings and behaviour, so a new project acts like a familiar
 	language without editing fusion.toml by hand: `c.precept.fusion`, `cpp.precept.fusion`,
 	`java.precept.fusion`, `python.precept.fusion`, `rust.precept.fusion` ... Built and checked only
@@ -835,127 +832,126 @@ then the open tasks, the postponed ones, and the phase's goal last.
 
 ---
 
-## Later / advanced (after MVP)
+## Later / advanced (after MVP) [top](#top)
 
-Kept in Fusion's design, deliberately postponed - the simple version comes first.
-	[POSTPONED - after Task 32] The builder pattern (user, 2026-10-30): a separate object that
-		collects settings, then `build()` makes the result - a different idea from form B
-		set-up (files/Classes.md section 4)
-	From the Rust videos (user, 2026-10-29 - Notes/Program lang Compare.md):
-	[ ] Errors for tools and AI agents: every error in one form (line, what failed, a `fix:`
-		hint), and an optional machine-readable output (`--errors json`)
-	[POSTPONED - needs `extern`] A Fusion library other programs load: a `.dll` / `.so` with a
-		C interface, so Python and other languages can call Fusion code
-		A module compiled to a DLL: its folders and files become one library, ready for a larger
-			application (user, 2026-11-12 - MOD.003)
-	[POSTPONED - after the compiler no longer needs Python] `console` - one tool (not named
-		cargo): `console build / run / test / add` (packages)
-	[POSTPONED to 29.4] String pool (shared storage for identical text) - when pooling is on,
-		strings are pooled and mutable strings use a StringBuilder internally (user note 2026-10-09)
-	[POSTPONED to 38] StringBuilder for fast repeated appends (internal for mutable strings)
-	[POSTPONED to 38] Garbage collection as a project-selectable memory strategy
-	[POSTPONED to 38] Shared<T> / Weak<T> (decided in 12.7, not built); Unique<T> and `.move()` dropped - every object moves by default (D.080)
-	[POSTPONED to 38] Copy-on-write string sharing (in-place editing, s[i] = c, done in 29.1)
-	[POSTPONED to 32] Methods on structs (`p.move(1, 2)`) - user-defined classes; methods on
-		built-in types are done (18.3.7)
-	[POSTPONED to 18.3] Closures (lambdas using outer variables) - need string ownership first
-	[POSTPONED - after MVP] Named lambdas inside functions; multi-line lambda bodies
-	[POSTPONED - after MVP] Lambdas / function types returning arrays; const array set from a call
-	[POSTPONED - after MVP] Full Unicode letters and case changes beyond Latin-1 (Greek, Cyrillic, ...
-		- 18.3.6 covers ASCII + Latin-1), normalization (é typed two ways
-		compares equal), counting what users see as one symbol (emoji families)
-	[POSTPONED - needs IO (18.5) / Data module] Bytes <-> string, Base64, URL encoding,
-		JSON/HTML escaping, validating UTF-8 from files and networks
-	[POSTPONED - needs Regex module] Pattern matching: matches, find, replaceAll with patterns
-	[POSTPONED - after MVP] Full expressions inside `{...}` (`{a + b}`)
-	[REPLACED by 47.2 - a long of minor units, never a decimal] money type (user, 2026-10-24 / 10-27): strict decimal for currency, default 0, written-out
-		conversions, rounding half away from zero + a rounding-mode enum (files/Literals.md
-		"Money", spec "Complete Type Specifications")
-	[ ] Lists (user, 2026-10-27 - files/Arrays.md): add many at once (another list, a group of
-		values); capacity and a growth buffer that can be set; a kept sort order (every
-		added item goes into its sorted place)
-	[ ] List copyPart (user, 2026-10-27): rename `slice` to `copyPart(start, count)`, `slice` kept
-		as quick typing; a count past the end gives the items up to the end (today an
-		IndexError); a start outside the list is an IndexError. `copyPartAt(start, end)`
-		(`sliceAt`): end included, stops at the end, start after end gives the items reversed.
-		Positions count from 0. Also `+` for lists (`a + b + c`)
-	[REJECTED 2026-10-31, D.058] Changing a List / Map while looping, allowed by a setting -
-		the collection being looped over is never changed; build a new one
-	[ ] Map keys (user, 2026-10-27): values of any type; keys a non-empty constant string (never
-		pooled) or a whole number 0 or above (byte, int - no floats). A map can bring its own
-		hash function and key rules (e.g. only non-empty strings, or ints only). Today: keys
-		are string, int or char. Combining: `m.add(otherMap)` (no `+`); a setting on the map
-		decides a key already there - replace by default (user, 2026-10-27)
-	[ ] Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
-		examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
-	From the showcase review (user, 2026-10-23):
-	[ ] `switch` as an alias of `match` (familiar from VB.NET); `elif` an alias for `else if`
-		`match` stays the form in docs and examples (user, 2026-10-31 - D.065)
-		`else if` for 2-3 checks; `match` / `switch` for a list of values
-	[ ] Enum values with fixed constants, built by the enum's private constructor:
-		`enum Planet { Mercury(3.7) ... }`, Planet.Mercury.gravity() / Planet.Mercury.Name
-	[ ] Several return values only when `[functions] multipleReturns = true` (off by default);
-		a function that can fail always has its Error last
-	[ ] Operator overloading, off by default - `[language] operatorOverloading = true`
-	[DONE - 32.2h] Namespaces: group related modules (several folders / libraries) under one name
-	[ ] println with a line ending: the PC's own, or set in fusion.toml. Kept for later (user,
-		2026-10-24); note for developers: `print` already ends the line
-	[ ] `loop`: a `loop { }` with no break / return inside is a compile error (user, 2026-10-24),
-		and the user is thinking of dropping the `loop` keyword - to review
-	[ ] Struct settings (user, 2026-10-24): a struct is a value type and never null - it always
-		has a value, so it may hold an empty List / Map / string but never null. In
-		fusion.toml [structs]: holding List / Map (on by default - built), functions on
-		structs (off by default, Task 32.1); an object in a struct: allowed since 2026-11-01 (D.097)
-	[DONE] Open: `int?` - decided with Task 30 (user, 2026-10-27): no `T?` types at all; `?` is
-		used on a variable (`x?.method()`), and only class objects and enums can be null
-		(files/Nullable_Values.md)
-	Showcase [idea] list - to go through one by one (files/showcase/, user 2026-10-24):
-	[ ] Import only some names from a module: `import geometry { square, circle }`
-	[ ] A whole-program setting read from fusion.toml at compile time (`config.build.mode`)
-	[ ] `++` and `--` as statements only (never inside an expression)
-	[ ] Type tests with `is` (`if s is string`) - the spec uses `is` only for null
-	[ ] `typeOf(x)` gives the type's name as text - for a parent type, the chain (32.7)
-	[ ] A format inside `{}`: `{value:pattern}` (`{19.5:$0.00}`)
-	[ ] Raw strings: `r"C:\path"` - no escapes
-	[ ] Multi-line strings: `"""..."""`, indentation removed up to the closing quotes
-	[ ] `Set<T>`: each value once
-	[ ] Slices: a part of a list or string by range (`numbers[0...1]`)
-	[ ] Tuples: a few values without declaring a struct (`(string, int) pair = ("Ada", 36)`)
-	[ ] `if` as a value: `string size = if a > 5 then "big" else "small"`
-	[ ] Function overloading by parameter types
-	[ ] do-while: the body runs at least once
-	[ ] Guards in match: `case x if x < 0`
-	[ ] Ranges in match cases: `case 0...9`
-	[ ] `assert cond, "message"` - an AssertionError when false
-	[ ] Flag enums: values combine with `|` (`Permission.Read | Permission.Write`)
-	[ ] Copy with changes: `Point moved = a with { x = 5 }`
-	[ ] Extension methods: `extend string { ... }` adds methods to a type you didn't write
-	[ ] `?` after a call: return its error from this function at once (`loadConfig("x")?`)
-	[ ] Wait for several tasks together: `await all([...])`
-	[ ] Calling a C function by declaring it: `extern "C" int function abs(int x)`
-	[ ] Hardware descriptions: `import hardware "x.hidl" as microwave`; registers as typed
-		properties, out-of-range values compile errors (Task 41)
-	[ ] fusion.toml: `block_styles` - allow only some block styles in a project
-	[ ] fusion.toml: `[threads] poolSize = "auto"` (one per CPU core)
-	[ ] fusion.toml: `[modules] paths` - extra folders searched for imported modules
-	[DONE] fusion.toml: `[build] waitAtExit` - default false (user, 2026-10-28: for development,
-		examples and testing; examples/fusion.toml turns it on); --headless never waits
-	[DONE] `[structs] holdCollections` (default true) - the struct setting decided 2026-10-24
-	(Already listed above: namespaces, operator overloading, println, map literals, loop)
-	[POSTPONED - after MVP] Paged / memory-mapped strings: load only the part of a huge string in use
-	[POSTPONED - with each feature] More error types (Task 26 list, 2026-10-16): NetworkError /
-		TimeoutError (a network module), ParseError (JSON / data modules), CancelledError
-		(threads), AssertionError (an `assert` statement), NotSupportedError (a backend that
-		can't do something) - each an Error subtype
-	[REPLACED by 47.5 - `fixed(255) string name`] Per-field string sizes (`string(255) name`) to match database columns
-	[POSTPONED - needs references] Identity operator (same object in memory)
-	[POSTPONED - after MVP] Multi-dimensional arrays (growable lists: done, 18.5.1)
-	[POSTPONED to 32 / 33] Classes, interfaces, inheritance (32), generics (33); enums: Task 25;
-		threading: no task yet
+Kept in Fusion's design, deliberately postponed - the simple version comes first. Numbered L1, L2.1 ...
+(L for Later, so they never clash with task numbers); a group keeps related items together.
+Each time a task or section is finished, this list is checked for items the current work can now take
+(user, 2026-11-13) - e.g. once threading exists, L14.1 and L14.2 join it.
+
+	L1 Patterns
+		[POSTPONED - after Task 32] L1.1 The builder pattern (user, 2026-10-30): a separate object that
+			collects settings, then `build()` makes the result - a different idea from form B
+			set-up (files/Classes.md section 4)
+	L2 Tools
+		[ ] L2.1 Errors for tools and AI agents: every error in one form (line, what failed, a `fix:`
+			hint), and an optional machine-readable output (`--errors json`)
+		[POSTPONED - needs `extern`] L2.2 A Fusion library other programs load: a `.dll` / `.so` with a
+			C interface, so Python and other languages can call Fusion code
+			A module compiled to a DLL: its folders and files become one library, ready for a larger
+				application (user, 2026-11-12 - MOD.003)
+		[POSTPONED - after the compiler no longer needs Python] L2.3 `console` - one tool (not named
+			cargo): `console build / run / test / add` (packages)
+	L3 Strings and text
+		[POSTPONED to 29.4] L3.1 String pool (shared storage for identical text) - when pooling is on,
+			strings are pooled and mutable strings use a StringBuilder internally (user note 2026-10-09)
+		[POSTPONED to 38] L3.2 StringBuilder for fast repeated appends (internal for mutable strings)
+		[POSTPONED to 38] L3.3 Copy-on-write string sharing (in-place editing, s[i] = c, done in 29.1)
+		[POSTPONED - after MVP] L3.4 Full Unicode letters and case changes beyond Latin-1 (Greek, Cyrillic, ...
+			- 18.3.6 covers ASCII + Latin-1), normalization (é typed two ways
+			compares equal), counting what users see as one symbol (emoji families)
+		[POSTPONED - needs IO (18.5) / Data module] L3.5 Bytes <-> string, Base64, URL encoding,
+			JSON/HTML escaping, validating UTF-8 from files and networks
+		[POSTPONED - needs Regex module] L3.6 Pattern matching: matches, find, replaceAll with patterns
+		[POSTPONED - after MVP] L3.7 Full expressions inside `{...}` (`{a + b}`)
+		[ ] L3.8 A format inside `{}`: `{value:pattern}` (`{19.5:$0.00}`)
+		[ ] L3.9 Raw strings: `r"C:\path"` - no escapes
+		[ ] L3.10 Multi-line strings: `"""..."""`, indentation removed up to the closing quotes
+		[POSTPONED - after MVP] L3.11 Paged / memory-mapped strings: load only the part of a huge string in use
+	L4 Memory
+		[POSTPONED to 38] L4.1 Garbage collection as a project-selectable memory strategy
+		[POSTPONED to 38] L4.2 Shared<T> / Weak<T> (decided in 12.7, not built); Unique<T> and `.move()` dropped - every object moves by default (D.080)
+		[POSTPONED - needs references] L4.3 Identity operator (same object in memory)
+	L5 Functions and lambdas
+		[POSTPONED - no task yet (SYN.028); string ownership done in 18.3] L5.1 Closures (lambdas using outer variables)
+		[POSTPONED - after MVP] L5.2 Named lambdas inside functions; multi-line lambda bodies
+		[POSTPONED - after MVP] L5.3 Lambdas / function types returning arrays; const array set from a call
+		[ ] L5.4 Several return values only when `[functions] multipleReturns = true` (off by default);
+			a function that can fail always has its Error last
+		[ ] L5.5 Operator overloading, off by default - `[language] operatorOverloading = true`
+		[ ] L5.6 Function overloading by parameter types
+		[ ] L5.7 Extension methods: `extend string { ... }` adds methods to a type you didn't write
+	L6 Lists, maps and other collections
+		[ ] L6.1 Lists (user, 2026-10-27 - files/Arrays.md): add many at once (another list, a group of
+			values); capacity and a growth buffer that can be set; a kept sort order (every
+			added item goes into its sorted place)
+		[ ] L6.2 List copyPart (user, 2026-10-27): rename `slice` to `copyPart(start, count)`, `slice` kept
+			as quick typing; a count past the end gives the items up to the end (today an
+			IndexError); a start outside the list is an IndexError. `copyPartAt(start, end)`
+			(`sliceAt`): end included, stops at the end, start after end gives the items reversed.
+			Positions count from 0. Also `+` for lists (`a + b + c`)
+		[ ] L6.3 Map keys (user, 2026-10-27): values of any type; keys a non-empty constant string (never
+			pooled) or a whole number 0 or above (byte, int - no floats). A map can bring its own
+			hash function and key rules (e.g. only non-empty strings, or ints only). Today: keys
+			are string, int or char. Combining: `m.add(otherMap)` (no `+`); a setting on the map
+			decides a key already there - replace by default (user, 2026-10-27)
+		[ ] L6.4 Map literals: `Map<string, int> stock = {"apples": 3, "pears": 0}` (missed while writing
+			examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
+		[ ] L6.5 `Set<T>`: each value once
+		[ ] L6.6 Slices: a part of a list or string by range (`numbers[0...1]`)
+		[ ] L6.7 Tuples: a few values without declaring a struct (`(string, int) pair = ("Ada", 36)`)
+		[POSTPONED - after MVP] L6.8 Multi-dimensional arrays (growable lists: done, 18.5.1)
+	L7 Control flow
+		[ ] L7.1 `switch` as an alias of `match` (familiar from VB.NET); `elif` an alias for `else if`
+			`match` stays the form in docs and examples (user, 2026-10-31 - D.065)
+			`else if` for 2-3 checks; `match` / `switch` for a list of values
+		[ ] L7.2 `loop`: a `loop { }` with no break / return inside is a compile error (user, 2026-10-24),
+			and the user is thinking of dropping the `loop` keyword - to review
+		[ ] L7.3 `++` and `--` as statements only (never inside an expression)
+		[ ] L7.4 `if` as a value: `string size = if a > 5 then "big" else "small"`
+		[ ] L7.5 do-while: the body runs at least once
+		[ ] L7.6 Guards in match: `case x if x < 0`
+		[ ] L7.7 Ranges in match cases: `case 0...9`
+		[ ] L7.8 `assert cond, "message"` - an AssertionError when false
+	L8 Types, enums and structs
+		[ ] L8.1 Enum values with fixed constants, built by the enum's private constructor:
+			`enum Planet { Mercury(3.7) ... }`, Planet.Mercury.gravity() / Planet.Mercury.Name
+		[ ] L8.2 Struct settings (user, 2026-10-24): a struct is a value type and never null - it always
+			has a value, so it may hold an empty List / Map / string but never null. In
+			fusion.toml [structs]: holding List / Map (on by default - built), functions on
+			structs (off by default, Task 32.1); an object in a struct: allowed since 2026-11-01 (D.097)
+		[ ] L8.3 Type tests with `is` (`if s is string`) - the spec uses `is` only for null
+		[ ] L8.4 `typeOf(x)` gives the type's name as text - for a parent type, the chain (32.7)
+		[ ] L8.5 Flag enums: values combine with `|` (`Permission.Read | Permission.Write`)
+		[ ] L8.6 Copy with changes: `Point moved = a with { x = 5 }`
+	L9 Errors
+		[ ] L9.1 `?` after a call: return its error from this function at once (`loadConfig("x")?`)
+		[POSTPONED - with each feature] L9.2 More error types (Task 26 list, 2026-10-16): NetworkError /
+			TimeoutError (a network module), ParseError (JSON / data modules), CancelledError
+			(threads), AssertionError (an `assert` statement), NotSupportedError (a backend that
+			can't do something) - each an Error subtype
+	L10 Modules, interop and hardware
+		[ ] L10.1 Import only some names from a module: `import geometry { square, circle }`
+		[ ] L10.2 Calling a C function by declaring it: `extern "C" int function abs(int x)`
+		[ ] L10.3 Hardware descriptions: `import hardware "x.hidl" as microwave`; registers as typed
+			properties, out-of-range values compile errors (Task 41)
+	L11 Concurrency
+		[ ] L11.1 Wait for several tasks together: `await all([...])`
+	L12 Output
+		[ ] L12.1 println with a line ending: the PC's own, or set in fusion.toml. Kept for later (user,
+			2026-10-24); note for developers: `print` already ends the line
+	L13 fusion.toml settings
+		[ ] L13.1 A whole-program setting read from fusion.toml at compile time (`config.build.mode`)
+		[ ] L13.2 fusion.toml: `block_styles` - allow only some block styles in a project
+		[ ] L13.3 fusion.toml: `[threads] poolSize = "auto"` (one per CPU core)
+		[ ] L13.4 fusion.toml: `[modules] paths` - extra folders searched for imported modules
+	L14 Example programs (was Task 34 - user, 2026-11-13: added once threading / the memory model exist)
+		[POSTPONED - needs threading, no task yet] L14.1 Multithreading / async example (was 16.4)
+		[POSTPONED to 38] L14.2 Memory model (Unique/Shared/Weak) example (was 16.6)
 
 ---
 
-## Known limitations (by design for now)
+## Known limitations (by design for now) [top](#top)
 	[ ] A string-holding variable can't reuse the name of one in an enclosing block (clear error)
 	[ ] Single-quote comments disabled (clash with char literals) - 8 skipped tests
 	[ ] Identifiers ASCII-only unless fusion.toml opts in (text and chars are Unicode since 18.3.2b)

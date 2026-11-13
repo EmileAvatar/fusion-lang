@@ -440,3 +440,24 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 	[DONE] 32.12 Commas between struct fields (tests/test_structs.py): needed on one line, not on new lines (D.093)
 	[DONE] 32.3 Example (was 16.2): examples/classes_demo.fusion - classes, interfaces, inheritance,
 		casts, structs building on structs, a struct holding an object, enums with match, List options
+
+#### Moved out of files/FEATURES.md 2026-11-13 (user): Task 34, and the finished / replaced / rejected
+#### items of "Later / advanced"
+#### 34 Example program coverage (was 16) [ ] - its two examples are now FEATURES "Later" L14.1 / L14.2
+	[DONE - 32.1, `[structs] functions`] Methods on structs (`p.move(1, 2)`) - user-defined classes; methods on
+		built-in types are done (18.3.7)
+	[REPLACED by 47.2 - a long of minor units, never a decimal] money type (user, 2026-10-24 / 10-27): strict decimal for currency, default 0, written-out
+		conversions, rounding half away from zero + a rounding-mode enum (files/Literals.md
+		"Money", spec "Complete Type Specifications")
+	[REJECTED 2026-10-31, D.058] Changing a List / Map while looping, allowed by a setting -
+		the collection being looped over is never changed; build a new one
+	[DONE - 32.2h] Namespaces: group related modules (several folders / libraries) under one name
+	[DONE] Open: `int?` - decided with Task 30 (user, 2026-10-27): no `T?` types at all; `?` is
+		used on a variable (`x?.method()`), and only class objects and enums can be null
+		(files/Nullable_Values.md)
+	[DONE] fusion.toml: `[build] waitAtExit` - default false (user, 2026-10-28: for development,
+		examples and testing; examples/fusion.toml turns it on); --headless never waits
+	[DONE] `[structs] holdCollections` (default true) - the struct setting decided 2026-10-24
+	[REPLACED by 47.5 - `fixed(255) string name`] Per-field string sizes (`string(255) name`) to match database columns
+	[DONE - 32; generics: Task 33, threading: Task 42] Classes, interfaces, inheritance (32), generics (33); enums: Task 25;
+		threading: no task yet

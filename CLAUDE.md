@@ -20,6 +20,8 @@ short. Status, features and plans live elsewhere (see "Where things are").
 5. After each sub-task: update its line in `files/FEATURES.md`, write at most a few lines in
    `files/taskSummary2.md`, add or update any setting it needs in `files/fusionSettings.xml`, and
    run `python check.py`
+6. When a task or a section is finished: go through FEATURES "Later / advanced" (L1, L2.1 ...) and
+   bring in any item the work can now handle - e.g. once threading exists, the threading example (user, 2026-11-13)
 
 ### Rule 2: No emojis in code files
 Emojis and other non-ASCII characters cause encoding errors (cp1252 vs UTF-8). OK in `*.md`
