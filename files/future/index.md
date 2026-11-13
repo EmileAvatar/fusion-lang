@@ -24,3 +24,9 @@ Each file starts with a **Status:** line: the FEATURES task or Decisions.md line
 | [031 Regex](031-Regex.md) | The regex fluent API and the planned regex module | idea - no task (a fusionlib module - FEATURES 43.6) |
 | [032 Domain Packages](032-DomainPackages.md) | Game engine, physics, ECS, shaders, NumPy-style numerics, Pandas-style data frames | idea - no task (separate packages, not the core library) |
 | [033 Currency](033-Currency.md) | The Currency module; fixed-point decimals and `Currency` sugar | planned - the Currency module is FEATURES 43.3, the `money` type 47.2 |
+| [034 Data Formats](034-DataFormats.md) | The data formats module: JSON, XML, TOML, YAML, INI, MD | planned - FEATURES 43.2 (MOD.009) |
+| [035 HIDL](035-HIDL.md) | HIDL hardware testing ideas from Maia | planned - HIDL is FEATURES Task 41 |
+| [040 Cross Language](040-CrossLanguage.md) | Cross-language compilation; self-hosting considerations | planned - the language modules `Lang.<language>.<optional flavour>.Fusion` are FEATURES Task 49 (after self-hosting, Task 35 |
+| [050 Imports](050-Imports.md) | Importing several names at once; parameter syntax | design - importing only some names (MOD.005), grouped import blocks (MOD.008) |
+| [060 Comments](060-Comments.md) | `'` comments at a line's start, `'''` comment blocks, the comment styles, notes | design - `'` comments postponed (SYN.031) |
+| [061 Comment Highlighting](061-CommentHighlighting.md) | Language-specific highlighting inside `'''` blocks | idea - no task (with SYN.036) |

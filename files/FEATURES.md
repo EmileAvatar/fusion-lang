@@ -294,6 +294,7 @@ are in `task/featuresArchive.md`.
 		[DONE] 010-IDEModule, 011-IDEProjects, 012-IDEOverlays, 013-IDEOverlays2, 014-IDEOverlaySettings,
 			015-WebServers (2026-11-13)
 		[DONE] 000-Overview, 020-Settings, 030-LibraryLayout, 031-Regex, 032-DomainPackages, 033-Currency (2026-11-13)
+		[DONE] 034-DataFormats, 035-HIDL, 040-CrossLanguage, 050-Imports, 060-Comments, 061-CommentHighlighting (2026-11-13)
 	[ ] 51.6 A link check in check.py
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]

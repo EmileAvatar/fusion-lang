@@ -1,4 +1,4 @@
-[< 032 DomainPackages](032-DomainPackages.md) | [Index](index.md) <!-- nav -->
+[< 032 DomainPackages](032-DomainPackages.md) | [Index](index.md) | [034 DataFormats >](034-DataFormats.md) <!-- nav -->
 
 # 033 Currency
 
@@ -362,4 +362,4 @@ over `decimal` and costs almost nothing extra once `decimal` itself is built.
       `CLAUDE.md` Quick Syntax Reference, Reserved Keywords, and Project Configuration
       section
 
-[< 032 DomainPackages](032-DomainPackages.md) | [Index](index.md) <!-- nav -->
+[< 032 DomainPackages](032-DomainPackages.md) | [Index](index.md) | [034 DataFormats >](034-DataFormats.md) <!-- nav -->
