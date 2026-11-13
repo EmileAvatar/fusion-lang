@@ -100,7 +100,8 @@ GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
 
 ### Rule 8: Work efficiently (token budget is limited)
 - Find before reading: `grep -n` for a heading or task number, then read only that range
-- Don't re-read large files (spec ~5,400 lines, `files/FutureFeatures.md` ~6,000) - grep them
+- Don't re-read large files - grep them; the spec is split into `files/spec/`, the future ideas into
+  `files/future/` (one topic per file)
 - Edit code with the Edit tool or a Python script file - not shell heredocs with escapes
   (they mangle `\n` and quotes)
 - Verify with `python check.py` rather than running the individual commands

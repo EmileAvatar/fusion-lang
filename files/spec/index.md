@@ -10,6 +10,8 @@ intended design with no task yet. What works today, with examples: `files/SYNTAX
 
 000-009 are kept for the high-level files (user, 2026-11-08); the topics start at 010.
 
+Ideas not decided or scheduled yet: [files/future/index.md](../future/index.md).
+
 | File | What it holds |
 |---|---|
 | [001 TomlSettings](001-TomlSettings.md) | Every project setting (`fusion.toml`): the built ones (generated) and the decided ones |

@@ -3,7 +3,8 @@
 Two groups, each navigable on its own:
 - the root documents, in ROOT_ORDER - each also links to the spec index;
 - the spec files in files/spec/, in the order files/spec/index.md lists them - they link
-  only to each other and to the index, never back to the root (user).
+  only to each other and to the index, never back to the root (user);
+- the future ideas in files/future/, the same way (Task 51.5b).
 
 Every file gets the same line at its top and its bottom:
     [< previous](..) | [Main](Main.md) | [Spec](files/spec/index.md) | [next >](..)
@@ -20,13 +21,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / 'files' / 'spec'
+FOLDERS = [SPEC, ROOT / 'files' / 'future']   # each with an index.md listing its files
 NAV_MARK = '<!-- nav -->'
 ROOT_ORDER = ['Main.md', 'Decisions.md', 'OpenQuestions.md', 'README.md']
 SPEC_FILE = re.compile(r'\]\((\d{3}-[A-Za-z0-9-]+\.md)\)')
 
 
-def spec_order():
-    index = SPEC / 'index.md'
+def spec_order(folder=SPEC):
+    index = folder / 'index.md'
     if not index.exists():
         return []
     seen = []
@@ -59,11 +61,12 @@ def wanted():
         following = ROOT_ORDER[i + 1] if i + 1 < len(ROOT_ORDER) else None
         middle = ['[Main](Main.md)', '[Spec](files/spec/index.md)']
         lines[ROOT / name] = nav_line(previous, middle, following)
-    order = spec_order()
-    for i, name in enumerate(order):
-        previous = order[i - 1] if i > 0 else None
-        following = order[i + 1] if i + 1 < len(order) else None
-        lines[SPEC / name] = nav_line(previous, ['[Index](index.md)'], following)
+    for folder in FOLDERS:
+        order = spec_order(folder)
+        for i, name in enumerate(order):
+            previous = order[i - 1] if i > 0 else None
+            following = order[i + 1] if i + 1 < len(order) else None
+            lines[folder / name] = nav_line(previous, ['[Index](index.md)'], following)
     return lines
 
 

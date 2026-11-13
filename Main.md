@@ -70,7 +70,8 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | File | What it holds |
 |---|---|
 | [files/FutureFeaturesCaution.md](files/FutureFeaturesCaution.md) | Read before picking a future feature |
-| [files/FutureFeatures.md](files/FutureFeatures.md) | Ideas not scheduled yet (~6,400 lines - grep it) |
+| [files/future/index.md](files/future/index.md) | Ideas not scheduled yet, one topic per file, navigable (being split out of FutureFeatures.md - Task 51.5b) |
+| [files/FutureFeatures.md](files/FutureFeatures.md) | What is not moved to files/future/ yet, and a table of where each old section went |
 | [files/FutureFeatures Add Later.md](<files/FutureFeatures Add Later.md>) | A checklist of what may be missing (ChatGPT) |
 | [files/Fusion_Memory_Ownership_and_Services.md](files/Fusion_Memory_Ownership_and_Services.md) | A review of memory, ownership and services (ChatGPT) |
 | [files/Programming Languages Pain points.md](<files/Programming Languages Pain points.md>) | Why 30 languages were made; what each domain needs |

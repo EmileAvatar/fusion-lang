@@ -101,7 +101,7 @@ Settings: none. Source: user 2026-11-07, files/DocumentationSystemProposal.md (o
 	files/FutureFeatures.md 6,360) - the file list shown to the user first
 - 51.6 A link check in check.py (every link and file name in the .md files exists)
 - 51.5a Bring files/spec/100-Concurrency.md up to date - DONE 2026-11-11 (detail in task/taskSummaryArchive.md)
-- 51.5b Split files/FutureFeatures.md (6,360 lines, 41 sections) into files/future/ - PLAN (2026-11-13), waiting for approval
+- 51.5b Split files/FutureFeatures.md (6,360 lines, 41 sections) into files/future/ - PLAN approved 2026-11-13; 6 files per step (user)
 	Settings: none
 	Where: a new folder files/future/ next to files/spec/ - the same shape: index.md (a table: file, what it
 		holds, its status), files NNN-Topic.md numbered in tens by area; files/spec/ stays the language as
@@ -604,7 +604,7 @@ Kept under Task 22 until the renumbering is approved.
   and the skill .claude/skills/fusion-ownership/SKILL.md
 - 51.5 (2026-11-09): spec split done up to 070-ControlFlow; long paragraphs split into bullets
   as each file moves (user)
-- **Next Action:** 51.5b - the FutureFeatures.md split plan, waiting for approval; then 51.6 a link check
+- **Next Action:** 51.5b - the next 6: 000-Overview, 020-Settings, 030-LibraryLayout, 031-Regex, 032-DomainPackages, 033-Currency
   - then 48.4 (`--interface` shows what each public function does with its parameters)
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29
