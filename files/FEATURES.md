@@ -250,7 +250,7 @@ are in `task/featuresArchive.md`.
 		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
 	[DONE] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
 	[DONE] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
-	[ ] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first;
+	[DONE] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first;
 		no front matter for now - plain Markdown first (user, 2026-11-07)
 		[ ] Navigation (user, 2026-11-08 - mockup Notes/showcase): each file starts and ends with
 			`[< previous](..) | [Main](../../Main.md) | [next >](..)` - the first has no previous, the last no next;
@@ -289,13 +289,15 @@ are in `task/featuresArchive.md`.
 		[DONE] 4 Rewritten (2026-11-11): the earlier spec text removed - the levels to 3.11, a counter
 			with a Mutex and with a service in 1.2, an error return in 4.8, `unsafe` in the 4.2 example
 		[DONE] 5 Decisions.md in step (CON.021-026, D.125-D.132 PROPOSED); showcase -> 42.40; checked, shipped
-	[ ] 51.5b Split files/FutureFeatures.md into files/future/ (index.md + NNN-Topic.md, 31 files) - plan in
+	[DONE] 51.5b Split files/FutureFeatures.md into files/future/ (index.md + NNN-Topic.md, 31 files) - plan in
 		files/taskSummary2.md, approved 2026-11-13 (6 files per step - user)
 		[DONE] 010-IDEModule, 011-IDEProjects, 012-IDEOverlays, 013-IDEOverlays2, 014-IDEOverlaySettings,
 			015-WebServers (2026-11-13)
 		[DONE] 000-Overview, 020-Settings, 030-LibraryLayout, 031-Regex, 032-DomainPackages, 033-Currency (2026-11-13)
 		[DONE] 034-DataFormats, 035-HIDL, 040-CrossLanguage, 050-Imports, 060-Comments, 061-CommentHighlighting (2026-11-13)
 		[DONE] 062-CommentLevels, 070-NamingRules, 071-NamingExceptions, 080-Arrays, 081-Strings, 090-Unsafe (2026-11-13)
+		[DONE] 100-CLI, 101-CLICommands, 110-SymbolIDs, 111-Identity, 120-Threads, 130-FarFuture (2026-11-13) -
+			FutureFeatures.md is now a table of where each section went
 	[ ] 51.6 A link check in check.py
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]

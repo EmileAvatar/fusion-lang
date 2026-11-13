@@ -42,9 +42,9 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 #### What the language is - reference
 | File | What it holds |
 |---|---|
-| [files/spec/index.md](files/spec/index.md) | The language specification, one topic per file, navigable (being split - Task 51.5) |
+| [files/spec/index.md](files/spec/index.md) | The language specification, one topic per file, navigable (Task 51.5) |
 | [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md) | What works now, with examples (each becomes a program in [examples/](examples/)) |
-| [files/fusion-language-spec.md](files/fusion-language-spec.md) | The full language design (~6,500 lines - grep it; to be split into [files/spec/](files/spec/), Task 51.5) |
+| [files/fusion-language-spec.md](files/fusion-language-spec.md) | Moved to [files/spec/](files/spec/index.md) - only "Moved to" notes left (Task 51.5) |
 | [files/fusion.ebnf](files/fusion.ebnf) | The grammar |
 | [files/Builtins.md](files/Builtins.md) | Every built-in function and method (generated) |
 | [files/FusionTypes.html](files/FusionTypes.html) | Every type: default, range, size, status (open in a browser) |
@@ -70,8 +70,8 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | File | What it holds |
 |---|---|
 | [files/FutureFeaturesCaution.md](files/FutureFeaturesCaution.md) | Read before picking a future feature |
-| [files/future/index.md](files/future/index.md) | Ideas not scheduled yet, one topic per file, navigable (being split out of FutureFeatures.md - Task 51.5b) |
-| [files/FutureFeatures.md](files/FutureFeatures.md) | What is not moved to files/future/ yet, and a table of where each old section went |
+| [files/future/index.md](files/future/index.md) | Ideas not decided or scheduled yet, one topic per file, navigable (Task 51.5b) |
+| [files/FutureFeatures.md](files/FutureFeatures.md) | A table of where each old section went in files/future/ |
 | [files/FutureFeatures Add Later.md](<files/FutureFeatures Add Later.md>) | A checklist of what may be missing (ChatGPT) |
 | [files/Fusion_Memory_Ownership_and_Services.md](files/Fusion_Memory_Ownership_and_Services.md) | A review of memory, ownership and services (ChatGPT) |
 | [files/Programming Languages Pain points.md](<files/Programming Languages Pain points.md>) | Why 30 languages were made; what each domain needs |

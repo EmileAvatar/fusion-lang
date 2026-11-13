@@ -2,7 +2,7 @@
 
 Ideas for Fusion that are not decided or scheduled yet - one topic per file, in this order. Each file
 links to the one before and after it and back here. Split out of `files/FutureFeatures.md` (Task 51.5b,
-2026-11-13); a topic not listed yet is still there.
+2026-11-13).
 
 > **Read [files/FutureFeaturesCaution.md](../FutureFeaturesCaution.md) first.** Everything here is a menu
 > of possibilities, not a commitment - some will be built, some will change, some never added.
@@ -36,3 +36,9 @@ Each file starts with a **Status:** line: the FEATURES task or Decisions.md line
 | [080 Arrays](080-Arrays.md) | Advanced array declaration syntax | idea - multi-dimensional arrays postponed (COL.015) |
 | [081 Strings](081-Strings.md) | Mutable and fixed strings, templated fixed strings, string pooling | partly built - strings change in place, `const` strings never (Task 29, [032 Strings](../spec/032-Strings.md)) |
 | [090 Unsafe](090-Unsafe.md) | Unsafe mode enhancements | design - `unsafe` blocks and functions (MEM.006, D.030, D.031) |
+| [100 CLI](100-CLI.md) | The CLI tool suite: overview, commands, plan, architecture, comparison, questions | later - one `console` tool after the compiler no longer needs Python (FEATURES "Later") |
+| [101 CLI Commands](101-CLICommands.md) | Each command's specification | later - with 100 CLI |
+| [110 Symbol IDs](110-SymbolIDs.md) | The symbol-ID system (compiler infrastructure) | idea - no task |
+| [111 Identity](111-Identity.md) | An identity for everything: a GUID per name, a small database of the hierarchy | idea - FEATURES 42.28 |
+| [120 Threads](120-Threads.md) | Threads, schedulers and services: notes for later | design - the notes behind [100 Concurrency](../spec/100-Concurrency.md) (Task 42) |
+| [130 Far Future](130-FarFuture.md) | Traits from variables, types made while running, DLC | idea - after self-hosting (Task 35) |

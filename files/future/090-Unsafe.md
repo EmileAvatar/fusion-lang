@@ -1,4 +1,4 @@
-[< 081 Strings](081-Strings.md) | [Index](index.md) <!-- nav -->
+[< 081 Strings](081-Strings.md) | [Index](index.md) | [100 CLI >](100-CLI.md) <!-- nav -->
 
 # 090 Unsafe
 
@@ -227,4 +227,4 @@ end unsafe
 ⚠️  Warning: Direct hardware access requires elevated privileges
 ```
 
-[< 081 Strings](081-Strings.md) | [Index](index.md) <!-- nav -->
+[< 081 Strings](081-Strings.md) | [Index](index.md) | [100 CLI >](100-CLI.md) <!-- nav -->

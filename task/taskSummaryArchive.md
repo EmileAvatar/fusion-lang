@@ -6349,3 +6349,64 @@ task/taskSummaryArchive.md (Task 32.8); `typeOf` and converting back are in 32.7
 		7 "Try-with-resources: the compiler orders locks" vs P2 (no thread holds two resources) - drop
 			lock ordering
 	2026-11-11: steps 3-5 done - D.125-D.132 stay PROPOSED; parallel for -> 42.41; one file for now; the showcase -> 42.40; the earlier spec text removed
+
+#### Task 51.5b Split files/FutureFeatures.md into files/future/ - COMPLETE (2026-11-13)
+
+- 51.5b Split files/FutureFeatures.md (6,360 lines, 41 sections) into files/future/ - PLAN approved 2026-11-13; 6 files per step (user)
+	Settings: none
+	Where: a new folder files/future/ next to files/spec/ - the same shape: index.md (a table: file, what it
+		holds, its status), files NNN-Topic.md numbered in tens by area; files/spec/ stays the language as
+		decided, files/future/ the ideas not decided or scheduled yet
+	How each file is made (as the spec split):
+		The text moved as it is (git keeps the old file); headings one level up; emojis taken out of the
+			headings (they spoil the links); a contents list when over ~200 lines
+		Long paragraphs split into bullet points (one point per line), the wording kept
+		A Status line at the top: the FEATURES task / Decisions.md line that covers it now, or "idea - no
+			task"; text a later decision replaced is marked, not deleted
+		No line limit for now (as 100-Concurrency) - a file over ~300 lines is listed below; split later if wanted
+	files/FutureFeatures.md becomes a stub: a table "old section -> new file", so the 29 references to
+		`files/FutureFeatures.md "Section"` in other files still lead somewhere; references updated as they
+		are met, not all at once
+	tools/doc_nav.py learns files/future/ (the same navigation line as the spec); Main.md, CLAUDE.md
+		(Rule 8 "FutureFeatures ~6,000 lines") and files/spec/index.md (a link to files/future/) updated
+	Three files per step, check, ship - as the spec
+	The proposed files (old lines in brackets):
+		000-Overview.md            the old overview, implementation priority, checklist, related files, timeline,
+		                           success criteria, discussion points (2026-09 planning - marked historic)  ~130
+		010-IDEModule.md           fusionlib.IDE: proposed module + its complete API                      ~270
+		011-IDEProjects.md         IDE module enhancements: the project integration system               ~257
+		012-IDEOverlays.md         code quality overlays: overview, features 1-4 (inverted if, thread view,
+		                           profiling, duplicate code)                                            ~313
+		013-IDEOverlays2.md        features 5-7 (naming quality, nested loops, nested control flow)      ~280
+		014-IDEOverlaySettings.md  overlay configuration, IDE architecture, benefits                     ~140
+		015-WebServers.md          notes on web servers (what a server does, its layers) - found inside the
+		                           overlays section, not about overlays                                  ~290
+		020-Settings.md            the settings system's module placement, configuration file formats    ~236
+		030-LibraryLayout.md       module count, standard library organisation, every planned module's name,
+		                           additional ideas                                                      ~151
+		031-Regex.md               the regex fluent API + the planned regex module                       ~285
+		032-DomainPackages.md      game engine, physics, ECS, shaders, NumPy-style numerics, Pandas-style
+		                           data frames                                                           ~110
+		033-Currency.md            the Currency module + fixed-point decimal and `Currency` sugar        ~374
+		034-DataFormats.md         the data formats module (JSON, XML, TOML, YAML, INI, MD)              ~43
+		035-HIDL.md                HIDL hardware testing ideas from Maia                                 ~31
+		040-CrossLanguage.md       cross-language compilation + self-hosting considerations              ~140
+		050-Imports.md             multi-import and parameter syntax                                     ~275
+		060-Comments.md            enhanced comments: `'` at line start, `'''` blocks, summary, notes    ~285
+		061-CommentHighlighting.md language-specific highlighting in `'''` blocks                       ~272
+		062-CommentLevels.md       comment levels 0-5 and coding hints (developer experience)            ~290
+		070-NamingRules.md         option strict naming: context, minimum name length                    ~181
+		071-NamingExceptions.md    loop counters, generic type names, scope, errors, levels, IDE         ~354
+		080-Arrays.md              advanced array declaration syntax                                     ~172
+		081-Strings.md             mutable / fixed strings, templated fixed strings, string pooling      ~134
+		090-Unsafe.md              unsafe mode enhancements                                              ~231
+		100-CLI.md                 the CLI tool suite: overview, commands, plan, architecture, questions ~170
+		101-CLICommands.md         each command's specification                                         ~338
+		110-SymbolIDs.md           the symbol-ID system (compiler infrastructure)                        ~301
+		111-Identity.md            an identity for everything: a GUID per name                           ~67
+		120-Threads.md             threads, schedulers and services: notes                               ~119
+		130-FarFuture.md           far future: traits from variables, types made while running, DLC     ~96
+	Over ~300 lines: 012, 033, 071, 101, 110 - one topic each; split later if wanted
+	Steps: 1 approval of this list; 2 the folder, index.md, doc_nav, the stub (first 3 files);
+		3 three files per step; 4 the references and 51.6 the link check
+	2026-11-13: done in 5 steps of 6 files (user); 31 files + index.md; FutureFeatures.md a table of where each section went
