@@ -1,13 +1,20 @@
 # Fusion - Feature and Task Status
 
-The single place to see what is done, open, or postponed. One line per item.
+The single place to see what is done, open, or postponed - one line per item.
+
+Contents: [Preface](#preface) | [Index](#index) | [Phase 2](#phase-2---growing-the-language-then-a-fully-independent-compiler) | [Phase 3](#phase-3---the-advanced-parts) | [Later](#later--advanced-after-mvp) | [Known limitations](#known-limitations-by-design-for-now)
+
+---
+
+## Preface
+
+#### The rules
 
 - `[ ]` open · `[DONE]` finished · `[POSTPONED to X]` waits for X (a task, or a missing feature)
 - `##` = major sections only. Tasks: `#### NN Title [status]`. Sub-tasks: one tab +
   `[status] NN.N`. Parts: two tabs
-- Sections: Done (a pointer to task/featuresArchive.md), Phase 1 (up to the self-hosting
-  test run), Phase 2, Phase 3, Later, Known limitations, Old task numbers (open tasks were
-  renumbered from 25 on 2026-10-11)
+- Sections (user, 2026-11-13): Preface (these rules, the counts, what is done, the old task
+  numbers), Index (every task in working order), Phase 2, Phase 3, Later, Known limitations
 - Only open and postponed items are kept here; a finished one moves to
   `task/featuresArchive.md` when its task is complete
 - Find things: `grep -n "\[ \]" files/FEATURES.md` (open), `grep -n "POSTPONED" files/FEATURES.md`,
@@ -15,6 +22,7 @@ The single place to see what is done, open, or postponed. One line per item.
 - Detail: active task -> `files/taskSummary2.md`; finished -> `task/taskSummaryArchive.md`;
   not started -> `task/taskBacklog.md`. What the language can do today, with examples ->
   `files/SYNTAX_REFERENCE.md`
+- `taskSummary2.md` holds only the active plan; a postponed item says in one line what it waits for (user, 2026-11-13)
 
 **Features become settings (user, 2026-10-24).** Each feature is designed so a project can
 turn it on or off in `fusion.toml` where that makes sense, with a safe default. When an item
@@ -26,17 +34,20 @@ setting, a fixed rule, or is discarded. Example - structs:
 - functions on structs: a setting, off by default;
 - holding an object: allowed - null until set, shared when the struct is copied (user, 2026-11-01).
 
----
+#### The counts (2026-11-13 - `python check.py --status` gives them live)
 
-## Done
+| | Items |
+|---|---|
+| Done - in task/featuresArchive.md | 146 |
+| Done - still listed here, inside an open task | 35 |
+| Open (`[ ]`) - Phase 2 / Phase 3 | 69 / 97 |
+| Postponed - Phase 2 / Phase 3 | 18 / 5 |
+
+#### What is done
 
 Every finished task and item is in `task/featuresArchive.md` (archived 2026-10-27 - this file
 keeps only what is open or postponed). Finished tasks keep their numbers; their plans and
 notes are in `task/taskSummaryArchive.md`.
-
----
-
-## Phase 1 - up to the self-hosting test run
 
 First major goal (user, 2026-10-11): a **simple working self-host** - a compiler written in
 Fusion, covering only the simple part of the language, whose exe compiles the programs in
@@ -47,20 +58,126 @@ self-hosted one is fully independent (Phase 2). Guide: `Notes/04/notes.md` secti
 and safety), 28 (the self-hosting test run - report: `task/selfhost_report.md`). Their lines
 are in `task/featuresArchive.md`.
 
+#### Old task numbers (renumbered 2026-10-11)
+
+Old notes, commits and code comments may use these. Old numbers are never reused.
+
+| Old | New |
+|---|---|
+| 10 Self-hosting | 28 (phase 1), 35 (phase 2) |
+| 11 LLVM backend | 40 |
+| 13 HIDL | 41 |
+| 14 Nullable & safe navigation | 30 |
+| 15 Deferred decisions | 15.1 -> 40.1, 15.2 -> 37.1, 15.4 decided (self-hosting first), 15.5 -> 38, 15.6 -> 31.5, 15.12 -> 37.2; the rest done |
+| 16 Example coverage | 34 (16.2 -> 32.3, 16.3 -> 33.2, 16.5 -> 26) |
+| 17 Strings | 29 (17.N -> 29.N) |
+| 19 Library security | 39 (19.N -> 39.N, 19.6 done, 19.7 -> 39.6) |
+| 20 Config formats | 31 (20.N -> 31.N) |
+| 21 Error handling | 26 |
+| 24 Editor support | 36 (24.N -> 36.N) |
+
+---
+
+## Index
+
+Every task in this file, in the order to work on them - not the number order: the active task first,
+then the open tasks, the postponed ones, and the phase's goal last.
+
+| Task | Title | Phase | Status |
+|---|---|---|---|
+| [51](#51-documentation-clean-up-folders-and-markdown-files-user-2026-11-07-----soon) | Documentation clean-up: folders and Markdown files | 2 | active |
+| [33](#33-generics-the-programs-own-generic-functions-and-types-user-2026-10-11--) | Generics: the program's own generic functions and types | 2 | open |
+| [34](#34-example-program-coverage-was-16--) | Example program coverage | 2 | open |
+| [45](#45-arrays-that-grow-at-the-end-user-2026-10-27---filesarraysmd--) | Arrays that grow at the end | 2 | open |
+| [47](#47-types-long-money-enums-with-fixed-data-user-2026-10-29--) | Types: long, money, enums with fixed data | 2 | open |
+| [48](#48-ownership-move-borrow-share-user-2026-10-31--) | Ownership: move, borrow, share | 2 | open |
+| [50](#50-readonly-results-and-a-deep-const-user-2026-11-03-----after-task-48) | readonly results and a deep const | 2 | open |
+| [52](#52-classes-value-types-and-null---follow-ups-from-the-open-questions-user-2026-11-07--) | Classes, value types and null - follow-ups from the open questions | 2 | open |
+| [53](#53-check-the-core-language-user-2026-11-07--) | Check the Core language | 2 | open |
+| [55](#55-review-the-chatgpt-notes-features-domains-dsls-user-2026-11-09--) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
+| [56](#56-loop-safety-the-check-keyword-user-2026-11-09---syn033-filesspec070-controlflowmd--) | Loop safety: the `check` keyword | 2 | open |
+| [57](#57-namespaces-and-modules-user-2026-11-12---d136-filesspec150-modulesmd--) | Namespaces and modules | 2 | open |
+| [58](#58-script-mode-fusion-written-and-run-like-a-python-script-user-2026-11-12---set013-filesspec170-buildmd--) | Script mode: Fusion written and run like a Python script | 2 | open |
+| [59](#59-faster-checks-run-only-the-tests-the-change-needs-user-2026-11-13--) | Faster checks: run only the tests the change needs | 2 | open |
+| [29](#29-strings---the-postponed-parts-290-293-296-done-2026-10-27-taskfeaturesarchivemd-postponed) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
+| [31](#31-settings-file-formats---the-postponed-parts-311-314-done-2026-10-28-taskfeaturesarchivemd-postponed) | Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) | 2 | postponed |
+| [35](#35-self-hosting-phase-2---fully-independent-was-109-1012--) | Self-hosting phase 2 - fully independent | 2 | open |
+| [36](#36-editor-support-syntax-highlighting-for-code-editors-and-ides-was-24--) | Editor support: syntax highlighting for code editors and IDEs | 3 | open |
+| [37](#37-deferred-decisions-rest-of-15---user-after-self-hosting-some-become-own-sub-tasks--) | Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) | 3 | open |
+| [38](#38-memory-model-unique--shared--weak-gc-as-a-project-option-was-155--) | Memory model: Unique / Shared / Weak, GC as a project option | 3 | open |
+| [39](#39-library-trust-isolation--security-was-19--) | Library trust, isolation & security | 3 | open |
+| [40](#40-ir-layer-and-llvm-backend-was-11-151--) | IR layer and LLVM backend | 3 | open |
+| [41](#41-hidl---hardware-interface-definition-language-was-13--) | HIDL - hardware interface definition language | 3 | open |
+| [42](#42-concurrency-services-and-threads-user-2026-10-23--) | Concurrency: services and threads | 3 | open |
+| [43](#43-core-modules-design-fusionlib-user-2026-10-24--) | Core modules design (fusionlib) | 3 | open |
+| [49](#49-multi-language-support-langlanguagefusion-modules-user-2026-11-03-postponed-to-35) | Multi-language support: `Lang.<language>.Fusion` modules | 3 | postponed to 35 |
+| [54](#54-precepts-a-project-that-behaves-like-c-java-python-rust-user-2026-11-08-postponed-to-35) | Precepts: a project that behaves like C, Java, Python, Rust | 3 | postponed to 35 |
+
 ---
 
 ## Phase 2 - growing the language, then a fully independent compiler
 
-#### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED]
-	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
-		needs a reference count, as Task 38's Shared does (`[structs] stringStorage =
-		"pooled"` waits for this)
-	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
-
-#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED]
-	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
-		settings file from the master template (user, 2026-10-28)
-	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
+#### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon
+	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
+	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: task/taskSummaryArchive.md Task 51
+	[DONE] 51.1 Root files moved to files/ (debug scripts to debug/); the root keeps CLAUDE.md, README.md,
+		Decisions.md, main.py, check.py, pytest.ini; paths in code and docs updated
+	[DONE] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
+		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
+	[DONE] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
+	[DONE] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
+	[DONE] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first;
+		no front matter for now - plain Markdown first (user, 2026-11-07)
+		[ ] Navigation (user, 2026-11-08 - mockup Notes/showcase): each file starts and ends with
+			`[< previous](..) | [Main](../../Main.md) | [next >](..)` - the first has no previous, the last no next;
+			files/spec/index.md lists every spec file as a link; Main.md's paths become clickable links;
+			a long file gets a contents list of links to its own sections; a script writes the nav lines
+			from the index order, so they never drift (tools/doc_nav.py, the "nav" check)
+		Root navigation (user): Main -> Decisions -> OpenQuestions -> README, each linking to the spec index;
+			spec files link only to each other and their index - never back to the root
+		[DONE] index.md, 010-Philosophy, 020-SemanticContract, 030-Types, 031-Arrays, 032-Strings, 033-TypeCasting,
+			040-Functions, 041-Lambdas, 042-MultipleReturns,
+			050-Classes, 051-Inheritance, 052-Interfaces,
+			060-Structs, 061-Enums, 070-ControlFlow,
+			080-Null, 081-Autoboxing, 090-Memory,
+			100-Concurrency, 110-Generics, 120-Errors (2026-11-10), 130-Comments, 131-AutoDocs,
+			140-Collections (2026-11-11), 150-Modules, 160-GameExample, 170-Build (2026-11-12),
+			180-StandardLibrary, 181-fusionlib-Core, 182-fusionlib-Extended, 183-fusionlib-IDE,
+			190-Callbacks, 191-Interop, 200-ReservedWords, 210-FeaturesSummary,
+			220-Comparison (2026-11-12) - every section moved
+		[DONE] 001-TomlSettings (user, 2026-11-08): every project setting; 000-009 kept for high-level files;
+			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
+		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
+			files/showcase/fusion.toml - into "Decided, not built"
+	[DONE] 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - detail in task/taskSummaryArchive.md
+		[DONE] 1 Gather (2026-11-10): the inventory in task/taskSummaryArchive.md (51.5a) - 7 clashes / gaps found;
+			no line limit on the file for now (user)
+			was: go through every concurrency source; one list of what is built, decided, designed, an idea,
+			rejected or replaced - with where each comes from
+		[DONE] 1b Reorganised (user, 2026-11-10): Index; 1 summary and comparison; 2 traps (what solves each);
+			3 the service model (primary); 4 other models - mutex, channels, async ... (for Lang.<language>.Fusion,
+			Task 49); 5 built; 6 to settle (9 items); 7 the earlier text kept for review - tables throughout
+		[DONE] 2 Clashes and gaps (2026-11-10): the user's provisional answers in spec 100 section 6;
+			PROPOSED D.125-D.131; new 3.14-3.17 (channels, kinds of threads, sleep and wake,
+			no thread state); 42.34-42.40; the 5 follow-up questions answered too (D.132, 3.18 baselines)
+		[DONE] 3 Shown (2026-11-11): D.125-D.132 stay PROPOSED for now; `parallel for` kept as an idea
+			(42.41); one file for now, split later; the showcase left for 42.40 (user)
+		[DONE] 4 Rewritten (2026-11-11): the earlier spec text removed - the levels to 3.11, a counter
+			with a Mutex and with a service in 1.2, an error return in 4.8, `unsafe` in the 4.2 example
+		[DONE] 5 Decisions.md in step (CON.021-026, D.125-D.132 PROPOSED); showcase -> 42.40; checked, shipped
+	[DONE] 51.5b Split files/FutureFeatures.md into files/future/ (index.md + NNN-Topic.md, 31 files) - plan in
+		task/taskSummaryArchive.md, approved 2026-11-13 (6 files per step - user)
+		[DONE] 010-IDEModule, 011-IDEProjects, 012-IDEOverlays, 013-IDEOverlays2, 014-IDEOverlaySettings,
+			015-WebServers (2026-11-13)
+		[DONE] 000-Overview, 020-Settings, 030-LibraryLayout, 031-Regex, 032-DomainPackages, 033-Currency (2026-11-13)
+		[DONE] 034-DataFormats, 035-HIDL, 040-CrossLanguage, 050-Imports, 060-Comments, 061-CommentHighlighting (2026-11-13)
+		[DONE] 062-CommentLevels, 070-NamingRules, 071-NamingExceptions, 080-Arrays, 081-Strings, 090-Unsafe (2026-11-13)
+		[DONE] 100-CLI, 101-CLICommands, 110-SymbolIDs, 111-Identity, 120-Threads, 130-FarFuture (2026-11-13) -
+			FutureFeatures.md is now a table of where each section went
+	[ ] 51.6 A link check in check.py - plan in files/taskSummary2.md, waiting for approval
+	[DONE] 51.8 FEATURES.md reorganised (user, 2026-11-13): a Preface (the rules, the counts, what is done,
+		the old task numbers), an Index of every task in working order, then the phases
+	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ]
 	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)
@@ -70,16 +187,6 @@ are in `task/featuresArchive.md`.
 #### 34 Example program coverage (was 16) [ ]
 	[POSTPONED - needs threading, no task yet] 34.1 Multithreading / async example (was 16.4)
 	[POSTPONED to 38] 34.2 Memory model (Unique/Shared/Weak) example (was 16.6)
-
-#### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ]
-	[ ] 35.1 The self-hosted compiler covers the whole language
-	[ ] 35.2 Bootstrap twice: the compiler compiles itself, and that one compiles itself again
-	[ ] 35.3 The whole test suite runs against it
-	[ ] 35.4 Performance
-	[ ] 35.5 The Python compiler retired; docs
-	[ ] 35.6 No `[PARTIAL]` line left in Decisions.md - each finished or split (user, 2026-11-07)
-
----
 
 #### 45 Arrays that grow at the end (user, 2026-10-27 - files/Arrays.md) [ ]
 	Today an array's size is fixed when it is made, and the compiler must know it. An array
@@ -241,65 +348,6 @@ are in `task/featuresArchive.md`.
 	[ ] 50.4 `readonly` on a copy is a warning, not an error (D.113): a number result, and `f(readonly n)` on an
 		int / string (an error since 48.3)
 
-#### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon
-	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
-	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: task/taskSummaryArchive.md Task 51
-	[DONE] 51.1 Root files moved to files/ (debug scripts to debug/); the root keeps CLAUDE.md, README.md,
-		Decisions.md, main.py, check.py, pytest.ini; paths in code and docs updated
-	[DONE] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
-		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
-	[DONE] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
-	[DONE] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
-	[DONE] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first;
-		no front matter for now - plain Markdown first (user, 2026-11-07)
-		[ ] Navigation (user, 2026-11-08 - mockup Notes/showcase): each file starts and ends with
-			`[< previous](..) | [Main](../../Main.md) | [next >](..)` - the first has no previous, the last no next;
-			files/spec/index.md lists every spec file as a link; Main.md's paths become clickable links;
-			a long file gets a contents list of links to its own sections; a script writes the nav lines
-			from the index order, so they never drift (tools/doc_nav.py, the "nav" check)
-		Root navigation (user): Main -> Decisions -> OpenQuestions -> README, each linking to the spec index;
-			spec files link only to each other and their index - never back to the root
-		[DONE] index.md, 010-Philosophy, 020-SemanticContract, 030-Types, 031-Arrays, 032-Strings, 033-TypeCasting,
-			040-Functions, 041-Lambdas, 042-MultipleReturns,
-			050-Classes, 051-Inheritance, 052-Interfaces,
-			060-Structs, 061-Enums, 070-ControlFlow,
-			080-Null, 081-Autoboxing, 090-Memory,
-			100-Concurrency, 110-Generics, 120-Errors (2026-11-10), 130-Comments, 131-AutoDocs,
-			140-Collections (2026-11-11), 150-Modules, 160-GameExample, 170-Build (2026-11-12),
-			180-StandardLibrary, 181-fusionlib-Core, 182-fusionlib-Extended, 183-fusionlib-IDE,
-			190-Callbacks, 191-Interop, 200-ReservedWords, 210-FeaturesSummary,
-			220-Comparison (2026-11-12) - every section moved
-		[DONE] 001-TomlSettings (user, 2026-11-08): every project setting; 000-009 kept for high-level files;
-			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
-		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
-			files/showcase/fusion.toml - into "Decided, not built"
-	[DONE] 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - detail in task/taskSummaryArchive.md
-		[DONE] 1 Gather (2026-11-10): the inventory in task/taskSummaryArchive.md (51.5a) - 7 clashes / gaps found;
-			no line limit on the file for now (user)
-			was: go through every concurrency source; one list of what is built, decided, designed, an idea,
-			rejected or replaced - with where each comes from
-		[DONE] 1b Reorganised (user, 2026-11-10): Index; 1 summary and comparison; 2 traps (what solves each);
-			3 the service model (primary); 4 other models - mutex, channels, async ... (for Lang.<language>.Fusion,
-			Task 49); 5 built; 6 to settle (9 items); 7 the earlier text kept for review - tables throughout
-		[DONE] 2 Clashes and gaps (2026-11-10): the user's provisional answers in spec 100 section 6;
-			PROPOSED D.125-D.131; new 3.14-3.17 (channels, kinds of threads, sleep and wake,
-			no thread state); 42.34-42.40; the 5 follow-up questions answered too (D.132, 3.18 baselines)
-		[DONE] 3 Shown (2026-11-11): D.125-D.132 stay PROPOSED for now; `parallel for` kept as an idea
-			(42.41); one file for now, split later; the showcase left for 42.40 (user)
-		[DONE] 4 Rewritten (2026-11-11): the earlier spec text removed - the levels to 3.11, a counter
-			with a Mutex and with a service in 1.2, an error return in 4.8, `unsafe` in the 4.2 example
-		[DONE] 5 Decisions.md in step (CON.021-026, D.125-D.132 PROPOSED); showcase -> 42.40; checked, shipped
-	[DONE] 51.5b Split files/FutureFeatures.md into files/future/ (index.md + NNN-Topic.md, 31 files) - plan in
-		task/taskSummaryArchive.md, approved 2026-11-13 (6 files per step - user)
-		[DONE] 010-IDEModule, 011-IDEProjects, 012-IDEOverlays, 013-IDEOverlays2, 014-IDEOverlaySettings,
-			015-WebServers (2026-11-13)
-		[DONE] 000-Overview, 020-Settings, 030-LibraryLayout, 031-Regex, 032-DomainPackages, 033-Currency (2026-11-13)
-		[DONE] 034-DataFormats, 035-HIDL, 040-CrossLanguage, 050-Imports, 060-Comments, 061-CommentHighlighting (2026-11-13)
-		[DONE] 062-CommentLevels, 070-NamingRules, 071-NamingExceptions, 080-Arrays, 081-Strings, 090-Unsafe (2026-11-13)
-		[DONE] 100-CLI, 101-CLICommands, 110-SymbolIDs, 111-Identity, 120-Threads, 130-FarFuture (2026-11-13) -
-			FutureFeatures.md is now a table of where each section went
-	[ ] 51.6 A link check in check.py - plan in files/taskSummary2.md, waiting for approval
-	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ]
 	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
 	[POSTPONED to closures - SYN.028] 52.1 Form D (CLS.016, D.119): a set-up block on an abstract class or an interface - where it is
@@ -411,6 +459,27 @@ are in `task/featuresArchive.md`.
 		test_lexer*, codegen -> the end-to-end tests, ...); the full suite after a whole task is complete
 	[ ] 59.4 Faster end-to-end tests where possible: build several programs per GCC call, run tests in
 		parallel (pytest-xdist), cache unchanged builds
+
+#### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED]
+	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
+		needs a reference count, as Task 38's Shared does (`[structs] stringStorage =
+		"pooled"` waits for this)
+	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
+
+#### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED]
+	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
+		settings file from the master template (user, 2026-10-28)
+	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
+
+#### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ]
+	[ ] 35.1 The self-hosted compiler covers the whole language
+	[ ] 35.2 Bootstrap twice: the compiler compiles itself, and that one compiles itself again
+	[ ] 35.3 The whole test suite runs against it
+	[ ] 35.4 Performance
+	[ ] 35.5 The Python compiler retired; docs
+	[ ] 35.6 No `[PARTIAL]` line left in Decisions.md - each finished or split (user, 2026-11-07)
+
+---
 
 ## Phase 3 - the advanced parts
 
@@ -685,6 +754,7 @@ are in `task/featuresArchive.md`.
 			decide whether `channel` / `lock` are keywords or library types (`Channel<T>`, `Mutex`)
 	[ ] 42.41 `parallel for` - each loop pass may run on a pool thread (idea, from the earlier spec text;
 		user, 2026-11-11: kept for the future, `go` used for now)
+
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ]
 	The standard library's core modules, designed one at a time (spec "Fusion Standard
 	Library (fusionlib)"). Plan first.
@@ -754,29 +824,6 @@ are in `task/featuresArchive.md`.
 	Open: language modules are code the compiler runs - trust and sandboxing (Task 39);
 		their name next to `fusionlib.Lang` (files/FutureFeatures.md "Cross-Language Compilation Support")
 
----
-
-## Old task numbers (renumbered 2026-10-11)
-
-Old notes, commits and code comments may use these. Old numbers are never reused.
-
-| Old | New |
-|---|---|
-| 10 Self-hosting | 28 (phase 1), 35 (phase 2) |
-| 11 LLVM backend | 40 |
-| 13 HIDL | 41 |
-| 14 Nullable & safe navigation | 30 |
-| 15 Deferred decisions | 15.1 -> 40.1, 15.2 -> 37.1, 15.4 decided (self-hosting first), 15.5 -> 38, 15.6 -> 31.5, 15.12 -> 37.2; the rest done |
-| 16 Example coverage | 34 (16.2 -> 32.3, 16.3 -> 33.2, 16.5 -> 26) |
-| 17 Strings | 29 (17.N -> 29.N) |
-| 19 Library security | 39 (19.N -> 39.N, 19.6 done, 19.7 -> 39.6) |
-| 20 Config formats | 31 (20.N -> 31.N) |
-| 21 Error handling | 26 |
-| 24 Editor support | 36 (24.N -> 36.N) |
-
----
-
-
 #### 54 Precepts: a project that behaves like C, Java, Python, Rust (user, 2026-11-08) [POSTPONED to 35]
 	A precept is a ready-made set of settings and behaviour, so a new project acts like a familiar
 	language without editing fusion.toml by hand: `c.precept.fusion`, `cpp.precept.fusion`,
@@ -785,6 +832,9 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 	[ ] 54.1 Design: what a precept holds (settings, defaults, warnings), how a project picks one, and
 		how its own fusion.toml overrides a precept's setting
 	[ ] 54.2 The first precepts, each tested against programs written the way that language works
+
+---
+
 ## Later / advanced (after MVP)
 
 Kept in Fusion's design, deliberately postponed - the simple version comes first.
@@ -902,6 +952,8 @@ Kept in Fusion's design, deliberately postponed - the simple version comes first
 	[POSTPONED - after MVP] Multi-dimensional arrays (growable lists: done, 18.5.1)
 	[POSTPONED to 32 / 33] Classes, interfaces, inheritance (32), generics (33); enums: Task 25;
 		threading: no task yet
+
+---
 
 ## Known limitations (by design for now)
 	[ ] A string-holding variable can't reuse the name of one in an enclosing block (clear error)
