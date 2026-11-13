@@ -3,10 +3,11 @@
 
 The single place to see what is done, open, or postponed - one line per item.
 
-Contents: [Preface](#preface-top) | [Index](#index-top) | [Phase 2](#phase-2---growing-the-language-then-a-fully-independent-compiler-top) | [Phase 3](#phase-3---the-advanced-parts-top) | [Later](#later--advanced-after-mvp-top) | [Known limitations](#known-limitations-by-design-for-now-top)
+Contents: [Preface](#preface) | [Index](#index) | [Phase 2](#phase-2) | [Phase 3](#phase-3) | [Later](#later) | [Known limitations](#known-limitations)
 
 ---
 
+<a id="preface"></a>
 ## Preface [top](#top)
 
 #### The rules [top](#top)
@@ -24,6 +25,9 @@ Contents: [Preface](#preface-top) | [Index](#index-top) | [Phase 2](#phase-2---g
   not started -> `task/taskBacklog.md`. What the language can do today, with examples ->
   `files/SYNTAX_REFERENCE.md`
 - `taskSummary2.md` holds only the active plan; a postponed item says in one line what it waits for (user, 2026-11-13)
+- Links: every task heading has a fixed anchor line above it, `<a id="task-NN"></a>` (sections:
+  `preface`, `index`, `phase-2`, ...) - the Index links to it; a new task gets one too. Each heading's
+  `[top](#top)` goes back to the top
 
 **Features become settings (user, 2026-10-24).** Each feature is designed so a project can
 turn it on or off in `fusion.toml` where that makes sense, with a safe default. When an item
@@ -79,6 +83,7 @@ Old notes, commits and code comments may use these. Old numbers are never reused
 
 ---
 
+<a id="index"></a>
 ## Index [top](#top)
 
 Every task in this file, in the order to work on them - not the number order: the active task first,
@@ -86,38 +91,40 @@ then the open tasks, the postponed ones, and the phase's goal last.
 
 | Task | Title | Phase | Status |
 |---|---|---|---|
-| [51](#51-documentation-clean-up-folders-and-markdown-files-user-2026-11-07-----soon-top) | Documentation clean-up: folders and Markdown files | 2 | active |
-| [33](#33-generics-the-programs-own-generic-functions-and-types-user-2026-10-11---top) | Generics: the program's own generic functions and types | 2 | open |
-| [45](#45-arrays-that-grow-at-the-end-user-2026-10-27---filesarraysmd---top) | Arrays that grow at the end | 2 | open |
-| [47](#47-types-long-money-enums-with-fixed-data-user-2026-10-29---top) | Types: long, money, enums with fixed data | 2 | open |
-| [48](#48-ownership-move-borrow-share-user-2026-10-31---top) | Ownership: move, borrow, share | 2 | open |
-| [50](#50-readonly-results-and-a-deep-const-user-2026-11-03-----after-task-48-top) | readonly results and a deep const | 2 | open |
-| [52](#52-classes-value-types-and-null---follow-ups-from-the-open-questions-user-2026-11-07---top) | Classes, value types and null - follow-ups from the open questions | 2 | open |
-| [53](#53-check-the-core-language-user-2026-11-07---top) | Check the Core language | 2 | open |
-| [55](#55-review-the-chatgpt-notes-features-domains-dsls-user-2026-11-09---top) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
-| [56](#56-loop-safety-the-check-keyword-user-2026-11-09---syn033-filesspec070-controlflowmd---top) | Loop safety: the `check` keyword | 2 | open |
-| [57](#57-namespaces-and-modules-user-2026-11-12---d136-filesspec150-modulesmd---top) | Namespaces and modules | 2 | open |
-| [58](#58-script-mode-fusion-written-and-run-like-a-python-script-user-2026-11-12---set013-filesspec170-buildmd---top) | Script mode: Fusion written and run like a Python script | 2 | open |
-| [59](#59-faster-checks-run-only-the-tests-the-change-needs-user-2026-11-13---top) | Faster checks: run only the tests the change needs | 2 | open |
-| [29](#29-strings---the-postponed-parts-290-293-296-done-2026-10-27-taskfeaturesarchivemd-postponed-top) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
-| [31](#31-settings-file-formats---the-postponed-parts-311-314-done-2026-10-28-taskfeaturesarchivemd-postponed-top) | Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) | 2 | postponed |
-| [35](#35-self-hosting-phase-2---fully-independent-was-109-1012---top) | Self-hosting phase 2 - fully independent | 2 | open |
-| [36](#36-editor-support-syntax-highlighting-for-code-editors-and-ides-was-24---top) | Editor support: syntax highlighting for code editors and IDEs | 3 | open |
-| [37](#37-deferred-decisions-rest-of-15---user-after-self-hosting-some-become-own-sub-tasks---top) | Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) | 3 | open |
-| [38](#38-memory-model-unique--shared--weak-gc-as-a-project-option-was-155---top) | Memory model: Unique / Shared / Weak, GC as a project option | 3 | open |
-| [39](#39-library-trust-isolation--security-was-19---top) | Library trust, isolation & security | 3 | open |
-| [40](#40-ir-layer-and-llvm-backend-was-11-151---top) | IR layer and LLVM backend | 3 | open |
-| [41](#41-hidl---hardware-interface-definition-language-was-13---top) | HIDL - hardware interface definition language | 3 | open |
-| [42](#42-concurrency-services-and-threads-user-2026-10-23---top) | Concurrency: services and threads | 3 | open |
-| [43](#43-core-modules-design-fusionlib-user-2026-10-24---top) | Core modules design (fusionlib) | 3 | open |
-| [49](#49-multi-language-support-langlanguagefusion-modules-user-2026-11-03-postponed-to-35-top) | Multi-language support: `Lang.<language>.Fusion` modules | 3 | postponed to 35 |
-| [54](#54-precepts-a-project-that-behaves-like-c-java-python-rust-user-2026-11-08-postponed-to-35-top) | Precepts: a project that behaves like C, Java, Python, Rust | 3 | postponed to 35 |
-| [L](#later--advanced-after-mvp-top) | Later / advanced - numbered L1, L2.1 ... | - | postponed |
+| [51](#task-51) | Documentation clean-up: folders and Markdown files | 2 | active |
+| [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
+| [45](#task-45) | Arrays that grow at the end | 2 | open |
+| [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
+| [48](#task-48) | Ownership: move, borrow, share | 2 | open |
+| [50](#task-50) | readonly results and a deep const | 2 | open |
+| [52](#task-52) | Classes, value types and null - follow-ups from the open questions | 2 | open |
+| [53](#task-53) | Check the Core language | 2 | open |
+| [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
+| [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
+| [57](#task-57) | Namespaces and modules | 2 | open |
+| [58](#task-58) | Script mode: Fusion written and run like a Python script | 2 | open |
+| [59](#task-59) | Faster checks: run only the tests the change needs | 2 | open |
+| [29](#task-29) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
+| [31](#task-31) | Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) | 2 | postponed |
+| [35](#task-35) | Self-hosting phase 2 - fully independent | 2 | open |
+| [36](#task-36) | Editor support: syntax highlighting for code editors and IDEs | 3 | open |
+| [37](#task-37) | Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) | 3 | open |
+| [38](#task-38) | Memory model: Unique / Shared / Weak, GC as a project option | 3 | open |
+| [39](#task-39) | Library trust, isolation & security | 3 | open |
+| [40](#task-40) | IR layer and LLVM backend | 3 | open |
+| [41](#task-41) | HIDL - hardware interface definition language | 3 | open |
+| [42](#task-42) | Concurrency: services and threads | 3 | open |
+| [43](#task-43) | Core modules design (fusionlib) | 3 | open |
+| [49](#task-49) | Multi-language support: `Lang.<language>.Fusion` modules | 3 | postponed to 35 |
+| [54](#task-54) | Precepts: a project that behaves like C, Java, Python, Rust | 3 | postponed to 35 |
+| [L](#later) | Later / advanced - numbered L1, L2.1 ... | - | postponed |
 
 ---
 
+<a id="phase-2"></a>
 ## Phase 2 - growing the language, then a fully independent compiler [top](#top)
 
+<a id="task-51"></a>
 #### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon [top](#top)
 	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
 	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: task/taskSummaryArchive.md Task 51
@@ -180,11 +187,13 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the old task numbers), an Index of every task in working order, then the phases
 	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 
+<a id="task-33"></a>
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ] [top](#top)
 	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
+<a id="task-45"></a>
 #### 45 Arrays that grow at the end (user, 2026-10-27 - files/Arrays.md) [ ] [top](#top)
 	Today an array's size is fixed when it is made, and the compiler must know it. An array
 	will grow and shrink at its end only (an item never moves position); a List changes
@@ -213,6 +222,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19) - with Task 42
 	[ ] 45.6 Docs and examples: files/Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
 
+<a id="task-47"></a>
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ] [top](#top)
 	After Task 32 and 36.0. The type table: files/FusionTypes.html
 	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow
@@ -260,6 +270,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the fields (`MAX` or `max`); a field whose type differs per value is more than 47.3
 		gives, so it is built in
 
+<a id="task-48"></a>
 #### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ] [top](#top)
 	After all of Task 32 (user)
 	Design and truth tables: files/Ownership.md
@@ -331,6 +342,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		[DONE] A for loop may set an element's value (27.2e) - unless the elements move
 		[DONE] "move" the default
 
+<a id="task-50"></a>
 #### 50 readonly results and a deep const (user, 2026-11-03) [ ] - after Task 48 [top](#top)
 	Rules shown: files/showcase/Ownership.fusion; the skill .claude/skills/fusion-ownership
 	[ ] 50.1 A readonly result, part of the signature (D.110): `public readonly Engine function getEngine()`
@@ -345,6 +357,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 50.4 `readonly` on a copy is a warning, not an error (D.113): a number result, and `f(readonly n)` on an
 		int / string (an error since 48.3)
 
+<a id="task-52"></a>
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ] [top](#top)
 	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
 	[POSTPONED to closures - SYN.028] 52.1 Form D (CLS.016, D.119): a set-up block on an abstract class or an interface - where it is
@@ -364,6 +377,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
 		`?` parameter without a null check - a warning; a `Default` left null - an error
 
+<a id="task-53"></a>
 #### 53 Check the Core language (user, 2026-11-07) [ ] [top](#top)
 	https://core-lang.dev - its design (https://core-lang.dev/design.html - simplicity, which we share) and
 	code (https://codeberg.org/core-lang/core): ideas worth taking, and whether "CoreFusion" / "FusionCore"
@@ -371,6 +385,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 53.1 Read its design principles - compare with Fusion's (Decisions.md GOL)
 	[ ] 53.2 The name: CoreFusion / FusionCore next to Core - a clash or not
 
+<a id="task-55"></a>
 #### 55 Review the ChatGPT notes: features, domains, DSLs (user, 2026-11-09) [ ] [top](#top)
 	From the user's Mac notes (ChatGPT - limited knowledge of Fusion); review with Claude Code: for each
 	idea decide a setting, a fixed rule, already decided / built, or discarded (Decisions.md, Rule 3b)
@@ -382,6 +397,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		trade-offs) - https://www.infoq.com/presentations/domain-specific-languages/ - does Fusion want
 		internal DSLs (modules) or external ones (HIDL, Task 41)
 
+<a id="task-56"></a>
 #### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [ ] [top](#top)
 	A loop's `end loop with {N}` part holds `check` blocks - a health / limit check, run every Nth pass -
 	and `check interrupt(signal, data)`, the loop's safe point for Shutdown / Pause / Stop (42.26, 42.27 build on it)
@@ -421,6 +437,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		(files/fusionSettings.xml); tests, an example in files/SYNTAX_REFERENCE.md (Rule 4)
 	[POSTPONED to 42] 56.5 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
 
+<a id="task-57"></a>
 #### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [ ] [top](#top)
 	A namespace is a supplier's group of modules, and a folder holding them; a module is one logical unit
 		(one file or several); a name in full is `Namespace.Module.Name`
@@ -435,6 +452,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the showcase): bring them in line
 	[POSTPONED - needs `extern`] 57.6 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
 
+<a id="task-58"></a>
 #### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [top](#top)
 	For a quick script (or a few): write it and run it, without setting up a whole compiled app
 	[ ] 58.1 Design, plan first: `fusion run tidy.fusion` (today `python main.py`); no project and no
@@ -446,6 +464,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the std library layer
 	[ ] 58.4 Build it, with an example script and tests
 
+<a id="task-59"></a>
 #### 59 Faster checks: run only the tests the change needs (user, 2026-11-13) [ ] [top](#top)
 	The full suite takes ~4 minutes (2,710 tests; the end-to-end ones compile with GCC under the leak check)
 	[DONE] 59.1 Documents only changed: `--ship` runs only the document checks; `--full` forces every check;
@@ -457,17 +476,20 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 59.4 Faster end-to-end tests where possible: build several programs per GCC call, run tests in
 		parallel (pytest-xdist), cache unchanged builds
 
+<a id="task-29"></a>
 #### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED] [top](#top)
 	[POSTPONED to 38] 29.4 String pooling: `[strings] pooling` (default off) and `pool(s)` -
 		needs a reference count, as Task 38's Shared does (`[structs] stringStorage =
 		"pooled"` waits for this)
 	[POSTPONED - needs fusionlib.Crypto] 29.5 Secure string storage, constant-time comparison
 
+<a id="task-31"></a>
 #### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED] [top](#top)
 	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
 		settings file from the master template (user, 2026-10-28)
 	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
 
+<a id="task-35"></a>
 #### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ] [top](#top)
 	[ ] 35.1 The self-hosted compiler covers the whole language
 	[ ] 35.2 Bootstrap twice: the compiler compiles itself, and that one compiles itself again
@@ -478,8 +500,10 @@ then the open tasks, the postponed ones, and the phase's goal last.
 
 ---
 
+<a id="phase-3"></a>
 ## Phase 3 - the advanced parts [top](#top)
 
+<a id="task-36"></a>
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ] [top](#top)
 	(user request 2026-10-11 - after self-hosting, when the syntax has settled)
 	[ ] 36.0 First small version - right after Task 32 (user, 2026-10-29): VS Code and Sublime
@@ -498,12 +522,14 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 36.7 A hint showing how number conditions are set for the project (`[conditions]
 		numbers`, Task 30.9) - e.g. on `if count` (user, 2026-10-27)
 
+<a id="task-37"></a>
 #### 37 Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) [ ] [top](#top)
 	[ ] 37.1 Stdlib runtime lowering decision (was 15.2)
 	[ ] 37.2 Operator operands evaluated in C's order (`next(c) - next(c)`); call arguments are
 		left-to-right already (was 15.12)
 	[ ] 37.3 Incremental builds, stable symbol identities (ChatGPT review; files/notes.md step 5)
 
+<a id="task-38"></a>
 #### 38 Memory model: Unique / Shared / Weak, GC as a project option (was 15.5) [ ] [top](#top)
 	[ ] 38.1 Scope it (semantics decided in 12.7, not built)
 	[ ] 38.2 (covered by Task 48 - moving by default) More moves where one owner is proven (after 32.10e): a variable's last use storing
@@ -514,6 +540,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		of the scope it is declared in (user, 2026-11-11 - D.134, files/Object_Lifetime.md 2); one returned or
 		stored moves to its new owner (user, 2026-11-11)
 
+<a id="task-39"></a>
 #### 39 Library trust, isolation & security (was 19) [ ] [top](#top)
 	[ ] 39.1 Compiler-verified capability signatures (was 19.1; layers from 18.5.6 are the groundwork)
 	[ ] 39.2 Project restrictions (pragma Restrictions-style) (was 19.2)
@@ -524,12 +551,14 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 39.5 Supply-chain security (was 19.5)
 	[POSTPONED - needs fusionlib.AI] 39.6 AI module input guard (was 19.7)
 
+<a id="task-40"></a>
 #### 40 IR layer and LLVM backend (was 11, 15.1) [ ] [top](#top)
 	[ ] 40.1 IR layer decision (was 15.1) - the IR expresses Fusion's meaning; the C and LLVM
 		backends only translate it (ChatGPT review)
 	[ ] 40.2-40.13 Environment, IR generator, types, functions, codegen, strings, stdlib,
 		optimization, tests, docs (was 11.2-11.13)
 
+<a id="task-41"></a>
 #### 41 HIDL - hardware interface definition language (was 13) [ ] [top](#top)
 	Note (user, 2026-10-24): the [stdlib] layers map to hardware - core: microcontrollers with
 	no heap, bare metal (Arduino AVR, Cortex-M0; 2-64 KB RAM); alloc: microcontrollers /
@@ -548,6 +577,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 41.10 Hardware testing ideas from Maia (maia-eda.net): a DUT block, drive / expect vectors,
 		clocks, bit widths - in the HIDL library, not the core (files/FutureFeatures.md "HIDL Library")
 
+<a id="task-42"></a>
 #### 42 Concurrency: services and threads (user, 2026-10-23) [ ] [top](#top)
 	Goal: a million requests on one machine with many cores - no data races by construction,
 	deadlocks and freezes prevented by rules (any that slip through become clear errors), no
@@ -752,6 +782,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 42.41 `parallel for` - each loop pass may run on a pool thread (idea, from the earlier spec text;
 		user, 2026-11-11: kept for the future, `go` used for now)
 
+<a id="task-43"></a>
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ] [top](#top)
 	The standard library's core modules, designed one at a time (spec "Fusion Standard
 	Library (fusionlib)"). Plan first.
@@ -788,6 +819,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		picks) opening the same file get the handle already open, not a second one that clashes.
 		Opening a file directly, without the manager, still works as usual
 
+<a id="task-49"></a>
 #### 49 Multi-language support: `Lang.<language>.Fusion` modules (user, 2026-11-03) [POSTPONED to 35] [top](#top)
 	Design: files/Fusion_Multi_Language_Compiler_Architecture.md - after self-hosting (D.105)
 	A language module brings its own lexer, parser, AST and rules; the compiler loads it through one
@@ -821,6 +853,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	Open: language modules are code the compiler runs - trust and sandboxing (Task 39);
 		their name next to `fusionlib.Lang` (files/FutureFeatures.md "Cross-Language Compilation Support")
 
+<a id="task-54"></a>
 #### 54 Precepts: a project that behaves like C, Java, Python, Rust (user, 2026-11-08) [POSTPONED to 35] [top](#top)
 	A precept is a ready-made set of settings and behaviour, so a new project acts like a familiar
 	language without editing fusion.toml by hand: `c.precept.fusion`, `cpp.precept.fusion`,
@@ -832,6 +865,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 
 ---
 
+<a id="later"></a>
 ## Later / advanced (after MVP) [top](#top)
 
 Kept in Fusion's design, deliberately postponed - the simple version comes first. Numbered L1, L2.1 ...
@@ -951,6 +985,7 @@ Each time a task or section is finished, this list is checked for items the curr
 
 ---
 
+<a id="known-limitations"></a>
 ## Known limitations (by design for now) [top](#top)
 	[ ] A string-holding variable can't reuse the name of one in an enclosing block (clear error)
 	[ ] Single-quote comments disabled (clash with char literals) - 8 skipped tests
