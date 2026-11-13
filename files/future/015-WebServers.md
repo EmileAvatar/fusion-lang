@@ -1,4 +1,4 @@
-[< 014 IDEOverlaySettings](014-IDEOverlaySettings.md) | [Index](index.md) <!-- nav -->
+[< 014 IDEOverlaySettings](014-IDEOverlaySettings.md) | [Index](index.md) | [020 Settings >](020-Settings.md) <!-- nav -->
 
 # 015 Web Servers
 
@@ -298,4 +298,4 @@ Perfect — here’s a **language-agnostic abstraction** of what all server-side
 
 Would you like me to show this same structure as **code skeletons** in a few different languages (e.g., PHP, Node.js, Python, Java) — using the same logic flow so you can see how each implements it differently but achieves the same result?
 
-[< 014 IDEOverlaySettings](014-IDEOverlaySettings.md) | [Index](index.md) <!-- nav -->
+[< 014 IDEOverlaySettings](014-IDEOverlaySettings.md) | [Index](index.md) | [020 Settings >](020-Settings.md) <!-- nav -->

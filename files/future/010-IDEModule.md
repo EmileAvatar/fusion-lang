@@ -1,4 +1,4 @@
-[Index](index.md) | [011 IDEProjects >](011-IDEProjects.md) <!-- nav -->
+[< 000 Overview](000-Overview.md) | [Index](index.md) | [011 IDEProjects >](011-IDEProjects.md) <!-- nav -->
 
 # 010 IDE Module
 
@@ -275,4 +275,4 @@ Enum BlockStyle { Indentation, Braces, EndKeywords }
 
 **Key Point:** This is ONE module with ALL development tooling. Runtime code never imports this.
 
-[Index](index.md) | [011 IDEProjects >](011-IDEProjects.md) <!-- nav -->
+[< 000 Overview](000-Overview.md) | [Index](index.md) | [011 IDEProjects >](011-IDEProjects.md) <!-- nav -->
