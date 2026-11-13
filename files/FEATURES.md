@@ -394,6 +394,17 @@ are in `task/featuresArchive.md`.
 		the std library layer
 	[ ] 58.4 Build it, with an example script and tests
 
+#### 59 Faster checks: run only the tests the change needs (user, 2026-11-13) [ ]
+	The full suite takes ~4 minutes (2,710 tests; the end-to-end ones compile with GCC under the leak check)
+	[DONE] 59.1 Documents only changed: `--ship` runs only the document checks; `--full` forces every check;
+		`check.py --docs` (CLAUDE.md Rule 7)
+	[ ] 59.2 Find what takes long: time each test file (`pytest --durations=30`), the examples and the leak
+		check; list the slowest
+	[ ] 59.3 Run only the tests the changed code needs: map source folders to test files (lexer ->
+		test_lexer*, codegen -> the end-to-end tests, ...); the full suite after a whole task is complete
+	[ ] 59.4 Faster end-to-end tests where possible: build several programs per GCC call, run tests in
+		parallel (pytest-xdist), cache unchanged builds
+
 ## Phase 3 - the advanced parts
 
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ]

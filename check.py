@@ -12,9 +12,14 @@ summary - full output only for what failed:
                                       #run.bat (Task 23 - see examples/CLAUDE.md)
     python check.py --fix-ascii       non-ASCII characters -> \\uXXXX escapes, only where the
                                       meaning stays the same; the rest is listed (Task 22.8)
-    python check.py --ship "message" [--claude]
+    python check.py --docs            the document checks only (decisions, nav, settings,
+                                      builtins, ascii) - a few seconds
+    python check.py --ship "message" [--claude] [--full]
                                       every check; only if all pass: commit everything (with
-                                      the Claude co-author line if --claude) and push (22.9)
+                                      the Claude co-author line if --claude) and push (22.9).
+                                      When every changed file is a Markdown document, only the
+                                      document checks run (user, 2026-11-13); --full forces
+                                      every check
     python check.py --example NAME [args]
                                       build and run one example (a file or a project folder),
                                       compare with its expected output (22.10)
@@ -572,12 +577,41 @@ def run_example(name: str, program_args):
 CO_AUTHOR = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
 
 
-def ship(message: str, claude: bool):
-    """Task 22.9: every check, then - only if all pass - commit everything and push."""
+# Markdown files that are not only documents: their programs are built and run by the checks
+CODE_MARKDOWN = {'files/SYNTAX_REFERENCE.md'}
+
+
+def changed_files() -> list:
+    """Every changed, added or deleted file, as git sees it (untracked files too)."""
+    out = run(['git', 'status', '--porcelain', '-uall']).stdout
+    paths = []
+    for line in out.splitlines():
+        path = line[3:].strip()
+        if ' -> ' in path:                       # a rename: both names count
+            paths.extend(p.strip().strip('"') for p in path.split(' -> '))
+        else:
+            paths.append(path.strip('"'))
+    return paths
+
+
+def docs_only(paths: list) -> bool:
+    """True when every changed file is a Markdown document - no code, test, example or
+    settings file, and not files/SYNTAX_REFERENCE.md (its programs are built)."""
+    return bool(paths) and all(
+        p.endswith('.md') and p not in CODE_MARKDOWN and not p.startswith('examples/')
+        for p in paths)
+
+
+def ship(message: str, claude: bool, full: bool = False):
+    """Task 22.9: every check, then - only if all pass - commit everything and push.
+    Only Markdown documents changed: the document checks only (user, 2026-11-13)."""
     if not message or message.startswith('--'):
-        print('usage: python check.py --ship "commit message" [--claude]')
+        print('usage: python check.py --ship "commit message" [--claude] [--full]')
         return 2
-    if not run_checks(quick=False):
+    docs = not full and docs_only(changed_files())
+    if docs:
+        print('documents only changed - the document checks (--full for every check)')
+    if not run_checks(quick=False, docs=docs):
         print('\nnot shipped - a check failed')
         return 1
 
@@ -627,13 +661,19 @@ def main(argv):
         index = argv.index('--example')
         return run_example(option_value(argv, '--example'), argv[index + 2:])
     if '--ship' in argv:
-        return ship(option_value(argv, '--ship'), '--claude' in argv)
-    return 0 if run_checks(quick='--quick' in argv) else 1
+        return ship(option_value(argv, '--ship'), '--claude' in argv, '--full' in argv)
+    return 0 if run_checks(quick='--quick' in argv, docs='--docs' in argv) else 1
 
 
-def run_checks(quick: bool) -> bool:
+DOC_CHECKS = [('builtins', check_builtins), ('decisions', check_decisions), ('nav', check_nav),
+              ('settings', check_settings_doc), ('ascii', check_ascii)]
+
+
+def run_checks(quick: bool, docs: bool = False) -> bool:
     checks = [('tests', check_tests)]
-    if not quick:
+    if docs:
+        checks = list(DOC_CHECKS)
+    elif not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
                    ('reference', check_reference_sync), ('builtins', check_builtins),
                    ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav), ('settings', check_settings_doc),

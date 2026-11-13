@@ -93,6 +93,10 @@ only for a major change - e.g. a new feature direction that wasn't accounted for
 When a task or sub-task is complete and `python check.py` passes: commit, then push to
 GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
 `python check.py --ship "message" --claude` does both, only if every check passes.
+- **Documents only (user, 2026-11-13):** when every changed file is a Markdown document, `--ship`
+  runs only the document checks (a few seconds) - no test suite
+- **The full suite** runs for code work, and once when a whole task is complete (e.g. Task 51) to
+  verify everything still works: `--ship "message" --claude --full`
 
 ### Rule 8: Work efficiently (token budget is limited)
 - Find before reading: `grep -n` for a heading or task number, then read only that range
@@ -113,6 +117,8 @@ python check.py                      # all checks, short summary (about 25 s)
 python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build
 python check.py --ship "msg" --claude # all checks; commit + push only if all pass (Rule 7)
+python check.py --ship "msg" --claude --full  # every check, even when only documents changed
+python check.py --docs               # the document checks only (a few seconds)
 python check.py --example wordcount  # build, run, compare one example
 python check.py --builtins           # rewrite files/Builtins.md after adding a built-in
 python check.py --runtime            # rewrite runtime/fusion_runtime.h after changing the C run-time
