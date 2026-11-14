@@ -110,8 +110,10 @@ scores[0] = 95                   // every index is checked: outside is an IndexE
 print("{@1}", len(scores))       // 3
 ```
 
-The size is fixed when the array is made. `int[] numbers` with no size or values is an error
-today ("must specify a size ... or be initialized").
+The size is fixed when the array is made. `int[] numbers` with no size or values is an empty array,
+size 0 (Task 45.2, D.141) - a struct field still needs its size until arrays can live on the heap (45.10).
+Every array acts as an object of the built-in `Array` class: `Array.length(a)` is `a.length` (45.1, D.142).
+The full design - plain, `fixed`, growable `int:[]`, 3 dimensions: Decisions.md D.141-D.147.
 
 #### Planned: arrays that grow at the end (user, 2026-10-27)
 

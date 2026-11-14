@@ -76,15 +76,15 @@ End function
     assert_error_contains(errors, "declared with size 5 but initializer has 3")
 
 
-def test_array_no_size_no_initializer_fails():
-    """int[] arr with neither an explicit size nor an initializer is ambiguous."""
+def test_array_no_size_no_initializer_is_empty():
+    """int[] arr with neither a size nor values is an empty array, size 0 (Task 45.2, D.141)."""
     code = """
 void function main()
     int[] arr
 End function
 """
     errors, _ = analyze_code(code)
-    assert_error_contains(errors, "must specify a size")
+    assert errors == []
 
 
 def test_array_explicit_size_no_initializer_ok():

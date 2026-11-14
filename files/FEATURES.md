@@ -137,7 +137,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	Three forms (D.141): plain `int[] a` - a new size only by replacing; `fixed int[10] c` - never another
 	size; growable `int:[] g` / `int[[]] g` - grows and shrinks at its end, on the heap.
 	[DONE] 45.1 The built-in `Array` class: `a.length` is `Array.length(a)`; `toList`, `toCSV` behind it (D.142) - tests/test_array_class.py, example syntax_array_class
-	[ ] 45.2 `int[] e` - valid, size 0 (was 30.10)
+	[DONE] 45.2 `int[] e` - valid, size 0 (was 30.10); a struct field still needs a size until 45.10; C-style `int e[]` not part of D.141 - still an error
 	[ ] 45.14 `fixed int[10] c`, `fixed int[] d = [5, 2, 3]`, `fixed int[] d = f()` - never another size; the errors of D.141
 	[ ] 45.10 Replacing a plain array with another size: `a = [1, 2]`, `int[] function make(int n)` - a run-time
 		length, on the heap (a counted block, like a List); the ownership rules stay (D.025)

@@ -45,3 +45,21 @@ def test_array_is_a_built_in_name(kind):
     decl = {'struct': 'struct Array\n    int x\n\n', 'class': 'class Array\n    public int x\n\n',
             'enum': 'enum Array\n    A\n    B\n\n'}[kind]
     assert "'Array' is a built-in type" in errors_of(decl + main('print("x")'))
+
+
+# ---------- 45.2: int[] e - an empty array, size 0 (D.141) ----------
+
+def test_an_array_with_no_size_and_no_values_is_empty():
+    source = ('void function show(int[] xs)\n    print("{@1}", xs.length)\n\n'
+              + main('int[] e\nstring[] names\nprint("{@1} {@2}", e.length, len(names))\nshow(e)\n'
+                     'for x in e\n    print("never")\nforeach (string n in names)\n    print("never")'))
+    assert run(source) == ['0 0', '0']
+
+
+def test_an_index_into_an_empty_array_is_an_index_error():
+    assert run(main('int[] e\ntry\n    e[0] = 1\ncatch IndexError err\n    print("index")')) == ['index']
+
+
+def test_a_struct_field_still_needs_a_size():
+    # a struct's size is fixed until an array can live on the heap (45.10)
+    assert "needs a size" in errors_of('struct Box\n    int[] items\n\n' + main('print("x")'))

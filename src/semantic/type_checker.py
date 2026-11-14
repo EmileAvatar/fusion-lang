@@ -2572,12 +2572,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         if not node.initializer:
             if array_type.size is None:
-                self.errors.append(SemanticError(
-                    f"Array '{node.name}' must specify a size (e.g. "
-                    f"{self.type_to_string(array_type.element_type)}[5]) or be initialized "
-                    "with an array literal",
-                    node.location
-                ))
+                array_type.size = 0       # `int[] e` - an empty array, size 0 (Task 45.2, D.141)
             return
 
         self._allow_array_call(node.initializer)  # int[3] a = make() (Task 18.2.4)
