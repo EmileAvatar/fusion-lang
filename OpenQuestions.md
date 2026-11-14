@@ -25,6 +25,28 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
+#### Q.014 How is a parameter marked "may be null"? (D.117, Task 52.7 - 2026-11-14)
+
+D.117: "a parameter marked `?` without a null check warns". `T?` types are rejected (NUL.004 - `?` goes
+on a variable, `x?.f()`), so the mark needs a place:
+
+```fusion
+void function drive(Car c)          // today: c may be null - nothing says so
+    c.start()                       // a NullError at run time if it is
+
+// the mark - which form?
+void function drive(Car c?)         // A: `?` after the name - "c may be null"
+void function drive(nullable Car c) // B: a word before the type
+void function drive(Car c = null)   // C: a null default says it
+    if c is null                    // with the mark: no warning once checked
+        return
+    c.start()
+```
+
+- **A** `Car c?` - short, and `?` stays on the variable (NUL.004); Claude's reading
+- **B** `nullable Car c` - a word, like `readonly Car c`
+- **C** `Car c = null` - no new syntax, but only for a parameter that can be left out
+
 --|---|---|
 | C# | `namespace Game.Inventory` (naming only) | No | The project (assembly, a DLL) |
 | Kotlin | `package game.inventory` | No | The Gradle module |

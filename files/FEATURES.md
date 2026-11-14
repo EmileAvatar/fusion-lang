@@ -101,7 +101,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
 | [45](#task-45) | Arrays that grow at the end | 2 | open |
 | [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
-| [52](#task-52) | Classes, value types and null - follow-ups from the open questions | 2 | open |
+| [52](#task-52) | Classes, value types and null - follow-ups from the open questions | 2 | active |
 | [53](#task-53) | Check the Core language | 2 | open |
 | [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
 | [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
@@ -226,6 +226,10 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		Map with `nullable` on); the -1 only in a comparison (`if` / `while`), elsewhere a NullError (a compile
 		error where it can be seen); tests with and without a null check (Rule 4b)
 	[ ] 52.6 An interface's functions are public or internal - `private` on one a compile error (D.114, CLS.019)
+	[ ] 52.8 The null guard (was 30.2 - postponed to 32 and never built, found 2026-11-14): `c?.name`,
+		`c?.rename("x")` not run on null, false in an `if`; `c ?? Car()` - files/Nullable_Values.md; NUL.003
+	[POSTPONED - question 2 in files/taskSummary2.md] 52.9 The nullable settings (was 30.3): `[strings]` /
+		`[arrays]` / `[lists]` / `[maps] nullable` - a value that may be null (001-TomlSettings "Decided, not built")
 	[ ] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
 		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
 		`?` parameter without a null check - a warning; a `Default` left null - an error
