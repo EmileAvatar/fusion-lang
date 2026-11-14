@@ -118,7 +118,7 @@ GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
 python main.py program.fusion        # compile -> program.c and program.exe (fusion.toml optional)
 python main.py main.fusion --interface [module]   # public interface of the modules it imports
 python main.py program.fusion --no-new-config     # don't write a fusion.toml when there is none
-python check.py                      # all checks, short summary (about 25 s)
+python check.py                      # all checks, short summary (about 1 min - tests on every core)
 python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build
 python check.py --ship "msg" --claude # all checks; commit + push only if all pass (Rule 7)

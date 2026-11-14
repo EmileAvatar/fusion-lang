@@ -523,3 +523,13 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 		tests/test_doc_links.py - every relative link in the .md documents leads to a file and a heading
 	[DONE] 51.8 FEATURES.md reorganised (user, 2026-11-13): a Preface (the rules, the counts, what is done,
 		the old task numbers), an Index of every task in working order, then the phases
+
+#### 59 Faster checks: run only the tests the change needs (user, 2026-11-13) [DONE 2026-11-14]
+	The full suite took ~4 minutes (2,710 tests; the end-to-end ones compile with GCC under the leak check)
+	[DONE] 59.1 Documents only changed: `--ship` runs only the document checks; `--full` forces every check;
+		`check.py --docs` (CLAUDE.md Rule 7)
+	[DONE] 59.2 What takes long (2026-11-14): 522 end-to-end tests at 0.3-0.5 s each = 208 of 238 s (GCC once
+		per test); no single slow test; 12 cores, the suite used one
+	[DONE] 59.4 (its parallel part) The tests on every core (2026-11-14): pytest-xdist, `-n auto --dist loadfile`
+		in check.py (one after another when xdist is missing) - 238 s -> 50 s, the same 2,714 passed / 8 skipped
+	59.3 and the rest of 59.4: not needed now - FEATURES Later L2.4 / L2.5

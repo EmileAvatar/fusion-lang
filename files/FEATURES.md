@@ -102,7 +102,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
 | [57](#task-57) | Namespaces and modules | 2 | open |
 | [58](#task-58) | Script mode: Fusion written and run like a Python script | 2 | open |
-| [59](#task-59) | Faster checks: run only the tests the change needs | 2 | active |
 | [29](#task-29) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
 | [31](#task-31) | Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) | 2 | postponed |
 | [35](#task-35) | Self-hosting phase 2 - fully independent | 2 | open |
@@ -399,18 +398,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 58.3 What a script may use: the same language and checks as a compiled app (safe by default);
 		the std library layer
 	[ ] 58.4 Build it, with an example script and tests
-
-<a id="task-59"></a>
-#### 59 Faster checks: run only the tests the change needs (user, 2026-11-13) [ ] [index](#index)
-	The full suite takes ~4 minutes (2,710 tests; the end-to-end ones compile with GCC under the leak check)
-	[DONE] 59.1 Documents only changed: `--ship` runs only the document checks; `--full` forces every check;
-		`check.py --docs` (CLAUDE.md Rule 7)
-	[DONE] 59.2 What takes long (2026-11-14): 522 end-to-end tests at 0.3-0.5 s each = 208 of 238 s (GCC once
-		per test); no single slow test; 12 cores, the suite uses one - plan in files/taskSummary2.md
-	[ ] 59.3 Run only the tests the changed code needs: map source folders to test files (lexer ->
-		test_lexer*, codegen -> the end-to-end tests, ...); the full suite after a whole task is complete
-	[ ] 59.4 Faster end-to-end tests where possible: build several programs per GCC call, run tests in
-		parallel (pytest-xdist), cache unchanged builds
 
 <a id="task-29"></a>
 #### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED] [index](#index)
@@ -822,6 +809,10 @@ Each time a task or section is finished, this list is checked for items the curr
 				application (user, 2026-11-12 - MOD.003)
 		[POSTPONED - after the compiler no longer needs Python] L2.3 `console` - one tool (not named
 			cargo): `console build / run / test / add` (packages)
+		[POSTPONED - not needed while the suite runs in about a minute] L2.4 Run only the tests the changed
+			code needs: map source folders to test files (lexer -> test_lexer*, ...) - was 59.3
+		[POSTPONED - not needed while the suite runs in about a minute] L2.5 Faster end-to-end tests: several
+			programs per GCC call, cache unchanged builds - was 59.4 (its parallel part is done)
 	L3 Strings and text
 		[POSTPONED to 29.4] L3.1 String pool (shared storage for identical text) - when pooling is on,
 			strings are pooled and mutable strings use a StringBuilder internally (user note 2026-10-09)

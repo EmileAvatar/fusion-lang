@@ -30,7 +30,8 @@ summary - full output only for what failed:
                                       print (and the leak check), with timings (28.7)
 
 Checks:
-    tests     pytest (every end-to-end test already runs under the string leak check)
+    tests     pytest (every end-to-end test already runs under the string leak check); on every
+              core when pytest-xdist is installed (59.3) - about 50 s instead of 4 min
     examples  tests/verify_examples.py - compile, run, compare output
     leaks     every examples/*.fusion and every files/SYNTAX_REFERENCE.md program, built with
               -DFUSION_LEAK_CHECK and run: exit 3 = a string never freed, 4 = freed twice
@@ -77,8 +78,18 @@ def run(cmd, **kwargs):
 
 # ---------------------------------------------------------------- individual checks
 
+def parallel_args() -> list:
+    """Task 59.3: the tests on every core (pytest-xdist), each test file on one worker - its shared
+    set-up (the self-hosted compiler, built once) stays as it is. Without xdist: one after another."""
+    try:
+        import xdist  # noqa: F401
+    except ImportError:
+        return []
+    return ['-n', 'auto', '--dist', 'loadfile']
+
+
 def check_tests():
-    result = run([sys.executable, '-m', 'pytest', 'tests/', '-q', '-p', 'no:cacheprovider'])
+    result = run([sys.executable, '-m', 'pytest', 'tests/', '-q', '-p', 'no:cacheprovider', *parallel_args()])
     summary = next((line for line in reversed(result.stdout.splitlines()) if ' in ' in line), '')
     summary = summary.strip('= ').strip()
     detail = '\n'.join(line for line in result.stdout.splitlines()
