@@ -89,8 +89,7 @@ fall match level
 ```
 
 **`case null` (Task 30.12, built):**
-- At most one per match, on any value - a library or module may hand over a null, and strings may be
-  nullable by a setting
+- At most one per match, on any value - a library or module may hand over a null object or enum
 - A null equals no case value: it goes to `case null`, else to `else`
 - A match on an enum that covers every value with no `else` and no `case null` raises a NullError on null
 - `case OK, null` shares a case like any values

@@ -7099,3 +7099,33 @@ Then Task 50 complete: its lines to the archive, the Later list checked, a full 
 a deep const on objects (its own set-up block excepted), readonly on a copy a warning, --interface shows
 internal functions and readonly results; truth table 4b + tests/test_readonly_results.py (22); example
 syntax_readonly_result. Task 50 complete.
+
+#### TASK 52: Classes, value types and null - follow-ups - PLAN replanned 2026-11-14 (user's null rules)
+
+Settings: `[strings] nullBecomesEmpty` (52.12 - its default asked: D.003 "no silent changes")
+
+The rule (user, 2026-11-14 - D.138, D.139, D.140): a string, array, List or Map is never null, whatever
+the settings; only a class object, an enum, an interface - and an array slot of an object type - can be
+null, with no mark needed. A List / Map never holds null; a List literal adds each item.
+
+Checked today: `fleet.add(null)`, `[null]` as a List, `m["a"] = null` are accepted (wrong);
+`Car[] a = [Car(), null]` is refused (wrong); `[Car(), Truck()]` refused (right); `List<int> xs = null`
+refused but the message promises a `[lists] nullable` setting (to change).
+
+In the order to build:
+- 52.6 `private` on an interface's function: a clear compile error (D.114)
+- 52.2 Recheck `implements Default` (D.010): one test per case
+- 52.10 A List / Map never holds null (D.139) - compile errors; a null variable added at run time: NullError
+- 52.11 Arrays of objects (D.140): a null slot, in a literal too; `arr[i] = null` frees the object
+- 52.12 `[strings] nullBecomesEmpty`: `s = null` an error or "" - default asked
+- 52.8 The null guard (was 30.2): `c?.name`, `c?.rename()`, `c ?? Car()` - objects only
+- 52.13 `?.` / `??` on a string, array, List, Map: a warning - it can't be null
+- 52.7 Compile-time checks (D.116, D.117): a `?.` comparison warns, `!` around one an error, a surely-null
+  object passed an error, a `Default` left null an error
+- 52.4 The `Length` interface: design only (files/Classes.md)
+- Closed: 52.5 (nothing can be null - D.055), 52.9 nullable settings rejected (D.138), Q.014 (no mark)
+- Docs: Nullable_Values.md, spec 080 / 140 / 210, the showcase, the messages that promise nullable settings
+
+2026-11-14: built - 52.6, 52.2, 52.10 (List / Map never hold null), 52.11 (null array slots), 52.12
+([strings] nullBecomesEmpty, default false), 52.8 (the null guard, was 30.2), 52.13, 52.7 (D.116 / D.117,
+[conditions] notAroundGuard), 52.4 designed; 52.5 nothing to build, 52.9 rejected. Task 52 complete.

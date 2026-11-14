@@ -86,7 +86,8 @@ team.scores = podium()     // an array field too
 - Bounds checking - built since then: every index is checked, outside the array is an
   IndexError (Task 27.1)
 - `arr.length` / `arr.len`, with or without brackets - built (Task 30.8): the same as
-  `len(arr)`, also on strings, bytes, lists and maps. Null-safe access (`arr?.length`, only
-  when `[arrays] nullable = true`) - Task 30, planned; see "Null Handling"
+  `len(arr)`, also on strings, bytes, lists and maps. An array is never null (D.138), so it needs
+  no `?.`; a slot of an object array may be null - `Car[] cars = [car1, null]`, `cars[0] = null`
+  frees the object (D.140, Task 52.11)
 
 [< 030 Types](030-Types.md) | [Index](index.md) | [032 Strings >](032-Strings.md) <!-- nav -->

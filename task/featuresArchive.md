@@ -619,3 +619,29 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 		int / string (an error since 48.3)
 	[DONE] 50.5 `--interface` shows the readonly result of each public and internal function - never private
 		(D.115) - was 48.4
+
+#### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [DONE 2026-11-14]
+	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
+	[DONE - it held in every case; 4 more tests] 52.2 Recheck `implements Default` (CLS.014, D.010): a variable of the type is never null in every
+		case (fields, statics, Lists, after a move); the developer writes the default values - tests per case
+	[DONE - designed in files/Classes.md 5b; built later, with Task 33] 52.4 A `Length` interface (TYP.017): strings and arrays (value types) carry `length()` as if they
+		were objects - made internal to the type by Fusion, so `s.length()` works on null and "" alike;
+		later more built-in methods the same way - design first
+	[DONE - nothing to build, D.138 (2026-11-14)] 52.5 Build D.055 (decided 2026-11-07): `length()` never null - 0 empty, -1 null (string, array, List,
+		Map with `nullable` on); the -1 only in a comparison (`if` / `while`), elsewhere a NullError (a compile
+		error where it can be seen); tests with and without a null check (Rule 4b)
+	[DONE] 52.6 An interface's functions are public or internal - `private` on one a compile error (D.114, CLS.019)
+	[DONE] 52.8 The null guard (was 30.2 - postponed to 32 and never built, found 2026-11-14): `c?.name`,
+		`c?.rename("x")` not run on null, false in an `if`; `c ?? Car()` - files/Nullable_Values.md; NUL.003
+	[REJECTED 2026-11-14 - D.138] 52.9 The nullable settings (was 30.3): a string, array, List or Map is never null,
+		whatever the settings
+	[DONE] 52.10 A List or Map never holds null (D.139): `add(null)`, `m[k] = null`, `[car1, null]` as a List - errors;
+		a null variable added at run time - a NullError; `[car1, car2]` adds each item
+	[DONE] 52.11 Arrays of objects (D.140): a null slot allowed (in a literal too - today refused); `arr[i] = null`
+		frees the object; an element of the wrong type stays an error
+	[DONE - default false] 52.12 `[strings] nullBecomesEmpty` (user, 2026-11-14): `s = null` - an error, or ""; default asked (D.003)
+	[DONE] 52.13 `?.` / `??` on a string, array, List or Map - never null, so the guard does nothing: a warning
+	[DONE - a Default is never null by construction (52.2)] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
+		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
+		`?` parameter without a null check - a warning; a `Default` left null - an error
+	52.1 -> FEATURES Later L5.8, 52.3 -> Later L10.4 (2026-11-14)

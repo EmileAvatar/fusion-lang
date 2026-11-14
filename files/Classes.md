@@ -160,6 +160,27 @@ class Settings implements Default
 
 ---
 
+## 5b. Built-in methods on value types - the `Length` interface (design - Task 52.4, TYP.017)
+
+A string, array, List and Map carry `length()` as if they were objects - Fusion gives them an internal
+interface, so any of them can be passed where a length is all that is needed:
+
+```fusion
+interface Length                         // made by Fusion, internal to the types (not written by you)
+    int function length()
+
+int function sizeOf(Length x)            // a string, an array, a List or a Map
+    return x.length()
+
+print("{@1}", sizeOf("hello"))           // 5
+print("{@1}", sizeOf([1, 2, 3]))         // 3
+```
+
+- None of them is ever null (D.138), so `length()` is always 0 or more (D.055) - no null case
+- `len(x)`, `x.len`, `x.length` stay the quick forms (Task 30.8)
+- Later, more built-in methods the same way (`Comparable` on numbers and strings, ...)
+- Not built: it needs a value type to answer an interface - with generics (Task 33) or a later task
+
 ## 6. Printing an object - `ToString`
 
 | The class implements `ToString { string toString() }`? | `print("{car}")`, a struct's field, a collection's element, `toCSV` |

@@ -21,9 +21,9 @@ Description: No value is null unless it can be, and a missing object never crash
   30.11 - `Status s` with no value is null, not the first value). Numbers, bools, chars and structs are
   values; strings, arrays, `List` and `Map` are values too - never null, empty when not
   set (`""`, `[]`), length 0 when empty
-* **A project may allow null** for strings, arrays, lists or maps when "not set yet" must
-  differ from "empty": `[strings]` / `[arrays]` / `[lists]` / `[maps]` `nullable = true`
-  (default false)
+* **Never null, whatever the settings** (user, 2026-11-14 - D.138): a string, array, List or Map;
+  a List / Map never holds null (D.139); an array slot of objects may (D.140); `s = null` is an
+  error, or `""` with `[strings] nullBecomesEmpty = true`
 * **`?` is never part of a type** (no `int?`, `string?`): it is used on a variable, as a
   guard - `x?.method()`
 * **Nothing changes silently**: a default is always one written in the code (`??`)
@@ -70,9 +70,9 @@ string captainName = ship?.getCaptain()?.getName() ?? "Unknown"   // a chain
   `someObject?.someMethod() ?? value`
 * **Plain `.`** - `pep.getAge()` on null is a **NullError** (an Error subtype, Task 26):
   only a `catch` handles it. Use it where missing would be a bug
-* **Length through `?.`** - `string?.length()` and `array?.length` give -1 on a null string
-  or array (only with the `nullable` settings on); an empty one gives 0. Every other member
-  or method gives null
+* **The null guard** (built - Task 52.8): `c?.f()` is skipped on null, `c?.x ?? d` gives the
+  default, a guarded test in a condition is false (a warning); `!` around one is an error (D.116);
+  `?.` on a string, array, List or Map does nothing - a warning; `length()` is never -1 (D.055)
 * **No `x!`** ("I know it isn't null") - write `if !x?.null` instead
 * **Warnings**: a guarded value in a comparison (with null, `>= 18` and `< 18` are both
   false, so `!(x >= 18)` is not `x < 18`); `??` after `?.length()` (-1 is not null, so the

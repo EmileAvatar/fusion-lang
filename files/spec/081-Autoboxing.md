@@ -65,10 +65,8 @@ int max = numbers.max()               // 5
 int[] doubled = numbers.map(lambda x: x * 2)
 ```
 
-* **Arrays and null:** arrays are never null by default (`[arrays] nullable = false`), so
-  `numbers.length` is always safe - 0 for an empty array. With `nullable = true`,
-  `numbers?.length` is -1 on a null array and `numbers?[0]` is null; see "Null Handling"
-  and `files/Nullable_Values.md` (Task 30, planned)
+* **Arrays and null:** an array is never null, whatever the settings (D.138), so `numbers.length`
+  is always safe - 0 for an empty array; see [080 Null](080-Null.md)
 
 ---
 

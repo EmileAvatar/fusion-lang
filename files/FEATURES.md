@@ -101,7 +101,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
 | [45](#task-45) | Arrays that grow at the end | 2 | open |
 | [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
-| [52](#task-52) | Classes, value types and null - follow-ups from the open questions | 2 | active |
 | [53](#task-53) | Check the Core language | 2 | open |
 | [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
 | [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
@@ -209,36 +208,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		with the type keywords (user, 2026-10-29). To settle when planned: one spelling for
 		the fields (`MAX` or `max`); a field whose type differs per value is more than 47.3
 		gives, so it is built in
-
-<a id="task-52"></a>
-#### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ] [index](#index)
-	From the "why" of D.008, D.009, D.010, D.055 - some to build, some to recheck first
-	[POSTPONED to closures - SYN.028] 52.1 Form D (CLS.016, D.119): a set-up block on an abstract class or an interface - where it is
-		implemented in place (form B sets a value up; form D gives the missing functions) - design first
-	[DONE - it held in every case; 4 more tests] 52.2 Recheck `implements Default` (CLS.014, D.010): a variable of the type is never null in every
-		case (fields, statics, Lists, after a move); the developer writes the default values - tests per case
-	[POSTPONED - a setting later] 52.3 `private` on a top-level item allowed by a setting (CLS.017, D.008);
-		off for now - private hides a class's detail, internal is for the namespace / module
-	[ ] 52.4 A `Length` interface (TYP.017): strings and arrays (value types) carry `length()` as if they
-		were objects - made internal to the type by Fusion, so `s.length()` works on null and "" alike;
-		later more built-in methods the same way - design first
-	[DONE - nothing to build, D.138 (2026-11-14)] 52.5 Build D.055 (decided 2026-11-07): `length()` never null - 0 empty, -1 null (string, array, List,
-		Map with `nullable` on); the -1 only in a comparison (`if` / `while`), elsewhere a NullError (a compile
-		error where it can be seen); tests with and without a null check (Rule 4b)
-	[DONE] 52.6 An interface's functions are public or internal - `private` on one a compile error (D.114, CLS.019)
-	[DONE] 52.8 The null guard (was 30.2 - postponed to 32 and never built, found 2026-11-14): `c?.name`,
-		`c?.rename("x")` not run on null, false in an `if`; `c ?? Car()` - files/Nullable_Values.md; NUL.003
-	[REJECTED 2026-11-14 - D.138] 52.9 The nullable settings (was 30.3): a string, array, List or Map is never null,
-		whatever the settings
-	[DONE] 52.10 A List or Map never holds null (D.139): `add(null)`, `m[k] = null`, `[car1, null]` as a List - errors;
-		a null variable added at run time - a NullError; `[car1, car2]` adds each item
-	[DONE] 52.11 Arrays of objects (D.140): a null slot allowed (in a literal too - today refused); `arr[i] = null`
-		frees the object; an element of the wrong type stays an error
-	[DONE - default false] 52.12 `[strings] nullBecomesEmpty` (user, 2026-11-14): `s = null` - an error, or ""; default asked (D.003)
-	[DONE] 52.13 `?.` / `??` on a string, array, List or Map - never null, so the guard does nothing: a warning
-	[DONE - a Default is never null by construction (52.2)] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
-		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
-		`?` parameter without a null check - a warning; a `Default` left null - an error
 
 <a id="task-53"></a>
 #### 53 Check the Core language (user, 2026-11-07) [ ] [index](#index)
@@ -774,6 +743,8 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L5.5 Operator overloading, off by default - `[language] operatorOverloading = true`
 		[ ] L5.6 Function overloading by parameter types
 		[ ] L5.7 Extension methods: `extend string { ... }` adds methods to a type you didn't write
+		[POSTPONED to closures - SYN.028] L5.8 Form D (CLS.016, D.119): a set-up block on an abstract class or an interface - where it is
+			implemented in place (form B sets a value up; form D gives the missing functions) - design first - was 52.1
 	L6 Lists, maps and other collections
 		[ ] L6.1 Lists (user, 2026-10-27 - files/Arrays.md): add many at once (another list, a group of
 			values); capacity and a growth buffer that can be set; a kept sort order (every
@@ -828,6 +799,8 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L10.2 Calling a C function by declaring it: `extern "C" int function abs(int x)`
 		[ ] L10.3 Hardware descriptions: `import hardware "x.hidl" as microwave`; registers as typed
 			properties, out-of-range values compile errors (Task 41)
+		[POSTPONED - a setting later] L10.4 `private` on a top-level item allowed by a setting (CLS.017, D.008);
+			off for now - private hides a class's detail, internal is for the namespace / module - was 52.3
 	L11 Concurrency
 		[ ] L11.1 Wait for several tasks together: `await all([...])`
 	L12 Output

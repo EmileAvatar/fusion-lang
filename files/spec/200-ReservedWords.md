@@ -201,11 +201,11 @@ Operator | Description | Example
 Operator | Description | Example
 ---|---|---
 `.` | Member access | `object.property`
-`?.` | Null guard (Task 30): not run on null, no error | `object?.method()`
-`??` | Default when null (Task 30) | `object?.method() ?? default`
+`?.` | Null guard (built - Task 52.8): not run on null, no error | `object?.method()`
+`??` | Default when null (built - Task 52.8) | `object?.method() ?? default`
 `? :` | Conditional operator (Task 30.7, built) | `(count > 5) ? "big" : "small"`
 `[]` | Array/index access | `array[0]`
-`?[]` | Null-guarded index (only with `[arrays] nullable = true`) | `array?[0]`
+`?[]` | Null-guarded index - rejected: an array is never null (D.138) | -
 `()` | Function call / grouping | `function(args)`
 `...` | Spread/variadic/range | `1...10`, `int... args`
 `::` | Scope resolution - design, not built (`.` is used: `money.round`) | `Module::Class`

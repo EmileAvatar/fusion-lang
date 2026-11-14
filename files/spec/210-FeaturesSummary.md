@@ -98,8 +98,8 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 
 ### Array Safe Navigation
 
-* **Never null by default**: arrays, lists, maps and strings are empty, not null
-* **With `nullable = true`**: `array?.length` is -1 on null, `array?[0]` is null
+* **Never null**: arrays, lists, maps and strings are empty, not null - whatever the settings (D.138)
+* **An object array's slot may be null**: `Car[] cars = [car1, null]` (D.140); a List / Map never holds null
 * Task 30 - `files/Nullable_Values.md`
 
 ---
@@ -125,7 +125,7 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 ### Null Safety
 
 * **Only class objects and enums can be null**; strings, arrays, lists, maps, structs and numbers
-  never are (unless a `nullable` setting allows it)
+  never are (D.138)
 * **Check**: `== null`, `=== null`, `is null`, `x?.null`; `!x?.null` = not null
 * **Guard**: `object?.method()` - not run on null, no error, false in an `if`
 * **Default**: `object?.method() ?? value`

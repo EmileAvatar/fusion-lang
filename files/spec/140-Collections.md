@@ -17,8 +17,9 @@ numbers, chars, bools, text, bytes, structs, and lists (`List<List<int>>`).
   - A struct holding a List moves with it, all of it
   - `[memory] assignment = "share"` keeps the older way: two names on one list, counted, freed
     when its last holder lets go
-- It is never null - empty when declared; `null` is an error on an array, List or Map until
-  `[arrays]` / `[lists]` / `[maps] nullable = true` (Task 30.3)
+- It is never null - empty when declared; no setting changes that (D.138). It never holds null
+  either: `add(null)`, `[a, null]`, `m[k] = null` are errors, a null that shows while running is a
+  NullError (D.139, Task 52.10); `List<Car> l = [car1, car2]` adds each item
 - A Map works the same way. Arrays follow once they can grow (Task 45); until then they are copied
 - `xs.toList(copy = true)` (Task 32.10a.1): a List's copy, or with `false` the same list, shared; on a
   one-dimensional array, a new List with copies of its elements (sharing needs arrays on the heap -

@@ -22,9 +22,8 @@ Full design: `files/Nullable_Values.md` (user decisions 2026-10-27, Task 30 - pl
      * Character: char
      * Structs: All value-type structs (a struct is never null - user, 2026-10-24)
      * **Strings, arrays, `List` and `Map`**: values with methods - never null, empty when not
-       set (`""`, `[]`, no keys); an empty one has length 0. A project can allow null type
-       by type: `[strings]` / `[arrays]` / `[lists]` / `[maps]` `nullable = true` (default
-       false)
+       set (`""`, `[]`, no keys); an empty one has length 0. No setting makes them nullable
+       (D.138); a List / Map never holds null, an array slot of objects may (D.139, D.140)
      * Note: Syntax like `int?` / `string?` does NOT exist - `?` is used on a variable
        (`x?.method()`), never in a type
 
@@ -89,7 +88,7 @@ Type Category | Can Be Null? | Check Method | Example
 ---|---|---|---
 Value Types | NO | N/A (always has value) | `int x` is never null
 Structs | NO | N/A (always has value) | `Vector3 v` is never null
-String, array, List, Map | NO by default (a `nullable` setting allows it) | `s.length() == 0` for empty | `string s` is `""`
+String, array, List, Map | NO - never, whatever the settings (D.138) | `s.length() == 0` for empty | `string s` is `""`
 Objects | YES | `obj == null`, `obj === null`, `obj is null`, `obj?.null` (quick typing); `!obj?.null` = not null | `if ship?.null` then handle
 
 Using a possibly-null object: `obj?.method()` is a guard - on null the method is not run and
