@@ -54,3 +54,22 @@ def test_with_a_null_check_nothing_is_stored():
                         'if c is null\n    print("no car")\nelse\n    c.register(fleet, sold)\n'
                         'print("{@1} {@2}", fleet.len(), sold.len())')
     assert run(source) == ['no car', '0 0']
+
+
+# ---------- Rule 4b for moves and borrows (48.7): a null value moved or borrowed ----------
+
+def test_a_moved_null_without_a_check_is_a_null_error():
+    source = CAR + main('Car a = null\nCar b = a\ntry\n    print(b.name)\ncatch e\n    print("caught")')
+    assert run(source) == ['caught']
+
+
+def test_a_moved_null_with_a_check_runs_on():
+    source = CAR + main('Car a = null\nCar b = a\nif b is null\n    print("no car")\nelse\n    print(b.name)')
+    assert run(source) == ['no car']
+
+
+def test_a_borrowed_null_element_without_and_with_a_check():
+    source = CAR + main('List<Car> fleet = [Car("Mini")]\nfleet[0] = null\nCar first = fleet[0]\n'
+                        'if first is null\n    print("empty slot")\n'
+                        'try\n    print(first.name)\ncatch e\n    print("caught")')
+    assert run(source) == ['empty slot', 'caught']

@@ -1,0 +1,30 @@
+class Car
+    public string name
+    constructor(string n)
+        this.name = n
+
+    void function register(List<Car> a, List<Car> b)
+        a.add(this)                    // storing this shares the car - one car in both (D.103)
+        b.add(this)
+
+void function main()
+    List<Car> fleet = [Car("Mini"), Car("Golf")]
+    Car first = fleet[0]               // first borrows from fleet
+    first.name = "Cooper"              // first is the one writer
+    print("{@1} cars", fleet.len())    // reading fleet meanwhile is fine (D.123)
+    // fleet.removeAt(0) here: 'fleet' can't change while 'first' borrows from it
+    print(first.name)                  // Cooper - the last use of 'first'
+
+    List<Car> forSale = List<Car>()
+    List<Car> sold = List<Car>()
+    Car c = Car("Polo")
+    c.register(forSale, sold)
+    sold[0].name = "Polo GTI"
+    print(forSale[0].name)             // Polo GTI - the same car
+    Car none = null
+    if none is null                    // a null check: nothing registered
+        print("no car")
+    try
+        none.register(forSale, sold)   // no check: a NullError, caught
+    catch e
+        print("caught")

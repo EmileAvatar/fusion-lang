@@ -1096,10 +1096,51 @@ void function main()
         print(c.color)                 // c borrows each car; g.car = c would be an error
     print("{@1} cars, {g.car.color} parked", fleet.len())
 ```
-With `"move"`: passing a value lends it for the call, unless the function keeps it (stores,
+With `"strict"`: passing a value lends it for the call, unless the function keeps it (stores,
 adds or returns it) - then the call moves it. An element or a field read into a local, and a
 for loop's variable, borrow: the owner can't change until the borrow's last use, and a borrow
 can't be stored or returned (`byVal` copies it). A field or an element can't be moved out.
+
+#### One writer, and storing `this`
+
+<!-- example: syntax_one_writer | task: 48.7 -->
+```fusion
+class Car
+    public string name
+    constructor(string n)
+        this.name = n
+
+    void function register(List<Car> a, List<Car> b)
+        a.add(this)                    // storing this shares the car - one car in both (D.103)
+        b.add(this)
+
+void function main()
+    List<Car> fleet = [Car("Mini"), Car("Golf")]
+    Car first = fleet[0]               // first borrows from fleet
+    first.name = "Cooper"              // first is the one writer
+    print("{@1} cars", fleet.len())    // reading fleet meanwhile is fine (D.123)
+    // fleet.removeAt(0) here: 'fleet' can't change while 'first' borrows from it
+    print(first.name)                  // Cooper - the last use of 'first'
+
+    List<Car> forSale = List<Car>()
+    List<Car> sold = List<Car>()
+    Car c = Car("Polo")
+    c.register(forSale, sold)
+    sold[0].name = "Polo GTI"
+    print(forSale[0].name)             // Polo GTI - the same car
+    Car none = null
+    if none is null                    // a null check: nothing registered
+        print("no car")
+    try
+        none.register(forSale, sold)   // no check: a NullError, caught
+    catch e
+        print("caught")
+```
+With `[memory] ownership = "strict"`: while a borrow changes a value, the owner may still be
+read, but changing it another way is an error until the borrow's last use. A method that
+stores `this` shares the object: every collection holds the same one, and it is freed when the
+last holder lets go. With `"relaxed"` neither rule applies - the before / after table:
+[files/Ownership.md](Ownership.md) section 1.
 
 #### At the call: `readonly`, `byVal`, `byRef`
 

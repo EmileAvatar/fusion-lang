@@ -94,7 +94,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
 | [45](#task-45) | Arrays that grow at the end | 2 | open |
 | [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
-| [48](#task-48) | Ownership: move, borrow, share | 2 | active |
 | [50](#task-50) | readonly results and a deep const | 2 | open |
 | [52](#task-52) | Classes, value types and null - follow-ups from the open questions | 2 | open |
 | [53](#task-53) | Check the Core language | 2 | open |
@@ -205,84 +204,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		the fields (`MAX` or `max`); a field whose type differs per value is more than 47.3
 		gives, so it is built in
 
-<a id="task-48"></a>
-#### 48 Ownership: move, borrow, share (user, 2026-10-31) [ ] [index](#index)
-	After all of Task 32 (user)
-	Design and truth tables: files/Ownership.md
-	Decisions D1-D49: Notes/Ownership_Decisions_2026-10-31.md
-	Settings: [memory] assignment = "move" (default) | "share"
-	[DONE] 48.0 The rules (from Rust's borrow checker) - written (files/Ownership.md) and built by 48.1-48.3
-		R1 One owner: every object, List and Map has one owner at a time
-		R2 Assigning moves: `Car b = a` - using `a` afterwards is a compile error
-		R3 Passing borrows: `f(a)` lends it for the call; `a` is back afterwards
-		R4 Many readers or one writer, never both at the same time
-		R5 A borrow never outlives its owner: never stored, returned or captured (no lifetimes)
-		R6 `shared`: counted, read only except to the holder that made it shared
-		R7 The thread boundary: two or more threads using a value - one writer, a service (42.19)
-		R8 Copies are written: `byVal x` (objects: `clone()`, 32.5)
-	[DONE] 48.1 Moving (tests/test_ownership_moves.py) - `[memory] assignment = "move"`, the default since 48.9 (D.102)
-		Assignment, `x.f = a`, `list.add(a)` / insert, `m[k] = a`, `[a, b]`, `return a` move
-		Use after a move: a compile error; a new value brings the name back
-		A move in one branch of an `if` / `match`: maybe moved after it; in a `try`: maybe moved in the `catch`
-		A move inside a loop: an error unless each pass gives a new value
-		Lists, Maps, objects, interface values and structs holding them move; strings and plain structs copy
-		A struct's fields can't be moved out - only borrowed (D.026): done in 48.2
-	[DONE] 48.2 Borrowing (tests/test_ownership_borrows.py)
-		Passing to a function borrows; a function that keeps a parameter (stores, adds, returns it) takes it -
-			the call moves it, followed through the calls (D.100); a method's `this` is always borrowed
-		An element, a field or a for loop's variable is a local borrow - the owner is frozen until its last use (D.101);
-			while the borrow changes it, the owner can't be read either (R4)
-		A borrow can't be stored or returned; a field or an element can't be moved out (D.026) - `byVal` copies
-		A struct made with a List / object moves it; a for loop's collection can't change (beyond D.058's method calls)
-		[POSTPONED to 33] Taking an element out as a move: `removeAt` returns nothing today - needs a method
-			that returns the element (`removeAt` / `removeLast` giving it back)
-		[POSTPONED to closures] A function value can't capture a borrow - ready, but lambdas can't capture yet
-		Not followed yet: the classes answering an interface / virtual function, a function value that keeps a value
-		A cast moves, back to the class too; `byVal` copies, `byRef` borrows (D.104, user)
-		[POSTPONED to working programs] Review: a method's `this` is always borrowed (D.103, user) - recheck once
-			working programs can verify it independently
-	[DONE] 48.3 At the call: `byVal`, `byRef`, `readonly` (tests/test_ownership_at_the_call.py)
-		`log(readonly acc)`: the caller's demand - an error if log changes or keeps it, through every call; every mode
-		The same project: errors at the call and at the line that changes it
-		`byRef` on an object too (was List / Map only); with "move" byRef / readonly only lend - an error given to
-			a function that keeps it, or stored; `Car b = byRef a` is a local borrow
-		Found with it: a NullError inside a called function skipped the caller's catch (the '.' check didn't
-			count as failing) - fixed
-		[POSTPONED to 39.3] A Fusion library: only its signature counts - the caller is responsible
-		[POSTPONED to 39.3] A library not written in Fusion: a warning when a borrowed value is passed (user) -
-			Fusion has no libraries / extern functions yet
-	[POSTPONED to 50 - needs readonly results, D.110] 48.4 `--interface` shows the readonly result of each public and internal function - never private (D.115)
-	[POSTPONED to a real need] 48.5 `shared` objects (user, 2026-11-03 - D.106): not added yet; assignment
-		moves, `byVal` copies, `byRef` already shares the object; the word kept for when a real need shows
-		The design if it comes back: `shared Car c = a` one more reader; only the holder that made it
-			shared changes it; `f(byRef pool)` from that holder lends the right to change it
-	[POSTPONED to 38 (user, 2026-11-14) - the counting is a safety net while the checks are young] 48.6 Counting removed
-		where moves make it unnecessary (covers 38.2)
-	[ ] 48.7 Examples and files/SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
-	[DONE] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080) - an ordinary name now;
-		the self-hosted lexer too; `Shared` / `Weak` stay reserved (Task 38)
-	[DONE] 48.9 Migrate, then make "move" the default (D.102)
-	[DONE] 48.10 R4 changed (D.123): while a borrow changes a value its owner may still be read - only changing it
-		another way is an error (today reading is an error too - 48.2)
-	[DONE] 48.11 `[memory] ownership = "strict" | "relaxed"` (D.124, user 2026-11-14): every ownership rule at once,
-		replaces `assignment` (old values read with a warning); files/fusionSettings.xml; the before / after table
-		in files/Ownership.md 1 and spec 090
-	[DONE] 48.12 Storing `this` shares the object, counted (D.103): `cars.add(this)` - one car in several
-		collections; freed when the last holder lets go - it already worked; tests/test_ownership_this.py keeps it
-		so (leak check, with and without a null check)
-		[DONE] The examples: byRef where sharing is meant, byVal where a copy (6 SYNTAX_REFERENCE, classes_demo)
-		[DONE] The self-hosted compiler pinned to "share" (selfhost/fusion.toml, D.107) - its context handling
-			is reworked for "move" with Task 35
-		[DONE] `[memory] moveFieldOut` (default false, D.108): fields only borrowed; true = as Rust, a field may
-			leave a struct the function owns and the struct is gone
-		[DONE] `byVal` on a struct clones its objects too (D.097 - was shared); a case's names are new variables
-		[DONE] A getter lends - its result borrows from the object; an iterator made with its collection too (D.109)
-		[DONE] The tests: written for "move" (byRef / byVal), or `@pytest.mark.share` where "share" itself is tested
-		[DONE] A for loop may set an element's value (27.2e) - unless the elements move
-		[DONE] "move" the default
-
 <a id="task-50"></a>
-#### 50 readonly results and a deep const (user, 2026-11-03) [ ] - after Task 48 [index](#index)
+#### 50 readonly results and a deep const (user, 2026-11-03) [ ] - Task 48 done 2026-11-14 [index](#index)
 	Rules shown: files/showcase/Ownership.fusion; the skill .claude/skills/fusion-ownership
 	[ ] 50.1 A readonly result, part of the signature (D.110): `public readonly Engine function getEngine()`
 		The caller gets a read-only borrow: `e.kind = ...`, passing e to a function that changes it - errors
@@ -295,6 +218,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 50.3 Tests - every allowed / not allowed case of D.110-D.113 (Rule 4c); Ownership.fusion tags [built]
 	[ ] 50.4 `readonly` on a copy is a warning, not an error (D.113): a number result, and `f(readonly n)` on an
 		int / string (an error since 48.3)
+	[ ] 50.5 `--interface` shows the readonly result of each public and internal function - never private
+		(D.115) - was 48.4
 
 <a id="task-52"></a>
 #### 52 Classes, value types and null - follow-ups from the open questions (user, 2026-11-07) [ ] [index](#index)
@@ -466,6 +391,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 38.4 Manual memory in `unsafe` (`allocate`, a raw malloc) never freed: the compiler frees it at the end
 		of the scope it is declared in (user, 2026-11-11 - D.134, files/Object_Lifetime.md 2); one returned or
 		stored moves to its new owner (user, 2026-11-11)
+	[ ] 38.5 Counting removed where a move proves one owner (the speed gain) - was 48.6, postponed here
+		(user, 2026-11-14): the counting stays a safety net while the ownership checks are young
 
 <a id="task-39"></a>
 #### 39 Library trust, isolation & security (was 19) [ ] [index](#index)
@@ -837,6 +764,8 @@ Each time a task or section is finished, this list is checked for items the curr
 		[POSTPONED to 38] L4.1 Garbage collection as a project-selectable memory strategy
 		[POSTPONED to 38] L4.2 Shared<T> / Weak<T> (decided in 12.7, not built); Unique<T> and `.move()` dropped - every object moves by default (D.080)
 		[POSTPONED - needs references] L4.3 Identity operator (same object in memory)
+		[POSTPONED to a real need - D.106] L4.4 `shared` objects: `shared Car c = a` one more reader; only the
+			holder that made it shared changes it - was 48.5
 	L5 Functions and lambdas
 		[POSTPONED - no task yet (SYN.028); string ownership done in 18.3] L5.1 Closures (lambdas using outer variables)
 		[POSTPONED - after MVP] L5.2 Named lambdas inside functions; multi-line lambda bodies

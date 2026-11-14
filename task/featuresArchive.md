@@ -533,3 +533,73 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 	[DONE] 59.4 (its parallel part) The tests on every core (2026-11-14): pytest-xdist, `-n auto --dist loadfile`
 		in check.py (one after another when xdist is missing) - 238 s -> 50 s, the same 2,714 passed / 8 skipped
 	59.3 and the rest of 59.4: not needed now - FEATURES Later L2.4 / L2.5
+
+#### 48 Ownership: move, borrow, share (user, 2026-10-31) [DONE 2026-11-14]
+	After all of Task 32 (user)
+	Design and truth tables: files/Ownership.md
+	Decisions D1-D49: Notes/Ownership_Decisions_2026-10-31.md
+	Settings: [memory] assignment = "move" (default) | "share"
+	[DONE] 48.0 The rules (from Rust's borrow checker) - written (files/Ownership.md) and built by 48.1-48.3
+		R1 One owner: every object, List and Map has one owner at a time
+		R2 Assigning moves: `Car b = a` - using `a` afterwards is a compile error
+		R3 Passing borrows: `f(a)` lends it for the call; `a` is back afterwards
+		R4 Many readers or one writer, never both at the same time
+		R5 A borrow never outlives its owner: never stored, returned or captured (no lifetimes)
+		R6 `shared`: counted, read only except to the holder that made it shared
+		R7 The thread boundary: two or more threads using a value - one writer, a service (42.19)
+		R8 Copies are written: `byVal x` (objects: `clone()`, 32.5)
+	[DONE] 48.1 Moving (tests/test_ownership_moves.py) - `[memory] assignment = "move"`, the default since 48.9 (D.102)
+		Assignment, `x.f = a`, `list.add(a)` / insert, `m[k] = a`, `[a, b]`, `return a` move
+		Use after a move: a compile error; a new value brings the name back
+		A move in one branch of an `if` / `match`: maybe moved after it; in a `try`: maybe moved in the `catch`
+		A move inside a loop: an error unless each pass gives a new value
+		Lists, Maps, objects, interface values and structs holding them move; strings and plain structs copy
+		A struct's fields can't be moved out - only borrowed (D.026): done in 48.2
+	[DONE] 48.2 Borrowing (tests/test_ownership_borrows.py)
+		Passing to a function borrows; a function that keeps a parameter (stores, adds, returns it) takes it -
+			the call moves it, followed through the calls (D.100); a method's `this` is always borrowed
+		An element, a field or a for loop's variable is a local borrow - the owner is frozen until its last use (D.101);
+			while the borrow changes it, the owner can't be read either (R4)
+		A borrow can't be stored or returned; a field or an element can't be moved out (D.026) - `byVal` copies
+		A struct made with a List / object moves it; a for loop's collection can't change (beyond D.058's method calls)
+		[POSTPONED to 33] Taking an element out as a move: `removeAt` returns nothing today - needs a method
+			that returns the element (`removeAt` / `removeLast` giving it back)
+		[POSTPONED to closures] A function value can't capture a borrow - ready, but lambdas can't capture yet
+		Not followed yet: the classes answering an interface / virtual function, a function value that keeps a value
+		A cast moves, back to the class too; `byVal` copies, `byRef` borrows (D.104, user)
+		[POSTPONED to working programs] Review: a method's `this` is always borrowed (D.103, user) - recheck once
+			working programs can verify it independently
+	[DONE] 48.3 At the call: `byVal`, `byRef`, `readonly` (tests/test_ownership_at_the_call.py)
+		`log(readonly acc)`: the caller's demand - an error if log changes or keeps it, through every call; every mode
+		The same project: errors at the call and at the line that changes it
+		`byRef` on an object too (was List / Map only); with "move" byRef / readonly only lend - an error given to
+			a function that keeps it, or stored; `Car b = byRef a` is a local borrow
+		Found with it: a NullError inside a called function skipped the caller's catch (the '.' check didn't
+			count as failing) - fixed
+		[POSTPONED to 39.3] A Fusion library: only its signature counts - the caller is responsible
+		[POSTPONED to 39.3] A library not written in Fusion: a warning when a borrowed value is passed (user) -
+			Fusion has no libraries / extern functions yet
+	[DONE] 48.7 Examples and files/SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b) -
+		syntax_one_writer (R4 relaxed, storing this, null with and without a check); tests/test_ownership_this.py
+	[DONE] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080) - an ordinary name now;
+		the self-hosted lexer too; `Shared` / `Weak` stay reserved (Task 38)
+	[DONE] 48.9 Migrate, then make "move" the default (D.102)
+	[DONE] 48.10 R4 changed (D.123): while a borrow changes a value its owner may still be read - only changing it
+		another way is an error (today reading is an error too - 48.2)
+	[DONE] 48.11 `[memory] ownership = "strict" | "relaxed"` (D.124, user 2026-11-14): every ownership rule at once,
+		replaces `assignment` (old values read with a warning); files/fusionSettings.xml; the before / after table
+		in files/Ownership.md 1 and spec 090
+	[DONE] 48.12 Storing `this` shares the object, counted (D.103): `cars.add(this)` - one car in several
+		collections; freed when the last holder lets go - it already worked; tests/test_ownership_this.py keeps it
+		so (leak check, with and without a null check)
+		[DONE] The examples: byRef where sharing is meant, byVal where a copy (6 SYNTAX_REFERENCE, classes_demo)
+		[DONE] The self-hosted compiler pinned to "share" (selfhost/fusion.toml, D.107) - its context handling
+			is reworked for "move" with Task 35
+		[DONE] `[memory] moveFieldOut` (default false, D.108): fields only borrowed; true = as Rust, a field may
+			leave a struct the function owns and the struct is gone
+		[DONE] `byVal` on a struct clones its objects too (D.097 - was shared); a case's names are new variables
+		[DONE] A getter lends - its result borrows from the object; an iterator made with its collection too (D.109)
+		[DONE] The tests: written for "move" (byRef / byVal), or `@pytest.mark.share` where "share" itself is tested
+		[DONE] A for loop may set an element's value (27.2e) - unless the elements move
+		[DONE] "move" the default
+	48.4 -> 50.5, 48.6 -> 38.5, 48.5 -> FEATURES Later L4.4 (2026-11-14)

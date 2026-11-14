@@ -33,7 +33,7 @@ GOL.001 [PARTIAL] An agnostic language: each project chooses safety, memory mode
 GOL.002 [BUILT] Compiles Fusion -> C -> a native program (GCC); the compiler is written in Python for now
 GOL.003 [PLANNED] Self-hosting: the compiler written in Fusion compiles itself (Task 35); Python retired after
 GOL.004 [DESIGN] A million requests on one machine: no data races by construction, no deadlocks, small footprint (Task 42)
-GOL.005 [PARTIAL] Memory-safe without a GC by default: one owner, moves, borrows built (Task 48); readonly results, deep const, storing `this` planned (Task 50, 48)
+GOL.005 [PARTIAL] Memory-safe without a GC by default: one owner, moves, borrows, storing `this`, `[memory] ownership` built (Task 48); readonly results, deep const planned (Task 50)
 GOL.006 [BUILT] Features become settings - a safe default, switchable per project
 GOL.007 [BUILT] A simple working language first, advanced features after
 GOL.008 [BUILT] Never trust code - a library is checked by what its signature promises
@@ -205,7 +205,7 @@ MOD.012 [DESIGN] Namespaces and modules: a namespace is a supplier's group of mo
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
-MEM.002 [BUILT] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies - `[memory] assignment = "move"`, the default since 48.9; "share" keeps two names on one object (D.102)
+MEM.002 [BUILT] Assigning moves: `Car b = a` leaves `a` unusable; `byVal` copies - `[memory] ownership = "strict"` (was `assignment = "move"`), the default since 48.9; "relaxed" keeps two names on one object (D.102, D.124)
 MEM.003 [BUILT] Passing and reading an element borrow; a borrow is never stored (48.2) - with `[memory] assignment = "move"`
 MEM.004 [POSTPONED] `shared`: read only except to the holder that made it shared (48.5) - not until a real need (D.106)
 MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; `Shared<T>` / `Weak<T>` (Task 38) - single ownership is the default, no `Unique<T>` (D.080)
