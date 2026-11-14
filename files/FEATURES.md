@@ -230,7 +230,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		`c?.rename("x")` not run on null, false in an `if`; `c ?? Car()` - files/Nullable_Values.md; NUL.003
 	[REJECTED 2026-11-14 - D.138] 52.9 The nullable settings (was 30.3): a string, array, List or Map is never null,
 		whatever the settings
-	[ ] 52.10 A List or Map never holds null (D.139): `add(null)`, `m[k] = null`, `[car1, null]` as a List - errors;
+	[DONE] 52.10 A List or Map never holds null (D.139): `add(null)`, `m[k] = null`, `[car1, null]` as a List - errors;
 		a null variable added at run time - a NullError; `[car1, car2]` adds each item
 	[ ] 52.11 Arrays of objects (D.140): a null slot allowed (in a literal too - today refused); `arr[i] = null`
 		frees the object; an element of the wrong type stays an error

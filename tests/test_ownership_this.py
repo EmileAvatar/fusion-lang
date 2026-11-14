@@ -69,7 +69,8 @@ def test_a_moved_null_with_a_check_runs_on():
 
 
 def test_a_borrowed_null_element_without_and_with_a_check():
-    source = CAR + main('List<Car> fleet = [Car("Mini")]\nfleet[0] = null\nCar first = fleet[0]\n'
+    # a List never holds null (D.139) - the null comes from an object's field
+    source = CAR + 'class Garage\n    public Car car\n\n' + main('Garage g = Garage()\nCar first = g.car\n'
                         'if first is null\n    print("empty slot")\n'
                         'try\n    print(first.name)\ncatch e\n    print("caught")')
     assert run(source) == ['empty slot', 'caught']

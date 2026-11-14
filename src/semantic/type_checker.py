@@ -365,13 +365,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         return self.as_parent_part(value, result, expected) or result
 
     def null_collection(self, expected) -> str:
-        """An array, List or Map is never null - empty instead (user, 2026-10-27 / 29)."""
+        """An array, List or Map is never null - empty instead, and no setting changes it (D.138)."""
         section = ('arrays' if isinstance(expected, ArrayType)
                    else 'lists' if isinstance(expected, ListType) else 'maps')
         empty = '' if isinstance(expected, ArrayType) else ' - clear() empties it'
         kind = {'arrays': 'an array', 'lists': 'a List', 'maps': 'a Map'}[section]
         return (f"{self.type_to_string(expected)} can't be null - {kind} is empty when declared"
-                f"{empty}. [{section}] nullable = true will allow null (planned, Task 30.3)")
+                f"{empty}; it is never null (D.138)")
 
     _FLOAT_EXACT = 16777216   # 2^24: every whole number up to here fits a float exactly
 

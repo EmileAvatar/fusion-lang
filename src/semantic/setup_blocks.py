@@ -166,6 +166,19 @@ def check_collection_options(program) -> List[SemanticError]:
                 and 'readOnly' in options.get(node.target.array.name, ()):
             errors.append(SemanticError(f"'{node.target.array.name}' is read only after its set-up - "
                                         f"it can't change", node.location))
+        # D.139 (Task 52.10): a List or Map never holds null - with noNull() or not
+        def is_null(e):
+            return isinstance(e, LiteralExpr) and e.type_hint == 'null'
+        if isinstance(node, CallExpr) and isinstance(node.callee, MemberExpr) \
+                and getattr(node, 'list_method', None) in ('add', 'insert') \
+                and any(is_null(a) for a in node.arguments) \
+                and 'noNull' not in options.get(getattr(node.callee.object, 'name', None), ()):
+            errors.append(SemanticError("A List never holds null - add an object (D.139)", node.location))
+        if isinstance(node, AssignmentStmt) and isinstance(node.target, IndexExpr) and is_null(node.value) \
+                and type(getattr(node.target.array, 'inferred_type', None)).__name__ in ('ListType', 'MapType') \
+                and 'noNull' not in options.get(getattr(node.target.array, 'name', None), ()):
+            kind = 'List' if type(node.target.array.inferred_type).__name__ == 'ListType' else 'Map'
+            errors.append(SemanticError(f"A {kind} never holds null - set an object (D.139)", node.location))
         for f in dataclass_fields(node):
             if f.name not in ('location', 'inferred_type', 'declaration', 'scope', 'callee_declaration',
                               'resolved_arguments'):

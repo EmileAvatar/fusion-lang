@@ -572,6 +572,11 @@ class ErrorsMixin:
         list_method = getattr(node, 'list_method', None)
         if list_method in _FAILING_LIST_METHODS:
             return True
+        # D.139 (52.10): a List never holds null - adding an object or an enum may be refused
+        if list_method in ('add', 'insert'):
+            element = getattr(getattr(node, 'list_type', None), 'element_type', None)
+            if self.is_class_type(element) or type(element).__name__ == 'EnumType':
+                return True
         # options (Task 32.14): a change may be refused - checked once a program uses them
         if getattr(self, 'collection_options', False) and (
                 list_method in ('add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy')

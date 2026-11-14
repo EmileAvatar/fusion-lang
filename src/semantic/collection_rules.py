@@ -100,6 +100,11 @@ class CollectionRulesMixin:
         """[1, 2, 3] stored as a List<int>: every element must fit the element type."""
         element_type = list_type.element_type
         for element in node.elements:
+            if isinstance(element, LiteralExpr) and element.type_hint == 'null':     # D.139 (52.10)
+                self.errors.append(SemanticError(
+                    f"A List never holds null - {self.type_to_string(list_type)} "
+                    f"[...] adds each item; give an object (D.139)", element.location))
+                continue
             actual = self._visit_value_for(element_type, element)
             if not self.types_compatible(element_type, actual):
                 self.errors.append(SemanticError(

@@ -264,14 +264,17 @@ def test_a_function_value_used_by_the_call_may_read_a_borrow():
 # ---------- nulls (Rule 4b) ----------
 
 def test_without_a_null_check_a_null_borrow_is_a_null_error():
-    source = CAR + main('List<Car> fleet = [null]\nCar first = fleet[0]\ntry\n    print(first.color)\n'
-                        'catch NullError e\n    print("null")')
+    # a List never holds null (D.139) - the null is borrowed from an object's field instead
+    source = CAR + 'class Garage\n    public Car car\n\n' + main(
+        'Garage g = Garage()\nCar first = g.car\ntry\n    print(first.color)\n'
+        'catch NullError e\n    print("null")')
     assert run(source) == ['null']
 
 
 def test_with_a_null_check_the_borrow_runs_on():
-    source = CAR + main('List<Car> fleet = [null]\nCar first = fleet[0]\nif first is not null\n'
-                        '    print(first.color)\nprint("done")')
+    source = CAR + 'class Garage\n    public Car car\n\n' + main(
+        'Garage g = Garage()\nCar first = g.car\nif first is not null\n'
+        '    print(first.color)\nprint("done")')
     assert run(source) == ['done']
 
 

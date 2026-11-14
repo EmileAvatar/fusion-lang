@@ -136,12 +136,12 @@ def test_tolist_copies_or_shares():
 
 @pytest.mark.parametrize('code, message', [
     ('int[2] a = [1, 2]\nList<int> x = a.toList(false)', "An array's toList always copies for now"),
-    ('int[3] n = null', "int[3] can't be null - an array is empty when declared. [arrays] nullable"),
+    ('int[3] n = null', "int[3] can't be null - an array is empty when declared; it is never null (D.138)"),
     ('int[2] a = [1, 2]\na = null', "int[2] can't be null - an array is empty when declared"),
     ('List<int> l = null', "List<int> can't be null - a List is empty when declared - clear() "
-                           "empties it. [lists] nullable = true will allow null (planned"),
+                           "empties it; it is never null (D.138)"),
     ('Map<string, int> m\nm = null', "Map<string, int> can't be null - a Map is empty when "
-                                      "declared - clear() empties it. [maps] nullable"),
+                                      "declared - clear() empties it; it is never null"),
 ])
 def test_tolist_and_null_errors(code, message):
     assert message in errors_of(main(code))

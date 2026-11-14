@@ -305,8 +305,8 @@ class CollectionsMixin:
             checks = [refused]
             if not is_map and method in ('add', 'insert'):
                 if is_null is not None:
-                    checks.append(f'if ((l->flags & 2) && {is_null}) {{ {free_v} fusion_fail(FUSION_KIND_NullError, '
-                                  f'NULL, "the List takes no null (noNull)"); return; }}')
+                    checks.append(f'if ({is_null}) {{ {free_v} fusion_fail(FUSION_KIND_NullError, '
+                                  f'NULL, "a List never holds null (D.139)"); return; }}')   # 52.10
                 checks.append(f'if ((l->flags & 1) && {name}_contains(l, v)) {{ {free_v} fusion_fail('
                               f'FUSION_KIND_DuplicateError, NULL, "the List has it already (noDuplicates)"); return; }}')
             functions[signature] = checks + functions[signature]
@@ -352,7 +352,7 @@ class CollectionsMixin:
                 'r->count = 1;',
                 f'r->fusion_class = {name}_class();      // its table - a Collection<T> (32.6)',
                 'return r;'],
-            f'{name} {name}_from({T} const* items, int n)': [
+            f'{name} {name}_from({T} const* items, int n)': self._held_null_check(element, name) + [
                 f'{name} r = {name}_new();',
                 f'if (n > 0) {{ r->data = ({T}*)fusion_alloc(sizeof({T}) * (size_t)n); '
                 f'memcpy(r->data, items, sizeof({T}) * (size_t)n); r->len = r->cap = n; }}',
@@ -509,6 +509,21 @@ class CollectionsMixin:
 
     # ------------------------------------------------------------------ expressions
 
+    def _held_null_check(self, element, name) -> list:
+        """D.139 (52.10): the C lines refusing a null item of a List made from items - every
+        item freed (they were the List's), then a NullError."""
+        if self.is_class_type(element):
+            is_null = 'items[i] == NULL'
+        elif type(element).__name__ == 'EnumType':
+            is_null = 'items[i] == FUSION_ENUM_NULL'
+        else:
+            return []
+        frees = ' '.join(self.free_lines(element, 'v'))
+        return [f'for (int i = 0; i < n; i++) if ({is_null}) {{ '
+                f'for (int j = 0; j < n; j++) {{ {self.map_type(element)} v = items[j]; {frees} }} '
+                f'fusion_fail(FUSION_KIND_NullError, NULL, "a List never holds null (D.139)"); '
+                f'return {name}_new(); }}']
+
     def list_literal_code(self, node: ArrayLiteralExpr) -> str:
         list_type = node.inferred_type
         name = self.list_c_name(list_type)
@@ -516,7 +531,11 @@ class CollectionsMixin:
             return f'{name}_new()'
         element = list_type.element_type
         items = ', '.join(self.owned_value(e, element) for e in node.elements)
-        return f'{name}_from(({self.map_type(element)}[]){{{items}}}, {len(node.elements)})'
+        code = f'{name}_from(({self.map_type(element)}[]){{{items}}}, {len(node.elements)})'
+        if self._held_null_check(element, name):            # a null item is refused (52.10)
+            return self.checked_code(code, self.map_type(list_type),
+                                     ' '.join(self.free_lines(list_type, 'fusion_r')))
+        return code
 
     def list_lvalue(self, expr, final: bool = True) -> str:
         """A C lvalue for a target that goes through a list element or a map value: xs[1] = 5,

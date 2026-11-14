@@ -1721,6 +1721,19 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         else:
             target_code = self.visit(node.target)
 
+        # D.139 (52.10): a List / Map never holds null - a null object set into one is refused
+        holder = getattr(getattr(node.target, 'array', None), 'inferred_type', None) \
+            if isinstance(node.target, IndexExpr) else None
+        held = getattr(holder, 'element_type', None) or getattr(holder, 'value_type', None)
+        if type(holder).__name__ in ('ListType', 'MapType') and \
+                isinstance(node.value, (IdentifierExpr, MemberExpr)) and \
+                (self.is_class_type(held) or type(held).__name__ == 'EnumType'):
+            empty = 'FUSION_ENUM_NULL' if type(held).__name__ == 'EnumType' else 'NULL'
+            kind = 'List' if type(holder).__name__ == 'ListType' else 'Map'
+            self.emit_line(self.checked_code(
+                f'if (({self.visit(node.value)}) == {empty}) fusion_null_fail({self._where(node)}, '
+                f'"a {kind} never holds null (D.139)")', None))
+
         # A whole array replaced by one a function returned: moved in (Task 18.2.4)
         if self._returns_array(node.value):
             wrapper = self.array_wrapper_name(node.value.inferred_type)

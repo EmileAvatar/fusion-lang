@@ -62,7 +62,7 @@ def test_without_a_null_check_no_null_refuses_one():
                       'try\n'
                       '    put(people, nobody)\n'
                       'catch NullError e\n'
-                      '    print(e.message)')) == ['the List takes no null (noNull)']
+                      '    print(e.message)')) == ['a List never holds null (D.139)']
 
 
 def test_with_a_null_check_the_code_runs_on():
