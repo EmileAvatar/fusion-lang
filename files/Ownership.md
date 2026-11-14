@@ -1,9 +1,11 @@
 # Ownership: one owner, moves, borrows - and one writer
 
+> **New to ownership?** Start with the plain explanation, with pictures of the stack and the heap:
+> [spec 090 - Ownership explained](spec/090-Memory.md#ownership-explained---start-here).
+
 Fusion's borrow rules: who owns a value, what assigning and passing do, and how one writer is
 kept when threads share a value. Taken from Rust's borrow checker, made simpler where Fusion
-can be. **Status: designed, not built** - files/FEATURES.md Task 48 (after all of Task 32), the
-thread parts Task 42. The decisions and the discussion behind them:
+can be. **Status: built** (Task 48, 2026-11); the thread parts Task 42. The decisions and the discussion behind them:
 `Notes/Ownership_Decisions_2026-10-31.md` (D1-D49).
 
 Related: `files/Object_Lifetime.md` (the counting that is built today), `files/Service.md` (the

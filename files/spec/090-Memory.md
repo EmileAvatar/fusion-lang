@@ -2,11 +2,113 @@
 
 # 090 Memory
 
-Contents: [Tier 1: Automatic Garbage Collection (optional - never the default: OWNERSHIP first, Decisions.md D.027)](#tier-1-automatic-garbage-collection-optional---never-the-default-ownership-first-decisionsmd-d027) | [Tier 2: Smart Pointers (Performance Mode)](#tier-2-smart-pointers-performance-mode) | [Tier 3: Raw Pointers (Unsafe Mode)](#tier-3-raw-pointers-unsafe-mode) | [Memory Strategy Summary](#memory-strategy-summary) | [Ownership: move, borrow, share](#ownership-move-borrow-share)
+Contents: [Ownership explained - start here](#ownership-explained---start-here) | [Memory Management](#memory-management) | [Tier 1: Automatic Garbage Collection (optional - never the default: OWNERSHIP first, Decisions.md D.027)](#tier-1-automatic-garbage-collection-optional---never-the-default-ownership-first-decisionsmd-d027) | [Tier 2: Smart Pointers (Performance Mode)](#tier-2-smart-pointers-performance-mode) | [Tier 3: Raw Pointers (Unsafe Mode)](#tier-3-raw-pointers-unsafe-mode) | [Memory Strategy Summary](#memory-strategy-summary) | [Ownership: move, borrow, share](#ownership-move-borrow-share) | [The ownership setting: strict or relaxed (user, 2026-11-14 - D.124)](#the-ownership-setting-strict-or-relaxed-user-2026-11-14---d124)
+
+## Ownership explained - start here
+
+For anyone new to ownership (no Rust needed). Fusion keeps memory safe without a garbage
+collector: every object has **one owner**, and it is freed when that owner goes out of scope. The
+object itself never moves in memory - only its address is handed over. The full rules and truth
+tables: [files/Ownership.md](../Ownership.md); the setting: [below](#the-ownership-setting-strict-or-relaxed-user-2026-11-14---d124).
+
+#### Where things live
+
+```text
+ STACK (each function's own variables - fast, freed automatically on return)
+ +------------------------------+
+ | main()                       |
+ |   int count = 3      [ 3 ]   |  numbers, bools, chars, plain structs: the value itself
+ |   Car a        [0x7F20] -----+--+   objects, Lists, Maps: only an address (8 bytes)
+ +------------------------------+  |
+                                   v
+ HEAP (made with Car(...), lives until freed)
+ +-----------------------------------+
+ | 0x7F20: Car { name: "Mini" }      |  the object itself - it never moves
+ +-----------------------------------+
+```
+
+- **Stack**: a function's variables; small values live there whole, and they are gone when the
+  function returns
+- **Heap**: objects, Lists and Maps; a variable on the stack holds only their address
+- **Registers**: the CPU holds values there for a moment while working on them - they play no
+  part in ownership
+
+#### A move: the address changes hands, the object stays
+
+```text
+Car a = Car("Mini")          Car b = a                     end of main()
+
+ a [0x7F20]--+                a [ gone ] (compile error      b goes out of scope
+             v                           if used)            -> the Car at 0x7F20 is freed
+        +----------+          b [0x7F20]--+                  +----------+
+        | Car Mini |                      v                  |  freed   |
+        +----------+                +----------+             +----------+
+                                    | Car Mini |  same place
+                                    +----------+
+```
+
+- The compiler makes `a` unusable after `Car b = a` - only one name ever holds the address
+- So the object can be freed exactly once, when its owner's block ends
+
+#### A borrow: a temporary second address, with a promise
+
+```text
+show(b)                      // passing borrows
+  b [0x7F20]--+
+              v
+         +----------+
+         | Car Mini |
+         +----------+
+              ^
+  c [0x7F20]--+   show's parameter: may use it, may not keep it - gone when show returns
+```
+
+- The compiler checks a borrow never outlives its owner: it is never stored or returned
+- So when `b` frees the car, nothing else still points at it
+
+#### Copies
+
+```text
+Car c = byVal b      ->  a second Car on the heap (0x8A40), with its own owner c
+Car d = byRef b      ->  a borrow, like show(b)
+int x = y            ->  the number itself is copied on the stack - nothing to own
+```
+
+#### The rule of thumb
+
+1. **Every heap object has exactly one owner** - the variable holding its address
+2. **`=` hands the address over** (a move) - the old name is dead until it gets a new value
+3. **Passing to a function lends it** - you get it back after the call; if the function keeps
+   it, it is moved
+4. **A borrow is temporary** - never stored, never returned, never longer than its owner
+5. **One writer** - while a borrow changes something, nothing else changes it (reading is fine)
+6. **Out of scope = freed** - the owner's block ends, the object is freed once, at a known point
+7. **A second one? `byVal`** makes a copy; **sharing for a moment? `byRef`** borrows
+
+What this rules out - checked by the compiler before the program runs:
+
+| Bug | Why it can't happen |
+|---|---|
+| Use after free | nobody holds an address to freed memory - borrows end before their owner |
+| Double free | only the one owner frees |
+| Leak | every object has an owner whose scope ends |
+| Two writers at once | one writer at a time - and only one owner to hand to another thread (services, Task 42) |
+
+#### Today and later
+
+- **Today** each object also carries a small counter - a safety net: a move still counts, and
+  "freed" means the count reached 0
+- **Later** (Task 38.5) the counter is dropped where a move proves one owner - freeing becomes one
+  direct free
+- **`[memory] ownership = "relaxed"`**: the counter is the real rule - two names may hold the same
+  address, and the object is freed when the last one lets go (as Java, C# and Python do) - for code
+  using a library without the ownership model, a GC alongside it, or manual memory
+
+---
 
 ## Memory Management
 
-**Status:** [PARTLY] strings, bytes, lists, maps and structs holding them are values, copied deeply and freed automatically (18.3, 18.5) with a leak check; Unique / Shared / Weak and GC are decided (12.7) and [PLANNED 38]
+**Status:** [PARTLY] ownership is built - one owner, moves, borrows, `[memory] ownership` (Task 48, explained above); strings, bytes, lists, maps and structs are freed automatically with a leak check (18.3, 18.5); `Shared` / `Weak` and GC as a project option [PLANNED 38] - `Unique` was dropped (D.080). The tiers below are the earlier design (2026-09)
 
 Description: Three-tier memory management strategy for different use cases.
 
@@ -176,7 +278,7 @@ Raw Pointers | Embedded/FFI only | High | Maximum
 
 ### Ownership: move, borrow, share
 
-**Status:** [PLANNED 48] designed 2026-10-31 (user). The rules and truth tables:
+**Status:** [DONE 48] designed 2026-10-31 (user), built 2026-11 - explained at the top of this page. The rules and truth tables:
 `files/Ownership.md`; the decisions: `Notes/Ownership_Decisions_2026-10-31.md`.
 
 * **Assigning moves:** `Car b = a` hands the object over - using `a` afterwards is a compile
