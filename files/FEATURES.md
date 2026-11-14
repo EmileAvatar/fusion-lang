@@ -222,14 +222,20 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 52.4 A `Length` interface (TYP.017): strings and arrays (value types) carry `length()` as if they
 		were objects - made internal to the type by Fusion, so `s.length()` works on null and "" alike;
 		later more built-in methods the same way - design first
-	[ ] 52.5 Build D.055 (decided 2026-11-07): `length()` never null - 0 empty, -1 null (string, array, List,
+	[DONE - nothing to build, D.138 (2026-11-14)] 52.5 Build D.055 (decided 2026-11-07): `length()` never null - 0 empty, -1 null (string, array, List,
 		Map with `nullable` on); the -1 only in a comparison (`if` / `while`), elsewhere a NullError (a compile
 		error where it can be seen); tests with and without a null check (Rule 4b)
 	[ ] 52.6 An interface's functions are public or internal - `private` on one a compile error (D.114, CLS.019)
 	[ ] 52.8 The null guard (was 30.2 - postponed to 32 and never built, found 2026-11-14): `c?.name`,
 		`c?.rename("x")` not run on null, false in an `if`; `c ?? Car()` - files/Nullable_Values.md; NUL.003
-	[POSTPONED - question 2 in files/taskSummary2.md] 52.9 The nullable settings (was 30.3): `[strings]` /
-		`[arrays]` / `[lists]` / `[maps] nullable` - a value that may be null (001-TomlSettings "Decided, not built")
+	[REJECTED 2026-11-14 - D.138] 52.9 The nullable settings (was 30.3): a string, array, List or Map is never null,
+		whatever the settings
+	[ ] 52.10 A List or Map never holds null (D.139): `add(null)`, `m[k] = null`, `[car1, null]` as a List - errors;
+		a null variable added at run time - a NullError; `[car1, car2]` adds each item
+	[ ] 52.11 Arrays of objects (D.140): a null slot allowed (in a literal too - today refused); `arr[i] = null`
+		frees the object; an element of the wrong type stays an error
+	[ ] 52.12 `[strings] nullBecomesEmpty` (user, 2026-11-14): `s = null` - an error, or ""; default asked (D.003)
+	[ ] 52.13 `?.` / `??` on a string, array, List or Map - never null, so the guard does nothing: a warning
 	[ ] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
 		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
 		`?` parameter without a null check - a warning; a `Default` left null - an error

@@ -159,13 +159,12 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 #### [strings]
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|
-| `nullable` | `true` / `false` | `false` | A string may be null; false: "" instead | D.050, 30.3 |
 | `pooling` | `true` / `false` | `false` | Identical text stored once | 29.4 (postponed to 38) |
+| `nullBecomesEmpty` | `true` / `false` | asked (Task 52) | `s = null`: an error, or the string becomes "" - a string is never null (D.138) | D.050, 52 |
 
 #### [arrays], [lists], [maps]
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|
-| `nullable` (each section) | `true` / `false` | `false` | An array / List / Map may be null; false: empty instead. `length()` on null: -1, only in a comparison | D.044, D.055, 30.3, 52.5 |
 | `[maps]` key already there on `add(otherMap)` *(name open)* | replace / keep / error | replace | What `add(otherMap)` does with a key both have | D.047 |
 
 #### [errors]
