@@ -91,7 +91,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 
 | Task | Title | Phase | Status |
 |---|---|---|---|
-| [51](#task-51) | Documentation clean-up: folders and Markdown files | 2 | active |
 | [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
 | [45](#task-45) | Arrays that grow at the end | 2 | open |
 | [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
@@ -123,69 +122,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 
 <a id="phase-2"></a>
 ## Phase 2 - growing the language, then a fully independent compiler [index](#index)
-
-<a id="task-51"></a>
-#### 51 Documentation clean-up: folders and Markdown files (user, 2026-11-07) [ ] - soon [index](#index)
-	Markdown stays the format (no HTML pages for now); Decisions.md keeps its format
-	Proposal: files/DocumentationSystemProposal.md (from the Mac) - plan: task/taskSummaryArchive.md Task 51
-	[DONE] 51.1 Root files moved to files/ (debug scripts to debug/); the root keeps CLAUDE.md, README.md,
-		Decisions.md, main.py, check.py, pytest.ini; paths in code and docs updated
-	[DONE] 51.2 Decisions.md: a short "Why" column for all 112 decisions (none invented - blanks listed for
-		the user); a PROPOSED status (only the user makes it ACTIVE); no superseded rows
-	[DONE] 51.3 OpenQuestions.md next to Decisions.md - one line per open question
-	[DONE] 51.4 Main.md in the root - what Fusion is for + the map of every file (from CLAUDE.md)
-	[DONE] 51.5 Split the spec into files/spec/NNN-Topic.md (then files/FutureFeatures.md) - file list shown first;
-		no front matter for now - plain Markdown first (user, 2026-11-07)
-		[ ] Navigation (user, 2026-11-08 - mockup Notes/showcase): each file starts and ends with
-			`[< previous](..) | [Main](../../Main.md) | [next >](..)` - the first has no previous, the last no next;
-			files/spec/index.md lists every spec file as a link; Main.md's paths become clickable links;
-			a long file gets a contents list of links to its own sections; a script writes the nav lines
-			from the index order, so they never drift (tools/doc_nav.py, the "nav" check)
-		Root navigation (user): Main -> Decisions -> OpenQuestions -> README, each linking to the spec index;
-			spec files link only to each other and their index - never back to the root
-		[DONE] index.md, 010-Philosophy, 020-SemanticContract, 030-Types, 031-Arrays, 032-Strings, 033-TypeCasting,
-			040-Functions, 041-Lambdas, 042-MultipleReturns,
-			050-Classes, 051-Inheritance, 052-Interfaces,
-			060-Structs, 061-Enums, 070-ControlFlow,
-			080-Null, 081-Autoboxing, 090-Memory,
-			100-Concurrency, 110-Generics, 120-Errors (2026-11-10), 130-Comments, 131-AutoDocs,
-			140-Collections (2026-11-11), 150-Modules, 160-GameExample, 170-Build (2026-11-12),
-			180-StandardLibrary, 181-fusionlib-Core, 182-fusionlib-Extended, 183-fusionlib-IDE,
-			190-Callbacks, 191-Interop, 200-ReservedWords, 210-FeaturesSummary,
-			220-Comparison (2026-11-12) - every section moved
-		[DONE] 001-TomlSettings (user, 2026-11-08): every project setting; 000-009 kept for high-level files;
-			"Built" generated from files/fusionSettings.xml (tools/settings_doc.py, the "settings" check)
-		[DONE] 001 part 2: every setting decided so far - go through Decisions.md, the design docs, FEATURES,
-			files/showcase/fusion.toml - into "Decided, not built"
-	[DONE] 51.5a Bring files/spec/100-Concurrency.md up to date (user, 2026-11-10) - detail in task/taskSummaryArchive.md
-		[DONE] 1 Gather (2026-11-10): the inventory in task/taskSummaryArchive.md (51.5a) - 7 clashes / gaps found;
-			no line limit on the file for now (user)
-			was: go through every concurrency source; one list of what is built, decided, designed, an idea,
-			rejected or replaced - with where each comes from
-		[DONE] 1b Reorganised (user, 2026-11-10): Index; 1 summary and comparison; 2 traps (what solves each);
-			3 the service model (primary); 4 other models - mutex, channels, async ... (for Lang.<language>.Fusion,
-			Task 49); 5 built; 6 to settle (9 items); 7 the earlier text kept for review - tables throughout
-		[DONE] 2 Clashes and gaps (2026-11-10): the user's provisional answers in spec 100 section 6;
-			PROPOSED D.125-D.131; new 3.14-3.17 (channels, kinds of threads, sleep and wake,
-			no thread state); 42.34-42.40; the 5 follow-up questions answered too (D.132, 3.18 baselines)
-		[DONE] 3 Shown (2026-11-11): D.125-D.132 stay PROPOSED for now; `parallel for` kept as an idea
-			(42.41); one file for now, split later; the showcase left for 42.40 (user)
-		[DONE] 4 Rewritten (2026-11-11): the earlier spec text removed - the levels to 3.11, a counter
-			with a Mutex and with a service in 1.2, an error return in 4.8, `unsafe` in the 4.2 example
-		[DONE] 5 Decisions.md in step (CON.021-026, D.125-D.132 PROPOSED); showcase -> 42.40; checked, shipped
-	[DONE] 51.5b Split files/FutureFeatures.md into files/future/ (index.md + NNN-Topic.md, 31 files) - plan in
-		task/taskSummaryArchive.md, approved 2026-11-13 (6 files per step - user)
-		[DONE] 010-IDEModule, 011-IDEProjects, 012-IDEOverlays, 013-IDEOverlays2, 014-IDEOverlaySettings,
-			015-WebServers (2026-11-13)
-		[DONE] 000-Overview, 020-Settings, 030-LibraryLayout, 031-Regex, 032-DomainPackages, 033-Currency (2026-11-13)
-		[DONE] 034-DataFormats, 035-HIDL, 040-CrossLanguage, 050-Imports, 060-Comments, 061-CommentHighlighting (2026-11-13)
-		[DONE] 062-CommentLevels, 070-NamingRules, 071-NamingExceptions, 080-Arrays, 081-Strings, 090-Unsafe (2026-11-13)
-		[DONE] 100-CLI, 101-CLICommands, 110-SymbolIDs, 111-Identity, 120-Threads, 130-FarFuture (2026-11-13) -
-			FutureFeatures.md is now a table of where each section went
-	[ ] 51.6 A link check in check.py - plan in files/taskSummary2.md, waiting for approval
-	[DONE] 51.8 FEATURES.md reorganised (user, 2026-11-13): a Preface (the rules, the counts, what is done,
-		the old task numbers), an Index of every task in working order, then the phases
-	[POSTPONED - after 51] 51.7 HTML pages for people (a kit.js template, generated from the .md) - only if needed
 
 <a id="task-33"></a>
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ] [index](#index)
@@ -982,6 +918,8 @@ Each time a task or section is finished, this list is checked for items the curr
 	L14 Example programs (was Task 34 - user, 2026-11-13: added once threading / the memory model exist)
 		[POSTPONED - needs threading, no task yet] L14.1 Multithreading / async example (was 16.4)
 		[POSTPONED to 38] L14.2 Memory model (Unique/Shared/Weak) example (was 16.6)
+	L15 Documentation
+		[POSTPONED - only if needed] L15.1 HTML pages for people (a kit.js template, generated from the .md) - was 51.7
 
 ---
 

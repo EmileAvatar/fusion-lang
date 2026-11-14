@@ -40,6 +40,7 @@ Checks:
     runtime   runtime/fusion_runtime.h matches the run-time the compiler writes into C files
     decisions Decisions.md in shape: feature lines AREA.NNN [STATUS] in order, decision rows
               in order and naming a feature that exists (CLAUDE.md Rule 3b, Task 49.9)
+    links     every relative link in the .md documents leads to a file and heading (51.6)
     ascii     no non-ASCII characters in .py / .fusion files (CLAUDE.md Rule 2)
 
 Exit code 0 only if everything passed.
@@ -438,6 +439,14 @@ def check_nav():
     return not problems, summary, '\n'.join(problems)
 
 
+def check_links():
+    """Task 51.6: every relative link in the Markdown documents leads to a file and a heading."""
+    sys.path.insert(0, str(ROOT / 'tools'))
+    from doc_links import link_problems
+    problems = link_problems()
+    return not problems, 'every link leads somewhere' if not problems else f'{len(problems)} broken', '\n'.join(problems)
+
+
 def check_decisions():
     path = ROOT / 'Decisions.md'
     text = path.read_text(encoding='utf-8')
@@ -665,7 +674,7 @@ def main(argv):
     return 0 if run_checks(quick='--quick' in argv, docs='--docs' in argv) else 1
 
 
-DOC_CHECKS = [('builtins', check_builtins), ('decisions', check_decisions), ('nav', check_nav),
+DOC_CHECKS = [('builtins', check_builtins), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links),
               ('settings', check_settings_doc), ('ascii', check_ascii)]
 
 
@@ -676,7 +685,7 @@ def run_checks(quick: bool, docs: bool = False) -> bool:
     elif not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
                    ('reference', check_reference_sync), ('builtins', check_builtins),
-                   ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav), ('settings', check_settings_doc),
+                   ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links), ('settings', check_settings_doc),
                    ('ascii', check_ascii)]
     all_ok = True
     details = []

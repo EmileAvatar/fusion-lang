@@ -6970,3 +6970,20 @@ Kept under Task 22 until the renumbering is approved.
   - then 48.4 (`--interface` shows what each public function does with its parameters)
   - then 36.0 (a small syntax highlighter: VS Code, Sublime Text / TextMate)
   - then Task 47 (long, money, enums with fixed data) - user, 2026-10-29
+
+#### TASK 51.6: A link check in check.py - PLAN (2026-11-13), waiting for approval
+
+Settings: none
+
+- A new check in `check.py` (`links`), also run by `--docs`:
+  - Every relative link `[text](path)` in the Markdown files points to a file that exists
+  - A link with `#anchor` - the heading exists in that file (the GitHub slug)
+  - Skipped: web links (`http...`), `Notes/` (git-ignored), `task/` (archives - old paths kept as they were)
+  - Links inside code blocks are skipped
+- First run: list every broken link; fix them (most will be old paths from before the splits)
+- A test for the checker: a good link, a missing file, a missing anchor
+- Then Task 51 is complete: its `[DONE]` lines to `task/featuresArchive.md`, a full check
+  (`--ship ... --full`)
+
+2026-11-14: approved and built (user: "continue with task 51"); 0 broken links found once inline
+code in headings counted for anchors. Task 51 complete.

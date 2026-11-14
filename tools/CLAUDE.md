@@ -5,7 +5,9 @@
 - `builtins_doc.py` - makes files/Builtins.md from the compiler's built-ins (28.1.4); used by
   `check.py --builtins` and the "builtins" check
 - `doc_nav.py` - writes the navigation line at the top and bottom of the root documents and of
-  files/spec/ (order: files/spec/index.md); the "nav" check in check.py (51.5)
+  files/spec/ and files/future/ (order: each folder's index.md); the "nav" check in check.py (51.5)
+- `doc_links.py` - checks every relative link in the .md documents leads to a file and a heading
+  (or `<a id>`); the "links" check in check.py (51.6)
 - `settings_doc.py` - writes the "Built" part of files/spec/001-TomlSettings.md from
   files/fusionSettings.xml; the "settings" check in check.py (51.5)
 - `windows/fusion-file-preview.reg` - Explorer preview pane shows `.fusion` files as text (23.8)
