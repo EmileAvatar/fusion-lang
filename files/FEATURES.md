@@ -266,8 +266,9 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 48.11 `[memory] ownership = "strict" | "relaxed"` (D.124, user 2026-11-14): every ownership rule at once,
 		replaces `assignment` (old values read with a warning); files/fusionSettings.xml; the before / after table
 		in files/Ownership.md 1 and spec 090
-	[ ] 48.12 Storing `this` shares the object, counted (D.103): `cars.add(this)` - one car in several
-		collections; freed when the last holder lets go - check today's behaviour, tests
+	[DONE] 48.12 Storing `this` shares the object, counted (D.103): `cars.add(this)` - one car in several
+		collections; freed when the last holder lets go - it already worked; tests/test_ownership_this.py keeps it
+		so (leak check, with and without a null check)
 		[DONE] The examples: byRef where sharing is meant, byVal where a copy (6 SYNTAX_REFERENCE, classes_demo)
 		[DONE] The self-hosted compiler pinned to "share" (selfhost/fusion.toml, D.107) - its context handling
 			is reworked for "move" with Task 35
