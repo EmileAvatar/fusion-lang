@@ -67,4 +67,6 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Rule 4c: one test per truth-table row, run under the leak check.
 - Rule 4b: a null object slot, read with and without `?.`.
 
-- **Next Action:** sub-task 1, 45.1 the `Array` class (approved 2026-11-15)
+- Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`) - FEATURES Task 45
+- **Next Action:** 45.10 - a plain array replaced by another size: the run-time length and the heap form
+  (the large step: passing, returning, struct fields, equality, toList / toCSV, foreach, ownership)
