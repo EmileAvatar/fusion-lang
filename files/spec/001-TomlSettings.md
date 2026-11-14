@@ -167,6 +167,10 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|
 | `[maps]` key already there on `add(otherMap)` *(name open)* | replace / keep / error | replace | What `add(otherMap)` does with a key both have | D.047 |
+| `[arrays] stackWarn` | bytes (`"16KB"`) | 16KB | A plain or fixed array on the stack larger than this: a warning | D.145, 45.13 |
+| `[arrays] stackLimit` | bytes (`"64KB"`) | 64KB | Larger than this on the stack: a compile error | D.145, 45.13 |
+| `[arrays] storage` | flat / rect / jagg | flat | How an array of many dimensions is stored (`a.setStorage(...)` per array) | D.144, 45.15 |
+| `[arrays]` buffer settings *(names open - Q.020)* | bytes | 2KB small / 8KB large | The stack buffer a large array is worked through | Q.020, L16 |
 
 #### [errors]
 | Setting | Values | Default | What it does | Decision / task |

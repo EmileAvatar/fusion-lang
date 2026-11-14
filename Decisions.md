@@ -88,7 +88,7 @@ TYP.002 [PLANNED] `long`, `short` (47.1)
 TYP.003 [PLANNED] `money`: a long of minor units, exact, never a float (47.2)
 TYP.004 [BUILT] Enums; enums with data (tagged unions); an unset enum is null
 TYP.005 [PLANNED] Enums whose values carry fixed data (47.3); the `FusionType` enum (47.4)
-TYP.006 [PLANNED] `fixed(n)`: a maximum size, values may change - `fixed(10) string name`, `fixed(14) List<Person> people`, `fixed int numbers[10]` (47.5)
+TYP.006 [PLANNED] `fixed(n)`: a maximum size, values may change - `fixed(10) string name`, `fixed(14) List<Person> people` (47.5); an array's `fixed`: D.141
 TYP.007 [PLANNED] Generics: the program's own generic functions and types (Task 33)
 TYP.008 [DESIGN] Operator overloading - only for exceptional cases (a setting, off)
 TYP.009 [BUILT] An int is used as a float only when it fits exactly (a written number that doesn't: compile error; a value: PrecisionError); `[numbers] autoWidening = true` widens with a warning
@@ -115,7 +115,7 @@ STR.010 [POSTPONED] Paged / memory-mapped strings
 
 #### COL - arrays, Lists, Maps
 COL.001 [BUILT] Fixed-size arrays, bounds always checked
-COL.002 [PLANNED] Arrays know their length, grow and shrink at the end, `+`, `copyPart` (Task 45)
+COL.002 [PLANNED] Arrays in three forms: plain (a new size only by replacing), `fixed` (never another size), growable `int:[]` / `int[[]]` (add / removeLast at the end); `+`, `copyPart` (Task 45, D.141)
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
@@ -128,8 +128,10 @@ COL.011 [PLANNED] Lists: a capacity, a growth buffer, a kept sort order
 COL.012 [PLANNED] Maps: `add(otherMap)`; a map may bring its own hashing and key rules
 COL.013 [REJECTED] Changing a collection while looping over it (a setting to allow it) - build a new one
 COL.014 [DESIGN] `Set<T>`; slices by range (`numbers[0...1]`); Map literals (`{"apples": 3}`)
-COL.015 [POSTPONED] Multi-dimensional arrays
+COL.015 [PLANNED] Arrays of up to 3 dimensions - rows, columns, depth; `expand`; FLAT / RECT / JAGG storage (Task 45, D.143, D.144)
 COL.016 [REJECTED] `type()` / `type(N)` arrays meaning read-only or fixed size - `const` and `fixed(n)` instead (D.064)
+COL.017 [PLANNED] Every array acts as an object of the built-in `Array` class - `a.length` is `Array.length(a)` (Task 45.1, D.142)
+COL.018 [DESIGN] Large arrays: stack limits in bytes (D.145); buffers SINGLE / TWO / THREE / RING (Q.020, L16)
 
 #### FUN - functions and errors
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value
@@ -305,7 +307,7 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.022 | The core and every module never fetch prices or rates; the developer passes them in | the developer controls where data comes from; the core never calls out | SET.006 | 2026-10-29 | CLAUDE.md | ACTIVE |
 | D.023 | Settings named in camelCase, read case-insensitively, `_` ignored | forgiving to read, one style to write | SET.001 | 2026-10-28 | fusionSettings.xml | ACTIVE |
 | D.024 | `service` is a reserved keyword | services are a core feature of Fusion - a major selling point | CON.001 | 2026-10-29 | Service.md | ACTIVE |
-| D.025 | Arrays, Lists, Maps move in normal code; inside a struct they can only be borrowed | one owner; a struct stays whole (D.015) | COL.002 | 2026-10-31 | files/Ownership.md 2 | ACTIVE (planned) |
+| D.025 | Arrays, Lists, Maps move in normal code; inside a struct they can only be borrowed (an array on the stack moves by copying its slots - the old name can't be used) | one owner; a struct stays whole (D.015) | COL.002 | 2026-10-31 | files/Ownership.md 2 | ACTIVE (planned) |
 | D.026 | A struct's fields can't be moved out, only borrowed; the whole struct moves or is borrowed | a struct missing a field cannot be used safely | STC.001 | 2026-10-31 | files/Ownership.md 2 | ACTIVE (planned; replaces "copied with its Lists" when Task 48 is built) |
 | D.027 | No GC by default - OWNERSHIP first; a GC only when made in code or when a project's `fusion.toml` chooses it | OWNERSHIP first (D.013); a GC only by choice | MEM.005 | 2026-10-31 | files/Object_Lifetime.md 1 | ACTIVE |
 | D.028 | Data shared across threads: a temporary service first; `send` moves data (and its ownership) to another thread; or share a readonly value | no data races: one owner at a time | CON.006 | 2026-10-31 | files/Ownership.md 5, 6 | ACTIVE (planned) |
@@ -344,7 +346,7 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.061 | Error returns and exceptions are both on by default; a project may turn either off | each project chooses its error style (GOL.006) | FUN.001 | 2026-10-16 | spec Errors | ACTIVE |
 | D.062 | Errors bubble up; capturing is optional on any call; `catch` goes by first match, a parent catches its children | an error cannot be lost; familiar catch order | FUN.002 | 2026-10-16 | spec Errors | ACTIVE |
 | D.063 | No `T?` types: only class objects and enums can be null; `?` goes on a variable | null only where it means something; simpler types | NUL.001 | 2026-10-27 | files/Nullable_Values.md | ACTIVE |
-| D.064 | `const`: nothing changes - neither the length nor the values. `fixed(n)`: only the size is limited - at most n characters or slots, the values may change; the compiler guarantees it never exceeds n (limited memory, hot paths) | limited memory needs a size limit without freezing the values | TYP.006 | 2026-10-31 | files/Arrays.md 1 | ACTIVE (planned) |
+| D.064 | `const`: nothing changes - neither the length nor the values. `fixed(n)` on a string, List or Map: only the size is limited - at most n characters or slots, the n reserved at once so adding never grows it, the values may change; the compiler guarantees it never exceeds n (limited memory, hot paths). An array's `fixed`: D.141 | limited memory needs a size limit without freezing the values | TYP.006 | 2026-10-31 | files/Arrays.md 1 | ACTIVE (planned) |
 | D.065 | `match` is the form; `switch` an alias (familiar from VB.NET). `else if` for 2-3 checks; `match` / `switch` for a list of values | `match` is clearer; `switch` is familiar | SYN.007 | 2026-10-31 | files/SYNTAX_REFERENCE.md | ACTIVE |
 | D.066 | A service is made by a parent thread, outside loops (a class field or a function variable); its child threads use it; a warning when no other thread does | a service outlives the threads that use it | CON.001 | 2026-10-24 | Service.md | ACTIVE (planned) |
 | D.067 | Each call on a service is one step; anything read out is a copy; copying a service variable gives another handle to it | a step is atomic; a copy cannot change under the service | CON.001 | 2026-10-24 | Service.md | ACTIVE (planned) |
@@ -421,5 +423,10 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.138 | A string, array, List or Map is never null - no setting changes it; only a class object, an enum, an interface and an array slot of an object type can be null, with no mark needed (every object may be null) | one rule, no NullError on a collection or a string; `?.` and null checks are for objects only | NUL.007 | 2026-11-14 | files/Nullable_Values.md | ACTIVE |
 | D.139 | A List or Map never holds null: `list.add(null)`, `m[k] = null`, `m.add(k, null)` and a List literal with null (`List<Car> l = [car1, null]`) are errors; a List literal adds each item (`[car1, car2]`) | a collection of objects holds objects; null would be a hole to check on every read | NUL.007 | 2026-11-14 | files/Nullable_Values.md | ACTIVE |
 | D.140 | An array slot of an object type may be null: `Car[] cars = [null, null, null]`, `cars[0] = null` frees the object it held; an element of the wrong type is an error (`[car1, truck1]`) | an array is fixed slots - an empty slot is null; a List grows instead | NUL.008 | 2026-11-14 | files/Nullable_Values.md | ACTIVE |
+| D.141 | Three array forms. Plain: `int[] a = [5, 2, 3]`, `int[10] b`, `int[] e` (size 0) - a new size only by replacing (`a = [1, 2]`). Fixed: `fixed int[10] c`, `fixed int[] d = [5, 2, 3]`, `fixed int[] d = f()` - the size set once when made (written, from the values, or from what `f()` returns), never another (`c = [1, 2]` an error). Growable: `int:[] g` or `int[[]] g` (the same; one short, one easy to spot) - `add`, `removeLast` / `pop` at the end. Errors: `fixed int[] d` with no size and no value; `fixed` with a growable form; `add` on a plain or fixed array | growing costs only where asked for; `fixed` tells the reader the size never changes | COL.002 | 2026-11-14 | OpenQuestions Q.015-Q.019 (answered) | ACTIVE |
+| D.142 | Every array acts as an object of a built-in `Array` class: `a.length` is `Array.length(a)`; `length`, `toList`, `toCSV`, `copyPart`, `+` on every array, `add` / `removeLast` / `expand` / `setStorage` on growable ones; every value type gets its methods the same way (TYP.017) | one place for the array methods; arrays read like objects | COL.017 | 2026-11-14 | files/Classes.md 5b | ACTIVE |
+| D.143 | Up to 3 dimensions: `int[10][5][7]` (also `int[10],[5],[7]` - the commas only break it up) is rows x columns x depth; `int[10]` alone is one row of 10. `expand(rows / columns / depth, n)` (a built-in enum) or by number counted from 0 (`expand(0, 2)` = rows) - always a warning, every slot is copied; more than 3 dimensions in the Collections library | basic matrices for math and rendering | COL.015 | 2026-11-14 | OpenQuestions Q.016 (answered) | ACTIVE |
+| D.144 | How a many-dimension array is stored: FLAT (one block - fast for matrices; the default), RECT (each row its own block, all the same length), JAGG (each row its own block and length); `[arrays] storage`; per array `a.setStorage(RECT)`, `setStorage(null)` back to FLAT; one row's `add` only on JAGG - else an error "use setStorage(JAGG)" | flat is fastest for matrices; jagged when rows differ | COL.015 | 2026-11-14 | OpenQuestions Q.016 (answered) | ACTIVE |
+| D.145 | A plain or fixed array on the stack, measured in bytes: above `[arrays] stackWarn = "16KB"` a warning, above `stackLimit = "64KB"` a compile error (until the buffers - Q.020) | the stack is small (1 MB on Windows); bytes measure int and long fairly | COL.018 | 2026-11-14 | OpenQuestions Q.018 (answered) | ACTIVE |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->

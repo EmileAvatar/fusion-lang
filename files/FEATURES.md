@@ -133,33 +133,27 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
 <a id="task-45"></a>
-#### 45 Arrays that grow at the end (user, 2026-10-27 - files/Arrays.md) [ ] [index](#index)
-	Today an array's size is fixed when it is made, and the compiler must know it. An array
-	will grow and shrink at its end only (an item never moves position); a List changes
-	anywhere.
-	[ ] 45.1 Each array knows its own length at run time (like a List), so an array can be
-		replaced by one of another size (`numbers = make()`, `numbers = [1, 2, 3]`)
-	[ ] 45.2 Empty arrays: `int[] numbers` and `int numbers[]` (was 30.10)
-	[ ] 45.10 Arrays live on the heap and follow the List rules (Decisions.md D.025, user 2026-10-31)
+#### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [ ] [index](#index)
+	Three forms (D.141): plain `int[] a` - a new size only by replacing; `fixed int[10] c` - never another
+	size; growable `int:[] g` / `int[[]] g` - grows and shrinks at its end, on the heap.
+	[ ] 45.1 The built-in `Array` class: `a.length` is `Array.length(a)`; `toList`, `toCSV` behind it (D.142)
+	[ ] 45.2 `int[] e` - valid, size 0 (was 30.10)
+	[ ] 45.14 `fixed int[10] c`, `fixed int[] d = [5, 2, 3]`, `fixed int[] d = f()` - never another size; the errors of D.141
+	[ ] 45.10 Replacing a plain array with another size: `a = [1, 2]`, `int[] function make(int n)` - a run-time
+		length, on the heap (a counted block, like a List); the ownership rules stay (D.025)
 		[ ] An array as a Collection<T> value (from 32.6) - removing blocked
-		Normal code: an array moves (`int[] b = a`); `byVal` copies
-		Inside a struct: only borrowed - never moved out
-		Then an array's `toList(false)` can hand it over
-	[ ] 45.11 `toList` and `toCSV` on arrays of more dimensions - with multi-dimensional arrays
-		(user, 2026-10-29)
-	[ ] 45.3 Grow and shrink at the end: `numbers.add(4)`, `numbers.removeLast()` (`pop()` as
-		quick typing) - user, 2026-10-27
-	[ ] 45.4 Combine arrays: `a + b + c + d` - a new array, each one's items in turn; all of
-		the same type (user, 2026-10-27). Lists the same. Maps use `add(otherMap)` instead
-		(see Later: "Map keys")
-	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` /
-		`sliceAt` as quick typing) - the same rules as List (see Later: "List slice")
+		Normal code: an array moves (`int[] b = a`); `byVal` copies; inside a struct only borrowed
+	[ ] 45.3 Growable `int:[]` / `int[[]]`: `add`, `removeLast` (`pop`); empty `removeLast` an IndexError; an object slot may be null (D.140)
+	[ ] 45.4 Combine arrays: `a + b + c` - a new array, all of the same type; Lists the same
+	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same
 	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
-	[ ] 45.7 The array being looped over can't be changed inside the loop (user, 2026-10-31, D.058)
-		Any loop: `for` and `foreach` - a compile error where seen, else ModifiedWhileLoopingError
-		Build a new array from it instead: loop over `a`, add to `b`
-	[ ] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19) - with Task 42
-	[ ] 45.6 Docs and examples: files/Arrays.md, SYNTAX_REFERENCE, spec "Arrays"
+	[ ] 45.7 The array being looped over can't be changed inside the loop (D.058) - a compile error where seen, else ModifiedWhileLoopingError
+	[ ] 45.13 `[arrays] stackWarn = "16KB"` (a warning), `stackLimit = "64KB"` (an error) - in bytes (D.145); buffers: Q.020
+	[ ] 45.12 Up to 3 dimensions: `int[10][5][7]` rows x columns x depth; `expand(rows / columns / depth, n)` or by number from 0, with a warning (D.143)
+		[ ] 45.11 `toList` and `toCSV` on them
+	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)`; one row's `add` only on JAGG (D.144)
+	[POSTPONED to 42] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19)
+	[ ] 45.6 Docs and examples: files/Arrays.md (a truth table), SYNTAX_REFERENCE, spec 031 / 140, the showcase
 
 <a id="task-47"></a>
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ] [index](#index)
@@ -821,8 +815,9 @@ Each time a task or section is finished, this list is checked for items the curr
 			stack: one being worked on by the CPU while the other loads the next part from the heap, then they swap
 		[POSTPONED - after self-hosting and profiling] L16.2 Or a ring buffer on the stack: one part read
 			while the next is written, so the stack never grows while a large array is read
-		[POSTPONED - after self-hosting and profiling; Q.018] L16.3 `[arrays] loadSmall` / `loadLarge`: how many
-			items of a small / large array are loaded onto the stack at a time
+		[POSTPONED - after self-hosting and profiling; Q.020] L16.3 Buffer settings: `[arrays]` buffer size for a small /
+			large array (2KB / 8KB), `bufferType`; per array `setBufferType(SINGLE / TWO / THREE / RING)`, `setSize(n)`;
+			above `stackLimit` the compiler picks RING itself
 		[POSTPONED - after self-hosting and profiling] L16.4 The program sets its own stack amounts where it
 			runs: a small PC less, a server more - and plays nice, never taking memory other programs need
 		[POSTPONED - after self-hosting] L16.5 Large arrays on a GPU or the CPU: special options per array
