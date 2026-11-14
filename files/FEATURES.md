@@ -232,7 +232,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		whatever the settings
 	[DONE] 52.10 A List or Map never holds null (D.139): `add(null)`, `m[k] = null`, `[car1, null]` as a List - errors;
 		a null variable added at run time - a NullError; `[car1, car2]` adds each item
-	[ ] 52.11 Arrays of objects (D.140): a null slot allowed (in a literal too - today refused); `arr[i] = null`
+	[DONE] 52.11 Arrays of objects (D.140): a null slot allowed (in a literal too - today refused); `arr[i] = null`
 		frees the object; an element of the wrong type stays an error
 	[ ] 52.12 `[strings] nullBecomesEmpty` (user, 2026-11-14): `s = null` - an error, or ""; default asked (D.003)
 	[ ] 52.13 `?.` / `??` on a string, array, List or Map - never null, so the guard does nothing: a warning

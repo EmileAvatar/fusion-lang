@@ -158,7 +158,7 @@ NUL.004 [REJECTED] `T?` types - `?` goes on a variable (`x?.f()`), never on a ty
 NUL.005 [PLANNED] A `?.` comparison is false on null and warns; `!` around one is a compile error - `[conditions]` setting allows it with a warning (52.7, D.116)
 NUL.006 [PLANNED] The compiler checks an object is made before it is used: a surely-null one passed is an error; a `Default` left null is an error (52.7, D.117) - no mark for a may-be-null parameter (D.138)
 NUL.007 [BUILT] A string, array, List or Map is never null, whatever the settings; a List / Map never holds null (52.10, D.138, D.139)
-NUL.008 [PLANNED] An array slot of an object type may be null; `arr[i] = null` frees the object (52.11, D.140)
+NUL.008 [BUILT] An array slot of an object type may be null; `arr[i] = null` frees the object (52.11, D.140)
 
 #### STC - structs
 STC.001 [BUILT] Structs: value types, copied, never null; may hold Lists, Maps, strings

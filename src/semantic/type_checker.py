@@ -2322,6 +2322,24 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             )
 
         element_types = [self.visit(el) for el in node.elements]
+        # D.140 (52.11): an array slot of an object type may be null - `[car1, null, car3]`;
+        # the slots' type comes from the others (all null: from the declared type, as [] does)
+        nulls = [i for i, el in enumerate(node.elements)
+                 if isinstance(el, LiteralExpr) and el.type_hint == 'null']
+        given = [i for i in range(len(node.elements)) if i not in nulls]
+        if nulls:
+            if not given:
+                return ArrayType(location=node.location,
+                                 element_type=PrimitiveType(location=node.location, name='void'),
+                                 size=len(node.elements))
+            first = element_types[given[0]]
+            if not (self.is_class(first) or isinstance(first, EnumType)
+                    or getattr(self.struct_declaration(first), 'is_interface', False)):
+                self.errors.append(SemanticError(
+                    f"A {self.type_to_string(first)} array slot can't be null - only an array of "
+                    f"objects or enums may hold null (D.140)", node.elements[nulls[0]].location))
+            element_types = [element_types[given[0]] if i in nulls else t
+                             for i, t in enumerate(element_types)]
         result_type = element_types[0]
 
         for i, elem_type in enumerate(element_types[1:], start=1):
@@ -2564,6 +2582,21 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 node.location
             ))
 
+        # Every slot null - `Car[] cars = [null, null]` (D.140): the declared type gives them
+        all_null = all(isinstance(el, LiteralExpr) and el.type_hint == 'null'
+                       for el in node.initializer.elements) and node.initializer.elements
+        if all_null:
+            held = array_type.element_type
+            if self.is_class(held) or isinstance(held, EnumType) \
+                    or getattr(self.struct_declaration(held), 'is_interface', False):
+                init_type.element_type = held
+                node.initializer.inferred_type = ArrayType(location=init_type.location,
+                                                           element_type=held, size=init_type.size)
+            else:
+                self.errors.append(SemanticError(
+                    f"A {self.type_to_string(held)} array slot can't be null - only an array of "
+                    f"objects or enums may hold null (D.140)", node.location))
+            return
         # Skip the element-type check for an empty literal - there's nothing to compare
         if init_type.size and not self.types_compatible(array_type.element_type, init_type.element_type):
             self.errors.append(SemanticError(
