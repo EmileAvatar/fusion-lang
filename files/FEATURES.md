@@ -816,6 +816,13 @@ Each time a task or section is finished, this list is checked for items the curr
 		[POSTPONED to 38] L14.2 Memory model (Unique/Shared/Weak) example (was 16.6)
 	L15 Documentation
 		[POSTPONED - only if needed] L15.1 HTML pages for people (a kit.js template, generated from the .md) - was 51.7
+	L16 Compiler optimisation - after self-hosting, profiled first (user, 2026-11-14: "we profile the heck out of it", no pre-optimising)
+		[POSTPONED - after self-hosting (Task 35) and profiling] L16.1 Large arrays through two buffers on the
+			stack: one being worked on by the CPU while the other loads the next part from the heap, then they swap
+		[POSTPONED - after self-hosting and profiling] L16.2 Or a ring buffer on the stack: one part read
+			while the next is written, so the stack never grows while a large array is read
+		[POSTPONED - after self-hosting and profiling; Q.018] L16.3 `[arrays] loadSmall` / `loadLarge`: how many
+			items of a small / large array are loaded onto the stack at a time
 
 ---
 
