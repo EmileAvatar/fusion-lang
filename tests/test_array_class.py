@@ -1,10 +1,13 @@
 """Task 45.1 - the built-in Array class (D.142): every array acts as an object of it, so
 `Array.length(a)` and `a.length()` / `a.length` / `len(a)` mean the same; `toList` and `toCSV` too.
 """
+import re
+
 import pytest
 
+from src.parser.parser import ParserError
 from tests.test_ownership_moves import run
-from tests.test_structs import errors_of, main
+from tests.test_structs import errors_of, main, parse
 
 POINT = 'struct Point\n    int x\n    int y\n\n'
 
@@ -63,3 +66,41 @@ def test_an_index_into_an_empty_array_is_an_index_error():
 def test_a_struct_field_still_needs_a_size():
     # a struct's size is fixed until an array can live on the heap (45.10)
     assert "needs a size" in errors_of('struct Box\n    int[] items\n\n' + main('print("x")'))
+
+
+# ---------- 45.14: fixed int[10] c - never another size (D.141) ----------
+
+def test_a_fixed_array_works_like_any_array():
+    source = ('int[3] function podium()\n    return [3, 1, 2]\n\n'
+              + main('fixed int[3] a\nfixed int[] b = [5, 2, 3]\nfixed int[] c = podium()\na[0] = 7\n'
+                     'b = podium()\nprint("{@1} {@2} {@3} {@4}", a[0], a.length, b[0], c.length)'))
+    assert run(source) == ['7 3 3 3']
+
+
+def test_a_fixed_array_of_objects():
+    source = ('class Car\n    public string color\n    constructor(string c)\n        this.color = c\n\n'
+              + main('fixed Car[] cars = [Car("red"), null]\ncars[1] = Car("blue")\nprint(cars[1].color)'))
+    assert run(source) == ['blue']
+
+
+def test_a_fixed_array_needs_its_size_or_its_values():
+    assert "fixed needs its size - fixed int[3] d" in errors_of(main('fixed int[] d'))
+
+
+@pytest.mark.parametrize('body, message', [
+    ('fixed int x = 1', 'fixed is written on an array'),
+    ('fixed(10) string s = "a"', 'fixed(n) - at most n - on a string, List or Map is planned'),
+    ('fixed List<int> xs = []', 'fixed is written on an array'),
+])
+def test_fixed_on_anything_else_waits_for_47_5(body, message):
+    with pytest.raises(ParserError, match=re.escape(message)):
+        parse(main(body))
+
+
+def test_a_fixed_array_cant_be_replaced_by_a_literal():
+    assert "Cannot reassign array 'a' as a whole" in errors_of(main('fixed int[] a = [1, 2]\na = [1, 2, 3]'))
+
+
+def test_fixed_is_a_reserved_word():
+    with pytest.raises(ParserError, match='Expected variable name'):
+        parse(main('int fixed = 1'))

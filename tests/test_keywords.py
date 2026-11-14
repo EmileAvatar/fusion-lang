@@ -20,8 +20,8 @@ class TestKeywordTable:
         """Verify expected number of keywords."""
         # 69 keywords - internal and namespace from Task 32.2h (including the special cases 'Enum'/'enum'); `end` is not a keyword
         # (Task 44.5); let, var and service are (Task 46, 2026-10-29)
-        assert KEYWORD_COUNT == 68
-        assert len(KEYWORDS) == 68
+        assert KEYWORD_COUNT == 69
+        assert len(KEYWORDS) == 69
 
     def test_keyword_table_is_dict(self):
         """Verify KEYWORDS is a dictionary."""

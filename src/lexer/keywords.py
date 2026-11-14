@@ -92,6 +92,7 @@ KEYWORDS: Dict[str, TokenType] = {
     'let': TokenType.LET,
     'var': TokenType.VAR,
     'service': TokenType.SERVICE,   # reserved for services (Task 42)
+    'fixed': TokenType.FIXED,       # an array that never changes size (Task 45.14, D.141); fixed(n) - 47.5
 
     # ============================================================
     # Literal Keywords (4)

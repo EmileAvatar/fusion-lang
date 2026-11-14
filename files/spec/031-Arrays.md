@@ -11,7 +11,10 @@ Description: Fixed-size, homogeneous collections of a single element type.
 ```
 int[] scores = [10, 20, 30]      // size inferred from the literal
 float[3] buffer                   // explicit size, zero-initialized (no literal needed)
-int[3] fixed = [1, 2, 3]          // explicit size + literal (must agree)
+int[3] three = [1, 2, 3]          // explicit size + literal (must agree)
+int[] none                        // empty - size 0 (Task 45.2)
+fixed int[3] podium = [3, 1, 2]   // fixed - never another size (Task 45.14, D.141)
+Array.length(scores)              // the Array class - the same as scores.length (Task 45.1, D.142)
 
 scores[0]                         // read
 scores[0] = 99                    // write an element
@@ -82,7 +85,8 @@ team.scores = podium()     // an array field too
 - Whole-array reassignment after declaration (`arr = [4, 5, 6]`, `arr = other`) - only
   per-element assignment, or assigning an array a function returns (`arr = make()`), is
   supported, since a plain C array isn't reassignable that way
-- Dynamic/resizable arrays (no `malloc`-backed growth yet - fixed-size only)
+- Arrays that grow - planned, Task 45: plain arrays get a new size by replacing, `int:[]` / `int[[]]`
+  grow at the end, up to 3 dimensions (Decisions.md D.141-D.147)
 - Bounds checking - built since then: every index is checked, outside the array is an
   IndexError (Task 27.1)
 - `arr.length` / `arr.len`, with or without brackets - built (Task 30.8): the same as

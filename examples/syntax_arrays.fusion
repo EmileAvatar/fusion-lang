@@ -10,9 +10,10 @@ void function main()
     int[] scores = [10, 20, 30]         // size from the literal
     float[3] buffer                     // zero-filled
     int[] none                          // empty - size 0
+    fixed int[3] top = [3, 2, 1]        // fixed: never another size (top = [1, 2] is an error)
     scores[0] = 99
     int[3] p = podium()
-    print("{@1} {@2} {@3} {@4} {@5}", sum(scores), len(scores), buffer[0], p[0], none.length)
+    print("{@1} {@2} {@3} {@4} {@5} {@6}", sum(scores), len(scores), buffer[0], p[0], none.length, top[0])
     try
         scores[5] = 1                       // every index is checked: an IndexError
     catch IndexError e

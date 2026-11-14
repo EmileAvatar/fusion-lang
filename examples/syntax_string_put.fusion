@@ -5,7 +5,7 @@ void function main()
     string word = "cafe"
     word[3] = '\u00e9'                  // a wider character: the rest moves along
     print("{a} {b} {word}")
-    const string fixed = "Ann"          // a const string is fixed: fixed[0] = 'X' is an error
+    const string name = "Ann"           // a const string never changes: name[0] = 'X' is an error
     try
         b[10] = 'z'                     // every index is checked: an IndexError
     catch IndexError e

@@ -69,9 +69,9 @@ def test_objects_are_shared_and_compared_by_identity():
                             'print("{@1} {@2}", same == honda, honda == Car("Other"))\n'
                             'honda = null\n'
                             'print("{@1} {@2}", honda == null, same is null)\n'
-                            'let fixed = make("Let")\n'
-                            'fixed.speed = 99\n'
-                            'print("{@1}", fixed.speed)'))
+                            'let kept = make("Let")\n'
+                            'kept.speed = 99\n'
+                            'print("{@1}", kept.speed)'))
     assert lines == ['Shared', 'true false', 'true false', '99']
 
 

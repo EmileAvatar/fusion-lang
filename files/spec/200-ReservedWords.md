@@ -20,13 +20,15 @@ Description: Complete list of language keywords and operators.
 
 Description: Words that cannot be used as identifiers.
 
-**Reserved today** - the compiler's list (src/lexer/keywords.py, 68 words - `Unique` released 2026-11-14, 48.8):
+**Reserved today** - the compiler's list (src/lexer/keywords.py, 69 words - `Unique` released 2026-11-14, 48.8; `fixed` added 2026-11-15, 45.14):
 
-`abstract`, `and`, `async`, `await`, `bool`, `break`, `byte`, `case`, `cast`, `catch`, `char`, `class`, `const`, `continue`, `double`, `else`, `End`, `enum`, `Enum`, `false`, `finally`, `float`, `for`, `func`, `function`, `get`, `go`, `if`, `implements`, `import`, `in`, `inherits`, `int`, `interface`, `internal`, `is`, `let`, `long`, `loop`, `match`, `namespace`, `new`, `not`, `null`, `or`, `override`, `private`, `property`, `protected`, `public`, `return`, `sealed`, `service`, `set`, `Shared`, `short`, `static`, `string`, `struct`, `this`, `throw`, `true`, `try`, `var`, `virtual`, `void`, `Weak`, `while`
+`abstract`, `and`, `async`, `await`, `bool`, `break`, `byte`, `case`, `cast`, `catch`, `char`, `class`, `const`, `continue`, `double`, `else`, `End`, `enum`, `Enum`, `false`, `finally`, `fixed`, `float`, `for`, `func`, `function`, `get`, `go`, `if`, `implements`, `import`, `in`, `inherits`, `int`, `interface`, `internal`, `is`, `let`, `long`, `loop`, `match`, `namespace`, `new`, `not`, `null`, `or`, `override`, `private`, `property`, `protected`, `public`, `return`, `sealed`, `service`, `set`, `Shared`, `short`, `static`, `string`, `struct`, `this`, `throw`, `true`, `try`, `var`, `virtual`, `void`, `Weak`, `while`
 
 - **`end` is not reserved** (Task 44.5): `End` closes a block; a lowercase `end` does only right before
   a block word (`end function`, `end if`, ...) and is an ordinary name everywhere else
 - `let`, `var` and `service` are reserved (Task 46, 2026-10-29)
+- `fixed` (Task 45.14, D.141): `fixed int[10] c` - an array that never changes size; `fixed(n)` - at
+  most n - on a string, List or Map is Task 47.5
 - In `match`, `_` skips a value: `case Rect(w, _)`
 - A name after `.` may be a reserved word (`m.get`, `x.set`) - there it can only be a field or method
 - To reserve when their features are built: `check` (56.3), `unsafe` (42.40)
@@ -47,7 +49,7 @@ Description: Words that cannot be used as identifiers.
 **Type Declarations**:
 * `class`, `struct`, `interface`, `enum`
 * `property`
-* `var`, `const`
+* `var`, `const`, `fixed`
 * `static`
 
 **Access Modifiers**:

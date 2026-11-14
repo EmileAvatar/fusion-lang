@@ -19,9 +19,9 @@ void function main()
     Engine mine = byVal car.getEngine()  // a copy - it may change
     mine.tune()
     print("{@1}", mine.power)            // 100
-    const Car fixed = Car()
-    print(fixed.name)                    // Mini - reading is fine
-    // fixed.rename("Golf") here: 'fixed' is const - rename changes it
-    Car other = byVal fixed              // a copy may change
+    const Car frozen = Car()
+    print(frozen.name)                   // Mini - reading is fine
+    // frozen.rename("Golf") here: 'frozen' is const - rename changes it
+    Car other = byVal frozen             // a copy may change
     other.rename("Golf")
     print(other.name)                    // Golf

@@ -184,8 +184,8 @@ void function strings() {
     print(formatMask("5551234567", "(###) ###-####"))
     // [designed] Mutable strings: edit in place (Task 29)
     name[0] = 'E'
-    // [designed] A fixed (immutable) string type (Task 29)
-    fixed string code = "ABC-123"
+    // [designed] fixed(n): at most n characters, reserved at once (D.064, Task 47.5); const: never changes
+    fixed(10) string code = "ABC-123"
     // [designed] A string with a size limit, to match a database column
     string(255) title = "Captain"
     // [idea] Raw strings: no escapes, backslashes stay as written

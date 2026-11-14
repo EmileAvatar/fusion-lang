@@ -1169,6 +1169,10 @@ class Parser:
         if self.check(TokenType.CONST):
             return self.parse_const_declaration()
 
+        # `fixed int[10] c` - an array that never changes size (Task 45.14, D.141)
+        if self.check(TokenType.FIXED):
+            return self.parse_fixed_declaration()
+
         # `let x = 5` / `var x = 5` - the type comes from the value (Task 46.1)
         if self.check(TokenType.LET) or self.check(TokenType.VAR):
             return self.parse_inferred_declaration()
@@ -1202,6 +1206,23 @@ class Parser:
             location=expr.location,
             expression=expr
         )
+
+    def parse_fixed_declaration(self) -> ASTNode:
+        """`fixed int[10] c`, `fixed int[] d = [5, 2, 3]` (Task 45.14, D.141): an array whose size
+        is set once, when it is made. `fixed(n)` - at most n - on strings, Lists and Maps is Task 47.5."""
+        fixed_token = self.consume(TokenType.FIXED, "Expected 'fixed'")
+        if self.check(TokenType.LPAREN):
+            raise ParserError(self.peek(), "fixed(n) - at most n - on a string, List or Map is planned "
+                                           "(Task 47.5); an array is written fixed int[10] c")
+        if not (self.is_type_start() or self.is_struct_type_declaration_start()):
+            raise ParserError(self.peek(), "After 'fixed' comes an array type: fixed int[10] c")
+        declaration = self.parse_var_declaration()
+        if not isinstance(declaration.var_type, ArrayType):
+            raise ParserError(fixed_token, "fixed is written on an array - fixed int[10] c; fixed(n) on "
+                                           "a string, List or Map is planned (Task 47.5)")
+        declaration.is_fixed = True
+        declaration.location = fixed_token.location
+        return declaration
 
     def parse_var_declaration(self) -> ASTNode:
         """Parse variable declaration: int x = 5

@@ -427,6 +427,8 @@ class VarDeclStmt(ASTNode):
     # Form B (Task 32.2d): `Car c = new Car() { c.speed = 4 }` - a block that sets the variable
     # up further; expand_setup_blocks() moves it right after the declaration
     setup: Optional['BlockStmt'] = None
+    # `fixed int[10] c` (Task 45.14, D.141): an array whose size never changes
+    is_fixed: bool = False
 
 
 @dataclass

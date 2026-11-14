@@ -242,8 +242,8 @@ def test_lambdas_and_const_strings():
     assert run_ok(ECHO + main(
         '(string) : string f = func(string x) : echo(x)\n'
         'print("{@1}", f("lambda"))\n'
-        'const string fixed = echo("const")\n'
-        'print("{fixed}")\n'
+        'const string kept = echo("const")\n'
+        'print("{kept}")\n'
     )) == ["lambda", "const"]
 
 

@@ -2571,7 +2571,12 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return
 
         if not node.initializer:
-            if array_type.size is None:
+            if array_type.size is None and getattr(node, 'is_fixed', False):
+                self.errors.append(SemanticError(
+                    f"fixed needs its size - fixed {self.type_to_string(array_type.element_type)}[3] "
+                    f"{node.name}, or its values: fixed {self.type_to_string(array_type.element_type)}[] "
+                    f"{node.name} = [...] (D.141)", node.location))
+            elif array_type.size is None:
                 array_type.size = 0       # `int[] e` - an empty array, size 0 (Task 45.2, D.141)
             return
 

@@ -93,6 +93,7 @@ class TokenType(Enum):
     LET = auto()
     CONST = auto()
     SERVICE = auto()        # reserved for services (Task 42), 2026-10-29
+    FIXED = auto()          # `fixed int[10] c` - never another size (Task 45.14, D.141)
 
     # ============================================================
     # KEYWORDS - Literals (4 tokens)
@@ -242,7 +243,7 @@ _KEYWORD_TYPES: Set[TokenType] = {
     TokenType.SHARED, TokenType.WEAK,
 
     # Variables
-    TokenType.VAR, TokenType.LET, TokenType.CONST, TokenType.SERVICE,
+    TokenType.VAR, TokenType.LET, TokenType.CONST, TokenType.SERVICE, TokenType.FIXED,
 
     # Literals
     TokenType.TRUE, TokenType.FALSE, TokenType.NULL, TokenType.THIS,

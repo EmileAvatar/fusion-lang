@@ -220,9 +220,10 @@ void function main()
     int[] scores = [10, 20, 30]         // size from the literal
     float[3] buffer                     // zero-filled
     int[] none                          // empty - size 0
+    fixed int[3] top = [3, 2, 1]        // fixed: never another size (top = [1, 2] is an error)
     scores[0] = 99
     int[3] p = podium()
-    print("{@1} {@2} {@3} {@4} {@5}", sum(scores), len(scores), buffer[0], p[0], none.length)
+    print("{@1} {@2} {@3} {@4} {@5} {@6}", sum(scores), len(scores), buffer[0], p[0], none.length, top[0])
     try
         scores[5] = 1                       // every index is checked: an IndexError
     catch IndexError e
@@ -495,7 +496,7 @@ void function main()
     string word = "cafe"
     word[3] = '\u00e9'                  // a wider character: the rest moves along
     print("{a} {b} {word}")
-    const string fixed = "Ann"          // a const string is fixed: fixed[0] = 'X' is an error
+    const string name = "Ann"           // a const string never changes: name[0] = 'X' is an error
     try
         b[10] = 'z'                     // every index is checked: an IndexError
     catch IndexError e
@@ -1246,10 +1247,10 @@ void function main()
     Engine mine = byVal car.getEngine()  // a copy - it may change
     mine.tune()
     print("{@1}", mine.power)            // 100
-    const Car fixed = Car()
-    print(fixed.name)                    // Mini - reading is fine
-    // fixed.rename("Golf") here: 'fixed' is const - rename changes it
-    Car other = byVal fixed              // a copy may change
+    const Car frozen = Car()
+    print(frozen.name)                   // Mini - reading is fine
+    // frozen.rename("Golf") here: 'frozen' is const - rename changes it
+    Car other = byVal frozen             // a copy may change
     other.rename("Golf")
     print(other.name)                    // Golf
 ```
