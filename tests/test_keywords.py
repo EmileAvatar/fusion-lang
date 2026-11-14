@@ -20,8 +20,8 @@ class TestKeywordTable:
         """Verify expected number of keywords."""
         # 69 keywords - internal and namespace from Task 32.2h (including the special cases 'Enum'/'enum'); `end` is not a keyword
         # (Task 44.5); let, var and service are (Task 46, 2026-10-29)
-        assert KEYWORD_COUNT == 69
-        assert len(KEYWORDS) == 69
+        assert KEYWORD_COUNT == 68
+        assert len(KEYWORDS) == 68
 
     def test_keyword_table_is_dict(self):
         """Verify KEYWORDS is a dictionary."""
@@ -233,10 +233,9 @@ class TestTypeKeywords:
 class TestMemoryKeywords:
     """Test memory management keyword recognition."""
 
-    def test_unique_capitalized(self):
-        """Unique requires capital U."""
-        assert is_keyword('Unique')
-        assert get_keyword_type('Unique') == TokenType.UNIQUE
+    def test_unique_is_not_a_keyword(self):
+        """Task 48.8 (D.080): `Unique` released - no Unique<T>, every object moves by default."""
+        assert not is_keyword('Unique')
 
     def test_shared_capitalized(self):
         """Shared requires capital S."""
@@ -378,8 +377,7 @@ class TestCaseSensitivity:
     def test_capitalized_keywords(self):
         """Some keywords require capital letters."""
         # Memory keywords require capitals
-        assert is_keyword('Unique')
-        assert not is_keyword('unique')
+        assert not is_keyword('Unique')      # released (48.8)
 
         assert is_keyword('Shared')
         assert not is_keyword('shared')

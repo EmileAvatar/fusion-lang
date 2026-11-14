@@ -16,9 +16,9 @@ Description: Complete list of language keywords and operators.
 
 Description: Words that cannot be used as identifiers.
 
-**Reserved today** - the compiler's list (src/lexer/keywords.py, 69 words, 2026-11-12):
+**Reserved today** - the compiler's list (src/lexer/keywords.py, 68 words - `Unique` released 2026-11-14, 48.8):
 
-`abstract`, `and`, `async`, `await`, `bool`, `break`, `byte`, `case`, `cast`, `catch`, `char`, `class`, `const`, `continue`, `double`, `else`, `End`, `enum`, `Enum`, `false`, `finally`, `float`, `for`, `func`, `function`, `get`, `go`, `if`, `implements`, `import`, `in`, `inherits`, `int`, `interface`, `internal`, `is`, `let`, `long`, `loop`, `match`, `namespace`, `new`, `not`, `null`, `or`, `override`, `private`, `property`, `protected`, `public`, `return`, `sealed`, `service`, `set`, `Shared`, `short`, `static`, `string`, `struct`, `this`, `throw`, `true`, `try`, `Unique`, `var`, `virtual`, `void`, `Weak`, `while`
+`abstract`, `and`, `async`, `await`, `bool`, `break`, `byte`, `case`, `cast`, `catch`, `char`, `class`, `const`, `continue`, `double`, `else`, `End`, `enum`, `Enum`, `false`, `finally`, `float`, `for`, `func`, `function`, `get`, `go`, `if`, `implements`, `import`, `in`, `inherits`, `int`, `interface`, `internal`, `is`, `let`, `long`, `loop`, `match`, `namespace`, `new`, `not`, `null`, `or`, `override`, `private`, `property`, `protected`, `public`, `return`, `sealed`, `service`, `set`, `Shared`, `short`, `static`, `string`, `struct`, `this`, `throw`, `true`, `try`, `var`, `virtual`, `void`, `Weak`, `while`
 
 - **`end` is not reserved** (Task 44.5): `End` closes a block; a lowercase `end` does only right before
   a block word (`end function`, `end if`, ...) and is an ordinary name everywhere else
@@ -52,7 +52,7 @@ Description: Words that cannot be used as identifiers.
 **Memory & Pointers**:
 * `unsafe`
 * `allocate`, `deallocate`
-* `Unique`, `Shared`, `Weak`
+* `Shared`, `Weak`
 
 **Functions & Methods**:
 * `function`

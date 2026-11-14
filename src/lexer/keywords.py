@@ -80,9 +80,8 @@ KEYWORDS: Dict[str, TokenType] = {
     'void': TokenType.VOID,
 
     # ============================================================
-    # Memory Management Keywords (3)
+    # Memory Management Keywords (2) - `Unique` released (Task 48.8, D.080): every object moves
     # ============================================================
-    'Unique': TokenType.UNIQUE,     # Capital U required
     'Shared': TokenType.SHARED,     # Capital S required
     'Weak': TokenType.WEAK,         # Capital W required
 

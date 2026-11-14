@@ -83,7 +83,6 @@ class TokenType(Enum):
     # ============================================================
     # KEYWORDS - Memory (3 tokens)
     # ============================================================
-    UNIQUE = auto()
     SHARED = auto()
     WEAK = auto()
 
@@ -239,7 +238,7 @@ _KEYWORD_TYPES: Set[TokenType] = {
     TokenType.LONG, TokenType.VOID,
 
     # Memory
-    TokenType.UNIQUE, TokenType.SHARED, TokenType.WEAK,
+    TokenType.SHARED, TokenType.WEAK,
 
     # Variables
     TokenType.VAR, TokenType.LET, TokenType.CONST, TokenType.SERVICE,

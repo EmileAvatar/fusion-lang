@@ -259,7 +259,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[POSTPONED to 38 (user, 2026-11-14) - the counting is a safety net while the checks are young] 48.6 Counting removed
 		where moves make it unnecessary (covers 38.2)
 	[ ] 48.7 Examples and files/SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
-	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
+	[DONE] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080) - an ordinary name now;
+		the self-hosted lexer too; `Shared` / `Weak` stay reserved (Task 38)
 	[DONE] 48.9 Migrate, then make "move" the default (D.102)
 	[DONE] 48.10 R4 changed (D.123): while a borrow changes a value its owner may still be read - only changing it
 		another way is an error (today reading is an error too - 48.2)

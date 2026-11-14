@@ -168,7 +168,7 @@ def test_token_type_type_keywords():
 
 def test_token_type_memory_keywords():
     """Test memory-related keyword tokens exist."""
-    assert hasattr(TokenType, 'UNIQUE')
+    assert not hasattr(TokenType, 'UNIQUE')   # released (48.8, D.080)
     assert hasattr(TokenType, 'SHARED')
     assert hasattr(TokenType, 'WEAK')
 
