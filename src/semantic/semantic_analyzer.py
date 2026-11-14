@@ -18,7 +18,7 @@ from .class_rules import check_class_cycles, check_constructors
 from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly, check_readonly_calls, check_readonly_values
-from .null_guards import expand_null_guards
+from .null_guards import check_surely_null, expand_null_guards
 from .interfaces import check_interfaces
 from .case_names import check_case_names
 from .ownership import check_ownership
@@ -78,6 +78,7 @@ class SemanticAnalyzer:
         self.type_checker.auto_widening = bool(getattr(numbers_config, 'auto_widening', False))
         # [conditions] numbers (Task 30.9): numbers in if / while conditions
         self.type_checker.number_conditions = getattr(conditions_config, 'numbers', 'positive')
+        self.not_around_guard = getattr(conditions_config, 'not_around_guard', False)   # 52.7
         # [modules] variables (Task 44.1): module-level variables allowed (default true)
         self.module_variables_allowed = bool(getattr(modules_config, 'variables', True))
         # [visibility] required (Task 32.2h): the level must be written everywhere
@@ -124,7 +125,9 @@ class SemanticAnalyzer:
 
         # The null guard (Task 52.8): c?.name, c?.f(), a ?? b rewritten into `is not null`,
         # `and`, `? :` and `if` - before anything else looks at the program
-        self.errors.extend(expand_null_guards(ast))
+        guard_errors, guard_warnings = expand_null_guards(ast, self.not_around_guard)
+        self.errors.extend(guard_errors)
+        self.warnings.extend(guard_warnings)
 
         # Pass 0: string templates (Task 29.3) - every use becomes a format() call or a
         # lambda, before anything else looks at the program
@@ -283,6 +286,9 @@ class SemanticAnalyzer:
         # readonly parameters: never changed, passed on to a change or kept (Task 32.2e)
         self.errors.extend(check_readonly(ast))
         self.errors.extend(check_readonly_calls(ast))      # f(readonly acc) (Task 48.3)
+        self.errors.extend(check_surely_null(                      # Task 52.7 (D.117)
+            ast, lambda t: self.type_checker.is_class(t) or type(t).__name__ == 'EnumType',
+            self.type_checker.is_default_type))
         value_errors, value_warnings = check_readonly_values(ast)   # Task 50.1 / 50.2
         self.errors.extend(value_errors)
         self.warnings.extend(value_warnings)

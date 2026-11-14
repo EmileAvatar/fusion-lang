@@ -1258,7 +1258,9 @@ void function main()
     ann?.greet()                             // hi Ann
     int age = nobody?.age ?? -1              // -1 - ?? gives the default
     print("{@1}", age)
-    if !(nobody?.age >= 18)                  // a guarded test is false on null - so this is true
+    if ann?.age >= 18                        // a guarded test is false on null (a warning: D.116)
+        print("adult")
+    if nobody is null                        // null on its own path - never !(nobody?.age >= 18)
         print("ask for ID")
     string partner = ann?.spouse?.name ?? "none"   // every link checked
     print(partner)                           // Bob
@@ -1267,7 +1269,9 @@ void function main()
 ```
 `?.` reads through an object that may be null: a call is skipped, a test in a condition is false,
 and a value needs a default you write with `??` - `int a = nobody?.age` alone is an error (nothing
-changes silently). Before `?.` stands a variable or a field path - after a call, store the result
+changes silently). `!` around a `?.` test is an error - it would turn "unknown" into "yes"; test null
+on its own (D.116; `[conditions] notAroundGuard = true` allows it with a warning). An object surely
+null when passed (`Car c = null` then `drive(c)`) is an error too (D.117). Before `?.` stands a variable or a field path - after a call, store the result
 first. A string, array, List or Map is never null, so `?.` on one does nothing (a warning).
 
 #### `Default`: an object that is never null

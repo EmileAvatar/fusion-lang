@@ -196,8 +196,11 @@ class ConditionsConfig:
             above zero (zero and negatives false); "nonzero" - true when not zero (C, Python,
             JavaScript); "off" - a condition must be a bool. Only conditions: `bool b =
             count` is always an error
+        not_around_guard: `!` around a `?.` test (Task 52.7, D.116) - false (the default): a
+            compile error, null is handled on its own; true: allowed, with a warning
     """
     numbers: str = "positive"
+    not_around_guard: bool = False
 
 
 CONDITION_NUMBERS = ("positive", "nonzero", "off")
@@ -622,9 +625,15 @@ def _load_conditions_section(data: dict, config_path: str) -> ConditionsConfig:
     conditions = ConditionsConfig()
     section = _require_table(data, "conditions", config_path)
     for key, value in section.items():
+        if key == "notAroundGuard":                               # Task 52.7 (D.116)
+            if not isinstance(value, bool):
+                raise ProjectConfigError(
+                    f"{config_path}: conditions.notAroundGuard must be a boolean, got {value!r}")
+            conditions.not_around_guard = value
+            continue
         if key != "numbers":
             raise ProjectConfigError(
-                f"{config_path}: unknown setting conditions.{key} (known: ['numbers'])")
+                f"{config_path}: unknown setting conditions.{key} (known: ['notAroundGuard', 'numbers'])")
         if value not in CONDITION_NUMBERS:
             raise ProjectConfigError(
                 f"{config_path}: conditions.numbers must be one of {list(CONDITION_NUMBERS)}, "

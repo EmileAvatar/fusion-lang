@@ -88,6 +88,8 @@ allowReference = false
 [conditions]
 # [built] A number as a condition: positive (above zero is true) | nonzero (C, Python) | off
 numbers = "positive"
+# [built] '!' around a ?. test: false (default) = a compile error, test null on its own; true = a warning (D.116, 52.7)
+notAroundGuard = false
 # [designed] "!" around a ?. comparison: allowed with a warning (true) or a compile error (D.116; name open)
 negateGuarded = false
 

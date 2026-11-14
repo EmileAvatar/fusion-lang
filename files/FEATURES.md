@@ -236,7 +236,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		frees the object; an element of the wrong type stays an error
 	[DONE - default false] 52.12 `[strings] nullBecomesEmpty` (user, 2026-11-14): `s = null` - an error, or ""; default asked (D.003)
 	[DONE] 52.13 `?.` / `??` on a string, array, List or Map - never null, so the guard does nothing: a warning
-	[ ] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
+	[DONE - a Default is never null by construction (52.2)] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
 		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
 		`?` parameter without a null check - a warning; a `Default` left null - an error
 

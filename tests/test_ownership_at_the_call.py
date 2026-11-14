@@ -153,5 +153,7 @@ def test_a_null_error_inside_a_called_function_reaches_the_catch():
     caught = ACCOUNT + main('Account acc = null\ntry\n    show(acc)\ncatch NullError e\n    print("null")')
     assert run(caught, SHARE) == ['null']
     from tests.test_end_to_end import compile_and_run
-    code, out, err = compile_and_run(ACCOUNT + main('Account acc = null\nshow(acc)\nprint("after")'))
+    # null only while running (`Account acc = null` then show(acc) is a compile error since D.117)
+    code, out, err = compile_and_run(ACCOUNT + 'Account function none()\n    return null\n\n'
+                                     + main('Account acc = none()\nshow(acc)\nprint("after")'))
     assert code != 0 and "used '.' on a null Account" in err and 'after' not in out

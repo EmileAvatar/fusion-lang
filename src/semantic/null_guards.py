@@ -33,12 +33,15 @@ from .errors import SemanticError
 COMPARISONS = {'==', '!=', '===', '!==', '<>', '<', '>', '<=', '>='}
 
 
-def expand_null_guards(program) -> List[SemanticError]:
+def expand_null_guards(program, not_around_guard: bool = False):
+    """Returns (errors, warnings). `not_around_guard`: [conditions] notAroundGuard (D.116)."""
     errors: List[SemanticError] = []
-    if not _has_guard(program):
-        return errors
-    _Expander(errors).node(program)
-    return errors
+    warnings: List[SemanticError] = []
+    if _has_guard(program):
+        expander = _Expander(errors)
+        expander.warnings, expander.not_around_guard = warnings, not_around_guard
+        expander.node(program)
+    return errors, warnings
 
 
 def _has_guard(node) -> bool:
@@ -153,6 +156,16 @@ class _Expander:
             return expr
         if isinstance(expr, UnaryExpr) and expr.operator in ('not', '!'):
             expr.operand = self.condition(expr.operand)
+            if _guarded_test(expr.operand):           # D.116 (52.7): unknown is not "yes"
+                text = ("'!' around a ?. test turns 'unknown' into 'yes' - when the object is null the "
+                        "test is false, so '!' makes it true; test null on its own: if x is null ... "
+                        "else if ... (D.116)")
+                if self.not_around_guard:
+                    self.warnings.append(SemanticError(text + " - allowed by [conditions] notAroundGuard",
+                                                       expr.location))
+                else:
+                    self.errors.append(SemanticError(text + " - or [conditions] notAroundGuard = true",
+                                                     expr.location))
             return expr
         guards = []
         if isinstance(expr, BinaryExpr) and expr.operator in COMPARISONS:
@@ -164,8 +177,14 @@ class _Expander:
         expr = self.value(expr)
         if not guards:
             return expr
-        return BinaryExpr(location=expr.location, left=self.not_null(guards, expr.location),
+        test = BinaryExpr(location=expr.location, left=self.not_null(guards, expr.location),
                           operator='and', right=expr)
+        test.guarded_test = True
+        if isinstance(expr, BinaryExpr) and expr.operator in COMPARISONS:     # D.116 (52.7)
+            self.warnings.append(SemanticError(
+                "A ?. comparison is false when the object is null - if null needs its own path, test it "
+                "first: if x is null ... else if ... (D.116)", expr.location))
+        return test
 
     def statement(self, stmt):
         """`c?.rename("x")` on its own - not run when something on the way is null."""
@@ -205,3 +224,124 @@ def _is_statement(n) -> bool:
     name = type(n).__name__
     return name.endswith('Stmt') or name.endswith('Decl') or name in ('ProgramNode', 'MatchCase',
                                                                        'MatchArm', 'CatchClause')
+
+
+def _guarded_test(expr) -> bool:
+    """A condition holding a test made from a `?.` guard."""
+    if getattr(expr, 'guarded_test', False):
+        return True
+    if isinstance(expr, BinaryExpr) and expr.operator in ('and', 'or', '&&', '||'):
+        return _guarded_test(expr.left) or _guarded_test(expr.right)
+    if isinstance(expr, UnaryExpr):
+        return _guarded_test(expr.operand)
+    return False
+
+
+def check_surely_null(program, is_object, is_default) -> List[SemanticError]:
+    """D.117 (Task 52.7): an object surely null when it is passed - `Car c = null` then `drive(c)`
+    with nothing in between that could give it an object - is a compile error. Followed in each
+    block from top to bottom; a name given a value anywhere inside an if / loop / try is no longer
+    surely null after it. Runs after type checking (it needs to know what is an object)."""
+    from src.parser.ast_nodes import (AssignmentStmt, FunctionDecl, LiteralExpr, NamedArgument,
+                                      ReturnStmt, StructDecl, VarDeclStmt)
+    errors: List[SemanticError] = []
+
+    def is_null(e):
+        return isinstance(e, LiteralExpr) and e.type_hint == 'null'
+
+    def assigned(node, names):
+        def look(n):
+            if isinstance(n, list):
+                for x in n:
+                    look(x)
+                return
+            if not is_dataclass(n) or isinstance(n, type):
+                return
+            if isinstance(n, AssignmentStmt) and isinstance(n.target, IdentifierExpr):
+                names.discard(n.target.name)
+            if isinstance(n, VarDeclStmt):
+                names.discard(n.name)
+            for f in fields(n):
+                if f.name not in ('location', 'inferred_type', 'callee_declaration', 'declaration'):
+                    look(getattr(n, f.name))
+        look(node)
+
+    def calls_in(expr, found):
+        if isinstance(expr, list):
+            for x in expr:
+                calls_in(x, found)
+            return
+        if not is_dataclass(expr) or isinstance(expr, type) or _is_statement(expr):
+            return
+        if isinstance(expr, CallExpr):
+            found.append(expr)
+        for f in fields(expr):
+            if f.name not in ('location', 'inferred_type', 'callee_declaration', 'declaration'):
+                calls_in(getattr(expr, f.name), found)
+
+    def block(statements):
+        surely = set()
+        for s in statements:
+            exprs = []
+            if isinstance(s, ExpressionStmt):
+                exprs = [s.expression]
+            elif isinstance(s, VarDeclStmt) and s.initializer is not None:
+                exprs = [s.initializer]
+            elif isinstance(s, AssignmentStmt):
+                exprs = [s.value]
+            elif isinstance(s, ReturnStmt) and s.value is not None:
+                exprs = [s.value]
+            found = []
+            calls_in(exprs, found)
+            for call in found:
+                if not isinstance(getattr(call, 'callee_declaration', None), FunctionDecl):
+                    continue                  # a built-in (print shows "null") - only your functions
+                start = 1 if getattr(call, 'struct_method', False) else 0     # `this` - not passed
+                for arg in call.arguments[start:]:
+                    arg = arg.value if isinstance(arg, NamedArgument) else arg
+                    if isinstance(arg, IdentifierExpr) and arg.name in surely:
+                        who = getattr(call.callee, 'name', 'the function')
+                        errors.append(SemanticError(
+                            f"'{arg.name}' is surely null here - {who.split('.')[-1]} would get null; "
+                            f"give it an object first, or check it (if {arg.name} is null ...) (D.117)",
+                            arg.location))
+            if isinstance(s, VarDeclStmt):
+                if s.initializer is not None and is_null(s.initializer) and is_object(s.var_type) \
+                        and not is_default(s.var_type):
+                    surely.add(s.name)
+                else:
+                    surely.discard(s.name)
+            elif isinstance(s, AssignmentStmt) and isinstance(s.target, IdentifierExpr):
+                if is_null(s.value) and s.target.name in surely | {s.target.name} \
+                        and is_object(getattr(s.target, 'inferred_type', None)) \
+                        and not is_default(getattr(s.target, 'inferred_type', None)):
+                    surely.add(s.target.name)
+                else:
+                    surely.discard(s.target.name)
+            elif not isinstance(s, (ExpressionStmt, ReturnStmt)):
+                assigned(s, surely)                   # an if / loop / try may give it a value
+            for inner in _blocks_of(s):
+                block(inner)
+
+    def _blocks_of(s):
+        out = []
+        for f in fields(s):
+            v = getattr(s, f.name)
+            if isinstance(v, BlockStmt):
+                out.append(v.statements)
+            elif isinstance(v, list):
+                for x in v:
+                    if isinstance(x, BlockStmt):
+                        out.append(x.statements)
+                    elif is_dataclass(x) and not isinstance(x, type) and _is_statement(x):
+                        out.extend(_blocks_of(x))
+            elif is_dataclass(v) and not isinstance(v, type) and type(v).__name__ in ('IfStmt', 'CatchClause'):
+                out.extend(_blocks_of(v))
+        return out
+
+    for d in program.declarations:
+        for f in ([d] if isinstance(d, FunctionDecl) else
+                  d.methods + d.static_methods if isinstance(d, StructDecl) else []):
+            if f.body is not None and isinstance(f.body, BlockStmt):
+                block(f.body.statements)
+    return errors

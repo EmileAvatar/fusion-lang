@@ -162,6 +162,9 @@
       <value>nonzero</value>
       <value>off</value>
     </setting>
+    <setting name="notAroundGuard" type="bool" default="false" task="52.7">
+      <description>'!' around a ?. test - if !(x?.age >= 18) - turns unknown into yes; false (the default): a compile error, test null on its own (if x is null ... else if ...); true: allowed with a warning (D.116)</description>
+    </setting>
   </section>
 
   <section name="safety" description="Safety">

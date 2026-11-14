@@ -16,7 +16,9 @@ void function main()
     ann?.greet()                             // hi Ann
     int age = nobody?.age ?? -1              // -1 - ?? gives the default
     print("{@1}", age)
-    if !(nobody?.age >= 18)                  // a guarded test is false on null - so this is true
+    if ann?.age >= 18                        // a guarded test is false on null (a warning: D.116)
+        print("adult")
+    if nobody is null                        // null on its own path - never !(nobody?.age >= 18)
         print("ask for ID")
     string partner = ann?.spouse?.name ?? "none"   // every link checked
     print(partner)                           // Bob

@@ -89,7 +89,8 @@ Person pep                      // never set: null
 - **Checks:** `==`, `===`, `is null`. `x?.null` is quick typing for "x is null", and
   `!x?.null` is quick typing for "x is not null"
 - **`?.` is a guard:** on a null object the method is not run, and nothing errors. A
-  comparison with a guarded null is false, so `!(pep?.getAge() >= 18)` is true
+  comparison with a guarded null is false (a warning); `!` around one is an error - it would turn
+  "unknown" into "yes": test null on its own, `if pep is null ... else if ...` (D.116, built 52.7)
 - **`??` gives a default** when a value is expected and none is there:
   `someObject?.someMethod() ?? value`. Use it only where a null can actually arrive
 - **The conditional operator** works on one line and gives a value:
@@ -158,7 +159,7 @@ and an empty one has length 0.
 | `if s?.length()` - "nonzero" | **true** (-1) | false | true | (C / Python habit - a trap here) |
 | `if s?.length()` - "off" | compile error | compile error | compile error | projects that want bool-only conditions |
 | `if s?.length() > 0` | false | false | true | the same as above, written out - works with every setting |
-| `if !(s?.length() > 0)` | true | true | false | "ask for a name" when missing or empty |
+| `if !(s?.length() > 0)` | - | true | false | a string is never null (D.138): `s.length() == 0` says it |
 | `if s?.length() >= 0` | false | true | true | "loaded, even if empty" (missing is -1) |
 | `s?.length() ?? 0` | -1 (warning: `??` never used here) | 0 | 3 | don't: -1 is not null |
 | `s?.null` / `s == null` / `s is null` | true | false | false | "not set yet" vs "set to empty" |
@@ -174,7 +175,7 @@ int; `getSpouse()` returns a Person, or null when there is none.
 | `x.getAge()` | 30 | 10 | 0 | NullError - only a catch handles it | the person must exist - a bug otherwise |
 | `x?.getAge()` | 30 | 10 | 0 | null (getAge not run) | a person that may not be loaded yet |
 | `if x?.getAge() >= 18` | true | false | false | false | "may buy alcohol?" - unknown means no |
-| `if !(x?.getAge() >= 18)` | false | true | true | true | "ask for ID" - also when unknown |
+| `if !(x?.getAge() >= 18)` | error | error | error | error | D.116: `!` around a `?.` test is a compile error - write `if x is null ... else if x.getAge() < 18` (`[conditions] notAroundGuard = true` allows it, with a warning) |
 | `if x?.getAge() < 18` | false | true | true | **false** (warning) | careful: unknown is not "under 18" - use the line above |
 | `if x?.getAge()` | true | true | false | false | "born and known?" |
 | `x?.getAge() ?? -1` | 30 | 10 | 0 | -1 | show "-1 = unknown" in a report |
@@ -214,7 +215,7 @@ int; `getSpouse()` returns a Person, or null when there is none.
 |---|---|---|
 | A value that must exist (the logged-in user inside a page only users can reach) | plain `.` - a NullError points to the bug | `?.` would hide the bug and quietly take the "no" path |
 | Money, medical, safety decisions | check first: `if account == null` -> an explicit error path | "missing" must never quietly mean "no" |
-| `if x?.getAge() < 18` (or any "not" question) | `if !(x?.getAge() >= 18)`, or check null first | unknown is not "under 18" |
+| `if x?.getAge() < 18` (or any "not" question) | check null first: `if x is null ... else if x.getAge() < 18` (D.116) | unknown is not "under 18" |
 | A value you will use many times | check once: `if p == null` then return; use plain `.` after | a `?.` at every use is noise and hides where null is handled |
 | Strings and structs (default settings) | nothing - they are never null | `?.` on a value that can't be null is a warning |
 | `?.length() ?? 0` | `?.length() > 0`, or `?.null` to test for missing | -1 is not null, so `??` never applies |

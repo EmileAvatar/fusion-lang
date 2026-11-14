@@ -36,8 +36,42 @@ def test_in_a_condition_a_guarded_test_is_false_on_null():
     assert out('if x?.age >= 18\n    print("x adult")\nif y?.age >= 18\n    print("y adult")') == ['y adult']
 
 
-def test_not_around_a_guarded_test_is_true_on_null():
-    assert out('if !(x?.age >= 18)\n    print("ask x for ID")') == ['ask x for ID']
+def test_not_around_a_guarded_test_is_an_error():
+    # D.116 (52.7): '!' would turn "unknown" into "yes" - null is tested on its own
+    assert "'!' around a ?. test turns 'unknown' into 'yes'" in \
+        errors_of(PERSON + main(SETUP + 'if !(x?.age >= 18)\n    print("ask x for ID")'))
+
+
+def test_not_around_a_guarded_test_with_the_setting_is_a_warning():
+    from src.config.project_config import ConditionsConfig
+    from tests.test_end_to_end import compile_and_run
+    code, output, err = compile_and_run(PERSON + main(SETUP + 'if !(x?.age >= 18)\n    print("ask x for ID")'),
+                                        analyzer_options={'conditions_config': ConditionsConfig(not_around_guard=True)})
+    assert code == 0, err
+    assert output.strip().splitlines()[-1] == 'ask x for ID'
+
+
+def test_a_guarded_comparison_warns():
+    assert "A ?. comparison is false when the object is null" in \
+        warnings_of(PERSON + main(SETUP + 'if y?.age >= 18\n    print("adult")'))
+
+
+def test_null_on_its_own_path():
+    assert out('if x is null\n    print("ask for ID")\nelse if x.age < 18\n    print("too young")') == ['ask for ID']
+
+
+@pytest.mark.parametrize('body, ok', [
+    ('Person p = null\ngreetOf(p)', False),                                  # surely null - an error (D.117)
+    ('Person p = null\np = Person("Cy", 5)\ngreetOf(p)', True),
+    ('Person p = null\nif true\n    p = Person("Cy", 5)\ngreetOf(p)', True),     # maybe set - no error
+    ('Person p = null\nif p is null\n    print("none")\nelse\n    greetOf(p)', True),
+])
+def test_an_object_surely_null_when_passed(body, ok):
+    source = PERSON + 'void function greetOf(Person p)\n    print("x")\n\n' + main(body)
+    if ok:
+        assert "is surely null here" not in str(run(source))
+    else:
+        assert "'p' is surely null here - greetOf would get null" in errors_of(source)
 
 
 def test_a_chain_checks_every_link():
