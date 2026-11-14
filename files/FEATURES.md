@@ -136,7 +136,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 #### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [ ] [index](#index)
 	Three forms (D.141): plain `int[] a` - a new size only by replacing; `fixed int[10] c` - never another
 	size; growable `int:[] g` / `int[[]] g` - grows and shrinks at its end, on the heap.
-	[ ] 45.1 The built-in `Array` class: `a.length` is `Array.length(a)`; `toList`, `toCSV` behind it (D.142)
+	[DONE] 45.1 The built-in `Array` class: `a.length` is `Array.length(a)`; `toList`, `toCSV` behind it (D.142) - tests/test_array_class.py, example syntax_array_class
 	[ ] 45.2 `int[] e` - valid, size 0 (was 30.10)
 	[ ] 45.14 `fixed int[10] c`, `fixed int[] d = [5, 2, 3]`, `fixed int[] d = f()` - never another size; the errors of D.141
 	[ ] 45.10 Replacing a plain array with another size: `a = [1, 2]`, `int[] function make(int n)` - a run-time

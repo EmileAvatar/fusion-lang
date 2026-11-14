@@ -208,6 +208,19 @@ void function collections() {
     // [built] Fixed arrays: size from the literal; every index is checked (IndexError)
     int[] scores = [10, 20, 30]
     float[3] buffer
+    // [built] The Array class: every array acts as an object of it (45.1, D.142)
+    int n = Array.length(scores)        // the same as scores.length
+    // [designed] Three forms (Task 45, D.141): plain - a new size only by replacing;
+    //            fixed - never another size; growable - add / removeLast at its end, on the heap
+    scores = [1, 2]                     // plain: replaced by another size
+    fixed int[3] podium = [3, 1, 2]     // fixed: podium = [1, 2] is an error
+    int:[] readings                     // growable - also written int[[]] readings
+    readings.add(7)
+    // [designed] Up to 3 dimensions: rows x columns x depth (D.143); FLAT / RECT / JAGG (D.144)
+    int[10][5][7] cube
+    cube.expand(columns, 2)             // a warning: every slot is copied
+    // [designed] Large arrays: [arrays] stackWarn 16KB, stackLimit 64KB (D.145); buffers
+    //            SINGLE / TWO / THIRD / RING after self-hosting (D.146)
     // [built] List<T>: grows; add, insert, sort, filter, reduce, ...
     List<int> numbers = [3, 1, 2]
     numbers.add(10)
@@ -227,8 +240,6 @@ void function collections() {
     int[] both = [...scores, ...oneToTen]
     // [designed] Methods on arrays: sum, max, map
     int total = scores.sum()
-    // [designed] Multi-dimensional fixed arrays
-    int[10][10] cells
     // [idea] Set<T>: each value once
     Set<string> tags = ["new", "sale"]
     // [idea] Slices: a part of a list or string, by range
@@ -251,13 +262,11 @@ void function nulls(Ship ship) {
     if ship is null {
         return
     }
-    // [designed] Safe navigation: none when anything on the way is null
-    string captain = ship?.captain?.name
-    // [designed] A default when it is null
+    // [built] The null guard (52.8): a value through ?. needs a default with ??
+    string captain = ship?.captain?.name ?? "none"
     string label = ship?.name ?? "Unknown"
-    // [designed] Safe indexing of an array that may be null
-    int[]? maybe = loadScores()
-    int len = maybe?.length ?? 0
+    // [rejected] An array that may be null - an array is never null (D.138)
+    //     int[]? maybe = loadScores()
     // [designed] NullError: using something that holds nothing is a catchable error (30.1b)
     // [designed] strict mode: a parameter is checked for null at the start of the function
 }

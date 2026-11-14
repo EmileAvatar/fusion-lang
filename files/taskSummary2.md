@@ -59,7 +59,7 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 **Postponed:**
 - 45.8 (threads) moves to Task 42.
 - To L16, after self-hosting and profiled first:
-  - The buffers TWO / THREE / RING.
+  - The buffers TWO / THIRD / RING.
   - The buffer settings.
   - The compiler picking RING above `stackLimit`.
 

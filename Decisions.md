@@ -130,7 +130,7 @@ COL.013 [REJECTED] Changing a collection while looping over it (a setting to all
 COL.014 [DESIGN] `Set<T>`; slices by range (`numbers[0...1]`); Map literals (`{"apples": 3}`)
 COL.015 [PLANNED] Arrays of up to 3 dimensions - rows, columns, depth; `expand`; FLAT / RECT / JAGG storage (Task 45, D.143, D.144)
 COL.016 [REJECTED] `type()` / `type(N)` arrays meaning read-only or fixed size - `const` and `fixed(n)` instead (D.064)
-COL.017 [PLANNED] Every array acts as an object of the built-in `Array` class - `a.length` is `Array.length(a)` (Task 45.1, D.142)
+COL.017 [BUILT] Every array acts as an object of the built-in `Array` class - `a.length` is `Array.length(a)`; `length`, `toList`, `toCSV` (Task 45.1, D.142); the rest with their sub-tasks
 COL.018 [DESIGN] Large arrays: stack limits in bytes (D.145); buffers SINGLE / TWO / THIRD / RING - built after self-hosting (D.146, L16)
 
 #### FUN - functions and errors

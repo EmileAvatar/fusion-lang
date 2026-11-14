@@ -88,6 +88,12 @@ CLASS_STATICS = {'Int': {'parseInt', 'fromHex', 'fromBinary', 'fromOctal'},
                  'Bytes': {'newBytes', 'hexToRaw', 'toBytes'}}
 # Plain functions only - never methods
 NOT_METHODS = {'print', 'write', 'range', 'format'}
+# The built-in Array class (Task 45.1, D.142): `Array.length(a)` is `a.length()` - every array acts
+# as an object of it. Its methods, called through the class with the array first
+ARRAY_CLASS = 'Array'
+ARRAY_METHODS = ('length', 'len', 'toList', 'toCSV')
+# Names a program can't give its own type
+BUILT_IN_CLASS_NAMES = set(TYPE_CLASSES) | {ARRAY_CLASS}
 
 
 def builtin_defaults(name: str, parameter_count: int) -> list:
@@ -390,7 +396,7 @@ class NameResolver:
         can hold an enum - and check its values."""
         for enum in (d for d in program.declarations if isinstance(d, EnumDecl)):
             self.errors.extend(check_enum_declaration(enum))
-            if enum.name in ('bytes', 'byte') or enum.name in TYPE_CLASSES \
+            if enum.name in ('bytes', 'byte') or enum.name in BUILT_IN_CLASS_NAMES \
                     or enum.name in COLLECTION_TYPE_NAMES:
                 self.errors.append(SemanticError(
                     f"'{enum.name}' is a built-in type - choose another name for the enum",
@@ -409,7 +415,7 @@ class NameResolver:
         """Register every custom error type's name (Task 26.9) - it can't share a name with a
         struct, function or another type."""
         for decl in (d for d in program.declarations if isinstance(d, ErrorDecl)):
-            if decl.name in ('bytes', 'byte') or decl.name in TYPE_CLASSES \
+            if decl.name in ('bytes', 'byte') or decl.name in BUILT_IN_CLASS_NAMES \
                     or decl.name in COLLECTION_TYPE_NAMES:
                 self.errors.append(SemanticError(
                     f"'{decl.name}' is a built-in type - choose another name for the error type",
@@ -433,7 +439,7 @@ class NameResolver:
         Args:
             struct: Struct declaration node
         """
-        if struct.name in ('bytes', 'byte') or struct.name in TYPE_CLASSES \
+        if struct.name in ('bytes', 'byte') or struct.name in BUILT_IN_CLASS_NAMES \
                 or struct.name in COLLECTION_TYPE_NAMES:
             self.errors.append(SemanticError(
                 f"'{struct.name}' is a built-in type - choose another name for the struct",
@@ -1062,7 +1068,7 @@ class NameResolver:
             # Only the object needs resolving - the field name is checked by the type
             # checker, once the object's struct type is known. `String.toUpper` - a built-in
             # type class, not a variable (Task 18.3.7)
-            if not (isinstance(expr.object, IdentifierExpr) and expr.object.name in TYPE_CLASSES
+            if not (isinstance(expr.object, IdentifierExpr) and expr.object.name in BUILT_IN_CLASS_NAMES
                     and self.symbol_table.lookup(expr.object.name) is None):
                 self.resolve_expression(expr.object)
         # else: unknown expression type, silently ignore

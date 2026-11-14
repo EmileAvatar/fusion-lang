@@ -228,6 +228,28 @@ void function main()
         print("{e}")
 ```
 
+#### The `Array` class: every array acts as an object
+
+<!-- example: syntax_array_class | task: 45.1 -->
+```fusion
+struct Point
+    int x
+    int y
+
+void function main()
+    int[] scores = [10, 20, 30]
+    print("{@1}", Array.length(scores))     // 3 - through the Array class
+    print("{@1}", scores.length)            // 3 - the same, as a method of the array
+    List<int> copy = Array.toList(scores)   // the same as scores.toList()
+    copy.add(40)
+    print("{@1} {@2}", copy.len(), scores.length)   // 4 3 - the array is unchanged
+    Point[] pts = [Point(1, 2), Point(3, 4)]
+    print(Array.toCSV(pts, ";"))            // the same as pts.toCSV(";")
+```
+Every array acts as if it were an object of the built-in `Array` class (D.142): `Array.length(a)`,
+`a.length`, `a.length()`, `a.len()` and `len(a)` are one call. Its methods today: `length` (`len`),
+`toList`, `toCSV`. `Array` is a built-in name - a struct, class or enum can't take it.
+
 #### Structs (fields only, copied by value)
 
 <!-- example: syntax_structs | task: 18.2 -->

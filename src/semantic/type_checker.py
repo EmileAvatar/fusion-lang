@@ -26,8 +26,8 @@ from .error_rules import ErrorRulesMixin
 from .struct_parents import StructParentRulesMixin, flat_field_names
 from .inferred import InferredRulesMixin, set_later, not_yet_set
 from .name_resolver import (BUILTIN_DEFAULTS, FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS,
-                            TYPE_CLASSES, CLASS_STATICS, NOT_METHODS,
-                            builtin_defaults)
+                            TYPE_CLASSES, CLASS_STATICS, NOT_METHODS, ARRAY_CLASS,
+                            ARRAY_METHODS, builtin_defaults)
 from .symbol import Symbol
 from .errors import SemanticError
 from src.lexer.token import SourceLocation
@@ -1458,6 +1458,31 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             node.arguments = [receiver]
             node.is_method = True
 
+    def _is_array_class_call(self, node: CallExpr) -> bool:
+        """`Array.length(a)` - a call through the built-in Array class (Task 45.1), unless the
+        program has its own `Array` name."""
+        callee = node.callee
+        return isinstance(callee, MemberExpr) and isinstance(callee.object, IdentifierExpr) \
+            and callee.object.name == ARRAY_CLASS and self.symbol_table.lookup(ARRAY_CLASS) is None
+
+    def _array_class_call(self, node: CallExpr) -> Optional[str]:
+        """`Array.f(a, x)` is the method call `a.f(x)` (D.142): every array acts as an object
+        of the Array class, so both forms mean the same. Returns an error message, or None."""
+        member = node.callee.member
+        if member not in ARRAY_METHODS:
+            return f"Array has no method '{member}' (it has {', '.join(ARRAY_METHODS)})"
+        if not node.arguments:
+            return f"Array.{member} needs the array first: Array.{member}(numbers)"
+        array = node.arguments[0]
+        array_type = self.visit(array)
+        if not isinstance(array_type, ArrayType):
+            return (f"Array.{member} works on an array, not {self.type_to_string(array_type)}"
+                    f" - write x.{member}() for it")
+        self.checked_receivers[id(array)] = array_type          # checked once, not again
+        node.callee = MemberExpr(location=node.callee.location, object=array, member=member)
+        node.arguments = list(node.arguments[1:])
+        return None
+
     def _visit_call(self, node: CallExpr) -> TypeNode:
         """Check function call argument types.
 
@@ -1467,6 +1492,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Returns:
             Return type of the function
         """
+        if self._is_array_class_call(node):
+            problem = self._array_class_call(node)
+            if problem is not None:
+                self.errors.append(SemanticError(problem, node.location))
+                return PrimitiveType(location=node.location, name='void')
         if isinstance(node.callee, MemberExpr) and node.callee.member in self.LENGTH_NAMES \
                 and not node.arguments:
             self._length_sugar(node)

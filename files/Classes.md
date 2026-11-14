@@ -178,6 +178,11 @@ print("{@1}", sizeOf([1, 2, 3]))         // 3
 
 - None of them is ever null (D.138), so `length()` is always 0 or more (D.055) - no null case
 - `len(x)`, `x.len`, `x.length` stay the quick forms (Task 30.8)
+- **Built for arrays (Task 45.1, D.142):** every array acts as an object of a built-in `Array` class -
+  `Array.length(a)` is `a.length`; `toList`, `toCSV` the same; later `copyPart`, `+`, and on a growable
+  array `add`, `removeLast`, `expand`, `setStorage`. Every value type the same way: `String.toUpper(s)`
+  is `s.toUpper()` (built, 18.3.7), `Int.parseInt("7")`, ... - the class holds the methods, the value
+  calls them as its own
 - Later, more built-in methods the same way (`Comparable` on numbers and strings, ...)
 - Not built: it needs a value type to answer an interface - with generics (Task 33) or a later task
 
