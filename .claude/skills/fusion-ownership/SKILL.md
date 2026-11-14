@@ -114,3 +114,13 @@ Handed over = `T b = a`, `b = a`, `x.f = a`, `list.add(a)` / `insert`, `m[k] = a
 - Restore a file changed for a measurement with a targeted replace, never `git checkout`
   (it also throws away uncommitted work)
 - Write edits as Python script files, not shell heredocs (they turn `\n` into real newlines)
+
+## readonly results and a deep const (Task 50, built 2026-11-14)
+
+- `public readonly Engine function getEngine()` (D.110): the caller's `Engine e = car.getEngine()` is a
+  read-only borrow - the readonly parameter rules apply to `e`; `byVal` gives a changeable copy, `byRef`
+  an error; `return readonly x` in the body is a parse error; a number / string result: a warning (D.113)
+- `const Car c` is deep (D.112): no field set, no changing method, not passed to a change; its own set-up
+  block may still set it; `byVal c` may change
+- `f(readonly n)` on a copy (int, string): a warning, not an error (D.113)
+- The truth table: files/Ownership.md "Truth table 4b"; tests/test_readonly_results.py

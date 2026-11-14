@@ -740,6 +740,8 @@ class FunctionDecl(ASTNode):
     is_lambda: bool = False  # True for inline lambdas with ":"
     is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
     returns_error: bool = False  # `Ship, Error function` / `Error function` - can fail (Task 26)
+    returns_readonly: bool = False  # `readonly Engine function getEngine()` - the caller gets a
+                                    # read-only borrow (Task 50.1, D.110)
 
 
 @dataclass

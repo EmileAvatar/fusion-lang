@@ -1,0 +1,27 @@
+class Engine
+    public int power = 90
+    void function tune()
+        this.power = 100
+
+class Car
+    public string name = "Mini"
+    public Engine engine = Engine()
+    public readonly Engine function getEngine()   // the caller may read it, not change it
+        return this.engine
+    void function rename(string n)
+        this.name = n
+
+void function main()
+    Car car = Car()
+    Engine e = car.getEngine()           // a read-only borrow of car's engine
+    print("{@1}", e.power)               // 90 - reading is fine
+    // e.tune() here: 'e' holds the readonly result of getEngine - tune changes it
+    Engine mine = byVal car.getEngine()  // a copy - it may change
+    mine.tune()
+    print("{@1}", mine.power)            // 100
+    const Car fixed = Car()
+    print(fixed.name)                    // Mini - reading is fine
+    // fixed.rename("Golf") here: 'fixed' is const - rename changes it
+    Car other = byVal fixed              // a copy may change
+    other.rename("Golf")
+    print(other.name)                    // Golf

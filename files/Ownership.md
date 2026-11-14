@@ -228,9 +228,30 @@ log(acc)                  // fine: log borrows it, changes it, hands it back
   (the 32.2e check) - so the error points at the exact line that changes it
 - Across a library, only its signature counts: no written or published `readonly` means
   "may change it" - never trust code; the caller is responsible
-- `--interface` prints the readonly result of each public function, so a library's signature
-  changes visibly when an edit changes it
+- `--interface` prints the readonly result of each public and internal function (built 50.5), so a
+  library's signature changes visibly when an edit changes it
 - readonly also tells a service which requests are reads (section 6)
+
+#### Truth table 4b: readonly results and const objects (Task 50 - D.110, D.112, D.113)
+
+`public readonly Engine function getEngine()`; `Engine e = car.getEngine()`; `const Car c = Car()`.
+Each row is a test in tests/test_readonly_results.py.
+
+| Case | readonly result (`e`) | const object (`c`) |
+|---|---|---|
+| read a field | allowed | allowed |
+| set a field | error | error |
+| call a method that changes it | error | error |
+| pass to a function that only reads it | allowed | allowed |
+| pass to a function that changes it | error | error |
+| keep it (a List, a field, a return) | error | error |
+| `byVal` - a copy | allowed: the copy may change | allowed: the copy may change |
+| `byRef` | error | - |
+| change it directly - `car.getEngine().power = 3` | error | - |
+| its own set-up block - `const Car c = Car() { c.name = "x" }` | - | allowed (D.009) |
+| `return readonly x` in the function's body | error - readonly goes in the signature | - |
+| a readonly result that is a number or a string | a warning - a copy, readonly does nothing | - |
+| null (Rule 4b) | no check: a NullError, caught; `if e is null`: runs on | - |
 
 ---
 

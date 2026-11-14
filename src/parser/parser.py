@@ -1330,6 +1330,11 @@ class Parser:
 
         # Optional return value
         value = None
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'readonly' \
+                and self.peek(1).type not in (TokenType.NEWLINE, TokenType.DOT, TokenType.LPAREN,
+                                              TokenType.LBRACKET):
+            raise ParserError(self.peek(), "readonly goes in the signature, not the return - "
+                                           "`readonly Engine function getEngine()` (D.110)")
         if not self.check(TokenType.NEWLINE) and not self.is_block_end():
             value = self.parse_expression()
             self.reject_compare_with_single_equals()   # Task 27.2
@@ -1825,6 +1830,26 @@ class Parser:
     PRIMITIVE_TYPE_TOKENS = (TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE, TokenType.STRING,
                              TokenType.BOOL, TokenType.CHAR, TokenType.BYTE)
 
+    def is_readonly_result_start(self) -> bool:
+        """`readonly Engine function ...` - `readonly` before a function's result type (Task 50.1).
+        `readonly` is not a reserved word: it counts here only when a type follows it."""
+        return self.check(TokenType.IDENTIFIER) and self.peek().value == 'readonly' \
+            and self.peek(1).type in (TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT,
+                                      TokenType.DOUBLE, TokenType.STRING, TokenType.BOOL,
+                                      TokenType.CHAR, TokenType.BYTE, TokenType.SHORT,
+                                      TokenType.LONG, TokenType.VOID)
+
+    def readonly_result(self, parse) -> 'FunctionDecl':
+        """Read `readonly`, then the declaration `parse` reads - it must be a function."""
+        word = self.advance()
+        decl = parse()
+        if not isinstance(decl, FunctionDecl):
+            raise ParserError(word, "'readonly' before a type marks a function's result - "
+                                    "`readonly Engine function getEngine()`; a variable that "
+                                    "never changes is `const`")
+        decl.returns_readonly = True
+        return decl
+
     def is_type_start(self) -> bool:
         """Check if current token starts a type.
 
@@ -1965,7 +1990,8 @@ class Parser:
                     or self.check(TokenType.SEALED)
                     or self.is_error_declaration_start() or self.is_type_start()
                     or self.is_function_type_declaration_start()
-                    or self.is_struct_type_declaration_start()):
+                    or self.is_struct_type_declaration_start()
+                    or self.is_readonly_result_start()):
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
                                             f"an enum, a function or a module variable")
             decl = self.parse_declaration()
@@ -1984,6 +2010,10 @@ class Parser:
             decl.is_internal = modifier.type == TokenType.INTERNAL
             decl.visibility_written = True
             return decl
+
+        # `readonly Engine function getEngine()` - a readonly result (Task 50.1, D.110)
+        if self.is_readonly_result_start():
+            return self.readonly_result(self.parse_declaration)
 
         # A module-level `let` / `var` (Task 46.1)
         if self.check(TokenType.LET) or self.check(TokenType.VAR):
@@ -2133,11 +2163,16 @@ class Parser:
             if self.check(closing) or self.is_at_end():
                 break
             self.match(TokenType.PUBLIC)            # an interface's functions are public anyway
+            readonly = self.is_readonly_result_start()              # Task 50.1 (D.110)
+            if readonly:
+                self.advance()
             return_type = self.parse_type()
             if not self.match(TokenType.FUNCTION, TokenType.FUNC):
                 raise ParserError(self.peek(), f"An interface holds functions only - '{name}' "
                                                f"can't have a field (a class that implements it can)")
-            methods.append(self.parse_function_declaration(return_type, signature_only=True))
+            method = self.parse_function_declaration(return_type, signature_only=True)
+            method.returns_readonly = readonly
+            methods.append(method)
         self.consume(closing, f"Expected the end of interface '{name}'")
         while self.match(TokenType.NEWLINE):
             pass
@@ -2838,6 +2873,8 @@ class Parser:
         """Parse one struct field: `int x` or `int hp = 100` (Task 18.2.1) - or a method,
         `void function move(int dx)` (Task 32.1), returned as a FunctionDecl. `byRef
         List<string> log` - shared when the struct is copied (Task 32.10a)."""
+        if self.is_readonly_result_start():                      # Task 50.1 (D.110)
+            return self.readonly_result(lambda: self.parse_struct_field(signature_only))
         passing = self._passing_word()
         if passing is not None:
             self.advance()

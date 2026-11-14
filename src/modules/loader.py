@@ -429,28 +429,30 @@ def type_text(type_node, own_module: str = '') -> str:
 
 
 def module_interface(module: Module) -> List[str]:
-    """A module's public interface (Task 18.4.4): its public structs and functions with
-    their types - what other modules may rely on. The groundwork for library signatures
+    """A module's interface (Task 18.4.4): its public and internal structs and functions with
+    their types - what other modules may rely on; never private ones (D.115, Task 50.5). A
+    readonly result is shown with its function (D.110). The groundwork for library signatures
     and capability checks (Task 19)."""
     lines = [f'module {module.id}']
     for name in sorted(module.names):
         decl = module.names[name]
-        if not decl.is_public:
-            continue
+        if not (decl.is_public or getattr(decl, 'is_internal', False)):
+            continue                                   # private: never shown (D.115)
+        level = 'public' if decl.is_public else 'internal'
         if isinstance(decl, StructDecl):
-            lines.append(f'    public struct {name}')
+            lines.append(f'    {level} struct {name}')
             for f in decl.fields:
                 lines.append(f'        {type_text(f.field_type, module.id)} {f.name}')
         elif isinstance(decl, ErrorDecl):
             parent = '' if decl.parent == 'Error' else f' : {decl.parent}'
-            lines.append(f'    public error {name}{parent}')   # Task 26.9
+            lines.append(f'    {level} error {name}{parent}')   # Task 26.9
             for f in decl.fields:
                 lines.append(f'        {type_text(f.field_type, module.id)} {f.name}')
         elif isinstance(decl, VarDeclStmt):
             const = 'const ' if decl.is_const else ''   # a module variable (Task 44.1)
-            lines.append(f'    public {const}{type_text(decl.var_type, module.id)} {name}')
+            lines.append(f'    {level} {const}{type_text(decl.var_type, module.id)} {name}')
         elif isinstance(decl, EnumDecl):
-            lines.append(f'    public enum {name}')         # Task 25
+            lines.append(f'    {level} enum {name}')         # Task 25
             for v in decl.variants:
                 data = ', '.join(f'{type_text(f.field_type, module.id)} {f.name}' for f in v.fields)
                 value = f' = {v.value}' if v.explicit_value else ''
@@ -468,7 +470,8 @@ def module_interface(module: Module) -> List[str]:
                     text += ' = ...'
                 params.append(text)
             marker = ', Error' if decl.returns_error else ''    # can fail (Task 26.7)
-            lines.append(f'    public {type_text(decl.return_type, module.id)}{marker} function '
+            readonly = 'readonly ' if getattr(decl, 'returns_readonly', False) else ''   # 50.5
+            lines.append(f'    {level} {readonly}{type_text(decl.return_type, module.id)}{marker} function '
                          f'{name}({", ".join(params)})')
     return lines
 

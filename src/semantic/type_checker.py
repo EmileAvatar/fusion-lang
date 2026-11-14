@@ -1387,10 +1387,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if node.by_val and self.holds_objects(value_type):
             self.no_object_copies(value_type, node.location)          # D.088 (32.5b)
         if node.is_readonly:
-            if isinstance(value_type, PrimitiveType):
-                self.errors.append(SemanticError(
-                    f"readonly at a call is for a value the function could change - a "
-                    f"{self.type_to_string(value_type)} is copied anyway", node.location))
+            if isinstance(value_type, PrimitiveType):          # a warning since 50.4 (D.113)
+                self.warnings.append(SemanticError(
+                    f"readonly does nothing here - a {self.type_to_string(value_type)} is "
+                    f"copied anyway (readonly is for a value the function could change)",
+                    node.location))
             return value_type
         if not node.by_val and not self._is_collection(value_type) \
                 and not self.is_class(value_type) \

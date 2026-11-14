@@ -21,8 +21,8 @@ from typing import Dict, List, Set, Tuple
 
 from src.parser.ast_nodes import (
     ArrayType, AssignmentStmt, CallExpr, FunctionDecl, FunctionType, IdentifierExpr, IndexExpr,
-    ListType, MapType, MemberExpr, NamedArgument, PassingExpr, ReturnStmt, StructDecl,
-    StructType, VarDeclStmt,
+    ListType, MapType, MemberExpr, NamedArgument, PassingExpr, PrimitiveType, ReturnStmt,
+    StructDecl, StructType, VarDeclStmt,
 )
 from .collection_rules import MUTATING_LIST_METHODS, MUTATING_MAP_METHODS
 from .errors import SemanticError
@@ -36,7 +36,7 @@ def check_readonly(program) -> List[SemanticError]:
                          d.methods + d.static_methods if isinstance(d, StructDecl) else [])
                for p in f.parameters):
         return []
-    functions, found, changed = _parameter_uses(program)
+    functions, found, changed, _ = _parameter_uses(program)
     return _errors(functions, found, changed)
 
 
@@ -61,7 +61,7 @@ def check_readonly_calls(program) -> List[SemanticError]:
         return []
     errors = [SemanticError("readonly is written at a call - f(readonly a) - or on a parameter",
                             d.location) for d in demands if id(d) not in placed]
-    functions, found, changed = _parameter_uses(program)
+    functions, found, changed, _ = _parameter_uses(program)
 
     def who(f) -> str:
         if getattr(f, 'is_constructor', False):
@@ -245,7 +245,7 @@ def _parameter_uses(program):
         if not more:
             break
         changed |= more
-    return functions, found, changed
+    return functions, found, changed, uses
 
 
 def _errors(functions, found, changed) -> List[SemanticError]:
@@ -279,3 +279,132 @@ def _errors(functions, found, changed) -> List[SemanticError]:
                     seen.add((id(node), message))
                     errors.append(SemanticError(message, node.location))
     return errors
+
+
+def check_readonly_values(program):
+    """Task 50.1 / 50.2 - a readonly result (D.110, D.113) and a const object (D.112).
+
+        public readonly Engine function getEngine()      // the caller gets a read-only borrow
+        Engine e = car.getEngine()     e.power = 0       // an error - as a readonly parameter
+        Engine f = byVal car.getEngine()                 // a copy: may change
+        const Car c = Car("Mini")      c.rename("x")     // an error - const is deep on an object
+
+    A variable given a readonly result, or a const object, follows the readonly parameter rules:
+    no field set, no method or function that changes it, not kept where it could change later.
+    A readonly result that is a number or a string is a copy - `readonly` does nothing: a warning.
+    Returns (errors, warnings)."""
+    functions, found, changed, uses = _parameter_uses(program)
+    classes = {d.name for d in program.declarations if isinstance(d, StructDecl) and d.is_class}
+    every = [f for d in program.declarations
+             for f in ([d] if isinstance(d, FunctionDecl) else
+                       d.methods + d.static_methods if isinstance(d, StructDecl) else [])]
+    errors, warnings, seen = [], [], set()
+
+    def report(message, node):
+        if (id(node), message) not in seen:
+            seen.add((id(node), message))
+            errors.append(SemanticError(message, node.location))
+
+    warned = set()
+    for f in every:                                  # D.113: readonly on a copy does nothing
+        if f.returns_readonly and isinstance(f.return_type, PrimitiveType) and id(f) not in warned:
+            warned.add(id(f))
+            who = getattr(f, 'method_name', None) or f.name
+            warnings.append(SemanticError(
+                f"readonly does nothing on {who}'s result - a "
+                f"{f.return_type.name} is copied anyway (D.113)", f.location))
+
+    def readonly_call(e):
+        decl = getattr(e, 'callee_declaration', None)
+        return isinstance(e, CallExpr) and getattr(decl, 'returns_readonly', False)
+
+    def name_of(call) -> str:
+        decl = call.callee_declaration
+        return getattr(decl, 'method_name', None) or decl.name
+
+    def is_object(t) -> bool:
+        return isinstance(t, StructType) and t.name in classes
+
+    module_consts = {d.name for d in program.declarations
+                     if isinstance(d, VarDeclStmt) and d.is_const and is_object(d.var_type)}
+    if not module_consts and not any(f.returns_readonly for f in every) and \
+            not _has(program, lambda n: isinstance(n, VarDeclStmt) and n.is_const and is_object(n.var_type)):
+        return [], warnings
+
+    for f in functions.values():
+        if f.body is None:
+            continue
+        names = {}
+
+        def collect(n):
+            if isinstance(n, VarDeclStmt):
+                if n.initializer is not None and readonly_call(n.initializer):
+                    names[n.name] = f"'{n.name}' holds the readonly result of {name_of(n.initializer)}"
+                elif n.is_const and is_object(n.var_type):
+                    names[n.name] = f"'{n.name}' is const"
+            elif isinstance(n, AssignmentStmt) and readonly_call(n.value) \
+                    and isinstance(n.target, IdentifierExpr):
+                names[n.target.name] = f"'{n.target.name}' holds the readonly result of {name_of(n.value)}"
+            return n
+        _walk([f.body], collect)
+        for c in module_consts:
+            names.setdefault(c, f"'{c}' is const")
+        for name, start in names.items():
+            setting_up = set()                        # its own set-up block may set it (32.2e)
+
+            def mark(b):
+                if getattr(b, 'sets_up', None) == name:
+                    _walk([b], lambda x: setting_up.add(id(x)) or x)
+                return b
+            _walk([f.body], mark)
+            for kind, node, extra in uses(f, name):
+                if id(node) in setting_up:
+                    continue
+                if isinstance(node, AssignmentStmt) and isinstance(node.target, IdentifierExpr) \
+                        and node.target.name == name:
+                    continue                          # given another value - not a change
+                if kind == 'pass':
+                    if extra not in changed:
+                        continue
+                    callee = functions[extra[0]]
+                    who = getattr(callee, 'method_name', None) or callee.name
+                    message = f"{start} - {who} changes it; byVal {name} gives a copy that may change"
+                elif kind == 'keep':
+                    message = (f"{start} - it can't be kept (in a field, a List or by returning it) "
+                               f"where it could change later; byVal {name} gives a copy")
+                elif kind == 'unknown':
+                    message = f"{start} - it is passed to a function value that may change it"
+                else:
+                    message = f"{start} - it may be read but not changed; byVal {name} gives a copy"
+                report(message, node)
+
+        def direct(n):                                # car.getEngine().power = 0 and the like
+            if isinstance(n, AssignmentStmt):
+                e = n.target
+                while isinstance(e, (MemberExpr, IndexExpr)):
+                    e = e.object if isinstance(e, MemberExpr) else e.array
+                    if readonly_call(e):
+                        report(f"{name_of(e)} gives a readonly result - it may be read but not "
+                               f"changed", n)
+                        break
+            elif isinstance(n, PassingExpr) and not n.by_val and not n.is_readonly \
+                    and readonly_call(n.value):
+                report(f"byRef asks to change {name_of(n.value)}'s readonly result - "
+                       f"byVal gives a copy that may change", n)
+            elif isinstance(n, CallExpr) and isinstance(n.callee, IdentifierExpr) \
+                    and n.callee.name in functions:
+                for i, arg in enumerate(n.arguments):
+                    if readonly_call(arg) and (n.callee.name, i) in changed:
+                        callee = functions[n.callee.name]
+                        who = getattr(callee, 'method_name', None) or callee.name
+                        report(f"{name_of(arg)} gives a readonly result - {who} changes it; "
+                               f"byVal gives a copy", n)
+            return n
+        _walk([f.body], direct)
+    return errors, warnings
+
+
+def _has(program, test) -> bool:
+    hit = []
+    _walk(program.declarations, lambda n: hit.append(n) or n if test(n) else n)
+    return bool(hit)

@@ -603,3 +603,19 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 		[DONE] A for loop may set an element's value (27.2e) - unless the elements move
 		[DONE] "move" the default
 	48.4 -> 50.5, 48.6 -> 38.5, 48.5 -> FEATURES Later L4.4 (2026-11-14)
+
+#### 50 readonly results and a deep const (user, 2026-11-03) [DONE 2026-11-14]
+	Rules shown: files/showcase/Ownership.fusion; the skill .claude/skills/fusion-ownership
+	[DONE] 50.1 A readonly result, part of the signature (D.110): `public readonly Engine function getEngine()`
+		The caller gets a read-only borrow: `e.kind = ...`, passing e to a function that changes it - errors
+		No `readonly` in that function's body - `return readonly this.engine` is an error (the signature says it)
+		`Engine e = byRef car.getEngine()`: an error - byRef asks to change what is readonly
+		`byVal car.getEngine()`: a copy the caller may change
+		Open (user): what such a function may return - a member of the class, a new object - decided while building
+	[DONE] 50.2 `const` on an object is deep (D.112): `const Car c` - no field set, no method that changes it;
+		a `byVal` copy (or a function returning one) may change (today only Lists, Maps and structs are deep)
+	[DONE] 50.3 Tests - every allowed / not allowed case of D.110-D.113 (Rule 4c); Ownership.fusion tags [built]
+	[DONE] 50.4 `readonly` on a copy is a warning, not an error (D.113): a number result, and `f(readonly n)` on an
+		int / string (an error since 48.3)
+	[DONE] 50.5 `--interface` shows the readonly result of each public and internal function - never private
+		(D.115) - was 48.4

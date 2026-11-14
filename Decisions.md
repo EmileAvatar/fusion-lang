@@ -147,8 +147,8 @@ FUN.012 [POSTPONED] More error types (Network, Timeout, Parse, Cancelled, Assert
 FUN.013 [DESIGN] Every error carries a stack trace
 FUN.014 [BUILT] 96 built-in functions, 16 List and 7 Map methods, each with its `[stdlib]` layer - the list: files/Builtins.md (generated)
 FUN.015 [BUILT] Built-in error types in a tree (IndexError, KeyError, FileError, OverflowError, NullError, ...) - a parent catches its children
-FUN.016 [PLANNED] A readonly result: `readonly Engine function getEngine()` - the caller gets a read-only borrow; part of the signature (50.1, D.110)
-FUN.017 [PLANNED] `readonly` on a copy (a number result, `f(readonly n)`) is a warning, not an error (50.4, D.113)
+FUN.016 [BUILT] A readonly result: `readonly Engine function getEngine()` - the caller gets a read-only borrow; part of the signature (50.1, D.110)
+FUN.017 [BUILT] `readonly` on a copy (a number result, `f(readonly n)`) is a warning, not an error (50.4, D.113)
 
 #### NUL - null
 NUL.001 [BUILT] Value types are never null; class objects and enums can be
@@ -191,7 +191,7 @@ CLS.019 [PLANNED] An interface's functions are public or internal - `private` is
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
-MOD.002 [BUILT] `--interface`: the public interface of the imported modules
+MOD.002 [BUILT] `--interface`: the public and internal interface of the imported modules, readonly results marked (D.115, 50.5)
 MOD.003 [POSTPONED] A Fusion library other programs load (`.dll` / `.so`) - a module's folders and files compiled into one library for a larger application; needs `extern`
 MOD.004 [DESIGN] Library trust: nothing trusted by default - a library without source is sandboxed (no files / network) unless the developer trusts it; capability signatures, supply-chain checks (Task 39, D.122)
 MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); `[modules] paths`
@@ -213,7 +213,7 @@ MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`; memory never freed is f
 MEM.007 [BUILT] The leak check: every example and test
 MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep(x)` always deep
 MEM.009 [DESIGN] Arena / region memory (many objects freed together); memory-mapped resources
-MEM.010 [PLANNED] `const` on an object is deep - no field set, no changing method; a `byVal` copy may change (50.2, D.112)
+MEM.010 [BUILT] `const` on an object is deep - no field set, no changing method; a `byVal` copy may change (50.2, D.112)
 MEM.011 [BUILT] Storing `this` shares the object (counted): one car in several collections is one car, freed when the last holder lets go (48.12, D.103)
 MEM.012 [BUILT] While a borrow changes a value, its owner may still be read - only changing it another way is an error (48.10, D.123)
 MEM.013 [BUILT] `[memory] ownership = "strict" | "relaxed"` - every ownership rule at once, replaces `assignment` (48.11, D.124)
@@ -388,12 +388,12 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.107 | The self-hosted compiler keeps `[memory] assignment = "share"` (selfhost/fusion.toml) until its context handling is reworked for "move" with Task 35 | its context handling relies on sharing until Task 35 | MEM.002 | 2026-11-03 | selfhost/fusion.toml | ACTIVE |
 | D.108 | A struct's fields are only borrowed, changed through the borrow, never taken out (D.026 stays); `[memory] moveFieldOut = true` allows it as Rust does - a field leaves a struct the function owns, and the struct can't be used until it gets a new value. Default false | a struct stays whole by default; the Rust way available | STC.001 | 2026-11-03 | files/Ownership.md 2 | ACTIVE |
 | D.109 | A function returning a part of its object (`return this.engine`, `this.people[i]`) or of a parameter it borrows lends from it - the result is a borrow of the argument, frozen while used, never stored; so does one returning a new object made with such a part (an iterator holding its collection) | a getter gives its member without copying or losing it | MEM.003 | 2026-11-03 | files/Ownership.md 2 | ACTIVE |
-| D.110 | `readonly` on a function's result is part of its signature: the caller gets a read-only borrow; no `readonly` inside that function's body (`return readonly x` an error); `byRef` on its result an error; `byVal` a changeable copy | the signature tells the caller; the class protects its member | FUN.016 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (planned) |
+| D.110 | `readonly` on a function's result is part of its signature: the caller gets a read-only borrow; no `readonly` inside that function's body (`return readonly x` an error); `byRef` on its result an error; `byVal` a changeable copy | the signature tells the caller; the class protects its member | FUN.016 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (built - Task 50) |
 | D.111 | What a function returns: a single object it made moves to the caller; a member fetched from the class is a borrow, changeable unless the signature says `readonly` (D.109, D.110) | made here, nobody else owns it; a member stays the object's | MEM.003 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE |
-| D.112 | `const` protects the whole object (fields, changing methods), as it does Lists, Maps and structs; a `byVal` copy - also one a method returns - may change | `const` means nothing changes - the same for every kind | MEM.010 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (planned) |
-| D.113 | A readonly result may be a member (a read-only borrow), a new object (stays read-only for the caller) or a number (a copy); `readonly` on a copy - a result or `f(readonly n)` - is a warning, not an error | nothing can change a copy; the warning shows the word does nothing | FUN.017 | 2026-11-07 | files/Ownership.md | ACTIVE (planned) |
+| D.112 | `const` protects the whole object (fields, changing methods), as it does Lists, Maps and structs; a `byVal` copy - also one a method returns - may change | `const` means nothing changes - the same for every kind | MEM.010 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (built - Task 50) |
+| D.113 | A readonly result may be a member (a read-only borrow), a new object (stays read-only for the caller) or a number (a copy); `readonly` on a copy - a result or `f(readonly n)` - is a warning, not an error | nothing can change a copy; the warning shows the word does nothing | FUN.017 | 2026-11-07 | files/Ownership.md | ACTIVE (built - Task 50) |
 | D.114 | An interface's functions are public or internal; `private` on one is a compile error | private defeats the purpose of an interface | CLS.019 | 2026-11-07 | files/Classes.md | ACTIVE (planned) |
-| D.115 | `--interface` shows a module's public and internal functions, never private ones | it shows what other modules may use | MOD.002 | 2026-11-07 | files/Ownership.md 8 | ACTIVE (planned) |
+| D.115 | `--interface` shows a module's public and internal functions, never private ones | it shows what other modules may use | MOD.002 | 2026-11-07 | files/Ownership.md 8 | ACTIVE (built - Task 50) |
 | D.116 | A `?.` comparison is false on null and gives a warning; `!` around one is a compile error (a `[conditions]` setting allows it, then a warning); null is handled on its own: `if x is null ... else if ...` | null is neither true nor false - `!` would turn "unknown" into "yes" | NUL.005 | 2026-11-07 | files/Nullable_Values.md 5 | ACTIVE (planned) |
 | D.117 | The compiler checks an object is made before it is used: passing one that is surely null is a compile error; a parameter marked `?` without a null check warns; a `Default` type is never null - one left null and not made again is a compile error | NullErrors found at compile time (D.086) | NUL.006 | 2026-11-07 | files/Nullable_Values.md | ACTIVE (planned) |
 | D.118 | An RTOS (FreeRTOS, Zephyr) gets no layer of its own: the IO standard library covers what exists there, HIDL creates the tasks and timers | keeps the standard library one; hardware detail in HIDL | MOD.010 | 2026-11-07 | files/FEATURES.md 41 | ACTIVE |

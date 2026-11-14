@@ -14,7 +14,8 @@ import pytest
 
 from tests.test_end_to_end import SHARE
 from tests.test_ownership_moves import CAR, errors, run
-from tests.test_structs import main
+from src.semantic import SemanticAnalyzer
+from tests.test_structs import main, parse
 
 ACCOUNT = ('class Account\n    public int balance = 5\n    public int logged = 0\n\n'
            'void function show(Account a)\n    print("{a.balance}")\n\n'
@@ -71,9 +72,14 @@ def test_readonly_to_a_list_method_that_keeps_it():
 
 
 def test_readonly_on_a_value_that_is_copied_anyway():
+    # a warning, not an error, since 50.4 (D.113) - nothing can change a copy
     source = 'void function f(int n)\n    print("{n}")\n\n' + main('int x = 1\nf(readonly x)')
-    assert errors(source, SHARE) == ["readonly at a call is for a value the function could change "
-                                     "- a int is copied anyway"]
+    assert errors(source, SHARE) == []
+    analyzer = SemanticAnalyzer(**SHARE)
+    analyzer.analyze(parse(source))
+    assert [w.message for w in analyzer.warnings] == [
+        "readonly does nothing here - a int is copied anyway (readonly is for a value the function "
+        "could change)"]
 
 
 def test_readonly_only_at_a_call():

@@ -262,7 +262,7 @@ void function atTheCall()
     Car b = byRef a                    // ok - a local borrow of a (a frozen while b is used)
     g.car = byRef a                    // ERROR: 'byRef a' only lends it - a borrow can't be stored or returned; give a itself (a move) or byVal a (a copy)
     int n = 1
-    twice(readonly n)                  // ERROR: readonly at a call is for a value the function could change - a int is copied anyway
+    twice(readonly n)                  // a WARNING (50.4, D.113): readonly does nothing here - a int is copied anyway
 
 
 // =============================================================================================
@@ -280,25 +280,29 @@ Engine function look(readonly Car c)
 
 
 // =============================================================================================
-// 10. readonly results [designed Task 50.1] (D.110)
+// 10. readonly results [built 50.1] (D.110, D.113)
 // =============================================================================================
 //
 // readonly on the result is part of the signature: the caller gets a read-only borrow.
 //
 //   public readonly Engine function engineOf()
-//       return this.engine                     // ok
-//       return readonly this.engine            // ERROR: the signature says readonly already
+//       return this.engine                     // ok - a member: a read-only borrow
+//       return readonly this.engine            // ERROR: readonly goes in the signature, not the return
 //
 //   Engine e = car.engineOf()                  // ok - a read-only borrow of car
-//   e.kind = "V6"                              // ERROR - e is readonly
-//   Engine f = byRef car.engineOf()            // ERROR - byRef asks to change what is readonly
+//   e.kind = "V6"                              // ERROR: 'e' holds the readonly result of engineOf - it may be read but not changed
+//   e.tune()                                   // ERROR: 'e' holds the readonly result of engineOf - tune changes it
+//   Engine f = byRef car.engineOf()            // ERROR: byRef asks to change engineOf's readonly result
 //   Engine g = byVal car.engineOf()            // ok - a copy the caller may change
+//   car.engineOf().kind = "V6"                 // ERROR: engineOf gives a readonly result
+//   public readonly int function wheels()      // a WARNING: readonly does nothing - a int is copied (D.113)
 //
-// Open (user): what such a function may return besides a member - decided while building.
+// What it may return (D.113): a member (a read-only borrow), a new object (read-only for the
+// caller), a number or string (a copy - readonly does nothing, a warning).
 
 
 // =============================================================================================
-// 11. const and let [built], deep const on an object [designed Task 50.2] (D.112)
+// 11. const and let [built], deep const on an object [built 50.2] (D.112)
 // =============================================================================================
 
 void function constants()
@@ -311,8 +315,8 @@ void function constants()
     o.id = 2                           // ERROR: Cannot assign to field 'id' of constant 'o'
     const Car k = Car("red")
     k = Car("blue")                    // ERROR: Cannot assign to constant: 'k'
-    k.color = "blue"                   // [designed 50.2] an ERROR - today allowed (const isn't deep on objects yet)
-    k.paint("blue")                    // [designed 50.2] an ERROR - today allowed
+    k.color = "blue"                   // ERROR: 'k' is const - it may be read but not changed; byVal k gives a copy
+    k.paint("blue")                    // ERROR: 'k' is const - paint changes it; byVal k gives a copy that may change
     Car copy = byVal k                 // ok - a copy may change
     copy.color = "blue"                // ok
     const Point p = Point(1, 2) {

@@ -282,7 +282,9 @@ INTERFACE_PROJECT = {
     'money/m.fusion': ('public struct Price\n    int cents\n    string currency = "EUR"\n\n'
                        'public Price function make(int cents, string currency = "EUR") : Price(cents, currency)\n\n'
                        'public int[3] function parts(Price p) : [p.cents, 0, 0]\n\n'
-                       'internal int function hidden() : 1\n'),
+                       'internal int function hidden() : 1\n\n'
+                       'public readonly int[3] function zero() : [0, 0, 0]\n\n'
+                       'internal int function secret() : 2\n'),
     'cart/c.fusion': ('import money\n\npublic struct Item\n    money.Price price\n    bool taxed\n\n'
                       'public (int) : int function scaler(bool up = true) : (int x) : x * 2\n'),
     'main.fusion': 'import money\nimport cart\nvoid function main()\n    print("x")\n',
@@ -305,8 +307,11 @@ def test_module_interfaces(tmp_path):
         '    public struct Price',
         '        int cents',
         '        string currency',
+        '    internal int function hidden()',              # internal shown, private never (D.115)
         '    public Price function make(int cents, string currency = "EUR")',
         '    public int[3] function parts(Price p)',
+        '    internal int function secret()',
+        '    public readonly int[3] function zero()',      # a readonly result (D.110, 50.5)
         '',
     ]
     only, _ = program_interfaces(main_file, 'cart')
@@ -322,7 +327,7 @@ def test_interface_on_the_command_line(tmp_path):
                              '--interface', 'money'], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines()[:2] == ['module money', '    public struct Price']
-    assert 'hidden' not in result.stdout
+    assert 'internal int function hidden()' in result.stdout    # D.115
 
 
 def test_load_program_file_handles_single_files_and_projects(tmp_path):

@@ -1198,6 +1198,44 @@ A function returning a part of its object (or of a parameter it borrows) lends f
 does one returning a new object made with such a part, like an iterator holding its
 collection (D.109). The result can't be stored or returned elsewhere; `byVal` copies it.
 
+#### A readonly result, and a deep `const`
+
+<!-- example: syntax_readonly_result | task: 50 -->
+```fusion
+class Engine
+    public int power = 90
+    void function tune()
+        this.power = 100
+
+class Car
+    public string name = "Mini"
+    public Engine engine = Engine()
+    public readonly Engine function getEngine()   // the caller may read it, not change it
+        return this.engine
+    void function rename(string n)
+        this.name = n
+
+void function main()
+    Car car = Car()
+    Engine e = car.getEngine()           // a read-only borrow of car's engine
+    print("{@1}", e.power)               // 90 - reading is fine
+    // e.tune() here: 'e' holds the readonly result of getEngine - tune changes it
+    Engine mine = byVal car.getEngine()  // a copy - it may change
+    mine.tune()
+    print("{@1}", mine.power)            // 100
+    const Car fixed = Car()
+    print(fixed.name)                    // Mini - reading is fine
+    // fixed.rename("Golf") here: 'fixed' is const - rename changes it
+    Car other = byVal fixed              // a copy may change
+    other.rename("Golf")
+    print(other.name)                    // Golf
+```
+`readonly` before a function's result type is part of its signature: the caller gets a read-only
+borrow and follows the readonly rules - no field set, no method or function that changes it, not
+kept; `byVal` gives a copy that may change, `byRef` is an error. A readonly number or string result
+is a copy, so `readonly` does nothing there (a warning). `const` on an object is deep: nothing in it
+may change, except in its own set-up block. Every case: files/Ownership.md "Truth table 4b".
+
 #### `Default`: an object that is never null
 
 <!-- example: syntax_default | task: 32.5b -->
