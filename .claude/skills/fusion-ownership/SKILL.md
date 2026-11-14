@@ -15,6 +15,9 @@ decision, tell the user first.
 
 ## Settings (`[memory]` in fusion.toml)
 
+- `ownership = "strict" | "relaxed"` (D.124, user 2026-11-14 - built with 48.11) replaces `assignment`:
+  strict = move + every rule (default, the safest); relaxed = share + rules loosened (a library with no
+  ownership model, a GC alongside, manual memory). The before / after table: files/Ownership.md 1
 - `assignment = "move"` - the default since 48.9 (D.102). `"share"`: two names, one object
   (today's counting) - kept for projects and tests of it; the self-hosted compiler uses it
   until Task 35 (`selfhost/fusion.toml`, D.107)

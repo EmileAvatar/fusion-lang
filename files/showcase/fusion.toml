@@ -154,9 +154,10 @@ assignment = "move"
 moveFieldOut = false
 # [designed] What copy(x) and byVal copy: "deep" | "shallow" (D.033)
 copy = "deep"
-# [designed] Borrow rule 2 - one writer at a time; rule 3 - a borrow never outlives its owner (D.124; names open)
-oneWriter = true
-borrowOutlive = true
+# [designed] Every ownership rule at once: "strict" (default, the safest - b = a moves, one writer,
+# a borrow never stored) | "relaxed" (shares, rules loosened - a library with no ownership model, a GC
+# alongside, manual memory); replaces assignment (D.124, user 2026-11-14 - files/Ownership.md 1)
+ownership = "strict"
 
 [threads]
 # [designed] Threads allowed at all (off for small devices)

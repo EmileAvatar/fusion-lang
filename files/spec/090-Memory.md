@@ -191,10 +191,69 @@ Raw Pointers | Embedded/FFI only | High | Maximum
 * **`fixed(n)`** (Task 47.5, D.064): `fixed(10) string name`, `fixed(14) List<Person> people`,
   `fixed int numbers[10]` - only the size is limited (the values may change; `const`: nothing changes),
   lower fine, never higher; memory reserved once
-* Setting:
-  ```toml
-  [memory]
-  assignment = "move"            # "move" (default) | "share" - b = a: two names, one object
-  ```
+* Setting (built until 48.11): `[memory] assignment = "move"` (default) | `"share"` - becomes `ownership`:
+
+### The ownership setting: strict or relaxed (user, 2026-11-14 - D.124)
+
+One setting covers every ownership rule. It replaces `[memory] assignment`, which covered only what
+`=` does (Task 48.11):
+
+```toml
+# before (built until 48.11) - one rule only
+[memory]
+assignment = "move"      # or "share"
+
+# after - every ownership rule at once
+[memory]
+ownership = "strict"     # default - the safest | "relaxed"
+```
+
+| What it decides | `assignment = "move"` (before) | `assignment = "share"` (before) | `ownership = "strict"` (default) | `ownership = "relaxed"` |
+|---|---|---|---|---|
+| `Car b = a` | moves | shares | moves | shares |
+| `f(a)`, f only reads it | borrows | borrows | borrows | borrows |
+| `f(a)`, f keeps it | moves | shares | moves | shares |
+| One writer: change `fleet` while `first` borrows from it | error | error | **error** | allowed |
+| A borrow stored or returned | error | error | **error** | allowed - the object is counted |
+| `byVal` / `byRef` | copy / borrow | copy / borrow | copy / borrow | copy / borrow |
+| Memory freed by | counting | counting | ownership (counting until 48.6 - Task 38) | counting, or a GC / manual memory alongside it |
+| Meant for | - | - | every Fusion project | code using a library with no ownership model (a GC created alongside it), or manual memory management |
+
+- **strict** (the default, the safest): today's `"move"` with every rule on - no surprise changes
+  through a second name, no leaks from objects holding each other, one owner (safe to hand to another
+  thread - the base of services, Task 42)
+- **relaxed**: today's `"share"` with the rules loosened - for code using a library that does not use
+  the ownership model (a GC created alongside it), or manual memory management
+- `byVal` / `byRef` choose a copy or a borrow in both
+- With no `byVal` / `byRef`: assigning moves (strict) or shares (relaxed); passing to a function
+  borrows in both, unless the function keeps the value - then it moves (strict) or shares (relaxed)
+- An old `assignment = "move"` is read as `ownership = "strict"`, `"share"` as `"relaxed"`, with a
+  warning that the name changed
+
+The example behind the table:
+
+```fusion
+void function show(Car c)              // only reads c
+    print(c.name)
+
+void function keep(Car c, List<Car> garage)
+    garage.add(c)                      // keeps c
+
+void function main()
+    List<Car> garage = List<Car>()
+    List<Car> fleet = [Car("Mini"), Car("Golf")]
+    Car a = Car("Mini")
+    Car b = a                // strict: moves (a gone) - relaxed: shares
+    show(b)                  // both: borrows for the call
+    keep(b, garage)          // strict: moves b into the garage - relaxed: shared
+    print(b.name)            // strict: compile error, b was moved - relaxed: "Mini"
+    Car first = fleet[0]     // first borrows from fleet
+    first.name = "Cooper"    // fine in both - one writer
+    print(fleet.len())       // fine in both - reading the owner (D.123)
+    fleet.removeAt(0)        // strict: compile error, fleet frozen while first is used - relaxed: fine
+    print(first.name)
+```
+
+Full design and truth tables: [files/Ownership.md](../Ownership.md).
 
 [< 081 Autoboxing](081-Autoboxing.md) | [Index](index.md) | [100 Concurrency >](100-Concurrency.md) <!-- nav -->

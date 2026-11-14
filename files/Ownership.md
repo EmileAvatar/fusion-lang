@@ -27,7 +27,68 @@ service side), `files/Concurrency.md` section 3.13 (threads), `files/Arrays.md` 
 
 Setting: `[memory] assignment = "move"` (default) | `"share"` (today's behaviour: two names,
 one object). Moving is the default on purpose - it is the only default that gives one writer
-by construction (D1a).
+by construction (D1a). From 48.11 it becomes `[memory] ownership = "strict" | "relaxed"` - below.
+
+#### The ownership setting: strict or relaxed (user, 2026-11-14 - D.124)
+
+One setting covers every ownership rule. It replaces `[memory] assignment`, which covered only what
+`=` does (Task 48.11):
+
+```toml
+# before (built until 48.11) - one rule only
+[memory]
+assignment = "move"      # or "share"
+
+# after - every ownership rule at once
+[memory]
+ownership = "strict"     # default - the safest | "relaxed"
+```
+
+| What it decides | `assignment = "move"` (before) | `assignment = "share"` (before) | `ownership = "strict"` (default) | `ownership = "relaxed"` |
+|---|---|---|---|---|
+| `Car b = a` | moves | shares | moves | shares |
+| `f(a)`, f only reads it | borrows | borrows | borrows | borrows |
+| `f(a)`, f keeps it | moves | shares | moves | shares |
+| One writer: change `fleet` while `first` borrows from it | error | error | **error** | allowed |
+| A borrow stored or returned | error | error | **error** | allowed - the object is counted |
+| `byVal` / `byRef` | copy / borrow | copy / borrow | copy / borrow | copy / borrow |
+| Memory freed by | counting | counting | ownership (counting until 48.6 - Task 38) | counting, or a GC / manual memory alongside it |
+| Meant for | - | - | every Fusion project | code using a library with no ownership model (a GC created alongside it), or manual memory management |
+
+- **strict** (the default, the safest): today's `"move"` with every rule on - no surprise changes
+  through a second name, no leaks from objects holding each other, one owner (safe to hand to another
+  thread - the base of services, Task 42)
+- **relaxed**: today's `"share"` with the rules loosened - for code using a library that does not use
+  the ownership model (a GC created alongside it), or manual memory management
+- `byVal` / `byRef` choose a copy or a borrow in both
+- With no `byVal` / `byRef`: assigning moves (strict) or shares (relaxed); passing to a function
+  borrows in both, unless the function keeps the value - then it moves (strict) or shares (relaxed)
+- An old `assignment = "move"` is read as `ownership = "strict"`, `"share"` as `"relaxed"`, with a
+  warning that the name changed
+
+The example behind the table:
+
+```fusion
+void function show(Car c)              // only reads c
+    print(c.name)
+
+void function keep(Car c, List<Car> garage)
+    garage.add(c)                      // keeps c
+
+void function main()
+    List<Car> garage = List<Car>()
+    List<Car> fleet = [Car("Mini"), Car("Golf")]
+    Car a = Car("Mini")
+    Car b = a                // strict: moves (a gone) - relaxed: shares
+    show(b)                  // both: borrows for the call
+    keep(b, garage)          // strict: moves b into the garage - relaxed: shared
+    print(b.name)            // strict: compile error, b was moved - relaxed: "Mini"
+    Car first = fleet[0]     // first borrows from fleet
+    first.name = "Cooper"    // fine in both - one writer
+    print(fleet.len())       // fine in both - reading the owner (D.123)
+    fleet.removeAt(0)        // strict: compile error, fleet frozen while first is used - relaxed: fine
+    print(first.name)
+```
 
 ---
 
@@ -313,4 +374,6 @@ No thread ever holds two separate services at once (P2), so no circle of waiting
 | 2026-11-07 | Storing `this` shares the object, counted - freed when the last holder lets go (D.103) |
 | 2026-11-07 | R4 relaxed: the owner may be read while a borrow changes it; only changing it another way is an error (D.123) |
 | 2026-11-07 | A setting per borrow rule (D.124) |
+| 2026-11-14 | One setting for every ownership rule: `[memory] ownership = "strict"` (default, the safest) / `"relaxed"` (a library with no ownership model, a GC alongside it, or manual memory) - replaces `assignment` (D.124, user) |
+| 2026-11-14 | Counting removed where a move proves one owner (48.6) postponed to Task 38 (user) |
 | 2026-11-03 | "move" is the default (48.9) - examples and tests migrated; the tests of "share" itself run with `@pytest.mark.share` |

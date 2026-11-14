@@ -8,7 +8,7 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 
 ---
 
-## TASK 48: Ownership - what is left - PLAN (2026-11-14), waiting for approval
+## TASK 48: Ownership - what is left - PLAN approved 2026-11-14: Q1 B `[memory] ownership = "strict" | "relaxed"`; Q2 postponed to 38
 
 Settings: 48.11 adds them - names and meaning asked first (question 1 below); the rest none
 
@@ -45,4 +45,4 @@ Question 2 (48.6): the C code changes (no counting where one owner is proven) - 
 
 Then Task 48 complete: its lines to the archive, the Later list checked, a full check.
 
-- **Next Action:** 48 - the plan above and its 2 questions, waiting for approval
+- **Next Action:** 48.10 R4 relaxed, then 48.12, 48.8, 48.7, 48.11

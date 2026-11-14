@@ -211,7 +211,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	Design and truth tables: files/Ownership.md
 	Decisions D1-D49: Notes/Ownership_Decisions_2026-10-31.md
 	Settings: [memory] assignment = "move" (default) | "share"
-	[ ] 48.0 The rules (from Rust's borrow checker)
+	[DONE] 48.0 The rules (from Rust's borrow checker) - written (files/Ownership.md) and built by 48.1-48.3
 		R1 One owner: every object, List and Map has one owner at a time
 		R2 Assigning moves: `Car b = a` - using `a` afterwards is a compile error
 		R3 Passing borrows: `f(a)` lends it for the call; `a` is back afterwards
@@ -251,19 +251,21 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		[POSTPONED to 39.3] A Fusion library: only its signature counts - the caller is responsible
 		[POSTPONED to 39.3] A library not written in Fusion: a warning when a borrowed value is passed (user) -
 			Fusion has no libraries / extern functions yet
-	[ ] 48.4 `--interface` shows the readonly result of each public and internal function - never private (D.115)
+	[POSTPONED to 50 - needs readonly results, D.110] 48.4 `--interface` shows the readonly result of each public and internal function - never private (D.115)
 	[POSTPONED to a real need] 48.5 `shared` objects (user, 2026-11-03 - D.106): not added yet; assignment
 		moves, `byVal` copies, `byRef` already shares the object; the word kept for when a real need shows
 		The design if it comes back: `shared Car c = a` one more reader; only the holder that made it
 			shared changes it; `f(byRef pool)` from that holder lends the right to change it
-	[ ] 48.6 Counting removed where moves make it unnecessary (covers 38.2)
+	[POSTPONED to 38 (user, 2026-11-14) - the counting is a safety net while the checks are young] 48.6 Counting removed
+		where moves make it unnecessary (covers 38.2)
 	[ ] 48.7 Examples and files/SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
 	[DONE] 48.9 Migrate, then make "move" the default (D.102)
 	[ ] 48.10 R4 changed (D.123): while a borrow changes a value its owner may still be read - only changing it
 		another way is an error (today reading is an error too - 48.2)
-	[ ] 48.11 A setting per borrow rule (D.124): one owner (`assignment`), one writer, a borrow never outlives
-		its owner - names decided when built; files/fusionSettings.xml then
+	[ ] 48.11 `[memory] ownership = "strict" | "relaxed"` (D.124, user 2026-11-14): every ownership rule at once,
+		replaces `assignment` (old values read with a warning); files/fusionSettings.xml; the before / after table
+		in files/Ownership.md 1 and spec 090
 	[ ] 48.12 Storing `this` shares the object, counted (D.103): `cars.add(this)` - one car in several
 		collections; freed when the last holder lets go - check today's behaviour, tests
 		[DONE] The examples: byRef where sharing is meant, byVal where a copy (6 SYNTAX_REFERENCE, classes_demo)

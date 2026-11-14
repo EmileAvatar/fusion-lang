@@ -200,8 +200,7 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 |---|---|---|---|---|
 | `strategy` | `ownership` / `gc` / `manual` | `ownership` | How memory is managed - no GC unless chosen | D.013, D.027, Task 38 |
 | `copy` | `deep` / `shallow` | `deep` | What `copy(x)` and `byVal` copy | D.033, MEM.008 |
-| `oneWriter` *(name open)* | `true` / `false` | `true` | Rule 2: while a borrow changes a value, nothing else changes it | D.123, D.124, 48.11 |
-| `borrowOutlive` *(name open)* | `true` / `false` | `true` | Rule 3: a borrow is never kept past its owner's life | D.124, 48.11 |
+| `ownership` | `strict` / `relaxed` | `strict` | Every ownership rule at once - strict: `b = a` moves, one writer, a borrow never stored; relaxed: shares, the rules loosened (a library with no ownership model, a GC alongside, manual memory). Replaces `assignment` - the before / after table: [090 Memory](090-Memory.md#the-ownership-setting-strict-or-relaxed-user-2026-11-14---d124) | D.124, 48.11 |
 
 #### [threads], [concurrency], [collections]
 | Setting | Values | Default | What it does | Decision / task |
