@@ -219,13 +219,20 @@ class MemoryConfig:
     Attributes:
         assignment: "move" (the default since Task 48.9, D.102) - `Car b = a` hands the
             object over and `a` can't be used until it gets a new value (`byVal a` copies,
-            `byRef a` borrows); "share" - two names, one object.
+            `byRef a` borrows); "share" - two names, one object. Written in fusion.toml as
+            `[memory] ownership` since Task 48.11 (D.124): "strict" = "move" with every
+            ownership rule, "relaxed" = "share" with the rules loosened.
         move_field_out: a field may be moved out of a struct the function owns, as in Rust -
             the struct can't be used afterwards until it gets a new value. False (the
             default): a struct's fields are only borrowed (D.026, user 2026-11-03).
     """
     assignment: str = "move"
     move_field_out: bool = False
+
+    @property
+    def ownership(self) -> str:
+        """`[memory] ownership` (Task 48.11, D.124): "strict" (default) or "relaxed"."""
+        return "strict" if self.assignment == "move" else "relaxed"
 
 
 @dataclass
@@ -515,10 +522,20 @@ def _load_collections_section(data: dict, config_path: str) -> CollectionsConfig
     return collections
 
 
-def _load_memory_section(data: dict, config_path: str) -> MemoryConfig:
-    """Parse and validate the [memory] section (Task 48.1)."""
+OWNERSHIP_VALUES = {"strict": "move", "relaxed": "share"}   # Task 48.11 (D.124)
+
+
+def _load_memory_section(data: dict, config_path: str, warnings: list = None) -> MemoryConfig:
+    """Parse and validate the [memory] section (Task 48.1; `ownership` since 48.11 - D.124).
+
+    `ownership = "strict"` (default) | "relaxed" covers every ownership rule; the older
+    `assignment = "move" | "share"` is still read, with a warning that the name changed."""
     memory = MemoryConfig()
     section = _require_table(data, "memory", config_path)
+    if "ownership" in section and "assignment" in section:
+        raise ProjectConfigError(
+            f"{config_path}: memory.assignment and memory.ownership are the same setting - "
+            f"keep ownership only")
     for key, value in section.items():
         if key == "moveFieldOut":
             if not isinstance(value, bool):
@@ -526,13 +543,23 @@ def _load_memory_section(data: dict, config_path: str) -> MemoryConfig:
                     f"{config_path}: memory.moveFieldOut must be a boolean, got {value!r}")
             memory.move_field_out = value
             continue
+        if key == "ownership":
+            if value not in OWNERSHIP_VALUES:
+                raise ProjectConfigError(
+                    f"{config_path}: memory.ownership must be \"strict\" or \"relaxed\", got {value!r}")
+            memory.assignment = OWNERSHIP_VALUES[value]
+            continue
         if key != "assignment":
             raise ProjectConfigError(
-                f"{config_path}: unknown setting memory.{key} (known: ['assignment', 'moveFieldOut'])")
+                f"{config_path}: unknown setting memory.{key} (known: ['ownership', 'moveFieldOut'])")
         if value not in ("move", "share"):
             raise ProjectConfigError(
                 f"{config_path}: memory.assignment must be \"move\" or \"share\", got {value!r}")
         memory.assignment = value
+        new = "strict" if value == "move" else "relaxed"
+        if warnings is not None:
+            warnings.append(f"{config_path}: memory.assignment = \"{value}\" is now written "
+                            f"memory.ownership = \"{new}\" (Task 48.11, D.124)")
     return memory
 
 
@@ -784,7 +811,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         modules=_load_modules_section(data, config_path),
         visibility=_load_visibility_section(data, config_path),
         interfaces=_load_interfaces_section(data, config_path),
-        memory=_load_memory_section(data, config_path),
+        memory=_load_memory_section(data, config_path, warnings),
         collections=_load_collections_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),

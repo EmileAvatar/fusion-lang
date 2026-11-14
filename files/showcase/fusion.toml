@@ -145,16 +145,13 @@ maxIterations = 0
 # No GC unless chosen here, or made in code (Decisions.md D.027, user 2026-10-31)
 strategy = "ownership"
 # [rejected] Non-atomic Shared counts as an option - always atomic (decided 2026-09-13)
-# [built] Car b = a: "move" (a can't be used after it; byVal copies) | "share" (two
-# names, one object) - Task 48, files/Ownership.md (user, 2026-10-31); "move" the default since
-# Task 48.9 (D.102)
-assignment = "move"
+# [replaced by ownership, 48.11] assignment = "move" | "share" - still read, with a warning
 # [built] A field moved out of a struct the function owns, the struct unusable afterwards
 # (as Rust) - off: fields are only borrowed (D.026, user 2026-11-03)
 moveFieldOut = false
 # [designed] What copy(x) and byVal copy: "deep" | "shallow" (D.033)
 copy = "deep"
-# [designed] Every ownership rule at once: "strict" (default, the safest - b = a moves, one writer,
+# [built] Every ownership rule at once: "strict" (default, the safest - b = a moves, one writer,
 # a borrow never stored) | "relaxed" (shares, rules loosened - a library with no ownership model, a GC
 # alongside, manual memory); replaces assignment (D.124, user 2026-11-14 - files/Ownership.md 1)
 ownership = "strict"

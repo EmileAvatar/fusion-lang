@@ -191,7 +191,7 @@ Raw Pointers | Embedded/FFI only | High | Maximum
 * **`fixed(n)`** (Task 47.5, D.064): `fixed(10) string name`, `fixed(14) List<Person> people`,
   `fixed int numbers[10]` - only the size is limited (the values may change; `const`: nothing changes),
   lower fine, never higher; memory reserved once
-* Setting (built until 48.11): `[memory] assignment = "move"` (default) | `"share"` - becomes `ownership`:
+* Setting (built, 48.11): `[memory] ownership = "strict"` (default) | `"relaxed"` - it replaced `assignment`:
 
 ### The ownership setting: strict or relaxed (user, 2026-11-14 - D.124)
 
@@ -199,7 +199,7 @@ One setting covers every ownership rule. It replaces `[memory] assignment`, whic
 `=` does (Task 48.11):
 
 ```toml
-# before (built until 48.11) - one rule only
+# before (until 48.11) - one rule only
 [memory]
 assignment = "move"      # or "share"
 

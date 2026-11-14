@@ -27,7 +27,7 @@ service side), `files/Concurrency.md` section 3.13 (threads), `files/Arrays.md` 
 
 Setting: `[memory] assignment = "move"` (default) | `"share"` (today's behaviour: two names,
 one object). Moving is the default on purpose - it is the only default that gives one writer
-by construction (D1a). From 48.11 it becomes `[memory] ownership = "strict" | "relaxed"` - below.
+by construction (D1a). Since 48.11 it is written `[memory] ownership = "strict" | "relaxed"` - below.
 
 #### The ownership setting: strict or relaxed (user, 2026-11-14 - D.124)
 
@@ -35,7 +35,7 @@ One setting covers every ownership rule. It replaces `[memory] assignment`, whic
 `=` does (Task 48.11):
 
 ```toml
-# before (built until 48.11) - one rule only
+# before (until 48.11) - one rule only
 [memory]
 assignment = "move"      # or "share"
 

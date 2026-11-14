@@ -674,7 +674,7 @@ void function main()
     second.log.add("copied")
     print("{@1} {@2} {@3}", first.items.len(), second.items.len(), first.log.len())   // 1 2 2
 ```
-Rule of thumb: assigning a List / Map moves it (`[memory] assignment = "move"`); `byVal`
+Rule of thumb: assigning a List / Map moves it (`[memory] ownership = "strict"`); `byVal`
 copies it and `byRef` borrows it; passing it to a function lends it for the call. In a struct
 copied with `byVal`, a `byRef` field stays shared (with `"share"`, assigning shares a List and
 copies a struct). Never null - just empty
@@ -1042,7 +1042,7 @@ A class with a `nocopy` field (a connection, a lock) can't be copied unless it i
 `Cloneable` with its own `Car function clone()`, which `byVal` then calls; a `nocopy` field is set
 only in a constructor or `clone()`. A `noshare` field is never handed out - `return byVal log`.
 
-#### Moving: `[memory] assignment = "move"`
+#### Moving: `[memory] ownership = "strict"`
 
 <!-- example: syntax_moving | task: 48.1 -->
 ```fusion
@@ -1127,7 +1127,7 @@ void function main()
 ```
 `readonly` at a call is checked through every call the function makes; when it changes or
 keeps the value there are two errors - at the call, and at the line that changes it, naming
-the call. `byRef` works on a List, a Map and an object. With `[memory] assignment = "move"`,
+the call. `byRef` works on a List, a Map and an object. With `[memory] ownership = "strict"`,
 `byRef` / `readonly` only lend: given to a function that keeps its parameter, they are an
 error, and `Car b = byRef a` is a local borrow.
 
@@ -1594,7 +1594,8 @@ maxLength = "max"               # no limit (default); a number = longer strings 
 layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)
 
 [memory]
-assignment = "move"              # move (default): Car b = a hands it over | share: two names, one object
+ownership = "strict"             # strict (default): Car b = a hands it over, every rule | relaxed: shares
+                                 # (was assignment = "move" | "share" - still read, with a warning)
 moveFieldOut = false             # true: a field may leave a struct you own; the struct is then gone
 
 [modules]

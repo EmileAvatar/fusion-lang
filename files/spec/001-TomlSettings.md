@@ -15,7 +15,7 @@ its default. Names are camelCase and read in any case, `_` ignored (`tab_width` 
 ```toml
 # fusion.toml - a few settings; everything else keeps its default
 [memory]
-assignment = "move"        # "share": two names on one object
+ownership = "strict"       # "relaxed": two names on one object, the rules loosened
 
 [numbers]
 overflowWrap = false       # true: 255 + 1 in a byte gives 0
@@ -104,7 +104,7 @@ mode = "safe"              # "strict": every warning an error
 
 | Setting | Values | Default | What it does | Task |
 |---|---|---|---|---|
-| `assignment` | `move` / `share` | `move` | move (the default): Car b = a hands the object over - a can't be used until it gets a new value (byVal a copies, byRef a borrows); share: two names, one object (D.102) | 48.9 |
+| `ownership` | `strict` / `relaxed` | `strict` | strict (the default, the safest): every ownership rule - Car b = a hands the object over (a can't be used until it gets a new value), one writer, a borrow never stored or returned; relaxed: Car b = a shares one object, the rules loosened - for a library with no ownership model (a GC alongside it) or manual memory. byVal copies and byRef borrows in both. Replaces assignment (move / share), still read with a warning (D.124) | 48.11 |
 | `moveFieldOut` | bool | `false` | A field may be moved out of a struct the function owns, as in Rust - the struct can't be used afterwards until it gets a new value; false: a struct's fields are only borrowed, never taken out (D.026) | 48.9 |
 
 #### [interfaces] - Interfaces
@@ -200,7 +200,6 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 |---|---|---|---|---|
 | `strategy` | `ownership` / `gc` / `manual` | `ownership` | How memory is managed - no GC unless chosen | D.013, D.027, Task 38 |
 | `copy` | `deep` / `shallow` | `deep` | What `copy(x)` and `byVal` copy | D.033, MEM.008 |
-| `ownership` | `strict` / `relaxed` | `strict` | Every ownership rule at once - strict: `b = a` moves, one writer, a borrow never stored; relaxed: shares, the rules loosened (a library with no ownership model, a GC alongside, manual memory). Replaces `assignment` - the before / after table: [090 Memory](090-Memory.md#the-ownership-setting-strict-or-relaxed-user-2026-11-14---d124) | D.124, 48.11 |
 
 #### [threads], [concurrency], [collections]
 | Setting | Values | Default | What it does | Decision / task |
