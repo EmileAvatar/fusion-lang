@@ -148,10 +148,10 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same
 	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
 	[ ] 45.7 The array being looped over can't be changed inside the loop (D.058) - a compile error where seen, else ModifiedWhileLoopingError
-	[ ] 45.13 `[arrays] stackWarn = "16KB"` (a warning), `stackLimit = "64KB"` (an error) - in bytes (D.145); buffers: Q.020
+	[ ] 45.13 `[arrays] stackWarn = "16KB"` (a warning), `stackLimit = "64KB"` (an error) - in bytes (D.145); `setBufferType` / `setSize` an error "not built yet" (buffers: L16.3, D.146)
 	[ ] 45.12 Up to 3 dimensions: `int[10][5][7]` rows x columns x depth; `expand(rows / columns / depth, n)` or by number from 0, with a warning (D.143)
 		[ ] 45.11 `toList` and `toCSV` on them
-	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)`; one row's `add` only on JAGG (D.144)
+	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)
 	[POSTPONED to 42] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19)
 	[ ] 45.6 Docs and examples: files/Arrays.md (a truth table), SYNTAX_REFERENCE, spec 031 / 140, the showcase
 
@@ -815,9 +815,9 @@ Each time a task or section is finished, this list is checked for items the curr
 			stack: one being worked on by the CPU while the other loads the next part from the heap, then they swap
 		[POSTPONED - after self-hosting and profiling] L16.2 Or a ring buffer on the stack: one part read
 			while the next is written, so the stack never grows while a large array is read
-		[POSTPONED - after self-hosting and profiling; Q.020] L16.3 Buffer settings: `[arrays]` buffer size for a small /
-			large array (2KB / 8KB), `bufferType`; per array `setBufferType(SINGLE / TWO / THREE / RING)`, `setSize(n)`;
-			above `stackLimit` the compiler picks RING itself
+		[POSTPONED - after self-hosting and profiling] L16.3 Buffers (D.146): `[arrays] bufferSmall` / `bufferLarge`
+			(2KB / 8KB), `bufferType`; per array `setBufferType(SINGLE / TWO / THIRD / RING)`, `setSize(n)` in bytes;
+			THIRD fills from the L2 / L3 cache while the CPU works on the stack; above `stackLimit` the compiler picks RING
 		[POSTPONED - after self-hosting and profiling] L16.4 The program sets its own stack amounts where it
 			runs: a small PC less, a server more - and plays nice, never taking memory other programs need
 		[POSTPONED - after self-hosting] L16.5 Large arrays on a GPU or the CPU: special options per array

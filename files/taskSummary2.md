@@ -11,7 +11,7 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 ## Task 45 - Arrays: plain, fixed, growable, up to 3 dimensions (plan, 2026-11-14)
 
 - **Decided:** D.141 (the three forms), D.142 (the `Array` class), D.143 (3 dimensions), D.144 (storage), D.145 (the stack limits)
-- **Still open:** Q.020, the buffers; Task 45 only needs its point 4 answered
+- **Buffers:** D.146 (built after self-hosting, L16.3); set-up calls right after the declaration: D.147
 - **Status:** FEATURES Task 45
 
 **Settings:**
@@ -67,4 +67,4 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Rule 4c: one test per truth-table row, run under the leak check.
 - Rule 4b: a null object slot, read with and without `?.`.
 
-- **Next Action:** the user approves the plan (and Q.020 point 4); then sub-task 1, 45.1 the `Array` class
+- **Next Action:** sub-task 1, 45.1 the `Array` class (approved 2026-11-15)
