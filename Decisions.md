@@ -153,7 +153,7 @@ FUN.017 [BUILT] `readonly` on a copy (a number result, `f(readonly n)`) is a war
 #### NUL - null
 NUL.001 [BUILT] Value types are never null; class objects and enums can be
 NUL.002 [BUILT] A null without a check is a NullError a `catch` can handle; `null == null` is true
-NUL.003 [PARTIAL] `case null` built (30.12); `?.`, `?.null`, `??` planned (Task 30.2)
+NUL.003 [BUILT] `case null` (30.12); `?.`, `?.null`, `??` - the null guard (52.8)
 NUL.004 [REJECTED] `T?` types - `?` goes on a variable (`x?.f()`), never on a type
 NUL.005 [PLANNED] A `?.` comparison is false on null and warns; `!` around one is a compile error - `[conditions]` setting allows it with a warning (52.7, D.116)
 NUL.006 [PLANNED] The compiler checks an object is made before it is used: a surely-null one passed is an error; a `Default` left null is an error (52.7, D.117) - no mark for a may-be-null parameter (D.138)

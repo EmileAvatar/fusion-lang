@@ -226,7 +226,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		Map with `nullable` on); the -1 only in a comparison (`if` / `while`), elsewhere a NullError (a compile
 		error where it can be seen); tests with and without a null check (Rule 4b)
 	[DONE] 52.6 An interface's functions are public or internal - `private` on one a compile error (D.114, CLS.019)
-	[ ] 52.8 The null guard (was 30.2 - postponed to 32 and never built, found 2026-11-14): `c?.name`,
+	[DONE] 52.8 The null guard (was 30.2 - postponed to 32 and never built, found 2026-11-14): `c?.name`,
 		`c?.rename("x")` not run on null, false in an `if`; `c ?? Car()` - files/Nullable_Values.md; NUL.003
 	[REJECTED 2026-11-14 - D.138] 52.9 The nullable settings (was 30.3): a string, array, List or Map is never null,
 		whatever the settings
@@ -235,7 +235,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[DONE] 52.11 Arrays of objects (D.140): a null slot allowed (in a literal too - today refused); `arr[i] = null`
 		frees the object; an element of the wrong type stays an error
 	[DONE - default false] 52.12 `[strings] nullBecomesEmpty` (user, 2026-11-14): `s = null` - an error, or ""; default asked (D.003)
-	[ ] 52.13 `?.` / `??` on a string, array, List or Map - never null, so the guard does nothing: a warning
+	[DONE] 52.13 `?.` / `??` on a string, array, List or Map - never null, so the guard does nothing: a warning
 	[ ] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
 		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
 		`?` parameter without a null check - a warning; a `Default` left null - an error

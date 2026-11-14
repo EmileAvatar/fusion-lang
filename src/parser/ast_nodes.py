@@ -111,6 +111,15 @@ class IsNullExpr(ASTNode):
 
 
 @dataclass
+class CoalesceExpr(ASTNode):
+    """`c?.speed ?? 0`, `c ?? Car()` - the value, or the default when it is missing (Task 52.8).
+    Rewritten into the conditional operator before checking (src/semantic/null_guards.py)."""
+    left: ASTNode
+    right: ASTNode
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class ConditionalExpr(ASTNode):
     """The conditional operator (Task 30.7): `(count > 5) ? "big" : "small"` - one line, gives
     the first value when the condition holds, else the second. Only the chosen one runs.
@@ -249,6 +258,7 @@ class MemberExpr(ASTNode):
     object: ASTNode
     member: str
     inferred_type: Optional['TypeNode'] = None
+    guarded: bool = False   # `c?.name` - the null guard (Task 52.8), rewritten before checking
 
 
 @dataclass

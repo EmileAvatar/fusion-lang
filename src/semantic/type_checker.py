@@ -977,6 +977,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             # a string, List or Map from an Iterator's next() past the end (D.094)
             isinstance(operand_type, (ListType, MapType))
             or (isinstance(operand_type, PrimitiveType) and operand_type.name == 'string'))
+        if getattr(node, 'from_guard', False) and (
+                isinstance(operand_type, (ListType, MapType, ArrayType))
+                or (isinstance(operand_type, PrimitiveType) and operand_type.name == 'string')):
+            node.can_be_null = False               # 52.13: never null (D.138) - ?. does nothing
+            self.warnings.append(SemanticError(
+                f"A {self.type_to_string(operand_type)} is never null - '?.' / '??' does nothing "
+                f"here (D.138)", node.location))
+            return PrimitiveType(location=node.location, name='bool')
         if not node.can_be_null and not (isinstance(operand_type, PrimitiveType)
                                          and operand_type.name == 'void'):
             self.warnings.append(SemanticError(

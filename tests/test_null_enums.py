@@ -101,6 +101,13 @@ def test_a_value_that_can_never_be_null_gives_a_warning():
                for w in analyzer.get_warnings())
 
 
-def test_other_safe_navigation_is_planned():
-    with pytest.raises(Exception, match="'[?][.]' before a member or method is planned"):
+def test_safe_navigation_on_an_enum_needs_a_default():
+    # Task 52.8: `?.` is built - a guarded value needs a default (??) outside a condition
+    assert "'?.toString' may be missing - give a default with ??" in \
         errors_of(STATUS + main('Status s\nstring t = s?.toString()'))
+
+
+def test_safe_navigation_on_an_enum_with_a_default():
+    code, out, err = compile_and_run(STATUS + main('Status s\nstring t = s?.toString() ?? "none"\nprint(t)'))
+    assert code == 0, err
+    assert out.strip().splitlines()[-1] == 'none'

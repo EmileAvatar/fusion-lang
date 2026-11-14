@@ -51,6 +51,7 @@ TWO_CHAR_OPERATORS: Dict[str, TokenType] = {
 
     # Special operators
     '?.': TokenType.SAFE_NAV,      # Safe navigation
+    '??': TokenType.NULL_COALESCE, # The default when missing (Task 52.8)
     '?[': TokenType.SAFE_INDEX,    # Safe indexing
     '<-': TokenType.CHANNEL_SEND,  # Channel send (Go-style)
     '->': TokenType.ARROW,         # Arrow (various uses)

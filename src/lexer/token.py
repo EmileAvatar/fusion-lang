@@ -170,6 +170,7 @@ class TokenType(Enum):
     # ============================================================
     RANGE = auto()          # ...
     SAFE_NAV = auto()       # ?.
+    NULL_COALESCE = auto()  # ?? (Task 52.8)
     SAFE_INDEX = auto()     # ?[
     CHANNEL_SEND = auto()   # <-
     ARROW = auto()          # ->

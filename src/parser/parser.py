@@ -178,7 +178,7 @@ class Parser:
         """The conditional operator (Task 30.7): `condition ? a : b`, usually written with the
         condition in brackets - `(count > 5) ? "big" : "small"`. Lowest precedence; nests to
         the right: `a ? b : c ? d : e` is `a ? b : (c ? d : e)`."""
-        condition = self.parse_or()
+        condition = self.parse_coalesce()
         if not self.check(TokenType.QUESTION):
             return condition
         question = self.advance()
@@ -188,6 +188,14 @@ class Parser:
         else_value = self.parse_conditional()
         return ConditionalExpr(location=question.location, condition=condition,
                                then_value=then_value, else_value=else_value)
+
+    def parse_coalesce(self) -> ASTNode:
+        """`a ?? b` - a, or b when a is missing (Task 52.8); groups to the right."""
+        left = self.parse_or()
+        if self.check(TokenType.NULL_COALESCE):
+            operator = self.advance()
+            return CoalesceExpr(location=operator.location, left=left, right=self.parse_coalesce())
+        return left
 
     def parse_or(self) -> ASTNode:
         """Parse logical OR: expr or expr, expr || expr
@@ -438,12 +446,18 @@ class Parser:
         # Handle chained postfix operators: func()(), arr[i][j], arr[i](), etc.
         while True:
             if self.check(TokenType.SAFE_NAV):
-                # x?.null - quick typing for "x is null" (Task 30.11); other x?.member: 30.2
-                if self.peek(1).type != TokenType.NULL:
-                    raise ParserError(self.peek(), "'?.' before a member or method is planned "
-                                                   "(Task 30.2) - today only x?.null works")
-                self.advance(); self.advance()
-                expr = IsNullExpr(location=expr.location, operand=expr)
+                # x?.null - quick typing for "x is null" (Task 30.11)
+                if self.peek(1).type == TokenType.NULL:
+                    self.advance(); self.advance()
+                    expr = IsNullExpr(location=expr.location, operand=expr)
+                    continue
+                # x?.name / x?.f() - the null guard (Task 52.8)
+                self.advance()
+                name = self.peek()
+                if name.type != TokenType.IDENTIFIER and not name.value.isidentifier():
+                    raise ParserError(name, "Expected a field or method name after '?.'")
+                self.advance()
+                expr = MemberExpr(location=expr.location, object=expr, member=name.value, guarded=True)
                 continue
             if self.match(TokenType.LPAREN):
                 arguments = []

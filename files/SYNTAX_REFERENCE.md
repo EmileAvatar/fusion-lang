@@ -1236,6 +1236,40 @@ kept; `byVal` gives a copy that may change, `byRef` is an error. A readonly numb
 is a copy, so `readonly` does nothing there (a warning). `const` on an object is deep: nothing in it
 may change, except in its own set-up block. Every case: files/Ownership.md "Truth table 4b".
 
+#### The null guard: `?.` and `??`
+
+<!-- example: syntax_null_guard | task: 52.8 -->
+```fusion
+class Person
+    public string name
+    public int age
+    public Person spouse
+    constructor(string n, int a)
+        this.name = n
+        this.age = a
+    void function greet()
+        print("hi {name}")
+
+void function main()
+    Person nobody = null
+    Person ann = Person("Ann", 30)
+    ann.spouse = Person("Bob", 31)
+    nobody?.greet()                          // skipped - nobody is null
+    ann?.greet()                             // hi Ann
+    int age = nobody?.age ?? -1              // -1 - ?? gives the default
+    print("{@1}", age)
+    if !(nobody?.age >= 18)                  // a guarded test is false on null - so this is true
+        print("ask for ID")
+    string partner = ann?.spouse?.name ?? "none"   // every link checked
+    print(partner)                           // Bob
+    Person someone = nobody ?? Person("New", 1)    // the object, or the default
+    print(someone.name)                      // New
+```
+`?.` reads through an object that may be null: a call is skipped, a test in a condition is false,
+and a value needs a default you write with `??` - `int a = nobody?.age` alone is an error (nothing
+changes silently). Before `?.` stands a variable or a field path - after a call, store the result
+first. A string, array, List or Map is never null, so `?.` on one does nothing (a warning).
+
 #### `Default`: an object that is never null
 
 <!-- example: syntax_default | task: 32.5b -->

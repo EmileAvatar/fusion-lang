@@ -18,6 +18,7 @@ from .class_rules import check_class_cycles, check_constructors
 from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly, check_readonly_calls, check_readonly_values
+from .null_guards import expand_null_guards
 from .interfaces import check_interfaces
 from .case_names import check_case_names
 from .ownership import check_ownership
@@ -120,6 +121,10 @@ class SemanticAnalyzer:
 
         if not self.case_sensitive:       # 32.11 - the names as written, before any rewrite
             self.errors.extend(check_case_names(ast))
+
+        # The null guard (Task 52.8): c?.name, c?.f(), a ?? b rewritten into `is not null`,
+        # `and`, `? :` and `if` - before anything else looks at the program
+        self.errors.extend(expand_null_guards(ast))
 
         # Pass 0: string templates (Task 29.3) - every use becomes a format() call or a
         # lambda, before anything else looks at the program

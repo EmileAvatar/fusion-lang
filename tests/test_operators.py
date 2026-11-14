@@ -26,13 +26,13 @@ class TestOperatorTables:
     def test_operator_counts(self):
         """Verify expected number of operators."""
         assert len(THREE_CHAR_OPERATORS) == 4  # ... **= === !==
-        assert len(TWO_CHAR_OPERATORS) == 19   # All 2-char operators
+        assert len(TWO_CHAR_OPERATORS) == 20   # All 2-char operators (?? - Task 52.8)
         assert len(SINGLE_CHAR_OPERATORS) == 9  # Single-char operators
         assert len(DELIMITERS) == 10            # Delimiters
 
-        assert OPERATOR_COUNT == 32  # 4 + 19 + 9
+        assert OPERATOR_COUNT == 33  # 4 + 20 + 9
         assert DELIMITER_COUNT == 10
-        assert TOTAL_OPERATOR_AND_DELIMITER_COUNT == 42
+        assert TOTAL_OPERATOR_AND_DELIMITER_COUNT == 43
 
     def test_all_tables_are_dicts(self):
         """Verify all operator tables are dictionaries."""
