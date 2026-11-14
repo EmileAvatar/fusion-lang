@@ -139,11 +139,18 @@ def test_a_borrow_used_in_a_later_branch():
 
 
 def test_changing_through_the_borrow_and_reading_the_owner():
-    # R4: many readers or one writer
+    # R4 relaxed (D.123, 48.10): the owner may be read while a borrow changes it
     source = CAR + main('List<Car> fleet = [Car("red")]\nCar first = fleet[0]\nfirst.color = "blue"\n'
                         'print("{@1}", fleet.len())\nprint(first.color)')
-    assert errors(source) == ["'fleet' can't be read while 'first', borrowed from it on line 8, "
-                              "changes it"]
+    assert errors(source) == []
+    assert run(source) == ['1', 'blue']
+
+
+def test_changing_the_owner_another_way_while_a_borrow_changes_it():
+    # R4: one writer - changing the owner another way while the borrow is used stays an error
+    source = CAR + main('List<Car> fleet = [Car("red")]\nCar first = fleet[0]\nfirst.color = "blue"\n'
+                        'fleet[0] = Car("green")\nprint(first.color)')
+    assert any("'fleet' can't change while 'first' borrows from it" in e for e in errors(source))
 
 
 def test_changing_through_the_borrow_alone_is_fine():

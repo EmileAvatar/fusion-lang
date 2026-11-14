@@ -721,12 +721,8 @@ class _FunctionCheck:
                     and not self.moving(getattr(at, 'inferred_type', None)):
                 continue                # an element's value set: fine (27.2e) - unless it moves
             self._error(f"'{owner}' can't change {while_text}", at)
-        # R4: while the borrow changes it (not just names something else), nobody else reads it
-        if names and any(path[0] in names and not rebind for path, _, rebind in changes):
-            for path, at in reads:
-                if path[0] not in names and _overlap(path, borrow.owner):
-                    self._error(f"'{owner}' can't be read while '{name}', borrowed from it on "
-                                f"line {borrow.line}, changes it", at)
+        # R4 relaxed (D.123, 48.10): while the borrow changes it, the owner may still be read -
+        # only changing it another way (above) is an error
 
     def _effects(self, node, changes: list, reads: list) -> None:
         """The paths a statement changes (assigned, changed by a method or a call, moved) and

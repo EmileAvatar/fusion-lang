@@ -261,7 +261,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 48.7 Examples and files/SYNTAX_REFERENCE.md, tests with and without null checks (Rule 4b)
 	[ ] 48.8 Release the `Unique` keyword - no `Unique<T>` or `.move()` (D.080)
 	[DONE] 48.9 Migrate, then make "move" the default (D.102)
-	[ ] 48.10 R4 changed (D.123): while a borrow changes a value its owner may still be read - only changing it
+	[DONE] 48.10 R4 changed (D.123): while a borrow changes a value its owner may still be read - only changing it
 		another way is an error (today reading is an error too - 48.2)
 	[ ] 48.11 `[memory] ownership = "strict" | "relaxed"` (D.124, user 2026-11-14): every ownership rule at once,
 		replaces `assignment` (old values read with a warning); files/fusionSettings.xml; the before / after table

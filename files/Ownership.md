@@ -19,7 +19,7 @@ service side), `files/Concurrency.md` section 3.13 (threads), `files/Arrays.md` 
 | R1 | **One owner** - every object, List and Map has exactly one owner at a time | a local variable, a field, a List element or a service |
 | R2 | **Assigning moves** - `Car b = a` hands it over, and `a` is dead | using `a` again is a compile error, until it gets a new value |
 | R3 | **Passing borrows** - `f(a)` lends `a` for the call | `a` is back afterwards; the called function's signature says read or change |
-| R4 | **Many readers or one writer**, never both at the same time | readonly borrows may overlap; a changing borrow is alone |
+| R4 | **One writer**: while a borrow changes a value, nothing else changes it - reading the owner is fine (relaxed, D.123 - unlike Rust) | readonly borrows may overlap; a changing borrow is the only writer |
 | R5 | **A borrow never outlives its owner** - it can't be stored, returned or captured | so Fusion needs no lifetime annotations (simpler than Rust, as safe) |
 | R6 | **`shared` is the written exception** - counted, read only except to the holder that made it shared | `byRef` lends the right to change it |
 | R7 | **The thread boundary** - a value two or more threads use goes through one writer | a service - made automatically when needed (section 6) |
@@ -158,7 +158,7 @@ borrowed; the whole struct moves or is borrowed. Arrays, Lists and Maps move in 
 | moved in a loop | `'c' was moved to 'cars' (add) on line 10, in an earlier pass of the loop - give it a new value each pass, or use byVal c for a copy` |
 | a function that keeps it (D.100) | `'a' was moved to 'park' (which keeps it) on line 14 - use byVal a for a copy` |
 | the owner changed while borrowed (D.101) | `'fleet' can't change while 'first' borrows from it (line 8, last used on line 10)` |
-| the owner read while the borrow changes it (R4) | `'fleet' can't be read while 'first', borrowed from it on line 8, changes it` |
+| the owner read while the borrow changes it (R4) | no error since 48.10 (D.123) - changing it another way is the error above |
 | a for loop's collection | `'xs' can't change while a for loop walks it (line 3)` |
 | a borrow stored or returned (R5) | `'c' borrows from 'fleet' (line 9) - a borrow can't be stored or returned; use byVal c for a copy` |
 | a field moved out (D.026) | `'order.items' is part of 'order' and can't be moved out - use byVal order.items for a copy` |

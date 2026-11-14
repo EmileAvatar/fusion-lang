@@ -47,7 +47,7 @@ Handed over = `T b = a`, `b = a`, `x.f = a`, `list.add(a)` / `insert`, `m[k] = a
 | `car.paint()` where paint keeps `this` | never moves car - `this` is always borrowed | D.103 |
 | `Car c = fleet[0]` / `order.items` / `for c in fleet` | a local borrow; the owner frozen until the borrow's last use | D.101 |
 | change the owner while the borrow is used | error: 'fleet' can't change while 'c' borrows from it | D.101 |
-| read the owner while the borrow changes it | error (one writer or many readers) | R4 |
+| read the owner while the borrow changes it | fine since 48.10 (D.123); changing it another way: error | R4 |
 | store or return a borrow (`g.car = c`, `list.add(c)`) | error - `byVal c` copies | R5 |
 | `return order.items` / `list.add(fleet[0])` of a value the function owns | error - a field / element can't be moved out | D.026 |
 | a method returning its own field / element (`return this.engine`) | ok - the result lends from the object | D.109 |
