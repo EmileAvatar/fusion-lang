@@ -4,7 +4,10 @@
 
 **Status:** planned - the Currency module is FEATURES 43.3, the `money` type 47.2; never fetches rates (CLAUDE.md hard rule)
 
-Contents: [Currency Module (Financial / FX Conversion)](#currency-module-financial--fx-conversion) | [Fixed-Point Decimal Type & `Currency` Sugar (Financial / Money Precision)](#fixed-point-decimal-type--currency-sugar-financial--money-precision)
+**Contents**
+
+- [Currency Module (Financial / FX Conversion)](#currency-module-financial--fx-conversion)
+- [Fixed-Point Decimal Type & `Currency` Sugar (Financial / Money Precision)](#fixed-point-decimal-type--currency-sugar-financial--money-precision)
 
 ## Currency Module (Financial / FX Conversion)
 

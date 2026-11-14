@@ -4,7 +4,17 @@
 
 **Status:** idea - no task (a fusionlib module - FEATURES 43.6)
 
-Contents: [Regex Fluent API](#regex-fluent-api) | [Overview](#overview) | [Regex Pattern to Method Mapping](#regex-pattern-to-method-mapping) | [API Design (Option 1: Chainable Builder)](#api-design-option-1-chainable-builder) | [API Design (Option 2: Static Helpers)](#api-design-option-2-static-helpers) | [Examples](#examples) | [Implementation Notes](#implementation-notes) | [Open Questions](#open-questions) | [Regex Module (Planned)](#regex-module-planned)
+**Contents**
+
+- [Regex Fluent API](#regex-fluent-api)
+- [Overview](#overview)
+- [Regex Pattern to Method Mapping](#regex-pattern-to-method-mapping)
+- [API Design (Option 1: Chainable Builder)](#api-design-option-1-chainable-builder)
+- [API Design (Option 2: Static Helpers)](#api-design-option-2-static-helpers)
+- [Examples](#examples)
+- [Implementation Notes](#implementation-notes)
+- [Open Questions](#open-questions)
+- [Regex Module (Planned)](#regex-module-planned)
 
 ## Regex Fluent API
 

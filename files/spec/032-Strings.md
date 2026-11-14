@@ -2,7 +2,19 @@
 
 # 032 Strings
 
-Contents: [Length](#length) | [Encoding](#encoding) | [Ownership](#ownership) | [Planned](#planned) | [When a program ends](#when-a-program-ends) | [Names in the generated C](#names-in-the-generated-c) | [Built-in type classes](#built-in-type-classes) | [Comparison](#comparison) | [String operations](#string-operations) | [Raw bytes](#raw-bytes) | [Versatile string functions](#versatile-string-functions)
+**Contents**
+
+- [Length](#length)
+- [Encoding](#encoding)
+- [Ownership](#ownership)
+- [Planned](#planned)
+- [When a program ends](#when-a-program-ends)
+- [Names in the generated C](#names-in-the-generated-c)
+- [Built-in type classes](#built-in-type-classes)
+- [Comparison](#comparison)
+- [String operations](#string-operations)
+- [Raw bytes](#raw-bytes)
+- [Versatile string functions](#versatile-string-functions)
 
 ## Strings
 

@@ -4,7 +4,10 @@
 
 **Status:** idea - no task (editor support: FEATURES Task 36)
 
-Contents: [IDE Module Enhancements](#ide-module-enhancements) | [Project Integration System](#project-integration-system)
+**Contents**
+
+- [IDE Module Enhancements](#ide-module-enhancements)
+- [Project Integration System](#project-integration-system)
 
 ## IDE Module Enhancements
 

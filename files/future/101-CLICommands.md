@@ -4,7 +4,17 @@
 
 **Status:** later - with 100 CLI
 
-Contents: [Command Specifications](#command-specifications) | [1. `fusion fmt` - Code Formatter](#1-fusion-fmt---code-formatter) | [2. `fusion test` - Test Runner](#2-fusion-test---test-runner) | [3. `fusion doc` - Documentation Generator](#3-fusion-doc---documentation-generator) | [4. `fusion build` - Compiler](#4-fusion-build---compiler) | [5. `fusion run` - Compile and Execute](#5-fusion-run---compile-and-execute) | [6. `fusion clean` - Cleanup Build Artifacts](#6-fusion-clean---cleanup-build-artifacts) | [7. `fusion vet` - Code Analyzer](#7-fusion-vet---code-analyzer) | [8. `fusion check` - Syntax Check (No Compilation)](#8-fusion-check---syntax-check-no-compilation)
+**Contents**
+
+- [Command Specifications](#command-specifications)
+- [1. `fusion fmt` - Code Formatter](#1-fusion-fmt---code-formatter)
+- [2. `fusion test` - Test Runner](#2-fusion-test---test-runner)
+- [3. `fusion doc` - Documentation Generator](#3-fusion-doc---documentation-generator)
+- [4. `fusion build` - Compiler](#4-fusion-build---compiler)
+- [5. `fusion run` - Compile and Execute](#5-fusion-run---compile-and-execute)
+- [6. `fusion clean` - Cleanup Build Artifacts](#6-fusion-clean---cleanup-build-artifacts)
+- [7. `fusion vet` - Code Analyzer](#7-fusion-vet---code-analyzer)
+- [8. `fusion check` - Syntax Check (No Compilation)](#8-fusion-check---syntax-check-no-compilation)
 
 ## Command Specifications
 

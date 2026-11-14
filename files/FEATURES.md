@@ -3,7 +3,14 @@
 
 The single place to see what is done, open, or postponed - one line per item.
 
-Contents: [Preface](#preface) | [Index](#index) | [Phase 2](#phase-2) | [Phase 3](#phase-3) | [Later](#later) | [Known limitations](#known-limitations)
+**Contents**
+
+- [Preface](#preface)
+- [Index](#index)
+- [Phase 2](#phase-2)
+- [Phase 3](#phase-3)
+- [Later](#later)
+- [Known limitations](#known-limitations)
 
 ---
 

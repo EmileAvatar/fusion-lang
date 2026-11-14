@@ -2,7 +2,12 @@
 
 # 060 Structs
 
-Contents: [Struct Rules](#struct-rules) | [Structure Definition](#structure-definition) | [String Fields](#string-fields) | [Value Semantics](#value-semantics)
+**Contents**
+
+- [Struct Rules](#struct-rules)
+- [Structure Definition](#structure-definition)
+- [String Fields](#string-fields)
+- [Value Semantics](#value-semantics)
 
 ## Structures and Value Types
 

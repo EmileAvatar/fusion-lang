@@ -2,7 +2,21 @@
 
 # 220 Comparison
 
-Contents: [Syntax and Structure Comparison](#syntax-and-structure-comparison) | [Type System Comparison](#type-system-comparison) | [Memory Management Comparison](#memory-management-comparison) | [Concurrency Comparison](#concurrency-comparison) | [Error Handling Comparison](#error-handling-comparison) | [Object-Oriented Comparison](#object-oriented-comparison) | [Advanced Features Comparison](#advanced-features-comparison) | [Standard Library Comparison](#standard-library-comparison) | [Build and Execution Comparison](#build-and-execution-comparison) | [Safety and Security Comparison](#safety-and-security-comparison) | [Unique Language Features Summary](#unique-language-features-summary) | [Language Philosophy Comparison](#language-philosophy-comparison) | [Fusion's Advantage](#fusions-advantage)
+**Contents**
+
+- [Syntax and Structure Comparison](#syntax-and-structure-comparison)
+- [Type System Comparison](#type-system-comparison)
+- [Memory Management Comparison](#memory-management-comparison)
+- [Concurrency Comparison](#concurrency-comparison)
+- [Error Handling Comparison](#error-handling-comparison)
+- [Object-Oriented Comparison](#object-oriented-comparison)
+- [Advanced Features Comparison](#advanced-features-comparison)
+- [Standard Library Comparison](#standard-library-comparison)
+- [Build and Execution Comparison](#build-and-execution-comparison)
+- [Safety and Security Comparison](#safety-and-security-comparison)
+- [Unique Language Features Summary](#unique-language-features-summary)
+- [Language Philosophy Comparison](#language-philosophy-comparison)
+- [Fusion's Advantage](#fusions-advantage)
 
 ## Language Comparison
 

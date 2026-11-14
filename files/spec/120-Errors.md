@@ -2,7 +2,16 @@
 
 # 120 Errors
 
-Contents: [Multiple Return Values](#multiple-return-values) | [Function with Error Return](#function-with-error-return) | [Calling with Error Capture](#calling-with-error-capture) | [Calling Without Error Capture](#calling-without-error-capture) | [Error Chaining](#error-chaining) | [Error Object](#error-object) | [Traditional Exceptions](#traditional-exceptions) | [When to Use Each](#when-to-use-each)
+**Contents**
+
+- [Multiple Return Values](#multiple-return-values)
+- [Function with Error Return](#function-with-error-return)
+- [Calling with Error Capture](#calling-with-error-capture)
+- [Calling Without Error Capture](#calling-without-error-capture)
+- [Error Chaining](#error-chaining)
+- [Error Object](#error-object)
+- [Traditional Exceptions](#traditional-exceptions)
+- [When to Use Each](#when-to-use-each)
 
 ## Error Handling
 

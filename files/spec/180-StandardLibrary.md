@@ -2,7 +2,23 @@
 
 # 180 Standard Library
 
-Contents: [Core Collections](#core-collections) | [Math Library](#math-library) | [File I/O](#file-io) | [Text File Formats](#text-file-formats) | [Programming Language Support](#programming-language-support) | [Image Formats](#image-formats) | [Advanced Binary Formats](#advanced-binary-formats) | [More library areas (moved from the Auto-Documentation section)](#more-library-areas-moved-from-the-auto-documentation-section) | [Custom Format Creator](#custom-format-creator) | [Localization Support](#localization-support) | [Networking](#networking) | [Graphics and Audio](#graphics-and-audio) | [Threading and Concurrency](#threading-and-concurrency) | [Date and Time](#date-and-time) | [Regular Expressions](#regular-expressions)
+**Contents**
+
+- [Core Collections](#core-collections)
+- [Math Library](#math-library)
+- [File I/O](#file-io)
+- [Text File Formats](#text-file-formats)
+- [Programming Language Support](#programming-language-support)
+- [Image Formats](#image-formats)
+- [Advanced Binary Formats](#advanced-binary-formats)
+- [More library areas (moved from the Auto-Documentation section)](#more-library-areas-moved-from-the-auto-documentation-section)
+- [Custom Format Creator](#custom-format-creator)
+- [Localization Support](#localization-support)
+- [Networking](#networking)
+- [Graphics and Audio](#graphics-and-audio)
+- [Threading and Concurrency](#threading-and-concurrency)
+- [Date and Time](#date-and-time)
+- [Regular Expressions](#regular-expressions)
 
 ## Standard Library
 

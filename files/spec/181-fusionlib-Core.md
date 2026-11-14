@@ -2,7 +2,14 @@
 
 # 181 fusionlib Core
 
-Contents: [Core Libraries (Essential)](#core-libraries-essential) | [Core Module (fusionlib.Core)](#core-module-fusionlibcore) | [Math Module (fusionlib.Math)](#math-module-fusionlibmath) | [Collections Module (fusionlib.Collections)](#collections-module-fusionlibcollections) | [Threading Module (fusionlib.Threading)](#threading-module-fusionlibthreading) | [IO Module (fusionlib.IO)](#io-module-fusionlibio)
+**Contents**
+
+- [Core Libraries (Essential)](#core-libraries-essential)
+- [Core Module (fusionlib.Core)](#core-module-fusionlibcore)
+- [Math Module (fusionlib.Math)](#math-module-fusionlibmath)
+- [Collections Module (fusionlib.Collections)](#collections-module-fusionlibcollections)
+- [Threading Module (fusionlib.Threading)](#threading-module-fusionlibthreading)
+- [IO Module (fusionlib.IO)](#io-module-fusionlibio)
 
 ## Fusion Standard Library (fusionlib)
 

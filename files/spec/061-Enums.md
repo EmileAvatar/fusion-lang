@@ -2,7 +2,12 @@
 
 # 061 Enums
 
-Contents: [Enum Syntax](#enum-syntax) | [Enum with Values](#enum-with-values) | [Using Enums](#using-enums) | [Enum Properties](#enum-properties)
+**Contents**
+
+- [Enum Syntax](#enum-syntax)
+- [Enum with Values](#enum-with-values)
+- [Using Enums](#using-enums)
+- [Enum Properties](#enum-properties)
 
 ## Enumerations
 

@@ -4,7 +4,16 @@
 
 **Status:** design - with SYN.038
 
-Contents: [Exception 1: Reserved Loop Counter Names](#exception-1-reserved-loop-counter-names) | [Exception 2: Generic Type Parameters (Reserved Names)](#exception-2-generic-type-parameters-reserved-names) | [Scope and Applicability](#scope-and-applicability) | [Error Messages](#error-messages) | [Configuration Levels](#configuration-levels) | [Implementation Notes](#implementation-notes) | [IDE Integration](#ide-integration) | [Benefits](#benefits)
+**Contents**
+
+- [Exception 1: Reserved Loop Counter Names](#exception-1-reserved-loop-counter-names)
+- [Exception 2: Generic Type Parameters (Reserved Names)](#exception-2-generic-type-parameters-reserved-names)
+- [Scope and Applicability](#scope-and-applicability)
+- [Error Messages](#error-messages)
+- [Configuration Levels](#configuration-levels)
+- [Implementation Notes](#implementation-notes)
+- [IDE Integration](#ide-integration)
+- [Benefits](#benefits)
 
 ## Exception 1: Reserved Loop Counter Names
 

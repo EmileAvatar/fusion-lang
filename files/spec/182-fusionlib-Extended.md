@@ -2,7 +2,24 @@
 
 # 182 fusionlib Extended
 
-Contents: [Networking & Data Processing](#networking--data-processing) | [Net Module (fusionlib.Net)](#net-module-fusionlibnet) | [Data Module (fusionlib.Data)](#data-module-fusionlibdata) | [System Integration](#system-integration) | [System Module (fusionlib.System)](#system-module-fusionlibsystem) | [Lang Module (fusionlib.Lang)](#lang-module-fusionliblang) | [Languages Module (fusionlib.Languages)](#languages-module-fusionliblanguages) | [Multimedia & User Interface](#multimedia--user-interface) | [GUI Module (fusionlib.GUI)](#gui-module-fusionlibgui) | [Graphics Module (fusionlib.Graphics)](#graphics-module-fusionlibgraphics) | [Audio Module (fusionlib.Audio)](#audio-module-fusionlibaudio) | [Advanced Features](#advanced-features) | [Crypto Module (fusionlib.Crypto)](#crypto-module-fusionlibcrypto) | [Database Module (fusionlib.Database)](#database-module-fusionlibdatabase) | [Web Module (fusionlib.Web)](#web-module-fusionlibweb) | [AI Module (fusionlib.AI)](#ai-module-fusionlibai)
+**Contents**
+
+- [Networking & Data Processing](#networking--data-processing)
+- [Net Module (fusionlib.Net)](#net-module-fusionlibnet)
+- [Data Module (fusionlib.Data)](#data-module-fusionlibdata)
+- [System Integration](#system-integration)
+- [System Module (fusionlib.System)](#system-module-fusionlibsystem)
+- [Lang Module (fusionlib.Lang)](#lang-module-fusionliblang)
+- [Languages Module (fusionlib.Languages)](#languages-module-fusionliblanguages)
+- [Multimedia & User Interface](#multimedia--user-interface)
+- [GUI Module (fusionlib.GUI)](#gui-module-fusionlibgui)
+- [Graphics Module (fusionlib.Graphics)](#graphics-module-fusionlibgraphics)
+- [Audio Module (fusionlib.Audio)](#audio-module-fusionlibaudio)
+- [Advanced Features](#advanced-features)
+- [Crypto Module (fusionlib.Crypto)](#crypto-module-fusionlibcrypto)
+- [Database Module (fusionlib.Database)](#database-module-fusionlibdatabase)
+- [Web Module (fusionlib.Web)](#web-module-fusionlibweb)
+- [AI Module (fusionlib.AI)](#ai-module-fusionlibai)
 
 **Status:** [DESIGN] designed one at a time in Task 43; the core libraries: [181](181-fusionlib-Core.md)
 

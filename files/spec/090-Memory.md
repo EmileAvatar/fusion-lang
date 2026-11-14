@@ -2,7 +2,16 @@
 
 # 090 Memory
 
-Contents: [Ownership explained - start here](#ownership-explained---start-here) | [Memory Management](#memory-management) | [Tier 1: Automatic Garbage Collection (optional - never the default: OWNERSHIP first, Decisions.md D.027)](#tier-1-automatic-garbage-collection-optional---never-the-default-ownership-first-decisionsmd-d027) | [Tier 2: Smart Pointers (Performance Mode)](#tier-2-smart-pointers-performance-mode) | [Tier 3: Raw Pointers (Unsafe Mode)](#tier-3-raw-pointers-unsafe-mode) | [Memory Strategy Summary](#memory-strategy-summary) | [Ownership: move, borrow, share](#ownership-move-borrow-share) | [The ownership setting: strict or relaxed (user, 2026-11-14 - D.124)](#the-ownership-setting-strict-or-relaxed-user-2026-11-14---d124)
+**Contents**
+
+- [Ownership explained - start here](#ownership-explained---start-here)
+- [Memory Management](#memory-management)
+- [Tier 1: Automatic Garbage Collection (optional - never the default: OWNERSHIP first, Decisions.md D.027)](#tier-1-automatic-garbage-collection-optional---never-the-default-ownership-first-decisionsmd-d027)
+- [Tier 2: Smart Pointers (Performance Mode)](#tier-2-smart-pointers-performance-mode)
+- [Tier 3: Raw Pointers (Unsafe Mode)](#tier-3-raw-pointers-unsafe-mode)
+- [Memory Strategy Summary](#memory-strategy-summary)
+- [Ownership: move, borrow, share](#ownership-move-borrow-share)
+- [The ownership setting: strict or relaxed (user, 2026-11-14 - D.124)](#the-ownership-setting-strict-or-relaxed-user-2026-11-14---d124)
 
 ## Ownership explained - start here
 

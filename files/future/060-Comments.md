@@ -4,7 +4,18 @@
 
 **Status:** design - `'` comments postponed (SYN.031); `'''` blocks designed (SYN.036); built today: [130 Comments](../spec/130-Comments.md)
 
-Contents: [Enhanced Comment Support](#enhanced-comment-support) | [Current Comment Support (MVP)](#current-comment-support-mvp) | [Feature 1: Re-enable `'` Comments (Line-Start Only)](#feature-1-re-enable--comments-line-start-only) | [Feature 2: Triple-Quote Comment Blocks `'''`](#feature-2-triple-quote-comment-blocks-) | [Feature 3: Comment Style Summary](#feature-3-comment-style-summary) | [Implementation Notes](#implementation-notes) | [Testing Strategy](#testing-strategy) | [Timeline](#timeline) | [Benefits](#benefits) | [Open Questions](#open-questions)
+**Contents**
+
+- [Enhanced Comment Support](#enhanced-comment-support)
+- [Current Comment Support (MVP)](#current-comment-support-mvp)
+- [Feature 1: Re-enable `'` Comments (Line-Start Only)](#feature-1-re-enable--comments-line-start-only)
+- [Feature 2: Triple-Quote Comment Blocks `'''`](#feature-2-triple-quote-comment-blocks-)
+- [Feature 3: Comment Style Summary](#feature-3-comment-style-summary)
+- [Implementation Notes](#implementation-notes)
+- [Testing Strategy](#testing-strategy)
+- [Timeline](#timeline)
+- [Benefits](#benefits)
+- [Open Questions](#open-questions)
 
 ## Enhanced Comment Support
 

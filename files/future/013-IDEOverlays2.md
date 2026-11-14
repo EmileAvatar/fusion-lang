@@ -4,7 +4,11 @@
 
 **Status:** idea - no task
 
-Contents: [Feature 5: Naming Quality Analysis (Dictionary Builder)](#feature-5-naming-quality-analysis-dictionary-builder) | [Feature 6: Nested Loop Warning (Performance)](#feature-6-nested-loop-warning-performance) | [Feature 7: Nested Control Flow Refactoring](#feature-7-nested-control-flow-refactoring)
+**Contents**
+
+- [Feature 5: Naming Quality Analysis (Dictionary Builder)](#feature-5-naming-quality-analysis-dictionary-builder)
+- [Feature 6: Nested Loop Warning (Performance)](#feature-6-nested-loop-warning-performance)
+- [Feature 7: Nested Control Flow Refactoring](#feature-7-nested-control-flow-refactoring)
 
 ## Feature 5: Naming Quality Analysis (Dictionary Builder)
 

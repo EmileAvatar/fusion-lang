@@ -4,7 +4,11 @@
 
 **Status:** design - comment levels and coding hints (SYN.036); no task yet
 
-Contents: [Developer Experience Enhancements](#developer-experience-enhancements) | [Comment Level System (0-5)](#comment-level-system-0-5) | [Coding Hints System](#coding-hints-system)
+**Contents**
+
+- [Developer Experience Enhancements](#developer-experience-enhancements)
+- [Comment Level System (0-5)](#comment-level-system-0-5)
+- [Coding Hints System](#coding-hints-system)
 
 ## Developer Experience Enhancements
 

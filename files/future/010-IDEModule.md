@@ -4,7 +4,11 @@
 
 **Status:** idea - no task; editor support is FEATURES Task 36; the IDE libraries as designed: [183](../spec/183-fusionlib-IDE.md)
 
-Contents: [Proposed New Modules](#proposed-new-modules) | [1. fusionlib.IDE - IDE Integration Module (22nd Module)](#1-fusionlibide---ide-integration-module-22nd-module) | [Complete fusionlib.IDE Module API](#complete-fusionlibide-module-api)
+**Contents**
+
+- [Proposed New Modules](#proposed-new-modules)
+- [1. fusionlib.IDE - IDE Integration Module (22nd Module)](#1-fusionlibide---ide-integration-module-22nd-module)
+- [Complete fusionlib.IDE Module API](#complete-fusionlibide-module-api)
 
 ## Proposed New Modules
 

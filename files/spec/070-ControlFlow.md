@@ -2,7 +2,11 @@
 
 # 070 ControlFlow
 
-Contents: [Conditionals](#conditionals) | [Loops with Safety Checks](#loops-with-safety-checks) | [Loop Labels](#loop-labels)
+**Contents**
+
+- [Conditionals](#conditionals)
+- [Loops with Safety Checks](#loops-with-safety-checks)
+- [Loop Labels](#loop-labels)
 
 ## Control Flow
 

@@ -2,7 +2,11 @@
 
 # 050 Classes
 
-Contents: [Class Definition](#class-definition) | [Static vs Instance Members](#static-vs-instance-members) | [Properties](#properties)
+**Contents**
+
+- [Class Definition](#class-definition)
+- [Static vs Instance Members](#static-vs-instance-members)
+- [Properties](#properties)
 
 ## Classes and Objects
 

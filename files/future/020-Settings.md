@@ -4,7 +4,16 @@
 
 **Status:** partly built - the four settings formats are built (Task 31, [170 Build](../spec/170-Build.md)); every setting: [001](../spec/001-TomlSettings.md); the rest idea
 
-Contents: [Settings System - Module Placement](#settings-system---module-placement) | [2.1 Compiler & Build Settings `fusionlib.IDE` (New Module)](#21-compiler--build-settings-fusionlibide-new-module) | [2.2 Project Configuration `fusionlib.IDE` (New Module)](#22-project-configuration-fusionlibide-new-module) | [2.3 User App Configuration (Runtime) `fusionlib.Data` (Existing Module)](#23-user-app-configuration-runtime-fusionlibdata-existing-module) | [2.4 IDE Preferences `fusionlib.IDE` (New Module)](#24-ide-preferences-fusionlibide-new-module) | [Configuration File Formats](#configuration-file-formats) | [Project Configuration (project.json)](#project-configuration-projectjson) | [User Preferences (~/.fusion/preferences.json)](#user-preferences-fusionpreferencesjson)
+**Contents**
+
+- [Settings System - Module Placement](#settings-system---module-placement)
+- [2.1 Compiler & Build Settings `fusionlib.IDE` (New Module)](#21-compiler--build-settings-fusionlibide-new-module)
+- [2.2 Project Configuration `fusionlib.IDE` (New Module)](#22-project-configuration-fusionlibide-new-module)
+- [2.3 User App Configuration (Runtime) `fusionlib.Data` (Existing Module)](#23-user-app-configuration-runtime-fusionlibdata-existing-module)
+- [2.4 IDE Preferences `fusionlib.IDE` (New Module)](#24-ide-preferences-fusionlibide-new-module)
+- [Configuration File Formats](#configuration-file-formats)
+- [Project Configuration (project.json)](#project-configuration-projectjson)
+- [User Preferences (~/.fusion/preferences.json)](#user-preferences-fusionpreferencesjson)
 
 ## Settings System - Module Placement
 

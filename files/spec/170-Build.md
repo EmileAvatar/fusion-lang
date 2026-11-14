@@ -2,7 +2,14 @@
 
 # 170 Build
 
-Contents: [Compilation Modes](#compilation-modes) | [Project Configuration](#project-configuration) | [Build Commands](#build-commands) | [Build Configurations](#build-configurations) | [Output Targets](#output-targets) | [Using Libraries](#using-libraries)
+**Contents**
+
+- [Compilation Modes](#compilation-modes)
+- [Project Configuration](#project-configuration)
+- [Build Commands](#build-commands)
+- [Build Configurations](#build-configurations)
+- [Output Targets](#output-targets)
+- [Using Libraries](#using-libraries)
 
 ## Build and Compilation
 

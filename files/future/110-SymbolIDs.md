@@ -4,7 +4,11 @@
 
 **Status:** idea - no task; an identity for everything is FEATURES 42.28
 
-Contents: [Compiler Infrastructure Enhancements](#compiler-infrastructure-enhancements) | [Core & Additional Packages — Fusion vs Other Languages](#core--additional-packages--fusion-vs-other-languages) | [Additional Specialized Packages (Not Core – Optional Ecosystem Modules)](#additional-specialized-packages-not-core--optional-ecosystem-modules)
+**Contents**
+
+- [Compiler Infrastructure Enhancements](#compiler-infrastructure-enhancements)
+- [Core & Additional Packages — Fusion vs Other Languages](#core--additional-packages--fusion-vs-other-languages)
+- [Additional Specialized Packages (Not Core – Optional Ecosystem Modules)](#additional-specialized-packages-not-core--optional-ecosystem-modules)
 
 ## Compiler Infrastructure Enhancements
 

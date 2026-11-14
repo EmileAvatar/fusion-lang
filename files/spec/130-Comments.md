@@ -2,7 +2,12 @@
 
 # 130 Comments
 
-Contents: [Single-Line Comments](#single-line-comments) | [Multi-Line Comments](#multi-line-comments) | [Region Blocks](#region-blocks) | [Documentation Comments](#documentation-comments)
+**Contents**
+
+- [Single-Line Comments](#single-line-comments)
+- [Multi-Line Comments](#multi-line-comments)
+- [Region Blocks](#region-blocks)
+- [Documentation Comments](#documentation-comments)
 
 ## Comments and Code Organization
 

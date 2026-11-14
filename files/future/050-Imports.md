@@ -4,7 +4,16 @@
 
 **Status:** design - importing only some names (MOD.005), grouped import blocks (MOD.008); namespaces and modules: Task 57 (D.136)
 
-Contents: [Multi-Import & Parameter Syntax](#multi-import--parameter-syntax) | [Feature 1: Grouped Import Blocks](#feature-1-grouped-import-blocks) | [Feature 2: Multi-line Function Parameters](#feature-2-multi-line-function-parameters) | [Feature 3: Mixed Import Styles](#feature-3-mixed-import-styles) | [Examples](#examples) | [Implementation Details](#implementation-details) | [Style Guide Recommendations](#style-guide-recommendations) | [Clarification: Type Casing](#clarification-type-casing)
+**Contents**
+
+- [Multi-Import & Parameter Syntax](#multi-import--parameter-syntax)
+- [Feature 1: Grouped Import Blocks](#feature-1-grouped-import-blocks)
+- [Feature 2: Multi-line Function Parameters](#feature-2-multi-line-function-parameters)
+- [Feature 3: Mixed Import Styles](#feature-3-mixed-import-styles)
+- [Examples](#examples)
+- [Implementation Details](#implementation-details)
+- [Style Guide Recommendations](#style-guide-recommendations)
+- [Clarification: Type Casing](#clarification-type-casing)
 
 ## Multi-Import & Parameter Syntax
 

@@ -4,7 +4,14 @@
 
 **Status:** idea - the thread view is FEATURES 36.6; the rest no task
 
-Contents: [IDE Code Quality Overlays & Hints](#ide-code-quality-overlays--hints) | [Overview](#overview) | [Feature 1: Inverted If Detection (Reduce Nesting)](#feature-1-inverted-if-detection-reduce-nesting) | [Feature 2: Thread Visualization (Communication Tracking)](#feature-2-thread-visualization-communication-tracking) | [Feature 3: Performance Profiling Overlay](#feature-3-performance-profiling-overlay) | [Feature 4: Duplicate Code Detection](#feature-4-duplicate-code-detection)
+**Contents**
+
+- [IDE Code Quality Overlays & Hints](#ide-code-quality-overlays--hints)
+- [Overview](#overview)
+- [Feature 1: Inverted If Detection (Reduce Nesting)](#feature-1-inverted-if-detection-reduce-nesting)
+- [Feature 2: Thread Visualization (Communication Tracking)](#feature-2-thread-visualization-communication-tracking)
+- [Feature 3: Performance Profiling Overlay](#feature-3-performance-profiling-overlay)
+- [Feature 4: Duplicate Code Detection](#feature-4-duplicate-code-detection)
 
 ## IDE Code Quality Overlays & Hints
 

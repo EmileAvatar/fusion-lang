@@ -4,7 +4,38 @@
 
 **Status:** notes - not a feature; background for fusionlib.Web ([182](../spec/182-fusionlib-Extended.md))
 
-Contents: [Core Concept](#core-concept) | [Common Web Server Languages](#common-web-server-languages) | [Also Seen in Hosting Environments](#also-seen-in-hosting-environments) | [Key Differences Summary](#key-differences-summary) | [Choosing One](#choosing-one) | [Core Server Function](#core-server-function) | [**1. Accepts and Handles Requests**](#1-accepts-and-handles-requests) | [**2. Processes Business Logic**](#2-processes-business-logic) | [**3. Interacts with Databases**](#3-interacts-with-databases) | [**4. Communicates with External Systems**](#4-communicates-with-external-systems) | [**5. Generates and Formats Responses**](#5-generates-and-formats-responses) | [**6. Manages Sessions and Authentication**](#6-manages-sessions-and-authentication) | [**7. Handles Errors and Logging**](#7-handles-errors-and-logging) | [**8. Performs Background or Async Tasks**](#8-performs-background-or-async-tasks) | [**9. Manages Configuration and Environment**](#9-manages-configuration-and-environment) | [**10. Serves Static or Dynamic Content**](#10-serves-static-or-dynamic-content) | [**11. Scales and Manages Resources**](#11-scales-and-manages-resources) | [**12. Ensures Security**](#12-ensures-security) | [Web Service (Core Structure)](#web-service-core-structure) | [**1. Requests (Entry Point)**](#1-requests-entry-point) | [**2. Routing (Path Handling)**](#2-routing-path-handling) | [**3. Business Logic Layer**](#3-business-logic-layer) | [**4. Database Layer**](#4-database-layer) | [**5. Response (Output Layer)**](#5-response-output-layer) | [**6. Middleware (Cross-Cutting Layers)**](#6-middleware-cross-cutting-layers) | [**7. External Integrations**](#7-external-integrations) | [**8. Background / Asynchronous Tasks**](#8-background--asynchronous-tasks) | [**9. Configuration / Environment**](#9-configuration--environment) | [**10. Security Layer**](#10-security-layer) | [**Simplified Flow Diagram**](#simplified-flow-diagram)
+**Contents**
+
+- [Core Concept](#core-concept)
+- [Common Web Server Languages](#common-web-server-languages)
+- [Also Seen in Hosting Environments](#also-seen-in-hosting-environments)
+- [Key Differences Summary](#key-differences-summary)
+- [Choosing One](#choosing-one)
+- [Core Server Function](#core-server-function)
+- [**1. Accepts and Handles Requests**](#1-accepts-and-handles-requests)
+- [**2. Processes Business Logic**](#2-processes-business-logic)
+- [**3. Interacts with Databases**](#3-interacts-with-databases)
+- [**4. Communicates with External Systems**](#4-communicates-with-external-systems)
+- [**5. Generates and Formats Responses**](#5-generates-and-formats-responses)
+- [**6. Manages Sessions and Authentication**](#6-manages-sessions-and-authentication)
+- [**7. Handles Errors and Logging**](#7-handles-errors-and-logging)
+- [**8. Performs Background or Async Tasks**](#8-performs-background-or-async-tasks)
+- [**9. Manages Configuration and Environment**](#9-manages-configuration-and-environment)
+- [**10. Serves Static or Dynamic Content**](#10-serves-static-or-dynamic-content)
+- [**11. Scales and Manages Resources**](#11-scales-and-manages-resources)
+- [**12. Ensures Security**](#12-ensures-security)
+- [Web Service (Core Structure)](#web-service-core-structure)
+- [**1. Requests (Entry Point)**](#1-requests-entry-point)
+- [**2. Routing (Path Handling)**](#2-routing-path-handling)
+- [**3. Business Logic Layer**](#3-business-logic-layer)
+- [**4. Database Layer**](#4-database-layer)
+- [**5. Response (Output Layer)**](#5-response-output-layer)
+- [**6. Middleware (Cross-Cutting Layers)**](#6-middleware-cross-cutting-layers)
+- [**7. External Integrations**](#7-external-integrations)
+- [**8. Background / Asynchronous Tasks**](#8-background--asynchronous-tasks)
+- [**9. Configuration / Environment**](#9-configuration--environment)
+- [**10. Security Layer**](#10-security-layer)
+- [**Simplified Flow Diagram**](#simplified-flow-diagram)
 
 ### Core Concept
 

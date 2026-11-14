@@ -2,7 +2,13 @@
 
 # 183 fusionlib IDE
 
-Contents: [Reflection Module (fusionlib.Reflection)](#reflection-module-fusionlibreflection) | [Test Module (fusionlib.Test)](#test-module-fusionlibtest) | [Diagnostics Module (fusionlib.Diagnostics)](#diagnostics-module-fusionlibdiagnostics) | [DocWiki Module (fusionlib.DocWiki)](#docwiki-module-fusionlibdocwiki) | [Library Summary](#library-summary)
+**Contents**
+
+- [Reflection Module (fusionlib.Reflection)](#reflection-module-fusionlibreflection)
+- [Test Module (fusionlib.Test)](#test-module-fusionlibtest)
+- [Diagnostics Module (fusionlib.Diagnostics)](#diagnostics-module-fusionlibdiagnostics)
+- [DocWiki Module (fusionlib.DocWiki)](#docwiki-module-fusionlibdocwiki)
+- [Library Summary](#library-summary)
 
 **Status:** [DESIGN] designed one at a time in Task 43; the core libraries: [181](181-fusionlib-Core.md),
 the additional ones: [182](182-fusionlib-Extended.md)

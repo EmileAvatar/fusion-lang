@@ -4,7 +4,11 @@
 
 **Status:** design - `unsafe` blocks and functions (MEM.006, D.030, D.031); memory freed at the end of its scope (D.134); bounds checks stay even in unsafe (COL.010)
 
-Contents: [Unsafe Mode Enhancements](#unsafe-mode-enhancements) | [Implementation Strategy Tiers & the Configurable-Strategy Philosophy](#implementation-strategy-tiers--the-configurable-strategy-philosophy) | [Bit Type & Assembly Support](#bit-type--assembly-support)
+**Contents**
+
+- [Unsafe Mode Enhancements](#unsafe-mode-enhancements)
+- [Implementation Strategy Tiers & the Configurable-Strategy Philosophy](#implementation-strategy-tiers--the-configurable-strategy-philosophy)
+- [Bit Type & Assembly Support](#bit-type--assembly-support)
 
 ## Unsafe Mode Enhancements
 

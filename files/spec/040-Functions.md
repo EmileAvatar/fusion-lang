@@ -2,7 +2,12 @@
 
 # 040 Functions
 
-Contents: [Function Declaration Syntax](#function-declaration-syntax) | [Main Function - Application Entry Point](#main-function---application-entry-point) | [Function Block Syntax](#function-block-syntax) | [Calling Functions](#calling-functions)
+**Contents**
+
+- [Function Declaration Syntax](#function-declaration-syntax)
+- [Main Function - Application Entry Point](#main-function---application-entry-point)
+- [Function Block Syntax](#function-block-syntax)
+- [Calling Functions](#calling-functions)
 
 ## Functions and Methods
 

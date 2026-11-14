@@ -2,7 +2,27 @@
 
 # 210 Features Summary
 
-Contents: [Syntax Features](#syntax-features) | [Enumerations](#enumerations) | [The `...` Operator](#the--operator) | [Type System](#type-system) | [Static Members and Constants](#static-members-and-constants) | [Array Safe Navigation](#array-safe-navigation) | [Error Handling](#error-handling) | [Memory Management](#memory-management) | [Null Safety](#null-safety) | [Autoboxing](#autoboxing) | [Properties](#properties) | [Structures](#structures) | [Threading and Concurrency](#threading-and-concurrency) | [Loops](#loops) | [Standard Library](#standard-library) | [Modules](#modules) | [Compilation](#compilation) | [From Parent Languages](#from-parent-languages) | [Unique to Fusion](#unique-to-fusion)
+**Contents**
+
+- [Syntax Features](#syntax-features)
+- [Enumerations](#enumerations)
+- [The `...` Operator](#the--operator)
+- [Type System](#type-system)
+- [Static Members and Constants](#static-members-and-constants)
+- [Array Safe Navigation](#array-safe-navigation)
+- [Error Handling](#error-handling)
+- [Memory Management](#memory-management)
+- [Null Safety](#null-safety)
+- [Autoboxing](#autoboxing)
+- [Properties](#properties)
+- [Structures](#structures)
+- [Threading and Concurrency](#threading-and-concurrency)
+- [Loops](#loops)
+- [Standard Library](#standard-library)
+- [Modules](#modules)
+- [Compilation](#compilation)
+- [From Parent Languages](#from-parent-languages)
+- [Unique to Fusion](#unique-to-fusion)
 
 ## Language Features Summary
 

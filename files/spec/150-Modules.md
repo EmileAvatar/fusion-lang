@@ -2,7 +2,13 @@
 
 # 150 Modules
 
-Contents: [File Organization](#file-organization) | [Module Definition](#module-definition) | [Class Files](#class-files) | [Import Syntax](#import-syntax) | [Visibility Control](#visibility-control)
+**Contents**
+
+- [File Organization](#file-organization)
+- [Module Definition](#module-definition)
+- [Class Files](#class-files)
+- [Import Syntax](#import-syntax)
+- [Visibility Control](#visibility-control)
 
 ## Module System
 

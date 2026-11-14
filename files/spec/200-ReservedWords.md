@@ -2,7 +2,11 @@
 
 # 200 Reserved Words
 
-Contents: [Reserved Keywords](#reserved-keywords) | [Operators](#operators) | [Operator Precedence](#operator-precedence)
+**Contents**
+
+- [Reserved Keywords](#reserved-keywords)
+- [Operators](#operators)
+- [Operator Precedence](#operator-precedence)
 
 ## Reserved Words and Operators
 
