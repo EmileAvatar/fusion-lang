@@ -101,7 +101,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
 | [45](#task-45) | Arrays that grow at the end | 2 | open |
 | [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
-| [50](#task-50) | readonly results and a deep const | 2 | open |
+| [50](#task-50) | readonly results and a deep const | 2 | active |
 | [52](#task-52) | Classes, value types and null - follow-ups from the open questions | 2 | open |
 | [53](#task-53) | Check the Core language | 2 | open |
 | [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
