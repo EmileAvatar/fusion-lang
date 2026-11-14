@@ -823,6 +823,9 @@ Each time a task or section is finished, this list is checked for items the curr
 			while the next is written, so the stack never grows while a large array is read
 		[POSTPONED - after self-hosting and profiling; Q.018] L16.3 `[arrays] loadSmall` / `loadLarge`: how many
 			items of a small / large array are loaded onto the stack at a time
+		[POSTPONED - after self-hosting and profiling] L16.4 The program sets its own stack amounts where it
+			runs: a small PC less, a server more - and plays nice, never taking memory other programs need
+		[POSTPONED - after self-hosting] L16.5 Large arrays on a GPU or the CPU: special options per array
 
 ---
 
