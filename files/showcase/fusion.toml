@@ -41,6 +41,8 @@ caseSensitive = true
 encoding = "utf-8"
 # [built] "max" = no limit; a number = a longer string is a StringTooLongError
 maxLength = "max"
+# [built] A string is never null (D.138): s = null is an error - true: s becomes "" (Task 52.12)
+nullBecomesEmpty = false
 # [rejected] A "mutable" switch - a string variable can always be changed in place (s[i] = c,
 # Task 29.1); a const string is fixed (29.2)
 # [designed] Identical text stored once (Task 29.4 - postponed to Task 38)

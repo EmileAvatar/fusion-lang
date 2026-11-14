@@ -354,10 +354,15 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             # null (Task 30.11): an enum can hold it (class objects later, Task 32)
             if isinstance(expected, (ListType, MapType, ArrayType)):
                 self.errors.append(SemanticError(self.null_collection(expected), value.location))
+            elif isinstance(expected, PrimitiveType) and expected.name == 'string' \
+                    and self.strings_config.null_becomes_empty:
+                value.type_hint, value.value = 'string', ''     # [strings] nullBecomesEmpty (52.12)
             elif not isinstance(expected, EnumType) and not self.is_class(expected):
+                hint = (' - or [strings] nullBecomesEmpty = true makes it ""'
+                        if isinstance(expected, PrimitiveType) and expected.name == 'string' else '')
                 self.errors.append(SemanticError(
                     f"A {self.type_to_string(expected)} can't be null - only a class object or "
-                    f"an enum can", value.location))
+                    f"an enum can{hint}", value.location))
             value.inferred_type = expected
             return expected
         result = self.visit(value)

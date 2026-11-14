@@ -56,3 +56,18 @@ def test_with_a_null_check_nothing_is_added():
 def test_no_null_option_is_still_accepted():
     # noNull() (32.14) is what every List / Map does now - writing it is harmless
     assert run(CAR + main('List<Car> xs = [] { xs.noNull() }\nxs.add(Car())\nprint("{@1}", xs.len())')) == ['1']
+
+
+# ---------- Task 52.12 - [strings] nullBecomesEmpty (default false) ----------
+
+def test_a_string_set_to_null_is_an_error_by_default():
+    assert "or [strings] nullBecomesEmpty = true makes it" in errors_of(main('string s = null'))
+
+
+def test_null_becomes_empty_turns_null_into_an_empty_string():
+    from src.config.project_config import StringsConfig
+    from tests.test_end_to_end import compile_and_run
+    code, out, err = compile_and_run(main('string s = "hi"\ns = null\nprint("[{s}] {@1}", s.len())'),
+                                     analyzer_options={'strings_config': StringsConfig(null_becomes_empty=True)})
+    assert code == 0, err
+    assert out.strip().splitlines() == ['[] 0']

@@ -1668,6 +1668,7 @@ caseSensitive = true            # false: names that differ only in case (count /
 [strings]
 encoding = "utf-8"               # utf-8 (default) | ascii - also named: utf-16, utf-32 (future)
 maxLength = "max"               # no limit (default); a number = longer strings are an error
+nullBecomesEmpty = false         # a string is never null: s = null is an error | true: s becomes ""
 
 [stdlib]
 layer = "std"                    # std (default) | alloc (no OS: no print, files) | core (no heap)

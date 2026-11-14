@@ -134,9 +134,12 @@ class StringsConfig:
             bytes) or "ascii" (English only; non-ASCII text is a compile error)
         max_length: The most characters any string may hold, or None for no limit ("max",
             the default) - a longer string is an error (Task 18.3.4b)
+        null_becomes_empty: `s = null` makes s "" (Task 52.12) - false (the default): a compile
+            error, since a string is never null (D.138) and nothing changes silently (D.003)
     """
     encoding: str = DEFAULT_ENCODING
     max_length: Optional[int] = None
+    null_becomes_empty: bool = False
 
 
 # Standard-library layers (Task 18.5.6): each adds to the one before it
@@ -425,11 +428,17 @@ def _load_strings_section(data: dict, config_path: str) -> StringsConfig:
     """Parse and validate the [strings] section (Task 18.3.2b)."""
     strings = StringsConfig()
     section = _require_table(data, "strings", config_path)
-    known = {"encoding", "maxLength"}
+    known = {"encoding", "maxLength", "nullBecomesEmpty"}
     for key in section:
         if key not in known:
             raise ProjectConfigError(
                 f"{config_path}: unknown setting strings.{key} (known: {sorted(known)})")
+    if "nullBecomesEmpty" in section:                                   # Task 52.12
+        value = section["nullBecomesEmpty"]
+        if not isinstance(value, bool):
+            raise ProjectConfigError(
+                f"{config_path}: strings.nullBecomesEmpty must be a boolean, got {value!r}")
+        strings.null_becomes_empty = value
     if "maxLength" in section:
         value = section["maxLength"]
         if value == MAX_LENGTH_UNLIMITED:

@@ -234,7 +234,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		a null variable added at run time - a NullError; `[car1, car2]` adds each item
 	[DONE] 52.11 Arrays of objects (D.140): a null slot allowed (in a literal too - today refused); `arr[i] = null`
 		frees the object; an element of the wrong type stays an error
-	[ ] 52.12 `[strings] nullBecomesEmpty` (user, 2026-11-14): `s = null` - an error, or ""; default asked (D.003)
+	[DONE - default false] 52.12 `[strings] nullBecomesEmpty` (user, 2026-11-14): `s = null` - an error, or ""; default asked (D.003)
 	[ ] 52.13 `?.` / `??` on a string, array, List or Map - never null, so the guard does nothing: a warning
 	[ ] 52.7 Null checks at compile time (D.116, D.117): a `?.` comparison warns; `!` around one an error (a
 		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a

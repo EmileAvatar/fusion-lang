@@ -88,6 +88,9 @@
       <value reserved="true">utf-16</value>
       <value reserved="true">utf-32</value>
     </setting>
+    <setting name="nullBecomesEmpty" type="bool" default="false" task="52.12">
+      <description>A string is never null: s = null makes s "" - false (the default): s = null is a compile error, nothing changes silently (D.138, D.003)</description>
+    </setting>
   </section>
 
   <section name="stdlib" description="The standard library">
