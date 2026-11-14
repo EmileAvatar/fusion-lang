@@ -2162,7 +2162,13 @@ class Parser:
                 pass
             if self.check(closing) or self.is_at_end():
                 break
-            self.match(TokenType.PUBLIC)            # an interface's functions are public anyway
+            if self.check(TokenType.PRIVATE) or self.check(TokenType.PROTECTED):   # 52.6 (D.114)
+                raise ParserError(self.peek(), f"An interface's functions are public or internal - "
+                                               f"'{self.peek().value}' would hide it from the classes "
+                                               f"that implement '{name}'")
+            internal = self.match(TokenType.INTERNAL)
+            if not internal:
+                self.match(TokenType.PUBLIC)        # an interface's functions are public anyway
             readonly = self.is_readonly_result_start()              # Task 50.1 (D.110)
             if readonly:
                 self.advance()
@@ -2172,6 +2178,7 @@ class Parser:
                                                f"can't have a field (a class that implements it can)")
             method = self.parse_function_declaration(return_type, signature_only=True)
             method.returns_readonly = readonly
+            method.is_internal = internal
             methods.append(method)
         self.consume(closing, f"Expected the end of interface '{name}'")
         while self.match(TokenType.NEWLINE):

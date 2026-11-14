@@ -190,3 +190,18 @@ def test_readonly_holds_through_an_interface():
     assert run(reads + main('Counter c = Tally()\nc.add()\nprint("{@1}", look(c))')) == ['1']
     changes = counter + 'void function bump(readonly Counter c)\n    c.add()\n\n'
     assert "'c' is readonly" in errors_of(changes + main('print("x")'))
+
+
+def test_private_on_an_interface_function_is_a_clear_error():
+    # Task 52.6 (D.114): public or internal - private would hide it from the classes that implement it
+    with pytest.raises(ParserError, match="An interface's functions are public or internal"):
+        parse('interface Shape\n    private int function area()\n\nvoid function main()\n    print("x")\n')
+
+
+def test_internal_on_an_interface_function_is_allowed():
+    source = ('interface Shape\n    internal int function area()\n\nclass Sq implements Shape\n'
+              '    public int function area()\n        return 4\n\nvoid function main()\n    Sq s = Sq()\n'
+              '    print("{@1}", s.area())\n')
+    code, out, err = compile_and_run(source)
+    assert code == 0, err
+    assert out.strip().splitlines()[-1] == '4'

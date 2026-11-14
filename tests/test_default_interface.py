@@ -73,3 +73,27 @@ def test_with_a_null_check_it_is_never_null():
 ])
 def test_default_errors(source, message):
     assert message in errors_of(source + main('print("x")'))
+
+
+# ---------- Task 52.2 - rechecked: never null in every case (D.010) ----------
+
+def test_a_list_of_default_objects_holds_made_objects():
+    assert run(SETTINGS + main('List<Settings> all = []\nSettings s\nall.add(s)\n'
+                               'print("{@1} {@2}", all.len(), all[0].size)')) == ['1 5']
+
+
+def test_after_a_move_the_name_is_moved_not_null():
+    # strict ownership: the old name is gone (a compile error), never a null Default
+    assert "'s' was moved" in errors_of(SETTINGS + main(
+        'Settings s\nSettings t = s\nprint("{@1}", s.size)'))
+
+
+def test_passed_to_a_function_it_is_never_null():
+    source = SETTINGS + 'void function show(Settings x)\n    print("{@1}", x.size)\n\n' + \
+        main('Settings s = null\nshow(s)')
+    assert run(source) == ['5']
+
+
+def test_a_default_field_set_to_null_gets_a_new_one():
+    assert run(SETTINGS + main('App a = App()\na.settings.size = 8\na.settings = null\n'
+                               'print("{@1}", a.settings.size)')) == ['5']

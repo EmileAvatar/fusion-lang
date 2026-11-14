@@ -189,7 +189,7 @@ CLS.015 [BUILT] `implements ToString` - print, format, "{x}", toString(x) use it
 CLS.016 [POSTPONED] Form D: `{ }` on an abstract class or an interface makes a class right there - fields set, functions given, using the variables around it; after closures (52.1, D.119)
 CLS.017 [POSTPONED] A setting allowing `private` on a top-level item (meaning its module); off for now (52.3)
 CLS.018 [DESIGN] `virtual` - a reserved word, not used yet
-CLS.019 [PLANNED] An interface's functions are public or internal - `private` is a compile error (52.6, D.114)
+CLS.019 [BUILT] An interface's functions are public or internal - `private` is a compile error (52.6, D.114)
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
@@ -394,7 +394,7 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.111 | What a function returns: a single object it made moves to the caller; a member fetched from the class is a borrow, changeable unless the signature says `readonly` (D.109, D.110) | made here, nobody else owns it; a member stays the object's | MEM.003 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE |
 | D.112 | `const` protects the whole object (fields, changing methods), as it does Lists, Maps and structs; a `byVal` copy - also one a method returns - may change | `const` means nothing changes - the same for every kind | MEM.010 | 2026-11-03 | files/showcase/Ownership.fusion | ACTIVE (built - Task 50) |
 | D.113 | A readonly result may be a member (a read-only borrow), a new object (stays read-only for the caller) or a number (a copy); `readonly` on a copy - a result or `f(readonly n)` - is a warning, not an error | nothing can change a copy; the warning shows the word does nothing | FUN.017 | 2026-11-07 | files/Ownership.md | ACTIVE (built - Task 50) |
-| D.114 | An interface's functions are public or internal; `private` on one is a compile error | private defeats the purpose of an interface | CLS.019 | 2026-11-07 | files/Classes.md | ACTIVE (planned) |
+| D.114 | An interface's functions are public or internal; `private` on one is a compile error | private defeats the purpose of an interface | CLS.019 | 2026-11-07 | files/Classes.md | ACTIVE (built 52.6) |
 | D.115 | `--interface` shows a module's public and internal functions, never private ones | it shows what other modules may use | MOD.002 | 2026-11-07 | files/Ownership.md 8 | ACTIVE (built - Task 50) |
 | D.116 | A `?.` comparison is false on null and gives a warning; `!` around one is a compile error (a `[conditions]` setting allows it, then a warning); null is handled on its own: `if x is null ... else if ...` | null is neither true nor false - `!` would turn "unknown" into "yes" | NUL.005 | 2026-11-07 | files/Nullable_Values.md 5 | ACTIVE (planned) |
 | D.117 | The compiler checks an object is made before it is used: passing one that is surely null is a compile error; a `Default` type is never null - one left null and not made again is a compile error | NullErrors found at compile time (D.086) | NUL.006 | 2026-11-07 | files/Nullable_Values.md | ACTIVE (planned) |
