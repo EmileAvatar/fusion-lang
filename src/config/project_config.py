@@ -229,6 +229,7 @@ class ArraysConfig:
     """
     stack_warn: int = 16 * 1024
     stack_limit: int = 64 * 1024
+    order: str = "columns"      # which dimension first - "columns" / "rows" (45.12, D.148)
 
 
 @dataclass
@@ -572,11 +573,18 @@ def _load_arrays_section(data: dict, config_path: str) -> ArraysConfig:
     """Parse and validate the [arrays] section (Task 45.13, D.145)."""
     arrays = ArraysConfig()
     section = _require_table(data, "arrays", config_path)
-    known = {"stackWarn": "stack_warn", "stackLimit": "stack_limit"}
+    known = {"stackWarn": "stack_warn", "stackLimit": "stack_limit", "order": "order"}
     for key, value in section.items():
         if key not in known:
             raise ProjectConfigError(
                 f"{config_path}: unknown setting arrays.{key} (known: {sorted(known)})")
+        if key == "order":
+            if value not in ("columns", "rows"):
+                raise ProjectConfigError(
+                    f"{config_path}: arrays.order must be \"columns\" (the outer dimension first: depth, "
+                    f"columns, rows) or \"rows\" (rows first, as C and Java), got {value!r}")
+            arrays.order = value
+            continue
         setattr(arrays, known[key], parse_bytes(value, f"{config_path}: arrays.{key}"))
     if arrays.stack_warn > arrays.stack_limit:
         raise ProjectConfigError(

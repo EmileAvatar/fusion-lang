@@ -65,13 +65,15 @@ def mark_heap_arrays(program) -> None:
     functions = list(_functions(program))
     heap_functions = set()
     for function in functions:
-        if isinstance(function.return_type, ArrayType) and function.return_type.size is None:
+        if isinstance(function.return_type, ArrayType) and function.return_type.size is None \
+                and not function.return_type.dims:
             function.return_type = heap_array(function.return_type)
             heap_functions.add(function.name)
     for declaration in program.declarations:
         if isinstance(declaration, StructDecl):
             for field in declaration.fields:
-                if isinstance(field.field_type, ArrayType) and field.field_type.size is None:
+                if isinstance(field.field_type, ArrayType) and field.field_type.size is None \
+                        and not field.field_type.dims:
                     field.field_type = heap_array(field.field_type)
     for function in functions:
         _mark_locals(function, heap_functions)
@@ -101,7 +103,8 @@ def _mark_locals(function, heap_functions) -> None:
     if body is None:
         return
     nodes = list(_nodes(body))
-    arrays = {n.name: n for n in nodes if isinstance(n, VarDeclStmt) and isinstance(n.var_type, ArrayType)}
+    arrays = {n.name: n for n in nodes if isinstance(n, VarDeclStmt) and isinstance(n.var_type, ArrayType)
+              and not n.var_type.dims}             # many dimensions: 45.12d
     if not arrays:
         return
     returns_heap = is_heap_array(function.return_type)

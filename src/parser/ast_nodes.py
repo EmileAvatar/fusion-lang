@@ -957,6 +957,9 @@ class ArrayType(TypeNode):
     """
     element_type: TypeNode
     size: Optional[int] = None
+    # int[2][3][4] (Task 45.12, D.143): the size of each dimension, rows first; None for one
+    # dimension. `size` is then every slot - the array is one flat block (FLAT, D.144)
+    dims: Optional[List[Optional[int]]] = None
 
 
 @dataclass

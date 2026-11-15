@@ -395,6 +395,27 @@ original alone.
 
 ---
 
+## 8b. Arrays of 2 and 3 dimensions (Task 45.12, D.143, D.148-D.150)
+
+`int[2][3][4] cube` - 2 rows x 3 columns x 4 depth (sheets). One flat block (FLAT, D.144); `[arrays]
+order` sets which index varies fastest in memory - `columns` (the default): rows fastest, so a loop
+over depth -> columns -> rows reads the slots one after another.
+
+| What | Written | Gives | Built |
+|---|---|---|---|
+| Declare | `int[2][3][4] cube`, `int[2],[3],[4] cube`, `int cube[2][3][4]`, `fixed int[2][3] f` | default slots | 45.12a |
+| From values | `int[][] m = [[1, 2, 3], [4, 5, 6]]` | 2 x 3; rows of different lengths an error | 45.12a |
+| One slot | `cube[1][2][3]`, `cube[1],[2],[3]` | read / write; each index checked (IndexError) | 45.12a |
+| A written index outside | `m[1][3]` on `int[2][3] m` | a compile error | 45.12a |
+| Sizes | `cube.rows`, `cube.columns`, `cube.depth` | 2, 3, 4; `depth` on 3 dimensions only | 45.12a |
+| Length | `cube.length`, `m.length` | the outer dimension: 4 (depth), 3 (columns); `order = "rows"`: 2, 2 | 45.12a |
+| One slot's length | `cube[1][2][3].length` | -1 | 45.12b |
+| A view | `cube[1]`, `cube[][2][1]`, `cube[][][3]` | borrowed in a loop; copied (numbers) into a variable | 45.12b |
+| Loop | `foreach (int[][] sheet in cube)` | the outer dimension first | 45.12b |
+| Pass / return / compare | `f(int[2][3] m)`, `int[][] function f()`, `a == b` | | 45.12c |
+| Grow | `int:[2][3][4] g`, `g.expand(ROWS, 1)` | a warning; it stays a cube | 45.12d |
+| 4 dimensions | `int[2][3][4][5]` | a compile error - the Collections library | - |
+
 ## 9. Decisions log
 
 | Date | Decision |

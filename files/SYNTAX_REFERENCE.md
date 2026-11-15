@@ -280,6 +280,31 @@ Both copy and leave the original unchanged (D.046); `slice` / `sliceAt` are quic
 Positions count from 0. An array gives a new array (on the heap - `int:[] g = a.copyPart(0, 2)` makes it
 growable), a List a new List; a string is copied, an object shared.
 
+#### Arrays of 2 and 3 dimensions
+
+<!-- example: syntax_many_dims | task: 45.12a -->
+```fusion
+void function main()
+    int[2][3][4] cube                   // 2 rows x 3 columns x 4 depth - also int[2],[3],[4] cube
+    cube[1][2][3] = 5                   // row 1, column 2, sheet 3 (from 0)
+    cube[0],[1],[2] = 7                 // the same as cube[0][1][2]
+    print("{@1} {@2}", cube[1][2][3], cube[0][1][2])            // 5 7
+    print("{@1} {@2} {@3}", cube.rows, cube.columns, cube.depth)  // 2 3 4
+    print("{@1}", cube.length)          // 4 - the outer dimension first: depth
+    int[][] m = [[1, 2, 3], [4, 5, 6]]  // the sizes from the values: 2 rows x 3 columns
+    m[1][2] = 60
+    print("{@1} {@2} {@3}", m[0][2], m[1][2], m.length)         // 3 60 3
+    try
+        int r = 5
+        print("{@1}", m[r][0])          // each index is checked against its own size
+    catch IndexError e
+        print("{e}")
+```
+Up to 3 dimensions in the core - rows x columns x depth (D.143); every row the same length. `length`
+gives the outer dimension first - depth, then columns, then rows (`[arrays] order`, D.148); `rows` and
+`columns` on 2 and 3 dimensions, `depth` on 3. The array is one block on the stack, laid out in that
+order. Views (`cube[1]`, `cube[][2]`), loops over it, passing and copying it come with Task 45.12b-c.
+
 #### Combining arrays: `a + b + c`
 
 <!-- example: syntax_array_combine | task: 45.4 -->
@@ -1872,6 +1897,7 @@ allowChangeWhileLooping = false  # true: a collection class of your own may chan
 [arrays]
 stackWarn = "16KB"               # an array on the stack larger than this: a warning (bytes - "512B", "1MB")
 stackLimit = "64KB"              # larger than this: a compile error - use int:[] or a List (heap)
+order = "columns"                # m[r][c][d]: loops and length go depth -> columns -> rows; "rows": as C
 
 [conditions]
 numbers = "positive"             # if / while count: count > 0 (default); "nonzero": count != 0;

@@ -101,6 +101,16 @@ class Parser:
             return self.tokens[-1]  # Return EOF
         return self.tokens[index]
 
+    def _nesting(self) -> int:
+        """How many ( and [ are open at this point - a comma inside them separates values."""
+        depth = 0
+        for token in self.tokens[:self.current]:
+            if token.type in (TokenType.LPAREN, TokenType.LBRACKET, TokenType.LBRACE):
+                depth += 1
+            elif token.type in (TokenType.RPAREN, TokenType.RBRACKET, TokenType.RBRACE):
+                depth -= 1
+        return depth
+
     def advance(self) -> Token:
         """Consume and return current token.
 
@@ -479,6 +489,9 @@ class Parser:
                     callee=expr,
                     arguments=arguments
                 )
+            elif isinstance(expr, IndexExpr) and self.check(TokenType.COMMA) \
+                    and self.peek(1).type == TokenType.LBRACKET and self._nesting() == 0:
+                self.advance()       # m[1],[2] - the same slot as m[1][2] (D.143); not inside ( ) or [ ]
             elif self.match(TokenType.LBRACKET):
                 index = self.parse_expression()
                 self.consume(TokenType.RBRACKET, "Expected ']' after array index")
@@ -884,27 +897,8 @@ class Parser:
             growable = self._growable_brackets(base_type)
             if growable is not None:
                 return growable
-            if self.match(TokenType.LBRACKET):
-                size = None
-                if not self.check(TokenType.RBRACKET):
-                    size_token = self.consume(
-                        TokenType.INTEGER,
-                        "Array size must be an integer literal, e.g. int[5]"
-                    )
-                    size = integer_value(size_token.value)
-                self.consume(TokenType.RBRACKET, "Expected ']' after array size")
-
-                if self.check(TokenType.LBRACKET):
-                    raise ParserError(
-                        self.peek(),
-                        "Multi-dimensional arrays are not yet supported"
-                    )
-
-                return ArrayType(
-                    location=base_type.location,
-                    element_type=base_type,
-                    size=size
-                )
+            if self.check(TokenType.LBRACKET):
+                return self._array_of(base_type, self._read_dims('int[5]'))
 
             return base_type
 
@@ -972,12 +966,15 @@ class Parser:
         elif kinds[:4] == [TokenType.LBRACKET, TokenType.LBRACKET, TokenType.RBRACKET, TokenType.RBRACKET]:
             offset += 4 + sized
         elif self.peek(offset).type == TokenType.LBRACKET:
-            offset += 1
-            if self.peek(offset).type == TokenType.INTEGER:
+            while self.peek(offset).type == TokenType.LBRACKET:      # Car[2][3] - 45.12
                 offset += 1
-            if self.peek(offset).type != TokenType.RBRACKET:
-                return False
-            offset += 1
+                if self.peek(offset).type == TokenType.INTEGER:
+                    offset += 1
+                if self.peek(offset).type != TokenType.RBRACKET:
+                    return False
+                offset += 1
+                if self.peek(offset).type == TokenType.COMMA and self.peek(offset + 1).type == TokenType.LBRACKET:
+                    offset += 1                        # Car[2],[3] cars
         if self.peek(offset).type == TokenType.COMMA and self.peek(offset + 1).value == 'Error' \
                 and self.peek(offset + 2).type == TokenType.FUNCTION:
             return True                                # Ship, Error function (Task 26)
@@ -1248,9 +1245,44 @@ class Parser:
         if double:
             self.consume(TokenType.RBRACKET, "Expected ']]' - a growable array is written int[[]] or int[[10]]")
         if self.check(TokenType.LBRACKET):
-            raise ParserError(self.peek(), "Multi-dimensional arrays are not yet supported")
+            raise ParserError(self.peek(), "A growable array of many dimensions - int:[2][3] - comes with "
+                                           "Task 45.12d")
         return ListType(location=base_type.location, element_type=base_type, array_form=True,
                         growable=True, start_size=size)
+
+    def _read_dims(self, example: str) -> list:
+        """`[2][3][4]` or `[2],[3],[4]` - one size per dimension (None when not written). The
+        commas only break it up (D.143)."""
+        dims = []
+        while self.match(TokenType.LBRACKET):
+            size = None
+            if not self.check(TokenType.RBRACKET):
+                size_token = self.consume(TokenType.INTEGER, f"Array size must be an integer literal, e.g. {example}")
+                size = integer_value(size_token.value)
+            self.consume(TokenType.RBRACKET, "Expected ']' after array size")
+            dims.append(size)
+            if self.check(TokenType.COMMA) and self.peek(1).type == TokenType.LBRACKET:
+                self.advance()                    # int[2],[3] - the same as int[2][3]
+        return dims
+
+    def _array_of(self, element: TypeNode, dims: list) -> TypeNode:
+        """The array type for these sizes - up to 3 dimensions in the core (D.143)."""
+        if len(dims) > 3:
+            raise ParserError(self.previous(), f"An array of {len(dims)} dimensions - more than 3 come with the "
+                                               f"Collections library (later); the core has up to 3 (D.143)")
+        if len(dims) == 1:
+            return ArrayType(location=element.location, element_type=element, size=dims[0])
+        if None in dims and any(d is not None for d in dims):
+            raise ParserError(self.previous(), "Give every size or none: int[2][3] m, or int[][] m = [[...], [...]]")
+        if 0 in dims:
+            raise ParserError(self.previous(), "A dimension of size 0 - each size of a many-dimension array is "
+                                               "1 or more")
+        size = None
+        if None not in dims:
+            size = 1
+            for d in dims:
+                size *= d
+        return ArrayType(location=element.location, element_type=element, size=size, dims=dims)
 
     def _brackets_after_name(self, var_type: TypeNode, name: str) -> TypeNode:
         """C-style `int numbers[]` / `int numbers[10]` - the same array as `int[] numbers` /
@@ -1263,18 +1295,13 @@ class Parser:
         if isinstance(var_type, ArrayType):
             raise ParserError(self.peek(), f"Write the brackets once: {self.type_text(var_type)} {name}, "
                                            f"or {self.type_text(var_type.element_type)} {name}[]")
-        self.advance()
-        size = None
-        if not self.check(TokenType.RBRACKET):
-            size_token = self.consume(TokenType.INTEGER, f"Array size must be an integer literal, e.g. {name}[5]")
-            size = integer_value(size_token.value)
-        self.consume(TokenType.RBRACKET, "Expected ']' after array size")
-        if self.check(TokenType.LBRACKET):
-            raise ParserError(self.peek(), "Multi-dimensional arrays are not yet supported")
-        return ArrayType(location=var_type.location, element_type=var_type, size=size)
+        return self._array_of(var_type, self._read_dims(f'{name}[5]'))
 
     @staticmethod
     def type_text(type_node) -> str:
+        if isinstance(type_node, ArrayType) and type_node.dims:
+            return Parser.type_text(type_node.element_type) + ''.join(
+                f"[{'' if d is None else d}]" for d in type_node.dims)
         if isinstance(type_node, ArrayType):
             size = '' if type_node.size is None else str(type_node.size)
             return f"{Parser.type_text(type_node.element_type)}[{size}]"

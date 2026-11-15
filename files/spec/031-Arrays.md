@@ -80,7 +80,11 @@ team.scores = podium()     // an array field too
   copied out
 
 **Not yet implemented (see files/taskSummary2.md Task 9 for the full list and reasoning):**
-- Multi-dimensional arrays (`int[][]`)
+- Arrays of 2 and 3 dimensions - built (Task 45.12a, D.143, D.148): `int[2][3][4] cube` (also
+  `int[2],[3],[4]`, `int cube[2][3][4]`), `int[][] m = [[1, 2, 3], [4, 5, 6]]`; `cube[1][2][3]` /
+  `cube[1],[2],[3]`, each index checked; `rows`, `columns`, `depth`, `length` (the outer first); one flat
+  block on the stack laid out in `[arrays] order`. Views, loops, passing: 45.12b-c; more than 3: the
+  Collections library
 - An array size given as anything other than an integer literal (`int[n]` where `n` is a
   variable is not supported; only `int[5]`-style literal sizes are)
 - Whole-array reassignment - built since Task 45.10 (D.141): `arr = [4, 5]` or `arr = make()` replaces

@@ -13,6 +13,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .stack_arrays import check_stack_arrays
+from .many_dims import check_many_dims_uses
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
@@ -98,6 +99,8 @@ class SemanticAnalyzer:
         # [arrays] stackWarn / stackLimit (Task 45.13, D.145) - in bytes
         self.stack_warn = getattr(arrays_config, 'stack_warn', 16 * 1024)
         self.stack_limit = getattr(arrays_config, 'stack_limit', 64 * 1024)
+        # [arrays] order (Task 45.12, D.148): "columns" - the outer dimension first; "rows"
+        self.type_checker.array_order = getattr(arrays_config, 'order', 'columns')
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
@@ -293,6 +296,7 @@ class SemanticAnalyzer:
         # readonly parameters: never changed, passed on to a change or kept (Task 32.2e)
         self.errors.extend(check_readonly(ast))
         stack_errors, stack_warnings = check_stack_arrays(ast, self.stack_warn, self.stack_limit)   # 45.13
+        self.errors.extend(check_many_dims_uses(ast))         # many dimensions: what 45.12a can't do yet
         self.errors.extend(stack_errors)
         self.warnings.extend(stack_warnings)
         self.errors.extend(check_readonly_calls(ast))      # f(readonly acc) (Task 48.3)

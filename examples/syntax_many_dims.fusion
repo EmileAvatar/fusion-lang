@@ -1,0 +1,15 @@
+void function main()
+    int[2][3][4] cube                   // 2 rows x 3 columns x 4 depth - also int[2],[3],[4] cube
+    cube[1][2][3] = 5                   // row 1, column 2, sheet 3 (from 0)
+    cube[0],[1],[2] = 7                 // the same as cube[0][1][2]
+    print("{@1} {@2}", cube[1][2][3], cube[0][1][2])            // 5 7
+    print("{@1} {@2} {@3}", cube.rows, cube.columns, cube.depth)  // 2 3 4
+    print("{@1}", cube.length)          // 4 - the outer dimension first: depth
+    int[][] m = [[1, 2, 3], [4, 5, 6]]  // the sizes from the values: 2 rows x 3 columns
+    m[1][2] = 60
+    print("{@1} {@2} {@3}", m[0][2], m[1][2], m.length)         // 3 60 3
+    try
+        int r = 5
+        print("{@1}", m[r][0])          // each index is checked against its own size
+    catch IndexError e
+        print("{e}")

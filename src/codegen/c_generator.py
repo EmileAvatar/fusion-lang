@@ -1531,6 +1531,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C array index expression (valid as both an rvalue and an assignment lvalue)
         """
+        if getattr(node, 'dims_slot', None):
+            return self._many_dims_slot(node)       # m[1][2] - one position in the flat block (45.12a)
         array_code = self.visit(node.array)
         index_code = self.visit(node.index)
         # Out of range / a missing key is an error that can be caught (Task 26.4)
@@ -1561,6 +1563,21 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return f'(({element}[]){array_code})[{index_code}]'
         return f'{array_code}[{index_code}]'
 
+    def _many_dims_slot(self, node: IndexExpr) -> str:
+        """`cube[1][2][3]` (Task 45.12a): each index checked against its own size (an IndexError
+        outside it), then one position in the flat block - [arrays] order sets the steps (D.148)."""
+        root, indices, dims, steps = node.dims_slot
+        where = self._where(node)
+        parts = []
+        for index, size, step in zip(indices, dims, steps):
+            code = self.visit(index)
+            known = isinstance(index, LiteralExpr) and isinstance(index.value, int) \
+                and not isinstance(index.value, bool) and 0 <= index.value < size
+            if not known:
+                code = self.checked_code(f'fusion_index({code}, {size}, {where})', 'int')
+            parts.append(code if step == 1 else f'({code}) * {step}')
+        return f'{self.visit(root)}[{" + ".join(parts)}]'
+
     def visit_NamedArgument(self, node: NamedArgument) -> str:
         """A named argument's C code is its value's - normally codegen reads the values from
         CallExpr.resolved_arguments, already in parameter order (Task 18.2.2)."""
@@ -1573,6 +1590,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         if getattr(node, 'length_call', None) is not None:
             return self.visit(node.length_call)       # x.length, x.len (Task 30.8)
+        if getattr(node, 'dims_value', None) is not None:
+            return str(node.dims_value)               # m.rows, m.length - known while compiling (45.12a)
         if getattr(node, 'self_view', False):
             return self.visit(node.object)            # e.Employee is e itself (Task 32.8)
         object_type = getattr(node.object, 'inferred_type', None)

@@ -223,10 +223,12 @@ void function collections() {
     readings.add(7)
     int last = readings.pop()           // 7 - removeLast / pop give the item back
     int:[10] ready                      // [built] 10 slots made ahead - length 10, add makes 11 (45.3b)
-    // [designed] Up to 3 dimensions: rows x columns x depth (D.143); FLAT / RECT / JAGG (D.144)
+    // [built] Up to 3 dimensions: rows x columns x depth (45.12a, D.143)
     int[2][3][4] cube                   // also int[2],[3],[4] cube
     cube[1][2][3] = 5                   // also cube[1],[2],[3]
     int n = cube.length                 // 4 - the outer dimension first (D.148, [arrays] order)
+    int[][] m = [[1, 2, 3], [4, 5, 6]]  // the sizes from the values
+    // [designed] FLAT / RECT / JAGG (D.144); -1 as the length of one slot (45.12b)
     int none = cube[1][2][3].length     // -1 - one slot has no length
     // [designed] Views (D.149): an index left out means all of that dimension
     int[] column = cube[][2][1]         // column 2 of sheet 1, one value per row - copied

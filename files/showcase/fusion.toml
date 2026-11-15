@@ -103,7 +103,7 @@ nullable = false
 # bytes, "512B" / "16KB" / "1MB"; lower both for a small embedded device (Task 45.13, D.145)
 stackWarn = "16KB"
 stackLimit = "64KB"
-# [designed] Which dimension a loop and length give first: "columns" - the outer first, depth ->
+# [built] Which dimension a loop and length give first: "columns" - the outer first, depth ->
 # columns -> rows (default); "rows" - rows first, as C and Java (45.12, D.148)
 order = "columns"
 # [designed] How an array of many dimensions is stored: "flat" / "rect" / "jagg" (45.15, D.144)

@@ -270,16 +270,10 @@ void function main()
     assert errors == []
 
 
-def test_multi_dimensional_array_rejected_at_parse():
-    """int[][] is not yet supported - should fail to parse with a clear message."""
-    code = """
-void function main()
-    int[][] arr
-End function
-"""
-    with pytest.raises(ParserError) as exc_info:
-        parse_code(code)
-    assert "Multi-dimensional arrays are not yet supported" in str(exc_info.value)
+def test_multi_dimensional_array_needs_its_sizes_or_values():
+    """int[][] arr parses since Task 45.12a - with no sizes and no values it is an error."""
+    from tests.test_structs import errors_of, main
+    assert "'arr' needs its sizes or its values" in errors_of(main('int[][] arr'))
 
 
 def test_array_size_must_be_integer_literal():

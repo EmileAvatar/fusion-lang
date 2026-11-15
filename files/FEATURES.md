@@ -157,7 +157,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[DONE] 45.7 The array being looped over can't be changed inside the loop (D.058) - a compile error where seen, else ModifiedWhileLoopingError ("the array changed"); `removeLast` / `pop` now count as a change everywhere (readonly, borrowing, set-up blocks) - tests/test_loop_no_change.py
 	[DONE] 45.13 `[arrays] stackWarn = "16KB"` (a warning), `stackLimit = "64KB"` (an error) - in bytes (D.145); `setBufferType` / `setSize` an error "not built yet" (buffers: L16.3, D.146) - a new setting type `bytes` ("512B" / "16KB" / "1MB"); src/semantic/stack_arrays.py; tests/test_stack_arrays.py
 	[ ] 45.12 Up to 3 dimensions: `int[10][5][7]` rows x columns x depth (D.143, D.148-D.150) - the plan: files/taskSummary2.md
-		[ ] 45.12a Declaring, reading, writing - on the stack, laid out in `[arrays] order`; `rows` / `columns` / `depth`
+		[DONE] 45.12a Declaring, reading, writing - on the stack, laid out in `[arrays] order`; `rows` / `columns` / `depth`; `m[1],[2]` joins only outside ( ) and [ ] - src/semantic/many_dims.py, tests/test_many_dims.py, example syntax_many_dims
 		[ ] 45.12b Views `cube[1]`, `cube[][2][1]`; `length` the outer first, -1 when none; `foreach` the outer first
 		[ ] 45.12c Functions: `int[2][3]` / `int[][]` parameters, returning one, `==`
 		[ ] 45.12d Growable `int:[2][3][4]` / `int[[2],[3],[4]]`; `expand(ROWS / COLUMNS / DEPTH, n)` with a warning

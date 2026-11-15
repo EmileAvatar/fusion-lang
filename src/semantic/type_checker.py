@@ -21,6 +21,7 @@ from .symbol_table import SymbolTable
 from .number_patterns import number_pattern_problem
 from .name_resolver import builtin_layer
 from .collection_rules import CollectionRulesMixin
+from .many_dims import ManyDimsMixin
 from .enums import EnumRulesMixin, ENUM_METHODS
 from .error_rules import ErrorRulesMixin
 from .struct_parents import StructParentRulesMixin, flat_field_names
@@ -49,7 +50,7 @@ def field_default(field: StructField):
 
 
 class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructParentRulesMixin,
-                  InferredRulesMixin):
+                  InferredRulesMixin, ManyDimsMixin):
     """Type checks the AST using visitor pattern.
 
     Validates type compatibility in expressions, assignments, function calls,
@@ -244,7 +245,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         if isinstance(type1, ArrayType) and isinstance(type2, ArrayType):
             return self.types_equal(type1.element_type, type2.element_type) and \
-                type1.size == type2.size
+                type1.size == type2.size and type1.dims == type2.dims       # int[2][3] (45.12)
 
         # Enums: the same enum, by name (Task 25.2)
         if isinstance(type1, EnumType) and isinstance(type2, EnumType):
@@ -2494,6 +2495,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 node.array.location
             ))
             return PrimitiveType(location=node.location, name='void')
+        if array_type.dims:
+            return self.many_dims_index(node, array_type, index_type)    # m[1][2] (Task 45.12a)
 
         if not (isinstance(index_type, PrimitiveType) and index_type.name == 'int'):
             self.errors.append(SemanticError(
@@ -2512,6 +2515,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         object_type = self.visit(node.object)
         if isinstance(object_type, ErrorType):
             return self.error_member_type(node, object_type)   # err.message, err.path (Task 26)
+        if isinstance(object_type, ArrayType) and object_type.dims:
+            sizes = self.many_dims_member(node, object_type)    # m.rows, m.length (Task 45.12a)
+            if sizes is not None:
+                return sizes
         struct = self.struct_declaration(object_type)
         if struct is None and node.member in self.LENGTH_NAMES and self._has_length(object_type):
             # `x.length` / `x.len` without brackets (Task 30.8): checked as the call x.len(),
@@ -2571,6 +2578,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             # (Task 26); `Error e = Error("x")` - an ordinary Error value
             init_type = self.visit(node.initializer)
             node.capture_only = not isinstance(init_type, ErrorType)
+            return
+        if isinstance(node.var_type, ArrayType) and node.var_type.dims:
+            self.check_many_dims_declaration(node)         # int[2][3] m (Task 45.12a)
             return
         if isinstance(node.var_type, ArrayType):
             self._check_array_var_decl(node)
