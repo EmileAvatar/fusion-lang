@@ -69,33 +69,42 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
   45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits) - FEATURES Task 45
-- **Next Action:** 45.12 - the user answers OpenQuestions Q.021-Q.026, then 45.12a
+- **Next Action:** 45.12 - the user confirms OpenQuestions Q.023 (order), Q.025 (int:[10]), Q.027 (bare enum values); then 45.3b
 
-### 45.12 Up to 3 dimensions - the plan (2026-11-15)
-Settings: none (`[arrays] storage` is 45.15). Open: OpenQuestions Q.021-Q.026 (the plan below
-assumes the suggested answers).
+### 45.12 Up to 3 dimensions - the plan (2026-11-15, replanned after OpenQuestions Q.021-Q.027)
+Settings: `[arrays] order` - only if Q.023 A or B (`[arrays] storage` is 45.15). Still open:
+the order (Q.023), `int:[10]` (Q.025), where a bare enum value works (Q.027).
 
-| Part | What | Lives on |
-|---|---|---|
-| 45.12a | Declaring, reading, writing | the stack |
-| 45.12b | Functions: passing and returning | the stack / the heap |
-| 45.12c | `expand` and replacing | the heap |
-| 45.11 | `toList` / `toCSV` on them | - |
+Each part is shipped on its own, in this order:
+1. **45.3b `int:[10] g`** - a growable array with 10 slots made ahead (Q.025 - length 10 or room for 10);
+   `int:[10]` stops being an error (that rule was Claude's, not decided)
+2. **45.12a Declaring, reading, writing** - on the stack
+   - `int[2][3][4] cube`, `int[2],[3],[4] cube`, `int cube[2][3][4]`, `fixed int[2][3] f`
+   - Literals `int[2][3] m = [[1, 2, 3], [4, 5, 6]]`; `int[][] m = [...]` takes its sizes from them;
+     rows of different lengths an error (JAGG - 45.15)
+   - `m[1][2]` / `m[1],[2]` read and write; every index checked (IndexError)
+   - Laid out in memory in the loop's order (Q.023), so a loop reads the slots one after another
+   - `rows`, `columns` (2 and 3 dimensions), `depth` (3 only)
+   - Any element type: numbers, strings (freed), structs, objects (null allowed - D.140)
+   - A 4th dimension a compile error "the Collections library"
+3. **45.12b Views** - an index left out: `cube[1]`, `cube[][2][1]`, `cube[][][3]`
+   - `length` the outer dimension first; `-1` on one slot (no error)
+   - `foreach` the outer dimension first: depth -> columns -> rows; inside a loop a view is
+     borrowed (nothing copied)
+   - Given to a variable or a parameter: numbers copied, objects borrowed, `byVal` copies them
+4. **45.12c Functions** - parameters `int[2][3] m` (that size) and `int[][] m` (any size, the
+   sizes passed hidden); returning one (on the heap); `==` slot by slot
+5. **45.17 A bare enum value where the type is known** (Q.027) - `expand(ROWS, 1)`, `setMonth(JUNE)`;
+   every enum, not only `Dimension`
+6. **45.12d Growable, many dimensions, and `expand`**
+   - `int:[2][3][4] g`, `int[[2],[3],[4]] g`, `int:[][] h = [...]` (best over several lines)
+   - The built-in enum `Dimension`: `ROWS`, `COLUMNS`, `DEPTH`
+   - `g.expand(ROWS, 1)` - always a warning (every slot is copied); keeps the cube (a row added on
+     every sheet); new slots the default value (0, "", false, null)
+   - On the heap: one counted block with its sizes (FLAT)
+   - `expand` on a plain or fixed array an error; `expand(0, 1)` an error "the Collections library"
+7. **45.11** `toList()` (a List of Lists) and `toCSV()` (a line per row) on them
+8. **45.16 The cube visualiser** - after 45.12b: an HTML page showing which slots each form reaches
 
-- **45.12a Declaring, reading, writing** - on the stack, a C array `int m[10][5][7]` (FLAT by nature)
-  - `int[10][5][7] cube`, `int[10],[5],[7] cube`, `int cube[10][5][7]`, `fixed int[2][3] f`
-  - Literals `int[2][3] m = [[1, 2, 3], [4, 5, 6]]`; `int[][] m = [[...], [...]]` takes its sizes from them;
-    rows of different lengths an error (that is JAGG - 45.15)
-  - `m[1][2]` / `m[1, 2]` read and write; each index checked: IndexError "row 5 is outside the array (rows 3)"
-  - `length` (every slot), `rows`, `columns`, `depth`; `foreach` over every slot, row by row
-  - Any element type: numbers, strings (freed), structs, objects (null allowed - D.140)
-  - More than 3 dimensions an error (the Collections library - D.143); `m[1]` an error (Q.022 A)
-  - The stack measure (45.13) already counts them
-- **45.12b Functions** - a parameter `int[2][3] m` (that size) or `int[][] m` (any size: the sizes passed
-  hidden, as `int[]` passes its length); returning `int[][]` (on the heap); `==` slot by slot
-- **45.12c `expand`** - `m.expand(rows / columns / depth, n)` or `expand(0-2, n)`, always a warning;
-  such an array (or one replaced by another size) lives on the heap: one counted block with its
-  sizes (FLAT); new slots the default value; fixed an error
-- **45.11** - `toList()`: a List of Lists; `toCSV()`: a line per row (3 dimensions: a blank line between depths)
-- **Tests:** Rule 4c - a truth table in files/Arrays.md (form x dimensions x operation), each row a test;
-  Rule 4b - a null object slot with and without `?.`; everything under the leak check
+- **Tests:** Rule 4c - a truth table in files/Arrays.md (form x dimensions x operation), each row a
+  test; Rule 4b - a null object slot with and without `?.`; everything under the leak check
