@@ -98,7 +98,8 @@ team.scores = podium()     // an array field too
 - Combining - built (Task 45.4, D.047): `a + b + c` makes a new array of one type, on the heap; two
   Lists make a new List; an array and a List don't mix (`toList()` first)
 - Arrays that grow - built (Task 45.3, D.141): `int:[] xs` / `int[[]] xs` / `int xs[[]]` - `add`,
-  `removeLast` (`pop`) at the end - it gives the item back; an empty one's `removeLast` an IndexError. Up to 3 dimensions -
+  `removeLast` (`pop`) at the end - it gives the item back; an empty one's `removeLast` an IndexError;
+  `int:[10] xs` / `int[[10]] xs` has 10 slots made ahead (length 10, as `int[10]` - 45.3b). Up to 3 dimensions -
   planned (45.12, D.143)
 - Bounds checking - built since then: every index is checked, outside the array is an
   IndexError (Task 27.1)

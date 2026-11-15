@@ -357,6 +357,13 @@ class CollectionsMixin:
                 'r->count = 1;',
                 f'r->fusion_class = {name}_class();      // its table - a Collection<T> (32.6)',
                 'return r;'],
+            # int:[10] g (45.3b): n slots, each a copy of the default value
+            f'{name} {name}_filled(int n, {T} v)': [
+                f'{name} r = {name}_new();',
+                f'{name}_grow(r, n);',
+                f'for (int i = 0; i < n; i++) r->data[i] = {copy("v")};',
+                'r->len = n;',
+                'return r;'],
             f'{name} {name}_from({T} const* items, int n)': self._held_null_check(element, name) + [
                 f'{name} r = {name}_new();',
                 f'if (n > 0) {{ r->data = ({T}*)fusion_alloc(sizeof({T}) * (size_t)n); '

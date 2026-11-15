@@ -591,6 +591,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 return self._zero_initializer(type_node)
             element = self._default_value_code(type_node.element_type)
             return '{' + ', '.join([element] * type_node.size) + '}'
+        if isinstance(type_node, ListType) and getattr(type_node, 'start_size', None):
+            # int:[10] g - 10 slots of the default value, length 10 (45.3b, D.141)
+            element = self._default_value_code(type_node.element_type)
+            return f'{self.map_type(type_node)}_filled({type_node.start_size}, {element})'
         if isinstance(type_node, (ListType, MapType)):
             return f'{self.map_type(type_node)}_new()'   # an empty list / map (18.5, 32.10a)
         return '0'

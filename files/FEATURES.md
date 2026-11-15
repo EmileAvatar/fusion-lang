@@ -164,7 +164,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		[ ] 45.11 `toList` and `toCSV` on them
 	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)
 	[ ] 45.17 A bare enum value where the enum type is known: `expand(ROWS, 1)`, `setMonth(JUNE)` - every enum (OpenQuestions Q.027)
-	[ ] 45.3b `int:[10] g` - a growable array with 10 slots made ahead; no longer an error (OpenQuestions Q.025)
+	[DONE] 45.3b `int:[10] g` / `int[[10]] g` - a growable array with 10 slots of the default value, length 10 (D.141); `int:[3] g = [1, 2, 3]` sizes agree - tests/test_growable_arrays.py
 	[ ] 45.16 A cube visualiser (user, 2026-11-15): an HTML page showing a 3-dimension array as a cube and which
 		slots `cube[1]`, `cube[][2][1]`, `foreach` and `expand` reach - how data is fetched (OpenQuestions Q.022-Q.025)
 	[POSTPONED to 42] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19)

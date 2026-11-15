@@ -222,6 +222,7 @@ void function collections() {
     int:[] readings                     // also written int[[]] readings
     readings.add(7)
     int last = readings.pop()           // 7 - removeLast / pop give the item back
+    int:[10] ready                      // [built] 10 slots made ahead - length 10, add makes 11 (45.3b)
     // [designed] Up to 3 dimensions: rows x columns x depth (D.143); FLAT / RECT / JAGG (D.144)
     int[2][3][4] cube                   // also int[2],[3],[4] cube
     cube[1][2][3] = 5                   // also cube[1],[2],[3]

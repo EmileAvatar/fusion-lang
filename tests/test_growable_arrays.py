@@ -106,10 +106,31 @@ def test_a_growable_array_is_not_a_plain_one():
     assert "int:[]" in errors_of(main('int:[] g = [1]\nint[] a = [2, 3]\na = g'))
 
 
+@pytest.mark.parametrize('declaration', ['int:[3] xs', 'int[[3]] xs', 'int xs[[3]]'])
+def test_slots_made_ahead(declaration):
+    # D.141 (45.3b): int:[3] has 3 slots of the default value - length 3, as int[3]; add makes it 4
+    out = run(main(f'{declaration}\nxs[1] = 7\nxs.add(9)\nprint("{{@1}} {{@2}} {{@3}} {{@4}}", xs.length, xs[0], xs[1], xs[3])'))
+    assert out == ['4 0 7 9']
+
+
+def test_slots_made_ahead_of_strings_and_objects():
+    out = run(CAR + main('string:[2] names\nnames[0] = "Ann"\nnames.add("Bob")\n'
+                         'print("{@1} [{@2}] {@3}", names.length, names[1], names[2])\n'
+                         'Car:[2] cars\nprint(cars[0]?.color ?? "none")\ncars[1] = Car("red")\nprint(cars[1].color)'))
+    assert out == ['3 [] Bob', 'none', 'red']
+
+
+def test_a_size_and_values_agree():
+    out = run(main('int:[3] xs = [1, 2, 3]\nxs.add(4)\nprint("{@1}", xs.length)'))
+    assert out == ['4']
+    assert "'xs' is int:[3] but is given 2 values" in errors_of(main('int:[3] xs = [1, 2]'))
+
+
 @pytest.mark.parametrize('body, message', [
     ('fixed int:[] x', "fixed and a growable array can't go together"),
-    ('int:[10] x', 'A growable array starts empty'),
-    ('int[[10]] x', 'Arrays of many dimensions'),
+    ('int:[n] x', "A growable array's size is a whole number written in the source"),
+    ('int[[2], [3]] x', 'Arrays of many dimensions'),
+    ('fixed int:[10] x', "fixed and a growable array can't go together"),
 ])
 def test_wrong_forms_are_errors(body, message):
     with pytest.raises(ParserError, match=re.escape(message)):

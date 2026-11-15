@@ -348,6 +348,9 @@ void function main()
     readings.add(9)
     int last = readings.removeLast()     // 9 - given back; [4, 6] left - pop() is the same
     print("{@1} {@2} {@3}", last, readings.length, readings[1])     // 9 2 6
+    int:[3] slots                   // 3 slots made ahead: [0, 0, 0] - also int[[3]] slots
+    slots.add(5)                    // [0, 0, 0, 5]
+    print("{@1}", slots.length)     // 4
     Car:[] cars
     cars.add(Car("red"))
     cars.add(null)                  // an array of objects may hold null (D.140)

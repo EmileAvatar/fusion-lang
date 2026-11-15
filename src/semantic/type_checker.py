@@ -2586,6 +2586,15 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 ))
                 return
 
+        start_size = getattr(node.var_type, 'start_size', None)
+        if start_size is not None and node.initializer is not None:
+            # int:[3] g = [1, 2, 3] - the size and the values agree, as int[3] a = [...] (45.3b)
+            count = len(node.initializer.elements) if isinstance(node.initializer, ArrayLiteralExpr) else None
+            if count != start_size:
+                given = f"{count} values" if count is not None else "a value of another size"
+                self.errors.append(SemanticError(
+                    f"'{node.name}' is {self.type_to_string(node.var_type.element_type)}:[{start_size}] but is "
+                    f"given {given} - give its size or its values (int:[] {node.name} = [...])", node.location))
         if node.initializer:
             init_type = self._visit_value_for(node.var_type, node.initializer)
             if not self.types_compatible(node.var_type, init_type):

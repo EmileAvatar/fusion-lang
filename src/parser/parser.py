@@ -960,12 +960,17 @@ class Parser:
         # money.Price p - a struct from another module (Task 18.4.2)
         while self.peek(offset).type == TokenType.DOT and self.peek(offset + 1).type == TokenType.IDENTIFIER:
             offset += 2
-        # Car:[] cars, Car[[]] cars - a growable array (Task 45.3)
-        kinds = [self.peek(offset + i).type for i in range(4)]
+        # Car:[] cars, Car[[]] cars - a growable array (Task 45.3); Car:[2], Car[[2]] (45.3b)
+        kinds = [self.peek(offset + i).type for i in range(5)]
+        if kinds[2] == TokenType.INTEGER:
+            del kinds[2]                               # the size made ahead
+            sized = 1
+        else:
+            sized = 0
         if kinds[:3] == [TokenType.COLON, TokenType.LBRACKET, TokenType.RBRACKET]:
-            offset += 3
-        elif kinds == [TokenType.LBRACKET, TokenType.LBRACKET, TokenType.RBRACKET, TokenType.RBRACKET]:
-            offset += 4
+            offset += 3 + sized
+        elif kinds[:4] == [TokenType.LBRACKET, TokenType.LBRACKET, TokenType.RBRACKET, TokenType.RBRACKET]:
+            offset += 4 + sized
         elif self.peek(offset).type == TokenType.LBRACKET:
             offset += 1
             if self.peek(offset).type == TokenType.INTEGER:
@@ -1230,19 +1235,22 @@ class Parser:
             return None
         start = self.advance()
         self.advance()
-        if not self.check(TokenType.RBRACKET):
-            if double:
-                raise ParserError(self.peek(), "Arrays of many dimensions - int[[10], [5], [7]] - are planned "
-                                               "(Task 45.12); a growable array is written int[[]]")
-            raise ParserError(self.peek(), "A growable array starts empty - int:[] numbers, then add to it, "
-                                           "or give its values: int:[] numbers = [1, 2]")
-        self.advance()
+        size = None
+        if self.check(TokenType.INTEGER):          # int:[10] - 10 slots made ahead (45.3b, D.141)
+            size = integer_value(self.advance().value)
+        elif not self.check(TokenType.RBRACKET):
+            raise ParserError(self.peek(), "A growable array's size is a whole number written in the source - "
+                                           "int:[10] numbers - or none: int:[] numbers")
+        self.consume(TokenType.RBRACKET, "Expected ']' - a growable array is written int:[] or int:[10]")
+        if double and self.check(TokenType.COMMA):
+            raise ParserError(self.peek(), "Arrays of many dimensions - int[[10], [5], [7]] - are planned "
+                                           "(Task 45.12d)")
         if double:
-            self.consume(TokenType.RBRACKET, "Expected ']]' - a growable array is written int[[]]")
+            self.consume(TokenType.RBRACKET, "Expected ']]' - a growable array is written int[[]] or int[[10]]")
         if self.check(TokenType.LBRACKET):
             raise ParserError(self.peek(), "Multi-dimensional arrays are not yet supported")
         return ListType(location=base_type.location, element_type=base_type, array_form=True,
-                        growable=True)
+                        growable=True, start_size=size)
 
     def _brackets_after_name(self, var_type: TypeNode, name: str) -> TypeNode:
         """C-style `int numbers[]` / `int numbers[10]` - the same array as `int[] numbers` /
