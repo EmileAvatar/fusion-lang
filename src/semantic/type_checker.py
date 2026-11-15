@@ -354,6 +354,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
     def _visit_value_for(self, expected: TypeNode, value: ASTNode) -> TypeNode:
         """Visit a value about to be stored as `expected` - an array literal stored as
         bytes is a bytes literal (Task 18.3.8); an int stored as a float is widened (27.2f)."""
+        if isinstance(expected, EnumType) and isinstance(value, IdentifierExpr):
+            bare = self.bare_enum_value(expected, value)   # setMonth(JUNE), Months m = JUNE (45.17)
+            if bare is not None:
+                return bare
         if self._is_bytes_type(expected) and isinstance(value, ArrayLiteralExpr):
             return self._check_bytes_literal(value)
         if isinstance(expected, ListType) and isinstance(value, ArrayLiteralExpr):
@@ -568,6 +572,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Returns:
             Type of the identifier (void if undefined for error recovery)
         """
+        if getattr(node, 'bare_enum', False) and self.symbol_table.lookup(node.name) is None:
+            return self.misplaced_bare_enum(node)          # JUNE where no enum is expected (D.150)
         symbol = self.symbol_table.lookup(node.name)
         if not symbol:
             self.errors.append(SemanticError(
@@ -642,6 +648,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if node.operator in ('==', '!=', '===', '!==') and isinstance(node.left, ArrayLiteralExpr) \
                 and not isinstance(node.right, ArrayLiteralExpr):
             right_type = self.visit(node.right)
+            left_type = self._visit_value_for(right_type, node.left)
+        elif node.operator in ('==', '!=', '===', '!==') and getattr(node.left, 'bare_enum', False) \
+                and not getattr(node.right, 'bare_enum', False):
+            right_type = self.visit(node.right)            # JUNE == m - the other side's type (45.17)
             left_type = self._visit_value_for(right_type, node.left)
         elif node.operator in ('==', '!=', '===', '!=='):
             left_type = self.visit(node.left)

@@ -1,0 +1,18 @@
+enum Months: JANUARY FEBRUARY MARCH JUNE
+
+void function show(Months m)
+    print("{m}")
+
+Months function pick(bool late)
+    if late
+        return JUNE                     // a return of a Months
+    return Months.MARCH                 // the full name always works
+
+void function main()
+    show(JUNE)                          // a parameter - the same as show(Months.JUNE)
+    Months m = FEBRUARY                 // a declaration
+    m = JANUARY                         // an assignment
+    print("{@1} {@2}", m == JANUARY, JUNE == pick(true))     // comparisons: true true
+    match m
+        case JANUARY: print("january")  // a case - as before
+        else: print("other")

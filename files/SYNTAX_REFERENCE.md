@@ -517,6 +517,33 @@ void function main()
     print("{@1} {@2}", votes[Color.Red], Pixel(1).color)
 ```
 
+#### An enum value alone where the type is known
+
+<!-- example: syntax_enum_bare | task: 45.17 -->
+```fusion
+enum Months: JANUARY FEBRUARY MARCH JUNE
+
+void function show(Months m)
+    print("{m}")
+
+Months function pick(bool late)
+    if late
+        return JUNE                     // a return of a Months
+    return Months.MARCH                 // the full name always works
+
+void function main()
+    show(JUNE)                          // a parameter - the same as show(Months.JUNE)
+    Months m = FEBRUARY                 // a declaration
+    m = JANUARY                         // an assignment
+    print("{@1} {@2}", m == JANUARY, JUNE == pick(true))     // comparisons: true true
+    match m
+        case JANUARY: print("january")  // a case - as before
+        else: print("other")
+```
+Where a Months is expected, its value's name alone is enough (D.150). Anywhere else - `print(JUNE)`,
+`int x = JUNE` - write `Months.JUNE`. A variable with the same name there is a compile error: write
+`Months.JUNE`, or rename the variable.
+
 #### Enums can be null: an unset enum is `null`
 
 <!-- example: syntax_null_enums | task: 30.11 -->

@@ -100,7 +100,7 @@ TYP.014 [DESIGN] A `bit` type and bit-level operations
 TYP.015 [DESIGN] `decimal(p, s)`: an exact fixed-point number - after `money` (47.2.3)
 TYP.016 [PARTIAL] A cast written in front: `(Shape)aCircle` built - a compile error where it can be seen, else a CastError (32.5a); between numbers `(int)d` planned
 TYP.017 [DESIGN] Value types have built-in methods through internal interfaces - `Length` with `length()` on strings, arrays, Lists and Maps, working on null and "" alike (52.4, D.055)
-TYP.018 [PLANNED] An enum value alone where the type is known: `setMonth(JUNE)`, `Months m = JUNE`, `case JUNE` (Task 45.17, D.150)
+TYP.018 [BUILT] An enum value alone where the type is known: `setMonth(JUNE)`, `Months m = JUNE`, `case JUNE` (Task 45.17, D.150)
 
 #### STR - strings
 STR.001 [BUILT] Strings are values, freed automatically; changed in place (`s[i] = c`)

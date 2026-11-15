@@ -15,6 +15,12 @@
 - Plain enums (25.2), `match` (25.3), enums with data (25.4) and enums that hold themselves (25.5)
 - The properties / next() / fromValue below stay design
 
+**A value alone where the type is known (Task 45.17, D.150):**
+- `show(JUNE)`, `Months m = JUNE`, `m = JUNE`, `return JUNE`, `m == JUNE` / `JUNE == m`, `case JUNE` - the
+  same as `Months.JUNE`
+- Anywhere else the full name is needed (an error names it); a variable with the same name there is an error
+- Two enums may share a value name - the expected type decides
+
 **Enums that hold themselves (Task 25.5):**
 - A value's data may be the enum itself - `Add(Expr left, Expr right)` - or a List of it -
   `Call(string name, List<Expr> args)`

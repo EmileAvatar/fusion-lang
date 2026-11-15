@@ -206,6 +206,33 @@ class EnumRulesMixin:
     def enum_type(self, decl: EnumDecl, location) -> EnumType:
         return EnumType(location=location, name=decl.name, declaration=decl)
 
+    def bare_enum_value(self, expected: EnumType, node):
+        """`JUNE` where a Months is expected (Task 45.17, D.150): a parameter, a declaration, an
+        assignment, a return, a comparison. Its type - or None when the name isn't one of
+        Months's values. A variable of the same name there is an error: nothing chosen silently."""
+        decl = expected.declaration
+        variant = decl.variant(node.name) if decl is not None else None
+        if variant is None or variant.fields:
+            return None
+        if self.symbol_table.lookup(node.name) is not None:
+            self.errors.append(SemanticError(
+                f"'{node.name}' is both a variable and a {decl.name} value - write {decl.name}.{node.name} "
+                f"for the value, or rename the variable (D.150)", node.location))
+            return expected
+        node.enum_value = EnumValueExpr(location=node.location, enum_name=decl.name, member=node.name,
+                                        declaration=decl)
+        self.visit(node.enum_value)
+        node.inferred_type = expected
+        return expected
+
+    def misplaced_bare_enum(self, node) -> TypeNode:
+        """`JUNE` alone where no enum is expected - name it in full."""
+        full = ' or '.join(f'{owner}.{node.name}' for owner in node.bare_enum)
+        self.errors.append(SemanticError(
+            f"'{node.name}' alone is an enum value only where that enum is expected - a parameter, a "
+            f"declaration, a comparison, a case (D.150); here write {full}", node.location))
+        return PrimitiveType(location=node.location, name='void')
+
     def visit_EnumValueExpr(self, node: EnumValueExpr) -> TypeNode:
         decl = node.declaration
         variant = decl.variant(node.member)

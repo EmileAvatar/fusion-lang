@@ -238,7 +238,7 @@ void function collections() {
     // [designed] Only a growable array expands - it stays a cube (D.143)
     int:[2][3][4] g                     // also int[[2],[3],[4]] g
     g.expand(ROWS, 1)                   // a warning: every slot is copied
-    // [designed] An enum value alone where the type is known (D.150)
+    // [built] An enum value alone where the type is known (45.17, D.150)
     Dimension d = COLUMNS
     // [designed] Large arrays: [arrays] stackWarn 16KB, stackLimit 64KB (D.145); buffers
     //            SINGLE / TWO / THIRD / RING after self-hosting (D.146)

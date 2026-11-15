@@ -394,6 +394,13 @@ class NameResolver:
     def register_enums(self, program: ProgramNode) -> None:
         """Register every enum's name (Task 25) - before the structs, so a struct field
         can hold an enum - and check its values."""
+        # JUNE alone - a value of some enum, allowed where that enum is expected (45.17, D.150)
+        self.enum_value_names = {}            # a value's name -> the enums that have it
+        for d in program.declarations:
+            if isinstance(d, EnumDecl):
+                for v in d.variants:
+                    if not v.fields:
+                        self.enum_value_names.setdefault(v.name, []).append(d.name)
         for enum in (d for d in program.declarations if isinstance(d, EnumDecl)):
             self.errors.extend(check_enum_declaration(enum))
             if enum.name in ('bytes', 'byte') or enum.name in BUILT_IN_CLASS_NAMES \
@@ -1081,7 +1088,9 @@ class NameResolver:
             expr: Identifier expression node
         """
         symbol = self.symbol_table.lookup(expr.name)
-        if not symbol:
+        if not symbol and expr.name in getattr(self, 'enum_value_names', ()):
+            expr.bare_enum = self.enum_value_names[expr.name]   # JUNE - the checker decides where (45.17)
+        elif not symbol:
             self.errors.append(SemanticError(
                 f"Undefined variable: '{expr.name}'",
                 expr.location
