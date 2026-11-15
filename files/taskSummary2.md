@@ -68,5 +68,5 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Rule 4b: a null object slot, read with and without `?.`.
 
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
-  45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping) - FEATURES Task 45
-- **Next Action:** 45.13 `[arrays] stackWarn` / `stackLimit` (D.145); `setBufferType` / `setSize` an error "not built yet"
+  45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits) - FEATURES Task 45
+- **Next Action:** 45.12 up to 3 dimensions `int[10][5][7]` (D.143) - plan its parts first

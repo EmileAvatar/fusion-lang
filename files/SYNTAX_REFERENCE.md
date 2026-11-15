@@ -1866,6 +1866,10 @@ defaultMethods = false           # true: an interface's function may have code (
 [collections]
 allowChangeWhileLooping = false  # true: a collection class of your own may change inside a loop over it
 
+[arrays]
+stackWarn = "16KB"               # an array on the stack larger than this: a warning (bytes - "512B", "1MB")
+stackLimit = "64KB"              # larger than this: a compile error - use int:[] or a List (heap)
+
 [conditions]
 numbers = "positive"             # if / while count: count > 0 (default); "nonzero": count != 0;
                                  # "off": a condition must be a bool

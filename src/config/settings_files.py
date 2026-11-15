@@ -177,7 +177,7 @@ def write_settings(path: str, data: dict, fmt: str, comments: Dict[str, str] = N
 class TemplateSetting:
     section: str
     name: str
-    type: str                  # bool, int, choice, int-or-max
+    type: str                  # bool, int, choice, int-or-max, bytes
     default: object
     description: str
     values: List[str] = field(default_factory=list)      # choice: the allowed values
@@ -225,6 +225,8 @@ def default_settings(fmt: str = 'TOML'):
             allowed = ' (' + ' / '.join(s.values) + ')'
         elif s.type == 'int-or-max':
             allowed = f' ("max" or a whole number of at least {s.minimum})'
+        elif s.type == 'bytes':
+            allowed = ' (bytes: a whole number, or "512B", "16KB", "1MB")'
         comments[f'{s.section}.{s.name}'] = s.description + allowed
     data['project']['fusionSettingFormat'] = fmt
     return data, comments

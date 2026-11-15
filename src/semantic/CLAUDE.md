@@ -5,6 +5,7 @@
 | `semantic_analyzer.py` | Runs the passes below in order and collects errors and warnings (entry point of this folder) |
 | `number_patterns.py` | Checks `formatNumber` patterns written in the source (the same rules as the C runtime) |
 | `heap_arrays.py` | Plain arrays that get a new size (Task 45.10, D.141): before names are resolved, an array replaced as a whole, an `int[]` result of any size and an unsized struct field become a heap array - a List block marked `array_form`, still acting as an array |
+| `stack_arrays.py` | Arrays on the stack in bytes (Task 45.13, D.145): after type checking, a local array (or a struct holding one) above `[arrays] stackWarn` is a warning, above `stackLimit` an error |
 | `null_guards.py` | The null guard (Task 52.8): runs first - `c?.f()` becomes an `if`, `c?.x ?? d` the conditional operator, a guarded test in a condition `(c is not null) and (...)`; a guarded value with no default is an error |
 | `templates.py` | String templates (Task 29.3): runs first and expands every use - `greet(a)` becomes `format(<text>, a)`, a template passed where a function type is written becomes a lambda (`expand_templates`) |
 | `struct_parents.py` | Structs building on structs (Task 32.8): gives `struct Employee implements Person` its Person part (`expand_struct_parents`, run before name resolution), and the type rules - inherited fields and methods, an Employee as a Person, constructors, a whole struct as text, `toCSV` (a mixin of the type checker) |

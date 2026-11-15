@@ -17,6 +17,8 @@
     choice      one of the <value>s; a value marked reserved is named for the future and is
                 an error today
     int-or-max  "max" (no limit) or a whole number of at least min
+    bytes       a size in bytes: a whole number, or text with a unit - "512B", "16KB", "1MB"
+                (KB = 1024 bytes)
 
   Adding a setting: add it here and to the compiler (src/config/project_config.py) - the tests
   check that the two agree.
@@ -129,6 +131,15 @@
   <section name="collections" description="Arrays, Lists, Maps and collection classes">
     <setting name="allowChangeWhileLooping" type="bool" default="false" task="32.4">
       <description>A collection class of your own may be changed inside a loop over it (its own rules decide); false: blocked - Fusion's own arrays, Lists and Maps never are</description>
+    </setting>
+  </section>
+
+  <section name="arrays" description="Arrays - sizes in bytes">
+    <setting name="stackWarn" type="bytes" default="16KB" task="45.13">
+      <description>A plain or fixed array on the stack larger than this: a warning - also the line between a small and a large array; lower it for a small embedded device (e.g. "1KB") (D.145)</description>
+    </setting>
+    <setting name="stackLimit" type="bytes" default="64KB" task="45.13">
+      <description>A plain or fixed array on the stack larger than this: a compile error - a growable array (int:[]) or a List lives on the heap instead (D.145)</description>
     </setting>
   </section>
 

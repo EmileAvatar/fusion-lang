@@ -86,6 +86,9 @@ team.scores = podium()     // an array field too
 - Whole-array reassignment - built since Task 45.10 (D.141): `arr = [4, 5]` or `arr = make()` replaces
   it, another size too; such an array lives on the heap (a counted block, like a List) and still
   acts as an array - no `add`, an object slot may be null. A `fixed` one keeps its size
+- Size on the stack - built (Task 45.13, D.145): a plain or fixed array (or a struct holding one) above
+  `[arrays] stackWarn` (16KB) is a warning, above `stackLimit` (64KB) a compile error - in bytes;
+  `setBufferType` / `setSize` are an error "not built yet" (D.146, after self-hosting)
 - Not changed while looped over - built (Task 45.7, D.058): `add`, `removeLast` / `pop` or replacing the
   array inside a loop over it is a compile error (also through a function or a method); setting an
   item is allowed

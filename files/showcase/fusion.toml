@@ -99,6 +99,16 @@ negateGuarded = false
 # [built] Note: an Iterator's next() past the end gives null for a string, List or Map
 # whatever this says - null means no more items; check hasNext() first (D.094)
 nullable = false
+# [built] An array on the stack above stackWarn: a warning; above stackLimit: a compile error - in
+# bytes, "512B" / "16KB" / "1MB"; lower both for a small embedded device (Task 45.13, D.145)
+stackWarn = "16KB"
+stackLimit = "64KB"
+# [designed] How an array of many dimensions is stored: "flat" / "rect" / "jagg" (45.15, D.144)
+storage = "flat"
+# [designed] Buffers for a large array - after self-hosting (L16.3, D.146)
+bufferType = "single"
+bufferSmall = "2KB"
+bufferLarge = "8KB"
 
 [lists]
 # [designed] Lists may be null (default false - empty instead) (D.044)

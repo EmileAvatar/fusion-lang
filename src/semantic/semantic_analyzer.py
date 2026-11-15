@@ -12,6 +12,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
                                 ListType, MapType)
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
+from .stack_arrays import check_stack_arrays
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
@@ -62,7 +63,7 @@ class SemanticAnalyzer:
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
                  conditions_config=None, visibility_config=None, interfaces_config=None, source_config=None, memory_config=None,
-                 collections_config=None):
+                 collections_config=None, arrays_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -94,6 +95,9 @@ class SemanticAnalyzer:
         # [collections] allowChangeWhileLooping (Task 32.4, D.058)
         self.type_checker.allow_change_while_looping = bool(
             getattr(collections_config, 'allow_change_while_looping', False))
+        # [arrays] stackWarn / stackLimit (Task 45.13, D.145) - in bytes
+        self.stack_warn = getattr(arrays_config, 'stack_warn', 16 * 1024)
+        self.stack_limit = getattr(arrays_config, 'stack_limit', 64 * 1024)
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
@@ -288,6 +292,9 @@ class SemanticAnalyzer:
         self.errors.extend(static_setup_order(ast))
         # readonly parameters: never changed, passed on to a change or kept (Task 32.2e)
         self.errors.extend(check_readonly(ast))
+        stack_errors, stack_warnings = check_stack_arrays(ast, self.stack_warn, self.stack_limit)   # 45.13
+        self.errors.extend(stack_errors)
+        self.warnings.extend(stack_warnings)
         self.errors.extend(check_readonly_calls(ast))      # f(readonly acc) (Task 48.3)
         self.errors.extend(check_surely_null(                      # Task 52.7 (D.117)
             ast, lambda t: self.type_checker.is_class(t) or type(t).__name__ == 'EnumType',

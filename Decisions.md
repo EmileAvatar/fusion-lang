@@ -115,7 +115,7 @@ STR.010 [POSTPONED] Paged / memory-mapped strings
 
 #### COL - arrays, Lists, Maps
 COL.001 [BUILT] Fixed-size arrays, bounds always checked
-COL.002 [PARTIAL] Arrays in three forms: plain (a new size only by replacing), `fixed` (never another size), growable `int:[]` / `int[[]]` (add / removeLast at the end); `+`, `copyPart` (Task 45, D.141) - built: `int[] e` (45.2), `fixed` (45.14), replacing with another size (45.10), growable `int:[]` (45.3), `a + b` (45.4), `copyPart` (45.5)
+COL.002 [PARTIAL] Arrays in three forms: plain (a new size only by replacing), `fixed` (never another size), growable `int:[]` / `int[[]]` (add / removeLast at the end); `+`, `copyPart` (Task 45, D.141) - built: `int[] e` (45.2), `fixed` (45.14), replacing with another size (45.10), growable `int:[]` (45.3), `a + b` (45.4), `copyPart` (45.5), stack limits (45.13)
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
@@ -131,7 +131,7 @@ COL.014 [DESIGN] `Set<T>`; slices by range (`numbers[0...1]`); Map literals (`{"
 COL.015 [PLANNED] Arrays of up to 3 dimensions - rows, columns, depth; `expand`; FLAT / RECT / JAGG storage (Task 45, D.143, D.144)
 COL.016 [REJECTED] `type()` / `type(N)` arrays meaning read-only or fixed size - `const` and `fixed(n)` instead (D.064)
 COL.017 [BUILT] Every array acts as an object of the built-in `Array` class - `a.length` is `Array.length(a)`; `length`, `toList`, `toCSV` (Task 45.1, D.142); the rest with their sub-tasks
-COL.018 [DESIGN] Large arrays: stack limits in bytes (D.145); buffers SINGLE / TWO / THIRD / RING - built after self-hosting (D.146, L16)
+COL.018 [PARTIAL] Large arrays: stack limits in bytes (D.145 - built 45.13); buffers SINGLE / TWO / THIRD / RING - built after self-hosting (D.146, L16)
 
 #### FUN - functions and errors
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value

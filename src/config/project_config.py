@@ -219,6 +219,19 @@ class CollectionsConfig:
 
 
 @dataclass
+class ArraysConfig:
+    """Arrays (Task 45.13, D.145) - in bytes.
+
+    Attributes:
+        stack_warn: an array on the stack larger than this is a warning (16KB); also the line
+            between a small and a large array
+        stack_limit: larger than this on the stack is a compile error (64KB)
+    """
+    stack_warn: int = 16 * 1024
+    stack_limit: int = 64 * 1024
+
+
+@dataclass
 class MemoryConfig:
     """Memory (Task 48, files/Ownership.md - Decisions.md D.014, D.102).
 
@@ -318,6 +331,7 @@ class ProjectConfig:
     interfaces: InterfacesConfig = field(default_factory=InterfacesConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
     collections: CollectionsConfig = field(default_factory=CollectionsConfig)
+    arrays: ArraysConfig = field(default_factory=ArraysConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
@@ -532,6 +546,43 @@ def _load_collections_section(data: dict, config_path: str) -> CollectionsConfig
                 f"{config_path}: collections.allowChangeWhileLooping must be true or false, got {value!r}")
         collections.allow_change_while_looping = value
     return collections
+
+
+def parse_bytes(value, where: str) -> int:
+    """A size in bytes (Task 45.13): a whole number, or text with a unit - "512B", "16KB", "1MB"
+    (KB = 1024 bytes). Never below 1."""
+    import re
+    if isinstance(value, int) and not isinstance(value, bool):
+        number = value
+    else:
+        found = (re.fullmatch(r'\s*(\d+)\s*(b|kb|mb)?\s*', value, re.IGNORECASE)
+                 if isinstance(value, str) else None)
+        if found is None:
+            raise ProjectConfigError(
+                f"{where} must be a size in bytes - a whole number, or e.g. \"512B\", \"16KB\", \"1MB\" - "
+                f"got {value!r}")
+        unit = (found.group(2) or 'b').lower()
+        number = int(found.group(1)) * {'b': 1, 'kb': 1024, 'mb': 1024 * 1024}[unit]
+    if number < 1:
+        raise ProjectConfigError(f"{where} must be at least 1 byte, got {value!r}")
+    return number
+
+
+def _load_arrays_section(data: dict, config_path: str) -> ArraysConfig:
+    """Parse and validate the [arrays] section (Task 45.13, D.145)."""
+    arrays = ArraysConfig()
+    section = _require_table(data, "arrays", config_path)
+    known = {"stackWarn": "stack_warn", "stackLimit": "stack_limit"}
+    for key, value in section.items():
+        if key not in known:
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting arrays.{key} (known: {sorted(known)})")
+        setattr(arrays, known[key], parse_bytes(value, f"{config_path}: arrays.{key}"))
+    if arrays.stack_warn > arrays.stack_limit:
+        raise ProjectConfigError(
+            f"{config_path}: arrays.stackWarn ({arrays.stack_warn:,} bytes) is above arrays.stackLimit "
+            f"({arrays.stack_limit:,} bytes) - the warning comes before the error")
+    return arrays
 
 
 OWNERSHIP_VALUES = {"strict": "move", "relaxed": "share"}   # Task 48.11 (D.124)
@@ -831,6 +882,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         interfaces=_load_interfaces_section(data, config_path),
         memory=_load_memory_section(data, config_path, warnings),
         collections=_load_collections_section(data, config_path),
+        arrays=_load_arrays_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),

@@ -31,6 +31,8 @@ def kind(setting):
         for v in setting.findall('value'):
             values.append(f'`{v.text}`' + (' (reserved)' if v.get('reserved') == 'true' else ''))
         return ' / '.join(values)
+    if t == 'bytes':
+        return 'a size in bytes - a whole number, or `"512B"`, `"16KB"`, `"1MB"`'
     if t in ('int', 'int-or-max'):
         low = setting.get('min')
         extra = f', at least {low}' if low is not None else ''

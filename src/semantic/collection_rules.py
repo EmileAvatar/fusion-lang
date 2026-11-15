@@ -225,6 +225,12 @@ class CollectionRulesMixin:
             self.checked_receivers.pop(id(receiver), None)
             node.to_list = (iface.name, receiver)
             return ListType(location=node.location, element_type=iface.element_type)
+        if (isinstance(receiver_type, ArrayType) or getattr(receiver_type, 'array_form', False))                 and node.callee.member in ('setBufferType', 'setSize'):
+            self.checked_receivers.pop(id(receiver), None)      # buffers - after self-hosting (D.146)
+            self.errors.append(SemanticError(
+                f"{node.callee.member} is not built yet - buffers for large arrays come after self-hosting, "
+                f"once they can be measured (D.146, FEATURES L16.3)", node.location))
+            return self._void(node)
         if isinstance(receiver_type, ArrayType) and node.callee.member in PART_METHODS:
             self.checked_receivers.pop(id(receiver), None)      # a stack array's part (45.5)
             return self._part_call(node, receiver_type)
