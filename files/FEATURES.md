@@ -149,7 +149,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		[ ] An array as a Collection<T> value (from 32.6) - removing blocked
 		Normal code: an array moves (`int[] b = a`); `byVal` copies; inside a struct only borrowed
 	[DONE] 45.3 Growable `int:[]` / `int[[]]` (and `int xs[[]]`): `add`, `removeLast` (`pop`); empty `removeLast` an IndexError; an object slot may be null (D.140); `fixed` with it an error - tests/test_growable_arrays.py, example syntax_growable_array
-		[ ] `removeLast()` / `pop()` give nothing back for now - giving the item back: to decide
+		[DONE] `removeLast()` / `pop()` give the item back (user, 2026-11-15) - the caller owns it
+		[DONE] Arguments left to right also when a call sits beside a length, a field or a module variable (spec 181)
 	[ ] 45.4 Combine arrays: `a + b + c` - a new array, all of the same type; Lists the same
 	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same
 	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps

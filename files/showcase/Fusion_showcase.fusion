@@ -217,6 +217,7 @@ void function collections() {
     // [built] Growable - add / removeLast (pop) at its end, on the heap (45.3)
     int:[] readings                     // also written int[[]] readings
     readings.add(7)
+    int last = readings.pop()           // 7 - removeLast / pop give the item back
     // [designed] Up to 3 dimensions: rows x columns x depth (D.143); FLAT / RECT / JAGG (D.144)
     int[10][5][7] cube
     cube.expand(columns, 2)             // a warning: every slot is copied

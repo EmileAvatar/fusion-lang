@@ -657,15 +657,19 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         array passed to it, printing), so its timing can matter."""
         return cls._contains(node, CallExpr)
 
-    @classmethod
-    def _order_matters(cls, values) -> bool:
+    def _order_matters(self, values) -> bool:
         """Whether evaluating these argument expressions in a different order could change
-        the result (Task 18.2.2b). In Fusion a call can only change the caller's data
-        through an array passed to it - there are no globals or closures, and structs are
-        copies - so the order is visible only when at least one argument contains a call
-        and another one also contains a call or reads an array element."""
-        calls = sum(1 for v in values if cls._contains_call(v))
-        touched = sum(1 for v in values if cls._contains_call(v) or cls._contains(v, IndexExpr))
+        the result (Task 18.2.2b). A call can change what another argument reads - an array
+        or List item, a length (`xs.pop()` next to `xs.length`), an object's field, a module
+        variable - so the order is visible when at least one argument contains a call and
+        another one is anything but a literal or a local's name (a call can't change a local)."""
+        module = getattr(self, 'global_names', {})
+
+        def fixed(v):
+            return isinstance(v, LiteralExpr) or (isinstance(v, IdentifierExpr) and v.name not in module)
+
+        calls = sum(1 for v in values if self._contains_call(v))
+        touched = sum(1 for v in values if not fixed(v))
         return calls >= 1 and touched >= 2
 
     def _new_temp(self, c_type: str) -> str:

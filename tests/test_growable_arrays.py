@@ -52,6 +52,43 @@ def test_a_null_slot_without_a_check_is_a_null_error():
     assert out == ['null']
 
 
+def test_remove_last_gives_the_item_back():
+    out = run(main('int:[] xs = [3, 7]\nint last = xs.pop()\nint first = xs.removeLast()\n'
+                   'print("{@1} {@2} {@3}", last, first, xs.length)'))
+    assert out == ['7 3 0']
+
+
+def test_arguments_run_left_to_right():
+    # spec 181: each argument once, left to right - the length is read after the pops before it
+    out = run(main('int:[] xs = [3, 7]\nprint("{@1} {@2} {@3}", xs.pop(), xs.removeLast(), xs.length)\n'
+                   'xs.add(1)\nprint("{@1} {@2}", xs.length, xs.pop())'))
+    assert out == ['7 3 0', '1 1']
+
+
+def test_a_removed_string_is_owned_by_the_caller():
+    out = run(main('string:[] names = ["Ann", "Bob", "Cy"]\nstring s = names.pop()\nprint(s)\n'
+                   'print(names.removeLast() + "!")\nnames.pop()\nprint("{@1}", names.length)'))
+    assert out == ['Cy', 'Bob!', '0']
+
+
+def test_a_removed_object_lives_on():
+    out = run(CAR + main('Car:[] cars\ncars.add(Car("red"))\ncars.add(Car("blue"))\nCar c = cars.pop()\n'
+                         'cars.pop()\nprint(c.color)'))
+    assert out == ['blue']
+
+
+def test_a_removed_null_slot():
+    # Rule 4b: without a check a NullError; with ?. the code runs on
+    body = 'Car:[] cars\ncars.add(null)\ncars.add(null)\nCar c = cars.pop()\nprint(c?.color ?? "none")\n'
+    out = run(CAR + main(body + 'Car d = cars.pop()\ntry\n    print(d.color)\ncatch NullError e\n    print("null")'))
+    assert out == ['none', 'null']
+
+
+def test_pop_on_an_empty_array_in_a_value_is_an_index_error():
+    out = run(main('int:[] xs\ntry\n    int x = xs.pop()\n    print("{@1}", x)\ncatch IndexError e\n    print("{e}")'))
+    assert out == ['removeLast on an empty array']
+
+
 def test_an_int_slot_cant_be_null():
     assert errors_of(main('int:[] xs\nxs.add(null)'))
 

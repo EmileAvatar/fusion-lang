@@ -87,7 +87,7 @@ team.scores = podium()     // an array field too
   it, another size too; such an array lives on the heap (a counted block, like a List) and still
   acts as an array - no `add`, an object slot may be null. A `fixed` one keeps its size
 - Arrays that grow - built (Task 45.3, D.141): `int:[] xs` / `int[[]] xs` / `int xs[[]]` - `add`,
-  `removeLast` (`pop`) at the end, an empty one's `removeLast` an IndexError. Up to 3 dimensions -
+  `removeLast` (`pop`) at the end - it gives the item back; an empty one's `removeLast` an IndexError. Up to 3 dimensions -
   planned (45.12, D.143)
 - Bounds checking - built since then: every index is checked, outside the array is an
   IndexError (Task 27.1)

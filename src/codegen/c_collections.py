@@ -404,12 +404,13 @@ class CollectionsMixin:
                 (free('l->data[i]') if managed else ''),
                 f'memmove(l->data + i, l->data + i + 1, sizeof({T}) * (size_t)(l->len - i - 1));',
                 'l->len--; l->changes++;'],
-            # a growable array's end (45.3): the last item freed, an empty one an IndexError
-            f'void {name}_removeLast({name} l, const char* where)': [
+            # a growable array's end (45.3): the last item given back (the caller owns it),
+            # an empty one an IndexError
+            f'{T} {name}_removeLast({name} l, const char* where)': [
                 'if (l->len == 0) { fusion_fail(FUSION_KIND_IndexError, where, "removeLast on an empty '
-                f'{what}"); return; }}',
-                (free('l->data[l->len - 1]') if managed else ''),
-                'l->len--; l->changes++;'],
+                f'{what}"); return {none}; }}',
+                'l->len--; l->changes++;',
+                'return l->data[l->len];'],
             f'void {name}_clear({name} l)': [
                 (f'for (int i = 0; i < l->len; i++) {{ {free("l->data[i]")} }}' if managed else ''),
                 'l->len = 0; l->changes++;'],

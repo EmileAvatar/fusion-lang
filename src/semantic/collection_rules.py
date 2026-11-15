@@ -199,10 +199,10 @@ class CollectionRulesMixin:
         if method in MUTATING_LIST_METHODS or method in ('removeLast', 'pop'):
             self._check_changeable(receiver, method)
         args = node.arguments
-        if method in ('removeLast', 'pop'):              # a growable array (45.3)
+        if method in ('removeLast', 'pop'):              # a growable array (45.3): the item back
             if args:
                 self.errors.append(SemanticError(f"{method}() takes no values", node.location))
-            return self._void(node)
+            return element
 
         def want(count):
             if len(args) != count:

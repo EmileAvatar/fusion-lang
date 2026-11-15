@@ -62,6 +62,14 @@ def test_one_call_beside_plain_values_needs_no_temporaries():
     assert 'int r = fu_sub(fu_twice(x), x);' in c_code
 
 
+def test_a_module_variable_beside_a_call_is_read_after_it():
+    # a call can change a module variable - read left to right, as written (spec 181)
+    from tests.test_ownership_moves import run
+    out = run('int counter = 0\n\nint function bump()\n    counter = counter + 1\n    return counter\n\n'
+              'void function main()\n    print("{@1} {@2}", bump(), counter)\n')
+    assert out == ['1 1']
+
+
 def test_two_calls_are_sequenced_left_to_right():
     c_code = unchecked(generate_c(NEXT + SUB + main('int[] c = [0]\nint d = sub(next(c), next(c))')))
     assert 'int d = (fusion_arg_1 = fu_next(c, 1), fusion_arg_2 = fu_next(c, 1), ' \

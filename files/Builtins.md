@@ -184,8 +184,8 @@ Each built-in type has a class holding its functions as methods (Task 18.3.7):
 | `.toList(bool copy = true)` | `List<T>` |  | a copy (deep, as byVal); toList(false): the same list, shared |
 | `.insert(int at, T x)` | `void` | yes | insert before position at (IndexError) |
 | `.removeAt(int at)` | `void` | yes | remove the element at a position (IndexError) |
-| `.removeLast()` | `void` | yes | a growable array (int:[]) only: remove the last item (IndexError when empty) - Task 45.3 |
-| `.pop()` | `void` | yes | the same as removeLast() - quick typing |
+| `.removeLast()` | `T` | yes | a growable array (int:[]) only: remove the last item and give it back (IndexError when empty) - Task 45.3 |
+| `.pop()` | `T` | yes | the same as removeLast() - quick typing |
 | `.remove(T x)` | `bool` |  | remove the first element equal to x; false if none |
 | `.clear()` | `void` |  | remove every element |
 | `.noDuplicates()` | `void` |  | in its set-up block only: adding a value it has is a DuplicateError (32.14) |

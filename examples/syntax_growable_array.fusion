@@ -8,8 +8,8 @@ void function main()
     readings.add(4)
     readings.add(6)
     readings.add(9)
-    readings.removeLast()           // [4, 6] - pop() is the same
-    print("{@1} {@2}", readings.length, readings[1])     // 2 6
+    int last = readings.removeLast()     // 9 - given back; [4, 6] left - pop() is the same
+    print("{@1} {@2} {@3}", last, readings.length, readings[1])     // 9 2 6
     Car:[] cars
     cars.add(Car("red"))
     cars.add(null)                  // an array of objects may hold null (D.140)

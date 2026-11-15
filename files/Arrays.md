@@ -124,7 +124,7 @@ ever moves to another position.
 int:[] numbers             // [] - empty, can grow (also int[[]] numbers, int numbers[[]])
 numbers.add(4)             // [4]     - index 0, length 1
 numbers.add(6)             // [4, 6]
-numbers.removeLast()       // [4]     (pop() is the same - quick typing)
+int last = numbers.removeLast()   // 6, [4] left - the item given back (pop() the same - quick typing)
 int[] more = numbers + [7, 8]        // a + b: b's items after a's -> [4, 7, 8]
 int[] all = a + b + c + d            // any number at once - all of the same type
 int[] part = more.slice(1, 2)        // [7, 8] - a copy; more is unchanged

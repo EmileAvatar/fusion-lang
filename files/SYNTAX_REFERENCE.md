@@ -296,8 +296,8 @@ void function main()
     readings.add(4)
     readings.add(6)
     readings.add(9)
-    readings.removeLast()           // [4, 6] - pop() is the same
-    print("{@1} {@2}", readings.length, readings[1])     // 2 6
+    int last = readings.removeLast()     // 9 - given back; [4, 6] left - pop() is the same
+    print("{@1} {@2} {@3}", last, readings.length, readings[1])     // 9 2 6
     Car:[] cars
     cars.add(Car("red"))
     cars.add(null)                  // an array of objects may hold null (D.140)
@@ -310,7 +310,8 @@ void function main()
     catch IndexError e
         print("{e}")
 ```
-A growable array grows and shrinks only at its end (D.141): `add`, `removeLast` (`pop`). Nothing is
+A growable array grows and shrinks only at its end (D.141): `add`, `removeLast` (`pop`), which gives
+the removed item back - the caller owns it (a string or object lives on). Nothing is
 inserted in the middle, so an item never moves - a List does that. It lives on the heap; it is passed
 to an `int[]` parameter like any array. `fixed` can't go with it.
 
