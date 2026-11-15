@@ -26,6 +26,8 @@ def type_text(t) -> str:
     """A type as written - `Person`, `int`, `List<int>` - the name of a generic interface's
     element type (`Collection<List<int>>`)."""
     name = getattr(t, 'name', None)
+    if type(t).__name__ == 'ListType' and getattr(t, 'growable', False):
+        return f'{type_text(t.element_type)}:[]'         # a growable array (Task 45.3)
     if type(t).__name__ == 'ListType' and getattr(t, 'array_form', False):
         return f'{type_text(t.element_type)}[]'          # a heap array (Task 45.10)
     if type(t).__name__ == 'ListType':
@@ -879,6 +881,9 @@ class Parser:
             base_type = None
 
         if base_type is not None:
+            growable = self._growable_brackets(base_type)
+            if growable is not None:
+                return growable
             if self.match(TokenType.LBRACKET):
                 size = None
                 if not self.check(TokenType.RBRACKET):
@@ -955,7 +960,13 @@ class Parser:
         # money.Price p - a struct from another module (Task 18.4.2)
         while self.peek(offset).type == TokenType.DOT and self.peek(offset + 1).type == TokenType.IDENTIFIER:
             offset += 2
-        if self.peek(offset).type == TokenType.LBRACKET:
+        # Car:[] cars, Car[[]] cars - a growable array (Task 45.3)
+        kinds = [self.peek(offset + i).type for i in range(4)]
+        if kinds[:3] == [TokenType.COLON, TokenType.LBRACKET, TokenType.RBRACKET]:
+            offset += 3
+        elif kinds == [TokenType.LBRACKET, TokenType.LBRACKET, TokenType.RBRACKET, TokenType.RBRACKET]:
+            offset += 4
+        elif self.peek(offset).type == TokenType.LBRACKET:
             offset += 1
             if self.peek(offset).type == TokenType.INTEGER:
                 offset += 1
@@ -1210,9 +1221,35 @@ class Parser:
             expression=expr
         )
 
+    def _growable_brackets(self, base_type: TypeNode, name: str = None):
+        """`int:[]` / `int[[]]` - a growable array (Task 45.3, D.141): on the heap, it grows and
+        shrinks at its end. None when the brackets that follow aren't one."""
+        colon = self.check(TokenType.COLON) and self.peek(1).type == TokenType.LBRACKET
+        double = self.check(TokenType.LBRACKET) and self.peek(1).type == TokenType.LBRACKET
+        if not (colon or double):
+            return None
+        start = self.advance()
+        self.advance()
+        if not self.check(TokenType.RBRACKET):
+            if double:
+                raise ParserError(self.peek(), "Arrays of many dimensions - int[[10], [5], [7]] - are planned "
+                                               "(Task 45.12); a growable array is written int[[]]")
+            raise ParserError(self.peek(), "A growable array starts empty - int:[] numbers, then add to it, "
+                                           "or give its values: int:[] numbers = [1, 2]")
+        self.advance()
+        if double:
+            self.consume(TokenType.RBRACKET, "Expected ']]' - a growable array is written int[[]]")
+        if self.check(TokenType.LBRACKET):
+            raise ParserError(self.peek(), "Multi-dimensional arrays are not yet supported")
+        return ListType(location=base_type.location, element_type=base_type, array_form=True,
+                        growable=True)
+
     def _brackets_after_name(self, var_type: TypeNode, name: str) -> TypeNode:
         """C-style `int numbers[]` / `int numbers[10]` - the same array as `int[] numbers` /
         `int[10] numbers`, written the other way (user, 2026-11-15 - both kept, a preference)."""
+        if self.check(TokenType.LBRACKET) and self.peek(1).type == TokenType.LBRACKET \
+                and not isinstance(var_type, (ArrayType, ListType)):
+            return self._growable_brackets(var_type, name)          # int numbers[[]] (45.3)
         if not self.check(TokenType.LBRACKET):
             return var_type
         if isinstance(var_type, ArrayType):
@@ -1245,6 +1282,9 @@ class Parser:
         if not (self.is_type_start() or self.is_struct_type_declaration_start()):
             raise ParserError(self.peek(), "After 'fixed' comes an array type: fixed int[10] c")
         declaration = self.parse_var_declaration()
+        if getattr(declaration.var_type, 'growable', False):
+            raise ParserError(fixed_token, "fixed and a growable array can't go together - fixed int[10] "
+                                           "never changes size, int:[] grows (D.141)")
         if not isinstance(declaration.var_type, ArrayType):
             raise ParserError(fixed_token, "fixed is written on an array - fixed int[10] c; fixed(n) on "
                                            "a string, List or Map is planned (Task 47.5)")

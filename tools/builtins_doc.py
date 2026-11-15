@@ -59,6 +59,8 @@ LIST_METHODS = [
     ('toList(bool copy = true)', 'List<T>', False, 'a copy (deep, as byVal); toList(false): the same list, shared'),
     ('insert(int at, T x)', 'void', True, 'insert before position at (IndexError)'),
     ('removeAt(int at)', 'void', True, 'remove the element at a position (IndexError)'),
+    ('removeLast()', 'void', True, 'a growable array (int:[]) only: remove the last item (IndexError when empty) - Task 45.3'),
+    ('pop()', 'void', True, 'the same as removeLast() - quick typing'),
     ('remove(T x)', 'bool', False, 'remove the first element equal to x; false if none'),
     ('clear()', 'void', False, 'remove every element'),
     ('noDuplicates()', 'void', False, 'in its set-up block only: adding a value it has is a DuplicateError (32.14)'),

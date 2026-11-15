@@ -45,7 +45,7 @@ from src.parser.ast_nodes import (ArrayType, BinaryExpr, CallExpr, ErrorDecl, Er
                                   MemberExpr, PrimitiveType, ThrowStmt)
 
 # List methods whose C function takes `where` - they report errors (Task 26.4)
-_FAILING_LIST_METHODS = ('insert', 'removeAt', 'slice')
+_FAILING_LIST_METHODS = ('insert', 'removeAt', 'slice', 'removeLast', 'pop')
 # List methods that call a function given to them - it may fail
 _CALLING_LIST_METHODS = ('sortBy', 'filter', 'map', 'reduce')
 

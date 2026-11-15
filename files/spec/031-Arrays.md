@@ -86,8 +86,9 @@ team.scores = podium()     // an array field too
 - Whole-array reassignment - built since Task 45.10 (D.141): `arr = [4, 5]` or `arr = make()` replaces
   it, another size too; such an array lives on the heap (a counted block, like a List) and still
   acts as an array - no `add`, an object slot may be null. A `fixed` one keeps its size
-- Arrays that grow - planned, Task 45: plain arrays get a new size by replacing, `int:[]` / `int[[]]`
-  grow at the end, up to 3 dimensions (Decisions.md D.141-D.147)
+- Arrays that grow - built (Task 45.3, D.141): `int:[] xs` / `int[[]] xs` / `int xs[[]]` - `add`,
+  `removeLast` (`pop`) at the end, an empty one's `removeLast` an IndexError. Up to 3 dimensions -
+  planned (45.12, D.143)
 - Bounds checking - built since then: every index is checked, outside the array is an
   IndexError (Task 27.1)
 - `arr.length` / `arr.len`, with or without brackets - built (Task 30.8): the same as

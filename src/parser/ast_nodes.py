@@ -967,6 +967,7 @@ class ListType(TypeNode):
     the heap, but it acts as an array: written `int[]`, no add, an object slot may be null."""
     element_type: TypeNode
     array_form: bool = False
+    growable: bool = False      # `int:[]` / `int[[]]` - grows and shrinks at its end (Task 45.3)
 
 
 @dataclass

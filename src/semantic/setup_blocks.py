@@ -171,6 +171,7 @@ def check_collection_options(program) -> List[SemanticError]:
             return isinstance(e, LiteralExpr) and e.type_hint == 'null'
         if isinstance(node, CallExpr) and isinstance(node.callee, MemberExpr) \
                 and getattr(node, 'list_method', None) in ('add', 'insert') \
+                and not getattr(getattr(node, 'list_type', None), 'array_form', False) \
                 and any(is_null(a) for a in node.arguments) \
                 and 'noNull' not in options.get(getattr(node.callee.object, 'name', None), ()):
             errors.append(SemanticError("A List never holds null - add an object (D.139)", node.location))

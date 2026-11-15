@@ -282,6 +282,38 @@ counted block, like a List - and still acts as an array: it is passed to an `int
 index is checked, and it doesn't grow with `add` (that is `int:[]`, Task 45.3). An array of objects may
 hold null in a slot (D.140). `fixed` keeps the size it was made with.
 
+#### A growable array: `int:[]` or `int[[]]`
+
+<!-- example: syntax_growable_array | task: 45.3 -->
+```fusion
+class Car
+    public string color
+    constructor(string c)
+        this.color = c
+
+void function main()
+    int:[] readings                 // empty, can grow - also written int[[]] readings
+    readings.add(4)
+    readings.add(6)
+    readings.add(9)
+    readings.removeLast()           // [4, 6] - pop() is the same
+    print("{@1} {@2}", readings.length, readings[1])     // 2 6
+    Car:[] cars
+    cars.add(Car("red"))
+    cars.add(null)                  // an array of objects may hold null (D.140)
+    foreach (Car c in cars)
+        if c is not null
+            print(c.color)          // red
+    try
+        int:[] none
+        none.removeLast()           // nothing to remove: an IndexError
+    catch IndexError e
+        print("{e}")
+```
+A growable array grows and shrinks only at its end (D.141): `add`, `removeLast` (`pop`). Nothing is
+inserted in the middle, so an item never moves - a List does that. It lives on the heap; it is passed
+to an `int[]` parameter like any array. `fixed` can't go with it.
+
 #### Structs (fields only, copied by value)
 
 <!-- example: syntax_structs | task: 18.2 -->

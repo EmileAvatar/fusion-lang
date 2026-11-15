@@ -115,7 +115,7 @@ STR.010 [POSTPONED] Paged / memory-mapped strings
 
 #### COL - arrays, Lists, Maps
 COL.001 [BUILT] Fixed-size arrays, bounds always checked
-COL.002 [PARTIAL] Arrays in three forms: plain (a new size only by replacing), `fixed` (never another size), growable `int:[]` / `int[[]]` (add / removeLast at the end); `+`, `copyPart` (Task 45, D.141) - built: `int[] e` (45.2), `fixed` (45.14), replacing with another size (45.10)
+COL.002 [PARTIAL] Arrays in three forms: plain (a new size only by replacing), `fixed` (never another size), growable `int:[]` / `int[[]]` (add / removeLast at the end); `+`, `copyPart` (Task 45, D.141) - built: `int[] e` (45.2), `fixed` (45.14), replacing with another size (45.10), growable `int:[]` (45.3)
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)

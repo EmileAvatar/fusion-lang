@@ -214,7 +214,7 @@ void function collections() {
     scores = [1, 2]                     // plain: replaced by another size
     // [built] fixed - never another size (45.14)
     fixed int[3] podium = [3, 1, 2]     // podium = [1, 2] is an error
-    // [designed] Growable - add / removeLast at its end, on the heap (45.3)
+    // [built] Growable - add / removeLast (pop) at its end, on the heap (45.3)
     int:[] readings                     // also written int[[]] readings
     readings.add(7)
     // [designed] Up to 3 dimensions: rows x columns x depth (D.143); FLAT / RECT / JAGG (D.144)

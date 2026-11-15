@@ -3,7 +3,7 @@
 **Generated from the compiler** by `python check.py --builtins` (Task 28.1.4) - do not edit by hand.
 `python check.py` fails when this file no longer matches the compiler.
 
-97 functions, 19 List methods, 9 Map methods. Examples of each are in `files/SYNTAX_REFERENCE.md`.
+97 functions, 21 List methods, 9 Map methods. Examples of each are in `files/SYNTAX_REFERENCE.md`.
 
 - **Layer:** the lowest `[stdlib] layer` that allows it - `core` (no heap), `alloc` (no operating system), `std` (everything)
 - **Fails:** it can raise an error (catch it with `try`, or capture it); any function that makes text can also fail with StringTooLongError when `[strings] max_length` is set
@@ -184,6 +184,8 @@ Each built-in type has a class holding its functions as methods (Task 18.3.7):
 | `.toList(bool copy = true)` | `List<T>` |  | a copy (deep, as byVal); toList(false): the same list, shared |
 | `.insert(int at, T x)` | `void` | yes | insert before position at (IndexError) |
 | `.removeAt(int at)` | `void` | yes | remove the element at a position (IndexError) |
+| `.removeLast()` | `void` | yes | a growable array (int:[]) only: remove the last item (IndexError when empty) - Task 45.3 |
+| `.pop()` | `void` | yes | the same as removeLast() - quick typing |
 | `.remove(T x)` | `bool` |  | remove the first element equal to x; false if none |
 | `.clear()` | `void` |  | remove every element |
 | `.noDuplicates()` | `void` |  | in its set-up block only: adding a value it has is a DuplicateError (32.14) |

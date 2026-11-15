@@ -260,7 +260,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         # Collections (Task 18.5): the same element (key, value) types
         if isinstance(type1, ListType) and isinstance(type2, ListType):
             return self.types_equal(type1.element_type, type2.element_type) \
-                and type1.array_form == type2.array_form      # an array is not a List (45.10)
+                and type1.array_form == type2.array_form \
+                and type1.growable == type2.growable          # an array is not a List (45.10, 45.3)
         if isinstance(type1, MapType) and isinstance(type2, MapType):
             return self.types_equal(type1.key_type, type2.key_type) and \
                 self.types_equal(type1.value_type, type2.value_type)
@@ -454,6 +455,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
         if isinstance(type_node, (StructType, EnumType, ErrorType)):
             return type_node.name
+        if isinstance(type_node, ListType) and type_node.growable:
+            return f"{self.type_to_string(type_node.element_type)}:[]"    # growable (45.3)
         if isinstance(type_node, ListType) and type_node.array_form:
             return f"{self.type_to_string(type_node.element_type)}[]"     # a heap array (45.10)
         if isinstance(type_node, ListType):

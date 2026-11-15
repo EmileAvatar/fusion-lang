@@ -115,13 +115,13 @@ size 0 (Task 45.2, D.141) - a struct field still needs its size until arrays can
 Every array acts as an object of the built-in `Array` class: `Array.length(a)` is `a.length` (45.1, D.142).
 The full design - plain, `fixed`, growable `int:[]`, 3 dimensions: Decisions.md D.141-D.147.
 
-#### Planned: arrays that grow at the end (user, 2026-10-27)
+#### Arrays that grow at the end (user, 2026-10-27 - built: Task 45.3, `int:[]` / `int[[]]`; `+` and `slice` planned)
 
 An array grows and shrinks **only at its end**. Nothing is inserted in the middle, so no item
 ever moves to another position.
 
 ```fusion
-int numbers[]              // [] - empty, length 0 (also written int[] numbers)
+int:[] numbers             // [] - empty, can grow (also int[[]] numbers, int numbers[[]])
 numbers.add(4)             // [4]     - index 0, length 1
 numbers.add(6)             // [4, 6]
 numbers.removeLast()       // [4]     (pop() is the same - quick typing)

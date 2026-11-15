@@ -176,12 +176,19 @@ class CollectionRulesMixin:
         element = receiver_type.element_type
         if receiver_type.array_form:
             # a plain array on the heap (45.10): the Array class's methods only (D.141, D.142)
-            if method in ARRAY_GROW_METHODS:
+            if receiver_type.growable and method in ('add', 'removeLast', 'pop'):
+                pass                          # int:[] grows and shrinks at its end (45.3)
+            elif receiver_type.growable and method in ARRAY_GROW_METHODS:
+                self.errors.append(SemanticError(
+                    f"{method}: an array grows and shrinks only at its end - add, removeLast (pop); "
+                    f"use a List to change it anywhere (D.141)", node.location))
+                return self._void(node)
+            elif method in ARRAY_GROW_METHODS:
                 self.errors.append(SemanticError(
                     f"{method}: a plain array doesn't grow or shrink - declare it "
                     f"{self.type_to_string(element)}:[] (D.141)", node.location))
                 return self._void(node)
-            if method not in ('len',):
+            elif method not in ('len',):
                 self.errors.append(SemanticError(
                     f"An array has no method '{method}' (it has length, len, toList, toCSV)", node.location))
                 return self._void(node)
@@ -189,9 +196,13 @@ class CollectionRulesMixin:
         node.list_type = receiver_type
         if method in ('noDuplicates', 'noNull', 'readOnly'):
             return self._collection_option(node, method, receiver)        # Task 32.14
-        if method in MUTATING_LIST_METHODS:
+        if method in MUTATING_LIST_METHODS or method in ('removeLast', 'pop'):
             self._check_changeable(receiver, method)
         args = node.arguments
+        if method in ('removeLast', 'pop'):              # a growable array (45.3)
+            if args:
+                self.errors.append(SemanticError(f"{method}() takes no values", node.location))
+            return self._void(node)
 
         def want(count):
             if len(args) != count:

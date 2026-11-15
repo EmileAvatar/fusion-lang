@@ -293,6 +293,8 @@ class CollectionsMixin:
             is_null = 'v == FUSION_ENUM_NULL'
         else:
             is_null = None
+        if name.startswith('fusion_array_'):
+            is_null = None                  # a heap array's slot may be null (D.140, 45.10)
         free_v = ' '.join(self.free_lines(element, 'v'))
         for signature in list(functions):
             method = signature.split(f'{name}_', 1)[1].split('(', 1)[0]
@@ -401,6 +403,12 @@ class CollectionsMixin:
                 'the list (length %d)", i, l->len); return; }',
                 (free('l->data[i]') if managed else ''),
                 f'memmove(l->data + i, l->data + i + 1, sizeof({T}) * (size_t)(l->len - i - 1));',
+                'l->len--; l->changes++;'],
+            # a growable array's end (45.3): the last item freed, an empty one an IndexError
+            f'void {name}_removeLast({name} l, const char* where)': [
+                'if (l->len == 0) { fusion_fail(FUSION_KIND_IndexError, where, "removeLast on an empty '
+                f'{what}"); return; }}',
+                (free('l->data[l->len - 1]') if managed else ''),
                 'l->len--; l->changes++;'],
             f'void {name}_clear({name} l)': [
                 (f'for (int i = 0; i < l->len; i++) {{ {free("l->data[i]")} }}' if managed else ''),
@@ -604,6 +612,8 @@ class CollectionsMixin:
             return f'{name}_add({target}, {self.owned_value(args[0], element)})'
         if method == 'insert':
             return f'{name}_insert({target}, {self.visit(args[0])}, {self.owned_value(args[1], element)}, {where})'
+        if method in ('removeLast', 'pop'):             # a growable array (45.3)
+            return f'{name}_removeLast({target}, {where})'
         if method == 'removeAt':
             return f'{name}_removeAt({target}, {self.visit(args[0])}, {where})'
         if method in ('noDuplicates', 'noNull', 'readOnly'):

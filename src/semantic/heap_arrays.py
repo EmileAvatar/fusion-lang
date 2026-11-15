@@ -101,7 +101,9 @@ def _mark_locals(function, heap_functions) -> None:
     if not arrays:
         return
     returns_heap = is_heap_array(function.return_type)
-    heap = set()
+    # a growable array (45.3) is on the heap already - a plain one set from it joins it there
+    heap = {n.name for n in nodes if isinstance(n, VarDeclStmt) and is_heap_array(n.var_type)}
+    growable = set(heap)
     changed = True
     while changed:                                   # until nothing more joins
         changed = False
@@ -125,5 +127,5 @@ def _mark_locals(function, heap_functions) -> None:
             if names:
                 heap |= names
                 changed = True
-    for name in heap:
+    for name in heap - growable:
         arrays[name].var_type = heap_array(arrays[name].var_type)
