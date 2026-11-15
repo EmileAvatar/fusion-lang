@@ -69,4 +69,33 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
   45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits) - FEATURES Task 45
-- **Next Action:** 45.12 up to 3 dimensions `int[10][5][7]` (D.143) - plan its parts first
+- **Next Action:** 45.12 - the user answers OpenQuestions Q.021-Q.026, then 45.12a
+
+### 45.12 Up to 3 dimensions - the plan (2026-11-15)
+Settings: none (`[arrays] storage` is 45.15). Open: OpenQuestions Q.021-Q.026 (the plan below
+assumes the suggested answers).
+
+| Part | What | Lives on |
+|---|---|---|
+| 45.12a | Declaring, reading, writing | the stack |
+| 45.12b | Functions: passing and returning | the stack / the heap |
+| 45.12c | `expand` and replacing | the heap |
+| 45.11 | `toList` / `toCSV` on them | - |
+
+- **45.12a Declaring, reading, writing** - on the stack, a C array `int m[10][5][7]` (FLAT by nature)
+  - `int[10][5][7] cube`, `int[10],[5],[7] cube`, `int cube[10][5][7]`, `fixed int[2][3] f`
+  - Literals `int[2][3] m = [[1, 2, 3], [4, 5, 6]]`; `int[][] m = [[...], [...]]` takes its sizes from them;
+    rows of different lengths an error (that is JAGG - 45.15)
+  - `m[1][2]` / `m[1, 2]` read and write; each index checked: IndexError "row 5 is outside the array (rows 3)"
+  - `length` (every slot), `rows`, `columns`, `depth`; `foreach` over every slot, row by row
+  - Any element type: numbers, strings (freed), structs, objects (null allowed - D.140)
+  - More than 3 dimensions an error (the Collections library - D.143); `m[1]` an error (Q.022 A)
+  - The stack measure (45.13) already counts them
+- **45.12b Functions** - a parameter `int[2][3] m` (that size) or `int[][] m` (any size: the sizes passed
+  hidden, as `int[]` passes its length); returning `int[][]` (on the heap); `==` slot by slot
+- **45.12c `expand`** - `m.expand(rows / columns / depth, n)` or `expand(0-2, n)`, always a warning;
+  such an array (or one replaced by another size) lives on the heap: one counted block with its
+  sizes (FLAT); new slots the default value; fixed an error
+- **45.11** - `toList()`: a List of Lists; `toCSV()`: a line per row (3 dimensions: a blank line between depths)
+- **Tests:** Rule 4c - a truth table in files/Arrays.md (form x dimensions x operation), each row a test;
+  Rule 4b - a null object slot with and without `?.`; everything under the leak check
