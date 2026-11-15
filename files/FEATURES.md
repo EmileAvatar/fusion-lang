@@ -159,6 +159,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[ ] 45.12 Up to 3 dimensions: `int[10][5][7]` rows x columns x depth; `expand(rows / columns / depth, n)` or by number from 0, with a warning (D.143)
 		[ ] 45.11 `toList` and `toCSV` on them
 	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)
+	[ ] 45.16 A cube visualiser (user, 2026-11-15): an HTML page showing a 3-dimension array as a cube and which
+		slots `cube[1]`, `cube[][2][1]`, `foreach` and `expand` reach - how data is fetched (OpenQuestions Q.022-Q.025)
 	[POSTPONED to 42] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19)
 	[ ] 45.6 Docs and examples: files/Arrays.md (a truth table), SYNTAX_REFERENCE, spec 031 / 140, the showcase
 

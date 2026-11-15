@@ -25,69 +25,119 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
-Task 45.12 - arrays of up to 3 dimensions (D.143). Six questions before it is built (2026-11-15).
+Task 45.12 - arrays of up to 3 dimensions (D.143). Q.021-Q.026 answered 2026-11-15; the
+**To confirm** points below wait for the user, then everything moves to Decisions.md.
 
-#### Q.021 Reading one slot - which brackets (Task 45.12, files/Arrays.md)
-How is one slot of `int[3][4] m` read and written?
-```fusion
-int[3][4] m                    // 3 rows x 4 columns
-A:  m[1][2] = 5                // as C, Java, JavaScript
-B:  m[1, 2] = 5                // as C#, numpy - one pair of brackets
-C:  both - the same slot; m[1][2] the familiar one, m[1, 2] quick typing
-```
-Suggested: C - the declaration already takes both `int[3][4]` and `int[3],[4]` (D.143).
+One example cube for all six: `int[2][3][4] cube` - 2 rows x 3 columns x 4 depth (sheets).
 
-#### Q.022 Fewer indices than dimensions - `m[1]` (Task 45.12)
-What is `m[1]` on `int[3][4] m` - one index where two are needed?
+#### Q.021 Reading one slot - which brackets (Task 45.12)
+**Answer:** form A - `m[1][2]`, or `m[1],[2]`.
+
+**Understood as:**
 ```fusion
-A:  m[1]                       // an error for now - give every index: m[1][2]
-B:  int[] row = m[1]           // a copy of row 1 (4 items), as copyPart copies
-C:  foreach (int x in m[1])    // a borrowed view of row 1 - no copy; m can't change while it is held
+cube[1][2][3] = 5              // row 1, column 2, sheet 3 (from 0)
+cube[1],[2],[3] = 5            // the same slot - the commas only break it up, as in int[2],[3],[4]
+cube[1, 2, 3]                  // an error - not a form
 ```
-Suggested: A now (one rule, nothing hidden), B or C later when it is needed.
+
+#### Q.022 Fewer indices - `m[1]` (Task 45.12)
+**Answer:** it borrows a view of the row; an empty index means "all of that dimension" -
+`m[][2]` all the rows of column 2; `m[][2][1]` all the rows of column 2 on sheet 1.
+
+**Understood as:**
+```fusion
+cube[1]                        // row 1 - the same as cube[1][][]: a borrowed view, 3 columns x 4 sheets
+cube[][2][1]                   // column 2 of sheet 1: a view of 2 values, one from each row
+cube[][][3]                    // sheet 3: a view of 2 rows x 3 columns
+cube[1][][3]                   // row 1 of sheet 3: a view of 3 values
+// a view is borrowed - no copy; cube can't change while one is held (as D.058 in a loop)
+cube[][2][1][0] = 7            // writing through a view writes cube[0][2][1]
+```
+**To confirm:**
+- You wrote that `m[][2]` "returns all the columns" - read here as column 2 only, one value per row. Right?
+- A view held in a variable: `int[][] sheet = cube[][][3]` - borrowed (cube is frozen while
+  `sheet` is used), or a copy?
 
 #### Q.023 foreach over a matrix (Task 45.12)
-```fusion
-int[2][3] m = [[1, 2, 3], [4, 5, 6]]
-A:  foreach (int x in m)       // every slot, row by row: 1 2 3 4 5 6
-B:  foreach (int[] row in m)   // each row (needs Q.022 B or C)
-```
-Suggested: A - the same for 2 and 3 dimensions, and nothing is copied.
+**Answer:** foreach takes the outer dimension first, or the dev gives the exact array; then another
+foreach goes inside it. The order is reversed: depth -> columns -> rows.
 
-#### Q.024 Its sizes - `length`, rows, columns, depth (Task 45.12)
+**Understood as:**
 ```fusion
-int[10][5][7] cube
-A:  cube.length                // 350 - every slot (as C#)
-    cube.rows, cube.columns, cube.depth      // 10, 5, 7
-B:  cube.length                // 10 - the rows (as Java, C: an array of arrays)
-    cube.rows, cube.columns, cube.depth      // 10, 5, 7
+foreach (int[][] sheet in cube)             // 4 times - each sheet (the depth)
+    foreach (int[] column in sheet)         // 3 times - each column of that sheet
+        foreach (int v in column)           // 2 times - each row's value in that column
+foreach (int v in cube[1][][3])             // the dev gives the exact one: row 1 of sheet 3
+foreach (int v in cube)                     // an error - a 3-dimension array gives sheets, not ints
 ```
-Suggested: A - `length` is always the number of slots, as `foreach` (Q.023 A) goes over them;
-on a one-dimension array `rows` is 1 and `columns` its length (D.143: `int[10]` is one row of 10).
+**To confirm:**
+- On 2 dimensions `int[3][4] m` (3 rows x 4 columns): `foreach (int[] column in m)` gives the 4
+  columns, each 3 values (most languages give the rows first). Right?
 
-#### Q.025 Which arrays `expand` works on, and what it does (Task 45.12, D.143)
-```fusion
-int[2][3] m = [[1, 2, 3], [4, 5, 6]]
-m.expand(rows, 1)              // a warning: every slot is copied -> 3 x 3, the new row 0 0 0
-m.expand(columns, 2)           // -> 3 x 5: 2 new columns at the right of every row
-fixed int[2][3] f
-f.expand(rows, 1)              // an error: fixed never changes size (D.141)
-A:  any plain array of 2 or 3 dimensions; it then lives on the heap (as a replaced one, 45.10)
-B:  only one marked growable - int:[2][3] m (D.141's growable form)
-```
-- New slots get the default value (0, "", false, null for an object); `n` is 1 or more
-- Added at the end of that dimension: rows at the bottom, columns at the right, depth at the back
-- Suggested: A - D.143 gives `expand` to every many-dimension array, with the warning as the guard
+#### Q.024 Its sizes (Task 45.12)
+**Answer:** as Q.023 - the outer dimension first: depth -> columns -> rows. `cube.rows`,
+`cube.columns`, `cube.depth` only for a regular 3-dimension cube. An irregular one (rows, columns
+or depth of different sizes): `cube[x][x][x].length` for that one length - **-1 when there is no
+length, not an error**. More than 3: `cube[x][x][x][x].length`.
 
-#### Q.026 The names rows / columns / depth (Task 45.12, D.143 "a built-in enum")
+**Understood as:**
 ```fusion
-A:  m.expand(rows, 1)          // the bare word, known only inside expand(...) - a variable named rows still works
-B:  m.expand(Dimension.rows, 1)   // a built-in enum Dimension; the bare word too, inside expand(...)
-C:  m.expand(Dimension.rows, 1)   // the enum only
-    m.expand(0, 1)             // all three: the number, counted from 0 (D.143)
+cube.length                    // 4 - the outer dimension: depth
+cube[][][3].length             // 3 - a sheet's outer dimension: its columns
+cube[][2][3].length            // 2 - a column: its rows
+cube[1][2][3].length           // -1 - one slot: no length (no error)
+cube.rows, cube.columns, cube.depth      // 2, 3, 4 - a regular 3-dimension cube only
+int[3][4] m
+m.rows                         // an error - 2 dimensions: m.length (4 columns), m[][0].length (3 rows)
 ```
-Suggested: B - an enum a function can take and pass on (`Dimension d = rows`), and the short form
-where it can only mean that.
+**To confirm:**
+- `cube.length` is 4 (the depth), and on `int[3][4] m` it is 4 (the columns)? A one-dimension
+  `int[10]` stays 10.
+- An irregular cube is a JAGG one (45.15)? There an index outside it - a row that isn't
+  there - also gives -1 from `.length`, or an IndexError?
+- `rows` / `columns` / `depth` on a 2-dimension array: an error, or rows and columns allowed?
+
+#### Q.025 Which arrays `expand` works on (Task 45.12)
+**Answer:** B - only growable arrays. `expand` keeps the array a cube: expanding rows adds rows on
+every sheet. (A visualiser is needed - see below.)
+
+**Understood as:**
+```fusion
+int[2][3][4] cube
+cube.expand(ROWS, 1)           // an error - a plain array doesn't grow (D.141); declare it growable
+<growable 2 x 3 x 4> g         // how it is written: To confirm
+g.expand(ROWS, 1)              // a warning (every slot is copied) -> 3 x 3 x 4: a new row on every sheet
+g.expand(DEPTH, 2)             // -> 3 x 3 x 6: two new sheets at the back
+// new slots get the default value (0, "", false, null for an object); n is 1 or more
+```
+**To confirm:** how a growable many-dimension array is written (D.141: a growable one-dimension
+array starts empty - `int:[10]` is an error):
+```fusion
+A:  int:[2][3][4] g            // the sizes allowed once there are many dimensions
+B:  int[[2],[3],[4]] g         // your first form (2026-11-14); int[[]] is the growable mark
+C:  int:[][][] g = [[[...]]]   // starts from its values, or empty (0 x 0 x 0)
+```
+
+#### Q.026 The names rows / columns / depth (Task 45.12)
+**Answer:** `cube.rows`, `cube.columns`, `cube.depth` for a plain Fusion 3-dimension array only;
+the enum values are `ROWS`, `COLUMNS`, `DEPTH`. Two forms of `expand`:
+`expand(<dimension enum>, <int>)` for a Fusion 3-dimension array, `expand(<int>, <int>)` for it
+or for more dimensions.
+
+**Understood as:**
+```fusion
+g.expand(ROWS, 1)              // the enum - bare, as setStorage(RECT) / setBufferType(TWO)
+g.expand(0, 1)                 // the same: dimension 0 is rows, 1 columns, 2 depth
+big.expand(3, 1)               // a 4th dimension - only the number form
+```
+**To confirm:**
+- The enum's name - `Dimension` (`Dimension.ROWS`, bare `ROWS` where only a dimension fits)?
+- More than 3 dimensions: D.143 put them in the Collections library. Are they now part of the
+  language (`int[2][3][4][5]`), or still the library - with `expand(int, int)` working on both?
+
+#### Side task: a cube visualiser (user, 2026-11-15)
+An HTML page showing a 3-dimension array as a cube, and which slots `cube[1]`, `cube[][2][1]`,
+`foreach` and `expand` reach - for users to see how data is fetched. Scheduled: FEATURES 45.16.
 
 Earlier: Q.013 (modules and namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES
 Task 57. Q.014 (a may-be-null parameter mark) answered 2026-11-14: no mark - every object may be
