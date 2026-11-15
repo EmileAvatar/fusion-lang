@@ -415,7 +415,12 @@ over depth -> columns -> rows reads the slots one after another.
 | Loop the whole | `foreach (int[][] sheet in cube)` / `(int[] column in sheet)` / `(int v in column)` | depth -> columns -> rows; writes go to cube | 45.12b |
 | A view to a variable | `int[][] s = cube[][][3]`, `int[] row = cube[1][2]` | a copy; objects shared, `byVal` copies them | 45.12b |
 | An index a loop view fixes | `foreach (int v in cube[r][1])` | `r` read once, before the loop | 45.12b |
-| Pass / return / compare | `f(int[2][3] m)`, `int[][] function f()`, `a == b` | | 45.12c |
+| Pass, that shape | `f(int[2][3] m)` - `f(m)` | the caller's array (writes reach it) | 45.12c |
+| Pass, any size | `f(int[][] m)` - `f(m)`, `f(cube[1])` | its sizes passed hidden; a part copied (numbers) | 45.12c |
+| A part to `int[]` | `total(m[1])`, `total(m[][2])` | a copy | 45.12c |
+| Return | `int[2][3] function f()`; `int[][] function f()` | that shape; any size: an error (heap - later) | 45.12c |
+| Compare | `a == b` | slot by slot, the same shape; a part: later | 45.12c |
+| Copy or replace the whole | `int[2][3] n = m`, `m = make()` | an error until 45.12d | 45.12d |
 | Grow | `int:[2][3][4] g`, `g.expand(ROWS, 1)` | a warning; it stays a cube | 45.12d |
 | 4 dimensions | `int[2][3][4][5]` | a compile error - the Collections library | - |
 

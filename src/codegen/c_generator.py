@@ -765,9 +765,19 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         names = []
         for p in parameters:
             names.append(p.name)
-            if isinstance(p.param_type, ArrayType) and p.param_type.size is None:
-                names.append(array_length_name(p.name))
+            names += self.hidden_size_names(p)
         return ', '.join(names)
+
+    @staticmethod
+    def hidden_size_names(p) -> list:
+        """The hidden C parameters after an array parameter: `int[]` its length; `int[][]` each of
+        its sizes, by the names its type holds (45.12c)."""
+        kind = p.param_type
+        if not isinstance(kind, ArrayType) or kind.size is not None:
+            return []
+        if kind.dims:
+            return list(kind.dims)
+        return [array_length_name(p.name)]
 
     def _generate_class_tables(self, program: ProgramNode) -> None:
         """Each class's table (Task 32.5a): its name, how to free it, and per interface it
@@ -892,7 +902,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 elem = self.map_type(p.param_type.element_type)
                 if p.param_type.size is None:
                     c_params.append(f'{elem}* {p.name}')
-                    c_params.append(f'int {array_length_name(p.name)}')
+                    c_params += [f'int {name}' for name in self.hidden_size_names(p)]
                 else:
                     c_params.append(f'{elem} {p.name}[{p.param_type.size}]')
             elif getattr(p, 'by_ref', False):
@@ -1469,6 +1479,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             One C argument (`int[N]` parameter) or two (`int[]` parameter: array, length)
         """
         arg_type = arg.inferred_type
+        if getattr(arg_type, 'view', False) or getattr(arg_type, 'dims', None):
+            return self._many_dims_argument(arg, param_type)     # many dimensions, a view (45.12c)
         if isinstance(arg_type, ListType) and arg_type.array_form:
             # a heap array (45.10): its items and its length. One made by a call is held in a
             # name first - set before the call, so it is made once (its temporary frees it)
@@ -1567,7 +1579,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """`cube[1][2][3]` (Task 45.12a): each index checked against its own size (an IndexError
         outside it), then one position in the flat block - [arrays] order sets the steps (D.148)."""
         root, slots, dims, steps = node.dims_slot
-        return f'{self.visit(root)}[{self._slot_position(slots, dims, steps, node)}]'
+        code = self.visit(root)
+        if self._returns_array(root):
+            code = f'{code}.data'                     # make()[1][2] - inside its wrapper (45.12c)
+        return f'{code}[{self._slot_position(slots, dims, steps, node)}]'
 
     def _slot_position(self, slots, dims, steps, node, extra=()) -> str:
         """The position in the flat block: each given index checked (a held one was checked when it
@@ -1586,6 +1601,32 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             parts.append(code if step == 1 else f'({code}) * {step}')
         parts += [code if step == 1 else f'{code} * {step}' for code, step in extra]
         return ' + '.join(parts) or '0'
+
+    def _many_dims_argument(self, arg, param_type) -> list:
+        """An array of many dimensions passed (45.12c): itself, then its sizes when the parameter
+        takes any size. A view is copied into a temporary first (numbers only - D.149)."""
+        kind = arg.inferred_type
+        sizes = [str(d) for d in kind.dims] if param_type.dims else [str(kind.size)]
+        if getattr(kind, 'view', False):
+            code = self._view_into_temp(arg, kind)
+        else:
+            code = self.visit(arg)
+        return [code] if param_type.size is not None else [code] + sizes
+
+    def _view_into_temp(self, arg, kind) -> str:
+        """A view's values copied into a temporary array (declared at the top of the function),
+        in its own order - a statement expression giving the temporary."""
+        root, slots, full = kind.view_info
+        self.temp_count = getattr(self, 'temp_count', 0) + 1
+        name = f'fusion_part_{self.temp_count}'
+        self.temp_scopes[-1].append(f'{self.map_type(kind.element_type)} {name}[{kind.size}];')
+        steps, target = arg.view_steps            # worked out with [arrays] order by the checker
+        open_dims = [k for k, s in enumerate(slots) if s is None]
+        counters = [f'fusion_p{j}' for j in range(len(open_dims))]
+        loops = ''.join(f'for (int {c} = 0; {c} < {full[k]}; {c}++) ' for c, k in zip(counters, open_dims))
+        source = f'{self.visit(root)}[{self._slot_position(slots, full, steps, arg, zip(counters, [steps[k] for k in open_dims]))}]'
+        spot = ' + '.join(c if s == 1 else f'{c} * {s}' for c, s in zip(counters, target))
+        return f'__extension__ ({{ {loops}{name}[{spot}] = {source}; {name}; }})'
 
     def visit_HeldIndex(self, node) -> str:
         return node.c_name           # an index worked out once, or a loop's counter (45.12b)

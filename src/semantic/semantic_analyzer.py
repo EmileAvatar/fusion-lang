@@ -13,7 +13,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .stack_arrays import check_stack_arrays
-from .many_dims import check_many_dims_uses
+from .many_dims import check_many_dims_uses, name_parameter_sizes
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
@@ -155,6 +155,7 @@ class SemanticAnalyzer:
         self.errors.extend(expand_inheritance(ast))
         # Plain arrays that get a new size live on the heap (Task 45.10, D.141)
         mark_heap_arrays(ast)
+        name_parameter_sizes(ast)       # int[][] m - its sizes passed hidden (45.12c)
         # Interfaces (Task 32.5a): what each needs, which class function answers it
         self.errors.extend(check_interfaces(ast, self.default_methods))
 

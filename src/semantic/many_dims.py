@@ -21,13 +21,16 @@ slots and the sizes, so `sheet[0][1]` is again one position in the root's block.
 `[arrays] order` decides which index varies fastest in memory - "columns" (the default): rows
 fastest, so a loop over depth -> columns -> rows reads the slots one after another.
 
-Passing, returning, comparing and replacing the whole array come with 45.12c;
-`check_many_dims_uses` makes each an error until then.
+Functions (45.12c): a parameter `int[2][3] m` takes that shape; `int[][] m` takes any - its sizes
+come as hidden parameters (`fusion_dim_m_0` ...), so inside the function a size may be a C name, not a
+number (`strides`, `_product` build the C expression). A view passed to a parameter is copied into
+a temporary first (numbers only for now). `int[2][3] function f()` returns one; `a == b` compares
+two of the same shape slot by slot. `check_many_dims_uses` makes every other use an error.
 """
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Any, Optional
 
-from src.parser.ast_nodes import (ASTNode, ArrayLiteralExpr, ArrayType, ForStmt, FunctionDecl, IdentifierExpr,
+from src.parser.ast_nodes import (ASTNode, ArrayLiteralExpr, ArrayType, CallExpr, ForStmt, FunctionDecl, IdentifierExpr,
                                   IndexExpr, LiteralExpr, MemberExpr, PrimitiveType, StructDecl, TypeNode,
                                   VarDeclStmt)
 
@@ -45,22 +48,51 @@ class HeldIndex(ASTNode):
     size: int = 0
 
 
+def _times(a, b):
+    """a * b - a number when both are; else the C expression (a size passed in - 45.12c)."""
+    if isinstance(a, int) and isinstance(b, int):
+        return a * b
+    if a == 1:
+        return b
+    if b == 1:
+        return a
+    return f'({a}) * ({b})'
+
+
 def strides(dims: list, order: str) -> list:
     """How far apart in the flat block one step of each index is."""
     result = []
     for k in range(len(dims)):
         step = 1
         for d in (dims[:k] if order == 'columns' else dims[k + 1:]):
-            step *= d
+            step = _times(step, d)
         result.append(step)
     return result
 
 
-def _product(values) -> int:
+def _product(values):
     total = 1
     for v in values:
-        total *= v
+        total = _times(total, v)
     return total
+
+
+def _known(sizes) -> bool:
+    return all(isinstance(s, int) for s in sizes)
+
+
+def name_parameter_sizes(program) -> None:
+    """`int[][] m` - a parameter of any size (45.12c): each size becomes the C name of a hidden
+    parameter, `fusion_dim_m_0` ..."""
+    functions = [d for d in program.declarations if isinstance(d, FunctionDecl)]
+    for decl in program.declarations:
+        if isinstance(decl, StructDecl):
+            functions += [m for m in getattr(decl, 'methods', None) or [] if isinstance(m, FunctionDecl)]
+    for function in functions:
+        for param in function.parameters:
+            kind = param.param_type
+            if _many(kind) and None in kind.dims:
+                kind.dims[:] = [f'fusion_dim_{param.name}_{k}' for k in range(len(kind.dims))]
 
 
 def _root(expr):
@@ -121,10 +153,12 @@ class ManyDimsMixin:
             self.check_view_copy(node)
             return
         if not isinstance(value, ArrayLiteralExpr):
-            self.visit(value)
+            if self.check_many_dims_from_call(node):       # int[2][3] m = make() (45.12c)
+                return
             self.errors.append(SemanticError(
-                f"An array of {len(dims)} dimensions is set from its values or from a part of another one "
-                f"for now - [[1, 2], [3, 4]], cube[][][3]; from a function comes with Task 45.12c", value.location))
+                f"An array of {len(dims)} dimensions is set from its values, a part of another one or a "
+                f"function giving one - [[1, 2], [3, 4]], cube[][][3], make(); copying or replacing a whole "
+                f"array comes with Task 45.12d", value.location))
             return
         found = list(dims)
         leaves = []
@@ -217,6 +251,10 @@ class ManyDimsMixin:
                     f"({self.type_to_string(var)})", value.location))
             return
         root, slots, full = kind.view_info
+        if not isinstance(root, IdentifierExpr):
+            self.errors.append(SemanticError(
+                "A part of an array a function gives - keep the array in a variable first", value.location))
+            return
         sizes = list(kind.dims)
         want = len(var.dims) if var.dims else 1
         if want != len(sizes):
@@ -229,6 +267,11 @@ class ManyDimsMixin:
                 f"'{node.name}' holds {self.type_to_string(var.element_type)} - '{_name_of(root)}' holds "
                 f"{self.type_to_string(kind.element_type)}", value.location))
             return
+        if not _known(sizes):
+            self.errors.append(SemanticError(
+                f"'{node.name}': copying a part of an array of any size (a parameter int[][]) comes later - "
+                f"loop over it (foreach) to use it in place", value.location))
+            return
         written = var.dims if var.dims else [var.size]
         if any(w is not None and w != s for w, s in zip(written, sizes)):
             self.errors.append(SemanticError(
@@ -240,6 +283,92 @@ class ManyDimsMixin:
         var.size = _product(sizes)
         target = strides(sizes, self.array_order) if var.dims else [1]
         node.view_copy = (root, slots, full, strides(full, self.array_order), target, by_val)
+        node.many_ok = True
+
+    def check_many_dims_from_call(self, node: VarDeclStmt) -> bool:
+        """`int[2][3] m = make()` (45.12c): a function giving an array of that shape. False: not one."""
+        if not isinstance(node.initializer, CallExpr):
+            self.visit(node.initializer)                  # another array, whole - 45.12d
+            return False
+        self._allow_array_call(node.initializer)          # a returned array, stored (18.2.4)
+        kind = self.visit(node.initializer)
+        if not _many(kind) or getattr(kind, 'view', False):
+            return False
+        var = node.var_type
+        if len(var.dims) != len(kind.dims) or not self.types_equal(var.element_type, kind.element_type) \
+                or any(w is not None and w != k for w, k in zip(var.dims, kind.dims)):
+            self.errors.append(SemanticError(
+                f"'{node.name}' is {self.type_to_string(var)} - this gives {self.type_to_string(kind)}",
+                node.initializer.location))
+            return True
+        if not _known(kind.dims):
+            self.errors.append(SemanticError(
+                f"'{node.name}': copying a whole array of any size comes later", node.initializer.location))
+            return True
+        var.dims[:] = list(kind.dims)
+        var.size = _product(kind.dims)
+        node.many_ok = True
+        return True
+
+    def check_many_dims_argument(self, error, arg, expected: ArrayType, actual) -> None:
+        """An array of many dimensions, or a view, passed to an array parameter (45.12c, D.149)."""
+        if not isinstance(actual, ArrayType):
+            error(f"expected {self.type_to_string(expected)}, got {self.type_to_string(actual)}")
+            return
+        want = len(expected.dims) if expected.dims else 1
+        have = len(actual.dims) if actual.dims else 1
+        if want != have:
+            error(f"expected {self.type_to_string(expected)} - {want} dimension{'s' if want > 1 else ''}, "
+                  f"got {self.type_to_string(actual)} - {have}")
+            return
+        if not self.types_equal(expected.element_type, actual.element_type):
+            error(f"expected an array of {self.type_to_string(expected.element_type)}, got an array of "
+                  f"{self.type_to_string(actual.element_type)} (array element types must match exactly)")
+            return
+        wanted = expected.dims if expected.dims else [expected.size]
+        given = actual.dims if actual.dims else [actual.size]
+        if any(isinstance(w, int) and w != g for w, g in zip(wanted, given)):
+            error(f"expected {self.type_to_string(expected)}, got {self.type_to_string(actual)} - "
+                  f"another shape")
+            return
+        if getattr(actual, 'view', False):
+            if not isinstance(actual.view_info[0], IdentifierExpr):
+                error("a part of an array a function gives - keep the array in a variable first")
+                return
+            element = actual.element_type
+            plain = (isinstance(element, PrimitiveType) and element.name not in ('string', 'bytes')) \
+                or type(element).__name__ == 'EnumType'          # numbers, bools, chars, enums
+            if not plain:
+                error(f"passing a part of an array of {self.type_to_string(actual.element_type)} comes later - "
+                      f"copy it into a variable first (... row = m[1]) and pass that")
+                return
+            if not _known(actual.dims) or not _known(actual.view_info[2]):
+                error("passing a part of an array of any size comes later - loop over it (foreach)")
+                return
+            arg.view_pass = True
+            sizes = list(actual.dims)          # the steps in the root, and in the temporary's own order
+            arg.view_steps = (strides(actual.view_info[2], self.array_order),
+                              strides(sizes, self.array_order) if len(sizes) > 1 else [1])
+        arg.many_passed = True
+
+    def check_many_dims_equality(self, node, left, right) -> None:
+        """`a == b` on arrays of many dimensions (45.12c): the same shape, slot by slot."""
+        for side in (left, right):
+            if getattr(side, 'view', False):
+                self.errors.append(SemanticError(
+                    "Comparing a part of an array comes later - copy it into a variable first (int[] row = m[1])",
+                    node.location))
+                return
+        if not (_many(left) and _many(right)) or left.dims != right.dims \
+                or not self.types_equal(left.element_type, right.element_type):
+            self.errors.append(SemanticError(
+                f"Can't compare {self.type_to_string(left)} with {self.type_to_string(right)} - arrays of many "
+                f"dimensions compare when they have the same shape", node.location))
+            return
+        if not _known(left.dims):
+            self.errors.append(SemanticError("Comparing arrays of any size comes later", node.location))
+            return
+        node.many_compare = True
 
     # ------------------------------------------------------------------ an index, a view
 
@@ -265,7 +394,7 @@ class ManyDimsMixin:
         dim = open_base[len(entries) - 1]
         index = node.index
         if isinstance(index, LiteralExpr) and isinstance(index.value, int) and not isinstance(index.value, bool) \
-                and not 0 <= index.value < full[dim]:
+                and isinstance(full[dim], int) and not 0 <= index.value < full[dim]:
             self.errors.append(SemanticError(
                 f"Index {index.value} is outside '{_name_of(root)}' - its {DIMENSION_NAMES[dim]} are 0 to "
                 f"{full[dim] - 1}", index.location))
@@ -322,6 +451,10 @@ class ManyDimsMixin:
         """`foreach (int[][] sheet in cube)` - the outer open dimension (D.148); the loop variable is
         a view of the rest (borrowed), or the value on the last level. None after an error."""
         root, slots, full = self._info(node.iterable, iterable_type)
+        if not isinstance(root, IdentifierExpr):
+            self.errors.append(SemanticError(
+                "foreach over an array a function gives - keep it in a variable first", node.location))
+            return None
         self.held_count = getattr(self, 'held_count', 0) + 1
         number = self.held_count
         held = []
@@ -363,6 +496,12 @@ class ManyDimsMixin:
         return item
 
 
+def _sized_example(type_node) -> str:
+    """int[2][3] - an example of the type with its sizes written."""
+    from src.parser.parser import type_text
+    return type_text(type_node.element_type) + ''.join('[2]' for _ in type_node.dims)
+
+
 def _children(node):
     for f in fields(node):
         if f.name in ('location', 'inferred_type', 'declaration', 'scope'):
@@ -384,8 +523,14 @@ def _allowed(node, parent) -> bool:
         return True
     if isinstance(parent, ForStmt) and parent.iterable is node and getattr(parent, 'dims_loop', None):
         return True
-    if isinstance(parent, VarDeclStmt) and getattr(parent, 'view_copy', None):
-        return True
+    if isinstance(parent, VarDeclStmt) and getattr(parent, 'many_ok', False):
+        return True                                        # a copy of a part; from a function (45.12c)
+    if getattr(node, 'many_passed', False):
+        return True                                        # passed to an array parameter (45.12c)
+    if getattr(parent, 'many_compare', False):
+        return True                                        # a == b (45.12c)
+    if type(parent).__name__ == 'ReturnStmt' and not getattr(node.inferred_type, 'view', False):
+        return True                                        # returned - its type was checked (45.12c)
     return type(parent).__name__ == 'PassingExpr'        # byVal cube[1] - its parent decides
 
 
@@ -407,15 +552,11 @@ def check_many_dims_uses(program) -> list:
         if isinstance(decl, StructDecl):
             functions += [m for m in getattr(decl, 'methods', None) or [] if isinstance(m, FunctionDecl)]
     for function in functions:
-        for param in function.parameters:
-            if _many(param.param_type):
-                errors.append(SemanticError(
-                    f"Parameter '{param.name}': passing an array of many dimensions comes with Task 45.12c",
-                    param.location))
-        if _many(function.return_type):
+        if _many(function.return_type) and not _known(function.return_type.dims):
             errors.append(SemanticError(
-                f"'{function.name}': returning an array of many dimensions comes with Task 45.12c",
-                function.location))
+                f"'{function.name}': give the sizes it returns - "
+                f"{_sized_example(function.return_type)} function {function.name}(...); an array of any size "
+                f"returned (on the heap) comes later", function.location))
         if getattr(function, 'body', None) is None:
             continue
         seen, todo = set(), [(function.body, None)]
@@ -430,15 +571,14 @@ def check_many_dims_uses(program) -> list:
                 node.reported_many = True
                 if getattr(kind, 'view', False):
                     errors.append(SemanticError(
-                        f"A part of '{_name_of(node)}' is used here in a loop (foreach), copied into a variable "
-                        f"(int[] row = m[1]) or through its slots; passing it to a function comes with "
-                        f"Task 45.12c", node.location))
+                        f"A part of '{_name_of(node)}' is used in a loop (foreach), copied into a variable "
+                        f"(int[] row = m[1]), passed to an array parameter or through its slots", node.location))
                 else:
                     errors.append(SemanticError(
-                        f"'{_name_of(node)}' has {len(kind.dims)} dimensions - for now it is used through its "
-                        f"slots ({_name_of(node)}[0][0]), its parts, foreach and rows / columns / depth / length; "
-                        f"passing, copying the whole, comparing and replacing it come with Task 45.12c",
-                        node.location))
+                        f"'{_name_of(node)}' has {len(kind.dims)} dimensions - it is used through its slots "
+                        f"({_name_of(node)}[0][0]), its parts, foreach, rows / columns / depth / length, passed "
+                        f"to an array parameter, returned or compared (==); copying or replacing the whole comes "
+                        f"with Task 45.12d", node.location))
             for child in _children(node):
                 todo.append((child, node))
     return errors

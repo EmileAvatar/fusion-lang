@@ -86,10 +86,10 @@ def test_a_written_index_outside_is_a_compile_error():
 
 
 @pytest.mark.parametrize('body, message', [
-    ('int[2][3] m\nprint("{@1}", m[1],[2])', 'passing it to a function comes with Task 45.12c'),  # in ( ): two
+    ('int[2][3] m\nprint("{@1}", m[1],[2])', "Can't print a whole int[3] value"),  # inside ( ): two values
     ('int[2][3] m\nforeach (int x in m)\n    print("{x}")',
      "foreach over 'm' gives its columns - each one int[]: foreach (int[] x in ...)"),
-    ('int[2][3] m\nint[2][3] n\nbool b = m == n', "'m' has 2 dimensions"),
+    ('int[2][3] m\nint[3][2] n\nbool b = m == n', 'arrays of many dimensions compare when they have the same shape'),
     ('int[2][3] m\nm = [[1, 2, 3], [4, 5, 6]]', "'m' has 2 dimensions"),
     ('int[2][3] m\nprint("{@1}", len(m))', "'m' has 2 dimensions"),
     ('int[2][3] m\nprint("{@1}", m.depth)', "'m' has 2 dimensions - rows and columns; depth is the third"),
@@ -103,7 +103,7 @@ def test_what_isnt_built_yet_or_is_wrong(body, message):
 
 
 @pytest.mark.parametrize('source, message', [
-    ('void function f(int[2][3] m)\n    print("x")\n\n', 'passing an array of many dimensions comes with Task 45.12c'),
+    ('int[][] function f()\n    int[2][2] m\n    return m\n\n', "'f': give the sizes it returns - int[2][2] function f"),
     ('struct Grid\n    int[2][3] cells\n\n', 'a field of many dimensions comes with Task 45.12c'),
 ])
 def test_parameters_and_fields_come_later(source, message):

@@ -160,7 +160,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		[DONE] 45.12a Declaring, reading, writing - on the stack, laid out in `[arrays] order`; `rows` / `columns` / `depth`; `m[1],[2]` joins only outside ( ) and [ ] - src/semantic/many_dims.py, tests/test_many_dims.py, example syntax_many_dims
 		[DONE] 45.12b Views `cube[1]`, `cube[][2][1]`; `length` the outer first, -1 when none; `foreach` the outer first; a view to a variable a copy (byVal copies objects) - tests/test_many_dims_views.py, example syntax_many_dims_views
 			[ ] An index error naming its dimension ("row 5 is outside (rows 2)") - today "index 5 is outside the array (length 2)"
-		[ ] 45.12c Functions: `int[2][3]` / `int[][]` parameters, returning one, `==`
+		[DONE] 45.12c Functions: `int[2][3]` / `int[][]` parameters (any size: hidden sizes), a part passed as a copy (numbers), returning `int[2][3]`, `==` on the same shape - tests/test_many_dims_functions.py, example syntax_many_dims_functions
+			[ ] Later: a part of strings / objects passed; returning any size (heap); copying a part of an any-size parameter; `==` on parts
 		[ ] 45.12d Growable `int:[2][3][4]` / `int[[2],[3],[4]]`; `expand(ROWS / COLUMNS / DEPTH, n)` with a warning
 		[ ] 45.11 `toList` and `toCSV` on them
 	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)

@@ -455,6 +455,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             params = ", ".join(self.type_to_string(p) for p in type_node.parameter_types)
             ret = self.type_to_string(type_node.return_type)
             return f"({params}) -> {ret}"
+        if isinstance(type_node, ArrayType) and type_node.dims:      # int[2][3], int[][] (45.12)
+            return self.type_to_string(type_node.element_type) + ''.join(
+                f"[{d}]" if isinstance(d, int) else '[]' for d in type_node.dims)
         if isinstance(type_node, ArrayType):
             size_str = str(type_node.size) if type_node.size is not None else ''
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
@@ -898,6 +901,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """
         if self._is_void(left_type) or self._is_void(right_type):
             return  # an error was already reported for an operand
+        if getattr(left_type, 'dims', None) or getattr(right_type, 'dims', None):
+            self.check_many_dims_equality(node, left_type, right_type)     # many dimensions (45.12c)
+            return
         strict = node.operator in ('===', '!==')
         if strict and not self._same_type_for_strict(left_type, right_type):
             node.never_equal = True
@@ -2254,6 +2260,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         def error(message: str) -> None:
             self.errors.append(SemanticError(f"Argument {index+1} to '{func_name}': {message}",
                                              arg.location))
+
+        if expected.dims or getattr(actual, 'dims', None):
+            self.check_many_dims_argument(error, arg, expected, actual)    # many dimensions (45.12c)
+            return
 
         if isinstance(actual, ListType) and actual.array_form:
             # a heap array (45.10): its items and length - an int[] parameter takes any size

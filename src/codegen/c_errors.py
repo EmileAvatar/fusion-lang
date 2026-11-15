@@ -317,8 +317,7 @@ class ErrorsMixin:
         names = []
         for p in node.parameters:
             names.append(p.name)
-            if isinstance(p.param_type, ArrayType) and p.param_type.size is None:
-                names.append(array_length_name(p.name))
+            names += self.hidden_size_names(p)
         call = f'{body_name}({", ".join(names)})'
         void = return_type == 'void'
         message = escape_c_text(f"{node.name.split('.')[-1]}() went past "

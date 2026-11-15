@@ -234,6 +234,7 @@ void function collections() {
     int[] column = cube[][2][1]         // column 2 of sheet 1, one value per row - copied
     foreach (int[][] sheet in cube)     // depth -> columns -> rows; borrowed in a loop
         print("{@1}", sheet.length)
+    // [built] Functions (45.12c): int[2][3] m / int[][] m parameters, a part passed as a copy, == by slot
     // [designed] Only a growable array expands - it stays a cube (D.143)
     int:[2][3][4] g                     // also int[[2],[3],[4]] g
     g.expand(ROWS, 1)                   // a warning: every slot is copied

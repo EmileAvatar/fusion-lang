@@ -331,6 +331,43 @@ A part of an array is a **view** (D.149): `cube[1]` (row 1), `cube[][2][1]` (col
 the array; given to a variable it is a copy (`byVal` copies its objects too). `foreach` and `length`
 take the outer dimension first: depth, then columns, then rows (`[arrays] order = "rows"`: rows first).
 
+#### Functions with arrays of 2 and 3 dimensions
+
+<!-- example: syntax_many_dims_functions | task: 45.12c -->
+```fusion
+int function total(int[] values)
+    int t = 0
+    foreach (int v in values)
+        t = t + v
+    return t
+
+int function sumAll(int[][] m)          // any size - its sizes come with it
+    int t = 0
+    foreach (int[] column in m)
+        foreach (int v in column)
+            t = t + v
+    return t
+
+void function setCorner(int[2][3] m)    // exactly 2 x 3 - the caller's array itself
+    m[0][0] = 99
+
+int[2][2] function identity()           // returns one of that shape
+    int[][] i = [[1, 0], [0, 1]]
+    return i
+
+void function main()
+    int[][] m = [[1, 2, 3], [4, 5, 6]]
+    print("{@1} {@2} {@3}", sumAll(m), total(m[1]), total(m[][2]))   // 21 15 9
+    setCorner(m)
+    print("{@1}", m[0][0])              // 99
+    int[2][2] id = identity()
+    int[][] same = [[1, 0], [0, 1]]
+    print("{@1}", id == same)           // true - slot by slot, the same shape
+```
+A parameter `int[2][3] m` takes that shape - the caller's array, by reference; `int[][] m` takes any
+size. A part (`m[1]`, `m[][2]`) passed to a parameter is a copy (D.149) - of numbers for now; for
+strings or objects copy it into a variable first. `==` needs the same shape (2 x 3 is not 3 x 2).
+
 #### Combining arrays: `a + b + c`
 
 <!-- example: syntax_array_combine | task: 45.4 -->
