@@ -961,6 +961,7 @@ class ArrayType(TypeNode):
     # int[2][3][4] (Task 45.12, D.143): the size of each dimension, rows first; None for one
     # dimension. `size` is then every slot - the array is one flat block (FLAT, D.144)
     dims: Optional[List[Optional[int]]] = None
+    growable: bool = False      # int:[2][3][4] g - on the heap, it grows with expand (Task 45.12d)
 
 
 @dataclass

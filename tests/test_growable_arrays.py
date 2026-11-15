@@ -129,7 +129,7 @@ def test_a_size_and_values_agree():
 @pytest.mark.parametrize('body, message', [
     ('fixed int:[] x', "fixed and a growable array can't go together"),
     ('int:[n] x', "A growable array's size is a whole number written in the source"),
-    ('int[[2], [3]] x', 'Arrays of many dimensions'),
+    ('int[[2], [3], [4], [5]] x', 'more than 3 come with the Collections library'),
     ('fixed int:[10] x', "fixed and a growable array can't go together"),
 ])
 def test_wrong_forms_are_errors(body, message):

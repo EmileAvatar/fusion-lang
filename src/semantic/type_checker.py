@@ -2795,7 +2795,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             self.errors.append(SemanticError(self.null_collection(symbol.data_type),
                                              node.value.location))
             return
-        if isinstance(symbol.data_type, (ArrayType, ListType))                 and getattr(getattr(symbol, 'declaration', None), 'is_fixed', False)                 and not isinstance(node.value, CallExpr if isinstance(symbol.data_type, ArrayType) else type(None)):
+        if isinstance(symbol.data_type, (ArrayType, ListType)) \
+                and getattr(getattr(symbol, 'declaration', None), 'is_fixed', False) \
+                        and not isinstance(node.value, CallExpr if isinstance(symbol.data_type, ArrayType) else type(None)):
             self.errors.append(SemanticError(                      # D.141 (45.14, 45.10)
                 f"'{target_name}' is fixed - its size never changes; set its slots ({target_name}[i] = ...), "
                 f"or declare it without fixed", node.location))
@@ -3164,8 +3166,18 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         # reuses node.body.scope, whose .parent chain already includes this for-scope -
         # that's enough for lookup_recursive to find the loop variable from inside the body.
 
-        # Check body
-        self.visit(node.body)
+        # Check body - an array of many dimensions looped over can't expand inside (45.12d, D.058)
+        loop = getattr(node, 'dims_loop', None)
+        looped = getattr(self, 'looped_grids', [])
+        self.looped_grids = looped
+        root = loop[2] if loop is not None and len(loop) > 2 else None
+        if root is not None:
+            looped.append(root)
+        try:
+            self.visit(node.body)
+        finally:
+            if root is not None:
+                looped.pop()
 
     def visit_BlockStmt(self, node: BlockStmt) -> None:
         """Check all statements in block.

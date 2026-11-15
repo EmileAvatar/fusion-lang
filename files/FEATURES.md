@@ -162,7 +162,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 			[ ] An index error naming its dimension ("row 5 is outside (rows 2)") - today "index 5 is outside the array (length 2)"
 		[DONE] 45.12c Functions: `int[2][3]` / `int[][]` parameters (any size: hidden sizes), a part passed as a copy (numbers), returning `int[2][3]`, `==` on the same shape - tests/test_many_dims_functions.py, example syntax_many_dims_functions
 			[ ] Later: a part of strings / objects passed; returning any size (heap); copying a part of an any-size parameter; `==` on parts
-		[ ] 45.12d Growable `int:[2][3][4]` / `int[[2],[3],[4]]`; `expand(ROWS / COLUMNS / DEPTH, n)` with a warning
+		[DONE] 45.12d Growable `int:[2][3][4]` / `int[[2],[3],[4]]` / `int:[][] g = [...]` on the heap; `expand(ROWS / COLUMNS / DEPTH, n)` with a warning; the built-in enum `Dimension`; no expand inside a loop over it - tests/test_many_dims_growable.py, example syntax_many_dims_growable
+		[ ] 45.12e Copying or replacing a whole array of many dimensions (`int[2][3] n = m`, `m = make()`, `g = [[...]]`) - an error today
 		[ ] 45.11 `toList` and `toCSV` on them
 	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)
 	[DONE] 45.17 A bare enum value where the enum type is known: parameters, declarations, assignments, returns, comparisons, `case` - every enum; a variable of the same name an error (D.150) - tests/test_bare_enum.py, example syntax_enum_bare

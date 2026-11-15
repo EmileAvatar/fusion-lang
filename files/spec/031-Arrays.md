@@ -87,8 +87,9 @@ team.scores = podium()     // an array field too
   `foreach` the outer dimension first, its variable a borrowed view; a view to a variable a copy;
   `length` the outer open dimension, -1 on one slot. Functions (built - 45.12c): `int[2][3] m` / `int[][] m`
   parameters (any size: its sizes passed hidden), a part passed as a copy, `int[2][3] function f()`,
-  `==` on the same shape; more than 3: the
-  Collections library
+  `==` on the same shape. Growable (built - 45.12d): `int:[2][3] g` / `int[[2],[3]] g` / `int:[][] g = [...]`
+  on the heap, `g.expand(ROWS / COLUMNS / DEPTH, n)` (the built-in enum `Dimension`) with a warning; more than
+  3 and `expand(0, n)`: the Collections library
 - An array size given as anything other than an integer literal (`int[n]` where `n` is a
   variable is not supported; only `int[5]`-style literal sizes are)
 - Whole-array reassignment - built since Task 45.10 (D.141): `arr = [4, 5]` or `arr = make()` replaces

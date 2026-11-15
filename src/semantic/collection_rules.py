@@ -225,7 +225,11 @@ class CollectionRulesMixin:
             self.checked_receivers.pop(id(receiver), None)
             node.to_list = (iface.name, receiver)
             return ListType(location=node.location, element_type=iface.element_type)
-        if (isinstance(receiver_type, ArrayType) or getattr(receiver_type, 'array_form', False))                 and node.callee.member in ('setBufferType', 'setSize'):
+        if isinstance(receiver_type, ArrayType) and receiver_type.dims and node.callee.member == 'expand':
+            self.checked_receivers.pop(id(receiver), None)
+            return self.many_dims_expand(node, receiver_type)    # g.expand(ROWS, 1) (45.12d)
+        if (isinstance(receiver_type, ArrayType) or getattr(receiver_type, 'array_form', False)) \
+                and node.callee.member in ('setBufferType', 'setSize'):
             self.checked_receivers.pop(id(receiver), None)      # buffers - after self-hosting (D.146)
             self.errors.append(SemanticError(
                 f"{node.callee.member} is not built yet - buffers for large arrays come after self-hosting, "

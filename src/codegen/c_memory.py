@@ -605,7 +605,8 @@ class MemoryManagementMixin:
         if isinstance(type_node, PrimitiveType):
             return type_node.name in ('string', 'bytes')   # bytes: the same struct (18.3.8)
         if isinstance(type_node, ArrayType):
-            return self.is_managed(type_node.element_type)
+            # a growable one of many dimensions owns its block (45.12d)
+            return getattr(type_node, 'growable', False) or self.is_managed(type_node.element_type)
         if isinstance(type_node, StructType):
             struct = self._struct_decl(type_node)
             if struct.is_class:
@@ -704,6 +705,11 @@ class MemoryManagementMixin:
             return [f'fusion_free_{self._struct_c_name(type_node)}(&{lvalue});']
         index = f'fusion_i{depth}'
         inner = ' '.join(self.free_lines(type_node.element_type, f'{lvalue}[{index}]', depth + 1))
+        if getattr(type_node, 'growable', False):
+            # int:[2][3] g (45.12d): its slots, then its block - as many as its sizes say now
+            total = ' * '.join(f'({d})' for d in type_node.dims)
+            slots = f'for (int {index} = 0; {index} < {total}; {index}++) {{ {inner} }} ' if inner else ''
+            return [f'if ({lvalue}) {{ {slots}fusion_dealloc({lvalue}); {lvalue} = NULL; }}']
         return [f'for (int {index} = 0; {index} < {type_node.size}; {index}++) {{ {inner} }}']
 
     def set_code(self, type_node, lvalue: str, value_code: str) -> str:

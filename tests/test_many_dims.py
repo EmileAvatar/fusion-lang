@@ -114,7 +114,7 @@ def test_parameters_and_fields_come_later(source, message):
     ('int[2][3][4][5] big', 'more than 3 come with the Collections library'),
     ('int[2][] m', 'Give every size or none'),
     ('int[2][0] m', 'A dimension of size 0'),
-    ('int:[2][3] g', 'A growable array of many dimensions - int:[2][3] - comes with Task 45.12d'),
+    ('int:[2][0] g', 'A dimension of size 0'),
 ])
 def test_wrong_forms(body, message):
     with pytest.raises(ParserError, match=re.escape(message)):

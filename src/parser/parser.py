@@ -955,6 +955,16 @@ class Parser:
         # money.Price p - a struct from another module (Task 18.4.2)
         while self.peek(offset).type == TokenType.DOT and self.peek(offset + 1).type == TokenType.IDENTIFIER:
             offset += 2
+        # Car:[2][3] cars, Car[[2],[3]] cars - a growable array of many dimensions (45.12d)
+        growable_start = (self.peek(offset).type == TokenType.COLON and self.peek(offset + 1).type == TokenType.LBRACKET) \
+            or (self.peek(offset).type == TokenType.LBRACKET and self.peek(offset + 1).type == TokenType.LBRACKET)
+        if growable_start:
+            skip = offset
+            while self.peek(skip).type in (TokenType.COLON, TokenType.LBRACKET, TokenType.RBRACKET,
+                                           TokenType.INTEGER, TokenType.COMMA):
+                skip += 1
+            if self.peek(skip).type == TokenType.IDENTIFIER and skip - offset > 4:
+                return True
         # Car:[] cars, Car[[]] cars - a growable array (Task 45.3); Car:[2], Car[[2]] (45.3b)
         kinds = [self.peek(offset + i).type for i in range(5)]
         if kinds[2] == TokenType.INTEGER:
@@ -1233,23 +1243,38 @@ class Parser:
             return None
         start = self.advance()
         self.advance()
-        size = None
-        if self.check(TokenType.INTEGER):          # int:[10] - 10 slots made ahead (45.3b, D.141)
-            size = integer_value(self.advance().value)
-        elif not self.check(TokenType.RBRACKET):
-            raise ParserError(self.peek(), "A growable array's size is a whole number written in the source - "
-                                           "int:[10] numbers - or none: int:[] numbers")
-        self.consume(TokenType.RBRACKET, "Expected ']' - a growable array is written int:[] or int:[10]")
-        if double and self.check(TokenType.COMMA):
-            raise ParserError(self.peek(), "Arrays of many dimensions - int[[10], [5], [7]] - are planned "
-                                           "(Task 45.12d)")
+
+        def one_size():
+            size = None
+            if self.check(TokenType.INTEGER):      # int:[10] - 10 slots made ahead (45.3b, D.141)
+                size = integer_value(self.advance().value)
+            elif not self.check(TokenType.RBRACKET):
+                raise ParserError(self.peek(), "A growable array's size is a whole number written in the source - "
+                                               "int:[10] numbers - or none: int:[] numbers")
+            self.consume(TokenType.RBRACKET, "Expected ']' - a growable array is written int:[] or int:[10]")
+            return size
+
+        dims = [one_size()]
         if double:
+            while self.check(TokenType.COMMA) and self.peek(1).type == TokenType.LBRACKET:
+                self.advance()
+                self.advance()
+                dims.append(one_size())           # int[[2],[3],[4]] - many dimensions (45.12d)
             self.consume(TokenType.RBRACKET, "Expected ']]' - a growable array is written int[[]] or int[[10]]")
-        if self.check(TokenType.LBRACKET):
-            raise ParserError(self.peek(), "A growable array of many dimensions - int:[2][3] - comes with "
-                                           "Task 45.12d")
+        else:
+            while self.check(TokenType.LBRACKET) or (self.check(TokenType.COMMA)
+                                                     and self.peek(1).type == TokenType.LBRACKET):
+                if self.match(TokenType.COMMA):
+                    pass                          # int:[2],[3] - the same as int:[2][3]
+                self.advance()
+                dims.append(one_size())           # int:[2][3][4] (45.12d)
+        if len(dims) > 1:
+            grid = self._array_of(base_type, dims)
+            grid.size = None                      # its sizes change while running (expand)
+            grid.growable = True
+            return grid
         return ListType(location=base_type.location, element_type=base_type, array_form=True,
-                        growable=True, start_size=size)
+                        growable=True, start_size=dims[0])
 
     def _read_dims(self, example: str) -> list:
         """`[2][3][4]` or `[2],[3],[4]` - one size per dimension (None when not written). The

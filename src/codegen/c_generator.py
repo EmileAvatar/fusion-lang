@@ -307,6 +307,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # Equality helpers (Task 18.3.5) - inserted first, so they end up after the
         # typedefs and wrappers inserted at the same position below
         self.output[typedef_index:typedef_index] = self.equality_helper_lines()
+        self.output[typedef_index:typedef_index] = self.grid_helper_lines()
         self.output[typedef_index:typedef_index] = self.text_helper_lines()
         typedef_lines = self.function_typedef_lines()
         if typedef_lines:
@@ -1249,6 +1250,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             helper = self.collect_helper(list_c, iface, node.inferred_type.element_type)
             needed = self.object_needed(self.visit(receiver), receiver.inferred_type, receiver)
             return f'{helper}((void*)({needed}))'
+        if getattr(node, 'grid_expand', None):
+            return self._grid_expand_code(node)       # g.expand(ROWS, 1) (45.12d)
         if getattr(node, 'list_method', None):
             return self.list_method_code(node)
         if getattr(node, 'map_method', None):
@@ -1416,7 +1419,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # With any optional arguments filled in by their defaults (Task 18.3.6)
         arguments = list(node.resolved_arguments or node.arguments)
         first_type = getattr(arguments[0], 'inferred_type', None) if arguments else None
-        if (isinstance(first_type, EnumType) or self.data_struct(first_type) is not None)                 and name in ('toString', 'toInt'):
+        if (isinstance(first_type, EnumType) or self.data_struct(first_type) is not None) \
+                and name in ('toString', 'toInt'):
             code = self.visit(arguments[0])
             # Its name (static text, never freed) or its number (Tasks 25.2, 25.4)
             if name == 'toString':
@@ -1597,7 +1601,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             code = self.visit(index)
             trusted = type(index).__name__ == 'HeldIndex' or (
                 isinstance(index, LiteralExpr) and isinstance(index.value, int)
-                and not isinstance(index.value, bool) and 0 <= index.value < size)
+                and not isinstance(index.value, bool) and isinstance(size, int) and 0 <= index.value < size)
             if not trusted:
                 code = self.checked_code(f'fusion_index({code}, {size}, {where})', 'int')
             parts.append(code if step == 1 else f'({code}) * {step}')
@@ -1630,6 +1634,76 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         spot = ' + '.join(c if s == 1 else f'{c} * {s}' for c, s in zip(counters, target))
         return f'__extension__ ({{ {loops}{name}[{spot}] = {source}; {name}; }})'
 
+    def _grid_declaration(self, node) -> None:
+        """`int:[2][3][4] g` (45.12d): its sizes in `fusion_dim_g`, its slots in one block on the
+        heap - from its values, or each the default value."""
+        element = node.var_type.element_type
+        T = self.map_type(element)
+        start = node.grid_start
+        total = 1
+        for size in start:
+            total *= size
+        self.emit_line(f'int fusion_dim_{node.name}[{len(start)}] = {{{", ".join(str(s) for s in start)}}}')
+        self.emit_line(f'{T}* {node.name} = ({T}*)fusion_alloc(sizeof({T}) * {total})')
+        if node.initializer is not None:
+            for i, value in enumerate(node.initializer.elements):
+                self.emit_line(f'{node.name}[{i}] = {self.owned_value(value, element)}')
+        else:
+            fill = self._grid_fill(element)
+            self.emit_line(f'for (int fusion_i = 0; fusion_i < {total}; fusion_i++) {node.name}[fusion_i] = {fill}')
+
+    def _grid_fill(self, element) -> str:
+        """A new slot's value: the element's default (a struct as a compound literal)."""
+        fill = self._default_value_code(element)
+        return f'({self.map_type(element)}){fill}' if fill.startswith('{') else fill
+
+    def _grid_expand_code(self, node) -> str:
+        """`g.expand(ROWS, 1)` (45.12d): a new block, the slots moved to their places, the new ones
+        the default; the sizes updated. A dimension it hasn't or n below 1 is an error."""
+        root, ndims, element, order = node.grid_expand
+        helper = self._grid_expand_helper(element)
+        which, count = (self.visit(a) for a in node.arguments)
+        name = self.visit(root)
+        call = (f'{name} = {helper}({name}, fusion_dim_{root.name}, {ndims}, {which}, {count}, '
+                f'{1 if order == "rows" else 0}, {self._where(node)})')
+        return self.checked_code(call, None)
+
+    def _grid_expand_helper(self, element) -> str:
+        T = self.map_type(element)
+        name = f'fusion_grid_expand_{T.replace("*", "p").replace(" ", "_")}'
+        helpers = self.__dict__.setdefault('grid_helpers', {})
+        if name in helpers:
+            return name
+        fill = self._grid_fill(element)
+        helpers[name] = [
+            f'static {T}* {name}({T}* old, int* dims, int nd, int which, int n, int rows_first, const char* where) {{',
+            '    if (which < 0 || which >= nd) { fusion_fail(FUSION_KIND_IndexError, where, '
+            '"expand: an array of %d dimensions has no dimension %d", nd, which); return old; }',
+            '    if (n < 1) { fusion_fail(FUSION_KIND_IndexError, where, "expand by %d - it grows by 1 or more", n); '
+            'return old; }',
+            '    int od[3] = {1, 1, 1}, nw[3] = {1, 1, 1}, os[3] = {0, 0, 0}, ns[3] = {0, 0, 0};',
+            '    for (int k = 0; k < nd; k++) { od[k] = dims[k]; nw[k] = dims[k]; }',
+            '    nw[which] += n;',
+            '    if (rows_first) { os[nd - 1] = ns[nd - 1] = 1; for (int k = nd - 2; k >= 0; k--) '
+            '{ os[k] = os[k + 1] * od[k + 1]; ns[k] = ns[k + 1] * nw[k + 1]; } }',
+            '    else { os[0] = ns[0] = 1; for (int k = 1; k < nd; k++) { os[k] = os[k - 1] * od[k - 1]; '
+            'ns[k] = ns[k - 1] * nw[k - 1]; } }',
+            f'    {T}* fresh = ({T}*)fusion_alloc(sizeof({T}) * (size_t)nw[0] * nw[1] * nw[2]);',
+            '    for (int a = 0; a < nw[0]; a++) for (int b = 0; b < nw[1]; b++) for (int c = 0; c < nw[2]; c++) {',
+            '        int to = a * ns[0] + b * ns[1] + c * ns[2];',
+            '        if (a < od[0] && b < od[1] && c < od[2]) fresh[to] = old[a * os[0] + b * os[1] + c * os[2]];',
+            f'        else fresh[to] = {fill};',
+            '    }',
+            '    fusion_dealloc(old);',
+            '    for (int k = 0; k < nd; k++) dims[k] = nw[k];',
+            '    return fresh;',
+            '}', '']
+        return name
+
+    def grid_helper_lines(self) -> list:
+        lines = [line for helper in getattr(self, 'grid_helpers', {}).values() for line in helper]
+        return ['// Growable arrays of many dimensions: expand (Task 45.12d)'] + lines if lines else []
+
     def visit_HeldIndex(self, node) -> str:
         return node.c_name           # an index worked out once, or a loop's counter (45.12b)
 
@@ -1637,7 +1711,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """`foreach (int[][] sheet in cube)` (45.12b): the indices the view fixes worked out once,
         then a loop over its outer open dimension. The loop variable is a view (no C variable - its
         slots are positions in the root) or, on the last level, each value (a copy for strings)."""
-        held, counter = node.dims_loop
+        held, counter = node.dims_loop[:2]
         where = self._where(node)
         self.emit('{')
         self.indent()
@@ -1778,6 +1852,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if getattr(node, 'view_copy', None) is not None:
             self._view_copy_code(node)                 # int[] row = m[1] - a copy (45.12b)
             return ''
+        if getattr(node, 'grid_start', None) is not None:
+            self._grid_declaration(node)               # int:[2][3] g - on the heap (45.12d)
+            return ''
         if isinstance(node.var_type, ArrayType):
             # C array declarator puts the size after the name: `int arr[3]`, not `int[3] arr`
             elem_c_type = self.map_type(node.var_type.element_type)
@@ -1828,7 +1905,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         # A struct declared without a value starts with every field at its default, or zero
         # (Task 18.2.1)
-        if isinstance(node.var_type, StructType) and not node.initializer                 and not self.is_class_type(node.var_type):      # an object starts as null
+        if isinstance(node.var_type, StructType) and not node.initializer \
+                and not self.is_class_type(node.var_type):      # an object starts as null
             struct = node.var_type.declaration
             init_code = self._struct_initializer(struct, [None] * len(struct.fields))
             self.emit_line(f'{const_keyword}{c_type} {name} = {init_code}')

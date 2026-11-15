@@ -67,7 +67,8 @@ def _declarations(body):
         if isinstance(node, list):
             todo.extend(node)
             continue
-        if not is_dataclass(node) or isinstance(node, (type, TypeNode, FunctionDecl, StructDecl))                 or id(node) in seen:
+        if not is_dataclass(node) or isinstance(node, (type, TypeNode, FunctionDecl, StructDecl)) \
+                or id(node) in seen:
             continue
         seen.add(id(node))
         if isinstance(node, VarDeclStmt):

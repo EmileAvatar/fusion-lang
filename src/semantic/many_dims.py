@@ -81,6 +81,36 @@ def _known(sizes) -> bool:
     return all(isinstance(s, int) for s in sizes)
 
 
+DIMENSION_VALUES = ('ROWS', 'COLUMNS', 'DEPTH')
+
+
+def add_dimension_enum(program) -> None:
+    """The built-in enum `Dimension` - ROWS, COLUMNS, DEPTH (45.12d, D.143) - added to a program
+    that uses it (`expand`, one of its names), so no other program carries it."""
+    from src.parser.ast_nodes import EnumDecl, EnumVariant
+    if any(isinstance(d, EnumDecl) and d.name == 'Dimension' for d in program.declarations):
+        return
+    names = {'Dimension', 'expand'} | set(DIMENSION_VALUES)
+    seen, todo, used = set(), [program], False
+    while todo and not used:
+        node = todo.pop()
+        if isinstance(node, list):
+            todo.extend(node)
+            continue
+        if not is_dataclass(node) or isinstance(node, type) or id(node) in seen:
+            continue
+        seen.add(id(node))
+        if getattr(node, 'name', None) in names or getattr(node, 'member', None) in names:
+            used = True
+        for f in fields(node):
+            if f.name != 'location':
+                todo.append(getattr(node, f.name))
+    if used:
+        where = program.location
+        program.declarations.insert(0, EnumDecl(location=where, name='Dimension', variants=[
+            EnumVariant(location=where, name=v, value=k) for k, v in enumerate(DIMENSION_VALUES)]))
+
+
 def name_parameter_sizes(program) -> None:
     """`int[][] m` - a parameter of any size (45.12c): each size becomes the C name of a hidden
     parameter, `fusion_dim_m_0` ..."""
@@ -148,6 +178,14 @@ class ManyDimsMixin:
                 self.errors.append(SemanticError(
                     f"'{node.name}' needs its sizes or its values: {self.type_to_string(array.element_type)}"
                     f"{''.join('[2]' for _ in dims)} {node.name}, or ... = [[...], [...]]", node.location))
+            elif array.growable:
+                self._grid_sizes(node, list(dims))
+            return
+        if array.growable and not isinstance(value, ArrayLiteralExpr):
+            self.visit(value)
+            self.errors.append(SemanticError(
+                f"A growable array of many dimensions starts from its sizes or its values - "
+                f"int:[2][3] {node.name}, or int:[][] {node.name} = [[...], [...]]", value.location))
             return
         if self.is_view_value(value):
             self.check_view_copy(node)
@@ -208,7 +246,16 @@ class ManyDimsMixin:
         node.initializer = ArrayLiteralExpr(location=value.location, elements=flat)
         node.initializer.inferred_type = ArrayType(location=value.location, element_type=element_type,
                                                    size=total)
+        if array.growable:
+            self._grid_sizes(node, found)
 
+    def _grid_sizes(self, node: VarDeclStmt, start: list) -> None:
+        """A growable array of many dimensions (45.12d): its sizes change while running, so from now
+        on each is the C name that holds it - `fusion_dim_g[0]` ... (as a parameter's, 45.12c)."""
+        array = node.var_type
+        node.grid_start = list(start)
+        array.dims[:] = [f'fusion_dim_{node.name}[{k}]' for k in range(len(start))]
+        array.size = None
     def is_view_value(self, value) -> bool:
         """Is this - written as it is - a part of an array of many dimensions (`cube[1]`, `sheet`)?
         Decided from the names, before the value is checked."""
@@ -409,6 +456,53 @@ class ManyDimsMixin:
         node.dims_slot = (root, slots, full, strides(full, self.array_order))
         return array_type.element_type
 
+    def many_dims_expand(self, node, array_type: ArrayType):
+        """`g.expand(ROWS, 1)` (45.12d, D.143): a growable array gets n more rows, columns or depth -
+        it stays a cube; always a warning, every slot is copied."""
+        void = PrimitiveType(location=node.location, name='void')
+        name = _name_of(node.callee.object)
+        if not array_type.growable or getattr(array_type, 'view', False):
+            self.errors.append(SemanticError(
+                f"expand: '{name}' doesn't grow - only a growable array does (D.141, D.143): "
+                f"{self.type_to_string(array_type.element_type)}:{''.join('[2]' for _ in array_type.dims)} {name}",
+                node.location))
+            return void
+        if len(node.arguments) != 2:
+            self.errors.append(SemanticError("expand takes two values: the dimension (ROWS, COLUMNS, DEPTH) "
+                                             "and how many", node.location))
+            return void
+        symbol = self.symbol_table.lookup('Dimension')
+        dimension = getattr(symbol, 'data_type', None)
+        which, count = node.arguments
+        if isinstance(which, LiteralExpr) and isinstance(which.value, int) and not isinstance(which.value, bool):
+            self.errors.append(SemanticError(
+                "expand by a number - expand(0, 1) - comes with the Collections library; write "
+                "expand(ROWS, 1), expand(COLUMNS, 1) or expand(DEPTH, 1)", which.location))
+            return void
+        kind = self._visit_value_for(dimension, which) if dimension is not None else self.visit(which)
+        if not self.types_equal(kind, dimension):
+            self.errors.append(SemanticError(
+                f"expand: the dimension is ROWS, COLUMNS or DEPTH, got {self.type_to_string(kind)}", which.location))
+            return void
+        member = getattr(getattr(which, 'enum_value', None), 'member', None) or getattr(which, 'member', None)
+        if member == 'DEPTH' and len(array_type.dims) < 3:
+            self.errors.append(SemanticError(
+                f"'{name}' has 2 dimensions - rows and columns; DEPTH is the third", which.location))
+        if name in getattr(self, 'looped_grids', ()):
+            self.errors.append(SemanticError(
+                f"'{name}' is being looped over - it can't expand inside the loop (D.058); expand it before "
+                f"or after the loop", node.location))
+        many = self.visit(count)
+        if not (isinstance(many, PrimitiveType) and many.name == 'int'):
+            self.errors.append(SemanticError(f"expand: how many is an int, got {self.type_to_string(many)}",
+                                             count.location))
+        self.warnings.append(SemanticError(
+            f"expand copies every slot of '{name}' into a new block - give it its full size when it is made "
+            f"where you can (D.143)", node.location))
+        node.grid_expand = (node.callee.object, len(array_type.dims), array_type.element_type, self.array_order)
+        node.callee.grid_expand_callee = True
+        return void
+
     def many_dims_member(self, node: MemberExpr, array_type: ArrayType):
         """`m.rows`, `m.columns`, `m.depth`, `m.length` - known while compiling. None: not one."""
         member = node.member
@@ -469,7 +563,7 @@ class ManyDimsMixin:
         dim = self._outer_open(slots)
         counter = HeldIndex(location=node.location, value=None, c_name=f'fusion_dim_{number}', size=full[dim])
         slots[dim] = counter
-        node.dims_loop = (held, counter)
+        node.dims_loop = (held, counter, root.name)      # the name: no expand inside (45.12d)
         element = iterable_type.element_type
         declared = getattr(node, 'declared_type', None)
         what = DIMENSION_NAMES[dim]
@@ -521,6 +615,8 @@ def _allowed(node, parent) -> bool:
         return True
     if isinstance(parent, MemberExpr) and getattr(parent, 'dims_value', None) is not None:
         return True
+    if isinstance(parent, MemberExpr) and getattr(parent, 'grid_expand_callee', False):
+        return True                                        # g.expand(ROWS, 1) (45.12d)
     if isinstance(parent, ForStmt) and parent.iterable is node and getattr(parent, 'dims_loop', None):
         return True
     if isinstance(parent, VarDeclStmt) and getattr(parent, 'many_ok', False):

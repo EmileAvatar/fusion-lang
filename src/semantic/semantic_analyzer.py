@@ -13,7 +13,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .stack_arrays import check_stack_arrays
-from .many_dims import check_many_dims_uses, name_parameter_sizes
+from .many_dims import add_dimension_enum, check_many_dims_uses, name_parameter_sizes
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
@@ -162,6 +162,7 @@ class SemanticAnalyzer:
         # Pass 0: enums (Task 25) - turn enum types, values and calls into enum nodes, so
         # nothing after this mistakes an enum for a struct
         self.errors.extend(normalize_errors(ast))     # Task 26
+        add_dimension_enum(ast)                  # ROWS / COLUMNS / DEPTH, when used (45.12d)
         self.errors.extend(normalize_enums(ast))
         self.errors.extend(check_holding_loops(ast))
 

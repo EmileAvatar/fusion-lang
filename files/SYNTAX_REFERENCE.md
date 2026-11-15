@@ -331,6 +331,30 @@ A part of an array is a **view** (D.149): `cube[1]` (row 1), `cube[][2][1]` (col
 the array; given to a variable it is a copy (`byVal` copies its objects too). `foreach` and `length`
 take the outer dimension first: depth, then columns, then rows (`[arrays] order = "rows"`: rows first).
 
+#### Growable arrays of 2 and 3 dimensions: `expand`
+
+<!-- example: syntax_many_dims_growable | task: 45.12d -->
+```fusion
+void function main()
+    int:[][] g = [                      // growable - also int:[2][3] g or int[[2],[3]] g
+        [1, 2, 3],
+        [4, 5, 6]]
+    g.expand(ROWS, 1)                   // a warning: every slot is copied - now 3 x 3
+    print("{@1} {@2} {@3}", g.rows, g[2][0], g[1][2])          // 3 0 6
+    g.expand(COLUMNS, 2)                // 3 x 5 - two new columns at the right of every row
+    g[2][4] = 9
+    print("{@1} {@2}", g.columns, g[2][4])                      // 5 9
+    int[[2],[2],[2]] cube
+    cube[1][1][1] = 7
+    cube.expand(DEPTH, 1)               // a new sheet at the back - it stays a cube
+    print("{@1} {@2}", cube.depth, cube[1][1][1])               // 3 7
+```
+Only a growable array expands (D.141, D.143) - `int:[2][3]`, `int[[2],[3]]` or `int:[][] g = [...]` (best over
+several lines). `expand(ROWS / COLUMNS / DEPTH, n)` - the built-in enum `Dimension` - adds n at the end of that
+dimension; new slots get the default value (0, "", null). It lives on the heap; slots, parts, `foreach` and
+passing it to an `int[][]` parameter work as on any array. Not inside a loop over it; `expand(0, 1)` and a
+fourth dimension come with the Collections library.
+
 #### Functions with arrays of 2 and 3 dimensions
 
 <!-- example: syntax_many_dims_functions | task: 45.12c -->
