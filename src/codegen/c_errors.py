@@ -484,6 +484,8 @@ class ErrorsMixin:
         """A for loop over a List / Map whose elements were added or removed meanwhile: a
         ModifiedWhileLoopingError (Task 27.2e, user decision 2026-10-17)."""
         what = 'Map' if isinstance(iterable_type, MapType) else 'List'
+        if getattr(iterable_type, 'array_form', False):
+            what = 'array'                              # a growable array (45.7)
         change = 'a key was added or removed' if what == 'Map' else 'an element was added or removed'
         return (f'if ({now} != {before}) {{ fusion_fail(FUSION_KIND_ModifiedWhileLoopingError, '
                 f'{self._where(node)}, "the {what} changed while a for loop went over it ({change} '

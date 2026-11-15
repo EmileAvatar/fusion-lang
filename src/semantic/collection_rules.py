@@ -17,7 +17,8 @@ from .errors import SemanticError
 
 # Methods that change the list they are called on - its variable must not be const, and a
 # parameter the function changes this way gets its own copy (as with assignment)
-MUTATING_LIST_METHODS = {'add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy'}
+MUTATING_LIST_METHODS = {'add', 'insert', 'removeAt', 'remove', 'clear', 'sort', 'sortBy',
+                         'removeLast', 'pop'}             # a growable array's end (45.3, 45.7)
 MUTATING_MAP_METHODS = {'remove', 'clear'}
 # Every List / Map method - another name on a list or map may be one of the program's own
 # functions called as a method (Task 44.2)
@@ -255,7 +256,7 @@ class CollectionRulesMixin:
         node.list_type = receiver_type
         if method in ('noDuplicates', 'noNull', 'readOnly'):
             return self._collection_option(node, method, receiver)        # Task 32.14
-        if method in MUTATING_LIST_METHODS or method in ('removeLast', 'pop'):
+        if method in MUTATING_LIST_METHODS:
             self._check_changeable(receiver, method)
         args = node.arguments
         if method in ('removeLast', 'pop'):              # a growable array (45.3): the item back

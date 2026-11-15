@@ -16,6 +16,7 @@ void function main()
     foreach (Car c in cars)
         if c is not null
             print(c.color)          // red
+        // cars.add(...) or cars.pop() here: a compile error - it is being looped over (D.058)
     try
         int:[] none
         none.removeLast()           // nothing to remove: an IndexError

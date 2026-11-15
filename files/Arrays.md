@@ -286,7 +286,7 @@ All methods: `has`, `get`, `remove`, `keys`, `values`, `len`, `clear`. Also writ
 
 **Built:** `foreach (string n in names)` or `foreach n in names` over an array, a List, a Map
 (its keys) or a class implementing `Collection<T>`; changing the looped collection inside is a
-compile error (any loop - D.058), a class of your own only with `[collections]
+compile error (any loop - D.058; an array's `add` / `pop` / replacing too - Task 45.7), a class of your own only with `[collections]
 allowChangeWhileLooping = true`. A collection of your own gives a **new** `Iterator<T>` from
 `iterator()` for each loop (`hasNext()`, `next()`), so a loop inside a loop over it works:
 

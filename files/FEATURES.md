@@ -154,7 +154,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[DONE] 45.4 Combine arrays: `a + b + c` - a new array, all of the same type; Lists the same; on the heap, parts read once left to right; a string copied, an object shared - tests/test_combine.py, example syntax_array_combine
 	[DONE] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same; a List's slice past the end now stops there - tests/test_copy_part.py, example syntax_array_copy_part
 	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
-	[ ] 45.7 The array being looped over can't be changed inside the loop (D.058) - a compile error where seen, else ModifiedWhileLoopingError
+	[DONE] 45.7 The array being looped over can't be changed inside the loop (D.058) - a compile error where seen, else ModifiedWhileLoopingError ("the array changed"); `removeLast` / `pop` now count as a change everywhere (readonly, borrowing, set-up blocks) - tests/test_loop_no_change.py
 	[ ] 45.13 `[arrays] stackWarn = "16KB"` (a warning), `stackLimit = "64KB"` (an error) - in bytes (D.145); `setBufferType` / `setSize` an error "not built yet" (buffers: L16.3, D.146)
 	[ ] 45.12 Up to 3 dimensions: `int[10][5][7]` rows x columns x depth; `expand(rows / columns / depth, n)` or by number from 0, with a warning (D.143)
 		[ ] 45.11 `toList` and `toCSV` on them

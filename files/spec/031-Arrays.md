@@ -86,6 +86,9 @@ team.scores = podium()     // an array field too
 - Whole-array reassignment - built since Task 45.10 (D.141): `arr = [4, 5]` or `arr = make()` replaces
   it, another size too; such an array lives on the heap (a counted block, like a List) and still
   acts as an array - no `add`, an object slot may be null. A `fixed` one keeps its size
+- Not changed while looped over - built (Task 45.7, D.058): `add`, `removeLast` / `pop` or replacing the
+  array inside a loop over it is a compile error (also through a function or a method); setting an
+  item is allowed
 - Copying a part - built (Task 45.5, D.046): `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` /
   `sliceAt`) on every array and List; past the end stops there, a start outside is an IndexError,
   copyPartAt includes its end and reverses when start > end
