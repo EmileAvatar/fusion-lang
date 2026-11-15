@@ -339,7 +339,7 @@ def test_collection_failures_are_caught():
         '            case 1: xs[7] = "c"\n'
         '            case 2: xs.insert(9, "d")\n'
         '            case 3: xs.removeAt(-1)\n'
-        '            case 4: print("{@1}", xs.slice(1, 5).len())\n'
+        '            case 4: print("{@1}", xs.slice(2, 1).len())\n'
         '            case 5: print("{@1}", m["none"].len())\n'
         '            case 6: m["none"][0] = 1\n'
         '            case 7: b[5] = 0x41\n'
@@ -350,7 +350,7 @@ def test_collection_failures_are_caught():
     )) == ['0: index 7 is outside the list (length 2)', '1: index 7 is outside the list (length 2)',
            '2: insert(position 9) is outside the list (length 2)',
            '3: removeAt(-1) is outside the list (length 2)',
-           '4: slice(start 1, count 5) is outside the list (length 2)',
+           '4: copyPart: start 2 is outside the list (length 2)',
            '5: key "none" is not in the map', '6: key "none" is not in the map',
            '7: byte 5 is outside the bytes (length 2)',
            '8: getInt(at 0) needs 4 bytes there, but the bytes have length 2', '2 0']

@@ -373,9 +373,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             value.inferred_type = expected
             return expected
         result = self.visit(value)
-        if getattr(value, 'combine', None) == 'array' and isinstance(expected, ListType) \
+        if getattr(value, 'new_array', False) and isinstance(expected, ListType) \
                 and expected.growable and self.types_equal(expected.element_type, result.element_type):
-            value.inferred_type = expected      # int:[] g = a + b - a new array, made growable (45.4)
+            value.inferred_type = expected      # int:[] g = a + b - a new array, made growable (45.4, 45.5)
             return expected
         self.widen_to_float(value, result, expected)
         return self.as_parent_part(value, result, expected) or result

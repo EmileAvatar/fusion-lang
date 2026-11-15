@@ -152,7 +152,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 		[DONE] `removeLast()` / `pop()` give the item back (user, 2026-11-15) - the caller owns it
 		[DONE] Arguments left to right also when a call sits beside a length, a field or a module variable (spec 181)
 	[DONE] 45.4 Combine arrays: `a + b + c` - a new array, all of the same type; Lists the same; on the heap, parts read once left to right; a string copied, an object shared - tests/test_combine.py, example syntax_array_combine
-	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same
+	[DONE] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same; a List's slice past the end now stops there - tests/test_copy_part.py, example syntax_array_copy_part
 	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
 	[ ] 45.7 The array being looped over can't be changed inside the loop (D.058) - a compile error where seen, else ModifiedWhileLoopingError
 	[ ] 45.13 `[arrays] stackWarn = "16KB"` (a warning), `stackLimit = "64KB"` (an error) - in bytes (D.145); `setBufferType` / `setSize` an error "not built yet" (buffers: L16.3, D.146)
@@ -750,7 +750,7 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L6.1 Lists (user, 2026-10-27 - files/Arrays.md): add many at once (another list, a group of
 			values); capacity and a growth buffer that can be set; a kept sort order (every
 			added item goes into its sorted place)
-		[ ] L6.2 List copyPart (user, 2026-10-27): rename `slice` to `copyPart(start, count)`, `slice` kept
+		[DONE - 45.4, 45.5] L6.2 List copyPart (user, 2026-10-27): rename `slice` to `copyPart(start, count)`, `slice` kept
 			as quick typing; a count past the end gives the items up to the end (today an
 			IndexError); a start outside the list is an IndexError. `copyPartAt(start, end)`
 			(`sliceAt`): end included, stops at the end, start after end gives the items reversed.

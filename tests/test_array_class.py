@@ -35,7 +35,7 @@ def test_an_empty_array_has_length_zero():
 
 
 @pytest.mark.parametrize('body, message', [
-    ('int[] a = [1]\nprint("{@1}", Array.size(a))', "Array has no method 'size' (it has length, len, toList, toCSV)"),
+    ('int[] a = [1]\nprint("{@1}", Array.size(a))', "Array has no method 'size' (it has length, len, toList, toCSV, copyPart"),
     ('print("{@1}", Array.length())', "Array.length needs the array first"),
     ('string s = "hi"\nprint("{@1}", Array.length(s))', "Array.length works on an array, not string"),
 ])

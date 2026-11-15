@@ -1,0 +1,18 @@
+void function show(int[] xs)
+    foreach (int x in xs)
+        write("{x} ")
+    print("|")
+
+void function main()
+    int[] some = [20, 30, 40]
+    show(some.copyPart(1, 2))           // 30 40 |    - start, count
+    show(some.copyPart(1, 9))           // 30 40 |    - a count past the end stops there
+    show(some.copyPartAt(0, 1))         // 20 30 |    - start, end - the end included
+    show(some.sliceAt(2, 0))            // 40 30 20 | - start after end: reversed
+    try
+        show(some.slice(3, 1))          // a start outside: an IndexError
+    catch IndexError e
+        print("{e}")
+    List<string> names = ["a", "b", "c"]
+    List<string> last = names.copyPart(1, 2)      // Lists the same: a new List
+    print("{@1}", last.len())           // 2

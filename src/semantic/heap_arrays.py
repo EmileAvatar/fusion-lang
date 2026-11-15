@@ -12,7 +12,7 @@ Which ones (decided here, before names are resolved, by name within each functio
 - a local array replaced as a whole by an array literal, by another heap array, or by a call to a
   function returning one
 - a local array set from, set into or returned as a heap array - the two sides share one form
-- a local array set from `a + b` (Task 45.4) - a new array of the two sizes together
+- a local array set from `a + b` (Task 45.4) or `a.copyPart(...)` (45.5) - a new array
 - an array field of a struct or class written with no size (`int[] items`)
 
 Everything else stays a C array on the stack, as before.
@@ -20,7 +20,7 @@ Everything else stays a C array on the stack, as before.
 from dataclasses import fields, is_dataclass
 
 from src.parser.ast_nodes import (ArrayLiteralExpr, ArrayType, AssignmentStmt, BinaryExpr, CallExpr,
-                                  FunctionDecl, IdentifierExpr, ListType, PassingExpr, ReturnStmt, StructDecl,
+                                  FunctionDecl, IdentifierExpr, ListType, MemberExpr, PassingExpr, ReturnStmt, StructDecl,
                                   VarDeclStmt)
 
 
@@ -88,9 +88,11 @@ def _heap_value(value, heap_names, heap_functions) -> bool:
     value = _plain(value)
     if isinstance(value, IdentifierExpr):
         return value.name in heap_names
+    # a + b (45.4), a.copyPart(0, 2) (45.5): only an array's own declaration or replacing asks
+    if isinstance(value, CallExpr) and isinstance(value.callee, MemberExpr):
+        return value.callee.member in ('copyPart', 'slice', 'copyPartAt', 'sliceAt')
     if isinstance(value, CallExpr):
         return isinstance(value.callee, IdentifierExpr) and value.callee.name in heap_functions
-    # a + b (45.4): only an array's own declaration or replacing asks, so it combines arrays
     return isinstance(value, BinaryExpr) and value.operator == '+'
 
 

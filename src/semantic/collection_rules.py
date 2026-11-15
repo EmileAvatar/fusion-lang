@@ -23,8 +23,10 @@ MUTATING_MAP_METHODS = {'remove', 'clear'}
 # functions called as a method (Task 44.2)
 # What a plain array can't do - it doesn't grow or shrink (45.10, D.141); int:[] will (45.3)
 ARRAY_GROW_METHODS = ('add', 'insert', 'removeAt', 'remove', 'clear', 'removeLast', 'pop')
+# Copying a part (45.5, D.046) - on every array and List; slice / sliceAt are quick typing
+PART_METHODS = ('copyPart', 'slice', 'copyPartAt', 'sliceAt')
 LIST_METHOD_NAMES = {'add', 'insert', 'removeAt', 'remove', 'clear', 'len', 'contains', 'indexOf',
-                     'join', 'slice', 'sort', 'sortBy', 'filter', 'map', 'reduce', 'toList',
+                     'join', 'slice', 'copyPart', 'copyPartAt', 'sliceAt', 'sort', 'sortBy', 'filter', 'map', 'reduce', 'toList',
                      'noDuplicates', 'noNull', 'readOnly'}          # options: Task 32.14
 MAP_METHOD_NAMES = {'has', 'get', 'remove', 'keys', 'values', 'len', 'clear', 'noDuplicates',
                     'noNull', 'readOnly'}
@@ -33,6 +35,31 @@ _SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
 
 
 class CollectionRulesMixin:
+    def _part_call(self, node, receiver_type) -> TypeNode:
+        """`xs.copyPart(start, count)` / `xs.copyPartAt(start, end)` and their quick names `slice` /
+        `sliceAt` (45.5, D.046): a copy of a part. A List gives a List; any array a new array."""
+        method = node.callee.member
+        element = receiver_type.element_type
+        if len(node.arguments) != 2:
+            ends = node.callee.member in ('copyPartAt', 'sliceAt')
+            last = 'end' if ends else 'count'
+            self.errors.append(SemanticError(f"{method} takes two values: start, {last}", node.location))
+        int_type = PrimitiveType(location=node.location, name='int')
+        for arg in node.arguments:
+            actual = self.visit(arg)
+            if not self.types_compatible(int_type, actual):
+                self.errors.append(SemanticError(
+                    f"{method}: a position is an int, got {self.type_to_string(actual)}", arg.location))
+        if isinstance(element, ArrayType):
+            self.errors.append(SemanticError(
+                f"{method} on an array of arrays waits for many dimensions (Task 45.12)", node.location))
+        is_list = isinstance(receiver_type, ListType) and not receiver_type.array_form
+        result = ListType(location=node.location, element_type=element, array_form=not is_list)
+        node.list_method = method
+        node.list_type = result
+        node.new_array = not is_list
+        return result
+
     def combine_type(self, node, left: TypeNode, right: TypeNode) -> Optional[TypeNode]:
         """`a + b + c` (Task 45.4): two arrays make a new array, two Lists a new List - all of one
         type. None when neither side is an array or a List."""
@@ -57,6 +84,7 @@ class CollectionRulesMixin:
                 f"'+' combines arrays of one type - {self.type_to_string(left)} and "
                 f"{self.type_to_string(right)}", node.location))
         node.combine = left_kind
+        node.new_array = left_kind == 'array'
         return ListType(location=node.location, element_type=element, array_form=left_kind == 'array')
 
     def array_to_list_call(self, node: CallExpr) -> Optional[ASTNode]:
@@ -196,6 +224,9 @@ class CollectionRulesMixin:
             self.checked_receivers.pop(id(receiver), None)
             node.to_list = (iface.name, receiver)
             return ListType(location=node.location, element_type=iface.element_type)
+        if isinstance(receiver_type, ArrayType) and node.callee.member in PART_METHODS:
+            self.checked_receivers.pop(id(receiver), None)      # a stack array's part (45.5)
+            return self._part_call(node, receiver_type)
         if not isinstance(receiver_type, ListType):
             return None
         self.checked_receivers.pop(id(receiver), None)
@@ -215,9 +246,10 @@ class CollectionRulesMixin:
                     f"{method}: a plain array doesn't grow or shrink - declare it "
                     f"{self.type_to_string(element)}:[] (D.141)", node.location))
                 return self._void(node)
-            elif method not in ('len',):
+            elif method not in ('len',) + PART_METHODS:
                 self.errors.append(SemanticError(
-                    f"An array has no method '{method}' (it has length, len, toList, toCSV)", node.location))
+                    f"An array has no method '{method}' (it has length, len, toList, toCSV, copyPart, "
+                    f"copyPartAt)", node.location))
                 return self._void(node)
         node.list_method = method
         node.list_type = receiver_type
@@ -287,11 +319,8 @@ class CollectionRulesMixin:
             if want(1):
                 check(args[0], PrimitiveType(location=node.location, name='string'), 'The separator')
             return PrimitiveType(location=node.location, name='string')
-        if method == 'slice':
-            if want(2):
-                check(args[0], int_type, 'The start')
-                check(args[1], int_type, 'The count')
-            return receiver_type
+        if method in PART_METHODS:
+            return self._part_call(node, receiver_type)
         if method == 'sort':
             want(0)
             if not (isinstance(element, PrimitiveType) and element.name in _SORTABLE):

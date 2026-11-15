@@ -115,7 +115,7 @@ STR.010 [POSTPONED] Paged / memory-mapped strings
 
 #### COL - arrays, Lists, Maps
 COL.001 [BUILT] Fixed-size arrays, bounds always checked
-COL.002 [PARTIAL] Arrays in three forms: plain (a new size only by replacing), `fixed` (never another size), growable `int:[]` / `int[[]]` (add / removeLast at the end); `+`, `copyPart` (Task 45, D.141) - built: `int[] e` (45.2), `fixed` (45.14), replacing with another size (45.10), growable `int:[]` (45.3), `a + b` (45.4)
+COL.002 [PARTIAL] Arrays in three forms: plain (a new size only by replacing), `fixed` (never another size), growable `int:[]` / `int[[]]` (add / removeLast at the end); `+`, `copyPart` (Task 45, D.141) - built: `int[] e` (45.2), `fixed` (45.14), replacing with another size (45.10), growable `int:[]` (45.3), `a + b` (45.4), `copyPart` (45.5)
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
@@ -328,7 +328,7 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.043 | Printing an object: its `ToString`; without one, the class name and a warning | printing always shows something; the warning asks for ToString | CLS.005 | 2026-10-30 | files/Classes.md 6 | ACTIVE |
 | D.044 | Arrays, Lists, Maps are never null - empty when declared; a nullable setting per kind (default false) | no null checks on collections - fewer NullErrors | COL.003 | 2026-10-27 | files/Arrays.md 1 | ACTIVE |
 | D.045 | Arrays grow and shrink only at the end - an item never moves position; Lists change anywhere | an index stays valid - an item stays where it was | COL.002 | 2026-10-27 | files/Arrays.md 3 | ACTIVE (planned) |
-| D.046 | `copyPart(start, count)` / `copyPartAt(start, end)` copy; from 0, end included, past the end stops there, a start outside is an IndexError; `slice` / `sliceAt` as aliases | the name says it copies (D.004); a slice past the end is no error | COL.002 | 2026-10-27 | files/Arrays.md 8 | ACTIVE (planned) |
+| D.046 | `copyPart(start, count)` / `copyPartAt(start, end)` copy; from 0, end included, past the end stops there, a start outside is an IndexError; `slice` / `sliceAt` as aliases | the name says it copies (D.004); a slice past the end is no error | COL.002 | 2026-10-27 | files/Arrays.md 8 | ACTIVE |
 | D.047 | `a + b + c` combines arrays or Lists of one type; Maps use `add(otherMap)` - a key already there is replaced (a setting) | combining reads naturally; a Map key clash needs a rule | COL.012 | 2026-10-27 | files/Arrays.md 5 | ACTIVE (planned) |
 | D.048 | Arrays and Lists allow duplicates; Map keys never repeat - a non-empty constant string or a whole number 0 or above; values any type | a key must find exactly one value | COL.012 | 2026-10-27 | files/Arrays.md 5 | ACTIVE |
 | D.049 | `foreach`: the item's type is the collection's; `continue` / `break` allowed (changing it inside: D.058) | familiar loop control | COL.005 | 2026-10-27 | files/Arrays.md 6 | ACTIVE (planned) |

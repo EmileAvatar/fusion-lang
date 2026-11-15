@@ -253,6 +253,33 @@ Every array acts as if it were an object of the built-in `Array` class (D.142): 
 `a.length`, `a.length()`, `a.len()` and `len(a)` are one call. Its methods today: `length` (`len`),
 `toList`, `toCSV`. `Array` is a built-in name - a struct, class or enum can't take it.
 
+#### Copying a part: `copyPart` / `copyPartAt`
+
+<!-- example: syntax_array_copy_part | task: 45.5 -->
+```fusion
+void function show(int[] xs)
+    foreach (int x in xs)
+        write("{x} ")
+    print("|")
+
+void function main()
+    int[] some = [20, 30, 40]
+    show(some.copyPart(1, 2))           // 30 40 |    - start, count
+    show(some.copyPart(1, 9))           // 30 40 |    - a count past the end stops there
+    show(some.copyPartAt(0, 1))         // 20 30 |    - start, end - the end included
+    show(some.sliceAt(2, 0))            // 40 30 20 | - start after end: reversed
+    try
+        show(some.slice(3, 1))          // a start outside: an IndexError
+    catch IndexError e
+        print("{e}")
+    List<string> names = ["a", "b", "c"]
+    List<string> last = names.copyPart(1, 2)      // Lists the same: a new List
+    print("{@1}", last.len())           // 2
+```
+Both copy and leave the original unchanged (D.046); `slice` / `sliceAt` are quick typing for them.
+Positions count from 0. An array gives a new array (on the heap - `int:[] g = a.copyPart(0, 2)` makes it
+growable), a List a new List; a string is copied, an object shared.
+
 #### Combining arrays: `a + b + c`
 
 <!-- example: syntax_array_combine | task: 45.4 -->

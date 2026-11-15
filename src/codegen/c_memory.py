@@ -902,7 +902,8 @@ class MemoryManagementMixin:
             return expr.method == 'values' or (expr.method != 'fromString'
                                                and self.is_managed(getattr(expr, 'inferred_type', None)))
         if isinstance(expr, CallExpr) and getattr(expr, 'list_method', None) in ('filter', 'map', 'slice', 'reduce', 'join', 'toList',
-                                                                          'removeLast', 'pop'):
+                                                                          'removeLast', 'pop', 'copyPart',
+                                                                          'copyPartAt', 'sliceAt'):
             return self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, CallExpr) and getattr(expr, 'map_method', None):
             # m.keys() / m.values() make new lists; m.get(k, d) only lends a stored value

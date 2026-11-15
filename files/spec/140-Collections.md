@@ -35,7 +35,8 @@ xs[0] = 7                       // reading or writing outside the list is a run-
 int n = xs.len()                // also len(xs)
 bool has = xs.contains(2)       // contains(v), indexOf(v) -> -1 when missing
 xs.sort()                       // numbers, chars, bools, text; sortBy((a, b) : ...) for any type
-List<int> part = xs.slice(1, 2) // start, count
+List<int> part = xs.copyPart(1, 2) // start, count (slice); copyPartAt(start, end) (sliceAt) - 45.5
+List<int> both = xs + part      // a new List (45.4)
 List<int> big = xs.filter((int x) : x > 2)
 List<string> labels = xs.map(label)          // a function (int) : string
 int total = xs.reduce(0, (int sum, int x) : sum + x)

@@ -3,7 +3,7 @@
 **Generated from the compiler** by `python check.py --builtins` (Task 28.1.4) - do not edit by hand.
 `python check.py` fails when this file no longer matches the compiler.
 
-97 functions, 21 List methods, 9 Map methods. Examples of each are in `files/SYNTAX_REFERENCE.md`.
+97 functions, 24 List methods, 9 Map methods. Examples of each are in `files/SYNTAX_REFERENCE.md`.
 
 - **Layer:** the lowest `[stdlib] layer` that allows it - `core` (no heap), `alloc` (no operating system), `std` (everything)
 - **Fails:** it can raise an error (catch it with `try`, or capture it); any function that makes text can also fail with StringTooLongError when `[strings] max_length` is set
@@ -195,7 +195,10 @@ Each built-in type has a class holding its functions as methods (Task 18.3.7):
 | `.contains(T x)` | `bool` |  | whether an element equals x |
 | `.indexOf(T x)` | `int` |  | the first position of x, or -1 |
 | `.join(string separator)` | `string` |  | List<string> only: the elements joined |
-| `.slice(int start, int count)` | `List<T>` | yes | a copy of count elements from start (IndexError) |
+| `.copyPart(int start, int count)` | `List<T>` | yes | a copy of count items from start; a count past the end stops there; a start outside: IndexError (also on arrays - 45.5) |
+| `.slice(int start, int count)` | `List<T>` | yes | the same as copyPart - quick typing |
+| `.copyPartAt(int start, int end)` | `List<T>` | yes | a copy from start to end, both included; past the end stops there; start after end: reversed; a start outside: IndexError |
+| `.sliceAt(int start, int end)` | `List<T>` | yes | the same as copyPartAt - quick typing |
 | `.sort()` | `void` |  | sort in place (numbers, chars, text, bools) |
 | `.sortBy((T, T) : int compare)` | `void` |  | sort in place by a function |
 | `.filter((T) : bool keep)` | `List<T>` |  | the elements the function keeps |

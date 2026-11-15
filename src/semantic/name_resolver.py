@@ -91,7 +91,7 @@ NOT_METHODS = {'print', 'write', 'range', 'format'}
 # The built-in Array class (Task 45.1, D.142): `Array.length(a)` is `a.length()` - every array acts
 # as an object of it. Its methods, called through the class with the array first
 ARRAY_CLASS = 'Array'
-ARRAY_METHODS = ('length', 'len', 'toList', 'toCSV')
+ARRAY_METHODS = ('length', 'len', 'toList', 'toCSV', 'copyPart', 'copyPartAt', 'slice', 'sliceAt')
 # Names a program can't give its own type
 BUILT_IN_CLASS_NAMES = set(TYPE_CLASSES) | {ARRAY_CLASS}
 

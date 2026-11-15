@@ -354,6 +354,8 @@ maps.
 
 ## 8. Copying a part, and the slice / splice confusion
 
+Built: Task 45.5 - on every array and on Lists.
+
 **Names (user, 2026-10-27):** `copyPart` - it says what it does; `slice` stays as quick
 typing (familiar from JavaScript and Python). The same for the start-to-end form.
 

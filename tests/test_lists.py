@@ -190,7 +190,7 @@ def test_for_each_over_an_array_parameter():
     ('List<int> xs = [1]\nxs[-1] = 3', "index -1 is outside the list (length 1)"),
     ('List<int> xs = [1]\nxs.insert(5, 2)', "insert(position 5) is outside the list (length 1)"),
     ('List<int> xs\nxs.removeAt(0)', "removeAt(0) is outside the list (length 0)"),
-    ('List<int> xs = [1, 2]\nList<int> s = xs.slice(1, 5)', "slice(start 1, count 5) is outside the list (length 2)"),
+    ('List<int> xs = [1, 2]\nList<int> s = xs.slice(2, 1)', "copyPart: start 2 is outside the list (length 2)"),
 ])
 def test_run_time_errors(statement, message):
     assert message in run_error(main(statement))

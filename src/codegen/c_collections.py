@@ -435,15 +435,31 @@ class CollectionsMixin:
                 'if (i < 0) return false;',
                 f'{name}_removeAt(l, i, NULL);',
                 'return true;'],
-            f'{name} {name}_slice({name} l, int start, int count, const char* where)': [
-                'if (start < 0 || count < 0 || start > l->len || count > l->len - start) {',
-                '    fusion_fail(FUSION_KIND_IndexError, where, "slice(start %d, count %d) is outside the list '
-                '(length %d)", start, count, l->len);',
-                '    return NULL;',
-                '}',
+            # copyPart(start, count) (45.5, D.046): a count past the end stops there; a start
+            # outside is an IndexError. Items copied (a string copied, an object shared)
+            f'{name} {name}_part({T} const* items, int n, int start, int count, const char* where)': [
+                'if (start < 0 || start >= n) { fusion_fail(FUSION_KIND_IndexError, where, "copyPart: start %d '
+                f'is outside the {what} (length %d)", start, n); return NULL; }}',
+                'if (count < 0) { fusion_fail(FUSION_KIND_IndexError, where, "copyPart: count %d is below 0", '
+                'count); return NULL; }',
+                'if (count > n - start) count = n - start;',
                 f'{name} r = {name}_new();',
                 f'{name}_grow(r, count);',
-                f'for (int i = 0; i < count; i++) r->data[i] = {copy("l->data[start + i]")};',
+                f'for (int i = 0; i < count; i++) r->data[i] = {copy("items[start + i]")};',
+                'r->len = count;',
+                'return r;'],
+            # copyPartAt(start, end): end included, past the end stops there; start after end reversed
+            f'{name} {name}_partAt({T} const* items, int n, int start, int end, const char* where)': [
+                'if (start < 0 || start >= n) { fusion_fail(FUSION_KIND_IndexError, where, "copyPartAt: start %d '
+                f'is outside the {what} (length %d)", start, n); return NULL; }}',
+                'if (end < 0) { fusion_fail(FUSION_KIND_IndexError, where, "copyPartAt: end %d is below 0", end); '
+                'return NULL; }',
+                'if (end >= n) end = n - 1;',
+                'int step = start <= end ? 1 : -1;',
+                'int count = (end - start) * step + 1;',
+                f'{name} r = {name}_new();',
+                f'{name}_grow(r, count);',
+                f'for (int i = 0; i < count; i++) r->data[i] = {copy("items[start + i * step]")};',
                 'r->len = count;',
                 'return r;'],
             # a + b (45.4): another one's items added at the end, copied as slice does
@@ -593,6 +609,19 @@ class CollectionsMixin:
             expr = inner
         return False
 
+    def _part_code(self, node, name: str, where: str) -> str:
+        """`xs.copyPart(start, count)` / `copyPartAt(start, end)` (45.5): the receiver's items and
+        length - a List or heap array held once in a name - then the part copied."""
+        receiver = node.callee.object
+        kind = receiver.inferred_type
+        function = f'{name}_partAt' if node.list_method in ('copyPartAt', 'sliceAt') else f'{name}_part'
+        first, second = (self.visit(a) for a in node.arguments)
+        if isinstance(kind, ListType):
+            return (f'__extension__ ({{ {self.map_type(kind)} fusion_p = {self.visit(receiver)}; '
+                    f'{function}(fusion_p->data, fusion_p->len, {first}, {second}, {where}); }})')
+        items, count = self._array_operand(receiver, kind)
+        return f'{function}({items}, {count}, {first}, {second}, {where})'
+
     def combine_code(self, node) -> str:
         """`a + b + c` (45.4): one new block, each part's items added in turn, left to right. A part
         on the heap is held once in a name; one made here (a call, a literal) frees itself after
@@ -642,6 +671,8 @@ class CollectionsMixin:
         receiver = node.callee.object
         args = node.arguments
         where = self._where(node)
+        if method in ('copyPart', 'slice', 'copyPartAt', 'sliceAt'):
+            return self._part_code(node, name, where)
         target = self.visit(receiver)       # the list itself - shared, changed in place
         if method == 'add':
             return f'{name}_add({target}, {self.owned_value(args[0], element)})'
