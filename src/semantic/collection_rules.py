@@ -476,6 +476,13 @@ class CollectionRulesMixin:
             self.visit(iterable)
             return
         iterable_type = self.visit(iterable)
+        if isinstance(iterable_type, ArrayType) and iterable_type.dims:
+            # foreach over 2 or 3 dimensions: the outer one first, a view of the rest (45.12b)
+            element = self.many_dims_loop(node, iterable_type)
+            scope = getattr(node, 'scope', None)
+            if element is not None and scope is not None and node.variable in scope.symbols:
+                scope.symbols[node.variable].data_type = element
+            return
         if isinstance(iterable_type, ListType):
             element = iterable_type.element_type
         elif isinstance(iterable_type, MapType):

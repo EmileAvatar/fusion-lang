@@ -68,8 +68,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Rule 4b: a null object slot, read with and without `?.`.
 
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
-  45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits), 45.3b (`int:[10]`), 45.12a (2 and 3 dimensions) - FEATURES Task 45
-- **Next Action:** 45.12b views `cube[1]`, `cube[][2][1]`; -1 lengths; `foreach` the outer dimension first
+  45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits), 45.3b (`int:[10]`), 45.12a (2 and 3 dimensions), 45.12b (views) - FEATURES Task 45
+- **Next Action:** 45.12c functions: `int[2][3]` / `int[][]` parameters (a view passed too), returning one, `==`
 
 ### 45.12 Up to 3 dimensions - the plan (2026-11-15, replanned after OpenQuestions Q.021-Q.027)
 Settings: `[arrays] order` = "columns" (default) / "rows" (D.148), built with 45.12a; `[arrays] storage` is 45.15.

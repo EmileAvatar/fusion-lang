@@ -83,7 +83,9 @@ team.scores = podium()     // an array field too
 - Arrays of 2 and 3 dimensions - built (Task 45.12a, D.143, D.148): `int[2][3][4] cube` (also
   `int[2],[3],[4]`, `int cube[2][3][4]`), `int[][] m = [[1, 2, 3], [4, 5, 6]]`; `cube[1][2][3]` /
   `cube[1],[2],[3]`, each index checked; `rows`, `columns`, `depth`, `length` (the outer first); one flat
-  block on the stack laid out in `[arrays] order`. Views, loops, passing: 45.12b-c; more than 3: the
+  block on the stack laid out in `[arrays] order`. Views (built - 45.12b, D.149): `cube[1]`, `cube[][2][1]`;
+  `foreach` the outer dimension first, its variable a borrowed view; a view to a variable a copy;
+  `length` the outer open dimension, -1 on one slot. Passing: 45.12c; more than 3: the
   Collections library
 - An array size given as anything other than an integer literal (`int[n]` where `n` is a
   variable is not supported; only `int[5]`-style literal sizes are)

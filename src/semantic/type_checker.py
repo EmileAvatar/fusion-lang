@@ -2455,6 +2455,12 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """
         self._allow_array_call(node.array)  # make()[0] (Task 18.2.4)
         array_type = self.visit(node.array)
+        if node.index is None:              # cube[][2] - a view (45.12b, D.149)
+            if isinstance(array_type, ArrayType) and array_type.dims:
+                return self.many_dims_index(node, array_type, None)
+            self.errors.append(SemanticError(
+                "[] - an index left out - works on arrays of 2 and 3 dimensions: cube[][2]", node.location))
+            return PrimitiveType(location=node.location, name='void')
         index_type = self.visit(node.index)
 
         # s[i] reads one character of a string - bounds-checked at run time (18.3.2)
@@ -2519,6 +2525,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             sizes = self.many_dims_member(node, object_type)    # m.rows, m.length (Task 45.12a)
             if sizes is not None:
                 return sizes
+        if self.slot_length(node, object_type):                 # cube[1][2][3].length: -1 (45.12b)
+            return PrimitiveType(location=node.location, name='int')
         struct = self.struct_declaration(object_type)
         if struct is None and node.member in self.LENGTH_NAMES and self._has_length(object_type):
             # `x.length` / `x.len` without brackets (Task 30.8): checked as the call x.len(),
@@ -2578,6 +2586,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             # (Task 26); `Error e = Error("x")` - an ordinary Error value
             init_type = self.visit(node.initializer)
             node.capture_only = not isinstance(init_type, ErrorType)
+            return
+        if isinstance(node.var_type, ArrayType) and not node.var_type.dims \
+                and node.initializer is not None and self.is_view_value(node.initializer):
+            self.check_view_copy(node)                     # int[] row = m[1] - a copy (45.12b, D.149)
             return
         if isinstance(node.var_type, ArrayType) and node.var_type.dims:
             self.check_many_dims_declaration(node)         # int[2][3] m (Task 45.12a)

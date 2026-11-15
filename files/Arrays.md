@@ -409,9 +409,12 @@ over depth -> columns -> rows reads the slots one after another.
 | A written index outside | `m[1][3]` on `int[2][3] m` | a compile error | 45.12a |
 | Sizes | `cube.rows`, `cube.columns`, `cube.depth` | 2, 3, 4; `depth` on 3 dimensions only | 45.12a |
 | Length | `cube.length`, `m.length` | the outer dimension: 4 (depth), 3 (columns); `order = "rows"`: 2, 2 | 45.12a |
-| One slot's length | `cube[1][2][3].length` | -1 | 45.12b |
-| A view | `cube[1]`, `cube[][2][1]`, `cube[][][3]` | borrowed in a loop; copied (numbers) into a variable | 45.12b |
-| Loop | `foreach (int[][] sheet in cube)` | the outer dimension first | 45.12b |
+| One slot's length | `cube[1][2][3].length` | -1 (a string slot: the string's length) | 45.12b |
+| A view's length | `cube[1].length`, `cube[][][3].length`, `cube[][2][1].length` | 4 (depth), 3 (columns), 2 (rows) | 45.12b |
+| A view in a loop | `foreach (int v in cube[1][][3])` | borrowed: row 1 of sheet 3, one value per column | 45.12b |
+| Loop the whole | `foreach (int[][] sheet in cube)` / `(int[] column in sheet)` / `(int v in column)` | depth -> columns -> rows; writes go to cube | 45.12b |
+| A view to a variable | `int[][] s = cube[][][3]`, `int[] row = cube[1][2]` | a copy; objects shared, `byVal` copies them | 45.12b |
+| An index a loop view fixes | `foreach (int v in cube[r][1])` | `r` read once, before the loop | 45.12b |
 | Pass / return / compare | `f(int[2][3] m)`, `int[][] function f()`, `a == b` | | 45.12c |
 | Grow | `int:[2][3][4] g`, `g.expand(ROWS, 1)` | a warning; it stays a cube | 45.12d |
 | 4 dimensions | `int[2][3][4][5]` | a compile error - the Collections library | - |

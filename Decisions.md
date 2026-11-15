@@ -129,11 +129,11 @@ COL.011 [PLANNED] Lists: a capacity, a growth buffer, a kept sort order
 COL.012 [PLANNED] Maps: `add(otherMap)`; a map may bring its own hashing and key rules
 COL.013 [REJECTED] Changing a collection while looping over it (a setting to allow it) - build a new one
 COL.014 [DESIGN] `Set<T>`; slices by range (`numbers[0...1]`); Map literals (`{"apples": 3}`)
-COL.015 [PARTIAL] Arrays of up to 3 dimensions (built: declaring, slots, sizes, `[arrays] order` - 45.12a) - rows, columns, depth; `length` the outer first, -1 when none; `expand` on growable ones; `[arrays] order`; FLAT / RECT / JAGG storage (Task 45.12, D.143, D.144, D.148)
+COL.015 [PARTIAL] Arrays of up to 3 dimensions (built: declaring, slots, sizes, `[arrays] order` - 45.12a; views, foreach - 45.12b) - rows, columns, depth; `length` the outer first, -1 when none; `expand` on growable ones; `[arrays] order`; FLAT / RECT / JAGG storage (Task 45.12, D.143, D.144, D.148)
 COL.016 [REJECTED] `type()` / `type(N)` arrays meaning read-only or fixed size - `const` and `fixed(n)` instead (D.064)
 COL.017 [BUILT] Every array acts as an object of the built-in `Array` class - `a.length` is `Array.length(a)`; `length`, `toList`, `toCSV` (Task 45.1, D.142); the rest with their sub-tasks
 COL.018 [PARTIAL] Large arrays: stack limits in bytes (D.145 - built 45.13); buffers SINGLE / TWO / THIRD / RING - built after self-hosting (D.146, L16)
-COL.019 [PLANNED] Views of a many-dimension array: `cube[1]`, `cube[][2][1]` - borrowed in a loop, copied (numbers) into a variable (Task 45.12b, D.149)
+COL.019 [BUILT] Views of a many-dimension array: `cube[1]`, `cube[][2][1]` - borrowed in a loop, copied (numbers) into a variable (Task 45.12b, D.149)
 
 #### FUN - functions and errors
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value

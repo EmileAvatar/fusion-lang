@@ -493,7 +493,8 @@ class Parser:
                     and self.peek(1).type == TokenType.LBRACKET and self._nesting() == 0:
                 self.advance()       # m[1],[2] - the same slot as m[1][2] (D.143); not inside ( ) or [ ]
             elif self.match(TokenType.LBRACKET):
-                index = self.parse_expression()
+                # cube[][2] - an index left out: all of that dimension (a view - 45.12b, D.149)
+                index = None if self.check(TokenType.RBRACKET) else self.parse_expression()
                 self.consume(TokenType.RBRACKET, "Expected ']' after array index")
 
                 expr = IndexExpr(

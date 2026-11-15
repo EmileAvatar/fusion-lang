@@ -1566,17 +1566,90 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     def _many_dims_slot(self, node: IndexExpr) -> str:
         """`cube[1][2][3]` (Task 45.12a): each index checked against its own size (an IndexError
         outside it), then one position in the flat block - [arrays] order sets the steps (D.148)."""
-        root, indices, dims, steps = node.dims_slot
+        root, slots, dims, steps = node.dims_slot
+        return f'{self.visit(root)}[{self._slot_position(slots, dims, steps, node)}]'
+
+    def _slot_position(self, slots, dims, steps, node, extra=()) -> str:
+        """The position in the flat block: each given index checked (a held one was checked when it
+        was worked out, a loop's counter can't be outside); `extra` adds (code, step) pairs."""
         where = self._where(node)
         parts = []
-        for index, size, step in zip(indices, dims, steps):
+        for index, size, step in zip(slots, dims, steps):
+            if index is None:
+                continue
             code = self.visit(index)
-            known = isinstance(index, LiteralExpr) and isinstance(index.value, int) \
-                and not isinstance(index.value, bool) and 0 <= index.value < size
-            if not known:
+            trusted = type(index).__name__ == 'HeldIndex' or (
+                isinstance(index, LiteralExpr) and isinstance(index.value, int)
+                and not isinstance(index.value, bool) and 0 <= index.value < size)
+            if not trusted:
                 code = self.checked_code(f'fusion_index({code}, {size}, {where})', 'int')
             parts.append(code if step == 1 else f'({code}) * {step}')
-        return f'{self.visit(root)}[{" + ".join(parts)}]'
+        parts += [code if step == 1 else f'{code} * {step}' for code, step in extra]
+        return ' + '.join(parts) or '0'
+
+    def visit_HeldIndex(self, node) -> str:
+        return node.c_name           # an index worked out once, or a loop's counter (45.12b)
+
+    def _many_dims_loop(self, node: ForStmt) -> str:
+        """`foreach (int[][] sheet in cube)` (45.12b): the indices the view fixes worked out once,
+        then a loop over its outer open dimension. The loop variable is a view (no C variable - its
+        slots are positions in the root) or, on the last level, each value (a copy for strings)."""
+        held, counter = node.dims_loop
+        where = self._where(node)
+        self.emit('{')
+        self.indent()
+        self.push_scope('block')
+        for h in held:
+            code = self.checked_code(f'fusion_index({self.visit(h.value)}, {h.size}, {where})', 'int')
+            self.emit_line(f'int {h.c_name} = {code}')
+        i = counter.c_name
+        self.emit(f'for (int {i} = 0; {i} < {counter.size}; {i}++) {{')
+        self.indent()
+        self.push_scope('loop')
+        self.push_scope('block')
+        item = getattr(node, 'dims_item', None)
+        if item is not None:
+            root, slots, full, steps = item
+            element = root.inferred_type.element_type
+            code = f'{self.visit(root)}[{self._slot_position(slots, full, steps, node)}]'
+            value = self.copy_code(element, code) if self.is_managed(element) else code
+            self.emit_line(f'{self.map_type(element)} {node.variable} = {value}')
+            self.register_owned(node.variable, element, node.location)
+        self.visit(node.body)
+        self.pop_scope()
+        self.pop_scope()
+        self.dedent()
+        self.emit('}')
+        self.pop_scope()
+        self.dedent()
+        self.emit('}')
+        return ''
+
+    def _view_copy_code(self, node) -> None:
+        """`int[][] sheet = cube[][][3]` (45.12b, D.149): a new array, filled by loops over the open
+        dimensions - numbers and strings copied, objects shared, `byVal` copies them too."""
+        root, slots, full, steps, target, by_val = node.view_copy
+        element = node.var_type.element_type
+        managed = self.is_managed(element)
+        name = node.name
+        self.emit_line(f'{self.map_type(element)} {name}[{node.var_type.size}] = {{0}}')
+        self.emit('{')
+        self.indent()
+        open_dims = [k for k, s in enumerate(slots) if s is None]
+        counters = [f'fusion_c{j}' for j in range(len(open_dims))]
+        for j, k in enumerate(open_dims):
+            self.emit(f'for (int {counters[j]} = 0; {counters[j]} < {full[k]}; {counters[j]}++) {{')
+            self.indent()
+        source = f'{self.visit(root)}[{self._slot_position(slots, full, steps, node, zip(counters, [steps[k] for k in open_dims]))}]'
+        if managed:
+            source = self.clone_code(element, source) if by_val else self.copy_code(element, source)
+        spot = ' + '.join(c if s == 1 else f'{c} * {s}' for c, s in zip(counters, target))
+        self.emit_line(f'{name}[{spot}] = {source}')
+        for _ in open_dims:
+            self.dedent()
+            self.emit('}')
+        self.dedent()
+        self.emit('}')
 
     def visit_NamedArgument(self, node: NamedArgument) -> str:
         """A named argument's C code is its value's - normally codegen reads the values from
@@ -1659,6 +1732,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """Emit a variable declaration (see visit_VarDeclStmt)."""
         managed = self.is_managed(node.var_type)
 
+        if getattr(node, 'view_copy', None) is not None:
+            self._view_copy_code(node)                 # int[] row = m[1] - a copy (45.12b)
+            return ''
         if isinstance(node.var_type, ArrayType):
             # C array declarator puts the size after the name: `int arr[3]`, not `int[3] arr`
             elem_c_type = self.map_type(node.var_type.element_type)
@@ -1971,6 +2047,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        if getattr(node, 'dims_loop', None) is not None:
+            return self._many_dims_loop(node)      # over 2 or 3 dimensions (45.12b)
         # for x in xs - a List or an array (Task 18.5.1)
         if getattr(node, 'element_type', None) is not None:
             return self._for_each(node)

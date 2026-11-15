@@ -305,6 +305,32 @@ gives the outer dimension first - depth, then columns, then rows (`[arrays] orde
 `columns` on 2 and 3 dimensions, `depth` on 3. The array is one block on the stack, laid out in that
 order. Views (`cube[1]`, `cube[][2]`), loops over it, passing and copying it come with Task 45.12b-c.
 
+#### Parts of an array - views, and foreach over many dimensions
+
+<!-- example: syntax_many_dims_views | task: 45.12b -->
+```fusion
+void function main()
+    int[][] m = [[1, 2, 3], [4, 5, 6]]  // 2 rows x 3 columns
+    foreach (int[] column in m)         // the outer dimension first: its 3 columns
+        foreach (int v in column)       // each column's 2 values, one per row
+            write("{v} ")               // 1 4 2 5 3 6
+    print("")
+    foreach (int v in m[1])             // row 1 - an index left out means all of it
+        write("{v} ")                   // 4 5 6
+    print("")
+    foreach (int v in m[][2])           // column 2 - one value per row
+        write("{v} ")                   // 3 6
+    print("")
+    int[] row = m[0]                    // a copy - numbers and strings copied, objects shared
+    row[0] = 9
+    print("{@1} {@2} {@3}", row[0], m[0][0], m[1].length)    // 9 1 3
+    print("{@1}", m[1][2].length)       // -1 - one slot has no length
+```
+A part of an array is a **view** (D.149): `cube[1]` (row 1), `cube[][2][1]` (column 2 of sheet 1),
+`cube[][][3]` (sheet 3). In a `foreach` it is borrowed - nothing is copied, and writing to it writes
+the array; given to a variable it is a copy (`byVal` copies its objects too). `foreach` and `length`
+take the outer dimension first: depth, then columns, then rows (`[arrays] order = "rows"`: rows first).
+
 #### Combining arrays: `a + b + c`
 
 <!-- example: syntax_array_combine | task: 45.4 -->

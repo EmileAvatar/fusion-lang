@@ -1058,7 +1058,8 @@ class NameResolver:
                 self.resolve_expression(element)
         elif isinstance(expr, IndexExpr):
             self.resolve_expression(expr.array)
-            self.resolve_expression(expr.index)
+            if expr.index is not None:                 # cube[][2] - left out (45.12b)
+                self.resolve_expression(expr.index)
         elif isinstance(expr, NamedArgument):
             self.resolve_expression(expr.value)
         elif isinstance(expr, (EnumStaticCall, ErrorMakeExpr)):   # Task 25, Task 26

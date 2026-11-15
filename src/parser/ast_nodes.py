@@ -232,6 +232,7 @@ class ArrayLiteralExpr(ASTNode):
 
 @dataclass
 class IndexExpr(ASTNode):
+    # index None: `cube[][2]` - left out, all of that dimension (Task 45.12b)
     """Array index expression: arr[index]
 
     Attributes:

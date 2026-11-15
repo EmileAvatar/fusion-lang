@@ -228,9 +228,9 @@ void function collections() {
     cube[1][2][3] = 5                   // also cube[1],[2],[3]
     int n = cube.length                 // 4 - the outer dimension first (D.148, [arrays] order)
     int[][] m = [[1, 2, 3], [4, 5, 6]]  // the sizes from the values
-    // [designed] FLAT / RECT / JAGG (D.144); -1 as the length of one slot (45.12b)
+    // [built] -1 as the length of one slot (45.12b); [designed] FLAT / RECT / JAGG (D.144)
     int none = cube[1][2][3].length     // -1 - one slot has no length
-    // [designed] Views (D.149): an index left out means all of that dimension
+    // [built] Views (45.12b, D.149): an index left out means all of that dimension
     int[] column = cube[][2][1]         // column 2 of sheet 1, one value per row - copied
     foreach (int[][] sheet in cube)     // depth -> columns -> rows; borrowed in a loop
         print("{@1}", sheet.length)

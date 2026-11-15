@@ -1,31 +1,48 @@
-"""Arrays of 2 and 3 dimensions (Task 45.12a, D.143, D.148).
+"""Arrays of 2 and 3 dimensions (Tasks 45.12a, 45.12b - D.143, D.148, D.149).
 
 `int[2][3][4] cube` is rows x columns x depth. It is one flat block of every slot (FLAT, D.144), so
 the rest of the compiler sees a plain array of 24: the slots get their default values, strings are
-freed and the stack measure (45.13) counts it as one. What this module adds:
+freed and the stack measure (45.13) counts it as one.
 
-- the declaration: its sizes written, or taken from nested values `[[1, 2, 3], [4, 5, 6]]` (every
-  row the same length); the values are put in the order the slots lie in memory
-- `cube[1][2][3]` (or `cube[1],[2],[3]`): one index per dimension, each checked against its own
-  size; the generator turns them into one position
-- `rows`, `columns` (2 and 3 dimensions), `depth` (3 only), `length` - the outer dimension first
+Slots: each dimension of the root array has an index - given (an expression), or open. `cube[1][2][3]`
+gives all three: one slot, one position in the block. Fewer, or `[]`, leave some open - a **view**
+(D.149): `cube[1]` (row 1: columns x depth), `cube[][2][1]` (column 2 of sheet 1: one value per
+row), `cube[][][3]` (sheet 3). A view has no memory of its own; its type remembers the root, the
+slots and the sizes, so `sheet[0][1]` is again one position in the root's block.
 
-`[arrays] order` (D.148) decides which index varies fastest in memory - "columns" (the default):
-the outer dimension first, depth -> columns -> rows, so rows vary fastest; "rows": as C, the last
-index fastest. A loop (45.12b) then reads the slots one after another.
+- `length`: the outer open dimension - depth, then columns, then rows (`[arrays] order` "columns",
+  D.148; "rows": rows first); on one slot -1 (no error) unless the slot's value has a length
+- `foreach` over an array or a view walks its outer open dimension; the loop variable is a view
+  of what is left (borrowed - nothing copied), or the value itself on the last level. The indices a
+  view fixes are worked out once, before the loop (HeldIndex)
+- a view given to a variable is copied (`int[][] s = cube[][][3]`): numbers and strings copied,
+  objects shared - `byVal` copies them too
 
-Anything else done with the whole array - a view (`cube[1]`), passing it, copying, comparing,
-looping over it - comes with 45.12b / 45.12c; `check_many_dims_uses` makes each an error until then.
+`[arrays] order` decides which index varies fastest in memory - "columns" (the default): rows
+fastest, so a loop over depth -> columns -> rows reads the slots one after another.
+
+Passing, returning, comparing and replacing the whole array come with 45.12c;
+`check_many_dims_uses` makes each an error until then.
 """
-from dataclasses import fields, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass
+from typing import Any, Optional
 
-from src.parser.ast_nodes import (ArrayLiteralExpr, ArrayType, FunctionDecl, IdentifierExpr, IndexExpr,
-                                  LiteralExpr, MemberExpr, PrimitiveType, StructDecl, TypeNode,
+from src.parser.ast_nodes import (ASTNode, ArrayLiteralExpr, ArrayType, ForStmt, FunctionDecl, IdentifierExpr,
+                                  IndexExpr, LiteralExpr, MemberExpr, PrimitiveType, StructDecl, TypeNode,
                                   VarDeclStmt)
 
 from .errors import SemanticError
 
 DIMENSION_NAMES = ('rows', 'columns', 'depth')
+
+
+@dataclass
+class HeldIndex(ASTNode):
+    """An index worked out once and kept in a C name: a loop's counter (`value` None), or an index
+    a looped view fixes (`cube[r][][]` - r read once, before the loop)."""
+    value: Optional[Any] = None
+    c_name: str = ''
+    size: int = 0
 
 
 def strides(dims: list, order: str) -> list:
@@ -39,16 +56,55 @@ def strides(dims: list, order: str) -> list:
     return result
 
 
-def _name_of(expr) -> str:
+def _product(values) -> int:
+    total = 1
+    for v in values:
+        total *= v
+    return total
+
+
+def _root(expr):
     while isinstance(expr, IndexExpr):
         expr = expr.array
+    return expr
+
+
+def _name_of(expr) -> str:
+    expr = _root(expr)
     return expr.name if isinstance(expr, IdentifierExpr) else 'the array'
+
+
+def _many(type_node) -> bool:
+    return isinstance(type_node, ArrayType) and bool(type_node.dims)
+
+
+def _view_type(location, element, root, slots, full) -> ArrayType:
+    """The type of a view: its open dimensions, and where it lies in the root (D.149)."""
+    open_dims = [full[k] for k, s in enumerate(slots) if s is None]
+    view = ArrayType(location=location, element_type=element, size=_product(open_dims), dims=open_dims)
+    view.view = True
+    view.view_info = (root, list(slots), list(full))
+    return view
 
 
 class ManyDimsMixin:
     """The type rules of 2 and 3 dimensions - a mixin of the type checker."""
 
     array_order = 'columns'
+
+    def _info(self, expr, array_type) -> tuple:
+        """(root, slots, full sizes) of an array or a view."""
+        info = getattr(array_type, 'view_info', None)
+        if info is not None:
+            return info[0], list(info[1]), list(info[2])
+        return expr, [None] * len(array_type.dims), list(array_type.dims)
+
+    def _outer_open(self, slots) -> int:
+        """The dimension a loop and length take first - [arrays] order (D.148)."""
+        open_dims = [k for k, s in enumerate(slots) if s is None]
+        return open_dims[-1] if self.array_order == 'columns' else open_dims[0]
+
+    # ------------------------------------------------------------------ declarations
 
     def check_many_dims_declaration(self, node: VarDeclStmt) -> None:
         """`int[2][3] m`, `int[][] m = [[1, 2, 3], [4, 5, 6]]` - the sizes, and the values flattened."""
@@ -61,11 +117,14 @@ class ManyDimsMixin:
                     f"'{node.name}' needs its sizes or its values: {self.type_to_string(array.element_type)}"
                     f"{''.join('[2]' for _ in dims)} {node.name}, or ... = [[...], [...]]", node.location))
             return
+        if self.is_view_value(value):
+            self.check_view_copy(node)
+            return
         if not isinstance(value, ArrayLiteralExpr):
             self.visit(value)
             self.errors.append(SemanticError(
-                f"An array of {len(dims)} dimensions is set from its values for now - [[1, 2], [3, 4]]; "
-                f"from a function or another array comes with Task 45.12c", value.location))
+                f"An array of {len(dims)} dimensions is set from its values or from a part of another one "
+                f"for now - [[1, 2], [3, 4]], cube[][][3]; from a function comes with Task 45.12c", value.location))
             return
         found = list(dims)
         leaves = []
@@ -80,10 +139,9 @@ class ManyDimsMixin:
             if found[depth] is None:
                 found[depth] = count
             if count != found[depth]:
-                what = DIMENSION_NAMES[depth] if depth < 3 else 'values'
                 self.errors.append(SemanticError(
-                    f"'{node.name}' needs {found[depth]} {what} here, got {count} - every row the same length "
-                    f"(an irregular array is JAGG - Task 45.15)", literal.location))
+                    f"'{node.name}' needs {found[depth]} {DIMENSION_NAMES[depth]} here, got {count} - every row "
+                    f"the same length (an irregular array is JAGG - Task 45.15)", literal.location))
                 return
             for i, element in enumerate(literal.elements):
                 if depth + 1 < len(dims):
@@ -106,9 +164,7 @@ class ManyDimsMixin:
                 self.errors.append(SemanticError(
                     f"A value of '{node.name}' must be {self.type_to_string(element_type)}, got "
                     f"{self.type_to_string(actual)}", leaf.location))
-        total = 1
-        for d in found:
-            total *= d
+        total = _product(found)
         array.dims[:] = found
         array.size = total
         step = strides(found, self.array_order)
@@ -119,34 +175,109 @@ class ManyDimsMixin:
         node.initializer.inferred_type = ArrayType(location=value.location, element_type=element_type,
                                                    size=total)
 
+    def is_view_value(self, value) -> bool:
+        """Is this - written as it is - a part of an array of many dimensions (`cube[1]`, `sheet`)?
+        Decided from the names, before the value is checked."""
+        inner = value
+        while type(inner).__name__ == 'PassingExpr':
+            inner = inner.value
+        if not isinstance(inner, (IndexExpr, IdentifierExpr)):
+            return False
+        root = _root(inner)
+        if not isinstance(root, IdentifierExpr):
+            return False
+        symbol = self.symbol_table.lookup(root.name)
+        kind = getattr(symbol, 'data_type', None)
+        if getattr(kind, 'view', False):
+            return True
+        return _many(kind) and isinstance(inner, IndexExpr)
+
+    def check_view_copy(self, node: VarDeclStmt) -> None:
+        """`int[][] sheet = cube[][][3]`, `int[] row = m[1]` - a copy of a view (D.149): numbers and
+        strings copied, objects shared; `byVal` copies them too."""
+        value = node.initializer
+        by_val = by_ref = False
+        if type(value).__name__ == 'PassingExpr':
+            by_val, by_ref = value.by_val, not value.by_val
+        kind = self.visit(value)
+        var = node.var_type
+        if by_ref:
+            self.errors.append(SemanticError(
+                f"'{node.name}': a part of an array given to a variable is a copy (D.149) - byRef can't "
+                f"borrow it; loop over it instead (foreach) to use it in place", value.location))
+            return
+        if not getattr(kind, 'view', False):
+            if _many(kind):
+                self.errors.append(SemanticError(
+                    f"'{node.name}': copying a whole array of many dimensions comes with Task 45.12c",
+                    value.location))
+            else:
+                self.errors.append(SemanticError(
+                    f"Cannot assign {self.type_to_string(kind)} to '{node.name}' "
+                    f"({self.type_to_string(var)})", value.location))
+            return
+        root, slots, full = kind.view_info
+        sizes = list(kind.dims)
+        want = len(var.dims) if var.dims else 1
+        if want != len(sizes):
+            self.errors.append(SemanticError(
+                f"'{node.name}' has {want} dimension{'s' if want > 1 else ''} - this part of "
+                f"'{_name_of(root)}' has {len(sizes)}", value.location))
+            return
+        if not self.types_equal(var.element_type, kind.element_type):
+            self.errors.append(SemanticError(
+                f"'{node.name}' holds {self.type_to_string(var.element_type)} - '{_name_of(root)}' holds "
+                f"{self.type_to_string(kind.element_type)}", value.location))
+            return
+        written = var.dims if var.dims else [var.size]
+        if any(w is not None and w != s for w, s in zip(written, sizes)):
+            self.errors.append(SemanticError(
+                f"'{node.name}' is {self.type_to_string(var)} - this part of '{_name_of(root)}' is "
+                f"{' x '.join(str(s) for s in sizes)}", value.location))
+            return
+        if var.dims:
+            var.dims[:] = sizes
+        var.size = _product(sizes)
+        target = strides(sizes, self.array_order) if var.dims else [1]
+        node.view_copy = (root, slots, full, strides(full, self.array_order), target, by_val)
+
+    # ------------------------------------------------------------------ an index, a view
+
     def many_dims_index(self, node: IndexExpr, array_type: ArrayType, index_type) -> TypeNode:
-        """`m[1]` on an array of many dimensions: one more index taken; all of them - the slot."""
-        if not (isinstance(index_type, PrimitiveType) and index_type.name == 'int'):
+        """`m[1]`, `m[]`, `m[1][2]` on an array of many dimensions or a view: the next open
+        dimension given (or left open with []); all given - one slot."""
+        if node.index is not None and not (isinstance(index_type, PrimitiveType) and index_type.name == 'int'):
             self.errors.append(SemanticError(
                 f"Array index must be int, got {self.type_to_string(index_type)}", node.index.location))
         inner = node.array
         chain = getattr(inner, 'dims_chain', None) if isinstance(inner, IndexExpr) else None
-        root, indices, full = chain if chain else (inner, [], array_type.dims)
-        indices = indices + [node.index]
-        size = full[len(indices) - 1]
+        if chain:
+            root, base, entries, full = chain
+        else:
+            root, base, full = self._info(inner, array_type)
+            entries = []
+        open_base = [k for k, s in enumerate(base) if s is None]
+        if len(entries) >= len(open_base):
+            self.errors.append(SemanticError(
+                f"Too many indices - '{_name_of(root)}' has {len(full)} dimensions", node.location))
+            return array_type.element_type
+        entries = entries + [node.index]
+        dim = open_base[len(entries) - 1]
         index = node.index
         if isinstance(index, LiteralExpr) and isinstance(index.value, int) and not isinstance(index.value, bool) \
-                and size is not None and not 0 <= index.value < size:
-            what = DIMENSION_NAMES[len(indices) - 1]
+                and not 0 <= index.value < full[dim]:
             self.errors.append(SemanticError(
-                f"Index {index.value} is outside '{_name_of(root)}' - its {what} are 0 to {size - 1}",
-                index.location))
-        rest = full[len(indices):]
-        if rest:
-            node.dims_chain = (root, indices, full)
-            total = 1
-            for d in rest:
-                total *= d or 0
-            view = ArrayType(location=node.location, element_type=array_type.element_type, size=total,
-                             dims=list(rest))
-            view.view = True
-            return view
-        node.dims_slot = (root, indices, list(full), strides(full, self.array_order))
+                f"Index {index.value} is outside '{_name_of(root)}' - its {DIMENSION_NAMES[dim]} are 0 to "
+                f"{full[dim] - 1}", index.location))
+        slots = list(base)
+        for k, entry in zip(open_base, entries):
+            slots[k] = entry
+        node.dims_chain = (root, base, entries, full)
+        if None in slots or len(entries) < len(open_base):
+            for k in open_base[len(entries):]:
+                slots[k] = None
+            return _view_type(node.location, array_type.element_type, root, slots, full)
+        node.dims_slot = (root, slots, full, strides(full, self.array_order))
         return array_type.element_type
 
     def many_dims_member(self, node: MemberExpr, array_type: ArrayType):
@@ -155,10 +286,14 @@ class ManyDimsMixin:
         if member not in DIMENSION_NAMES + ('length', 'len'):
             return None
         int_type = PrimitiveType(location=node.location, name='int')
+        root, slots, full = self._info(node.object, array_type)
         if getattr(array_type, 'view', False):
-            self.errors.append(SemanticError(
-                f"The length of a part of '{_name_of(node.object)}' comes with views (Task 45.12b)",
-                node.location))
+            if member in DIMENSION_NAMES:
+                self.errors.append(SemanticError(
+                    f"{member} is the whole array's - '{_name_of(root)}.{member}'; a part has a length",
+                    node.location))
+                return int_type
+            node.dims_value = full[self._outer_open(slots)]
             return int_type
         dims = array_type.dims
         if member == 'depth' and len(dims) < 3:
@@ -169,8 +304,63 @@ class ManyDimsMixin:
         if member in DIMENSION_NAMES:
             node.dims_value = dims[DIMENSION_NAMES.index(member)]
         else:       # the outer dimension first - [arrays] order (D.148)
-            node.dims_value = dims[-1] if self.array_order == 'columns' else dims[0]
+            node.dims_value = full[self._outer_open(slots)]
         return int_type
+
+    def slot_length(self, node: MemberExpr, slot_type) -> bool:
+        """`cube[1][2][3].length` - one slot: -1, not an error (D.143), unless its value has a
+        length of its own (a string, a List)."""
+        if node.member not in ('length', 'len') or not isinstance(node.object, IndexExpr) \
+                or not getattr(node.object, 'dims_slot', None) or self._has_length(slot_type):
+            return False
+        node.dims_value = -1
+        return True
+
+    # ------------------------------------------------------------------ foreach
+
+    def many_dims_loop(self, node: ForStmt, iterable_type: ArrayType):
+        """`foreach (int[][] sheet in cube)` - the outer open dimension (D.148); the loop variable is
+        a view of the rest (borrowed), or the value on the last level. None after an error."""
+        root, slots, full = self._info(node.iterable, iterable_type)
+        self.held_count = getattr(self, 'held_count', 0) + 1
+        number = self.held_count
+        held = []
+        for k, slot in enumerate(slots):
+            if slot is None or isinstance(slot, HeldIndex):
+                continue
+            if isinstance(slot, LiteralExpr):
+                continue                                 # a written number - nothing to work out
+            slot = HeldIndex(location=slot.location, value=slot, c_name=f'fusion_at_{number}_{k}', size=full[k])
+            slots[k] = slot
+            held.append(slot)
+        dim = self._outer_open(slots)
+        counter = HeldIndex(location=node.location, value=None, c_name=f'fusion_dim_{number}', size=full[dim])
+        slots[dim] = counter
+        node.dims_loop = (held, counter)
+        element = iterable_type.element_type
+        declared = getattr(node, 'declared_type', None)
+        what = DIMENSION_NAMES[dim]
+        if None in slots:
+            item = _view_type(node.location, element, root, slots, full)
+            if declared is not None:
+                want = len(declared.dims) if isinstance(declared, ArrayType) and declared.dims else \
+                    (1 if isinstance(declared, ArrayType) else 0)
+                if want != len(item.dims) or not self.types_equal(declared.element_type, element):
+                    brackets = ''.join('[]' for _ in item.dims)
+                    self.errors.append(SemanticError(
+                        f"foreach over '{_name_of(root)}' gives its {what} - each one "
+                        f"{self.type_to_string(element)}{brackets}: foreach ({self.type_to_string(element)}"
+                        f"{brackets} x in ...)", node.location))
+                    return None
+        else:
+            item = element
+            node.dims_item = (root, slots, full, strides(full, self.array_order))
+            if declared is not None and not self.types_equal(declared, element):
+                self.errors.append(SemanticError(
+                    f"foreach over this part of '{_name_of(root)}' gives its values - each one "
+                    f"{self.type_to_string(element)}", node.location))
+                return None
+        return item
 
 
 def _children(node):
@@ -186,13 +376,22 @@ def _children(node):
             yield value
 
 
-def _many(type_node) -> bool:
-    return isinstance(type_node, ArrayType) and bool(type_node.dims)
+def _allowed(node, parent) -> bool:
+    """A many-dimension array or a view used where it is built (45.12a, 45.12b)."""
+    if isinstance(parent, IndexExpr) and parent.array is node:
+        return True
+    if isinstance(parent, MemberExpr) and getattr(parent, 'dims_value', None) is not None:
+        return True
+    if isinstance(parent, ForStmt) and parent.iterable is node and getattr(parent, 'dims_loop', None):
+        return True
+    if isinstance(parent, VarDeclStmt) and getattr(parent, 'view_copy', None):
+        return True
+    return type(parent).__name__ == 'PassingExpr'        # byVal cube[1] - its parent decides
 
 
 def check_many_dims_uses(program) -> list:
-    """The uses of a many-dimension array not built yet (45.12b, 45.12c) - each an error, never a
-    silent use of the flat block."""
+    """The uses of a many-dimension array not built yet (45.12c) - each an error, never a silent use
+    of the flat block."""
     errors = []
     for decl in program.declarations:
         if isinstance(decl, VarDeclStmt) and _many(decl.var_type):
@@ -226,20 +425,20 @@ def check_many_dims_uses(program) -> list:
                 continue
             seen.add(id(node))
             kind = getattr(node, 'inferred_type', None)
-            if _many(kind) and not isinstance(node, VarDeclStmt):
-                allowed = (isinstance(parent, IndexExpr) and parent.array is node) or \
-                          (isinstance(parent, MemberExpr) and getattr(parent, 'dims_value', None) is not None)
-                if not allowed and not getattr(node, 'reported_many', False):
-                    node.reported_many = True
-                    if getattr(kind, 'view', False):
-                        errors.append(SemanticError(
-                            f"A part of '{_name_of(node)}' - a view (cube[1], cube[][2]) - comes with Task 45.12b; "
-                            f"give every index: one slot", node.location))
-                    else:
-                        errors.append(SemanticError(
-                            f"'{_name_of(node)}' has {len(kind.dims)} dimensions - for now it is used through its "
-                            f"slots ({_name_of(node)}[0][0]) and rows / columns / depth / length; passing, "
-                            f"copying, comparing and looping over it come with Task 45.12b-c", node.location))
+            if _many(kind) and not isinstance(node, VarDeclStmt) and not _allowed(node, parent) \
+                    and not getattr(node, 'reported_many', False):
+                node.reported_many = True
+                if getattr(kind, 'view', False):
+                    errors.append(SemanticError(
+                        f"A part of '{_name_of(node)}' is used here in a loop (foreach), copied into a variable "
+                        f"(int[] row = m[1]) or through its slots; passing it to a function comes with "
+                        f"Task 45.12c", node.location))
+                else:
+                    errors.append(SemanticError(
+                        f"'{_name_of(node)}' has {len(kind.dims)} dimensions - for now it is used through its "
+                        f"slots ({_name_of(node)}[0][0]), its parts, foreach and rows / columns / depth / length; "
+                        f"passing, copying the whole, comparing and replacing it come with Task 45.12c",
+                        node.location))
             for child in _children(node):
                 todo.append((child, node))
     return errors
