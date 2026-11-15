@@ -68,8 +68,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Rule 4b: a null object slot, read with and without `?.`.
 
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
-  45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits), 45.3b (`int:[10]`), 45.12a (2 and 3 dimensions), 45.12b (views), 45.12c (functions), 45.17 (bare enum values), 45.12d (growable, expand) - FEATURES Task 45
-- **Next Action:** 45.11 `toList` / `toCSV` on arrays of 2 and 3 dimensions
+  45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits), 45.3b (`int:[10]`), 45.12a (2 and 3 dimensions), 45.12b (views), 45.12c (functions), 45.17 (bare enum values), 45.12d (growable, expand), 45.11 (toList) - FEATURES Task 45
+- **Next Action:** 45.15 storage FLAT / RECT / JAGG (`[arrays] storage`, `setStorage`) - plan its parts first
 
 ### 45.12 Up to 3 dimensions - the plan (2026-11-15, replanned after OpenQuestions Q.021-Q.027)
 Settings: `[arrays] order` = "columns" (default) / "rows" (D.148), built with 45.12a; `[arrays] storage` is 45.15.

@@ -1252,6 +1252,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return f'{helper}((void*)({needed}))'
         if getattr(node, 'grid_expand', None):
             return self._grid_expand_code(node)       # g.expand(ROWS, 1) (45.12d)
+        if getattr(node, 'dims_to_list', None):
+            return self._many_dims_to_list(node)      # cube.toList() - a List of Lists (45.11)
         if getattr(node, 'list_method', None):
             return self.list_method_code(node)
         if getattr(node, 'map_method', None):
@@ -1703,6 +1705,49 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     def grid_helper_lines(self) -> list:
         lines = [line for helper in getattr(self, 'grid_helpers', {}).values() for line in helper]
         return ['// Growable arrays of many dimensions: expand (Task 45.12d)'] + lines if lines else []
+
+    def _many_dims_to_list(self, node) -> str:
+        """`cube.toList()` (45.11): one loop per open dimension, the outer first; a List made at each
+        level and added to the one above; the values copied (deep, as an array's toList)."""
+        root, slots, full, steps, order = node.dims_to_list
+        kinds = [node.inferred_type]
+        for _ in order[1:]:
+            kinds.append(kinds[-1].element_type)
+        names = [self.list_c_name(k) for k in kinds]
+        element = kinds[-1].element_type
+        counters = [f'fusion_t{j}' for j in range(len(order))]
+        fixed = self._slot_position(slots, full, steps, node)
+        position = ' + '.join(['fusion_off'] + [c if steps[k] == 1 else f'{c} * {steps[k]}'
+                                                for c, k in zip(counters, order)])
+        value = f'{self.visit(root)}[{position}]'
+        if self.is_managed(element):
+            value = self.clone_code(element, value)
+        parts = [f'__extension__ ({{ int fusion_off = {fixed}; int fusion_bad = 0;']
+        nullable = self.is_class_type(element) or isinstance(element, EnumType)
+        if nullable:
+            # D.139: a List never holds null - every slot looked at first, nothing made if one is
+            empty = 'FUSION_ENUM_NULL' if isinstance(element, EnumType) else 'NULL'
+            slot = f'{self.visit(root)}[{position}]'
+            parts += [f'for (int {counters[j]} = 0; {counters[j]} < {full[k]}; {counters[j]}++)'
+                      for j, k in enumerate(order)]
+            parts.append(f'if ({slot} == {empty}) fusion_bad = 1;')
+            parts.append(f'if (fusion_bad) fusion_null_fail({self._where(node)}, "toList: a slot is null - '
+                         f'a List never holds null (D.139)");')
+        # a failed one gives NULL, as a failed slice does - nothing to free on the way out
+        parts.append(f'{names[0]} fusion_l0 = fusion_bad ? NULL : {names[0]}_new(); if (!fusion_bad) {{')
+        for j, k in enumerate(order):
+            parts.append(f'for (int {counters[j]} = 0; {counters[j]} < {full[k]}; {counters[j]}++) {{')
+            if j + 1 < len(order):
+                parts.append(f'{names[j + 1]} fusion_l{j + 1} = {names[j + 1]}_new();')
+        parts.append(f'{names[-1]}_add(fusion_l{len(order) - 1}, {value});')
+        for j in reversed(range(len(order))):
+            parts.append('}')
+            if j > 0:
+                parts.append(f'{names[j - 1]}_add(fusion_l{j - 1}, fusion_l{j});')
+        parts.append('} fusion_l0; })')
+        code = ' '.join(parts)
+        code = code if id(node) in self.consumed else self.fresh_temporary(code, node.inferred_type)
+        return self.checked_code(code, self.map_type(node.inferred_type)) if nullable else code
 
     def visit_HeldIndex(self, node) -> str:
         return node.c_name           # an index worked out once, or a loop's counter (45.12b)

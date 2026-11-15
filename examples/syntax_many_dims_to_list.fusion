@@ -1,0 +1,6 @@
+void function main()
+    int[][] m = [[1, 2, 3], [4, 5, 6]]  // 2 rows x 3 columns
+    List<List<int>> columns = m.toList()            // the outer dimension first, as foreach
+    print("{@1} {@2}", columns.len(), columns[2][1])        // 3 6 - its 3 columns, 2 values each
+    List<int> row = m[1].toList()       // a part: row 1
+    print("{@1}", row.len())            // 3

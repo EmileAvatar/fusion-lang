@@ -423,6 +423,8 @@ over depth -> columns -> rows reads the slots one after another.
 | Copy or replace the whole | `int[2][3] n = m`, `m = make()` | an error for now | later |
 | Grow | `int:[2][3][4] g`, `int[[2],[3],[4]] g`, `int:[][] g = [...]`; `g.expand(ROWS, 1)` | on the heap; a warning; it stays a cube, new slots the default | 45.12d |
 | Grow by a number | `g.expand(0, 1)` | an error - the Collections library | - |
+| To a List | `m.toList()`, `cube.toList()`, `m[1].toList()` | a List of Lists, the outer dimension first; a copy; a null slot a NullError | 45.11 |
+| To CSV | `m.toCSV()` | an error - not built yet | - |
 | Grow while looping | `foreach (int[] c in g)` ... `g.expand(ROWS, 1)` | a compile error (D.058) | 45.12d |
 | 4 dimensions | `int[2][3][4][5]` | a compile error - the Collections library | - |
 

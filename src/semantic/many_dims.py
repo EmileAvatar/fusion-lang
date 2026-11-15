@@ -503,6 +503,34 @@ class ManyDimsMixin:
         node.callee.grid_expand_callee = True
         return void
 
+    def many_dims_to_list(self, node, array_type: ArrayType):
+        """`cube.toList()` (45.11): a List of Lists in the loop's order - the outer dimension first
+        (depth -> columns -> rows; [arrays] order rows: rows first), as foreach gives them. A copy."""
+        from src.parser.ast_nodes import ListType
+        receiver = node.callee.object
+        root, slots, full = self._info(receiver, array_type)
+        if not isinstance(root, IdentifierExpr):
+            self.errors.append(SemanticError(
+                "toList on an array a function gives - keep the array in a variable first", node.location))
+        if node.arguments:
+            given = node.arguments[0]
+            self.visit(given)
+            if len(node.arguments) > 1 or not (isinstance(given, LiteralExpr) and given.value is True):
+                self.errors.append(SemanticError(
+                    "An array's toList always copies - leave the value out", given.location))
+        order, left = [], list(slots)
+        while None in left:
+            dim = self._outer_open(left)
+            order.append(dim)
+            left[dim] = 'taken'
+        result = array_type.element_type
+        for _ in order:
+            result = ListType(location=node.location, element_type=result)
+        self._check_collection_type(result, node.location)
+        node.dims_to_list = (root, slots, full, strides(full, self.array_order), order)
+        node.callee.many_callee = True
+        return result
+
     def many_dims_member(self, node: MemberExpr, array_type: ArrayType):
         """`m.rows`, `m.columns`, `m.depth`, `m.length` - known while compiling. None: not one."""
         member = node.member
@@ -615,8 +643,9 @@ def _allowed(node, parent) -> bool:
         return True
     if isinstance(parent, MemberExpr) and getattr(parent, 'dims_value', None) is not None:
         return True
-    if isinstance(parent, MemberExpr) and getattr(parent, 'grid_expand_callee', False):
-        return True                                        # g.expand(ROWS, 1) (45.12d)
+    if isinstance(parent, MemberExpr) and (getattr(parent, 'grid_expand_callee', False)
+                                           or getattr(parent, 'many_callee', False)):
+        return True                                        # g.expand(ROWS, 1) (45.12d), cube.toList() (45.11)
     if isinstance(parent, ForStmt) and parent.iterable is node and getattr(parent, 'dims_loop', None):
         return True
     if isinstance(parent, VarDeclStmt) and getattr(parent, 'many_ok', False):

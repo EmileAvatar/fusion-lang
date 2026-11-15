@@ -89,7 +89,8 @@ team.scores = podium()     // an array field too
   parameters (any size: its sizes passed hidden), a part passed as a copy, `int[2][3] function f()`,
   `==` on the same shape. Growable (built - 45.12d): `int:[2][3] g` / `int[[2],[3]] g` / `int:[][] g = [...]`
   on the heap, `g.expand(ROWS / COLUMNS / DEPTH, n)` (the built-in enum `Dimension`) with a warning; more than
-  3 and `expand(0, n)`: the Collections library
+  3 and `expand(0, n)`: the Collections library. `toList()` (built - 45.11): a List of Lists, the outer
+  dimension first, as foreach; a null object slot a NullError (D.139)
 - An array size given as anything other than an integer literal (`int[n]` where `n` is a
   variable is not supported; only `int[5]`-style literal sizes are)
 - Whole-array reassignment - built since Task 45.10 (D.141): `arr = [4, 5]` or `arr = make()` replaces

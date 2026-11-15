@@ -101,6 +101,8 @@ class CollectionRulesMixin:
         if not (isinstance(receiver_type, ArrayType) or heap) or self.user_method('toList', receiver_type):
             return None
         self.checked_receivers.pop(id(receiver), None)
+        if isinstance(receiver_type, ArrayType) and receiver_type.dims:
+            return self.many_dims_to_list(node, receiver_type)      # a List of Lists (45.11)
         element = receiver_type.element_type
         if isinstance(element, ArrayType):
             self.errors.append(SemanticError(

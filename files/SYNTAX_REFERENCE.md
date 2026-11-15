@@ -331,6 +331,21 @@ A part of an array is a **view** (D.149): `cube[1]` (row 1), `cube[][2][1]` (col
 the array; given to a variable it is a copy (`byVal` copies its objects too). `foreach` and `length`
 take the outer dimension first: depth, then columns, then rows (`[arrays] order = "rows"`: rows first).
 
+#### toList on arrays of 2 and 3 dimensions
+
+<!-- example: syntax_many_dims_to_list | task: 45.11 -->
+```fusion
+void function main()
+    int[][] m = [[1, 2, 3], [4, 5, 6]]  // 2 rows x 3 columns
+    List<List<int>> columns = m.toList()            // the outer dimension first, as foreach
+    print("{@1} {@2}", columns.len(), columns[2][1])        // 3 6 - its 3 columns, 2 values each
+    List<int> row = m[1].toList()       // a part: row 1
+    print("{@1}", row.len())            // 3
+```
+`toList()` gives a List of Lists in the loop's order - depth, then columns, then rows (`[arrays] order =
+"rows"`: rows first). It is a copy. A List never holds null (D.139): an object slot that is null is a
+NullError - fill every slot first. `toCSV()` on these arrays is not built yet.
+
 #### Growable arrays of 2 and 3 dimensions: `expand`
 
 <!-- example: syntax_many_dims_growable | task: 45.12d -->

@@ -334,6 +334,12 @@ class StructParentRulesMixin:
             return None
         receiver_type = self.visit(receiver)
         self.checked_receivers[id(receiver)] = receiver_type
+        if getattr(receiver_type, 'dims', None):
+            self.checked_receivers.pop(id(receiver), None)
+            self.errors.append(SemanticError(
+                "toCSV on an array of 2 or 3 dimensions isn't built yet - toList() gives its values "
+                "(Task 45.11)", node.location))
+            return PrimitiveType(location=node.location, name='string')
         kind, element = 'struct', receiver_type
         if isinstance(receiver_type, ArrayType):
             kind, element = 'array', receiver_type.element_type

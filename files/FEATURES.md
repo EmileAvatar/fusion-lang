@@ -164,7 +164,9 @@ then the open tasks, the postponed ones, and the phase's goal last.
 			[ ] Later: a part of strings / objects passed; returning any size (heap); copying a part of an any-size parameter; `==` on parts
 		[DONE] 45.12d Growable `int:[2][3][4]` / `int[[2],[3],[4]]` / `int:[][] g = [...]` on the heap; `expand(ROWS / COLUMNS / DEPTH, n)` with a warning; the built-in enum `Dimension`; no expand inside a loop over it - tests/test_many_dims_growable.py, example syntax_many_dims_growable
 		[ ] 45.12e Copying or replacing a whole array of many dimensions (`int[2][3] n = m`, `m = make()`, `g = [[...]]`) - an error today
-		[ ] 45.11 `toList` and `toCSV` on them
+		[DONE] 45.11 `toList` on them: a List of Lists, the outer dimension first (D.148 - user, 2026-11-15); a null object slot a NullError, nothing leaked - tests/test_many_dims_to_list.py, example syntax_many_dims_to_list
+			[ ] `toCSV` on them - waits for CSV of plain values: an `int[]` has no toCSV either (only structs today) - to decide
+			[ ] A one-dimension array's `toList()` copies a null slot into the List - against D.139 (found 45.11) - to decide
 	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)
 	[DONE] 45.17 A bare enum value where the enum type is known: parameters, declarations, assignments, returns, comparisons, `case` - every enum; a variable of the same name an error (D.150) - tests/test_bare_enum.py, example syntax_enum_bare
 	[DONE] 45.3b `int:[10] g` / `int[[10]] g` - a growable array with 10 slots of the default value, length 10 (D.141); `int:[3] g = [1, 2, 3]` sizes agree - tests/test_growable_arrays.py
