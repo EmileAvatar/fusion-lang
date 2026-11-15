@@ -86,6 +86,9 @@ class EqualityMixin:
             element_c = self.map_type(array_type.element_type)
             elements = ', '.join(self.visit(e) for e in expr.elements)
             return f'(({element_c}[]){{{elements}}})', str(len(expr.elements))
+        if getattr(array_type, 'array_form', False):
+            code = self.visit(expr)          # a heap array (45.10) held by a name: items, length
+            return f'{code}->data', f'{code}->len'
         code = self.visit(expr)
         if array_type.size is None and isinstance(expr, IdentifierExpr):
             return code, array_length_name(expr.name)  # an `int[]` parameter (18.1.2)

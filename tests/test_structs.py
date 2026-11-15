@@ -589,7 +589,6 @@ def test_struct_containing_itself_rejected(source, message):
 # --- Errors
 
 @pytest.mark.parametrize("source, message", [
-    ('struct P\n    int[] xs\n\n' + main('int y = 1'), "Array field 'xs' of struct 'P' needs a size"),
     ('struct P\n    void[2] xs\n\n' + main('int y = 1'), "can't hold void"),
     (POINT + 'struct Q\n    Point p = 5\n\n' + main('int y = 1'),
      "Field 'p' of struct 'Q' can't have a default value - an array or struct field"),
@@ -725,8 +724,6 @@ ARRAY_CALL_HINT = "The array returned by 'make' can't be used here"
 
 
 @pytest.mark.parametrize("source, message", [
-    ('int[] function f() : [1]\n' + main('int y = 1'),
-     "Function 'f' returns an array, so its return type needs a size (e.g. int[3])"),
     (MAKE + main('int n = len(make())'), ARRAY_CALL_HINT),
     (MAKE + main('print("{@1}", make())'), ARRAY_CALL_HINT),
     (MAKE + 'int function s(int[] v) : v[0]\n' + main('int r = s(make())'), ARRAY_CALL_HINT),
@@ -750,9 +747,10 @@ def test_array_return_errors(source, message):
     assert message in errors_of(source)
 
 
-def test_unsized_return_reported_once():
-    message = errors_of('int[] function f() : [1]\n' + main('int y = 1'))
-    assert "Returned array has" not in message
+def test_unsized_return_is_a_heap_array():
+    # since Task 45.10 (D.141): an int[] result of any size - tests/test_heap_arrays.py
+    exit_code, stdout, stderr = compile_and_run('int[] function f() : [1, 2]\n' + main('print("{@1}", f().length)'))
+    assert exit_code == 0 and stdout.strip() == '2', stderr
 
 
 def test_array_returns_end_to_end():

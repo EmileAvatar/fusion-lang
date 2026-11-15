@@ -139,9 +139,12 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[DONE] 45.1 The built-in `Array` class: `a.length` is `Array.length(a)`; `toList`, `toCSV` behind it (D.142) - tests/test_array_class.py, example syntax_array_class
 	[DONE] 45.2 `int[] e` - valid, size 0 (was 30.10); a struct field still needs a size until 45.10; C-style `int e[]` / `int e[10]` - the same array, kept (user, 2026-11-15)
 	[DONE] 45.14 `fixed int[10] c`, `fixed int[] d = [5, 2, 3]`, `fixed int[] d = f()` - never another size; `fixed` a keyword (the self-hosted lexer too); `fixed int[] d` alone and `fixed` on a non-array are errors
-		[ ] Its own message once plain arrays may be replaced (45.10); `fixed int:[10]` an error with 45.3; a struct field / module variable `fixed` - with 45.10
-	[ ] 45.10 Replacing a plain array with another size: `a = [1, 2]`, `int[] function make(int n)` - a run-time
-		length, on the heap (a counted block, like a List); the ownership rules stay (D.025)
+		[DONE - 45.10] Its own message: "'d' is fixed - its size never changes"
+		[ ] `fixed int:[10]` an error - with 45.3; a struct field / module variable `fixed` - when needed
+	[DONE] 45.10 Replacing a plain array with another size: `a = [1, 2]`, `int[] function make(int n)` - a run-time
+		length, on the heap (a counted block, like a List - src/semantic/heap_arrays.py); passed to an `int[]`
+		parameter as its items and length; an unsized struct field too; the ownership rules stay (D.025) -
+		tests/test_heap_arrays.py, example syntax_array_resize
 		[ ] An array as a Collection<T> value (from 32.6) - removing blocked
 		Normal code: an array moves (`int[] b = a`); `byVal` copies; inside a struct only borrowed
 	[ ] 45.3 Growable `int:[]` / `int[[]]`: `add`, `removeLast` (`pop`); empty `removeLast` an IndexError; an object slot may be null (D.140)

@@ -20,6 +20,8 @@ MUTATING_LIST_METHODS = {'add', 'insert', 'removeAt', 'remove', 'clear', 'sort',
 MUTATING_MAP_METHODS = {'remove', 'clear'}
 # Every List / Map method - another name on a list or map may be one of the program's own
 # functions called as a method (Task 44.2)
+# What a plain array can't do - it doesn't grow or shrink (45.10, D.141); int:[] will (45.3)
+ARRAY_GROW_METHODS = ('add', 'insert', 'removeAt', 'remove', 'clear', 'removeLast', 'pop')
 LIST_METHOD_NAMES = {'add', 'insert', 'removeAt', 'remove', 'clear', 'len', 'contains', 'indexOf',
                      'join', 'slice', 'sort', 'sortBy', 'filter', 'map', 'reduce', 'toList',
                      'noDuplicates', 'noNull', 'readOnly'}          # options: Task 32.14
@@ -39,7 +41,8 @@ class CollectionRulesMixin:
             return None
         receiver_type = self.visit(receiver)
         self.checked_receivers[id(receiver)] = receiver_type
-        if not isinstance(receiver_type, ArrayType) or self.user_method('toList', receiver_type):
+        heap = isinstance(receiver_type, ListType) and receiver_type.array_form     # 45.10
+        if not (isinstance(receiver_type, ArrayType) or heap) or self.user_method('toList', receiver_type):
             return None
         self.checked_receivers.pop(id(receiver), None)
         element = receiver_type.element_type
@@ -100,6 +103,14 @@ class CollectionRulesMixin:
         """[1, 2, 3] stored as a List<int>: every element must fit the element type."""
         element_type = list_type.element_type
         for element in node.elements:
+            if isinstance(element, LiteralExpr) and element.type_hint == 'null' and list_type.array_form:
+                element.inferred_type = element_type   # a heap array's slot may be null (D.140, 45.10)
+                if not (self.is_class(element_type) or isinstance(element_type, EnumType)
+                        or getattr(self.struct_declaration(element_type), 'is_interface', False)):
+                    self.errors.append(SemanticError(
+                        f"An array of {self.type_to_string(element_type)} can't hold null - only an "
+                        f"array of objects or enums can (D.140)", element.location))
+                continue
             if isinstance(element, LiteralExpr) and element.type_hint == 'null':     # D.139 (52.10)
                 self.errors.append(SemanticError(
                     f"A List never holds null - {self.type_to_string(list_type)} "
@@ -163,6 +174,17 @@ class CollectionRulesMixin:
         self.checked_receivers.pop(id(receiver), None)
         method = node.callee.member
         element = receiver_type.element_type
+        if receiver_type.array_form:
+            # a plain array on the heap (45.10): the Array class's methods only (D.141, D.142)
+            if method in ARRAY_GROW_METHODS:
+                self.errors.append(SemanticError(
+                    f"{method}: a plain array doesn't grow or shrink - declare it "
+                    f"{self.type_to_string(element)}:[] (D.141)", node.location))
+                return self._void(node)
+            if method not in ('len',):
+                self.errors.append(SemanticError(
+                    f"An array has no method '{method}' (it has length, len, toList, toCSV)", node.location))
+                return self._void(node)
         node.list_method = method
         node.list_type = receiver_type
         if method in ('noDuplicates', 'noNull', 'readOnly'):

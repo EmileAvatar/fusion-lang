@@ -19,6 +19,7 @@ from .statics import expand_statics, static_setup_order
 from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly, check_readonly_calls, check_readonly_values
 from .null_guards import check_surely_null, expand_null_guards
+from .heap_arrays import mark_heap_arrays
 from .interfaces import check_interfaces
 from .case_names import check_case_names
 from .ownership import check_ownership
@@ -145,6 +146,8 @@ class SemanticAnalyzer:
         self.errors.extend(expand_setup_blocks(ast))
         # Inheritance (Task 32.7): fields, functions, virtual ones, super - before interfaces
         self.errors.extend(expand_inheritance(ast))
+        # Plain arrays that get a new size live on the heap (Task 45.10, D.141)
+        mark_heap_arrays(ast)
         # Interfaces (Task 32.5a): what each needs, which class function answers it
         self.errors.extend(check_interfaces(ast, self.default_methods))
 

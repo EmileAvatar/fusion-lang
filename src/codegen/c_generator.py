@@ -1296,7 +1296,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         c_args = []
         for param, arg in zip(params, arguments):
             if param is not None and isinstance(param.param_type, ArrayType):
-                c_args.extend(self._array_argument(arg, param.param_type))
+                c_args.extend(self._array_argument(arg, param.param_type, ordered))
             elif param is not None and getattr(param, 'by_ref', False):
                 c_args.append(self._reference_argument(arg))   # `this` (Task 32.1)
             elif param is not None and param.name == 'this' and self.is_class_type(param.param_type) \
@@ -1446,7 +1446,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         call = f'{c_function}({", ".join(codes)})'
         return f'({", ".join(ordered)}, {call})' if ordered else call
 
-    def _array_argument(self, arg: ASTNode, param_type: ArrayType) -> list:
+    def _array_argument(self, arg: ASTNode, param_type: ArrayType, ordered=None) -> list:
         """Lower an argument passed to an array parameter (Task 18.1.2).
 
         Arrays are passed by reference (C passes a pointer to the first element). An array
@@ -1459,6 +1459,15 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             One C argument (`int[N]` parameter) or two (`int[]` parameter: array, length)
         """
         arg_type = arg.inferred_type
+        if isinstance(arg_type, ListType) and arg_type.array_form:
+            # a heap array (45.10): its items and its length. One made by a call is held in a
+            # name first - set before the call, so it is made once (its temporary frees it)
+            code = self.visit(arg)
+            if not isinstance(arg, IdentifierExpr) and ordered is not None:
+                alias = self._declare_temp('arr', self.map_type(arg_type), 'NULL')
+                ordered.append(f'{alias} = {code}')
+                code = alias
+            return [f'{code}->data', f'{code}->len']
         if isinstance(arg, ArrayLiteralExpr):
             elem = self.map_type(arg_type.element_type)
             arg_code = f'({elem}[]){self.visit(arg)}'
@@ -1725,7 +1734,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         holder = getattr(getattr(node.target, 'array', None), 'inferred_type', None) \
             if isinstance(node.target, IndexExpr) else None
         held = getattr(holder, 'element_type', None) or getattr(holder, 'value_type', None)
-        if type(holder).__name__ in ('ListType', 'MapType') and \
+        if type(holder).__name__ in ('ListType', 'MapType') and not getattr(holder, 'array_form', False) and \
                 isinstance(node.value, (IdentifierExpr, MemberExpr)) and \
                 (self.is_class_type(held) or type(held).__name__ == 'EnumType'):
             empty = 'FUSION_ENUM_NULL' if type(held).__name__ == 'EnumType' else 'NULL'

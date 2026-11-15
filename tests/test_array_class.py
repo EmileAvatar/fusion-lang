@@ -63,10 +63,6 @@ def test_an_index_into_an_empty_array_is_an_index_error():
     assert run(main('int[] e\ntry\n    e[0] = 1\ncatch IndexError err\n    print("index")')) == ['index']
 
 
-def test_a_struct_field_still_needs_a_size():
-    # a struct's size is fixed until an array can live on the heap (45.10)
-    assert "needs a size" in errors_of('struct Box\n    int[] items\n\n' + main('print("x")'))
-
 
 # ---------- 45.14: fixed int[10] c - never another size (D.141) ----------
 
@@ -98,7 +94,7 @@ def test_fixed_on_anything_else_waits_for_47_5(body, message):
 
 
 def test_a_fixed_array_cant_be_replaced_by_a_literal():
-    assert "Cannot reassign array 'a' as a whole" in errors_of(main('fixed int[] a = [1, 2]\na = [1, 2, 3]'))
+    assert "'a' is fixed - its size never changes" in errors_of(main('fixed int[] a = [1, 2]\na = [1, 2, 3]'))
 
 
 def test_fixed_is_a_reserved_word():

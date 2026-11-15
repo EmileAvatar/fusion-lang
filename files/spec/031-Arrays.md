@@ -65,8 +65,8 @@ int top = podium()[0]      // indexed directly
 team.scores = podium()     // an array field too
 ```
 
-* The return type needs a fixed size (`int[3]`, not `int[]`) - the caller must know how big
-  the array is
+* A sized return type (`int[3]`) gives exactly that many; `int[]` gives an array of any size,
+  on the heap (Task 45.10, D.141): `int[] function make(int n)`
 * `return` takes an array literal of exactly that size (numbers may be promoted), or any
   array of exactly the same type and size - a variable, parameter, struct field, or another
   call; it is copied
@@ -83,9 +83,9 @@ team.scores = podium()     // an array field too
 - Multi-dimensional arrays (`int[][]`)
 - An array size given as anything other than an integer literal (`int[n]` where `n` is a
   variable is not supported; only `int[5]`-style literal sizes are)
-- Whole-array reassignment after declaration (`arr = [4, 5, 6]`, `arr = other`) - only
-  per-element assignment, or assigning an array a function returns (`arr = make()`), is
-  supported, since a plain C array isn't reassignable that way
+- Whole-array reassignment - built since Task 45.10 (D.141): `arr = [4, 5]` or `arr = make()` replaces
+  it, another size too; such an array lives on the heap (a counted block, like a List) and still
+  acts as an array - no `add`, an object slot may be null. A `fixed` one keeps its size
 - Arrays that grow - planned, Task 45: plain arrays get a new size by replacing, `int:[]` / `int[[]]`
   grow at the end, up to 3 dimensions (Decisions.md D.141-D.147)
 - Bounds checking - built since then: every index is checked, outside the array is an

@@ -961,8 +961,12 @@ class ArrayType(TypeNode):
 
 @dataclass
 class ListType(TypeNode):
-    """A growable list: List<int> (Task 18.5.1) - a value; copies are independent."""
+    """A growable list: List<int> (Task 18.5.1) - a value; copies are independent.
+
+    array_form: a plain array that gets a new size (Task 45.10, D.141) - the same counted block on
+    the heap, but it acts as an array: written `int[]`, no add, an object slot may be null."""
     element_type: TypeNode
+    array_form: bool = False
 
 
 @dataclass

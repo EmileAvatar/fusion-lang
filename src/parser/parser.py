@@ -26,6 +26,8 @@ def type_text(t) -> str:
     """A type as written - `Person`, `int`, `List<int>` - the name of a generic interface's
     element type (`Collection<List<int>>`)."""
     name = getattr(t, 'name', None)
+    if type(t).__name__ == 'ListType' and getattr(t, 'array_form', False):
+        return f'{type_text(t.element_type)}[]'          # a heap array (Task 45.10)
     if type(t).__name__ == 'ListType':
         return f'List<{type_text(t.element_type)}>'
     if type(t).__name__ == 'MapType':

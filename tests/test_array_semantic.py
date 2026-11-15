@@ -155,8 +155,8 @@ End function
     assert_error_contains(errors, "Cannot index non-array type")
 
 
-def test_whole_array_reassignment_fails():
-    """arr = [...] after declaration is rejected - only element assignment is supported."""
+def test_whole_array_reassignment_is_allowed():
+    """arr = [...] after declaration replaces it - another size too (Task 45.10, D.141)."""
     code = """
 void function main()
     int[] arr = [1, 2, 3]
@@ -164,7 +164,7 @@ void function main()
 End function
 """
     errors, _ = analyze_code(code)
-    assert_error_contains(errors, "Cannot reassign array 'arr' as a whole")
+    assert errors == []
 
 
 def test_const_array_element_assignment_fails():
@@ -256,16 +256,18 @@ int function sum(int[] arr)
     assert not any("parameter" in str(e) for e in errors)
 
 
-def test_array_as_return_type_fails():
-    """An unsized array return type is rejected - the caller needs the size. (Sized array
-    returns, int[3], work since Task 18.2.4.)"""
+def test_array_as_return_type_is_allowed():
+    """An unsized array return type gives a heap array of any size (Task 45.10, D.141)."""
     code = """
 int[] function makeArray()
     int[] arr = [1, 2, 3]
     return arr
+
+void function main()
+    print("{@1}", makeArray().length)
 """
     errors, _ = analyze_code(code)
-    assert_error_contains(errors, "returns an array, so its return type needs a size")
+    assert errors == []
 
 
 def test_multi_dimensional_array_rejected_at_parse():

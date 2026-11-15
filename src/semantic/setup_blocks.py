@@ -176,6 +176,7 @@ def check_collection_options(program) -> List[SemanticError]:
             errors.append(SemanticError("A List never holds null - add an object (D.139)", node.location))
         if isinstance(node, AssignmentStmt) and isinstance(node.target, IndexExpr) and is_null(node.value) \
                 and type(getattr(node.target.array, 'inferred_type', None)).__name__ in ('ListType', 'MapType') \
+                and not getattr(node.target.array.inferred_type, 'array_form', False) \
                 and 'noNull' not in options.get(getattr(node.target.array, 'name', None), ()):
             kind = 'List' if type(node.target.array.inferred_type).__name__ == 'ListType' else 'Map'
             errors.append(SemanticError(f"A {kind} never holds null - set an object (D.139)", node.location))

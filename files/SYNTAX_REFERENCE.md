@@ -253,6 +253,35 @@ Every array acts as if it were an object of the built-in `Array` class (D.142): 
 `a.length`, `a.length()`, `a.len()` and `len(a)` are one call. Its methods today: `length` (`len`),
 `toList`, `toCSV`. `Array` is a built-in name - a struct, class or enum can't take it.
 
+#### Replacing an array with another size
+
+<!-- example: syntax_array_resize | task: 45.10 -->
+```fusion
+int function total(int[] values)        // any size
+    int t = 0
+    foreach (int v in values)
+        t = t + v
+    return t
+
+int[] function firstN(int n)            // int[] - an array of any size
+    if n > 2
+        return [1, 2, 3]
+    return [1]
+
+void function main()
+    int[] a = [5, 2, 3]
+    a = [7, 8]                          // replaced - another size is fine
+    print("{@1} {@2}", a.length, total(a))      // 2 15
+    a = firstN(5)
+    print("{@1} {@2}", a.length, total(firstN(1)))   // 3 1
+    fixed int[2] pair = [1, 2]
+    // pair = [1, 2, 3] here: 'pair' is fixed - its size never changes
+```
+A plain array gets a new size only by being replaced (D.141). Such an array lives on the heap - a
+counted block, like a List - and still acts as an array: it is passed to an `int[]` parameter, every
+index is checked, and it doesn't grow with `add` (that is `int:[]`, Task 45.3). An array of objects may
+hold null in a slot (D.140). `fixed` keeps the size it was made with.
+
 #### Structs (fields only, copied by value)
 
 <!-- example: syntax_structs | task: 18.2 -->

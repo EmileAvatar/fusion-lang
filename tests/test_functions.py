@@ -242,10 +242,11 @@ def test_const_array_argument_rejected():
     assert "const array 'a' can't be passed" in message
 
 
-def test_unsized_array_return_type_rejected():
-    # Sized array returns (int[1]) work since Task 18.2.4 - see tests/test_structs.py
-    message = errors_of('int[] function make()\n    int[] a = [1]\n    return a\n')
-    assert "returns an array, so its return type needs a size" in message
+def test_unsized_array_return_type_is_a_heap_array():
+    # Since Task 45.10 (D.141) an `int[]` result of any size is a heap array - tests/test_heap_arrays.py
+    code, out, err = compile_and_run('int[] function make()\n    int[] a = [1]\n    return a\n\n'
+                                     'void function main()\n    print("{@1}", make().length)\n')
+    assert code == 0 and out.strip() == '1', err
 
 
 def test_array_default_value_rejected():

@@ -47,7 +47,9 @@ class CollectionsMixin:
 
     def list_c_name(self, list_type: ListType) -> str:
         """The C type of a List<T>; makes its code the first time."""
-        name = 'fusion_list_' + self._list_key(list_type.element_type)
+        # a heap array (45.10) has its own C type: the same block, but an object slot may be null
+        prefix = 'fusion_array_' if getattr(list_type, 'array_form', False) else 'fusion_list_'
+        name = prefix + self._list_key(list_type.element_type)
         if name not in self.list_types:
             if isinstance(list_type.element_type, (ListType, MapType)):
                 self.map_type(list_type.element_type)      # the inner collection's typedef first
@@ -343,6 +345,7 @@ class CollectionsMixin:
         def free(lvalue):
             return ' '.join(self.free_lines(element, lvalue))
 
+        what = 'array' if name.startswith('fusion_array_') else 'list'     # a heap array (45.10)
         eq = self.value_equality('a->data[i]', element, 'b->data[i]', element)
         eq_v = self.value_equality('l->data[i]', element, 'v', element)
         functions = {
@@ -404,11 +407,11 @@ class CollectionsMixin:
                 'l->len = 0; l->changes++;'],
             f'{T} {name}_at({name} l, int i, const char* where)': [
                 'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the '
-                f'list (length %d)", i, l->len); return {none}; }}',
+                f'{what} (length %d)", i, l->len); return {none}; }}',
                 'return l->data[i];'],
             f'{T}* {name}_ptr({name} l, int i, const char* where)': [
                 'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the '
-                f'list (length %d)", i, l->len); static {T} none; memset(&none, 0, sizeof none); return &none; }}',
+                f'{what} (length %d)", i, l->len); static {T} none; memset(&none, 0, sizeof none); return &none; }}',
                 'return &l->data[i];'],
             f'bool {name}_eq({name} a, {name} b)': [
                 'if (a->len != b->len) return false;',
@@ -511,7 +514,10 @@ class CollectionsMixin:
 
     def _held_null_check(self, element, name) -> list:
         """D.139 (52.10): the C lines refusing a null item of a List made from items - every
-        item freed (they were the List's), then a NullError."""
+        item freed (they were the List's), then a NullError. A heap array's slot may be null
+        (D.140, 45.10) - nothing to refuse."""
+        if name.startswith('fusion_array_'):
+            return []
         if self.is_class_type(element):
             is_null = 'items[i] == NULL'
         elif type(element).__name__ == 'EnumType':
@@ -576,7 +582,13 @@ class CollectionsMixin:
     def array_to_list_code(self, node) -> str:
         """`scores.toList()` on an array - a new List with copies of the elements."""
         receiver = node.callee.object
-        items, count = self._array_operand(receiver, receiver.inferred_type)
+        kind = receiver.inferred_type
+        if getattr(kind, 'array_form', False) and not isinstance(receiver, IdentifierExpr):
+            # a heap array made by a call (45.10): held once, in one expression
+            code = self.visit(receiver)
+            return (f'__extension__ ({{ {self.map_type(kind)} fusion_a = {code}; '
+                    f'{self.list_c_name(node.list_type)}_copyFrom(fusion_a->data, fusion_a->len); }})')
+        items, count = self._array_operand(receiver, kind)
         return f'{self.list_c_name(node.list_type)}_copyFrom({items}, {count})'
 
     def list_method_code(self, node) -> str:

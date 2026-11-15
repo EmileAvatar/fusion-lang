@@ -210,11 +210,12 @@ void function collections() {
     float[3] buffer
     // [built] The Array class: every array acts as an object of it (45.1, D.142)
     int n = Array.length(scores)        // the same as scores.length
-    // [designed] Three forms (Task 45, D.141): plain - a new size only by replacing;
-    //            fixed - never another size; growable - add / removeLast at its end, on the heap
+    // [built] Plain arrays get a new size only by replacing (45.10, D.141) - then on the heap
     scores = [1, 2]                     // plain: replaced by another size
-    fixed int[3] podium = [3, 1, 2]     // fixed: podium = [1, 2] is an error
-    int:[] readings                     // growable - also written int[[]] readings
+    // [built] fixed - never another size (45.14)
+    fixed int[3] podium = [3, 1, 2]     // podium = [1, 2] is an error
+    // [designed] Growable - add / removeLast at its end, on the heap (45.3)
+    int:[] readings                     // also written int[[]] readings
     readings.add(7)
     // [designed] Up to 3 dimensions: rows x columns x depth (D.143); FLAT / RECT / JAGG (D.144)
     int[10][5][7] cube

@@ -208,6 +208,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             if expected.size is not None and actual.size is not None:
                 return expected.size == actual.size
             return True
+        # A heap array (45.10) where an `int[]` of any size is expected - a parameter: its
+        # items and length are passed
+        if isinstance(expected, ArrayType) and expected.size is None and isinstance(actual, ListType) \
+                and actual.array_form:
+            return self.types_equal(expected.element_type, actual.element_type)
 
         return False
 
@@ -254,7 +259,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         # Collections (Task 18.5): the same element (key, value) types
         if isinstance(type1, ListType) and isinstance(type2, ListType):
-            return self.types_equal(type1.element_type, type2.element_type)
+            return self.types_equal(type1.element_type, type2.element_type) \
+                and type1.array_form == type2.array_form      # an array is not a List (45.10)
         if isinstance(type1, MapType) and isinstance(type2, MapType):
             return self.types_equal(type1.key_type, type2.key_type) and \
                 self.types_equal(type1.value_type, type2.value_type)
@@ -448,6 +454,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
         if isinstance(type_node, (StructType, EnumType, ErrorType)):
             return type_node.name
+        if isinstance(type_node, ListType) and type_node.array_form:
+            return f"{self.type_to_string(type_node.element_type)}[]"     # a heap array (45.10)
         if isinstance(type_node, ListType):
             return f"List<{self.type_to_string(type_node.element_type)}>"
         if isinstance(type_node, MapType):
@@ -1475,7 +1483,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return f"Array.{member} needs the array first: Array.{member}(numbers)"
         array = node.arguments[0]
         array_type = self.visit(array)
-        if not isinstance(array_type, ArrayType):
+        if not isinstance(array_type, ArrayType) and not (isinstance(array_type, ListType)
+                                                          and array_type.array_form):
             return (f"Array.{member} works on an array, not {self.type_to_string(array_type)}"
                     f" - write x.{member}() for it")
         self.checked_receivers[id(array)] = array_type          # checked once, not again
@@ -2223,6 +2232,16 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             self.errors.append(SemanticError(f"Argument {index+1} to '{func_name}': {message}",
                                              arg.location))
 
+        if isinstance(actual, ListType) and actual.array_form:
+            # a heap array (45.10): its items and length - an int[] parameter takes any size
+            if expected.size is not None:
+                error(f"expected {self.type_to_string(expected)}, got an array whose size is only known "
+                      f"while running - make the parameter {self.type_to_string(expected.element_type)}[]")
+            elif not self.types_equal(expected.element_type, actual.element_type):
+                error(f"expected an array of {self.type_to_string(expected.element_type)}, got an "
+                      f"array of {self.type_to_string(actual.element_type)} (array element types "
+                      f"must match exactly)")
+            return
         if not isinstance(actual, ArrayType):
             error(f"expected {self.type_to_string(expected)}, got {self.type_to_string(actual)}")
             return
@@ -2702,6 +2721,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 and node.value.type_hint == 'null':
             self.errors.append(SemanticError(self.null_collection(symbol.data_type),
                                              node.value.location))
+            return
+        if isinstance(symbol.data_type, (ArrayType, ListType))                 and getattr(getattr(symbol, 'declaration', None), 'is_fixed', False)                 and not isinstance(node.value, CallExpr if isinstance(symbol.data_type, ArrayType) else type(None)):
+            self.errors.append(SemanticError(                      # D.141 (45.14, 45.10)
+                f"'{target_name}' is fixed - its size never changes; set its slots ({target_name}[i] = ...), "
+                f"or declare it without fixed", node.location))
             return
         if isinstance(symbol.data_type, ArrayType):
             # A whole array can be replaced by one a function returns (Task 18.2.4) - copied

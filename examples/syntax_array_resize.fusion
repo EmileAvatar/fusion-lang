@@ -1,0 +1,19 @@
+int function total(int[] values)        // any size
+    int t = 0
+    foreach (int v in values)
+        t = t + v
+    return t
+
+int[] function firstN(int n)            // int[] - an array of any size
+    if n > 2
+        return [1, 2, 3]
+    return [1]
+
+void function main()
+    int[] a = [5, 2, 3]
+    a = [7, 8]                          // replaced - another size is fine
+    print("{@1} {@2}", a.length, total(a))      // 2 15
+    a = firstN(5)
+    print("{@1} {@2}", a.length, total(firstN(1)))   // 3 1
+    fixed int[2] pair = [1, 2]
+    // pair = [1, 2, 3] here: 'pair' is fixed - its size never changes
