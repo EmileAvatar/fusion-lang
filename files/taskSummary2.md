@@ -69,21 +69,21 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
   45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits) - FEATURES Task 45
-- **Next Action:** 45.12 - the user confirms OpenQuestions Q.023 (order), Q.025 (int:[10]), Q.027 (bare enum values); then 45.3b
+- **Next Action:** 45.3b `int:[10] g` (D.141), then 45.12a
 
 ### 45.12 Up to 3 dimensions - the plan (2026-11-15, replanned after OpenQuestions Q.021-Q.027)
-Settings: `[arrays] order` - only if Q.023 A or B (`[arrays] storage` is 45.15). Still open:
-the order (Q.023), `int:[10]` (Q.025), where a bare enum value works (Q.027).
+Settings: `[arrays] order` = "columns" (default) / "rows" (D.148), built with 45.12a; `[arrays] storage` is 45.15.
+Decided: D.141 (`int:[10]`), D.143, D.148 (order), D.149 (views), D.150 (bare enum values).
 
 Each part is shipped on its own, in this order:
-1. **45.3b `int:[10] g`** - a growable array with 10 slots made ahead (Q.025 - length 10 or room for 10);
+1. **45.3b `int:[10] g`** - a growable array with 10 slots made ahead: length 10, as `int[10]` (D.141);
    `int:[10]` stops being an error (that rule was Claude's, not decided)
 2. **45.12a Declaring, reading, writing** - on the stack
    - `int[2][3][4] cube`, `int[2],[3],[4] cube`, `int cube[2][3][4]`, `fixed int[2][3] f`
    - Literals `int[2][3] m = [[1, 2, 3], [4, 5, 6]]`; `int[][] m = [...]` takes its sizes from them;
      rows of different lengths an error (JAGG - 45.15)
    - `m[1][2]` / `m[1],[2]` read and write; every index checked (IndexError)
-   - Laid out in memory in the loop's order (Q.023), so a loop reads the slots one after another
+   - `[arrays] order` (D.148): laid out in memory in the loop's order, so a loop reads the slots one after another
    - `rows`, `columns` (2 and 3 dimensions), `depth` (3 only)
    - Any element type: numbers, strings (freed), structs, objects (null allowed - D.140)
    - A 4th dimension a compile error "the Collections library"
@@ -94,8 +94,8 @@ Each part is shipped on its own, in this order:
    - Given to a variable or a parameter: numbers copied, objects borrowed, `byVal` copies them
 4. **45.12c Functions** - parameters `int[2][3] m` (that size) and `int[][] m` (any size, the
    sizes passed hidden); returning one (on the heap); `==` slot by slot
-5. **45.17 A bare enum value where the type is known** (Q.027) - `expand(ROWS, 1)`, `setMonth(JUNE)`;
-   every enum, not only `Dimension`
+5. **45.17 A bare enum value where the type is known** (D.150) - parameters, declarations, comparisons,
+   match: `expand(ROWS, 1)`, `Months m = JUNE`, `case JUNE`; a variable of the same name a compile error
 6. **45.12d Growable, many dimensions, and `expand`**
    - `int:[2][3][4] g`, `int[[2],[3],[4]] g`, `int:[][] h = [...]` (best over several lines)
    - The built-in enum `Dimension`: `ROWS`, `COLUMNS`, `DEPTH`

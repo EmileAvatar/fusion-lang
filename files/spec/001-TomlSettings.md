@@ -174,6 +174,7 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|
 | `[maps]` key already there on `add(otherMap)` *(name open)* | replace / keep / error | replace | What `add(otherMap)` does with a key both have | D.047 |
+| `[arrays] order` | columns / rows | columns | Which dimension a loop and `length` give first: `columns` - the outer one first, depth -> columns -> rows (Fortran, MATLAB, Julia, R); `rows` - rows first (C, Java, C#, Python). The slots lie in memory in that order | D.148, 45.12 |
 | `[arrays] storage` | flat / rect / jagg | flat | How an array of many dimensions is stored (`a.setStorage(...)` per array) | D.144, 45.15 |
 | `[arrays] bufferSmall`, `bufferLarge` | bytes | 2KB / 8KB | The stack buffer a small / large array is worked through | D.146, L16.3 |
 | `[arrays] bufferType` | single / two / third / ring | single | The project's buffer type (`a.setBufferType(...)` per array) | D.146, L16.3 |
