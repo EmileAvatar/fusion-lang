@@ -253,6 +253,29 @@ Every array acts as if it were an object of the built-in `Array` class (D.142): 
 `a.length`, `a.length()`, `a.len()` and `len(a)` are one call. Its methods today: `length` (`len`),
 `toList`, `toCSV`. `Array` is a built-in name - a struct, class or enum can't take it.
 
+#### Combining arrays: `a + b + c`
+
+<!-- example: syntax_array_combine | task: 45.4 -->
+```fusion
+void function main()
+    int[] a = [1, 2]
+    int[3] b = [3, 4, 5]
+    int[] all = a + b + [6]             // a new array: [1, 2, 3, 4, 5, 6]
+    print("{@1} {@2}", all.length, all[5])      // 6 6
+    string[] s = ["x", "y"]
+    string[] twice = s + s              // the strings are copied
+    print("{@1}", twice.length)         // 4
+    int:[] grows = a + [7]              // a growable one from it
+    grows.add(8)
+    print("{@1}", grows.length)         // 4
+    List<int> la = [1, 2]
+    List<int> lb = la + [3]             // Lists the same: a new List
+    print("{@1}", lb.len())             // 3
+```
+`+` makes a new array from the parts, left to right, all of one type (D.047); the parts are unchanged.
+Its size is only known while running, so it lives on the heap (45.10). Items are copied as `slice`
+copies them: a string copied, an object shared. An array and a List don't mix - `toList()` first.
+
 #### Replacing an array with another size
 
 <!-- example: syntax_array_resize | task: 45.10 -->

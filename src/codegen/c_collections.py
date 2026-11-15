@@ -18,7 +18,7 @@ everything else that is generated on demand.
 """
 
 from ..parser.ast_nodes import (
-    ArrayLiteralExpr, IdentifierExpr, MemberExpr, IndexExpr, PrimitiveType, StructType,
+    ArrayLiteralExpr, BinaryExpr, IdentifierExpr, MemberExpr, IndexExpr, PrimitiveType, StructType,
     ListType, MapType, FunctionType, EnumType,
 )
 
@@ -446,6 +446,11 @@ class CollectionsMixin:
                 f'for (int i = 0; i < count; i++) r->data[i] = {copy("l->data[start + i]")};',
                 'r->len = count;',
                 'return r;'],
+            # a + b (45.4): another one's items added at the end, copied as slice does
+            f'void {name}_append({name} l, {T} const* items, int n)': [
+                f'{name}_grow(l, l->len + n);',
+                f'for (int i = 0; i < n; i++) l->data[l->len + i] = {copy("items[i]")};',
+                'l->len += n; l->changes++;'],
             # an array's toList() - a new list with copies of the elements (Task 32.10a.1)
             f'{name} {name}_copyFrom({T} const* items, int n)': [
                 f'{name} r = {name}_new();',
@@ -587,6 +592,35 @@ class CollectionsMixin:
                 return True
             expr = inner
         return False
+
+    def combine_code(self, node) -> str:
+        """`a + b + c` (45.4): one new block, each part's items added in turn, left to right. A part
+        on the heap is held once in a name; one made here (a call, a literal) frees itself after
+        the statement, as any fresh value does."""
+        name = self.list_c_name(node.inferred_type)
+        parts = []
+
+        def flatten(expr):
+            if isinstance(expr, BinaryExpr) and getattr(expr, 'combine', None):
+                flatten(expr.left)
+                flatten(expr.right)
+            else:
+                parts.append(expr)
+        flatten(node)
+        steps = []
+        for number, part in enumerate(parts, start=1):
+            kind = part.inferred_type
+            if isinstance(kind, ListType):
+                held = f'fusion_part_{number}'
+                steps.append(f'{self.map_type(kind)} {held} = {self.visit(part)}; '
+                             f'{name}_append(fusion_r, {held}->data, {held}->len);')
+            else:
+                items, count = self._array_operand(part, kind)
+                steps.append(f'{name}_append(fusion_r, {items}, {count});')
+        code = (f'__extension__ ({{ {name} fusion_r = {name}_new(); ' + ' '.join(steps) + ' fusion_r; })')
+        if id(node) in self.consumed:
+            return code
+        return self.fresh_temporary(code, node.inferred_type)
 
     def array_to_list_code(self, node) -> str:
         """`scores.toList()` on an array - a new List with copies of the elements."""

@@ -11,6 +11,7 @@ from typing import Optional
 from src.parser.ast_nodes import (
     ASTNode, ArrayLiteralExpr, CallExpr, MemberExpr, IdentifierExpr, IndexExpr, LambdaExpr, LiteralExpr,
     PrimitiveType, ArrayType, FunctionType, ListType, MapType, NewCollectionExpr, EnumType, StructType,
+    TypeNode,
 )
 from .errors import SemanticError
 
@@ -32,6 +33,32 @@ _SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
 
 
 class CollectionRulesMixin:
+    def combine_type(self, node, left: TypeNode, right: TypeNode) -> Optional[TypeNode]:
+        """`a + b + c` (Task 45.4): two arrays make a new array, two Lists a new List - all of one
+        type. None when neither side is an array or a List."""
+        def kind(t):
+            if isinstance(t, ArrayType) or (isinstance(t, ListType) and t.array_form):
+                return 'array'
+            return 'list' if isinstance(t, ListType) else None
+        left_kind, right_kind = kind(left), kind(right)
+        if left_kind is None and right_kind is None:
+            return None
+        if left_kind != right_kind:
+            self.errors.append(SemanticError(
+                f"Can't combine {self.type_to_string(left)} and {self.type_to_string(right)} with '+' - "
+                f"both arrays or both Lists (toList() makes a List of an array)", node.location))
+            return left if left_kind else right
+        element = left.element_type
+        if isinstance(element, ArrayType):
+            self.errors.append(SemanticError(
+                "Combining arrays of arrays with '+' waits for many dimensions (Task 45.12)", node.location))
+        elif not self.types_equal(element, right.element_type):
+            self.errors.append(SemanticError(
+                f"'+' combines arrays of one type - {self.type_to_string(left)} and "
+                f"{self.type_to_string(right)}", node.location))
+        node.combine = left_kind
+        return ListType(location=node.location, element_type=element, array_form=left_kind == 'array')
+
     def array_to_list_call(self, node: CallExpr) -> Optional[ASTNode]:
         """`scores.toList()` on an array: a new List with copies of its elements (Task
         32.10a.1). Sharing (`toList(false)`) waits until arrays live on the heap (Task 45);

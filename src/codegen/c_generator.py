@@ -1054,6 +1054,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # arrays (Task 18.3.5, see c_equality.py)
         if node.operator in EQUALITY_OPERATORS:
             return self.equality_code(node)
+        if getattr(node, 'combine', None):
+            return self.combine_code(node)          # a + b + c - arrays or Lists (45.4)
 
         left = self.visit(node.left)
         right = self.visit(node.right)

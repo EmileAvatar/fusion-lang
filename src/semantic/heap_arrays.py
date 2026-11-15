@@ -12,13 +12,14 @@ Which ones (decided here, before names are resolved, by name within each functio
 - a local array replaced as a whole by an array literal, by another heap array, or by a call to a
   function returning one
 - a local array set from, set into or returned as a heap array - the two sides share one form
+- a local array set from `a + b` (Task 45.4) - a new array of the two sizes together
 - an array field of a struct or class written with no size (`int[] items`)
 
 Everything else stays a C array on the stack, as before.
 """
 from dataclasses import fields, is_dataclass
 
-from src.parser.ast_nodes import (ArrayLiteralExpr, ArrayType, AssignmentStmt, CallExpr,
+from src.parser.ast_nodes import (ArrayLiteralExpr, ArrayType, AssignmentStmt, BinaryExpr, CallExpr,
                                   FunctionDecl, IdentifierExpr, ListType, PassingExpr, ReturnStmt, StructDecl,
                                   VarDeclStmt)
 
@@ -89,7 +90,8 @@ def _heap_value(value, heap_names, heap_functions) -> bool:
         return value.name in heap_names
     if isinstance(value, CallExpr):
         return isinstance(value.callee, IdentifierExpr) and value.callee.name in heap_functions
-    return False
+    # a + b (45.4): only an array's own declaration or replacing asks, so it combines arrays
+    return isinstance(value, BinaryExpr) and value.operator == '+'
 
 
 def _mark_locals(function, heap_functions) -> None:
@@ -115,7 +117,8 @@ def _mark_locals(function, heap_functions) -> None:
                 elif node.name in heap and isinstance(_plain(node.initializer), IdentifierExpr):
                     names.add(_plain(node.initializer).name)
             elif isinstance(node, AssignmentStmt) and isinstance(node.target, IdentifierExpr) \
-                    and node.target.name in arrays and not getattr(arrays[node.target.name], 'is_fixed', False)                     and not arrays[node.target.name].is_const:
+                    and node.target.name in arrays and not getattr(arrays[node.target.name], 'is_fixed', False) \
+                    and not arrays[node.target.name].is_const:
                 value = _plain(node.value)
                 if isinstance(value, ArrayLiteralExpr) or _heap_value(value, heap, heap_functions):
                     names.add(node.target.name)

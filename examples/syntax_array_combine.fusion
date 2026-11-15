@@ -1,0 +1,14 @@
+void function main()
+    int[] a = [1, 2]
+    int[3] b = [3, 4, 5]
+    int[] all = a + b + [6]             // a new array: [1, 2, 3, 4, 5, 6]
+    print("{@1} {@2}", all.length, all[5])      // 6 6
+    string[] s = ["x", "y"]
+    string[] twice = s + s              // the strings are copied
+    print("{@1}", twice.length)         // 4
+    int:[] grows = a + [7]              // a growable one from it
+    grows.add(8)
+    print("{@1}", grows.length)         // 4
+    List<int> la = [1, 2]
+    List<int> lb = la + [3]             // Lists the same: a new List
+    print("{@1}", lb.len())             // 3

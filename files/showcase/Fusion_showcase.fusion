@@ -212,6 +212,8 @@ void function collections() {
     int n = Array.length(scores)        // the same as scores.length
     // [built] Plain arrays get a new size only by replacing (45.10, D.141) - then on the heap
     scores = [1, 2]                     // plain: replaced by another size
+    // [built] a + b + c - a new array, all of one type; Lists the same (45.4, D.047)
+    int[] joined = scores + [3, 4]
     // [built] fixed - never another size (45.14)
     fixed int[3] podium = [3, 1, 2]     // podium = [1, 2] is an error
     // [built] Growable - add / removeLast (pop) at its end, on the heap (45.3)

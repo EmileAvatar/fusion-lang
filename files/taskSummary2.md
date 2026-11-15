@@ -68,5 +68,5 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Rule 4b: a null object slot, read with and without `?.`.
 
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
-  45.3 (`int:[]` growable) - FEATURES Task 45
-- **Next Action:** 45.4 `a + b + c` (a new array; Lists the same)
+  45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`) - FEATURES Task 45
+- **Next Action:** 45.5 `copyPart` / `copyPartAt` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same

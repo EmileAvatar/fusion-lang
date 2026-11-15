@@ -151,7 +151,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	[DONE] 45.3 Growable `int:[]` / `int[[]]` (and `int xs[[]]`): `add`, `removeLast` (`pop`); empty `removeLast` an IndexError; an object slot may be null (D.140); `fixed` with it an error - tests/test_growable_arrays.py, example syntax_growable_array
 		[DONE] `removeLast()` / `pop()` give the item back (user, 2026-11-15) - the caller owns it
 		[DONE] Arguments left to right also when a call sits beside a length, a field or a module variable (spec 181)
-	[ ] 45.4 Combine arrays: `a + b + c` - a new array, all of the same type; Lists the same
+	[DONE] 45.4 Combine arrays: `a + b + c` - a new array, all of the same type; Lists the same; on the heap, parts read once left to right; a string copied, an object shared - tests/test_combine.py, example syntax_array_combine
 	[ ] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same
 	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
 	[ ] 45.7 The array being looped over can't be changed inside the loop (D.058) - a compile error where seen, else ModifiedWhileLoopingError

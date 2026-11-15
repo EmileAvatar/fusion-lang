@@ -249,7 +249,7 @@ def test_default_in_middle_makes_earlier_fields_required():
 def test_arithmetic_on_non_numbers_is_an_error_not_a_crash():
     """Found during 18.2.1: `PrimitiveType('void', location=...)` passed 'void' as the
     location, so any arithmetic on a non-number crashed the compiler with a TypeError."""
-    assert "must be numeric, got int[2]" in errors_of(main('int[] a = [1, 2]\nint b = a + 1'))
+    assert "Can't combine int[2] and int" in errors_of(main('int[] a = [1, 2]\nint b = a + 1'))
 
 
 def test_printing_an_array_is_a_clear_error_not_a_crash():

@@ -373,6 +373,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             value.inferred_type = expected
             return expected
         result = self.visit(value)
+        if getattr(value, 'combine', None) == 'array' and isinstance(expected, ListType) \
+                and expected.growable and self.types_equal(expected.element_type, result.element_type):
+            value.inferred_type = expected      # int:[] g = a + b - a new array, made growable (45.4)
+            return expected
         self.widen_to_float(value, result, expected)
         return self.as_parent_part(value, result, expected) or result
 
@@ -638,9 +642,24 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         elif node.operator in ('==', '!=', '===', '!=='):
             left_type = self.visit(node.left)
             right_type = self._visit_value_for(left_type, node.right)
+        elif node.operator == '+' and isinstance(node.right, ArrayLiteralExpr) \
+                and not isinstance(node.left, ArrayLiteralExpr):
+            left_type = self.visit(node.left)              # xs + [3]: the literal a List too (45.4)
+            right_type = (self._visit_value_for(left_type, node.right) if isinstance(left_type, ListType)
+                          and not left_type.array_form else self.visit(node.right))
+        elif node.operator == '+' and isinstance(node.left, ArrayLiteralExpr) \
+                and not isinstance(node.right, ArrayLiteralExpr):
+            right_type = self.visit(node.right)
+            left_type = (self._visit_value_for(right_type, node.left) if isinstance(right_type, ListType)
+                         and not right_type.array_form else self.visit(node.left))
         else:
             left_type = self.visit(node.left)
             right_type = self.visit(node.right)
+
+        if node.operator == '+':
+            combined = self.combine_type(node, left_type, right_type)     # a + b + c (45.4)
+            if combined is not None:
+                return combined
 
         # Joining strings (Task 18.3.2): string + string, string + char, char + string.
         # Numbers are joined with interpolation instead ("{a}{b}") - never `"1" + 1`
