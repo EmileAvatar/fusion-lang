@@ -25,12 +25,34 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
-None open. Earlier: Q.021-Q.027 (arrays of 3 dimensions, bare enum values) answered 2026-11-15:
+#### Q.028 toCSV on arrays of plain values (Task 45.11, FEATURES 45.11)
+`toCSV()` works on structs only today - an `int[]` has none, so a grid of numbers has none either.
+```fusion
+int[][] m = [[1, 2, 3], [4, 5, 6]]
+A:  m.toCSV()       // "1,2,3\n4,5,6" - a line per row, the delimiter between values;
+                    // 3 dimensions: a blank line between sheets; an int[] gives one line "1,2,3"
+B:  m.toCSV()       // an error - CSV stays for structs (a heading row and their fields)
+```
+Suggested: A - a line per row is what a spreadsheet reads, whatever `[arrays] order` says.
+
+#### Q.029 A null slot in a one-dimension array's toList (D.139, D.140)
+An array slot may be null (D.140); a List never holds null (D.139). Today `Car[] cars` with a null
+slot gives a List holding null - against D.139. The new `toList` of 2 and 3 dimensions raises a
+NullError (45.11).
+```fusion
+Car[2] cars
+cars[0] = Car("red")              // cars[1] is null
+A:  List<Car> l = cars.toList()   // a NullError: "toList: a slot is null - a List never holds null"
+B:  List<Car> l = cars.toList()   // [red] - the null slots left out (the List shorter than the array)
+```
+Suggested: A - nothing changes silently, the same for every array.
+
+Earlier: Q.021-Q.027 (arrays of 3 dimensions, bare enum values) answered 2026-11-15:
 Decisions.md D.141, D.143, D.148-D.150, FEATURES 45.12, 45.3b, 45.16, 45.17. Q.013 (modules and
 namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a may-be-null
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.028.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.030.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->
