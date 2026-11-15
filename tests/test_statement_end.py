@@ -19,7 +19,6 @@ def parse(source: str):
 
 
 @pytest.mark.parametrize('body, message', [
-    ('int numbers[]', "Write the array type before the name: int[] numbers"),
     ('int x = 5 print(x)', "found 'print' - one statement per line"),
     ('string s = "a" s = "b"', "found 's' - one statement per line"),
     ('print("a") print("b")', "found 'print' - one statement per line"),

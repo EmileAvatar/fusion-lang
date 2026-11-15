@@ -104,3 +104,19 @@ def test_a_fixed_array_cant_be_replaced_by_a_literal():
 def test_fixed_is_a_reserved_word():
     with pytest.raises(ParserError, match='Expected variable name'):
         parse(main('int fixed = 1'))
+
+
+# ---------- int numbers[] - the C-style form, the same array (user, 2026-11-15) ----------
+
+def test_brackets_after_the_name_declare_the_same_array():
+    source = ('int function total(int values[])\n    int t = 0\n    foreach (int v in values)\n'
+              '        t = t + v\n    return t\n\n'
+              + main('int numbers[] = [1, 2, 3]\nint more[2]\nint none[]\nfixed int top[3] = [3, 2, 1]\n'
+                     'more[1] = 5\nprint("{@1} {@2} {@3} {@4} {@5}", total(numbers), more[1], numbers.length, '
+                     'none.length, top[0])'))
+    assert run(source) == ['6 5 3 0 3']
+
+
+def test_brackets_written_twice_are_an_error():
+    with pytest.raises(ParserError, match=re.escape('Write the brackets once: int[] numbers, or int numbers[]')):
+        parse(main('int[] numbers[] = [1]'))

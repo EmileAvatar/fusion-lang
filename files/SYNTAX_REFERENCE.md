@@ -220,6 +220,7 @@ void function main()
     int[] scores = [10, 20, 30]         // size from the literal
     float[3] buffer                     // zero-filled
     int[] none                          // empty - size 0
+    int also[] = [4, 5]                 // the same as int[] also - brackets after the name
     fixed int[3] top = [3, 2, 1]        // fixed: never another size (top = [1, 2] is an error)
     scores[0] = 99
     int[3] p = podium()

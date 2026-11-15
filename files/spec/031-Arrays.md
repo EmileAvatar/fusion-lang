@@ -13,6 +13,7 @@ int[] scores = [10, 20, 30]      // size inferred from the literal
 float[3] buffer                   // explicit size, zero-initialized (no literal needed)
 int[3] three = [1, 2, 3]          // explicit size + literal (must agree)
 int[] none                        // empty - size 0 (Task 45.2)
+int numbers[] = [1, 2]            // the same as int[] numbers - brackets after the name (kept, user 2026-11-15)
 fixed int[3] podium = [3, 1, 2]   // fixed - never another size (Task 45.14, D.141)
 Array.length(scores)              // the Array class - the same as scores.length (Task 45.1, D.142)
 

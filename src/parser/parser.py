@@ -811,6 +811,7 @@ class Parser:
             name = name_token.value
         else:
             raise ParserError(self.peek(), "Expected parameter name")
+        param_type = self._brackets_after_name(param_type, name)
 
         # Parse optional default value
         default_value = None
@@ -1207,6 +1208,31 @@ class Parser:
             expression=expr
         )
 
+    def _brackets_after_name(self, var_type: TypeNode, name: str) -> TypeNode:
+        """C-style `int numbers[]` / `int numbers[10]` - the same array as `int[] numbers` /
+        `int[10] numbers`, written the other way (user, 2026-11-15 - both kept, a preference)."""
+        if not self.check(TokenType.LBRACKET):
+            return var_type
+        if isinstance(var_type, ArrayType):
+            raise ParserError(self.peek(), f"Write the brackets once: {self.type_text(var_type)} {name}, "
+                                           f"or {self.type_text(var_type.element_type)} {name}[]")
+        self.advance()
+        size = None
+        if not self.check(TokenType.RBRACKET):
+            size_token = self.consume(TokenType.INTEGER, f"Array size must be an integer literal, e.g. {name}[5]")
+            size = integer_value(size_token.value)
+        self.consume(TokenType.RBRACKET, "Expected ']' after array size")
+        if self.check(TokenType.LBRACKET):
+            raise ParserError(self.peek(), "Multi-dimensional arrays are not yet supported")
+        return ArrayType(location=var_type.location, element_type=var_type, size=size)
+
+    @staticmethod
+    def type_text(type_node) -> str:
+        if isinstance(type_node, ArrayType):
+            size = '' if type_node.size is None else str(type_node.size)
+            return f"{Parser.type_text(type_node.element_type)}[{size}]"
+        return getattr(type_node, 'name', 'T')
+
     def parse_fixed_declaration(self) -> ASTNode:
         """`fixed int[10] c`, `fixed int[] d = [5, 2, 3]` (Task 45.14, D.141): an array whose size
         is set once, when it is made. `fixed(n)` - at most n - on strings, Lists and Maps is Task 47.5."""
@@ -1235,12 +1261,7 @@ class Parser:
         name_token = self.consume(TokenType.IDENTIFIER, "Expected variable name")
         name = name_token.value
         location = name_token.location
-        if self.check(TokenType.LBRACKET):
-            # C-style `int numbers[]` - planned (Task 30.10); it used to be read silently as a
-            # plain int followed by an empty list (Task 30.0)
-            raise ParserError(self.peek(), f"Write the array type before the name: "
-                                           f"{getattr(var_type, "name", "T")}[] {name} (the C-style "
-                                           f"'{name}[]' is planned)")
+        var_type = self._brackets_after_name(var_type, name)
 
         # `Ship s, Error err = loadShip(f)` - capture the call's error (Task 26)
         error_name, error_location, error_type = None, None, None
