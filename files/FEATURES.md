@@ -224,13 +224,13 @@ then each point is decided and solved completely. One line per section and per l
 				growable one, never expands); a growable one takes values or a stack array of any shape - tests/test_array_whole_copy.py
 			[ ] Later: a heap array (growable, or plain given another shape) given whole to a new array or replaced from
 				another heap array or a function; a parameter of any size replaced as a whole
-			[ ] A 3D array (plain / fixed) on the heap, not the stack - waits for OpenQuestions Q.033 "To confirm"
+			[ ] A 3D array (plain / fixed) on the heap, not the stack (D.154)
 		[DONE] 45.11 `toList` on them: a List of Lists, the outer dimension first (D.148 - user, 2026-11-15); a null object slot a NullError, nothing leaked - tests/test_many_dims_to_list.py, example syntax_many_dims_to_list
 			[DONE] 45.11b `toCSV(",", "#", "\n")` on every array of plain values (D.151): a line per row; 3 dimensions and up the sheets
 				side by side split by "#"; CSV quoting; a null slot an empty field (`1,2,,4`); `[arrays] csvManyDimensions` (default true)
 			[DONE] 45.11c `toList()` skips null slots (D.152) - on every array; a column all null an empty List; replaces 45.11's NullError
 			[POSTPONED - a class of its own, later] An Excel file, several files, a custom CSV or a binary file for many dimensions (D.151)
-	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)
+	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage` = "flat" / "rect", `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); JAGG only on a growable array of 2 or 3 dimensions, on the heap (D.153); RECT on the stack while small (D.154); one row's `add` only on JAGG (D.144); `j.columns` per row - OpenQuestions Q.031
 	[DONE] 45.17 A bare enum value where the enum type is known: parameters, declarations, assignments, returns, comparisons, `case` - every enum; a variable of the same name an error (D.150) - tests/test_bare_enum.py, example syntax_enum_bare
 	[DONE] 45.3b `int:[10] g` / `int[[10]] g` - a growable array with 10 slots of the default value, length 10 (D.141); `int:[3] g = [1, 2, 3]` sizes agree - tests/test_growable_arrays.py
 	[DONE] 45.16 files/ArrayCube.html - A cube visualiser (user, 2026-11-15): an HTML page showing a 3-dimension array as a cube and which
@@ -907,7 +907,7 @@ Each time a task or section is finished, this list is checked for items the curr
 			runs: a small PC less, a server more - and plays nice, never taking memory other programs need
 		[POSTPONED - after self-hosting] L16.5 Large arrays on a GPU or the CPU: special options per array
 		[POSTPONED - after self-hosting and profiling] L16.6 Which arrays live on the stack and which on the heap - for now
-			the stack holds only a 1D or 2D array, FLAT (an active copy used in loops); JAGG only on the heap (user, 2026-11-16, Q.033)
+			the stack holds only a 1D or 2D array, FLAT or RECT (an active copy used in loops); a large one on the heap with a small part copied to the stack; JAGG only on the heap (D.154)
 
 ---
 

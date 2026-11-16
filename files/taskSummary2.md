@@ -72,7 +72,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-16: 45.11c (toList skips null slots, D.152), 45.11b (toCSV on arrays of plain values, D.151)
 - Done 2026-11-16: 45.12e parts 1-2 (a whole array given to a new one: moved, byVal a copy), part 3a (replacing, same shape), part 3b (another shape - to the heap)
 - Done 2026-11-16: the index error naming its dimension; 45.16 files/ArrayCube.html
-- **Next Action:** the user confirms Q.030-Q.033 ("To confirm"); then 45.15 part 1 and the 3D-on-the-heap move
+- 2026-11-16: Q.030, Q.032, Q.033 answered - D.153 (JAGG), D.154 (stack / heap); Q.031 has 3 points left to confirm
+- **Next Action:** the 3D-on-the-heap move (D.154), then 45.15 part 1 (FLAT / RECT; JAGG once Q.031 is confirmed)
 
 ### 45.12e and 45.15 - the plan (2026-11-16, to approve)
 
@@ -93,8 +94,9 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - The old value's strings and objects freed; every test under the leak check
 - Parts, in order: (1) one dimension on the stack, (2) many dimensions, same shape, (3) another shape (heap), (4) the messages
 
-**45.15 Storage FLAT / RECT / JAGG** (D.144, D.147) - waits for OpenQuestions Q.030-Q.033
-- Settings: `[arrays] storage` = "flat" (default) / "rect" / "jagg" - into fusionSettings.xml when built
+**45.15 Storage FLAT / RECT / JAGG** (D.144, D.147, D.153, D.154) - JAGG details wait for OpenQuestions Q.031
+- Settings: `[arrays] storage` = "flat" (default) / "rect" - into fusionSettings.xml when built; JAGG per array only
+- JAGG: only a growable array of 2 or 3 dimensions, on the heap; RECT stays on the stack while small
 - A built-in enum `Storage`: FLAT, RECT, JAGG, added only when used (as `Dimension`)
 - `m.setStorage(RECT)` the line after the declaration or in its set-up block (D.147); anywhere else an error;
   `setStorage(null)` back to FLAT
