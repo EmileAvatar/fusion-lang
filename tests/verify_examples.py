@@ -13,6 +13,7 @@ Usage:
     python verify_examples.py
 """
 
+import datetime
 import io
 import os
 import subprocess
@@ -281,7 +282,8 @@ def generate_report(results: list[VerificationResult], report_file: Path):
     every run left a modified file in git just for a new timestamp (Task 22.6)."""
     with io.StringIO() as f:
         f.write("# Fusion Compiler Verification Report\n\n")
-        f.write(f"**Date:** {subprocess.run(['date'], capture_output=True, text=True).stdout.strip()}\n")
+        # Python's own clock - the Unix `date` command isn't on every Windows PATH
+        f.write(f"**Date:** {datetime.datetime.now().strftime('%a %b %d %H:%M:%S %Y')}\n")
         f.write(f"**Total Examples:** {len(results)}\n\n")
 
         # Summary

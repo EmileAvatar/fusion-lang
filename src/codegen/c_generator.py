@@ -1722,32 +1722,25 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         value = f'{self.visit(root)}[{position}]'
         if self.is_managed(element):
             value = self.clone_code(element, value)
-        parts = [f'__extension__ ({{ int fusion_off = {fixed}; int fusion_bad = 0;']
-        nullable = self.is_class_type(element) or isinstance(element, EnumType)
-        if nullable:
-            # D.139: a List never holds null - every slot looked at first, nothing made if one is
-            empty = 'FUSION_ENUM_NULL' if isinstance(element, EnumType) else 'NULL'
-            slot = f'{self.visit(root)}[{position}]'
-            parts += [f'for (int {counters[j]} = 0; {counters[j]} < {full[k]}; {counters[j]}++)'
-                      for j, k in enumerate(order)]
-            parts.append(f'if ({slot} == {empty}) fusion_bad = 1;')
-            parts.append(f'if (fusion_bad) fusion_null_fail({self._where(node)}, "toList: a slot is null - '
-                         f'a List never holds null (D.139)");')
-        # a failed one gives NULL, as a failed slice does - nothing to free on the way out
-        parts.append(f'{names[0]} fusion_l0 = fusion_bad ? NULL : {names[0]}_new(); if (!fusion_bad) {{')
+        parts = [f'__extension__ ({{ int fusion_off = {fixed};']
+        parts.append(f'{names[0]} fusion_l0 = {names[0]}_new();')
         for j, k in enumerate(order):
             parts.append(f'for (int {counters[j]} = 0; {counters[j]} < {full[k]}; {counters[j]}++) {{')
             if j + 1 < len(order):
                 parts.append(f'{names[j + 1]} fusion_l{j + 1} = {names[j + 1]}_new();')
-        parts.append(f'{names[-1]}_add(fusion_l{len(order) - 1}, {value});')
+        add = f'{names[-1]}_add(fusion_l{len(order) - 1}, {value});'
+        if self.is_class_type(element) or isinstance(element, EnumType):
+            # D.152: a null slot is skipped - a column all null stays an empty List (the shape kept)
+            empty = 'FUSION_ENUM_NULL' if isinstance(element, EnumType) else 'NULL'
+            add = f'if ({self.visit(root)}[{position}] != {empty}) {add}'
+        parts.append(add)
         for j in reversed(range(len(order))):
             parts.append('}')
             if j > 0:
                 parts.append(f'{names[j - 1]}_add(fusion_l{j - 1}, fusion_l{j});')
-        parts.append('} fusion_l0; })')
+        parts.append('fusion_l0; })')
         code = ' '.join(parts)
-        code = code if id(node) in self.consumed else self.fresh_temporary(code, node.inferred_type)
-        return self.checked_code(code, self.map_type(node.inferred_type)) if nullable else code
+        return code if id(node) in self.consumed else self.fresh_temporary(code, node.inferred_type)
 
     def visit_HeldIndex(self, node) -> str:
         return node.c_name           # an index worked out once, or a loop's counter (45.12b)

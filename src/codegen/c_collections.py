@@ -348,7 +348,9 @@ class CollectionsMixin:
             return ' '.join(self.free_lines(element, lvalue))
 
         what = 'array' if name.startswith('fusion_array_') else 'list'     # a heap array (45.10)
-        eq = self.value_equality('a->data[i]', element, 'b->data[i]', element)
+        skip = ('FUSION_ENUM_NULL' if isinstance(element, EnumType)
+                else 'NULL' if self.is_class_type(element) else None)        # toList skips these (D.152)
+        eq =self.value_equality('a->data[i]', element, 'b->data[i]', element)
         eq_v = self.value_equality('l->data[i]', element, 'v', element)
         functions = {
             f'{name} {name}_new(void)': [
@@ -475,11 +477,14 @@ class CollectionsMixin:
                 f'for (int i = 0; i < n; i++) l->data[l->len + i] = {copy("items[i]")};',
                 'l->len += n; l->changes++;'],
             # an array's toList() - a new list with copies of the elements (Task 32.10a.1)
+            # an object or enum slot that is null is skipped (D.152) - a List never holds null (D.139)
             f'{name} {name}_copyFrom({T} const* items, int n)': [
                 f'{name} r = {name}_new();',
                 f'{name}_grow(r, n);',
-                f'for (int i = 0; i < n; i++) r->data[i] = {clone("items[i]")};',
-                'r->len = n;',
+                'int k = 0;',
+                (f'for (int i = 0; i < n; i++) if (items[i] != {skip}) r->data[k++] = {clone("items[i]")};'
+                 if skip else f'for (int i = 0; i < n; i++) r->data[k++] = {clone("items[i]")};'),
+                'r->len = k;',
                 'return r;'],
             f'{name} {name}_filter({name} l, bool (*keep)({T}))': [
                 f'{name} r = {name}_new();',

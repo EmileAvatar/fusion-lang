@@ -48,13 +48,28 @@ def test_a_grown_array():
     assert run(main(body)) == ['1 4 0 2 5 0 3 6 0 |']
 
 
-def test_a_null_object_slot():
-    # Rule 4b: an array slot may be null (D.140), a List never holds null (D.139) - a null slot is a
-    # NullError (nothing made, nothing leaked); once every slot is filled the code runs on
-    body = ('Car[1][2] cars\ncars[0][0] = Car("red")\ntry\n    List<List<Car>> l = cars.toList()\n    print("made")\n'
-            'catch NullError e\n    print("{e}")\ncars[0][1] = Car("blue")\nList<List<Car>> ok = cars.toList()\n'
+def test_a_null_object_slot_is_skipped():
+    # Rule 4b / D.152: an array slot may be null (D.140), a List never holds null (D.139) - a null
+    # slot is skipped, a column all null stays an empty List (the shape kept); once filled, it's there
+    body = ('Car[1][2] cars\ncars[0][0] = Car("red")\nList<List<Car>> l = cars.toList()\n'
+            'print("{@1} {@2} {@3} {@4}", l.len(), l[0].len(), l[1].len(), l[0][0].color)\n'
+            'cars[0][1] = Car("blue")\nList<List<Car>> ok = cars.toList()\n'
             'print("{@1} {@2}", ok[0][0].color, ok[1][0].color)')
-    assert run(CAR + main(body)) == ['toList: a slot is null - a List never holds null (D.139)', 'red blue']
+    assert run(CAR + main(body)) == ['2 1 0 red', 'red blue']
+
+
+def test_every_slot_null():
+    body = ('Car[2][2] cars\nList<List<Car>> l = cars.toList()\n'
+            'print("{@1} {@2} {@3}", l.len(), l[0].len(), l[1].len())')
+    assert run(CAR + main(body)) == ['2 0 0']
+
+
+def test_one_dimension_skips_null_slots():
+    # D.152 on a one-dimension array, on the stack and on the heap: only the filled slots
+    body = ('Car[3] cars\ncars[1] = Car("red")\nList<Car> l = cars.toList()\n'
+            'print("{@1} {@2}", l.len(), l[0].color)\nCar[3] none\nprint("{@1}", none.toList().len())\n'
+            'int[3] n = [1, 0, 3]\nprint("{@1}", n.toList().len())')
+    assert run(CAR + main(body)) == ['1 red', '0', '3']
 
 
 @pytest.mark.parametrize('body, message', [

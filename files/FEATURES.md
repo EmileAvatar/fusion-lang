@@ -219,7 +219,7 @@ then each point is decided and solved completely. One line per section and per l
 		[DONE] 45.11 `toList` on them: a List of Lists, the outer dimension first (D.148 - user, 2026-11-15); a null object slot a NullError, nothing leaked - tests/test_many_dims_to_list.py, example syntax_many_dims_to_list
 			[ ] 45.11b `toCSV(",", "#", "\n")` on every array of plain values (D.151): a line per row; 3 dimensions and up the sheets
 				side by side split by "#"; CSV quoting; a null slot an empty field (`1,2,,4`); `[arrays] csvManyDimensions` (default true)
-			[ ] 45.11c `toList()` skips null slots (D.152) - on every array; a column all null an empty List; replaces 45.11's NullError
+			[DONE] 45.11c `toList()` skips null slots (D.152) - on every array; a column all null an empty List; replaces 45.11's NullError
 			[POSTPONED - a class of its own, later] An Excel file, several files, a custom CSV or a binary file for many dimensions (D.151)
 	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)
 	[DONE] 45.17 A bare enum value where the enum type is known: parameters, declarations, assignments, returns, comparisons, `case` - every enum; a variable of the same name an error (D.150) - tests/test_bare_enum.py, example syntax_enum_bare
