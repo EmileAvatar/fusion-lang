@@ -70,7 +70,35 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
   45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits), 45.3b (`int:[10]`), 45.12a (2 and 3 dimensions), 45.12b (views), 45.12c (functions), 45.17 (bare enum values), 45.12d (growable, expand), 45.11 (toList) - FEATURES Task 45
 - Done 2026-11-16: 45.11c (toList skips null slots, D.152), 45.11b (toCSV on arrays of plain values, D.151)
-- **Next Action:** plans for 45.12e (copying / replacing a whole array of many dimensions) and 45.15 storage FLAT / RECT / JAGG
+- **Next Action:** the user approves the 45.12e / 45.15 plan below and answers Q.030-Q.033; then 45.12e part 1
+
+### 45.12e and 45.15 - the plan (2026-11-16, to approve)
+
+**Found today:**
+- No stack array can be copied as a whole - not even one dimension (`int[3] b = a` is an error)
+- Heap and growable arrays of one dimension already move as a List does; `byVal` copies them (D.025)
+- A whole array of 2 or 3 dimensions: copying, replacing and `m = f()` are all errors
+- Those messages still say "comes with Task 45.12d" (done) - fixed in 45.12e
+
+**45.12e Copying and replacing a whole array** - follows D.025 and D.141, nothing new to decide
+- Settings: none
+- `int[2][3] n = m` moves: the slots are copied, and `m` can't be used after (as a List)
+- `int[2][3] n = byVal m` copies: `m` stays usable; strings copied, objects copied too
+- One dimension on the stack the same: `int[3] b = a` / `byVal a`
+- `m = [[...]]` with the same shape: the slots replaced
+  - another shape: a plain array moves to the heap (as 45.10 on one dimension); a fixed one is an error; a growable one is fine
+- `m = f()` and `n = m` after the declaration: the same rules
+- The old value's strings and objects freed; every test under the leak check
+- Parts, in order: (1) one dimension on the stack, (2) many dimensions, same shape, (3) another shape (heap), (4) the messages
+
+**45.15 Storage FLAT / RECT / JAGG** (D.144, D.147) - waits for OpenQuestions Q.030-Q.033
+- Settings: `[arrays] storage` = "flat" (default) / "rect" / "jagg" - into fusionSettings.xml when built
+- A built-in enum `Storage`: FLAT, RECT, JAGG, added only when used (as `Dimension`)
+- `m.setStorage(RECT)` the line after the declaration or in its set-up block (D.147); anywhere else an error;
+  `setStorage(null)` back to FLAT
+- RECT: a block per row, all the same length - the program reads the same; slots reached through the row
+- JAGG: a block per row, each its own length; one row's `add` (`j[1].add(5)`); anywhere else "use setStorage(JAGG)"
+- Parts, in order: (1) the setting, the enum and `setStorage` checks, (2) RECT, (3) JAGG, (4) docs and Arrays.md rows
 
 ### 45.12 Up to 3 dimensions - the plan (2026-11-15, replanned after OpenQuestions Q.021-Q.027)
 Settings: `[arrays] order` = "columns" (default) / "rows" (D.148), built with 45.12a; `[arrays] storage` is 45.15.
