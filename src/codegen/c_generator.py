@@ -1597,7 +1597,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         was worked out, a loop's counter can't be outside); `extra` adds (code, step) pairs."""
         where = self._where(node)
         parts = []
-        for index, size, step in zip(slots, dims, steps):
+        for k, (index, size, step) in enumerate(zip(slots, dims, steps)):
             if index is None:
                 continue
             code = self.visit(index)
@@ -1605,7 +1605,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 isinstance(index, LiteralExpr) and isinstance(index.value, int)
                 and not isinstance(index.value, bool) and isinstance(size, int) and 0 <= index.value < size)
             if not trusted:
-                code = self.checked_code(f'fusion_index({code}, {size}, {where})', 'int')
+                code = self.checked_code(self._index_dim_code(code, size, where, k), 'int')
             parts.append(code if step == 1 else f'({code}) * {step}')
         parts += [code if step == 1 else f'{code} * {step}' for code, step in extra]
         return ' + '.join(parts) or '0'
@@ -1742,6 +1742,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         code = ' '.join(parts)
         return code if id(node) in self.consumed else self.fresh_temporary(code, node.inferred_type)
 
+    _DIM_NAMES = (('row', 'rows'), ('column', 'columns'), ('sheet', 'depth'))
+
+    def _index_dim_code(self, code, size, where, dim: int) -> str:
+        """One index of an array of 2 or 3 dimensions checked - its error names the dimension."""
+        one, many = self._DIM_NAMES[dim]
+        return f'fusion_index_dim({code}, {size}, {where}, "{one}", "{many}")'
+
     def visit_HeldIndex(self, node) -> str:
         return node.c_name           # an index worked out once, or a loop's counter (45.12b)
 
@@ -1755,7 +1762,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.indent()
         self.push_scope('block')
         for h in held:
-            code = self.checked_code(f'fusion_index({self.visit(h.value)}, {h.size}, {where})', 'int')
+            code = self.checked_code(self._index_dim_code(self.visit(h.value), h.size, where, h.dim), 'int')
             self.emit_line(f'int {h.c_name} = {code}')
         i = counter.c_name
         self.emit(f'for (int {i} = 0; {i} < {counter.size}; {i}++) {{')

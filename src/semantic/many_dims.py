@@ -46,6 +46,7 @@ class HeldIndex(ASTNode):
     value: Optional[Any] = None
     c_name: str = ''
     size: int = 0
+    dim: int = 0                    # which dimension - its index error names it (row / column / sheet)
 
 
 def _times(a, b):
@@ -813,7 +814,8 @@ class ManyDimsMixin:
                 continue
             if isinstance(slot, LiteralExpr):
                 continue                                 # a written number - nothing to work out
-            slot = HeldIndex(location=slot.location, value=slot, c_name=f'fusion_at_{number}_{k}', size=full[k])
+            slot = HeldIndex(location=slot.location, value=slot, c_name=f'fusion_at_{number}_{k}', size=full[k],
+                             dim=k)
             slots[k] = slot
             held.append(slot)
         dim = self._outer_open(slots)

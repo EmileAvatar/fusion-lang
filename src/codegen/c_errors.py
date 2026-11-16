@@ -89,6 +89,14 @@ static inline int fusion_index(int i, int length, const char* where) {
     }
     return i;
 }
+// An array of 2 or 3 dimensions (45.12): the error names the dimension - "row 5 is outside (rows 2)"
+static inline int fusion_index_dim(int i, int length, const char* where, const char* one, const char* many) {
+    if (i < 0 || i >= length) {
+        fusion_fail(FUSION_KIND_IndexError, where, "%s %d is outside (%s %d)", one, i, many, length);
+        return 0;
+    }
+    return i;
+}
 // Whole-number division (Task 26.12): by zero is a DivideByZeroError, not a crash.
 // -2147483648 / -1 doesn't fit: an OverflowError (27.2b), or it wraps when not checked
 static inline int fusion_div_int(int a, int b, int check, const char* where) {

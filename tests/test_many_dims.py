@@ -72,13 +72,18 @@ def test_objects_and_null():
 
 
 @pytest.mark.parametrize('read, message', [
-    ('m[k][0]', 'index 5 is outside the array (length 2)'),
-    ('m[0][k]', 'index 5 is outside the array (length 3)'),
-    ('m[0][0 - k]', 'index -5 is outside the array (length 3)'),
+    ('m[k][0]', 'row 5 is outside (rows 2)'),           # the error names the dimension (45.12)
+    ('m[0][k]', 'column 5 is outside (columns 3)'),
+    ('m[0][0 - k]', 'column -5 is outside (columns 3)'),
 ])
 def test_each_index_is_checked(read, message):
     out = run(main(f'int[2][3] m\nint k = 5\ntry\n    print("{{@1}}", {read})\ncatch IndexError e\n    print("{{e}}")'))
     assert out == [message]
+
+
+def test_a_sheet_outside_names_it():
+    out = run(main('int[2][3][4] c\nint k = 7\ntry\n    print("{@1}", c[0][1][k])\ncatch IndexError e\n    print("{e}")'))
+    assert out == ['sheet 7 is outside (depth 4)']
 
 
 def test_a_written_index_outside_is_a_compile_error():

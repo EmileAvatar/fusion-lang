@@ -59,7 +59,7 @@ def test_equal_slot_by_slot():
 def test_an_index_outside_a_passed_part():
     out = run(TOTAL + main('int[2][3][4] cube\nint k = 9\ntry\n    print("{@1}", total(cube[k][1]))\n'
                            'catch IndexError e\n    print("{e}")'))
-    assert out == ['index 9 is outside the array (length 2)']
+    assert out == ['row 9 is outside (rows 2)']
 
 
 def test_strings_through_an_any_size_parameter():

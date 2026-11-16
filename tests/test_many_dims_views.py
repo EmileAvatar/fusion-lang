@@ -78,7 +78,7 @@ def test_the_index_a_loop_view_fixes_is_read_once():
 
 def test_a_held_index_outside_is_an_index_error():
     body = FILL + 'int r = 5\ntry\n    foreach (int v in cube[r][1])\n        print("{v}")\ncatch IndexError e\n    print("{e}")'
-    assert run(main(body)) == ['index 5 is outside the array (length 2)']
+    assert run(main(body)) == ['row 5 is outside (rows 2)']
 
 
 def test_a_copy_changes_on_its_own():
