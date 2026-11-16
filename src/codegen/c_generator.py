@@ -2018,6 +2018,29 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 f'"a {kind} never holds null (D.139)")', None))
 
         replace = getattr(node, 'many_replace', None)
+        if replace in ('grid_values', 'grid_array'):
+            # g = [[...]] / g = n on the heap (45.12e part 3b): a new block of the new sizes filled
+            # first, then the old slots and block freed, the sizes set
+            kind = node.target.inferred_type
+            element = kind.element_type
+            T = self.map_type(element)
+            total = 1
+            for size in node.grid_new:
+                total *= size
+            if replace == 'grid_values':
+                fill = ' '.join(f'fusion_new[{i}] = {self.owned_value(v, element)};'
+                                for i, v in enumerate(node.value.elements))
+            else:
+                source, deep = node.array_from
+                slot = f'{self.visit(source)}[fusion_i]'
+                value = (self.clone_code(element, slot) if deep else self.copy_code(element, slot)) \
+                    if self.is_managed(element) else slot
+                fill = f'for (int fusion_i = 0; fusion_i < {total}; fusion_i++) fusion_new[fusion_i] = {value};'
+            sizes = ' '.join(f'fusion_dim_{node.target.name}[{k}] = {s};' for k, s in enumerate(node.grid_new))
+            free = ' '.join(self.free_lines(kind, target_code))
+            self.emit(f'{{ {T}* fusion_new = ({T}*)fusion_alloc(sizeof({T}) * {total}); {fill} {free} '
+                      f'{target_code} = fusion_new; {sizes} }}')
+            return ''
         if replace in ('values', 'array'):
             # m = [[...]] / m = n / m = byVal n (45.12e): the new slots made first, then the old ones
             # freed and replaced - so m = m is safe

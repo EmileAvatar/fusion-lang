@@ -182,10 +182,16 @@ class ManyDimsMixin:
             return False
         symbol = self.symbol_table.lookup(source.name)
         kind = getattr(symbol, 'data_type', None)
-        if not isinstance(kind, ArrayType) or kind.growable or getattr(kind, 'view', False):
+        if not isinstance(kind, ArrayType) or getattr(kind, 'view', False):
             return False
         self.visit(value)
         node.many_ok = True                 # its own errors below - not "used as a whole" as well
+        if kind.growable:
+            self.errors.append(SemanticError(
+                f"'{source.name}' lives on the heap - its sizes are known only while running; giving it whole to "
+                f"a new array comes later - pass it to a parameter of any size, or read it slot by slot",
+                node.location))
+            return True
         given = list(kind.dims) if kind.dims else [kind.size]
         wanted = list(target.dims) if target.dims else [target.size]
         shape = self.type_to_string(kind)
@@ -214,6 +220,42 @@ class ManyDimsMixin:
         node.many_ok = True
         return True
 
+    def _grid_replace(self, node, target, name) -> None:
+        """`g = [[...]]` / `g = n` / `g = byVal n` on an array of many dimensions on the heap - a growable
+        one, or a plain one given another shape (45.12e part 3b): a new block of the new sizes, the old
+        slots and block freed. The new values come from values or an array on the stack."""
+        from src.parser.ast_nodes import PassingExpr
+        node.target.many_ok_target = True
+        value = node.value
+        if isinstance(value, ArrayLiteralExpr):
+            probe = VarDeclStmt(location=node.location, name=name,
+                                var_type=ArrayType(location=target.location, element_type=target.element_type,
+                                                   size=None, dims=[None] * len(target.dims)),
+                                initializer=value)
+            before = len(self.errors)
+            self.check_many_dims_declaration(probe)
+            if len(self.errors) > before:
+                return
+            node.value = probe.initializer
+            node.many_replace = 'grid_values'
+            node.grid_new = list(probe.var_type.dims)
+            return
+        deep = isinstance(value, PassingExpr) and value.by_val
+        source = value.value if deep else value
+        kind = self.visit(value)
+        if isinstance(source, IdentifierExpr) and not (isinstance(value, PassingExpr) and not value.by_val) \
+                and isinstance(kind, ArrayType) and kind.dims and _known(kind.dims) and not kind.growable \
+                and not getattr(kind, 'view', False) and len(kind.dims) == len(target.dims) \
+                and self.types_equal(kind.element_type, target.element_type):
+            node.array_from = (source, deep)
+            node.many_replace = 'grid_array'
+            node.grid_new = list(kind.dims)
+            source.many_ok_source = value.many_ok_source = True
+            return
+        self.errors.append(SemanticError(
+            f"'{name}' ({self.type_to_string(target)}) is replaced by values ([[...]]) or an array on the stack "
+            f"with as many dimensions; from a growable array or a function comes later", value.location))
+
     def check_many_dims_replace(self, node, symbol) -> None:
         """`m = [[...]]`, `m = n` / `byVal n`, `m = make()` on an array of many dimensions on the stack
         (45.12e part 3): the same shape - the slots replaced (the new values made first, then the old
@@ -223,7 +265,10 @@ class ManyDimsMixin:
         name = node.target.name
         value = node.value
         shape = self.type_to_string(target)
-        if target.growable or not _known(target.dims):
+        if target.growable:
+            self._grid_replace(node, target, name)      # on the heap: any shape (45.12e part 3b)
+            return
+        if not _known(target.dims):
             self.visit(value)
             node.target.many_ok_target = True
             self.errors.append(SemanticError(
@@ -242,8 +287,8 @@ class ManyDimsMixin:
                 return
             if list(probe.var_type.dims) != list(target.dims):
                 self.errors.append(SemanticError(
-                    f"'{name}' is {shape} - these values are {self.type_to_string(probe.var_type)}; another shape "
-                    f"comes with Task 45.12e part 3b (on the heap)", value.location))
+                    f"'{name}' is {shape} - these values are {self.type_to_string(probe.var_type)}; a fixed, const "
+                    f"or module array keeps its shape", value.location))
                 return
             node.value = probe.initializer
             node.many_replace = 'values'
@@ -257,8 +302,10 @@ class ManyDimsMixin:
                 if list(kind.dims) != list(target.dims) or not self.types_equal(kind.element_type,
                                                                                target.element_type):
                     self.errors.append(SemanticError(
-                        f"'{name}' is {shape}, '{source.name}' is {self.type_to_string(kind)} - the same shape "
-                        f"only for now; another comes with Task 45.12e part 3b (on the heap)", value.location))
+                        f"'{name}' is {shape}, '{source.name}' is {self.type_to_string(kind)} - from another array "
+                        f"the same shape only; give '{name}' new values ({name} = [[...]]) or declare it growable "
+                        f"({self.type_to_string(target.element_type)}:{'[]' * len(target.dims)} {name})",
+                        value.location))
                     return
                 node.array_from = (source, deep)
                 node.many_replace = 'array'
@@ -577,6 +624,12 @@ class ManyDimsMixin:
         it stays a cube; always a warning, every slot is copied."""
         void = PrimitiveType(location=node.location, name='void')
         name = _name_of(node.callee.object)
+        if getattr(array_type, 'plain_heap', False):
+            node.callee.grid_expand_callee = True
+            self.errors.append(SemanticError(
+                f"expand: '{name}' is a plain array - it gets a new shape only by being replaced ({name} = [[...]]); "
+                f"only a growable array expands (int:[][] {name}) (D.141, D.143)", node.location))
+            return void
         if not array_type.growable or getattr(array_type, 'view', False):
             self.errors.append(SemanticError(
                 f"expand: '{name}' doesn't grow - only a growable array does (D.141, D.143): "

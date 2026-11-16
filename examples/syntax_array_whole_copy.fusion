@@ -10,3 +10,6 @@ void function main()
     print("{@1}", b[2])                 // z
     n = [[7, 8, 9], [1, 2, 3]]          // replaced - the same shape
     print("{@1}", n[0][0])              // 7
+    int[2][2] g = [[1, 2], [3, 4]]
+    g = [[5, 6, 7]]                     // another shape - g lives on the heap
+    print("{@1} {@2}", g.rows, g.columns)       // 1 3

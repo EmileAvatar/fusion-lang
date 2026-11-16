@@ -56,11 +56,33 @@ def test_replacing_with_the_same_shape(body, out):
     assert run(FN + main(body)) == out
 
 
+@pytest.mark.parametrize('body, out', [
+    ('int[2][3] m = [[1, 2, 3], [4, 5, 6]]\nm = [[7, 8], [1, 2], [3, 4]]\nprint("{@1} {@2} {@3}", m.rows, m.columns, m[2][1])',
+     ['3 2 4']),
+    ('string[][] m = [["a", "b"]]\nm = [["w", "x", "y"], ["z", "q", "r"]]\nprint("{@1} {@2}", m[1][2], m.columns)',
+     ['r 3']),
+    ('int:[][] g = [[1, 2], [3, 4]]\ng = [[5, 6, 7]]\ng.expand(ROWS, 1)\nprint("{@1} {@2} {@3}", g.rows, g[0][2], g[1][2])',
+     ['2 7 0']),
+    ('string:[][] g = [["a"]]\nstring[2][2] n = [["w", "x"], ["y", "z"]]\ng = byVal n\nprint("{@1} {@2}", g[1][1], n[0][0])',
+     ['z w']),
+    ('int[2][2][2] c\nc = [[[1, 2, 3]]]\nprint("{@1} {@2}", c[0][0][2], c.depth)', ['3 3']),
+    ('string[][] m = [["a"]]\nint i = 0\nwhile i < 3\n    m = [["x{i}", "y"], ["z", "w"]]\n    i = i + 1\nprint("{@1}", m[0][0])',
+     ['x2']),
+    ('int[2][2] m\nm = [[1, 2, 3], [4, 5, 6]]\nList<List<int>> l = m.toList()\nprint("{@1} {@2}", l.len(), l[2][1])',
+     ['3 6']),
+])
+def test_replacing_with_another_shape(body, out):
+    # 45.12e part 3b: a plain array given another shape lives on the heap (as a growable one, but
+    # never expands); a growable one takes any shape - a new block, the old slots and block freed
+    assert run(main(body)) == out
+
+
 @pytest.mark.parametrize('body, message', [
     ('int[3] a = [1, 2, 3]\nint[3] b = a\nprint("{@1}", a[0])', "'a' was moved to 'b'"),
     ('int[2][2] m\nint[2][2] n\nm = n\nprint("{@1}", n[0][0])', "'n' was moved to 'm'"),
-    ('int[2][3] m\nm = [[1, 2], [3, 4]]', 'another shape comes with Task 45.12e part 3b'),
-    ('int[2][3] m\nint[3][2] n\nm = n', 'the same shape only for now'),
+    ('int[2][3] m\nint[3][2] n\nm = n', 'from another array the same shape only'),
+    ('int[2][3] m\nm = [[7, 8], [1, 2], [3, 4]]\nm.expand(ROWS, 1)', "'m' is a plain array"),
+    ('int:[][] g = [[1]]\nint[][] n = byVal g', 'lives on the heap'),
     ('fixed int[2][2] m\nm = [[1, 2], [3, 4]]', "'m' is fixed"),
     ('int[2][2] m\nm = 5', 'it is replaced by values'),
     ('int[2][3] m\nint[2][3] n = m\nprint("{@1}", m[0][0])', "'m' was moved to 'n'"),

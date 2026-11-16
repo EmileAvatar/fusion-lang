@@ -4,7 +4,7 @@
 |---|---|
 | `semantic_analyzer.py` | Runs the passes below in order and collects errors and warnings (entry point of this folder) |
 | `number_patterns.py` | Checks `formatNumber` patterns written in the source (the same rules as the C runtime) |
-| `heap_arrays.py` | Plain arrays that get a new size (Task 45.10, D.141): before names are resolved, an array replaced as a whole, an `int[]` result of any size and an unsized struct field become a heap array - a List block marked `array_form`, still acting as an array |
+| `heap_arrays.py` | Plain arrays that get a new size (Task 45.10, D.141): before names are resolved, an array replaced as a whole, an `int[]` result of any size and an unsized struct field become a heap array - a List block marked `array_form`, still acting as an array; a local of 2 or 3 dimensions given values of another shape lives on the heap as a growable one does, marked `plain_heap` (45.12e) |
 | `many_dims.py` | Arrays of 2 and 3 dimensions (Task 45.12): the type rules (a mixin of the type checker) - declarations and nested values flattened in `[arrays] order`, one index per dimension, views, foreach, `rows` / `columns` / `depth` / `length`, parameters of any size, growable ones and `expand` (the `Dimension` enum, added when used); `check_many_dims_uses` - every use not built yet an error |
 | `stack_arrays.py` | Arrays on the stack in bytes (Task 45.13, D.145): after type checking, a local array (or a struct holding one) above `[arrays] stackWarn` is a warning, above `stackLimit` an error |
 | `null_guards.py` | The null guard (Task 52.8): runs first - `c?.f()` becomes an `if`, `c?.x ?? d` the conditional operator, a guarded test in a condition `(c is not null) and (...)`; a guarded value with no default is an error |

@@ -77,6 +77,41 @@ def mark_heap_arrays(program) -> None:
                     field.field_type = heap_array(field.field_type)
     for function in functions:
         _mark_locals(function, heap_functions)
+        _mark_many_locals(function)
+
+
+def _shape(literal) -> list:
+    """The sizes nested values show - `[[1, 2, 3], [4, 5, 6]]` is [2, 3] (the first of each level)."""
+    shape = []
+    while isinstance(literal, ArrayLiteralExpr) and literal.elements:
+        shape.append(len(literal.elements))
+        literal = literal.elements[0]
+    return shape
+
+
+def _mark_many_locals(function) -> None:
+    """A plain local array of 2 or 3 dimensions replaced by values of another shape (45.12e part 3b) -
+    `m = [[1, 2], [3, 4]]` after `int[2][3] m`: its sizes change while running, so it lives on the
+    heap as a growable one does (45.12d), marked `plain_heap` - it never grows by itself (no expand)."""
+    body = getattr(function, 'body', None)
+    if body is None:
+        return
+    nodes = list(_nodes(body))
+    arrays = {n.name: n for n in nodes if isinstance(n, VarDeclStmt) and isinstance(n.var_type, ArrayType)
+              and n.var_type.dims and not n.var_type.growable and not getattr(n, 'is_fixed', False)
+              and not n.is_const}
+    for node in nodes:
+        if not (isinstance(node, AssignmentStmt) and isinstance(node.target, IdentifierExpr)
+                and node.target.name in arrays and isinstance(node.value, ArrayLiteralExpr)):
+            continue
+        declaration = arrays[node.target.name]
+        declared = list(declaration.var_type.dims)
+        if None in declared:
+            declared = _shape(declaration.initializer)
+        new = _shape(node.value)
+        if len(new) == len(declared) and new != declared:
+            declaration.var_type.growable = True
+            declaration.var_type.plain_heap = True
 
 
 def _plain(value):

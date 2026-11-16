@@ -116,7 +116,7 @@ def test_a_null_slot_in_a_view():
     ('int[2][3] m\nint[] r = byRef m[1]', 'a part of an array given to a variable is a copy (D.149)'),
     ('int[2][3] m\nforeach (int[][] x in m)\n    print("x")', "foreach over 'm' gives its columns"),
     ('int[2][3] m\nprint("{@1}", m[1].rows)', "rows is the whole array's"),
-    ('int:[2][3] g\ng = [[1, 2, 3], [4, 5, 6]]', 'comes with Task 45.12e part 3b'),
+    ('int:[2][3] g\nint:[2][3] h\ng = h', 'from a growable array or a function comes later'),
     ('int[] a = [1, 2]\nint x = a[]', 'an index left out - works on arrays of 2 and 3 dimensions'),
     ('int[2][3] m\nint x = m[0][1][2]', "Cannot index non-array type 'int'"),
 ])

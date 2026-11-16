@@ -220,7 +220,10 @@ then each point is decided and solved completely. One line per section and per l
 				`byVal a` a deep copy; sizes taken from the source when left out, else they must agree - tests/test_array_whole_copy.py
 			[DONE] Part 3a: replacing with the same shape - `m = [[...]]`, `m = n` / `byVal n`, `m = f()`: the new slots made
 				first, then the old freed and replaced (`m = m` safe); a fixed one an error - tests/test_array_whole_copy.py
-			[ ] Part 3b: another shape - a plain array to the heap, a growable one takes it; a parameter of any size
+			[DONE] Part 3b: another shape - a plain local array given values of another shape lives on the heap (as a
+				growable one, never expands); a growable one takes values or a stack array of any shape - tests/test_array_whole_copy.py
+			[ ] Later: a heap array (growable, or plain given another shape) given whole to a new array or replaced from
+				another heap array or a function; a parameter of any size replaced as a whole
 			[ ] A 3D array (plain / fixed) on the heap, not the stack - waits for OpenQuestions Q.033 "To confirm"
 		[DONE] 45.11 `toList` on them: a List of Lists, the outer dimension first (D.148 - user, 2026-11-15); a null object slot a NullError, nothing leaked - tests/test_many_dims_to_list.py, example syntax_many_dims_to_list
 			[DONE] 45.11b `toCSV(",", "#", "\n")` on every array of plain values (D.151): a line per row; 3 dimensions and up the sheets
