@@ -98,6 +98,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 
 | Task | Title | Phase | Status |
 |---|---|---|---|
+| [R](#research) | Research - files to study in full before a task starts | - | open |
 | [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
 | [45](#task-45) | Arrays that grow at the end | 2 | open |
 | [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
@@ -120,7 +121,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [49](#task-49) | Multi-language support: `Lang.<language>.Fusion` modules | 3 | postponed to 35 |
 | [54](#task-54) | Precepts: a project that behaves like C, Java, Python, Rust | 3 | postponed to 35 |
 | [L](#later) | Later / advanced - numbered L1, L2.1 ... | - | postponed |
-| [R](#research) | Research - files to study in full before a task starts | - | open |
 
 ---
 
