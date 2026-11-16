@@ -531,6 +531,65 @@ class ManyDimsMixin:
         node.callee.many_callee = True
         return result
 
+    CSV_DELIMITERS = ('primaryDelimiter', 'secondaryDelimiter', 'lineDelimiter')
+    CSV_PLAIN = ('int', 'byte', 'float', 'double', 'string', 'bool', 'char')
+
+    def plain_csv_array(self, array_type) -> bool:
+        """An array (one dimension, many, a view, on the heap) of plain values - toCSV per D.151."""
+        from src.parser.ast_nodes import EnumType
+        if not (isinstance(array_type, ArrayType) or getattr(array_type, 'array_form', False)
+                or getattr(array_type, 'growable', False)):
+            return False
+        element = array_type.element_type
+        return isinstance(element, EnumType) or (isinstance(element, PrimitiveType)
+                                                 and element.name in self.CSV_PLAIN)
+
+    def array_csv(self, node, receiver, array_type):
+        """`m.toCSV(",", "#", "\\n")` (45.11b, D.151): a line per row, the values split by the primary
+        delimiter; 3 dimensions: each line that row of every sheet side by side, split by the
+        secondary. Each delimiter positional or named, a string or a char."""
+        from src.parser.ast_nodes import NamedArgument
+        given = [None, None, None]
+        for k, arg in enumerate(node.arguments):
+            if isinstance(arg, NamedArgument):
+                if arg.name not in self.CSV_DELIMITERS:
+                    self.errors.append(SemanticError(
+                        f"toCSV has no value '{arg.name}' - it takes {', '.join(self.CSV_DELIMITERS)}",
+                        arg.location))
+                    continue
+                slot, value = self.CSV_DELIMITERS.index(arg.name), arg.value
+            elif k < 3:
+                slot, value = k, arg
+            else:
+                self.errors.append(SemanticError(
+                    "toCSV takes three values at most: the primary, secondary and line delimiters "
+                    "(\",\", \"#\", \"\\n\" when left out)", arg.location))
+                continue
+            kind = self.visit(value)
+            if not (isinstance(kind, PrimitiveType) and kind.name in ('string', 'char')):
+                self.errors.append(SemanticError(
+                    f"A delimiter of toCSV is a string or char, not {self.type_to_string(kind)}",
+                    value.location))
+            given[slot] = value
+        node.csv_delimiters = given
+        string = PrimitiveType(location=node.location, name='string')
+        if not getattr(array_type, 'dims', None):
+            node.csv = 'plain'
+            return string
+        root, slots, full = self._info(receiver, array_type)
+        if not isinstance(root, IdentifierExpr):
+            self.errors.append(SemanticError(
+                "toCSV on an array a function gives - keep the array in a variable first", node.location))
+        open_dims = [k for k, s in enumerate(slots) if s is None]
+        if len(open_dims) >= 3 and not getattr(self, 'csv_many_dimensions', True):
+            self.errors.append(SemanticError(
+                "toCSV on an array of 3 dimensions is off ([arrays] csvManyDimensions = false) - "
+                "toCSV each sheet (cube[][][0]) or turn it on (D.151)", node.location))
+        node.csv = 'dims'
+        node.csv_dims = (root, slots, full, strides(full, self.array_order), open_dims)
+        node.callee.many_callee = True
+        return string
+
     def many_dims_member(self, node: MemberExpr, array_type: ArrayType):
         """`m.rows`, `m.columns`, `m.depth`, `m.length` - known while compiling. None: not one."""
         member = node.member

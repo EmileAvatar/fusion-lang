@@ -230,6 +230,7 @@ class ArraysConfig:
     stack_warn: int = 16 * 1024
     stack_limit: int = 64 * 1024
     order: str = "columns"      # which dimension first - "columns" / "rows" (45.12, D.148)
+    csv_many_dimensions: bool = True   # toCSV on 3 dimensions or more (45.11b, D.151)
 
 
 @dataclass
@@ -573,11 +574,18 @@ def _load_arrays_section(data: dict, config_path: str) -> ArraysConfig:
     """Parse and validate the [arrays] section (Task 45.13, D.145)."""
     arrays = ArraysConfig()
     section = _require_table(data, "arrays", config_path)
-    known = {"stackWarn": "stack_warn", "stackLimit": "stack_limit", "order": "order"}
+    known = {"stackWarn": "stack_warn", "stackLimit": "stack_limit", "order": "order",
+             "csvManyDimensions": "csv_many_dimensions"}
     for key, value in section.items():
         if key not in known:
             raise ProjectConfigError(
                 f"{config_path}: unknown setting arrays.{key} (known: {sorted(known)})")
+        if key == "csvManyDimensions":
+            if not isinstance(value, bool):
+                raise ProjectConfigError(
+                    f"{config_path}: arrays.csvManyDimensions must be true or false, got {value!r}")
+            arrays.csv_many_dimensions = value
+            continue
         if key == "order":
             if value not in ("columns", "rows"):
                 raise ProjectConfigError(

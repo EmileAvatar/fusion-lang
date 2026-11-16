@@ -146,6 +146,9 @@
     <setting name="stackLimit" type="bytes" default="64KB" task="45.13">
       <description>A plain or fixed array on the stack larger than this: a compile error - a growable array (int:[]) or a List lives on the heap instead (D.145)</description>
     </setting>
+    <setting name="csvManyDimensions" type="bool" default="true" task="45.11b">
+      <description>toCSV on an array of 3 dimensions: each line holds that row of every sheet side by side, the sheets split by the secondary delimiter ("#"); false: a compile error (D.151)</description>
+    </setting>
   </section>
 
   <section name="memory" description="How values are owned (files/Ownership.md)">

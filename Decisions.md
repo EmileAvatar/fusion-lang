@@ -134,7 +134,7 @@ COL.016 [REJECTED] `type()` / `type(N)` arrays meaning read-only or fixed size -
 COL.017 [BUILT] Every array acts as an object of the built-in `Array` class - `a.length` is `Array.length(a)`; `length`, `toList`, `toCSV` (Task 45.1, D.142); the rest with their sub-tasks
 COL.018 [PARTIAL] Large arrays: stack limits in bytes (D.145 - built 45.13); buffers SINGLE / TWO / THIRD / RING - built after self-hosting (D.146, L16)
 COL.019 [BUILT] Views of a many-dimension array: `cube[1]`, `cube[][2][1]` - borrowed in a loop, copied (numbers) into a variable (Task 45.12b, D.149)
-COL.020 [PLANNED] toCSV on arrays of plain values - a line per row, the primary / secondary / line delimiters, 3 dimensions and up with the secondary between sheets; `[arrays] csvManyDimensions` (Task 45.11, D.151)
+COL.020 [BUILT] toCSV on arrays of plain values - a line per row, the primary / secondary / line delimiters, 3 dimensions and up with the secondary between sheets; `[arrays] csvManyDimensions` (Task 45.11, D.151)
 
 #### FUN - functions and errors
 FUN.001 [BUILT] `T, Error function`: an error returned as the last value

@@ -1,0 +1,12 @@
+void function main()
+    int[] a = [1, 2, 3]
+    print(a.toCSV())                    // 1,2,3 - one line
+    int[][] m = [[1, 2, 3], [4, 5, 6]]
+    print(m.toCSV())                    // a line per row: 1,2,3 then 4,5,6
+    print(m.toCSV(";", "#", " | "))     // 1;2;3 | 4;5;6
+    print(m.toCSV(lineDelimiter = "/")) // 1,2,3/4,5,6
+    int[2][2][2] c                      // rows x columns x sheets
+    c[0][0][1] = 5
+    print(c.toCSV())                    // 0,0#5,0 then 0,0#0,0 - the sheets side by side
+    string[] s = ["a", "b,c", "say \"hi\""]
+    print(s.toCSV())                    // a,"b,c","say ""hi""" - the CSV rules

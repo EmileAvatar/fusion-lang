@@ -75,7 +75,7 @@ def test_one_dimension_skips_null_slots():
 @pytest.mark.parametrize('body, message', [
     (M + 'List<int> l = m.toList()', 'Cannot assign'),
     (M + 'List<List<int>> l = m.toList(false)', "An array's toList always copies"),
-    (M + 'string s = m.toCSV()', "toCSV on an array of 2 or 3 dimensions isn't built yet"),
+    ('Car[2][2] cars\nstring s = cars.toCSV()', 'takes plain values only'),     # 45.11b: structs / objects not
 ])
 def test_wrong_uses(body, message):
     assert message in errors_of(main(body))

@@ -343,8 +343,33 @@ void function main()
     print("{@1}", row.len())            // 3
 ```
 `toList()` gives a List of Lists in the loop's order - depth, then columns, then rows (`[arrays] order =
-"rows"`: rows first). It is a copy. A List never holds null (D.139): an object slot that is null is a
-NullError - fill every slot first. `toCSV()` on these arrays is not built yet.
+"rows"`: rows first). It is a copy. A List never holds null (D.139): an object or enum slot that is
+null is skipped - a column whose slots are all null is an empty List (D.152).
+
+#### toCSV on arrays of plain values
+
+<!-- example: syntax_array_csv | task: 45.11b -->
+```fusion
+void function main()
+    int[] a = [1, 2, 3]
+    print(a.toCSV())                    // 1,2,3 - one line
+    int[][] m = [[1, 2, 3], [4, 5, 6]]
+    print(m.toCSV())                    // a line per row: 1,2,3 then 4,5,6
+    print(m.toCSV(";", "#", " | "))     // 1;2;3 | 4;5;6
+    print(m.toCSV(lineDelimiter = "/")) // 1,2,3/4,5,6
+    int[2][2][2] c                      // rows x columns x sheets
+    c[0][0][1] = 5
+    print(c.toCSV())                    // 0,0#5,0 then 0,0#0,0 - the sheets side by side
+    string[] s = ["a", "b,c", "say \"hi\""]
+    print(s.toCSV())                    // a,"b,c","say ""hi""" - the CSV rules
+```
+`toCSV(primaryDelimiter = ",", secondaryDelimiter = "#", lineDelimiter = "\n")` works on any array of
+numbers, strings, bools, chars or enums - one dimension, two, three, a part (`m[1].toCSV()`) or a
+growable one (D.151). A line per row, the values split by the primary delimiter; on 3 dimensions each
+line holds that row of every sheet, the sheets split by the secondary delimiter
+(`[arrays] csvManyDimensions = false` makes that a compile error). A value holding a delimiter, a quote
+or a line break is wrapped in quotes, a quote inside doubled; a null slot is an empty field (`1,,3`).
+A float is written as short as it can be (`1.5`, `2`). Arrays of structs keep the heading-row form below.
 
 #### Growable arrays of 2 and 3 dimensions: `expand`
 

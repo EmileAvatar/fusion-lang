@@ -101,6 +101,8 @@ class SemanticAnalyzer:
         self.stack_limit = getattr(arrays_config, 'stack_limit', 64 * 1024)
         # [arrays] order (Task 45.12, D.148): "columns" - the outer dimension first; "rows"
         self.type_checker.array_order = getattr(arrays_config, 'order', 'columns')
+        # [arrays] csvManyDimensions (45.11b, D.151): toCSV on 3 dimensions or more
+        self.type_checker.csv_many_dimensions = getattr(arrays_config, 'csv_many_dimensions', True)
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 

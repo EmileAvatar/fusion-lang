@@ -144,9 +144,117 @@ class StructTextMixin:
                      self._format_call('%s'.join(parts), args), frees)
         return name
 
+    # ------------------------------------------------------------------ toCSV of plain values (45.11b)
+
+    CSV_BUFFER = [
+        '// toCSV of plain values (45.11b, D.151): a growing buffer; a field holding a delimiter, a quote',
+        '// or a line break is wrapped in quotes, a quote inside doubled (the CSV rules); a null one empty',
+        'typedef struct { char* p; int len; int cap; } fusion_csvbuf;',
+        'static void fusion_csv_raw(fusion_csvbuf* b, const char* s, int n) {',
+        '    if (b->len + n + 1 > b->cap) {',
+        '        int c = b->cap ? b->cap : 64;',
+        '        while (c < b->len + n + 1) c *= 2;',
+        '        b->p = (char*)realloc(b->p, (size_t)c);',
+        '        if (!b->p) { fprintf(stderr, "out of memory\\n"); exit(1); }',
+        '        b->cap = c;',
+        '    }',
+        '    memcpy(b->p + b->len, s, (size_t)n);',
+        '    b->len += n;',
+        '}',
+        'static int fusion_csv_has(const char* v, const char* d) { return d && *d && strstr(v, d) != NULL; }',
+        'static void fusion_csv_field(fusion_csvbuf* b, const char* v, const char* d, const char* s, const char* l) {',
+        '    if (!v) return;',
+        '    if (!(strchr(v, \'"\') || strchr(v, \'\\n\') || strchr(v, \'\\r\') || fusion_csv_has(v, d)',
+        '          || fusion_csv_has(v, s) || fusion_csv_has(v, l))) { fusion_csv_raw(b, v, (int)strlen(v)); return; }',
+        '    fusion_csv_raw(b, "\\"", 1);',
+        '    for (const char* c = v; *c; c++) fusion_csv_raw(b, *c == \'"\' ? "\\"\\"" : c, *c == \'"\' ? 2 : 1);',
+        '    fusion_csv_raw(b, "\\"", 1);',
+        '}',
+        'static fusion_string fusion_csv_done(fusion_csvbuf* b) {',
+        '    fusion_string r = fusion_str_make(b->p ? b->p : "", b->len);',
+        '    free(b->p);',
+        '    return r;',
+        '}']
+
+    def _csv_text(self, element, code: str) -> tuple:
+        """(C lines before, a `const char*` C expression) for one plain value; NULL for a null one."""
+        name = element.name if isinstance(element, PrimitiveType) else None
+        if isinstance(element, EnumType):
+            return [], f'(({code}) == FUSION_ENUM_NULL ? NULL : {self.enum_text_code(element, code)}.data)'
+        if name == 'string':
+            return [], f'({code}).data'
+        if name == 'bool':
+            return [], f'(({code}) ? "true" : "false")'
+        if name == 'char':
+            return ['char fusion_v[5] = {0};', f'fusion_utf8_encode({code}, fusion_v);'], 'fusion_v'
+        spec, cast = ('%g', 'double') if name in ('float', 'double') else ('%d', 'int')
+        return [f'char fusion_v[32]; snprintf(fusion_v, sizeof fusion_v, "{spec}", ({cast})({code}));'], 'fusion_v'
+
+    def _csv_delimiter(self, number: int, argument, default: str) -> list:
+        """C lines setting `fusion_d<number>` (a const char*) to a delimiter."""
+        if argument is None:
+            return [f'const char* fusion_d{number} = "{default}";']
+        code = self.visit(argument)
+        if getattr(argument.inferred_type, 'name', None) == 'char':
+            return [f'char fusion_dc{number}[5] = {{0}}; fusion_utf8_encode({code}, fusion_dc{number});',
+                    f'const char* fusion_d{number} = fusion_dc{number};']
+        return [f'const char* fusion_d{number} = ({code}).data;']
+
+    def plain_csv_code(self, node) -> str:
+        """`a.toCSV(",", "#", "\\n")` on an array of plain values (45.11b, D.151)."""
+        self.text_helpers.setdefault('fusion_csv_buffer', self.CSV_BUFFER)
+        receiver = node.callee.object
+        primary, secondary, line = node.csv_delimiters
+        lines = (self._csv_delimiter(0, primary, ',') + self._csv_delimiter(1, secondary, '#')
+                 + self._csv_delimiter(2, line, '\\n') + ['fusion_csvbuf fusion_b = {0};'])
+        element = receiver.inferred_type.element_type
+
+        def put(value_code, sheets):
+            before, text = self._csv_text(element, value_code)
+            return ('{ ' + ' '.join(before) + f' fusion_csv_field(&fusion_b, {text}, fusion_d0, '
+                    f'{"fusion_d1" if sheets else "NULL"}, fusion_d2); }}')
+
+        def sep(counter, delimiter):
+            return f'if ({counter}) fusion_csv_raw(&fusion_b, {delimiter}, (int)strlen({delimiter}));'
+
+        if node.csv == 'plain':
+            kind = receiver.inferred_type
+            if isinstance(kind, ArrayType):
+                items, count = self._array_operand(receiver, kind)
+            else:
+                code = self.visit(receiver)               # on the heap: a counted block
+                lines.append(f'{self.map_type(kind)} fusion_a = {code};')
+                items, count = 'fusion_a->data', 'fusion_a->len'
+            lines.append(f'for (int fusion_i = 0; fusion_i < {count}; fusion_i++) {{ {sep("fusion_i", "fusion_d0")} '
+                         f'{put(f"{items}[fusion_i]", False)} }}')
+        else:
+            root, slots, full, steps, open_dims = node.csv_dims
+            lines.insert(0, f'int fusion_off = {self._slot_position(slots, full, steps, node)};')
+            counters = {k: f'fusion_t{k}' for k in open_dims}
+            position = ' + '.join(['fusion_off'] + [c if steps[k] == 1 else f'{c} * {steps[k]}'
+                                                    for k, c in counters.items()])
+            value = f'{self.visit(root)}[{position}]'
+            sheets = len(open_dims) >= 3
+            # rows the lines, columns the values; 3 dimensions: each line that row of every sheet
+            walk = list(open_dims)
+            if len(walk) == 1:
+                levels = [(walk[0], 'fusion_d0')]
+            elif len(walk) == 2:
+                levels = [(walk[0], 'fusion_d2'), (walk[1], 'fusion_d0')]
+            else:
+                levels = [(walk[0], 'fusion_d2'), (walk[2], 'fusion_d1'), (walk[1], 'fusion_d0')]
+            loop = put(value, sheets)
+            for k, delimiter in reversed(levels):
+                c = counters[k]
+                loop = f'for (int {c} = 0; {c} < {full[k]}; {c}++) {{ {sep(c, delimiter)} {loop} }}'
+            lines.append(loop)
+        return '__extension__ ({ ' + ' '.join(lines) + ' fusion_csv_done(&fusion_b); })'
+
     def csv_code(self, node) -> str:
         """x.toCSV(delimiter) on a struct, a one-dimensional array or a List of structs."""
         receiver, kind = node.callee.object, node.csv
+        if kind in ('plain', 'dims'):
+            return self.plain_csv_code(node)
         receiver_type = receiver.inferred_type
         delimiter = '","'
         if node.arguments:
