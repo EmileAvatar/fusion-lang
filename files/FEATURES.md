@@ -897,6 +897,8 @@ Each time a task or section is finished, this list is checked for items the curr
 		[POSTPONED - after self-hosting and profiling] L16.4 The program sets its own stack amounts where it
 			runs: a small PC less, a server more - and plays nice, never taking memory other programs need
 		[POSTPONED - after self-hosting] L16.5 Large arrays on a GPU or the CPU: special options per array
+		[POSTPONED - after self-hosting and profiling] L16.6 Which arrays live on the stack and which on the heap - for now
+			the stack holds only a 1D or 2D array, FLAT (an active copy used in loops); JAGG only on the heap (user, 2026-11-16, Q.033)
 
 ---
 

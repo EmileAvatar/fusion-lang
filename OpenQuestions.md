@@ -42,6 +42,24 @@ j.setStorage(JAGG)
 Suggested: A, and B as well (the project default). An uneven literal with no JAGG stays an error,
 never made JAGG silently.
 
+**Answer (user, 2026-11-16):** a JAGG array has to be set either on the next line or in the set-up block.
+
+**Understood as:**
+```fusion
+int:[][] j = [[1], [2, 3, 4], [5, 6]]
+j.setStorage(JAGG)                       // the next line - uneven rows accepted
+
+int:[][] k = [[1], [2, 3]]
+    setStorage(JAGG)                     // or in its set-up block
+
+int:[][] x = [[1], [2, 3]]               // no JAGG next to it: an error "rows of different lengths -
+                                         // setStorage(JAGG) on the next line"
+```
+
+**To confirm:**
+- `[arrays] storage = "jagg"` (D.144) - is it dropped for JAGG, so every jagged array says so where it
+  is made? Suggested: yes - the setting keeps "flat" / "rect" only
+
 #### Q.031 rows / columns / foreach on a jagged array (Task 45.15)
 A jagged array has no single column count, and `[arrays] order = "columns"` walks the columns first.
 ```fusion
@@ -56,6 +74,35 @@ int[] c = j[][1]           // column 1 - F: an IndexError (row 0 has no slot 1) 
 ```
 Suggested: A, D, F.
 
+**Answer (user, 2026-11-16):** check how other languages handle JAGG arrays; to me depth -> columns -> rows.
+
+**What other languages do (Claude, 2026-11-16):**
+- C#, Java, JavaScript, Go, Python, Rust: a jagged array is an array of arrays - the outer one holds the rows
+- `j.length` is the number of rows; `j[1].length` that row's own length; none has a column count
+- A loop gives the rows, one by one; a column is the programmer's own loop - a row too short for it
+  is an IndexError (C#, Java, Go, Python, Rust) or `undefined` (JavaScript)
+- C# also has a rectangular `int[,]` - `GetLength(0)`, `GetLength(1)`; only that one has columns
+- NumPy refuses uneven rows (an error since 1.24); MATLAB keeps them in a cell array, walked column by column
+- So no language walks a jagged array column by column - Fusion's order (D.148) would be its own
+
+**Understood as:**
+```fusion
+int:[][] j = [[1], [2, 3, 4], [5, 6]]
+j.setStorage(JAGG)
+print(j.rows)            // 3
+print(j[1].length)       // 3 - that row's own length
+print(j.columns)         // 3 - the longest row (to confirm)
+foreach (int[] c in j)   // the same order as every array: columns first (D.148)
+    ...                  // column 0: 1 2 5; column 1: 3 6; column 2: 4 - a row too short is skipped
+int[] c = j[][1]         // column 1: [3, 6] - the rows that have it
+```
+
+**To confirm:**
+- `j.columns` - the longest row (3), or -1 (no single count)? Suggested: the longest
+- A column skips rows too short for it (above) - or an IndexError? Suggested: skipped, so foreach and
+  `j[][1]` agree
+- `[arrays] order = "rows"` walks a jagged array row by row, as the other languages do
+
 #### Q.032 Which arrays may be jagged, and where a row's `add` works (Task 45.15)
 ```fusion
 int[][] a = [[1], [2, 3]]       // a plain array
@@ -69,6 +116,21 @@ g[0].add(7)                     // one row grows - D.144
 // C: any array; add on any JAGG array
 ```
 
+**Answer (user, 2026-11-16):** any 2D and above array can be JAGG, and only on a growable array.
+
+**Understood as:**
+```fusion
+int:[][] g = [[1], [2, 3]]
+g.setStorage(JAGG)          // fine - growable, 2 dimensions
+g[0].add(7)                 // one row grows
+int:[][][] c = ...
+c.setStorage(JAGG)          // fine - 3 dimensions too (Q.033)
+int[][] a = [[1], [2, 3]]
+a.setStorage(JAGG)          // an error - "JAGG is for a growable array: int:[][] a"
+```
+
+**To confirm:** nothing - B, on 2 and 3 dimensions.
+
 #### Q.033 3 dimensions and the stack (Task 45.15)
 ```fusion
 int[2][3][4] cube
@@ -78,6 +140,24 @@ int[2][3] m              // on the stack (FLAT)
 m.setStorage(RECT)       // C (suggested): RECT / JAGG move it to the heap (as 45.10 does)
                          // D: an error - only an array on the heap may change its storage
 ```
+
+**Answer (user, 2026-11-16):** JAGG on 3 dimensions too - get it done. A JAGG array is only on the heap
+for now. The stack only holds a 1D or 2D array, FLAT - the stack is just storage for an active copy
+used in loops. The stack / heap split may change later, when we profile after self-hosting.
+
+**Understood as:**
+```fusion
+int:[][][] c = [[[1], [2, 3]], [[4, 5, 6]]]
+c.setStorage(JAGG)          // every level its own lengths (B) - on the heap (growable, Q.032)
+int[2][3] m                 // 2 dimensions: on the stack, FLAT
+int[2][3][4] cube           // 3 dimensions: on the heap from now on (today on the stack - to change)
+m.setStorage(RECT)          // RECT: to confirm
+```
+
+**To confirm:**
+- `int[2][3][4] cube` (plain or fixed, 3 dimensions) moves to the heap - today it is on the stack. Suggested: yes
+- RECT - only on the heap too, so `m.setStorage(RECT)` moves a 2D stack array to the heap (C)? Suggested: C
+- Noted for after self-hosting: profile the stack / heap split (L16)
 
 Earlier: Q.028 (toCSV on arrays) and Q.029 (toList and null slots) answered 2026-11-16: Decisions.md D.151, D.152, FEATURES 45.11b / 45.11c, Notes/CSV_many_dimensions.md.
 Earlier: Q.021-Q.027 (arrays of 3 dimensions, bare enum values) answered 2026-11-15:
