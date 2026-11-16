@@ -2804,6 +2804,12 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             self.errors.append(SemanticError(                      # D.141 (45.14, 45.10)
                 f"'{target_name}' is fixed - its size never changes; set its slots ({target_name}[i] = ...), "
                 f"or declare it without fixed", node.location))
+            node.target.many_ok_target = True                      # not "used as a whole" as well
+            return
+        if isinstance(symbol.data_type, ArrayType) and symbol.data_type.dims:
+            if symbol.is_constant and not later:
+                self.errors.append(SemanticError(f"Cannot assign to constant: '{target_name}'", node.location))
+            self.check_many_dims_replace(node, symbol)      # m = [[...]] / n / make() (45.12e)
             return
         if isinstance(symbol.data_type, ArrayType):
             # A whole array can be replaced by one a function returns (Task 18.2.4) - copied

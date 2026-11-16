@@ -214,6 +214,76 @@ class ManyDimsMixin:
         node.many_ok = True
         return True
 
+    def check_many_dims_replace(self, node, symbol) -> None:
+        """`m = [[...]]`, `m = n` / `byVal n`, `m = make()` on an array of many dimensions on the stack
+        (45.12e part 3): the same shape - the slots replaced (the new values made first, then the old
+        ones freed). Another shape needs the heap - not built yet."""
+        from src.parser.ast_nodes import PassingExpr
+        target = symbol.data_type
+        name = node.target.name
+        value = node.value
+        shape = self.type_to_string(target)
+        if target.growable or not _known(target.dims):
+            self.visit(value)
+            node.target.many_ok_target = True
+            self.errors.append(SemanticError(
+                f"Replacing the whole of '{name}' ({shape}) comes with Task 45.12e part 3b - a growable array "
+                f"or a parameter of any size", node.location))
+            return
+        node.target.many_ok_target = True
+        if isinstance(value, ArrayLiteralExpr):
+            probe = VarDeclStmt(location=node.location, name=name,
+                                var_type=ArrayType(location=target.location, element_type=target.element_type,
+                                                   size=None, dims=[None] * len(target.dims)),
+                                initializer=value)
+            before = len(self.errors)
+            self.check_many_dims_declaration(probe)
+            if len(self.errors) > before:
+                return
+            if list(probe.var_type.dims) != list(target.dims):
+                self.errors.append(SemanticError(
+                    f"'{name}' is {shape} - these values are {self.type_to_string(probe.var_type)}; another shape "
+                    f"comes with Task 45.12e part 3b (on the heap)", value.location))
+                return
+            node.value = probe.initializer
+            node.many_replace = 'values'
+            return
+        deep = isinstance(value, PassingExpr) and value.by_val
+        source = value.value if deep else value
+        if isinstance(source, IdentifierExpr) and not (isinstance(value, PassingExpr) and not value.by_val):
+            kind = self.visit(value)
+            if isinstance(kind, ArrayType) and kind.dims and not getattr(kind, 'view', False) \
+                    and not kind.growable:
+                if list(kind.dims) != list(target.dims) or not self.types_equal(kind.element_type,
+                                                                               target.element_type):
+                    self.errors.append(SemanticError(
+                        f"'{name}' is {shape}, '{source.name}' is {self.type_to_string(kind)} - the same shape "
+                        f"only for now; another comes with Task 45.12e part 3b (on the heap)", value.location))
+                    return
+                node.array_from = (source, deep)
+                node.many_replace = 'array'
+                source.many_ok_source = value.many_ok_source = True
+                return
+            self.errors.append(SemanticError(
+                f"'{name}' is {shape} - it is replaced by values ([[...]]), another array of its shape or a "
+                f"function giving one", value.location))
+            return
+        if isinstance(value, CallExpr):
+            self._allow_array_call(value)
+            kind = self.visit(value)
+            if not _many(kind) or getattr(kind, 'view', False) or list(kind.dims) != list(target.dims) \
+                    or not self.types_equal(kind.element_type, target.element_type):
+                self.errors.append(SemanticError(
+                    f"'{name}' is {shape} - this gives {self.type_to_string(kind)}", value.location))
+                return
+            node.many_replace = 'call'
+            value.many_ok_source = True
+            return
+        self.visit(value)
+        self.errors.append(SemanticError(
+            f"'{name}' is {shape} - it is replaced by values ([[...]]), another array of its shape or a "
+            f"function giving one", value.location))
+
     def check_many_dims_declaration(self, node: VarDeclStmt) -> None:
         """`int[2][3] m`, `int[][] m = [[1, 2, 3], [4, 5, 6]]` - the sizes, and the values flattened."""
         array = node.var_type
@@ -755,6 +825,8 @@ def _allowed(node, parent) -> bool:
         return True
     if isinstance(parent, VarDeclStmt) and getattr(parent, 'many_ok', False):
         return True                                        # a copy of a part; from a function (45.12c)
+    if getattr(node, 'many_ok_target', False) or getattr(node, 'many_ok_source', False):
+        return True                                        # m = [[...]] / m = n / m = make() (45.12e)
     if getattr(node, 'many_passed', False):
         return True                                        # passed to an array parameter (45.12c)
     if getattr(parent, 'many_compare', False):

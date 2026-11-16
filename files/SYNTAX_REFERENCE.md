@@ -360,10 +360,14 @@ void function main()
     string[3] a = ["x", "y", "z"]
     string[] b = a                      // one dimension the same
     print("{@1}", b[2])                 // z
+    n = [[7, 8, 9], [1, 2, 3]]          // replaced - the same shape
+    print("{@1}", n[0][0])              // 7
 ```
 A whole array given to a new one moves, as a List does (D.025): its slots are copied and the old name
 can't be used after - use `byVal` for a copy that leaves it usable (objects copied too). The sizes are
-taken from the source when left out (`int[][] n = m`); written, they must agree.
+taken from the source when left out (`int[][] n = m`); written, they must agree. A whole array of 2 or
+3 dimensions is replaced by values, another array or a function's result of the same shape
+(`n = [[...]]`, `n = m`, `n = make()`); another shape is not built yet. A fixed array is never replaced.
 
 #### toCSV on arrays of plain values
 

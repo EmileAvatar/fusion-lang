@@ -8,3 +8,5 @@ void function main()
     string[3] a = ["x", "y", "z"]
     string[] b = a                      // one dimension the same
     print("{@1}", b[2])                 // z
+    n = [[7, 8, 9], [1, 2, 3]]          // replaced - the same shape
+    print("{@1}", n[0][0])              // 7

@@ -2017,6 +2017,28 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 f'if (({self.visit(node.value)}) == {empty}) fusion_null_fail({self._where(node)}, '
                 f'"a {kind} never holds null (D.139)")', None))
 
+        replace = getattr(node, 'many_replace', None)
+        if replace in ('values', 'array'):
+            # m = [[...]] / m = n / m = byVal n (45.12e): the new slots made first, then the old ones
+            # freed and replaced - so m = m is safe
+            kind = node.target.inferred_type
+            element = kind.element_type
+            c_type = self.map_type(element)
+            managed = self.is_managed(element)
+            if replace == 'values':
+                fill = f'{c_type} fusion_new[{kind.size}] = {self.owned_value(node.value, kind)};'
+            else:
+                source, deep = node.array_from
+                slot = f'{self.visit(source)}[fusion_i]'
+                value = (self.clone_code(element, slot) if deep else self.copy_code(element, slot)) \
+                    if managed else slot
+                fill = (f'{c_type} fusion_new[{kind.size}]; '
+                        f'for (int fusion_i = 0; fusion_i < {kind.size}; fusion_i++) fusion_new[fusion_i] = {value};')
+            free = ' '.join(self.free_lines(element, f'{target_code}[fusion_i]')) if managed else ''
+            self.emit(f'{{ {fill} for (int fusion_i = 0; fusion_i < {kind.size}; fusion_i++) '
+                      f'{{ {free} {target_code}[fusion_i] = fusion_new[fusion_i]; }} }}')
+            return ''
+
         # A whole array replaced by one a function returned: moved in (Task 18.2.4)
         if self._returns_array(node.value):
             wrapper = self.array_wrapper_name(node.value.inferred_type)

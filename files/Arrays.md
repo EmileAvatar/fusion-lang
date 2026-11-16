@@ -421,7 +421,8 @@ over depth -> columns -> rows reads the slots one after another.
 | Return | `int[2][3] function f()`; `int[][] function f()` | that shape; any size: an error (heap - later) | 45.12c |
 | Compare | `a == b` | slot by slot, the same shape; a part: later | 45.12c |
 | Give the whole to a new array | `int[2][3] n = m`, `int[][] n = byVal m` | the slots copied; `m` moved - can't be used after (D.025); `byVal` a deep copy, `m` stays; sizes agree or are taken from `m` | 45.12e |
-| Replace the whole | `m = [[...]]`, `m = make()` | an error for now | 45.12e part 3 |
+| Replace the whole, same shape | `m = [[...]]`, `m = n`, `m = byVal n`, `m = make()` | the new slots made first, then the old freed and replaced; `m = n` moves `n`; fixed: an error | 45.12e part 3a |
+| Replace the whole, another shape | `m = [[1, 2], [3, 4]]` on an `int[2][3]` | an error for now - to the heap, as 45.10 | 45.12e part 3b |
 | Grow | `int:[2][3][4] g`, `int[[2],[3],[4]] g`, `int:[][] g = [...]`; `g.expand(ROWS, 1)` | on the heap; a warning; it stays a cube, new slots the default | 45.12d |
 | Grow by a number | `g.expand(0, 1)` | an error - the Collections library | - |
 | To a List | `m.toList()`, `cube.toList()`, `m[1].toList()` | a List of Lists, the outer dimension first; a copy; a null slot skipped, a column all null an empty List (D.152) | 45.11, 45.11c |

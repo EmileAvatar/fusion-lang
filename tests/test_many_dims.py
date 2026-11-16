@@ -90,7 +90,7 @@ def test_a_written_index_outside_is_a_compile_error():
     ('int[2][3] m\nforeach (int x in m)\n    print("{x}")',
      "foreach over 'm' gives its columns - each one int[]: foreach (int[] x in ...)"),
     ('int[2][3] m\nint[3][2] n\nbool b = m == n', 'arrays of many dimensions compare when they have the same shape'),
-    ('int[2][3] m\nm = [[1, 2, 3], [4, 5, 6]]', "'m' has 2 dimensions"),
+    ('int[2][3] m\nm = [[1, 2], [4, 5]]', "another shape comes with Task 45.12e part 3b"),
     ('int[2][3] m\nprint("{@1}", len(m))', "'m' has 2 dimensions"),
     ('int[2][3] m\nprint("{@1}", m.depth)', "'m' has 2 dimensions - rows and columns; depth is the third"),
     ('int[][] m', "'m' needs its sizes or its values"),

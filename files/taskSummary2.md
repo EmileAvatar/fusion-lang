@@ -70,8 +70,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-15: 45.1 (`Array` class), 45.2 (`int[] e`), 45.14 (`fixed`), C-style `int e[]`, 45.10 (replaced -> heap),
   45.3 (`int:[]` growable, pop gives the item back), 45.4 (`a + b`), 45.5 (`copyPart`), 45.7 (no change while looping), 45.13 (stack limits), 45.3b (`int:[10]`), 45.12a (2 and 3 dimensions), 45.12b (views), 45.12c (functions), 45.17 (bare enum values), 45.12d (growable, expand), 45.11 (toList) - FEATURES Task 45
 - Done 2026-11-16: 45.11c (toList skips null slots, D.152), 45.11b (toCSV on arrays of plain values, D.151)
-- Done 2026-11-16: 45.12e parts 1-2 (a whole array given to a new one: moved, byVal a copy)
-- **Next Action:** 45.12e part 3 (replacing a whole array); 45.15 waits for the "To confirm" points of Q.030-Q.033
+- Done 2026-11-16: 45.12e parts 1-2 (a whole array given to a new one: moved, byVal a copy), part 3a (replacing, same shape)
+- **Next Action:** 45.12e part 3b (another shape - to the heap); 45.15 waits for the "To confirm" points of Q.030-Q.033
 
 ### 45.12e and 45.15 - the plan (2026-11-16, to approve)
 

@@ -386,6 +386,14 @@ class _FunctionCheck:
         state[name] = _Moved(_line(expr), to)
         self.log.append((name, state[name]))
 
+    def _array_moved(self, value, source: str, to: str, state: State) -> None:
+        """`int[2][3] n = m` / `n = m` (45.12e, D.025): a whole array on the stack moves by copying its
+        slots - m can't be used after (byVal m: a copy, m stays)."""
+        self.expression(value, state)
+        if source in self.locals and source not in self.params and source not in self.borrows:
+            state[source] = _Moved(_line(value), to)
+            self.log.append((source, state[source]))
+
     def _field_out(self, value) -> bool:
         """`o.ctx` with [memory] moveFieldOut, o a struct this function owns (not a parameter
         it borrows, not a borrow): the field may be taken out, o is then gone."""
@@ -503,13 +511,7 @@ class _FunctionCheck:
             self.locals.add(node.name)
             whole = getattr(node, 'array_from', None)
             if whole is not None and not whole[1]:
-                # int[2][3] n = m (45.12e, D.025): a whole array on the stack moves by copying its
-                # slots - m can't be used after (byVal m: a copy, m stays)
-                self.expression(node.initializer, state)
-                source = whole[0].name
-                if source in self.locals and source not in self.params and source not in self.borrows:
-                    state[source] = _Moved(_line(node.initializer), f"'{node.name}'")
-                    self.log.append((source, state[source]))
+                self._array_moved(node.initializer, whole[0].name, f"'{node.name}'", state)
             elif node.initializer is not None:
                 self._move(node.initializer, f"'{node.name}'", state, local=node.name)
             state.pop(node.name, None)             # a new variable, alive
@@ -527,7 +529,11 @@ class _FunctionCheck:
             else:
                 self.expression(target, state)
                 to = f"'{_text(target)}'"
-            self._move(node.value, to, state, local=local)
+            whole = getattr(node, 'array_from', None)
+            if whole is not None and not whole[1]:
+                self._array_moved(node.value, whole[0].name, to, state)       # m = n (45.12e)
+            else:
+                self._move(node.value, to, state, local=local)
             if isinstance(target, IdentifierExpr):
                 state.pop(target.name, None)       # a new value brings it back
             return state

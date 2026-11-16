@@ -235,7 +235,8 @@ void function collections() {
     foreach (int[][] sheet in cube)     // depth -> columns -> rows; borrowed in a loop
         print("{@1}", sheet.length)
     // [built] Functions (45.12c): int[2][3] m / int[][] m parameters, a part passed as a copy, == by slot
-    // [built] int[2][3] n = m moves m (its slots copied); byVal m a copy (45.12e, D.025); [designed] m = [[...]] replacing
+    // [built] int[2][3] n = m moves m (its slots copied); byVal m a copy (45.12e, D.025); m = [[...]] the same shape;
+    // [designed] m = [[...]] another shape - to the heap (45.12e part 3b)
     // [built] toList: a List of Lists, the outer dimension first (45.11, D.148); null slots skipped (45.11c, D.152)
     // [built] toCSV: a line per row, sheets split by "#" - toCSV(",", "#", "\n") (45.11b, D.151)
     List<List<List<int>>> sheets = cube.toList()
