@@ -35,6 +35,31 @@ B:  m.toCSV()       // an error - CSV stays for structs (a heading row and their
 ```
 Suggested: A - a line per row is what a spreadsheet reads, whatever `[arrays] order` says.
 
+**Answer (user, 2026-11-16):** a line per row. `toCSV(primaryDelimiter = ",", secondaryDelimiter = "#",
+lineDelimiter = "\n")` - the secondary delimiter splits dimension 3 and upwards.
+
+**Other languages (checked 2026-11-16):** none defines a 3-dimension CSV. NumPy's savetxt refuses more
+than 2 dimensions; MATLAB's writematrix puts the sheets side by side on each row, with the same
+delimiter and no mark between them (`1,1,2,2,3,3`); Julia's writedlm takes 2 dimensions - so the
+secondary delimiter is Fusion's own, and it marks where each sheet starts.
+
+**Understood as:**
+```fusion
+int[][] m = [[1, 2, 3], [4, 5, 6]]
+m.toCSV()                     // "1,2,3\n4,5,6" - a line per row
+m.toCSV(";")                  // "1;2;3\n4;5;6"
+int[] a = [1, 2, 3]
+a.toCSV()                     // "1,2,3" - one line
+int[2][2][2] cube             // sheet 0: [[1, 2], [3, 4]]   sheet 1: [[5, 6], [7, 8]]
+```
+**To confirm** - where the secondary delimiter goes on 3 dimensions:
+```text
+A:  cube.toCSV()   // "1,2#5,6\n3,4#7,8" - a line per row; that row of each sheet side by side,
+                   //  the sheets split by "#" (MATLAB's layout, with the mark it lacks)
+B:  cube.toCSV()   // "1#5,2#6\n3#7,4#8" - a line per row; each cell holds its depth values split by "#"
+```
+- Strings: written as they are, or in quotes when they hold a delimiter (`"a,b"`), as CSV does?
+
 #### Q.029 A null slot in a one-dimension array's toList (D.139, D.140)
 An array slot may be null (D.140); a List never holds null (D.139). Today `Car[] cars` with a null
 slot gives a List holding null - against D.139. The new `toList` of 2 and 3 dimensions raises a
@@ -46,6 +71,26 @@ A:  List<Car> l = cars.toList()   // a NullError: "toList: a slot is null - a Li
 B:  List<Car> l = cars.toList()   // [red] - the null slots left out (the List shorter than the array)
 ```
 Suggested: A - nothing changes silently, the same for every array.
+
+**Answer (user, 2026-11-16):** B - the null slots are skipped, only the filled ones are added; if
+every slot is null the List is empty. No error.
+
+**Understood as:**
+```fusion
+Car[3] cars
+cars[1] = Car("red")              // cars[0] and cars[2] are null
+List<Car> l = cars.toList()       // [red] - l.len() is 1
+Car[2] none
+List<Car> e = none.toList()       // [] - empty, no error
+Car[2][2] grid                    // grid[0][1] is the only one set
+List<List<Car>> g = grid.toList() // its columns: [[], [car]] - each column's nulls skipped
+```
+- This replaces 45.11's NullError on 2 and 3 dimensions; the one-dimension toList stops adding null
+- Numbers, strings and enums are never skipped - only an object slot that is null (an enum slot that
+  is null too, D.051)
+
+**To confirm:** on 2 and 3 dimensions, a column whose slots are all null stays as an empty List
+(`[[], [car]]` above - the shape kept), rather than being left out?
 
 Earlier: Q.021-Q.027 (arrays of 3 dimensions, bare enum values) answered 2026-11-15:
 Decisions.md D.141, D.143, D.148-D.150, FEATURES 45.12, 45.3b, 45.16, 45.17. Q.013 (modules and
