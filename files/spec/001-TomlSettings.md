@@ -175,6 +175,7 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|
 | `[maps]` key already there on `add(otherMap)` *(name open)* | replace / keep / error | replace | What `add(otherMap)` does with a key both have | D.047 |
+| `[arrays] csvManyDimensions` | `true` / `false` | `true` | An array of 3 dimensions or more may be written by `toCSV` - the sheets side by side, split by the secondary delimiter; false: a compile error | D.151, 45.11b |
 | `[arrays] storage` | flat / rect / jagg | flat | How an array of many dimensions is stored (`a.setStorage(...)` per array) | D.144, 45.15 |
 | `[arrays] bufferSmall`, `bufferLarge` | bytes | 2KB / 8KB | The stack buffer a small / large array is worked through | D.146, L16.3 |
 | `[arrays] bufferType` | single / two / third / ring | single | The project's buffer type (`a.setBufferType(...)` per array) | D.146, L16.3 |

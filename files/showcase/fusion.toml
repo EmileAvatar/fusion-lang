@@ -108,6 +108,9 @@ stackLimit = "64KB"
 order = "columns"
 # [designed] How an array of many dimensions is stored: "flat" / "rect" / "jagg" (45.15, D.144)
 storage = "flat"
+# [designed] toCSV on an array of 3 dimensions or more - the sheets split by the secondary delimiter
+# (default true; false: a compile error) (45.11b, D.151)
+csvManyDimensions = true
 # [designed] Buffers for a large array - after self-hosting (L16.3, D.146)
 bufferType = "single"
 bufferSmall = "2KB"
