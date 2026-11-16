@@ -48,6 +48,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/fusion.ebnf](files/fusion.ebnf) | The grammar |
 | [files/Builtins.md](files/Builtins.md) | Every built-in function and method (generated) |
 | [files/FusionTypes.html](files/FusionTypes.html) | Every type: default, range, size, status (open in a browser) |
+| [files/ArrayCube.html](files/ArrayCube.html) | An array of 3 dimensions as a cube: which slots `cube[1]`, `cube[][2][1]`, `foreach` and `expand` reach, the flat block (open in a browser, Task 45.16) |
 | [files/fusionSettings.xml](files/fusionSettings.xml) | Every built project setting: values, default (the master template) |
 | [files/showcase/](files/showcase/) | The whole language as code: `Fusion_showcase.fusion` (every feature, tagged), `Fusion_template.fusion` (each construct's shape), `Ownership.fusion`, `Interfaces.fusion`, `fusion.toml` (every setting, tagged) |
 | [files/FusionTemplate.md](files/FusionTemplate.md) | How a .fusion file is laid out |

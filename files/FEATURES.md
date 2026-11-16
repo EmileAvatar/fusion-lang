@@ -233,7 +233,7 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage`, `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); one row's `add` only on JAGG (D.144)
 	[DONE] 45.17 A bare enum value where the enum type is known: parameters, declarations, assignments, returns, comparisons, `case` - every enum; a variable of the same name an error (D.150) - tests/test_bare_enum.py, example syntax_enum_bare
 	[DONE] 45.3b `int:[10] g` / `int[[10]] g` - a growable array with 10 slots of the default value, length 10 (D.141); `int:[3] g = [1, 2, 3]` sizes agree - tests/test_growable_arrays.py
-	[ ] 45.16 A cube visualiser (user, 2026-11-15): an HTML page showing a 3-dimension array as a cube and which
+	[DONE] 45.16 files/ArrayCube.html - A cube visualiser (user, 2026-11-15): an HTML page showing a 3-dimension array as a cube and which
 		slots `cube[1]`, `cube[][2][1]`, `foreach` and `expand` reach - how data is fetched (OpenQuestions Q.022-Q.025)
 	[POSTPONED to 42] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19)
 	[ ] 45.6 Docs and examples: files/Arrays.md (a truth table), SYNTAX_REFERENCE, spec 031 / 140, the showcase

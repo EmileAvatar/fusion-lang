@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Array Cube</title>
+<!-- Task 45.16 (user, 2026-11-15): a 3-dimension array as a cube - which slots cube[1], cube[][2][1],
+     foreach and expand reach, and where each slot lies in the flat block (D.143, D.144, D.148, D.149).
+     Open it in a browser; nothing is fetched. -->
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70; --line: #d6d6da;
+  --cell: #eef0f3; --hit: #2f6fde; --hitInk: #ffffff; --now: #e8590c; --new: #2b9348; --bad: #c92a2a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181b; --panel: #202226; --ink: #ececf0; --muted: #9a9aa3; --line: #3a3c42;
+    --cell: #2b2e34; --hit: #4c8dff; --hitInk: #ffffff; --now: #ff8a3d; --new: #4cc26e; --bad: #ff6b6b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17181b; --panel: #202226; --ink: #ececf0; --muted: #9a9aa3; --line: #3a3c42;
+  --cell: #2b2e34; --hit: #4c8dff; --hitInk: #ffffff; --now: #ff8a3d; --new: #4cc26e; --bad: #ff6b6b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+p.lead { color: var(--muted); margin: 0 0 16px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+label { color: var(--muted); font-size: 13px; }
+input[type=number] { width: 56px; }
+input, select, button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--hit); }
+code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: 14px; }
+#expr { width: 220px; font-family: ui-monospace, Consolas, monospace; }
+.presets button { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+.sheets { display: flex; flex-wrap: wrap; gap: 18px; }
+.sheet h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+table.grid { border-collapse: separate; border-spacing: 3px; }
+table.grid th { font-weight: 500; color: var(--muted); font-size: 12px; padding: 0 4px; }
+table.grid td { width: 44px; height: 36px; text-align: center; border-radius: 6px; background: var(--cell); font-family: ui-monospace, Consolas, monospace; font-size: 12px; transition: background .15s; }
+td.hit { background: var(--hit); color: var(--hitInk); }
+td.now { background: var(--now); color: #fff; }
+td.new { outline: 2px dashed var(--new); outline-offset: -2px; }
+.flat { display: flex; flex-wrap: wrap; gap: 2px; }
+.flat div { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px; background: var(--cell); font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+.flat div.hit { background: var(--hit); color: var(--hitInk); }
+.flat div.now { background: var(--now); color: #fff; }
+#out { white-space: pre-wrap; }
+.bad { color: var(--bad); }
+.cols { display: grid; grid-template-columns: 1fr 300px; gap: 14px; }
+@media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+svg text { fill: var(--muted); font-size: 11px; }
+.legend span { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin: 0 4px 0 10px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Array Cube</h1>
+<p class="lead">A Fusion array of 3 dimensions, <code>int[rows][columns][depth] cube</code>. Type a part of it and see which slots it
+reaches, the order <code>foreach</code> walks them and where each one lies in the flat block (FLAT, D.144).</p>
+
+<div class="panel">
+  <div class="row">
+    <label>rows <input type="number" id="rows" min="1" max="6" value="3"></label>
+    <label>columns <input type="number" id="columns" min="1" max="6" value="4"></label>
+    <label>depth <input type="number" id="depth" min="1" max="5" value="2"></label>
+    <label>[arrays] order
+      <select id="order"><option value="columns">columns (outer first: depth, columns, rows)</option><option value="rows">rows (rows first)</option></select>
+    </label>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="row">
+    <label for="expr">expression</label>
+    <input id="expr" value="cube[][2]" spellcheck="false">
+    <button id="play">foreach - step through</button>
+    <span class="presets row" id="presets"></span>
+  </div>
+  <div id="out" class="mono" style="margin-top:10px"></div>
+</div>
+
+<div class="cols">
+  <div class="panel">
+    <div class="sheets" id="sheets"></div>
+    <div class="legend" style="margin-top:10px;font-size:12px;color:var(--muted)">
+      each slot shows <code>[row][column][sheet]</code> and its position in the block
+      <span style="background:var(--hit)"></span>reached <span style="background:var(--now)"></span>foreach now
+      <span style="outline:2px dashed var(--new);background:transparent"></span>added by expand
+    </div>
+  </div>
+  <div class="panel">
+    <svg id="cube3d" viewBox="0 0 280 240" width="100%" role="img" aria-label="the cube in 3D"></svg>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="row" style="margin-bottom:8px">
+    <strong>The flat block</strong>
+    <span style="color:var(--muted);font-size:13px" id="flatNote"></span>
+  </div>
+  <div class="flat" id="flat"></div>
+</div>
+
+<div class="panel">
+  <div class="row">
+    <strong>expand</strong>
+    <span style="color:var(--muted);font-size:13px">a growable array only (<code>int:[3][4][2] cube</code>) - always a warning, every slot is copied into a new block (D.143)</span>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button data-grow="0">cube.expand(ROWS, 1)</button>
+    <button data-grow="1">cube.expand(COLUMNS, 1)</button>
+    <button data-grow="2">cube.expand(DEPTH, 1)</button>
+    <button id="reset">back to the sizes above</button>
+  </div>
+</div>
+</main>
+
+<script>
+(function () {
+  var NAMES = [['row', 'rows'], ['column', 'columns'], ['sheet', 'depth']];
+  var PRESETS = ['cube', 'cube[1]', 'cube[][2]', 'cube[][2][1]', 'cube[][][1]', 'cube[1][2][0]', 'cube[1],[2]', 'cube[5]'];
+  var $ = function (id) { return document.getElementById(id); };
+  var dims = [3, 4, 2], added = null, playing = null, nowSlot = null;
+
+  function readSizes() {
+    dims = ['rows', 'columns', 'depth'].map(function (id) {
+      var v = parseInt($(id).value, 10);
+      return isNaN(v) || v < 1 ? 1 : Math.min(v, id === 'depth' ? 5 : 6);
+    });
+    added = null;
+  }
+  function order() { return $('order').value; }
+
+  // How far apart one step of each index is in the flat block (D.148)
+  function strides() {
+    var s = [1, 1, 1];
+    if (order() === 'columns') { s[0] = 1; s[1] = dims[0]; s[2] = dims[0] * dims[1]; }
+    else { s[2] = 1; s[1] = dims[2]; s[0] = dims[1] * dims[2]; }
+    return s;
+  }
+  function position(r, c, d) { var s = strides(); return r * s[0] + c * s[1] + d * s[2]; }
+
+  // cube[1][][2] / cube[1],[2] - each index a number or open (null); fewer than 3: the rest open
+  function parse(text) {
+    var m = text.replace(/\s+/g, '').match(/^([A-Za-z_]\w*)((?:,?\[-?\d*\])*)$/);
+    if (!m) return { error: 'write it as cube[1][][2] or cube[1],[2]' };
+    var slots = [], parts = m[2].match(/\[-?\d*\]/g) || [];
+    if (parts.length > 3) return { error: 'a 4th dimension belongs to the Collections library (D.143)' };
+    parts.forEach(function (p) { var v = p.slice(1, -1); slots.push(v === '' ? null : parseInt(v, 10)); });
+    while (slots.length < 3) slots.push(null);
+    for (var k = 0; k < 3; k++) {
+      if (slots[k] !== null && (slots[k] < 0 || slots[k] >= dims[k]))
+        return { error: 'IndexError: ' + NAMES[k][0] + ' ' + slots[k] + ' is outside (' + NAMES[k][1] + ' ' + dims[k] + ')' };
+    }
+    return { name: m[1], slots: slots };
+  }
+
+  // The open dimensions in the order a loop takes them - the outer first (D.148)
+  function loopDims(slots) {
+    var open = [0, 1, 2].filter(function (k) { return slots[k] === null; });
+    return order() === 'columns' ? open.reverse() : open;
+  }
+
+  function reached(slots) {
+    var dimsOrder = loopDims(slots), out = [];
+    function walk(level, at) {
+      if (level === dimsOrder.length) { out.push(at.slice()); return; }
+      var k = dimsOrder[level];
+      for (var i = 0; i < dims[k]; i++) { at[k] = i; walk(level + 1, at); }
+    }
+    walk(0, slots.map(function (s) { return s === null ? 0 : s; }));
+    return out;
+  }
+
+  function key(r, c, d) { return r + ',' + c + ',' + d; }
+
+  function describe(p, list) {
+    var open = loopDims(p.slots);
+    var lines = [];
+    var fixed = p.slots.map(function (s, k) { return s === null ? null : NAMES[k][0] + ' ' + s; }).filter(Boolean);
+    if (open.length === 0) {
+      lines.push('one slot - ' + fixed.join(', ') + ' - position ' + position(p.slots[0], p.slots[1], p.slots[2]) + ' in the block');
+      lines.push(p.name + '[...].length is -1 (one slot has no length - no error)');
+    } else {
+      var outer = open[0];
+      lines.push((open.length === 3 ? 'the whole cube' : 'a view (borrowed in a loop, a copy in a variable - D.149)') +
+                 (fixed.length ? ' - ' + fixed.join(', ') : '') + ': ' + list.length + ' slots, ' + open.length + ' open dimension' + (open.length > 1 ? 's' : ''));
+      lines.push('length is ' + dims[outer] + ' - the ' + NAMES[outer][1] + ', its outer open dimension');
+      var item = open.length === 1 ? 'int v' : 'int' + new Array(open.length).join('[]') + ' part';
+      lines.push('foreach (' + item + ' in ' + p.name + (p.slots.some(function (s) { return s !== null; }) ? fmt(p.slots) : '') +
+                 ') walks ' + open.map(function (k) { return NAMES[k][1]; }).join(' -> '));
+    }
+    var s = strides();
+    var steps = list.map(function (a) { return position(a[0], a[1], a[2]); });
+    var together = steps.every(function (v, i) { return i === 0 || v === steps[i - 1] + 1; });
+    lines.push(together ? 'read one after another in memory - the fastest way' :
+               'read with jumps in memory (steps of ' + unique(steps).join(', ') + ') - the other order setting reads it in one sweep');
+    return lines.join('\n');
+  }
+  function fmt(slots) { return slots.map(function (s) { return '[' + (s === null ? '' : s) + ']'; }).join('').replace(/(\[\])+$/, ''); }
+  function unique(steps) {
+    var d = {}; for (var i = 1; i < steps.length; i++) d[steps[i] - steps[i - 1]] = 1;
+    return Object.keys(d).slice(0, 4);
+  }
+
+  function render() {
+    var p = parse($('expr').value), hits = {}, list = [];
+    if (p.error) { $('out').innerHTML = '<span class="bad">' + p.error + '</span>'; }
+    else {
+      list = reached(p.slots);
+      list.forEach(function (a) { hits[key(a[0], a[1], a[2])] = 1; });
+      $('out').textContent = describe(p, list);
+    }
+    // the sheets side by side
+    var html = '';
+    for (var d = 0; d < dims[2]; d++) {
+      html += '<div class="sheet"><h3>sheet ' + d + '  (cube[][][' + d + '])</h3><table class="grid"><tr><th></th>';
+      for (var c = 0; c < dims[1]; c++) html += '<th>col ' + c + '</th>';
+      html += '</tr>';
+      for (var r = 0; r < dims[0]; r++) {
+        html += '<tr><th>row ' + r + '</th>';
+        for (c = 0; c < dims[1]; c++) {
+          var k = key(r, c, d), cls = [];
+          if (hits[k]) cls.push('hit');
+          if (nowSlot === k) cls.push('now');
+          if (added && added(r, c, d)) cls.push('new');
+          html += '<td class="' + cls.join(' ') + '" title="cube[' + r + '][' + c + '][' + d + '] - position ' + position(r, c, d) + '">' + position(r, c, d) + '</td>';
+        }
+        html += '</tr>';
+      }
+      html += '</table></div>';
+    }
+    $('sheets').innerHTML = html;
+    // the flat block
+    var total = dims[0] * dims[1] * dims[2], cells = new Array(total);
+    for (d = 0; d < dims[2]; d++) for (c = 0; c < dims[1]; c++) for (r = 0; r < dims[0]; r++) cells[position(r, c, d)] = [r, c, d];
+    $('flat').innerHTML = cells.map(function (a, i) {
+      var k = key(a[0], a[1], a[2]);
+      return '<div class="' + (nowSlot === k ? 'now' : hits[k] ? 'hit' : '') + '" title="position ' + i + ': cube[' + a.join('][') + ']">' + i + '</div>';
+    }).join('');
+    var s = strides();
+    $('flatNote').textContent = total + ' slots in one block - position = row x ' + s[0] + ' + column x ' + s[1] + ' + sheet x ' + s[2];
+    draw3d(hits);
+  }
+
+  // A small 3D view: rows down, columns right, depth back
+  function draw3d(hits) {
+    var svg = $('cube3d'), u = Math.min(150 / (dims[1] + dims[2] * 0.6), 150 / (dims[0] + dims[2] * 0.5)), parts = [];
+    var ox = 30, oy = 30 + dims[2] * u * 0.5;
+    function pt(r, c, d) { return [ox + c * u + d * u * 0.6, oy + r * u - d * u * 0.5]; }
+    var css = getComputedStyle(document.documentElement);
+    var cell = css.getPropertyValue('--cell').trim(), hit = css.getPropertyValue('--hit').trim(), line = css.getPropertyValue('--line').trim(), now = css.getPropertyValue('--now').trim();
+    for (var d = dims[2] - 1; d >= 0; d--) {
+      for (var r = 0; r < dims[0]; r++) for (var c = 0; c < dims[1]; c++) {
+        var a = pt(r, c, d), k = key(r, c, d);
+        var fill = nowSlot === k ? now : hits[k] ? hit : cell;
+        parts.push('<rect x="' + a[0].toFixed(1) + '" y="' + a[1].toFixed(1) + '" width="' + (u - 2).toFixed(1) + '" height="' + (u - 2).toFixed(1) +
+                   '" rx="3" fill="' + fill + '" fill-opacity="' + (hits[k] || nowSlot === k ? 0.95 : 0.55) + '" stroke="' + line + '"/>');
+      }
+    }
+    var e = pt(dims[0], 0, 0);
+    parts.push('<text x="' + ox + '" y="' + (e[1] + 16) + '">rows down, columns right, sheets back</text>');
+    svg.innerHTML = parts.join('');
+  }
+
+  function play() {
+    if (playing) { clearInterval(playing); playing = null; nowSlot = null; $('play').textContent = 'foreach - step through'; render(); return; }
+    var p = parse($('expr').value);
+    if (p.error) return;
+    var list = reached(p.slots), i = 0;
+    $('play').textContent = 'stop';
+    playing = setInterval(function () {
+      if (i >= list.length) { clearInterval(playing); playing = null; nowSlot = null; $('play').textContent = 'foreach - step through'; render(); return; }
+      var a = list[i++];
+      nowSlot = key(a[0], a[1], a[2]);
+      render();
+      $('out').textContent += '\nstep ' + i + ' of ' + list.length + ': cube[' + a.join('][') + '] - position ' + position(a[0], a[1], a[2]);
+    }, 450);
+  }
+
+  function grow(k) {
+    var before = dims.slice();
+    dims[k] += 1;
+    added = function (r, c, d) { return r >= before[0] || c >= before[1] || d >= before[2]; };
+    render();
+    $('out').textContent = 'cube.expand(' + ['ROWS', 'COLUMNS', 'DEPTH'][k] + ', 1): now ' + dims.join(' x ') +
+      ' - warning: every slot is copied into a new block; the new slots (dashed) get the default value (0, "", false, null)';
+  }
+
+  PRESETS.forEach(function (t) {
+    var b = document.createElement('button'); b.textContent = t;
+    b.onclick = function () { $('expr').value = t; render(); };
+    $('presets').appendChild(b);
+  });
+  ['rows', 'columns', 'depth'].forEach(function (id) { $(id).addEventListener('input', function () { readSizes(); render(); }); });
+  $('order').addEventListener('change', render);
+  $('expr').addEventListener('input', render);
+  $('play').addEventListener('click', play);
+  document.querySelectorAll('[data-grow]').forEach(function (b) { b.onclick = function () { grow(parseInt(b.getAttribute('data-grow'), 10)); }; });
+  $('reset').onclick = function () { readSizes(); render(); };
+  readSizes();
+  render();
+})();
+</script>
+</body>
+</html>

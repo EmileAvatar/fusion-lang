@@ -397,6 +397,9 @@ original alone.
 
 ## 8b. Arrays of 2 and 3 dimensions (Task 45.12, D.143, D.148-D.150)
 
+To see it: [ArrayCube.html](ArrayCube.html) (open in a browser) shows which slots a part reaches, the
+order `foreach` walks them, where each lies in the flat block, and what `expand` adds.
+
 `int[2][3][4] cube` - 2 rows x 3 columns x 4 depth (sheets). One flat block (FLAT, D.144); `[arrays]
 order` sets which index varies fastest in memory - `columns` (the default): rows fastest, so a loop
 over depth -> columns -> rows reads the slots one after another.
