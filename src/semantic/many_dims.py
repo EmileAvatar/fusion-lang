@@ -168,6 +168,52 @@ class ManyDimsMixin:
 
     # ------------------------------------------------------------------ declarations
 
+    def check_array_from_name(self, node: VarDeclStmt) -> bool:
+        """`int[2][3] n = m` / `int[3] b = a` (45.12e, D.025): a whole array on the stack given to a new
+        one - the slots copied, and `m` moved (it can't be used after - the ownership check); `byVal m`
+        a deep copy, `m` still usable. Returns False when this isn't one (the usual checks run)."""
+        from src.parser.ast_nodes import PassingExpr
+        value, target = node.initializer, node.var_type
+        deep = isinstance(value, PassingExpr)
+        source = value.value if deep else value
+        if deep and not value.by_val or not isinstance(source, IdentifierExpr):
+            return False
+        if target.growable or getattr(target, 'array_form', False):
+            return False
+        symbol = self.symbol_table.lookup(source.name)
+        kind = getattr(symbol, 'data_type', None)
+        if not isinstance(kind, ArrayType) or kind.growable or getattr(kind, 'view', False):
+            return False
+        self.visit(value)
+        node.many_ok = True                 # its own errors below - not "used as a whole" as well
+        given = list(kind.dims) if kind.dims else [kind.size]
+        wanted = list(target.dims) if target.dims else [target.size]
+        shape = self.type_to_string(kind)
+        if len(given) != len(wanted) or self.type_to_string(kind.element_type) != \
+                self.type_to_string(target.element_type):
+            self.errors.append(SemanticError(
+                f"'{node.name}' is {self.type_to_string(target)}, '{source.name}' is {shape} - a whole array "
+                f"is given to one of the same type", node.location))
+            return True
+        if not all(isinstance(g, int) for g in given):
+            self.errors.append(SemanticError(
+                f"'{source.name}' takes any size - its sizes are known only while running; copy it slot by "
+                f"slot, or give the parameter its sizes", node.location))
+            return True
+        for w, g in zip(wanted, given):
+            if w is not None and w != g:
+                self.errors.append(SemanticError(
+                    f"'{node.name}' is {self.type_to_string(target)}, '{source.name}' is {shape} - the sizes "
+                    f"must agree (or leave them out: {self.type_to_string(target.element_type)}"
+                    f"{'[]' * len(given)} {node.name} = {source.name})", node.location))
+                return True
+        if target.dims:
+            target.dims[:] = given
+        target.size = kind.size
+        node.array_from = (source, deep)
+        node.many_ok = True
+        return True
+
     def check_many_dims_declaration(self, node: VarDeclStmt) -> None:
         """`int[2][3] m`, `int[][] m = [[1, 2, 3], [4, 5, 6]]` - the sizes, and the values flattened."""
         array = node.var_type
@@ -195,8 +241,8 @@ class ManyDimsMixin:
                 return
             self.errors.append(SemanticError(
                 f"An array of {len(dims)} dimensions is set from its values, a part of another one or a "
-                f"function giving one - [[1, 2], [3, 4]], cube[][][3], make(); copying or replacing a whole "
-                f"array comes with Task 45.12d", value.location))
+                f"function giving one, or another whole array - [[1, 2], [3, 4]], cube[][][3], make(), m",
+                value.location))
             return
         found = list(dims)
         leaves = []
@@ -761,8 +807,8 @@ def check_many_dims_uses(program) -> list:
                     errors.append(SemanticError(
                         f"'{_name_of(node)}' has {len(kind.dims)} dimensions - it is used through its slots "
                         f"({_name_of(node)}[0][0]), its parts, foreach, rows / columns / depth / length, passed "
-                        f"to an array parameter, returned or compared (==); copying or replacing the whole comes "
-                        f"with Task 45.12d", node.location))
+                        f"to an array parameter, returned, compared (==) or given to a new array (int[2][3] n = "
+                        f"{_name_of(node)}); replacing the whole comes with Task 45.12e", node.location))
             for child in _children(node):
                 todo.append((child, node))
     return errors

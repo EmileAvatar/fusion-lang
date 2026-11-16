@@ -2611,6 +2611,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 and node.initializer is not None and self.is_view_value(node.initializer):
             self.check_view_copy(node)                     # int[] row = m[1] - a copy (45.12b, D.149)
             return
+        if isinstance(node.var_type, ArrayType) and node.initializer is not None \
+                and self.check_array_from_name(node):
+            return                                         # int[2][3] n = m / byVal m (45.12e, D.025)
         if isinstance(node.var_type, ArrayType) and node.var_type.dims:
             self.check_many_dims_declaration(node)         # int[2][3] m (Task 45.12a)
             return

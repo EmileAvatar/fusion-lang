@@ -501,7 +501,16 @@ class _FunctionCheck:
             return self.block(node.statements, state)
         if isinstance(node, VarDeclStmt):
             self.locals.add(node.name)
-            if node.initializer is not None:
+            whole = getattr(node, 'array_from', None)
+            if whole is not None and not whole[1]:
+                # int[2][3] n = m (45.12e, D.025): a whole array on the stack moves by copying its
+                # slots - m can't be used after (byVal m: a copy, m stays)
+                self.expression(node.initializer, state)
+                source = whole[0].name
+                if source in self.locals and source not in self.params and source not in self.borrows:
+                    state[source] = _Moved(_line(node.initializer), f"'{node.name}'")
+                    self.log.append((source, state[source]))
+            elif node.initializer is not None:
                 self._move(node.initializer, f"'{node.name}'", state, local=node.name)
             state.pop(node.name, None)             # a new variable, alive
             return state

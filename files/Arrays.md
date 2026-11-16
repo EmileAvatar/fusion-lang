@@ -420,7 +420,8 @@ over depth -> columns -> rows reads the slots one after another.
 | A part to `int[]` | `total(m[1])`, `total(m[][2])` | a copy | 45.12c |
 | Return | `int[2][3] function f()`; `int[][] function f()` | that shape; any size: an error (heap - later) | 45.12c |
 | Compare | `a == b` | slot by slot, the same shape; a part: later | 45.12c |
-| Copy or replace the whole | `int[2][3] n = m`, `m = make()` | an error for now | later |
+| Give the whole to a new array | `int[2][3] n = m`, `int[][] n = byVal m` | the slots copied; `m` moved - can't be used after (D.025); `byVal` a deep copy, `m` stays; sizes agree or are taken from `m` | 45.12e |
+| Replace the whole | `m = [[...]]`, `m = make()` | an error for now | 45.12e part 3 |
 | Grow | `int:[2][3][4] g`, `int[[2],[3],[4]] g`, `int:[][] g = [...]`; `g.expand(ROWS, 1)` | on the heap; a warning; it stays a cube, new slots the default | 45.12d |
 | Grow by a number | `g.expand(0, 1)` | an error - the Collections library | - |
 | To a List | `m.toList()`, `cube.toList()`, `m[1].toList()` | a List of Lists, the outer dimension first; a copy; a null slot skipped, a column all null an empty List (D.152) | 45.11, 45.11c |

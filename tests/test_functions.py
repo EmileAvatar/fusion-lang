@@ -254,10 +254,12 @@ def test_array_default_value_rejected():
     assert "can't have a default value" in message
 
 
-def test_array_initialized_from_another_array_rejected():
-    # Used to pass semantic analysis and then fail in GCC: `int b[3] = a;` is invalid C
-    message = errors_of('void function main()\n    int[] a = [1, 2, 3]\n    int[] b = a\n')
-    assert "must be initialized with an array literal" in message
+def test_array_from_a_parameter_of_any_size_rejected():
+    # `int[] b = a` copies a whole array since 45.12e - but a parameter of any size has no size
+    # while compiling, so its stack copy can't be declared
+    message = errors_of('void function f(int[] a)\n    int[] b = byVal a\n\n'
+                        'void function main()\n    f([1, 2])\n')
+    assert "takes any size" in message
 
 
 def test_array_parameters_end_to_end():

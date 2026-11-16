@@ -215,7 +215,12 @@ then each point is decided and solved completely. One line per section and per l
 		[DONE] 45.12c Functions: `int[2][3]` / `int[][]` parameters (any size: hidden sizes), a part passed as a copy (numbers), returning `int[2][3]`, `==` on the same shape - tests/test_many_dims_functions.py, example syntax_many_dims_functions
 			[ ] Later: a part of strings / objects passed; returning any size (heap); copying a part of an any-size parameter; `==` on parts
 		[DONE] 45.12d Growable `int:[2][3][4]` / `int[[2],[3],[4]]` / `int:[][] g = [...]` on the heap; `expand(ROWS / COLUMNS / DEPTH, n)` with a warning; the built-in enum `Dimension`; no expand inside a loop over it - tests/test_many_dims_growable.py, example syntax_many_dims_growable
-		[ ] 45.12e Copying or replacing a whole array of many dimensions (`int[2][3] n = m`, `m = make()`, `g = [[...]]`) - an error today
+		[ ] 45.12e Copying or replacing a whole array (D.025, D.141)
+			[DONE] Parts 1-2: `int[3] b = a` / `int[2][3] n = m` - the slots copied, `a` moved (can't be used after);
+				`byVal a` a deep copy; sizes taken from the source when left out, else they must agree - tests/test_array_whole_copy.py
+			[ ] Part 3: replacing - `m = [[...]]`, `m = f()`, `n = m` after the declaration: the same shape the slots replaced;
+				another shape a plain array to the heap, a fixed one an error, a growable one fine
+			[ ] A 3D array (plain / fixed) on the heap, not the stack - waits for OpenQuestions Q.033 "To confirm"
 		[DONE] 45.11 `toList` on them: a List of Lists, the outer dimension first (D.148 - user, 2026-11-15); a null object slot a NullError, nothing leaked - tests/test_many_dims_to_list.py, example syntax_many_dims_to_list
 			[DONE] 45.11b `toCSV(",", "#", "\n")` on every array of plain values (D.151): a line per row; 3 dimensions and up the sheets
 				side by side split by "#"; CSV quoting; a null slot an empty field (`1,2,,4`); `[arrays] csvManyDimensions` (default true)

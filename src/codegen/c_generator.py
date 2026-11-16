@@ -1903,7 +1903,17 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                     "no resolved size - semantic analysis must resolve every array's size "
                     "before code generation."
                 )
-            if self._returns_array(node.initializer):
+            if getattr(node, 'array_from', None) is not None:
+                # int[2][3] n = m (45.12e, D.025): the slots copied - a string copied, an object one
+                # more holder (m can't be used after); byVal m: objects copied too
+                source, deep = node.array_from
+                element = node.var_type.element_type
+                slot = f'{self.visit(source)}[fusion_i]'
+                value = (self.clone_code(element, slot) if deep else self.copy_code(element, slot)) \
+                    if managed else slot
+                self.emit_line(f'{elem_c_type} {node.name}[{size}]')
+                self.emit_line(f'for (int fusion_i = 0; fusion_i < {size}; fusion_i++) {node.name}[fusion_i] = {value}')
+            elif self._returns_array(node.initializer):
                 # int[3] a = make() - declared, then the returned array is copied in
                 # (Task 18.2.4). Strings start as "" first, since the copy frees the old ones
                 wrapper = self.array_wrapper_name(node.initializer.inferred_type)

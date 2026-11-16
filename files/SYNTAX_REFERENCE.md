@@ -346,6 +346,25 @@ void function main()
 "rows"`: rows first). It is a copy. A List never holds null (D.139): an object or enum slot that is
 null is skipped - a column whose slots are all null is an empty List (D.152).
 
+#### A whole array given to a new one
+
+<!-- example: syntax_array_whole_copy | task: 45.12e -->
+```fusion
+void function main()
+    int[2][3] m = [[1, 2, 3], [4, 5, 6]]
+    int[][] copy = byVal m              // a copy - m stays usable
+    copy[0][0] = 9
+    print("{@1} {@2}", m[0][0], copy[0][0])     // 1 9
+    int[2][3] n = m                     // m moves to n - m can't be used after
+    print("{@1}", n[1][2])              // 6
+    string[3] a = ["x", "y", "z"]
+    string[] b = a                      // one dimension the same
+    print("{@1}", b[2])                 // z
+```
+A whole array given to a new one moves, as a List does (D.025): its slots are copied and the old name
+can't be used after - use `byVal` for a copy that leaves it usable (objects copied too). The sizes are
+taken from the source when left out (`int[][] n = m`); written, they must agree.
+
 #### toCSV on arrays of plain values
 
 <!-- example: syntax_array_csv | task: 45.11b -->
