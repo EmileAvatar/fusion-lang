@@ -164,7 +164,10 @@ Folders (user, 2026-11-07): the root keeps only `CLAUDE.md`, `README.md`, `Main.
 document and file goes in `files/` (old debug scripts: `debug/`); tests in `tests/`; no
 `docs/` folder until the compiler goes live. `Notes/` is for
 our internal discussion (reviews, sources); `files/` is for developers who need to understand
-the language and its code (user, 2026-10-29).
+the language and its code (user, 2026-10-29). `files/Research/<topic>/` holds research for a task,
+listed in FEATURES "Research" (user, 2026-11-16). Files the user drops in the root (from the Mac) are
+reviewed, then moved. Planned: `files/Notes/Random/<topic>/` for topic notes kept together; the more
+important ones stay in `Notes/`.
 
 ---
 

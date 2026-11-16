@@ -62,6 +62,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/Arrays.md](files/Arrays.md) | Arrays, Lists, Maps: what each does, when to use it |
 | [files/Service.md](files/Service.md) | The `service` keyword - the reference |
 | [files/Concurrency.md](files/Concurrency.md) / [files/Concurrency_Traps.md](files/Concurrency_Traps.md) | Concurrency: the full write-up / the overview tables |
+| [files/Research/Services/Service_Resilience_Recommendations.md](files/Research/Services/Service_Resilience_Recommendations.md) | Research for Task 42: service isolation, resilience and failure containment (the Microsoft 365 outage, a CD/DVD hang) - to study in full first (FEATURES "Research" R1) |
 | [files/Fusion_Multi_Language_Compiler_Architecture.md](files/Fusion_Multi_Language_Compiler_Architecture.md) | `Lang.<language>.Fusion` modules (Task 49) |
 | [files/Fusion_Hardware_Interface_Definition_Language_HIDL.md](files/Fusion_Hardware_Interface_Definition_Language_HIDL.md) | HIDL - hardware description (Task 41) |
 | [files/Literals.md](files/Literals.md) | Ways to write values directly - a proposal only |

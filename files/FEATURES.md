@@ -120,6 +120,58 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [49](#task-49) | Multi-language support: `Lang.<language>.Fusion` modules | 3 | postponed to 35 |
 | [54](#task-54) | Precepts: a project that behaves like C, Java, Python, Rust | 3 | postponed to 35 |
 | [L](#later) | Later / advanced - numbered L1, L2.1 ... | - | postponed |
+| [R](#research) | Research - files to study in full before a task starts | - | open |
+
+---
+
+<a id="research"></a>
+## Research [index](#index)
+
+Files to study before a task starts (user, 2026-11-16). Nothing here is decided: when the task
+starts, every line is researched in full, the findings are saved in `files/Research/<topic>/`, and
+then each point is decided and solved completely. One line per section and per list or table.
+
+#### R1 Services: isolation, resilience, failure containment - for Task 42 (42.00) [ ] [index](#index)
+	File: [files/Research/Services/Service_Resilience_Recommendations.md](Research/Services/Service_Resilience_Recommendations.md)
+	(ChatGPT's review of the Microsoft 365 outage and a CD/DVD Explorer hang; section 14 is Claude's gap analysis)
+	[ ] R1.1 Executive summary - the three isolations: ownership, execution, failure (section 1)
+	[ ] R1.2 The Microsoft 365 outage - how services could help: the benefits list (2.1)
+	[ ] R1.3 What a service does not solve automatically: the list (2.2)
+	[ ] R1.4 The CD/DVD hang - the service approach and its six-step flow (3.1)
+	[ ] R1.5 A timeout is not cancellation: the list (3.2)
+	[ ] R1.6 Isolating devices that can block: the list (3.3)
+	[ ] R1.7 Ownership isolation: the list (4.1)
+	[ ] R1.8 Execution isolation, and the classifications blocking / async / cancellable / nonblocking (4.2)
+	[ ] R1.9 Failure isolation: the list (4.3)
+	[ ] R1.10 Existing features to reuse: the table, and the semantic details to keep (5)
+	[ ] R1.11 Service health: the states STARTING ... FAILED and the questions (6.1)
+	[ ] R1.12 A watchdog / progress monitoring (6.2)
+	[ ] R1.13 A circuit breaker / admission control: closed, open, half-open (6.3)
+	[ ] R1.14 Retry: backoff, jitter, transient errors only, unknown outcomes (6.4)
+	[ ] R1.15 Queue age and overload diagnostics: the list (6.5)
+	[ ] R1.16 Bulkheads and partitioning services (6.6)
+	[ ] R1.17 Controlled recovery and load shedding (6.7)
+	[ ] R1.18 Safe shutdown with requests still running: the questions and the safety rule (6.8)
+	[ ] R1.19 Resources as services - devices: CD/DVD, USB, serial ports, printers, cameras, audio (7)
+	[ ] R1.20 Head-of-line blocking (8.1)
+	[ ] R1.21 Nested service waits (8.2)
+	[ ] R1.22 No central bottleneck (8.3)
+	[ ] R1.23 The 14 test scenarios (9)
+	[ ] R1.24 The design review checklist: the table (10)
+	[ ] R1.25 The 10 implementation constraints (11)
+	[ ] R1.26 The task as ChatGPT wrote it, and its final position (12, 13)
+	[ ] R1.27 Claude's gap analysis: already specified / partly / not specified, and the 7 next steps (14)
+	[ ] R1.28 The admin dashboard (the user's idea): service and pool health, changing Timeout / pool size while running -
+		designed once a GUI and services work; it plugs into whatever GUI or service the developer uses
+
+#### R2 Fusion against Go and Rust - for README and after self-hosting [ ] [index](#index)
+	File: [Notes/GoVsRust.md](../Notes/GoVsRust.md) (a YouTube short's transcript and Claude's pointers; not in git)
+	[ ] R2.1 Speed - no collector, C through GCC; a benchmark against Go and Rust after self-hosting
+	[ ] R2.2 Memory - ownership first; Discord's GC latency spikes as the argument for the default
+	[ ] R2.3 Concurrency - services: Rust's safety with Go's ease (`go worker()`, no locks written)
+	[ ] R2.4 Learning curve - familiar defaults, strict / relaxed ownership, errors that name the fix; the keyword count
+	[ ] R2.5 Shipping speed - watch the compiler's own speed (check.py's report)
+	[ ] R2.6 Popularity - "deliberately boring"; the memory-safe push - README's guarantees in a few lines
 
 ---
 
@@ -422,6 +474,8 @@ then the open tasks, the postponed ones, and the phase's goal last.
 	slowdown, a small memory / CPU footprint, very scalable. A resource becomes a service;
 	manual locking is a last resort. Design: files/Concurrency.md (sections 3-4); overview:
 	files/Concurrency_Traps.md. Plan first when the task starts.
+	[ ] 42.00 Research first (user, 2026-11-16): every line of Research R1 studied in full, the findings saved in
+		files/Research/Services/, then each point decided and solved completely - before services are built
 	[ ] 42.0 Version one (agreed 2026-10-24, files/Concurrency.md 3.11): five rules - one owner,
 		each operation one step, copies out, handles shared; the compiler picks plain variable
 		/ atomic / mailbox on a shared pool (never a thread per service); waits in order,

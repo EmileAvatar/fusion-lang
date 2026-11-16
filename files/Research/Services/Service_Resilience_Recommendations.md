@@ -1,5 +1,11 @@
 # Fusion: Service Isolation, Resilience and Failure Containment
 
+**Research for Task 42** (files/FEATURES.md "Research", 42.00): every section and list here is reviewed
+when the services task starts; the findings go into files/Research/Services/, then each point is
+decided. Sources: the Microsoft 365 outage report of 12-13 Nov 2026 (cybersecuritynews.com/microsoft-outage-incident-report/)
+and the user's notes - Notes/MicrosoftDown example.md (not in git). Written by ChatGPT with limited
+knowledge of Fusion; section 14 checks it against Fusion's design.
+
 **Purpose:** Design-review input for Claude Code. This document captures recommendations discussed after reviewing a reported Microsoft 365 gateway outage and a Windows Explorer CD/DVD hang.
 
 **Status:** This is a proposal/review document, not an instruction to overwrite existing Fusion specifications. Preserve agreed designs. In particular, `Timeout`, `WhenFull`, `Priority`, worker types, mailbox capacity, readers, retry and shutdown controls are already planned in the service design. Do not duplicate them. Inspect the current specifications and extend only genuine gaps.
@@ -465,3 +471,78 @@ The strongest design is not simply "put everything in a service." It is:
 - Keep ownership valid until all in-flight work has stopped using the resource.
 
 This can reduce application-level races, lock contention, UI freezes and cascading failures. It cannot guarantee that a defective operating-system kernel, driver or external service will behave correctly. Fusion's responsibility is to make the boundary explicit and contain failures wherever the runtime has control.
+
+---
+
+## 14. Gap analysis against Fusion's design (Claude, 2026-11-16)
+
+Checked against files/Service.md, files/Concurrency.md and files/Concurrency_Traps.md. Proposals only -
+nothing here is a decision or a task until the user accepts it.
+
+#### Already specified
+- **Timeout is not cancellation** - Service.md rule 5: every request ends completed, failed, timed out
+  ("its effects may still happen") or cancelled
+- **Bounded queue** - `Mailbox` (default 12), `WhenFull` WAIT / ERROR (`QueueFullError`), `WarnAt` (80%)
+- **No starvation by priority** - `Priority` is shares of the turns ("5.4.1"), not strict priority
+  (Concurrency.md "Priority": strict priority starves - trap 6)
+- **A device on its own workers** - `WorkerThreadType.SINGLE` "suits a heavy resource that should never
+  wait for a free worker, such as ... a device" (Service.md WorkerThreadType); `ThreadPool` per service
+- **Owned threads** - every thread has a parent that waits for, cancels and gets errors from its children
+  (Concurrency_Traps.md P5)
+- **Restart limits** - `OnError` (restart / stop / report), `RestartLimit` (Service.md secondary settings)
+
+#### Partly specified - a gap to close
+- **Health** - `ServiceState function state()` is in the Service interface (Service.md) but its states
+  are not listed: STARTING, HEALTHY, BUSY, DEGRADED, UNRESPONSIVE, STOPPING, STOPPED, FAILED
+- **Watchdog** - only hot-path services have one (Service.md T7); an ordinary service has none - e.g. a
+  `Watchdog = 10s` setting: a request running longer marks the service UNRESPONSIVE (it detects, it
+  never kills a blocked native call)
+- **Retry** - listed (Service.md) with no detail: attempts, backoff with jitter (Concurrency.md has
+  backoff with jitter only for livelock), only errors marked transient, never automatically for a
+  timed-out request whose effects may still happen
+- **Diagnostics** - `waiting()` gives the queue length and `Trace` profiles; missing: the oldest
+  request's age, completed / failed / timed-out / rejected counts, worker progress - the user's
+  dashboard idea (below) needs exactly these
+- **Shutdown and requests still running** - `Shutdown` (finish the queue or drop it) and `final`
+  exist, and a drain step for hot paths (T8); missing the safety rule: the owner's scope can't free
+  a resource while a request is still using it - and what happens when that request never returns
+- **AUTO and blocking work** - `AUTO` may move a resource to `SHARED`; a resource that can block
+  (a device) must never land on a shared pool, or it can take the pool's workers with it
+- **Resources as services** - `resourceAsService` covers files, sockets, pipes and databases; devices
+  (CD/DVD, USB, serial ports, printers, cameras, audio) are not listed
+
+#### Not specified
+- **Recovering gradually** - after a restart, admit work slowly (a ramp-up), not the whole waiting queue
+  at once; shed low-priority work while DEGRADED
+- **Circuit breaker** - closed / open / half-open admission; probably a library (a Resilience module)
+  using `WhenFull`, `Timeout` and `OnError`, not new core settings
+- **Marking blocking calls** - a `blocking` mark on functions and native calls, so the compiler can
+  refuse one on a UI thread or a hot path (as hot paths already refuse unknown calls - Service.md H4)
+
+#### The user's dashboard idea (Notes/MicrosoftDown example.md - the incident report and the user's notes; not in git)
+- Designed later, once a GUI and services work: the dashboard plugs into whatever GUI or service the
+  developer uses (user, 2026-11-16)
+- The thread pools and services report their state to a dashboard; admins see a constrained resource
+  and change its `Timeout` or `ThreadPool` size
+- Needs the diagnostics above, and a rule for who may change settings while running: today only the
+  thread that created a service may (Service.md "Using a service") - an admin channel would be a new,
+  checked way in
+
+#### Could Fusion have prevented these two cases?
+- **The Microsoft 365 outage** - its root was lock contention inside a Windows process, which Fusion
+  can't fix. What made it global could be contained: the automatic recovery moving all connections to
+  the healthy servers (gradual recovery, admission), the fault boundaries that failed (bulkheads - one
+  service per region or tenant), restarted servers failing again when the waiting traffic returned
+  (ramp-up)
+- **The CD/DVD hang in Explorer** - yes, at the application's level: the UI never calls the drive
+  itself, a `SINGLE` drive service does; the UI's timeout lets it carry on. The blocked worker may stay
+  blocked (the OS call can't be cancelled), but only the drive's service is stuck
+
+#### Suggested next steps (for the user to accept)
+1. ServiceState's values and how each is detected
+2. A `Watchdog` setting for ordinary services
+3. `Retry` in detail (attempts, backoff, jitter, transient errors only, never after a timeout)
+4. Diagnostics for a service and a pool (counts, oldest request, progress) - the dashboard's data
+5. The shutdown safety rule (no resource freed under a running request)
+6. Devices in `resourceAsService`; blocking resources never on a shared pool
+7. Later: gradual recovery, a circuit breaker module, a `blocking` mark
