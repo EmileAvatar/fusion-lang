@@ -173,6 +173,29 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R2.5 Shipping speed - watch the compiler's own speed (check.py's report)
 	[ ] R2.6 Popularity - "deliberately boring"; the memory-safe push - README's guarantees in a few lines
 
+#### R3 Services: atomicity explained, and a second review's gaps - for Task 42 (42.00) [ ] [index](#index)
+	Files: [files/Research/Services/Fusion_Concurrency_Atomicity_and_Group_Services.md](Research/Services/Fusion_Concurrency_Atomicity_and_Group_Services.md)
+	(ChatGPT: why the CPU can pause a thread mid-check, locks vs a service's `run`; corrected to Service.md 2026-11-17) and
+	[files/Research/Services/Service_Review_Notes.md](Research/Services/Service_Review_Notes.md) (a second Claude review; its Part 1 is done)
+	[ ] R3.1 Rollback by "the opposite operation" fails for `x = x * 2` or a plain assignment - snapshot the members at the start of `run`, restore on failure (group rule 7)
+	[ ] R3.2 A timed-out request may still run - the caller can't tell if it happened: a request id, or its final state (done / failed / timed out / cancelled)
+	[ ] R3.3 A group released while child threads still use it - children finish before the scope ends, or release waits for the queue
+	[ ] R3.4 Self-deadlock: a request calling its own service, or sending to itself with WAIT and a full mailbox - a compile-time check and a rule
+	[ ] R3.5 The compiler's own groups (S7) against a developer's group for the same variable - an error "extend your group"
+	[ ] R3.6 Hidden cost: `person.name` quietly becomes a queued request that can block - a warning, or a mark in the editor
+	[ ] R3.7 `Scheduler`, `Priority` and `Rule` all affect order - a worked example in Service.md
+	[ ] R3.8 Service.md tidy-ups: `Readers` missing from the settings tables; the default `Timeout` of a plain service vs `missingTimeout = "error"`;
+		AUTO switching SHARED to SINGLE while running; `max_unit` / `file_lock` in the text vs camelCase in fusion.toml
+
+#### R4 Rust and Zig: the points for Fusion, and `comptime` (user, 2026-11-17) [ ] [index](#index)
+	File: [files/Research/RustZig/Points.md](Research/RustZig/Points.md) - Claude's list from two YouTube transcripts and a ChatGPT comparison (same folder);
+	each point marked have / take / discuss / skip - to go through together
+	[ ] R4.1 From "Why I Don't Like Rust": R1-R11 (section 1) - to take: every type can be written (R3); a `const` array never on the stack (R8)
+	[ ] R4.2 From "Why Zig": Z1-Z10 (section 2) - to take: cross-compiling (Z4)
+	[ ] R4.3 From the ChatGPT comparison: C1-C6 (section 3) - an allocator / arena per service, `defer`
+	[ ] R4.4 `comptime` - suggested: after self-hosting, a setting, default off, functions with no side effects only (section 4)
+	[ ] R4.5 Running other Fusion code while a program runs - with Task 58 and Task 39 (section 5)
+
 ---
 
 <a id="phase-2"></a>
@@ -372,6 +395,8 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 58.3 What a script may use: the same language and checks as a compiled app (safe by default);
 		the std library layer
 	[ ] 58.4 Build it, with an example script and tests
+	[ ] 58.5 Idea (user, 2026-11-17): a running Fusion program runs other Fusion code or apps (plugins, hot reload) - the same engine as
+		`comptime` (Research R4.4); the loaded code is untrusted (Task 39)
 
 <a id="task-29"></a>
 #### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED] [index](#index)
