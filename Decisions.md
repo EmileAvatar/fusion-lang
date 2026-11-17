@@ -48,7 +48,7 @@ SYN.004 [BUILT] Lambdas and function values
 SYN.005 [BUILT] `if` / `while` / `for`; numbers as conditions (`if count`, a setting)
 SYN.006 [BUILT] `(cond) ? a : b`
 SYN.007 [BUILT] `match`, `fall match`, `match` as a value
-SYN.008 [BUILT] `let` / `var`: the type comes from the value
+SYN.008 [BUILT] `let` / `var`: the type comes from the value - `let` is set once and never changes, `var` may change; the usual form stays `<type> name = value` (strong static typing, the developer's choice of style)
 SYN.009 [BUILT] A line break inside `( )` or `[ ]` continues the line
 SYN.010 [BUILT] Equality `=`, `==`, `!=`, `===`, `!==`
 SYN.011 [BUILT] Method form: `name.toUpper()` is `String.toUpper(name)`; your own functions too (`p.moved(1, 2)`)
@@ -209,6 +209,7 @@ MOD.009 [DESIGN] Data formats module (fusionlib): JSON, XML, TOML, YAML, INI, MD
 MOD.010 [DESIGN] HIDL library: hardware testing in the style of Maia - a DUT block, drive / expect vectors, clocks, bit widths (41.10)
 MOD.011 [DESIGN] Language modules `import Lang.Python.Fusion`: each brings its lexer, parser, AST and rules through one injection point - migrate a language to new .fusion files, or compile it by its own rules (Task 49)
 MOD.012 [DESIGN] Namespaces and modules: a namespace is a supplier's group of modules (and a folder); `Namespace.Module.Name`; one module, one library; a reverse company domain when two suppliers share a namespace name (Task 57, D.136)
+MOD.013 [DESIGN] Script libraries: a running program runs Lua, JavaScript or Fusion scripts (game mods, business rules) only through interfaces the developer gives them; the compiler as a library - after self-hosting (Task 60, D.155-D.157)
 
 #### MEM - memory and ownership
 MEM.001 [BUILT] OWNERSHIP: scope plus counting; a returned local is moved
@@ -440,5 +441,8 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.152 | An array's `toList()` skips null slots - only the filled ones are added; every slot null: an empty List, no error. On 2 and 3 dimensions a column whose slots are all null stays an empty List (the shape kept). Numbers and strings are never skipped - only an object or enum slot that is null | an array slot may be null (D.140), a List never holds null (D.139) - the List keeps what is there | COL.019 | 2026-11-16 | OpenQuestions Q.029 (answered) | ACTIVE |
 | D.153 | A jagged array: only a growable array of 2 or 3 dimensions (`int:[][] j`), on the heap; `setStorage(JAGG)` on the next line or in its set-up block - its uneven rows are then accepted, without it an error; `setStorage(JAGG)` on a plain or fixed array an error; no project-wide "jagg" setting | a jagged array always says so where it is made; rows that grow need the heap | COL.015 | 2026-11-16 | OpenQuestions Q.030, Q.032 (answered) | ACTIVE |
 | D.154 | Where an array of many dimensions lives: the stack holds a 1D or 2D array (FLAT, or RECT while small) - a working copy for loops; a 3D array lives on the heap; a 2D array that grows large moves to the heap, a small part copied to the stack to work on (the buffers, D.146, after self-hosting); the split is profiled after self-hosting (L16) | the stack is small - it holds what a loop works on, not the whole data | COL.015 | 2026-11-16 | OpenQuestions Q.033 (answered) | ACTIVE |
+| D.155 | Script libraries are named `Fusion.Script.Lua`, `Fusion.Script.JS`, `Fusion.Script.Fusion` (an interpreter) and `Fusion.Compiler` (the compiler as a library) - libraries, never the core; a program that doesn't import one pays nothing | Fusion's own namespace (D.136); apart from the language modules of Task 49, which translate code before it runs | MOD.013 | 2026-11-17 | OpenQuestions Q.034 (answered) | ACTIVE (planned) |
+| D.156 | The script libraries come after self-hosting (Task 35) - `extern "C"` and the library loading they need with them | self-hosting first; the libraries are not needed before | MOD.013 | 2026-11-17 | OpenQuestions Q.035 (answered) | ACTIVE (planned) |
+| D.157 | A script reaches the program only through the interfaces the developer gives it - no files, OS or other code directly; scripts are for a real need (game mods, business rules that change often, without rebuilding the app); the use cases and the safety are researched first (Research R5) | some will try to get round it to steal or corrupt data - never trust code (GOL.008, D.122); Fusion is not the be-all and end-all, it lets developers be flexible | MOD.013 | 2026-11-17 | OpenQuestions Q.036 (answered) | ACTIVE (planned) |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->

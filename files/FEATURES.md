@@ -121,6 +121,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [43](#task-43) | Core modules design (fusionlib) | 3 | open |
 | [49](#task-49) | Multi-language support: `Lang.<language>.Fusion` modules | 3 | postponed to 35 |
 | [54](#task-54) | Precepts: a project that behaves like C, Java, Python, Rust | 3 | postponed to 35 |
+| [60](#task-60) | Script libraries: Lua, JavaScript, a Fusion interpreter, the compiler as a library | 3 | postponed to 35 |
 | [L](#later) | Later / advanced - numbered L1, L2.1 ... | - | postponed |
 
 ---
@@ -195,7 +196,17 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R4.2 From "Why Zig": Z1-Z10 (section 2) - to take: cross-compiling (Z4)
 	[ ] R4.3 From the ChatGPT comparison: C1-C6 (section 3) - an allocator / arena per service, `defer`
 	[ ] R4.4 `comptime` - suggested: after self-hosting, a setting, default off, functions with no side effects only (section 4)
-	[ ] R4.5 Running other Fusion code while a program runs - with Task 58 and Task 39 (section 5)
+	[ ] R4.5 Running other Fusion code while a program runs - with Task 58 and Task 39 (section 5); now Task 60 (D.155-D.157)
+
+#### R5 Script libraries: use cases and safety - for Task 60 (user, 2026-11-17) [ ] [index](#index)
+	Nothing decided beyond D.155-D.157; findings saved in files/Research/Scripts/
+	[ ] R5.1 The use cases, each looked at in detail: game mods and game scripts (how WoW, Roblox, Factorio, Garry's Mod
+		do it); business rules that change often, without rebuilding the app; when a script is the wrong choice
+	[ ] R5.2 How scripts get round a sandbox to steal or corrupt data - known escapes in Lua, JavaScript and game mods,
+		and what stops each; what the developer's interfaces must never hand over
+	[ ] R5.3 Limits: steps, memory, time; what happens to the program when a script hits one
+	[ ] R5.4 Which Lua (Q.037, deferred until needed): Lua 5.4's C source as the basic choice for now; a developer
+		installing their own Lua also acceptable; LuaJIT and Luau compared then
 
 ---
 
@@ -397,7 +408,7 @@ then each point is decided and solved completely. One line per section and per l
 		the std library layer
 	[ ] 58.4 Build it, with an example script and tests
 	[ ] 58.5 Idea (user, 2026-11-17): a running Fusion program runs other Fusion code or apps (plugins, hot reload) - the same engine as
-		`comptime` (Research R4.4); the loaded code is untrusted (Task 39)
+		`comptime` (Research R4.4); the loaded code is untrusted (Task 39) - becomes Task 60 (60.7, 60.8)
 
 <a id="task-59"></a>
 #### 59 Review the research points: Rust, Zig, `comptime`, the service gaps (user, 2026-11-17) [ ] [index](#index)
@@ -803,6 +814,22 @@ then each point is decided and solved completely. One line per section and per l
 		how its own fusion.toml overrides a precept's setting
 	[ ] 54.2 The first precepts, each tested against programs written the way that language works
 
+<a id="task-60"></a>
+#### 60 Script libraries: Lua, JavaScript, a Fusion interpreter, the compiler as a library (user, 2026-11-17 - D.155-D.157) [POSTPONED to 35] [index](#index)
+	A running program runs scripts - game mods, business rules that change often - without being rebuilt; libraries,
+	never the core (a program that doesn't import one pays nothing); the implementations may change as they improve.
+	The plan (approved 2026-11-17): task/taskBacklog.md "TASK 60". Research R5 first.
+	A script reaches the program only through the interfaces the developer gives it (D.157)
+	[ ] 60.1 `extern "C"`, the minimum: call a C function; ints, floats, bools, strings copied; an opaque handle; a callback (FUN.011)
+	[ ] 60.2 A library folder: `import Fusion.Script.Lua` finds its .fusion files and C sources; built only when imported
+	[ ] 60.3 `Fusion.Script.Lua`: a Lua state freed by ownership; run a string or file; globals; call; `expose`; a Lua error a
+		`ScriptError` (never a crash); reload a changed script while running
+	[ ] 60.4 The sandbox: no files, OS or loading other code - only what the program exposes; a step limit and a memory limit
+	[ ] 60.5 An example: a small game loop whose enemy behaviour comes from a mod, changed and reloaded while it runs
+	[ ] 60.6 The `Script` interface; `Fusion.Script.JS` (QuickJS) behind it
+	[ ] 60.7 `Fusion.Script.Fusion` - a Fusion interpreter; also the engine for `comptime` (R4.4), script mode (58), 58.5
+	[ ] 60.8 `Fusion.Compiler` - the compiler as a library: compile Fusion code while a program runs
+
 ---
 
 <a id="later"></a>
@@ -934,6 +961,10 @@ Each time a task or section is finished, this list is checked for items the curr
 		[POSTPONED to 38] L14.2 Memory model (Unique/Shared/Weak) example (was 16.6)
 	L15 Documentation
 		[POSTPONED - only if needed] L15.1 HTML pages for people (a kit.js template, generated from the .md) - was 51.7
+		[POSTPONED - after self-hosting and a 1.0 the user is happy with; years away] L15.2 Learning Fusion (user, 2026-11-17):
+			a curated course for beginners and one for experienced professionals, so the language is easy to pick up;
+			a skill.md so other AIs can learn and write Fusion. The goal: people want to program in Fusion.
+			Use the Rust complaints (Research R4.1, Points.md) as a guide - what puts people off a language
 	L16 Compiler optimisation - after self-hosting, profiled first (user, 2026-11-14: "we profile the heck out of it", no pre-optimising)
 		[POSTPONED - after self-hosting (Task 35) and profiling] L16.1 Large arrays through two buffers on the
 			stack: one being worked on by the CPU while the other loads the next part from the heap, then they swap

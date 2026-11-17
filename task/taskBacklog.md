@@ -11,6 +11,71 @@ brackets; the sub-task numbers inside a write-up are still the old ones (map:
 FEATURES.md "Old task numbers").
 
 ---
+
+## TASK 60: Script libraries - Lua first, then JavaScript, a Fusion interpreter, the compiler as a library (plan approved 2026-11-17)
+
+**Decided (user, 2026-11-17):** D.155 (the names), D.156 (after self-hosting - parts 60.1 and 60.2 too), D.157 (only the
+interfaces the developer gives; researched first - FEATURES Research R5); which Lua deferred (R5.4). Status: FEATURES Task 60.
+
+**Goal (user):** a program runs scripts while it runs - game mods and game scripts that change how the game
+behaves, changed and reloaded without rebuilding the game. In libraries, not the core: a program that doesn't
+import one pays nothing. The implementations may change as they improve.
+
+**Settings:** none in fusion.toml to begin with - each script engine's limits are set in code, in its set-up block (D.147 style)
+
+**Not Task 49:** `Lang.<language>.Fusion` translates or compiles another language before the program runs (D.105);
+this task runs a script inside a running program
+
+**The libraries** (names: OpenQuestions Q.034)
+| Library | Runs | When |
+|---|---|---|
+| `Fusion.Script.Lua` | Lua scripts (Lua 5.4's C source built by GCC for now - R5.4) | first - after self-hosting (D.156) |
+| `Fusion.Script.JS` | JavaScript (QuickJS, a small engine written in C) | after Lua, same interface |
+| `Fusion.Script.Fusion` | Fusion scripts, interpreted - also the engine for `comptime` (R4.4), script mode (58) and 58.5 | after self-hosting |
+| `Fusion.Compiler` | the compiler itself as a library: compile Fusion code to a program or library while running | after self-hosting (the compiler must be written in Fusion) |
+
+**One interface for every engine** (program to an interface): `Script` - `run`, `runFile`, `call`, `get` / `set`,
+`expose` (give the script a Fusion function), `close`; a game can swap Lua for JS without changing its code
+
+**What it looks like** (a sketch - the details are part of 60.3):
+```fusion
+import Fusion.Script.Lua
+
+void function main()
+    Lua mods = Lua()                            // its own Lua state - sandboxed, nothing allowed yet
+        maxSteps = 1000000                      // a mod stuck in a loop is stopped, not the game
+        maxMemory = "8MB"
+    mods.expose("spawnEnemy", spawnEnemy)       // what the game lets a mod do
+    try
+        mods.runFile("mods/enemies.lua")
+        int hp = mods.call("enemyHealth", 3).toInt()
+    catch (ScriptError e)                       // a broken mod: an error, the game keeps running
+        print("mod failed: {e.message}")
+    // the file changed: mods.runFile("mods/enemies.lua") again - the new behaviour, no rebuild
+```
+
+**Parts, in order** (each shipped on its own)
+1. **60.1 `extern "C"` - the minimum** (FUN.011): declare a C function and call it; ints, floats, bools, strings
+   (copied in and out) and an opaque handle; a Fusion function given to C as a callback
+2. **60.2 A library folder, the minimum** (from Task 57): `import Fusion.Script.Lua` finds the library's .fusion
+   files and its C sources; GCC builds them only when imported - no cost otherwise
+3. **60.3 `Fusion.Script.Lua`:**
+   - a Lua state as a Fusion object, freed by ownership (closing it frees everything Lua made)
+   - run a string or a file; read and set globals; call a Lua function; values copied across (numbers,
+     strings, bools; a Lua table to a Map / List)
+   - `expose`: a Fusion function the script may call - the only way a script reaches the game
+   - errors: a Lua error becomes a `ScriptError` (with the script's line) - never a crash
+   - reloading a changed script while running
+4. **60.4 Safety - a script is untrusted** (GOL.008, D.122): sandboxed by default - Lua's `io`, `os`, `load` and
+   `require` removed unless the program allows them; a step limit and a memory limit (Q.036)
+5. **60.5 An example: a small game loop** whose enemy behaviour comes from a mod script, changed and reloaded
+   while it runs; tests under the leak check, a broken and an endless mod included
+6. **60.6 The `Script` interface; `Fusion.Script.JS`** (QuickJS) behind the same interface
+7. **After self-hosting:** 60.7 `Fusion.Script.Fusion` (an interpreter); 60.8 `Fusion.Compiler` as a library
+
+**Questions:** Q.034-Q.036 answered (D.155-D.157); Q.037 (which Lua) deferred to Research R5.4 - Lua 5.4's C source the basic choice, a developer-installed Lua also acceptable
+
+---
 ## TASK 28 / 35 (was 10): Self-Hosting - Rewrite Compiler in Fusion
 
 **Goal:** Rewrite the Fusion compiler in Fusion itself

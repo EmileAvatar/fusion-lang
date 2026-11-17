@@ -15,7 +15,10 @@ Sources (in this folder):
 His point: not safety or the borrow checker - Rust forces one style on him.
 - **R1 Forced style (iterators, not index loops)** - Fusion: `for`, `while` and `foreach` all work; no style forced (SYN.005). **Have**
 - **R2 Hidden generated code (`derive` just to print or compare an enum)** - Fusion: an enum prints its name and compares without anything written (TYP.012); a class prints through `ToString` (CLS.015). **Have** - keep it a rule: basic abilities never need generated code
-- **R3 Inferred types forced; some types can't be written at all** - Fusion: types are written; `let` / `var` optional (SYN.008). **Take as a rule:** every value's type can be written by the programmer - nothing the compiler names that the programmer can't. **Discuss:** a strict-mode setting that requires written types
+- **R3 Inferred types forced; some types can't be written at all** - Fusion: types are written; `let` / `var` optional (SYN.008).
+  **The user (2026-11-17):** Fusion has two ways to make a variable - the usual `<type> name = value` (`int count = 5`),
+  and `let` / `var`, which take the type from the value: `let` is set once and never changes, `var` may change.
+  Strong static typing where possible, with the developer free to choose how they write it. (The names `let` / `var` may change.) **Take as a rule:** every value's type can be written by the programmer - nothing the compiler names that the programmer can't. **Discuss:** a strict-mode setting that requires written types
 - **R4 "Enums" that are really tagged unions** - Fusion: TYP.004 does the same - `enum` covers plain values and values with data. **Discuss:** keep one keyword, or a plain `enum` (numbers only) and a separate name (`union` / `choice`) for one with data
 - **R5 Results inside results, `match` everywhere** - Fusion: `T, Error function`, `try` / `catch`, `?.` - the developer picks (FUN.001, FUN.002, FUN.009). **Have**
 - **R6 Long call chains, hard to read and debug** - Fusion: no lazy iterator chains yet. **Discuss:** a warning above N chained calls (a setting), or a debugger that shows each step's value
@@ -24,6 +27,8 @@ His point: not safety or the borrow checker - Rust forces one style on him.
 - **R9 Methods on a struct 40% faster than free functions** - Fusion: a method is the same C function (SYN.011), so no difference should exist. **Have** - confirm in the benchmark (R2.1)
 - **R10 Slow compiles from generated code** - Fusion: watch the compiler's speed (R2.5). **Have**
 - **R11 Traits / interfaces pointless (his opinion)** - Fusion programs to interfaces (CLAUDE.md). **Skip**
+- **The whole rant, for later (user, 2026-11-17):** a guide to what puts people off learning a language - used for the
+  beginner and professional courses and an AI skill.md after self-hosting and 1.0 (FEATURES L15.2)
 
 #### 2. From "Why Zig" - what it gets right
 - **Z1 Explicit: no hidden allocations, conversions or control flow** - Fusion: conversions only when exact (TYP.009); allocations for strings and Lists are hidden. **Discuss:** a way to see them - a compiler report of where memory is allocated, or a warning setting for hot code
