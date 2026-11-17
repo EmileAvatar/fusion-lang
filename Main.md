@@ -46,6 +46,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md) | What works now, with examples (each becomes a program in [examples/](examples/)) |
 | [files/fusion-language-spec.md](files/fusion-language-spec.md) | Moved to [files/spec/](files/spec/index.md) - only "Moved to" notes left (Task 51.5) |
 | [files/fusion.ebnf](files/fusion.ebnf) | The grammar |
+| [files/Symbols.md](files/Symbols.md) | Every symbol (`.` `<>` `=` `==` `:` `;` arrows ...) - its job in Fusion and in other languages, the Rust call-chain example explained, the symbols with more than one job (to review - keep syntax consistent) |
 | [files/Builtins.md](files/Builtins.md) | Every built-in function and method (generated) |
 | [files/FusionTypes.html](files/FusionTypes.html) | Every type: default, range, size, status (open in a browser) |
 | [files/ArrayCube.html](files/ArrayCube.html) | An array of 3 dimensions as a cube: which slots `cube[1]`, `cube[][2][1]`, `foreach` and `expand` reach, the flat block (open in a browser, Task 45.16) |
