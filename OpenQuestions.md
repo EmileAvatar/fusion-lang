@@ -67,6 +67,46 @@ print(j.columns)         // no row given: an error "each row has its own length 
 - Walking a column (`j[][1]`, foreach with order = "columns"): a row too short for it skipped, or an IndexError?
 - `[arrays] order = "rows"` walks a jagged array row by row, as the other languages do?
 
+#### Q.034 The script libraries' names (Task 60, files/taskSummary2.md)
+```fusion
+// A (suggested): under Fusion's own namespace (D.136, 57.5), one family "Script"
+import Fusion.Script.Lua
+import Fusion.Script.JS
+import Fusion.Script.Fusion       // the Fusion interpreter
+import Fusion.Compiler            // the compiler as a library
+
+// B: next to the language modules (Task 49, D.121)
+import Lang.Lua.Script
+
+// C: a top-level name of their own
+import Script.Lua
+```
+Suggested: A - B mixes "translate another language" (Task 49) with "run a script while running".
+
+#### Q.035 When, and the prerequisites (Task 60)
+Lua is a C library, and Fusion can't call C yet (`extern "C"` is designed only - FUN.011), nor load a library
+(modules are Task 57, not built).
+- A (suggested): after Task 45, Task 60 builds the minimum of both itself - `extern "C"` (60.1) and a library folder (60.2); Task 57 grows them later
+- B: Task 57 (modules) in full first, then `extern "C"`, then Lua
+- C: after self-hosting, all of it
+
+#### Q.036 How much a script may do by default (Task 60.4)
+```fusion
+Lua mods = Lua()
+// A (suggested): nothing - no files, no OS, no loading other code; only what the game exposes;
+//    a step limit and a memory limit always on (defaults, changed in the set-up block)
+// B: Lua's normal libraries on; the program removes what it doesn't want
+// C: A, with a toml setting to change the defaults for the whole project
+mods.allow(LuaLib.STRING, LuaLib.MATH)   // a way to give some back
+```
+Suggested: A - never trust code (GOL.008, D.122); a game mod is someone else's code.
+
+#### Q.037 Which Lua, and keeping its source (Task 60.3)
+- A (suggested): Lua 5.4 - plain C, builds with GCC everywhere; its source (MIT licence, about 30 files) kept in the repo under the library, a pinned version, the licence beside it
+- B: LuaJIT - much faster, but Lua 5.1's language and fewer platforms
+- C: Luau (Roblox's) - made for sandboxed game scripts, but C++, not C
+- D: not kept in the repo - the developer installs Lua
+
 Earlier: Q.030, Q.032, Q.033 (jagged arrays, 3 dimensions and the stack) answered 2026-11-16: Decisions.md D.144, D.153, D.154.
 Earlier: Q.028 (toCSV on arrays) and Q.029 (toList and null slots) answered 2026-11-16: Decisions.md D.151, D.152, FEATURES 45.11b / 45.11c, Notes/CSV_many_dimensions.md.
 Earlier: Q.021-Q.027 (arrays of 3 dimensions, bare enum values) answered 2026-11-15:
@@ -75,6 +115,6 @@ namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a 
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.034.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.038.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->
