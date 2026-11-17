@@ -2,7 +2,7 @@
 
 To discuss with the user - nothing here is decided. One line per point: what the source says,
 where Fusion stands today, and a suggestion (**have**, **take**, **discuss**, **skip**).
-Listed in FEATURES "Research" R4.
+Listed in FEATURES "Research" R4; gone through with the user in FEATURES Task 59 (before self-hosting).
 
 Sources (in this folder):
 - [WhyYoutuberdontlikeRust.md](WhyYoutuberdontlikeRust.md) - "Why I Don't Like Rust" (YouTube): a C# / Zig programmer on Rust's style

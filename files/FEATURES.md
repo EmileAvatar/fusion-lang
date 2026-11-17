@@ -107,6 +107,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
 | [57](#task-57) | Namespaces and modules | 2 | open |
 | [58](#task-58) | Script mode: Fusion written and run like a Python script | 2 | open |
+| [59](#task-59) | Review the research points: Rust, Zig, `comptime`, the service gaps - before self-hosting | 2 | open |
 | [29](#task-29) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
 | [31](#task-31) | Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) | 2 | postponed |
 | [35](#task-35) | Self-hosting phase 2 - fully independent | 2 | open |
@@ -173,7 +174,7 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R2.5 Shipping speed - watch the compiler's own speed (check.py's report)
 	[ ] R2.6 Popularity - "deliberately boring"; the memory-safe push - README's guarantees in a few lines
 
-#### R3 Services: atomicity explained, and a second review's gaps - for Task 42 (42.00) [ ] [index](#index)
+#### R3 Services: atomicity explained, and a second review's gaps - for Task 42 (42.00), decided in Task 59.6 [ ] [index](#index)
 	Files: [files/Research/Services/Fusion_Concurrency_Atomicity_and_Group_Services.md](Research/Services/Fusion_Concurrency_Atomicity_and_Group_Services.md)
 	(ChatGPT: why the CPU can pause a thread mid-check, locks vs a service's `run`; corrected to Service.md 2026-11-17) and
 	[files/Research/Services/Service_Review_Notes.md](Research/Services/Service_Review_Notes.md) (a second Claude review; its Part 1 is done)
@@ -187,7 +188,7 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R3.8 Service.md tidy-ups: `Readers` missing from the settings tables; the default `Timeout` of a plain service vs `missingTimeout = "error"`;
 		AUTO switching SHARED to SINGLE while running; `max_unit` / `file_lock` in the text vs camelCase in fusion.toml
 
-#### R4 Rust and Zig: the points for Fusion, and `comptime` (user, 2026-11-17) [ ] [index](#index)
+#### R4 Rust and Zig: the points for Fusion, and `comptime` (user, 2026-11-17) - reviewed in Task 59 [ ] [index](#index)
 	File: [files/Research/RustZig/Points.md](Research/RustZig/Points.md) - Claude's list from two YouTube transcripts and a ChatGPT comparison (same folder);
 	each point marked have / take / discuss / skip - to go through together
 	[ ] R4.1 From "Why I Don't Like Rust": R1-R11 (section 1) - to take: every type can be written (R3); a `const` array never on the stack (R8)
@@ -397,6 +398,19 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 58.4 Build it, with an example script and tests
 	[ ] 58.5 Idea (user, 2026-11-17): a running Fusion program runs other Fusion code or apps (plugins, hot reload) - the same engine as
 		`comptime` (Research R4.4); the loaded code is untrusted (Task 39)
+
+<a id="task-59"></a>
+#### 59 Review the research points: Rust, Zig, `comptime`, the service gaps (user, 2026-11-17) [ ] [index](#index)
+	Before self-hosting: every point is gone through with the user and decided - take, a setting, or rejected.
+	Each one taken is then marked: built **before self-hosting**, or **after a working self-host** (a task or an L item).
+	Decisions go to Decisions.md; open ones to OpenQuestions.md.
+	[ ] 59.1 Rust's issues R1-R11 - Research R4.1, [files/Research/RustZig/Points.md](Research/RustZig/Points.md) section 1
+	[ ] 59.2 Zig's points Z1-Z10 - Research R4.2, Points.md section 2
+	[ ] 59.3 The ChatGPT comparison C1-C6 (an arena per service, `defer`) - Research R4.3, Points.md section 3
+	[ ] 59.4 `comptime` - Research R4.4, Points.md section 4
+	[ ] 59.5 Running other Fusion code while a program runs - Research R4.5, Points.md section 5, with Task 58.5
+	[ ] 59.6 The service gaps R3.1-R3.8 - [Research R3](#research), [files/Research/Services/Service_Review_Notes.md](Research/Services/Service_Review_Notes.md);
+		decided here, built with Task 42
 
 <a id="task-29"></a>
 #### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED] [index](#index)
