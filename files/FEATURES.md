@@ -208,6 +208,41 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R5.4 Which Lua (Q.037, deferred until needed): Lua 5.4's C source as the basic choice for now; a developer
 		installing their own Lua also acceptable; LuaJIT and Luau compared then
 
+#### R6 Memory: Goose, arenas, Fil-C, where Rust is not memory safe (user, 2026-11-20) [ ] [index](#index)
+	File: [files/Research/Memory/Points.md](Research/Memory/Points.md) - Claude's points from ChatGPT's Goose comparison (same folder),
+	fil-c.org and the user's notes; each marked have / take / discuss / skip
+	[ ] R6.1 What an arena is: allocating and freeing, the speed against the heap, when it fits (section 1) - with MEM.009 and R4.3 (an arena per service)
+	[ ] R6.2 Goose G1-G11 (section 2) - to take: a `--check` command (G7); TinyCC for script mode (G6, Task 58.2)
+	[ ] R6.3 Fil-C F1-F4 (section 3) - a memory-safe C compiler: a second safety net for the generated C and for C libraries (Task 60, 39)
+	[ ] R6.4 Rust's gaps R1-R7 (section 4) - check the list of Rust CVEs in safe code and what each means for Fusion's checker
+	[ ] R6.5 Zig's allocators (section 5, R4 C1 / Z5) - where an arena is chosen: per function, service or request
+
+#### R7 Ways a program is written and run: AOT, script, VM, REPL, notebook, live programming (user, 2026-11-20) [ ] [index](#index)
+	File: [files/Research/ExecutionModels/fusion_programming_execution_models.md](Research/ExecutionModels/fusion_programming_execution_models.md) (ChatGPT)
+	[ ] R7.1 The models (1-4, 6): compiled ahead (Fusion today), script (Task 58), VM / JIT (SET.013), batch, REPL - which Fusion wants
+	[ ] R7.2 A notebook `.fusionnb`: code cells, notes and results in one file, the state kept between cells (5, 6A)
+	[ ] R7.3 A REPL on the same compiler and checker (6C) - with Task 60.7 (the Fusion interpreter)
+	[ ] R7.4 Live programming and hot reload of a service: replace it at a safe point, or start a new one and send new
+		requests to it while the old one finishes (5B, 7 - Smalltalk) - with Task 42 and 58.5
+	[ ] R7.5 The four layers: interfaces (IDE, notebook, REPL, CLI) / compiler services / execution engine / run time (6) -
+		check against Task 40 (IR) and Task 60.8 (the compiler as a library)
+	[ ] R7.6 The other models (3): event-driven, reactive, actor, dataflow, graph, declarative, serverless, distributed, GPU - which Fusion libraries cover
+
+#### R8 Libraries: the fusionlib list, and SourceControl / WorkTracking / Governance (user, 2026-11-20) [ ] [index](#index)
+	Files: [files/Research/Libraries/FusionLibraries.md](Research/Libraries/FusionLibraries.md) (the 21 planned modules, gathered from spec 180-183)
+	and [files/Research/Libraries/NewLibrarys.md](Research/Libraries/NewLibrarys.md) (three proposed libraries, version 3)
+	[ ] R8.1 The list against the decisions: `Fusion.Lang` against `Lang.<language>.Fusion` (D.121); `Fusion.Reflection`'s "dynamic code
+		execution" against the script libraries (Task 60, D.155); the numbering - "(22) fusionlib.IDE" and the three new ones
+	[ ] R8.2 Two modes, a project setting: Standard (links optional) and Controlled (every change linked to a ticket and a rule) (2)
+	[ ] R8.3 What others do: OpenFastTrace, StrictDoc, DO-178C, ReqToCode, SPARK, Jira, Cedar / OPA, DMN (3) - and the audit evidence asked for (SOX, ISO 27001, SOC 2)
+	[ ] R8.4 `Fusion.SourceControl`: a provider contract (Git first), Fusion-aware diffs, Fusion's own link record (5)
+	[ ] R8.5 `Fusion.WorkTracking`: ticket references in the source, resolved by the IDE (6)
+	[ ] R8.6 `Fusion.Governance`: rules, laws, compliance as versioned data; suspect and orphan code; the audit trail (7)
+	[ ] R8.7 Locked, signed policy profiles; development-time vs run-time permissions (8); the project checklist (9)
+	[ ] R8.8 How a link is written: a comment tag, an annotation, or a side file (10); `Fusion.Rules` and `Fusion.Events` (11)
+	[ ] R8.9 The incidents since 2020 and the requirements SEC-01 to SEC-13 (15) - e.g. SEC-01, a secret written in the source a compile error
+	[ ] R8.10 Its own open questions (12, 15.6) and investigation tasks 1-13 (14)
+
 ---
 
 <a id="phase-2"></a>
