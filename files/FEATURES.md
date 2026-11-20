@@ -231,8 +231,8 @@ then each point is decided and solved completely. One line per section and per l
 #### R8 Libraries: the fusionlib list, and SourceControl / WorkTracking / Governance (user, 2026-11-20) [ ] [index](#index)
 	Files: [files/Research/Libraries/FusionLibraries.md](Research/Libraries/FusionLibraries.md) (the 21 planned modules, gathered from spec 180-183)
 	and [files/Research/Libraries/NewLibrarys.md](Research/Libraries/NewLibrarys.md) (three proposed libraries, version 3)
-	[ ] R8.1 The list against the decisions: `Fusion.Lang` against `Lang.<language>.Fusion` (D.121); `Fusion.Reflection`'s "dynamic code
-		execution" against the script libraries (Task 60, D.155); the numbering - "(22) fusionlib.IDE" and the three new ones
+	[ ] R8.1 The list against the decisions: `Fusion.Lang` loads the `Lang.<language>.Fusion` modules (D.158 - no clash);
+		`Fusion.Reflection`'s "dynamic code execution" against the script libraries (Task 60, D.155); the numbering - "(22) fusionlib.IDE" and the three new ones
 	[ ] R8.2 Two modes, a project setting: Standard (links optional) and Controlled (every change linked to a ticket and a rule) (2)
 	[ ] R8.3 What others do: OpenFastTrace, StrictDoc, DO-178C, ReqToCode, SPARK, Jira, Cedar / OPA, DMN (3) - and the audit evidence asked for (SOX, ISO 27001, SOC 2)
 	[ ] R8.4 `Fusion.SourceControl`: a provider contract (Git first), Fusion-aware diffs, Fusion's own link record (5)

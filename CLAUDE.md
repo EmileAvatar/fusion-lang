@@ -68,6 +68,13 @@ From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in on
   `[BUILT]` implemented, `[PARTIAL]` some parts built and some not - every PARTIAL resolved
   before self-hosting is complete (user, 2026-11-07)
 
+### Rule 3c: Reviews by other AIs have a limited view
+The user sometimes asks other AIs (ChatGPT, Gemini, another Claude) to review part of Fusion, give ideas or explain
+something (user, 2026-11-20). They see only a small part of the project, so their reviews are input, not
+decisions: Fusion's own design, `Decisions.md` and the project's files override them. Where one disagrees with a
+decision or misreads the design, say so and go by ours - e.g. a review called `Fusion.Lang` a clash with
+`Lang.<language>.Fusion`, but `Fusion.Lang` is the library that loads those modules (D.158).
+
 ### Rule 4: Ship an example for every new feature
 When a language feature lands: add a short example to `files/SYNTAX_REFERENCE.md` (it becomes an
 example program in `examples/` - see `examples/CLAUDE.md`), or a fuller demo program in
