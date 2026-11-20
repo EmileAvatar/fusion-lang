@@ -197,6 +197,8 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R4.3 From the ChatGPT comparison: C1-C6 (section 3) - an allocator / arena per service, `defer`
 	[ ] R4.4 `comptime` - suggested: after self-hosting, a setting, default off, functions with no side effects only (section 4)
 	[ ] R4.5 Running other Fusion code while a program runs - with Task 58 and Task 39 (section 5); now Task 60 (D.155-D.157)
+	[ ] R4.6 "18 months of Rust and regret" P1-P15 (section 6, RustPitfalls.md) - to take: async types kept simple, a retry helper
+		over async as a test, stack traces on by default, `?` recording where an error passed, "the pit of success" as a design rule
 
 #### R5 Script libraries: use cases and safety - for Task 60 (user, 2026-11-17) [ ] [index](#index)
 	Nothing decided beyond D.155-D.157; findings saved in files/Research/Scripts/
@@ -242,6 +244,15 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R8.8 How a link is written: a comment tag, an annotation, or a side file (10); `Fusion.Rules` and `Fusion.Events` (11)
 	[ ] R8.9 The incidents since 2020 and the requirements SEC-01 to SEC-13 (15) - e.g. SEC-01, a secret written in the source a compile error
 	[ ] R8.10 Its own open questions (12, 15.6) and investigation tasks 1-13 (14)
+
+#### R9 Pitfalls and pain points of other languages - for newcomers and for experienced users (user, 2026-11-21) [ ] [index](#index)
+	Findings go into files/Research/Pitfalls/; builds on files/Programming Languages Pain points.md (why each language was made)
+	and Research R4 (Rust, Zig). Goal: Fusion easy for newcomers and still right for experienced users
+	[ ] R9.1 Newcomers, per language: setting up, first errors, null, confusing syntax (Symbols.md), error messages, tools
+	[ ] R9.2 Experienced users, per language: async, generics, build systems, upgrades between versions, hidden performance traps
+	[ ] R9.3 Async across languages: one "colour" of function infecting the rest, a forgotten `await`, blocking the event loop
+		(JavaScript, Python), sync-over-async deadlocks (C#), `Pin` / `Send` (Rust), leaked goroutines (Go) - against Concurrency.md 11-14 and D.127
+	[ ] R9.4 For each pitfall: does Fusion avoid it, a rule or a setting - fed into Task 59, Symbols.md and the courses (L15.2)
 
 ---
 
@@ -457,6 +468,7 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 59.5 Running other Fusion code while a program runs - Research R4.5, Points.md section 5, with Task 58.5
 	[ ] 59.6 The service gaps R3.1-R3.8 - [Research R3](#research), [files/Research/Services/Service_Review_Notes.md](Research/Services/Service_Review_Notes.md);
 		decided here, built with Task 42
+	[ ] 59.7 Rust's rewrite pitfalls P1-P15 - Research R4.6, Points.md section 6; and other languages' pitfalls - Research R9
 
 <a id="task-29"></a>
 #### 29 Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) [POSTPONED] [index](#index)
@@ -812,6 +824,8 @@ then each point is decided and solved completely. One line per section and per l
 		injection point and never holds C / Java / Python logic itself (MOD.011; SYN.037)
 	Two capabilities: migrate (source -> Migration IR -> Fusion AST -> new .fusion files, the
 		original never changed) and compile the language by its own rules (separate, later)
+	Why (user, 2026-11-21): a working project never has to be rewritten by hand - the compiler reads the code and
+		translates it, or better, compiles it as it is (the 18-month Rust rewrite - Research R4.6, P14)
 	[ ] 49.0 A gap table per language, before 49.1 (user, 2026-11-12): every feature of C, C++, Go, Java, C#,
 		Rust, Python, JavaScript - its syntax, meaning, run time and standard library - and where it belongs:
 		Fusion has it / partly / needs it; a gap is placed, not just listed:

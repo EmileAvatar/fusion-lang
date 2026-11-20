@@ -8,6 +8,7 @@ Sources (in this folder):
 - [WhyYoutuberdontlikeRust.md](WhyYoutuberdontlikeRust.md) - "Why I Don't Like Rust" (YouTube): a C# / Zig programmer on Rust's style
 - [whyZig.md](whyZig.md) - "Why Zig over Rust, C, C++, Odin, Nim" (YouTube)
 - [ZigRustCompare.md](ZigRustCompare.md) - ChatGPT: Zig and Rust against C, C++, VB.NET, Java, Python, and what Fusion could study
+- [RustPitfalls.md](RustPitfalls.md) - "I Spent 18 Months Using Rust And Regret It" (YouTube): a trading platform rewritten in Rust, reviewed - section 6
 
 ---
 
@@ -64,3 +65,36 @@ What it is: Zig runs ordinary Zig code while compiling; the results become const
 - Script mode is Task 58 (`fusion run tidy.fusion`)
 - Running other Fusion code from a running program: today `run` starts another program (FUN.006); an engine inside the program (plugins, `eval`, hot reload - SET.023) is new
 - **Discuss:** the same interpreter as section 4; loaded code is untrusted - its own limits (Task 39, library trust)
+
+#### 6. From "I Spent 18 Months Using Rust And Regret It" - pitfalls Fusion must not fall into (user, 2026-11-21)
+A developer rewrote a whole trading platform from TypeScript to Rust and regretted it; a reviewer (ThePrimeagen) agrees
+in part ("a skill issue - but a real one"). The lesson for Fusion: the pitfalls below, and why a rewrite is the wrong path.
+- **P1 Async, traits and lifetimes together make types no one can read** - `Pin<Box<dyn Future<Output = R> + Send + '_>>`,
+  `where` clauses that take 90 minutes. Fusion: no lifetimes; async designed (D.127, proposed). **Take as a rule:** an async
+  function's type stays simple (`Future<string>`), and whether it may cross threads is the compiler's job (ownership, services)
+- **P2 A helper over async calls couldn't be written, so the code was copied instead** - a `retry(operation, 3)` helper.
+  **Take as a test:** generics (Task 33) and async must combine - a retry helper over any async call must compile, plainly written
+- **P3 "Wrong duplication is better than the wrong abstraction"** - copying is easy to fix later, a bad abstraction isn't. **Note** for the courses (L15.2)
+- **P4 `?` makes passing an error up so easy that no one adds context** - it surfaces ten calls higher with no hint of where.
+  Fusion: `?` designed (FUN.010), a stack trace on every error designed (FUN.013). **Take:** the trace on by default, `?` records
+  where it passed; a short way to add context (e.g. `? "reading the config"`) - to design
+- **P5 Stack traces off by default** (`RUST_BACKTRACE=1` to see them). **Take:** on by default in debug builds
+- **P6 Asserts and simulations before real money** - Fusion: `assert` designed (SYN.023). **Have (designed)**
+- **P7 "The pit of success"** - the right way must be the easiest way; in Rust the easy `?` and `clone` lead the wrong way.
+  **Take as a design rule** for every Fusion feature (with GOL.007)
+- **P8 The learning curve is three cliffs** - the borrow checker, then lifetimes, then async. Fusion: no lifetimes; `strict` /
+  `relaxed` ownership (MEM.013). **Have** - watch async so it doesn't become the third cliff
+- **P9 `Arc<Mutex>` and `clone` everywhere to get past the checker - and the speed is lost**. Fusion: a service instead of a
+  lock (Task 42); `byVal` copies say so. **Have (designed)**
+- **P10 An unkind community** ("skill issue", "use Postgres instead") drives beginners away. **Note** for L15.2: docs, errors
+  and the community kind to beginners - every error says how to fix it (L2.1)
+- **P11 Go's channel traps** (send to a nil channel blocks forever, a closed one returns zero) vs Rust's Option.
+  Fusion: Concurrency.md trap 10. **Have**
+- **P12 Shadowing** - the same name given a new type (`let x = x.unwrap()`); the reviewer came to like it. Fusion: a name
+  can't be reused in an inner block (Known limitations). **Discuss**
+- **P13 `From` / `TryFrom`** - a type says how it is made from another, then `.into()` works everywhere; the reviewer's
+  favourite. Fusion: conversions are functions (TYP.011). **Discuss** - a class declaring its own conversions
+- **P14 Rewriting a working project in a new language** - 18 months, and regret. **The user's answer (2026-11-21):** this is why
+  `Lang.<language>.Fusion` exists (Task 49, D.158) - the compiler reads the existing code and translates it to Fusion, or
+  better, compiles it as it is, without a rewrite
+- **P15 Learn the language before rewriting in it** - allocation, async, pinning first. **Note** for L15.2

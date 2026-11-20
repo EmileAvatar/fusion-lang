@@ -71,7 +71,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/Research/Memory/Points.md](files/Research/Memory/Points.md) | Memory: what an arena is and its speed, Goose (ChatGPT's comparison in the same folder), Fil-C, where Rust is not memory safe, Zig's allocators (Research R6) |
 | [files/Research/ExecutionModels/fusion_programming_execution_models.md](files/Research/ExecutionModels/fusion_programming_execution_models.md) | Ways code is written and run: AOT, script, VM, REPL, notebook, live programming (ChatGPT - Research R7) |
 | [files/Research/Libraries/FusionLibraries.md](files/Research/Libraries/FusionLibraries.md) / [NewLibrarys.md](files/Research/Libraries/NewLibrarys.md) | The 21 planned fusionlib modules in one table / three proposed libraries: SourceControl, WorkTracking, Governance (Research R8) |
-| [files/Research/RustZig/Points.md](files/Research/RustZig/Points.md) | Rust and Zig: the points for Fusion, and `comptime` - from two YouTube transcripts and a ChatGPT comparison in the same folder (Research R4) |
+| [files/Research/RustZig/Points.md](files/Research/RustZig/Points.md) | Rust and Zig: the points for Fusion, `comptime`, and the pitfalls of a rewrite in Rust (RustPitfalls.md, section 6) - from two YouTube transcripts and a ChatGPT comparison in the same folder (Research R4) |
 | [files/Fusion_Multi_Language_Compiler_Architecture.md](files/Fusion_Multi_Language_Compiler_Architecture.md) | `Lang.<language>.Fusion` modules (Task 49) |
 | [files/Fusion_Hardware_Interface_Definition_Language_HIDL.md](files/Fusion_Hardware_Interface_Definition_Language_HIDL.md) | HIDL - hardware description (Task 41) |
 | [files/Literals.md](files/Literals.md) | Ways to write values directly - a proposal only |
