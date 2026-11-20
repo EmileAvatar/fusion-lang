@@ -887,7 +887,7 @@ Each time a task or section is finished, this list is checked for items the curr
 			A module compiled to a DLL: its folders and files become one library, ready for a larger
 				application (user, 2026-11-12 - MOD.003)
 		[POSTPONED - after the compiler no longer needs Python] L2.3 `console` - one tool (not named
-			cargo): `console build / run / test / add` (packages)
+			cargo): `console build / run / test / add` (packages) - every command mapped in files/Compiler_and_Commands.md (draft, 2026-11-20)
 		[POSTPONED - not needed while the suite runs in about a minute] L2.4 Run only the tests the changed
 			code needs: map source folders to test files (lexer -> test_lexer*, ...) - was 59.3
 		[POSTPONED - not needed while the suite runs in about a minute] L2.5 Faster end-to-end tests: several
