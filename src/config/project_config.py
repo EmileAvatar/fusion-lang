@@ -229,7 +229,7 @@ class ArraysConfig:
     """
     stack_warn: int = 16 * 1024
     stack_limit: int = 64 * 1024
-    order: str = "columns"      # which dimension first - "columns" / "rows" (45.12, D.148)
+    order: str = "columns"      # which dimension first - "columns" / "rows" / "depthRows" (45.12, 45.15, D.148)
     csv_many_dimensions: bool = True   # toCSV on 3 dimensions or more (45.11b, D.151)
     storage: str = "flat"       # how many dimensions are stored - "flat"; "rect" later (45.15, D.144, D.164)
 
@@ -602,10 +602,11 @@ def _load_arrays_section(data: dict, config_path: str) -> ArraysConfig:
             arrays.csv_many_dimensions = value
             continue
         if key == "order":
-            if value not in ("columns", "rows"):
+            if value not in ("columns", "rows", "depthRows"):
                 raise ProjectConfigError(
                     f"{config_path}: arrays.order must be \"columns\" (the outer dimension first: depth, "
-                    f"columns, rows) or \"rows\" (rows first, as C and Java), got {value!r}")
+                    f"columns, rows), \"rows\" (rows first, as C and Java) or \"depthRows\" (depth, rows, "
+                    f"columns), got {value!r}")
             arrays.order = value
             continue
         setattr(arrays, known[key], parse_bytes(value, f"{config_path}: arrays.{key}"))

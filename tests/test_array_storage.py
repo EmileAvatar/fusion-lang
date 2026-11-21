@@ -99,6 +99,35 @@ def test_jagged_in_its_set_up_block():
     assert run(body) == ['2']
 
 
+CUBE = ('int[2][3][2] cube\n'
+        'for r in range(0, 2)\n    for c in range(0, 3)\n        for d in range(0, 2)\n'
+        '            cube[r][c][d] = r * 100 + c * 10 + d\n'
+        'string text = ""\n'
+        'foreach (int[][] a in cube)\n    foreach (int[] b in a)\n        foreach (int v in b)\n'
+        '            text = text + "{v} "\n'
+        'print("{@1} | {@2}", cube.length, text)')
+
+
+@pytest.mark.parametrize('order, line', [
+    ('columns', '2 | 0 100 10 110 20 120 1 101 11 111 21 121'),       # depth -> columns -> rows
+    ('rows', '2 | 0 1 10 11 20 21 100 101 110 111 120 121'),          # rows -> columns -> depth
+    ('depthRows', '2 | 0 10 20 100 110 120 1 11 21 101 111 121'),     # depth -> rows -> columns (part 3)
+])
+def test_the_three_walk_orders(order, line):
+    assert [l.rstrip() for l in run(CUBE, arrays_config=ArraysConfig(order=order))] == [line]
+
+
+@pytest.mark.parametrize('order', ['columns', 'rows', 'depthRows'])
+def test_expand_keeps_every_slot_in_each_order(order):
+    body = ('int:[2][2][2] g\ng[1][1][1] = 7\ng[0][1][0] = 3\ng.expand(COLUMNS, 1)\ng[1][2][1] = 9\n'
+            'print("{@1} {@2} {@3} {@4}", g[1][1][1], g[0][1][0], g[1][2][1], g.columns)')
+    assert run(body, arrays_config=ArraysConfig(order=order)) == ['7 3 9 3']
+
+
+def test_the_order_setting_takes_depth_rows():
+    assert _load_arrays_section({'arrays': {'order': 'depthRows'}}, 'fusion.toml').order == 'depthRows'
+
+
 def test_the_storage_enum_only_where_used():
     program = parse(main('int x = 1'))
     SemanticAnalyzer().analyze(program)

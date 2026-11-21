@@ -76,7 +76,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-21: a local 3D array on the heap (D.154) - `heap_block`: sizes known, slots in a heap block
 - Done 2026-11-21: 45.15 part 1 - `[arrays] storage`, the `Storage` enum, `setStorage` placement checks
 - Done 2026-11-21: 45.15 part 2 - JAGG on 2 dimensions (a block of `int:[]` rows), example syntax_jagged
-- **Next Action:** 45.15 part 3 - the third walk order (depth -> rows -> columns), then 45.6 docs
+- Done 2026-11-21: 45.15 part 3 - `[arrays] order = "depthRows"` (depth -> rows -> columns)
+- **Next Action:** 45.6 - the arrays docs and examples (Arrays.md truth table, SYNTAX_REFERENCE, spec 031 / 140, showcase), then close Task 45
 
 ### 45.12e and 45.15 - the plan (2026-11-16, to approve)
 
@@ -99,7 +100,7 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 
 **45.15 Storage FLAT / RECT / JAGG** (D.144, D.147, D.153, D.154, D.163)
 - Settings: `[arrays] storage` = "flat" (default) / "rect" - into fusionSettings.xml when built; JAGG per array only;
-  `[arrays] order` a third value, depth -> rows -> columns (D.148 - its name decided when built)
+  `[arrays] order = "depthRows"`, depth -> rows -> columns (D.148, built 2026-11-21)
 - JAGG (D.163): `j.rows` / `j.columns` 0 when there are none - `j.columns` with no row given is 0; `j[r].columns` that row's
   length; IndexError only on `j[x][y]` out of range; walked by `[arrays] order` (default columns -> rows), a row too
   short for a column skipped

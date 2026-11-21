@@ -104,8 +104,8 @@ nullable = false
 stackWarn = "16KB"
 stackLimit = "64KB"
 # [built] Which dimension a loop and length give first: "columns" - the outer first, depth ->
-# columns -> rows (default); "rows" - rows first, as C and Java (45.12, D.148); [designed] a third,
-# depth -> rows -> columns (its name decided when built)
+# columns -> rows (default); "rows" - rows first, as C and Java; "depthRows" - depth -> rows ->
+# columns (45.12, 45.15, D.148)
 order = "columns"
 # [built] How an array of 2 or 3 dimensions is stored: "flat" (one block); [designed] "rect" later
 # (D.164); a jagged array per array - a growable one, then j.setStorage(JAGG) (45.15, D.144, D.153)

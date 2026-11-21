@@ -2104,7 +2104,8 @@ allowChangeWhileLooping = false  # true: a collection class of your own may chan
 [arrays]
 stackWarn = "16KB"               # an array on the stack larger than this: a warning (bytes - "512B", "1MB")
 stackLimit = "64KB"              # larger than this: a compile error - use int:[] or a List (heap)
-order = "columns"                # m[r][c][d]: loops and length go depth -> columns -> rows; "rows": as C
+order = "columns"                # m[r][c][d]: loops and length go depth -> columns -> rows; "rows": as C;
+                                 # "depthRows": depth -> rows -> columns
 storage = "flat"                 # 2 or 3 dimensions in one block; "rect" comes later; JAGG per array (setStorage)
 
 [conditions]

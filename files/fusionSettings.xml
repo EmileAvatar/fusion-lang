@@ -139,9 +139,10 @@
       <description>A plain or fixed array on the stack larger than this: a warning - also the line between a small and a large array; lower it for a small embedded device (e.g. "1KB") (D.145)</description>
     </setting>
     <setting name="order" type="choice" default="columns" task="45.12">
-      <description>Which dimension a loop and length give first, and how the slots lie in memory: columns - the outer dimension first, depth then columns then rows (as Fortran, MATLAB, Julia, R); rows - rows first (as C, Java, C#, Python) (D.148)</description>
+      <description>Which dimension a loop and length give first, and how the slots lie in memory: columns - the outer dimension first, depth then columns then rows (as Fortran, MATLAB, Julia, R); rows - rows then columns then depth (as C, Java, C#, Python); depthRows - depth then rows then columns (on 2 dimensions the same as rows) (D.148)</description>
       <value>columns</value>
       <value>rows</value>
+      <value>depthRows</value>
     </setting>
     <setting name="stackLimit" type="bytes" default="64KB" task="45.13">
       <description>A plain or fixed array on the stack larger than this: a compile error - a growable array (int:[]) or a List lives on the heap instead (D.145)</description>

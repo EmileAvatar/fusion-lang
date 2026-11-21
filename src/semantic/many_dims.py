@@ -60,14 +60,26 @@ def _times(a, b):
     return f'({a}) * ({b})'
 
 
+def walk_sequence(count: int, order: str) -> list:
+    """The dimensions (0 rows, 1 columns, 2 depth) in the order a loop takes them - the first is the
+    outer one, the last changes fastest in memory ([arrays] order, D.148):
+    "columns" depth -> columns -> rows; "rows" rows -> columns -> depth; "depthRows" depth -> rows ->
+    columns (on 2 dimensions the same as "rows")."""
+    if order == 'columns':
+        return list(range(count - 1, -1, -1))
+    if order == 'depthRows' and count == 3:
+        return [2, 0, 1]
+    return list(range(count))
+
+
 def strides(dims: list, order: str) -> list:
-    """How far apart in the flat block one step of each index is."""
-    result = []
-    for k in range(len(dims)):
-        step = 1
-        for d in (dims[:k] if order == 'columns' else dims[k + 1:]):
-            step = _times(step, d)
-        result.append(step)
+    """How far apart in the flat block one step of each index is: the last dimension walked steps 1,
+    each one before it steps over all the ones after it."""
+    result = [1] * len(dims)
+    step = 1
+    for k in reversed(walk_sequence(len(dims), order)):
+        result[k] = step
+        step = _times(step, dims[k])
     return result
 
 
@@ -248,7 +260,7 @@ class ManyDimsMixin:
     def _outer_open(self, slots) -> int:
         """The dimension a loop and length take first - [arrays] order (D.148)."""
         open_dims = [k for k, s in enumerate(slots) if s is None]
-        return open_dims[-1] if self.array_order == 'columns' else open_dims[0]
+        return next(k for k in walk_sequence(len(slots), self.array_order) if k in open_dims)
 
     # ------------------------------------------------------------------ declarations
 

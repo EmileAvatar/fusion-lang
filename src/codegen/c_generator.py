@@ -1717,8 +1717,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         helper = self._grid_expand_helper(element)
         which, count = (self.visit(a) for a in node.arguments)
         name = self.visit(root)
+        from src.semantic.many_dims import walk_sequence
+        walk = ', '.join(str(k) for k in walk_sequence(ndims, order))      # [arrays] order (D.148)
         call = (f'{name} = {helper}({name}, fusion_dim_{root.name}, {ndims}, {which}, {count}, '
-                f'{1 if order == "rows" else 0}, {self._where(node)})')
+                f'(int[]){{{walk}}}, {self._where(node)})')
         return self.checked_code(call, None)
 
     def _grid_expand_helper(self, element) -> str:
@@ -1729,7 +1731,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return name
         fill = self._grid_fill(element)
         helpers[name] = [
-            f'static {T}* {name}({T}* old, int* dims, int nd, int which, int n, int rows_first, const char* where) {{',
+            f'static {T}* {name}({T}* old, int* dims, int nd, int which, int n, const int* walk, const char* where) {{',
             '    if (which < 0 || which >= nd) { fusion_fail(FUSION_KIND_IndexError, where, '
             '"expand: an array of %d dimensions has no dimension %d", nd, which); return old; }',
             '    if (n < 1) { fusion_fail(FUSION_KIND_IndexError, where, "expand by %d - it grows by 1 or more", n); '
@@ -1737,10 +1739,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             '    int od[3] = {1, 1, 1}, nw[3] = {1, 1, 1}, os[3] = {0, 0, 0}, ns[3] = {0, 0, 0};',
             '    for (int k = 0; k < nd; k++) { od[k] = dims[k]; nw[k] = dims[k]; }',
             '    nw[which] += n;',
-            '    if (rows_first) { os[nd - 1] = ns[nd - 1] = 1; for (int k = nd - 2; k >= 0; k--) '
-            '{ os[k] = os[k + 1] * od[k + 1]; ns[k] = ns[k + 1] * nw[k + 1]; } }',
-            '    else { os[0] = ns[0] = 1; for (int k = 1; k < nd; k++) { os[k] = os[k - 1] * od[k - 1]; '
-            'ns[k] = ns[k - 1] * nw[k - 1]; } }',
+            '    int so = 1, sn = 1;              /* the last dimension walked steps 1 ([arrays] order) */',
+            '    for (int i = nd - 1; i >= 0; i--) { int k = walk[i]; os[k] = so; ns[k] = sn; so *= od[k]; sn *= nw[k]; }',
             f'    {T}* fresh = ({T}*)fusion_alloc(sizeof({T}) * (size_t)nw[0] * nw[1] * nw[2]);',
             '    for (int a = 0; a < nw[0]; a++) for (int b = 0; b < nw[1]; b++) for (int c = 0; c < nw[2]; c++) {',
             '        int to = a * ns[0] + b * ns[1] + c * ns[2];',
