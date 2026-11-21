@@ -20,14 +20,14 @@ def run(source: str) -> list:
 def test_an_enum_falls_through_to_the_break():
     lines = run(LEVEL
                 + 'string function steps(Level l)\n'
-                  '    string out = ""\n'
+                  '    string text = ""\n'
                   '    fall match l\n'
-                  '        case High: out = out + "H"\n'
-                  '        case Mid: out = out + "M"\n'
+                  '        case High: text = text + "H"\n'
+                  '        case Mid: text = text + "M"\n'
                   '        case Low\n'
-                  '            out = out + "L"\n'
+                  '            text = text + "L"\n'
                   '            break\n'
-                  '    return out\n\n'
+                  '    return text\n\n'
                 + main('print(steps(Level.High))\nprint(steps(Level.Mid))\nprint(steps(Level.Low))'))
     assert lines == ['HML', 'ML', 'L']
 

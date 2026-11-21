@@ -38,8 +38,8 @@ CARS = ('class Engine\n'
         '    void function swapEngine(string kind)\n'
         '        engine = Engine(kind)\n\n'
         '    Engine function getEngine() : engine\n\n'
-        '    void function drive(string where)\n'
-        '        trips.add(where)\n'
+        '    void function drive(string place)\n'
+        '        trips.add(place)\n'
         '        speed = speed + 5\n\n'
         'Car function make(string n) : new Car(n)\n\n')
 

@@ -84,9 +84,9 @@ TypeParsed, Error function parseType(List<Token> toks, int pos) {
     if k == Tok.LPAREN {
         return parseFunctionType(toks, pos)
     }
-    TypeRef base = TypeRef.Unknown
+    TypeRef baseType = TypeRef.Unknown
     if isPrimitive(k) {
-        base = TypeRef.Prim(textAt(toks, pos))
+        baseType = TypeRef.Prim(textAt(toks, pos))
     } else if k == Tok.IDENTIFIER {
         string name = textAt(toks, pos)
         while kindAt(toks, pos + 1) == Tok.DOT and kindAt(toks, pos + 2) == Tok.IDENTIFIER {
@@ -94,9 +94,9 @@ TypeParsed, Error function parseType(List<Token> toks, int pos) {
             name = name + "." + textAt(toks, pos)
         }
         if name == "bytes" {
-            base = TypeRef.Prim("bytes")
+            baseType = TypeRef.Prim("bytes")
         } else {
-            base = TypeRef.Named(name)
+            baseType = TypeRef.Named(name)
         }
     } else {
         return Error(expected(toks, pos, "a type name"))
@@ -113,9 +113,9 @@ TypeParsed, Error function parseType(List<Token> toks, int pos) {
             pos = pos + 1
         }
         pos = want(toks, pos, Tok.RBRACKET, "']' after the array size")
-        return TypeParsed(TypeRef.Array(base, size), pos)
+        return TypeParsed(TypeRef.Array(baseType, size), pos)
     }
-    return TypeParsed(base, pos)
+    return TypeParsed(baseType, pos)
 }
 
 // `Point p`, `Point[3] pts`, `money.Price p`, `Point function f()` - an identifier type

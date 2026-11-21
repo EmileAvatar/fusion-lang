@@ -72,7 +72,7 @@ string function cFormat(string text) : replace(cText(text), "%", "%%")
 
 string function pad(int depth) : repeat("    ", depth)
 
-string function where(Ctx ctx, int line) : "\"" + ctx.file + ":" + toString(line) + "\""
+string function placeOf(Ctx ctx, int line) : "\"" + ctx.file + ":" + toString(line) + "\""
 
 // A string literal: FUSION_STR, or FUSION_STRU with its character count when it isn't ASCII
 string function stringLiteral(string text) {
@@ -142,7 +142,7 @@ Gen, Error function convert(Gen g, TypeRef target, Ctx ctx, int line, string wha
         return plain("((double)" + g.code + ")", target)
     }
     if isPrim(target, "float") and isPrim(g.typ, "int") {
-        return plain("FUSION_CHECK(float, fusion_int_to_float(" + g.code + ", " + where(ctx, line) + "))", target)
+        return plain("FUSION_CHECK(float, fusion_int_to_float(" + g.code + ", " + placeOf(ctx, line) + "))", target)
     }
     if isArray(target) and isArray(g.typ) and sameType(elementOf(target), elementOf(g.typ)) {
         // int[] takes an array of any size, with its length next to it; int[3] exactly 3
@@ -621,9 +621,9 @@ string, Error function arrayEqHelper(TypeRef element) {
 
 // Typedefs and helpers for every struct, in an order where each comes after what it holds
 List<string>, Error function structSection(List<Node> structs, Map<string, Sig> funcs) {
-    List<string> out = []
+    List<string> outLines = []
     if structs.len() == 0 {
-        return out
+        return outLines
     }
     // Order: a struct after the structs its fields hold
     List<Node> ordered = []
@@ -666,26 +666,26 @@ List<string>, Error function structSection(List<Node> structs, Map<string, Sig> 
     if ordered.len() < structs.len() {
         return Error("structs that hold each other in a circle can't be laid out")
     }
-    out.add("// Structs")
+    outLines.add("// Structs")
     for s in ordered {
         match s {
             case Struct(name, fields, line) {
-                out.add("typedef struct fu_" + name + " \{")
+                outLines.add("typedef struct fu_" + name + " \{")
                 for f in fields {
                     match f {
-                        case Field(fname, ftype, fdefault, fline): out.add("    " + fieldDecl(fname, ftype))
+                        case Field(fname, ftype, fdefault, fline): outLines.add("    " + fieldDecl(fname, ftype))
                         else {
                         }
                     }
                 }
-                out.add("\} fu_" + name + ";")
+                outLines.add("\} fu_" + name + ";")
             }
             else {
             }
         }
     }
-    out.add("")
-    out.add("// Struct copy, cleanup and equality")
+    outLines.add("")
+    outLines.add("// Struct copy, cleanup and equality")
     for s in ordered {
         match s {
             case Struct(name, fields, line) {
@@ -712,9 +712,9 @@ List<string>, Error function structSection(List<Node> structs, Map<string, Sig> 
                             }
                         }
                     }
-                    out.add("static inline fu_" + name + " fusion_copy_fu_" + name + "(fu_" + name + " v) \{ " + copies.join("") + "return v; \}")
-                    out.add("static inline void fusion_free_fu_" + name + "(fu_" + name + "* v) \{ " + frees.join("") + "\}")
-                    out.add("static inline void fusion_set_fu_" + name + "(fu_" + name + "* dst, fu_" + name + " value) \{ fusion_free_fu_" + name + "(dst); *dst = value; \}")
+                    outLines.add("static inline fu_" + name + " fusion_copy_fu_" + name + "(fu_" + name + " v) \{ " + copies.join("") + "return v; \}")
+                    outLines.add("static inline void fusion_free_fu_" + name + "(fu_" + name + "* v) \{ " + frees.join("") + "\}")
+                    outLines.add("static inline void fusion_set_fu_" + name + "(fu_" + name + "* dst, fu_" + name + " value) \{ fusion_free_fu_" + name + "(dst); *dst = value; \}")
                 }
                 List<string> tests = []
                 for f in fields {
@@ -727,15 +727,15 @@ List<string>, Error function structSection(List<Node> structs, Map<string, Sig> 
                 if tests.len() == 0 {
                     tests.add("true")
                 }
-                out.add("static inline bool fusion_eq_fu_" + name + "(fu_" + name + " a, fu_" + name + " b) \{ return " + tests.join(" && ") + "; \}")
-                out.add(arrayEqHelper(t))
+                outLines.add("static inline bool fusion_eq_fu_" + name + "(fu_" + name + " a, fu_" + name + " b) \{ return " + tests.join(" && ") + "; \}")
+                outLines.add(arrayEqHelper(t))
             }
             else {
             }
         }
     }
-    out.add("")
-    return out
+    outLines.add("")
+    return outLines
 }
 
 // ---------------------------------------------------------------- expressions
@@ -844,7 +844,7 @@ Gen, Error function genBinary(string op, Node left, Node right, int line, Ctx ct
             } else if op == "*" {
                 fn = "fusion_mul_int"
             }
-            return plain(checked("int", fn + "(" + l.code + ", " + r.code + ", " + where(ctx, line) + ")"), prim("int"))
+            return plain(checked("int", fn + "(" + l.code + ", " + r.code + ", " + placeOf(ctx, line) + ")"), prim("int"))
         }
         if op == "/" or op == "%" {
             // By a written number other than 0 and -1: plain C, it can't fail
@@ -865,7 +865,7 @@ Gen, Error function genBinary(string op, Node left, Node right, int line, Ctx ct
             if op == "%" {
                 fn = "fusion_mod_int"
             }
-            return plain(checked("int", fn + "(" + l.code + ", " + r.code + ", 1, " + where(ctx, line) + ")"), prim("int"))
+            return plain(checked("int", fn + "(" + l.code + ", " + r.code + ", 1, " + placeOf(ctx, line) + ")"), prim("int"))
         }
         if compare {
             return plain("(" + l.code + " " + op + " " + r.code + ")", prim("bool"))
@@ -1112,7 +1112,7 @@ Gen, Error function genExpr(Node e, Ctx ctx, Map<string, Sig> funcs) {
                 else {
                 }
             }
-            return plain(t.code + "[" + checked("int", "fusion_index(" + i.code + ", " + lengthCode(t, line) + ", " + where(ctx, line) + ")") + "]", elementOf(t.typ))
+            return plain(t.code + "[" + checked("int", "fusion_index(" + i.code + ", " + lengthCode(t, line) + ", " + placeOf(ctx, line) + ")") + "]", elementOf(t.typ))
         }
         case Binary(op, left, right, line): return genBinary(op, left, right, line, ctx, funcs)
         case Unary(op, operand, line) {
@@ -1123,7 +1123,7 @@ Gen, Error function genExpr(Node e, Ctx ctx, Map<string, Sig> funcs) {
                 }
             }
             if op == "-" and isPrim(o.typ, "int") {
-                return plain(checked("int", "fusion_neg_int(" + o.code + ", " + where(ctx, line) + ")"), prim("int"))
+                return plain(checked("int", "fusion_neg_int(" + o.code + ", " + placeOf(ctx, line) + ")"), prim("int"))
             }
             if op == "-" and (isPrim(o.typ, "float") or isPrim(o.typ, "double")) {
                 return plain("(-" + o.code + ")", o.typ)
@@ -1713,19 +1713,19 @@ List<string>, Error function genFunction(Node f, string file, Map<string, Sig> f
         case Function(name, result, params, body, line) {
             bool isMain = name == "main"
             Ctx ctx = Ctx(Map<string, TypeRef>(), file, result, isMain, [], 0)
-            List<string> out = [prototype(name, result, params) + " \{"]
+            List<string> outLines = [prototype(name, result, params) + " \{"]
             if isMain {
-                out.add("    fusion_init(argc, argv);")
+                outLines.add("    fusion_init(argc, argv);")
             } else {
                 // Endless recursion is a StackOverflowError, as in the Python compiler
-                out.add("    if (fusion_stack_low()) \{")
-                out.add("        fusion_fail(FUSION_KIND_StackOverflowError, \"" + file + ":" + toString(line) + "\", \"" + name + "() went too deep - the stack is full (does it call itself without end?)\");")
+                outLines.add("    if (fusion_stack_low()) \{")
+                outLines.add("        fusion_fail(FUSION_KIND_StackOverflowError, \"" + file + ":" + toString(line) + "\", \"" + name + "() went too deep - the stack is full (does it call itself without end?)\");")
                 string early = "return;"
                 if not isPrim(result, "void") {
                     early = "return (" + cType(result) + ")\{0\};"
                 }
-                out.add("        " + early)
-                out.add("    \}")
+                outLines.add("        " + early)
+                outLines.add("    \}")
             }
             for p in params {
                 match p {
@@ -1734,7 +1734,7 @@ List<string>, Error function genFunction(Node f, string file, Map<string, Sig> f
                         // A parameter owning heap memory that the function changes gets its
                         // own copy (an array parameter is shared on purpose)
                         if hasHeap(ptype, funcs) and not isArray(ptype) and assigns(body, pname) {
-                            out.add("    " + pname + " = " + copyOf(ptype, pname, funcs) + ";")
+                            outLines.add("    " + pname + " = " + copyOf(ptype, pname, funcs) + ";")
                             ctx.owned.add(freeStmtOf(ptype, pname))
                         }
                     }
@@ -1743,17 +1743,17 @@ List<string>, Error function genFunction(Node f, string file, Map<string, Sig> f
                 }
             }
             for l in genBlock(body, ctx, funcs, 1) {
-                out.add(l)
+                outLines.add(l)
             }
             for l in freesFrom(ctx, 0, 1) {
-                out.add(l)
+                outLines.add(l)
             }
             if isMain {
-                out.add("    return 0;")
+                outLines.add("    return 0;")
             }
-            out.add("\}")
-            out.add("")
-            return out
+            outLines.add("\}")
+            outLines.add("")
+            return outLines
         }
         else: return Error("not a function")
     }
@@ -1829,18 +1829,18 @@ public string, Error function generate(Node program, string path) {
             }
         }
     }
-    List<string> out = ["#include \"fusion_runtime.h\"", ""]
-    out.add("// A run-time error ends the program (the self-hosted compiler has no try / catch yet)")
-    out.add("#define FUSION_CHECK(T, e) __extension__ (\{ T fusion_r = (e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} fusion_r; \})")
-    out.add("#define FUSION_CHECK_VOID(e) do \{ (void)(e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} \} while (0)")
-    out.add("")
+    List<string> outLines = ["#include \"fusion_runtime.h\"", ""]
+    outLines.add("// A run-time error ends the program (the self-hosted compiler has no try / catch yet)")
+    outLines.add("#define FUSION_CHECK(T, e) __extension__ (\{ T fusion_r = (e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} fusion_r; \})")
+    outLines.add("#define FUSION_CHECK_VOID(e) do \{ (void)(e); if (fusion_failed) \{ fusion_uncaught(); exit(1); \} \} while (0)")
+    outLines.add("")
     // Array equality for the built-in element types - before the structs, whose equality
     // helpers may use them for array fields
     for p in ["int", "float", "double", "bool", "char", "string"] {
-        out.add(arrayEqHelper(TypeRef.Prim(p)))
+        outLines.add(arrayEqHelper(TypeRef.Prim(p)))
     }
     for l in structSection(structs, funcs) {
-        out.add(l)
+        outLines.add(l)
     }
     // The struct each returned array travels in
     Map<string, bool> wrapperDone
@@ -1849,14 +1849,14 @@ public string, Error function generate(Node program, string path) {
             case Function(fname, result, params, body, fline) {
                 if isArray(result) and not wrapperDone.has(arrayWrapper(result)) {
                     wrapperDone[arrayWrapper(result)] = true
-                    out.add("typedef struct \{ " + cType(elementOf(result)) + " data[" + toString(sizeOf(result)) + "]; \} " + arrayWrapper(result) + ";")
+                    outLines.add("typedef struct \{ " + cType(elementOf(result)) + " data[" + toString(sizeOf(result)) + "]; \} " + arrayWrapper(result) + ";")
                 }
             }
             else {
             }
         }
     }
-    out.add("")
+    outLines.add("")
     // Function types (typedefs) and lambdas (lifted to C functions) - found by walking the
     // whole tree first, as C needs them declared before use
     Ctx top = Ctx(Map<string, TypeRef>(), file, TypeRef.Unknown, false, [], 0)
@@ -1881,37 +1881,37 @@ public string, Error function generate(Node program, string path) {
                     if ps.len() == 0 {
                         ps.add("void")
                     }
-                    out.add("typedef " + cType(result) + " (*" + tn + ")(" + ps.join(", ") + ");")
+                    outLines.add("typedef " + cType(result) + " (*" + tn + ")(" + ps.join(", ") + ");")
                 }
                 else {
                 }
             }
         }
     }
-    out.add("")
-    out.add("// Forward declarations")
+    outLines.add("")
+    outLines.add("// Forward declarations")
     for f in functions {
         match f {
-            case Function(name, result, params, body, line): out.add(prototype(name, result, params) + ";")
+            case Function(name, result, params, body, line): outLines.add(prototype(name, result, params) + ";")
             else {
             }
         }
     }
-    out.add("")
+    outLines.add("")
     Map<string, bool> lambdaDone
     for l in lambdas {
         string ln = lambdaName(l)
         if not lambdaDone.has(ln) {
             lambdaDone[ln] = true
             for line in genLambdaFunction(l, top, funcs) {
-                out.add(line)
+                outLines.add(line)
             }
         }
     }
     for f in functions {
         for l in genFunction(f, file, funcs) {
-            out.add(l)
+            outLines.add(l)
         }
     }
-    return out.join("\n")
+    return outLines.join("\n")
 }

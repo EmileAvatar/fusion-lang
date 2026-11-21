@@ -37,13 +37,13 @@ def test_variables_shared_by_functions():
     lines = run('int count = 0\n'
                 'string log = "start"\n'
                 'List<string> names = ["a"]\n\n'
-                'void function record(string what)\n'
+                'void function note(string what)\n'
                 '    count = count + 1\n'
                 '    log = log + ", " + what\n'
                 '    names.add(what)\n\n'
                 'void function main()\n'
-                '    record("x")\n'
-                '    record("y")\n'
+                '    note("x")\n'
+                '    note("y")\n'
                 '    print("{count} | {log} | {@1}", names.len())\n')
     assert lines[0] == '2 | start, x, y | 3'
 
@@ -80,9 +80,9 @@ def test_an_initializer_may_call_a_function():
 
 
 def test_a_lambda_may_use_a_module_variable():
-    lines = run('int base = 100\n\n'
+    lines = run('int offset = 100\n\n'
                 'void function main()\n'
-                '    (int) : int add = func(int x) : x + base\n'
+                '    (int) : int add = func(int x) : x + offset\n'
                 '    print("{@1}", add(5))\n')
     assert lines[0] == '105'
 

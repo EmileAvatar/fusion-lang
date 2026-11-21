@@ -65,12 +65,12 @@ void function main(string... args) {
         fail(path + ":" + genError.message)
     }
 
-    string base = path
+    string stem = path
     if endsWith(path, ".fusion") {
-        base = left(path, len(path) - 7)
+        stem = left(path, len(path) - 7)
     }
-    string cPath = base + ".c"
-    string exePath = base + ".exe"
+    string cPath = stem + ".c"
+    string exePath = stem + ".exe"
     writeText(cPath, code)
     string flags = ""
     if leakCheck {

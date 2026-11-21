@@ -1,7 +1,7 @@
 """Tests for Task 32.1 - methods on structs.
 
 A function written inside a struct, allowed by `[structs] functions = true` (default false -
-user decision 2026-10-24). It gets the struct as `this`, by reference, so `p.move(1, 2)`
+user decision 2026-10-24). It gets the struct as `this`, by reference, so `p.shift(1, 2)`
 changes p. Inside, a field's bare name means `this.field` and another method's bare name
 `this.method(...)`; a parameter or local can't take a field's name. On a const struct, a
 method that changes `this` is an error. The struct's own method comes before a free
@@ -26,7 +26,7 @@ POINT = ('struct Point\n'
          '    int x\n'
          '    int y\n'
          '    string label\n\n'
-         '    void function move(int dx, int dy)\n'
+         '    void function shift(int dx, int dy)\n'
          '        x = x + dx\n'
          '        this.y = this.y + dy\n'
          '        rename(label + "!")\n\n'
@@ -64,7 +64,7 @@ def run(source: str, tmp_path) -> list:
 
 def test_a_method_changes_the_callers_struct(tmp_path):
     lines = run(POINT + main('Point p = Point(1, 2, "p")\n'
-                             'p.move(3, 4)\n'
+                             'p.shift(3, 4)\n'
                              'print(p.describe())\n'
                              'print("{@1}", p.sum())'), tmp_path)
     assert lines == ['p! (4, 6)', '10']
@@ -73,9 +73,9 @@ def test_a_method_changes_the_callers_struct(tmp_path):
 def test_on_a_list_element_a_field_and_a_temporary(tmp_path):
     lines = run(POINT + 'struct Shape\n    Point corner\n\n'
                 + main('List<Point> ps = [Point(0, 0, "a")]\n'
-                       'ps[0].move(1, 1)\n'
+                       'ps[0].shift(1, 1)\n'
                        'Shape s = Shape(Point(5, 5, "c"))\n'
-                       's.corner.move(1, 0)\n'
+                       's.corner.shift(1, 0)\n'
                        'print(ps[0].describe())\n'
                        'print(s.corner.describe())\n'
                        'print("{@1}", make().sum())'), tmp_path)
@@ -97,8 +97,8 @@ def test_off_by_default():
 def test_a_const_struct_can_only_call_methods_that_dont_change_it():
     found = errors(POINT + main('const Point c = Point(1, 2, "c")\n'
                                 'int s = c.sum()\n'
-                                'c.move(1, 1)'))
-    assert found == [f for f in found if "Method 'move' changes the Point - 'c' is a constant" in f]
+                                'c.shift(1, 1)'))
+    assert found == [f for f in found if "Method 'shift' changes the Point - 'c' is a constant" in f]
     assert len(found) == 1
 
 

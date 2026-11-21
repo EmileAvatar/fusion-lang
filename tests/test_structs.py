@@ -165,8 +165,8 @@ def test_const_struct():
 
 
 def test_c_keyword_struct_and_field_names_mangled():
-    c_code = generate_c('struct union\n    int register\n\n' + main('union u\nu.register = 1'))
-    assert 'typedef struct fu_union {' in c_code
+    c_code = generate_c('struct auto\n    int register\n\n' + main('auto u\nu.register = 1'))
+    assert 'typedef struct fu_auto {' in c_code
     assert 'int fusion_register;' in c_code
     assert 'u.fusion_register = 1;' in c_code
 

@@ -10,7 +10,7 @@
 
 ## Reserved Words and Operators
 
-**Status:** [PARTLY] every operator listed is built except where its section says otherwise; several reserved keywords belong to planned features (match: 25, class / interface: 32)
+**Status:** [PARTLY] every operator listed is built except where its section says otherwise; the four word lists are built (Task 61) - the reserved words' features are not
 
 Description: Complete list of language keywords and operators.
 
@@ -20,23 +20,50 @@ Description: Complete list of language keywords and operators.
 
 Description: Words that cannot be used as identifiers.
 
-**Reserved today** - the compiler's list (src/lexer/keywords.py, 69 words - `Unique` released 2026-11-14, 48.8; `fixed` added 2026-11-15, 45.14):
+Four lists (Task 61, D.162 - user, 2026-11-21). In all of them, a word after `.` is a member name
+(`m.get`, `x.type`, `s.default`) - there it can only be a field or method.
 
-`abstract`, `and`, `async`, `await`, `bool`, `break`, `byte`, `case`, `cast`, `catch`, `char`, `class`, `const`, `continue`, `double`, `else`, `End`, `enum`, `Enum`, `false`, `finally`, `fixed`, `float`, `for`, `func`, `function`, `get`, `go`, `if`, `implements`, `import`, `in`, `inherits`, `int`, `interface`, `internal`, `is`, `let`, `long`, `loop`, `match`, `namespace`, `new`, `not`, `null`, `or`, `override`, `private`, `property`, `protected`, `public`, `return`, `sealed`, `service`, `set`, `Shared`, `short`, `static`, `string`, `struct`, `this`, `throw`, `true`, `try`, `var`, `virtual`, `void`, `Weak`, `while`
+**1. Keywords** - the compiler's list (src/lexer/keywords.py `KEYWORDS`, 70 words; the self-hosted lexer
+the same):
 
-- **`end` is not reserved** (Task 44.5): `End` closes a block; a lowercase `end` does only right before
-  a block word (`end function`, `end if`, ...) and is an ordinary name everywhere else
-- `let`, `var` and `service` are reserved (Task 46, 2026-10-29)
-- `fixed` (Task 45.14, D.141): `fixed int[10] c` - an array that never changes size; `fixed(n)` - at
-  most n - on a string, List or Map is Task 47.5
+`abstract`, `and`, `async`, `await`, `bool`, `break`, `byte`, `case`, `cast`, `catch`, `char`, `class`, `const`, `continue`, `double`, `else`, `end`, `End`, `enum`, `Enum`, `false`, `finally`, `fixed`, `float`, `for`, `func`, `function`, `get`, `go`, `if`, `implements`, `import`, `in`, `inherits`, `int`, `interface`, `internal`, `is`, `let`, `long`, `loop`, `match`, `namespace`, `new`, `not`, `null`, `or`, `override`, `private`, `property`, `protected`, `public`, `return`, `sealed`, `service`, `set`, `Shared`, `short`, `static`, `string`, `struct`, `this`, `throw`, `true`, `try`, `var`, `virtual`, `void`, `Weak`, `while`
+
+- `end` and `End` both close a block; `end` is never a name (Task 61, D.162 - Task 44.5 had made it a name)
+- `let`, `var` and `service` (Task 46, 2026-10-29); `fixed` (Task 45.14, D.141) - `fixed(n)` on a string,
+  List or Map is Task 47.5
 - In `match`, `_` skips a value: `case Rect(w, _)`
-- A name after `.` may be a reserved word (`m.get`, `x.set`) - there it can only be a field or method
-- To reserve when their features are built: `check` (56.3), `unsafe` (42.40)
 
-**The earlier design list** (below) - words in it that the compiler doesn't reserve: `elif`, `do`,
-`lambda` (today `func`), `module` / `export` (replaced - [150 Modules](150-Modules.md)), `where`,
-`thread`, `channel`, `goroutine` (today `go`), `lock` / `unlock`, `none`, `super`, `goto`, `unsafe`,
-`allocate` / `deallocate`, `constructor`; `#[attribute]` (Fusion has no attributes - 56.1)
+**2. Reserved for a planned Fusion feature** (keywords.py `RESERVED_WORDS`) - as a name, the error says
+what it is kept for: `'check' is reserved for loop safety checks (Task 56) - choose another name`
+
+| Word | Kept for |
+|---|---|
+| `check` | loop safety checks (Task 56) |
+| `unsafe` | unsafe blocks (Task 42.40) |
+| `hotpath` | hot-path services (Task 42.23) |
+| `extern` | calling C libraries (`extern "C"`) |
+| `switch`, `elif` | aliases of `match` and `else if` (D.065, SYN.018) |
+| `assert` | SYN.023 |
+| `channel`, `lock` | channels in a service, locks inside `unsafe` (Task 42.34, 42.38) |
+| `where` | conditions on generic types (Task 33) |
+| `defer`, `comptime`, `union`, `choice`, `operator`, `yield` | ideas: clean-up next to the set-up, code run while compiling, an enum with data, operator overloading, generators |
+
+**3. Reserved for future use, from other languages** - as a name, the error says "reserved for future use":
+- Likely to be wanted: `module`, `export`, `using`, `default`, `typeof`, `sizeof`, `nameof`, `select`, `atomic`, `transaction`
+- Confusing as a name: `goto`, `delete`, `volatile`, `synchronized`, `self`, `base`, `ref`, `out`, `mut`, `move`,
+  `macro`, `type`, `record`, `trait`, `impl`
+
+**4. Built, recognised only where they are used** - names everywhere else, not in the lexer: `super`,
+`extends`, `byVal`, `byRef`, `readonly`, `foreach`, `typeOf`
+
+**Other languages' code (user, 2026-11-21):** these lists are Fusion's own. A `Lang.<language>.Fusion` module
+(Task 49) reads that language with its own keywords, so a Java or Python name such as `type` or `service`
+stays readable there; how such a name is written once it becomes Fusion is OpenQuestions Q.039 (deferred
+to Task 49).
+
+**The earlier design list** (below) - words in it that are in none of the four lists: `do`,
+`lambda` (today `func`), `thread`, `goroutine` (today `go`), `unlock`, `none`, `allocate` /
+`deallocate`, `constructor`; `#[attribute]` (Fusion has no attributes - 56.1)
 
 **Control Flow**:
 * `if`, `elif`, `else`

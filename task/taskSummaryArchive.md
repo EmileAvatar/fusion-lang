@@ -7129,3 +7129,39 @@ In the order to build:
 2026-11-14: built - 52.6, 52.2, 52.10 (List / Map never hold null), 52.11 (null array slots), 52.12
 ([strings] nullBecomesEmpty, default false), 52.8 (the null guard, was 30.2), 52.13, 52.7 (D.116 / D.117,
 [conditions] notAroundGuard), 52.4 designed; 52.5 nothing to build, 52.9 rejected. Task 52 complete.
+
+## Task 61 - Reserved words: `end` a keyword, and words reserved for the future (plan, 2026-11-21 - approved and done 2026-11-21)
+
+- **Why (user, 2026-11-21):** `end` is listed in 200-ReservedWords.md but isn't reserved (Task 44.5 left it a name);
+  reserve it, and reserve now the words Fusion or other languages may need later, even if never used
+- **Settings:** none
+
+### The words
+**A. Reserved, with a meaning now or decided (keywords)**
+- `end` - closes a block, the same as `End`; no longer a name anywhere (reverses that part of 44.5)
+
+**B. Reserved for a planned Fusion feature** - an error "`x` is reserved for <feature> - choose another name" until built
+- `check` (56.3), `unsafe` (42.40), `hotpath` (CON.007), `extern` (FUN.011)
+- `switch`, `elif` (aliases of `match` / `else if` - D.065, SYN.018), `assert` (SYN.023)
+- `channel`, `lock` (42.40), `where` (generics, Task 33), `defer` (RustZig C2), `comptime` (an idea)
+- `union`, `choice` (RustZig R4), `operator` (overloading, TYP.008), `yield` (generators)
+
+**C. Reserved for the future, from other languages** - an error "`x` is reserved for future use"
+- Likely to be wanted: `module`, `export`, `using`, `default`, `typeof`, `sizeof`, `nameof`, `select`, `atomic`, `transaction`
+- Confusing as a name: `goto`, `delete`, `volatile`, `synchronized`, `self`, `base`, `ref`, `out`, `mut`, `move`,
+  `macro`, `type`, `record`, `trait`, `impl`
+
+**D. Built, recognised only where used - stay as they are (not in the lexer):** `super`, `extends`, `byVal`, `byRef`,
+`readonly`, `foreach`, `typeOf`
+
+### Steps
+1. Lexer: `end` -> END everywhere; groups B and C -> a new token `RESERVED`; the parser gives the error where a name is
+   expected; after `.` they stay member names (`m.type`, `x.default`) - as today
+2. The same list in the self-hosted lexer (selfhost/), as 44.5 did
+3. Rename the names that break: `end` (examples/sum_array), `record` (examples/syntax_module_variables), `where`
+   (selfhost codegen), `base`, `out` (selfhost main, codegen); test programs found by the full suite
+4. Tests: each group gives its error; a member name after `.` still works; `end` closes a block
+5. Docs: 200-ReservedWords.md in four lists (keywords, reserved for a feature, reserved for the future, recognised
+   where used); keywords.py's stale comment; Decisions.md SYN line + a decision; OpenQuestions Q.039 - a way to
+   write a keyword as a name (`@type`, `r#type`) for code translated by `Lang.<language>.Fusion` - Deferred to Task 49
+6. `python check.py --full`, then commit (code changed)

@@ -135,15 +135,15 @@ void function greet(string name = "World") {
 def test_function_mixed_default_params():
     """Test function with mixed required and default parameters."""
     source = """
-int function power(int base, int exponent = 2) {
-    return base * exponent
+int function power(int number, int exponent = 2) {
+    return number * exponent
 }
 """
     program = parse_program(source)
     func = program.declarations[0]
 
     assert len(func.parameters) == 2
-    assert func.parameters[0].name == "base"
+    assert func.parameters[0].name == "number"
     assert func.parameters[0].default_value is None  # Required
     assert func.parameters[1].name == "exponent"
     assert func.parameters[1].default_value is not None  # Default

@@ -9,7 +9,7 @@ from typing import List, Optional
 from .token import Token, TokenType, SourceLocation
 from .indentation import IndentationTracker
 from .block_style import BlockStyleTracker, BlockStyle
-from .keywords import is_keyword, get_keyword_type, END_BLOCK_WORDS
+from .keywords import is_keyword, get_keyword_type, RESERVED_WORDS, reserved_word_message
 from .operators import match_operator, is_operator_char
 from .literals import (
     parse_integer, parse_based_integer, parse_float, parse_string, parse_char,
@@ -329,8 +329,11 @@ class Lexer:
     # Identifier and Keyword Tokenization
     # ============================================================
 
-    def tokenize_identifier_or_keyword(self) -> Token:
+    def tokenize_identifier_or_keyword(self, previous: Optional[Token] = None) -> Token:
         """Tokenize identifier or keyword.
+
+        Args:
+            previous: the token before this one - after a '.' a reserved word is a member name
 
         Returns:
             Token (KEYWORD or IDENTIFIER)
@@ -344,16 +347,11 @@ class Lexer:
 
         value = self.source[start:self.pos]
 
-        # A lowercase `end` closes a block only right before a block word (Task 44.5)
-        if value == 'end':
-            rest = self.source[self.pos:].lstrip(' \t')
-            word = ''
-            for ch in rest:
-                if not (ch.isalnum() or ch == '_'):
-                    break
-                word += ch
-            if word in END_BLOCK_WORDS:
-                return Token(TokenType.END, value, loc)
+        # A reserved word (Task 61): an error, except right after '.' - a member name
+        if value in RESERVED_WORDS:
+            if previous is not None and previous.type == TokenType.DOT:
+                return Token(TokenType.IDENTIFIER, value, loc)
+            raise LexerError(reserved_word_message(value), loc)
 
         # Check if it's a keyword
         if is_keyword(value):
@@ -593,7 +591,7 @@ class Lexer:
 
             # Identifiers and keywords
             if ch and (ch.isalpha() or ch == '_'):
-                tokens.append(self.tokenize_identifier_or_keyword())
+                tokens.append(self.tokenize_identifier_or_keyword(tokens[-1] if tokens else None))
                 continue
 
             # Operators and delimiters

@@ -645,3 +645,11 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 		`[conditions]` setting allows it, then a warning); an object surely null when passed - an error; a
 		`?` parameter without a null check - a warning; a `Default` left null - an error
 	52.1 -> FEATURES Later L5.8, 52.3 -> Later L10.4 (2026-11-14)
+
+#### 61 Reserved words: `end` a keyword, words reserved for a feature or for the future (user, 2026-11-21 - D.162, SYN.041) [DONE 2026-11-21]
+	[DONE] 61.1 `end` a keyword everywhere, like `End` (replaces 44.5's "an ordinary name") - both lexers
+	[DONE] 61.2 RESERVED_WORDS: 16 for a planned feature, 25 for future use - an error as a name that says what each
+		is kept for; a member name after `.` - both lexers
+	[DONE] 61.3 Names renamed: examples (sum_array `end`, syntax_module_variables `record`), selfhost (`base`, `out`,
+		`where`), test programs
+	[DONE] 61.4 files/spec/200-ReservedWords.md in four lists; Q.039 (a keyword as a name in translated code) deferred to Task 49

@@ -3,9 +3,12 @@
 This module provides keyword lookup functionality to distinguish between
 Fusion's reserved keywords and user-defined identifiers.
 
-Total Keywords: 64 (including special cases like 'Enum'). `end` and `var` are not keywords
-(Task 44.5): `var` is an ordinary name until type inference exists, and a lowercase `end`
-closes a block only directly before a block word (END_BLOCK_WORDS) - otherwise it is a name.
+Keywords: KEYWORD_COUNT (70, including the special cases 'Enum' and 'End'). `end` is a keyword
+again (Task 61, D.162): it closes a block like `End` and is never a name.
+
+RESERVED_WORDS (Task 61): words kept for a planned feature or for the future. They are not
+keywords yet - using one as a name is an error that says what it is kept for. After a `.`
+any word, reserved or a keyword, is a member name (`m.type`, `x.default`).
 """
 
 from src.lexer.token import TokenType
@@ -23,6 +26,7 @@ KEYWORDS: Dict[str, TokenType] = {
     'while': TokenType.WHILE,
     'loop': TokenType.LOOP,
     'End': TokenType.END,           # Special case: capital 'E' allowed (VB.NET style)
+    'end': TokenType.END,           # a keyword again (Task 61, D.162) - never a name
     'break': TokenType.BREAK,
     'continue': TokenType.CONTINUE,
     'return': TokenType.RETURN,
@@ -177,7 +181,41 @@ def get_keyword_type(word: str) -> TokenType:
 # Expose keyword count for documentation and testing
 KEYWORD_COUNT = len(KEYWORDS)
 
-# The words after which a lowercase `end` closes a block (`end function`); before anything
-# else `end` is an ordinary name (Task 44.5) - `End` is always the keyword
-END_BLOCK_WORDS = {'function', 'if', 'while', 'for', 'struct', 'enum', 'match', 'try',
-                   'unchecked', 'error', 'loop'}
+
+# Words reserved for a planned Fusion feature (Task 61, D.162) - the value says which
+_FOR_A_FEATURE = {
+    'check': 'loop safety checks (Task 56)',
+    'unsafe': 'unsafe blocks (Task 42.40)',
+    'hotpath': 'hot-path services (Task 42.23)',
+    'extern': 'calling C libraries (extern "C")',
+    'switch': 'an alias of match (D.065)',
+    'elif': 'an alias of else if (SYN.018)',
+    'assert': 'assert (SYN.023)',
+    'channel': 'channels in a service (Task 42.34)',
+    'lock': 'locks inside unsafe (Task 42.38)',
+    'where': 'conditions on generic types (Task 33)',
+    'defer': 'clean-up written next to the set-up (an idea)',
+    'comptime': 'code run while compiling (an idea)',
+    'union': 'an enum with data (an idea)',
+    'choice': 'an enum with data (an idea)',
+    'operator': 'operator overloading (an idea)',
+    'yield': 'generators (an idea)',
+}
+
+# Words reserved for the future, from other languages (Task 61, D.162)
+_FOR_THE_FUTURE = (
+    'module', 'export', 'using', 'default', 'typeof', 'sizeof', 'nameof', 'select', 'atomic',
+    'transaction',
+    'goto', 'delete', 'volatile', 'synchronized', 'self', 'base', 'ref', 'out', 'mut', 'move',
+    'macro', 'type', 'record', 'trait', 'impl',
+)
+
+# word -> what it is kept for
+RESERVED_WORDS: Dict[str, str] = dict(_FOR_A_FEATURE)
+RESERVED_WORDS.update({word: 'future use' for word in _FOR_THE_FUTURE})
+
+
+def reserved_word_message(word: str) -> str:
+    """The error for a reserved word used as a name."""
+    return (f"'{word}' is reserved for {RESERVED_WORDS[word]} - choose another name "
+            f"(after a '.' it may still be a member name)")

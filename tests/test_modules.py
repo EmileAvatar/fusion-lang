@@ -115,11 +115,11 @@ def test_alias_and_module_names_in_c(tmp_path):
 
 def test_each_module_is_loaded_once(tmp_path):
     files = {
-        'base/b.fusion': 'public int function one() : 1\n',
-        'left/l.fusion': 'import base\npublic int function two() : base.one() + 1\n',
-        'right/r.fusion': 'import base\nimport left\npublic int function three() : left.two() + base.one()\n',
-        'main.fusion': ('import base\nimport left\nimport right\n\n'
-                        'void function main()\n    print("{@1} {@2} {@3}", base.one(), left.two(), right.three())\n'),
+        'core/b.fusion': 'public int function one() : 1\n',
+        'left/l.fusion': 'import core\npublic int function two() : core.one() + 1\n',
+        'right/r.fusion': 'import core\nimport left\npublic int function three() : left.two() + core.one()\n',
+        'main.fusion': ('import core\nimport left\nimport right\n\n'
+                        'void function main()\n    print("{@1} {@2} {@3}", core.one(), left.two(), right.three())\n'),
     }
     assert run_project(str(tmp_path), files) == ['1 2 3']
 

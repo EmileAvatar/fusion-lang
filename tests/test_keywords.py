@@ -18,10 +18,10 @@ class TestKeywordTable:
 
     def test_keyword_count(self):
         """Verify expected number of keywords."""
-        # 69 keywords - internal and namespace from Task 32.2h (including the special cases 'Enum'/'enum'); `end` is not a keyword
-        # (Task 44.5); let, var and service are (Task 46, 2026-10-29)
-        assert KEYWORD_COUNT == 69
-        assert len(KEYWORDS) == 69
+        # 70 keywords (including the special cases 'Enum'/'enum' and 'End'/'end'); `end` a
+        # keyword again (Task 61, D.162); let, var and service (Task 46, 2026-10-29)
+        assert KEYWORD_COUNT == 70
+        assert len(KEYWORDS) == 70
 
     def test_keyword_table_is_dict(self):
         """Verify KEYWORDS is a dictionary."""
@@ -58,11 +58,11 @@ class TestControlFlowKeywords:
         assert get_keyword_type('loop') == TokenType.LOOP
 
     def test_end_keyword(self):
-        # `End` is the keyword; lowercase `end` only before a block word (Task 44.5 - the
-        # lexer decides that, see tests/test_contextual_words.py)
+        # `End` and `end` are both the keyword (Task 61, D.162)
         assert is_keyword('End')
         assert get_keyword_type('End') == TokenType.END
-        assert not is_keyword('end')
+        assert is_keyword('end')
+        assert get_keyword_type('end') == TokenType.END
 
     def test_break_keyword(self):
         assert is_keyword('break')

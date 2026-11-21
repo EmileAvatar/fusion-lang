@@ -71,13 +71,13 @@ const int LIMIT = 3                       // a module constant
 int count = 0                             // a module variable - every function sees it
 List<string> log = []                     // freed when the program ends
 
-void function record(string what)
+void function note(string what)
     count = count + 1
     log.add(what)
 
 void function main()
     for i in range(0, LIMIT)
-        record("step {i}")
+        note("step {i}")
     print("{count} steps: {@1}", log.join(", "))
 ```
 They are set in the order written, before `main`'s own code; an initializer may use the

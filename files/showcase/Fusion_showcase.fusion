@@ -350,7 +350,9 @@ int function sumTo(int n)
         total = total + i
     return total
 
-// [built] Style 2 - End keywords: the block ends with End and its kind
+// [built] Style 2 - End keywords: the block ends with End (or end) and its kind
+// [built] end, End and the reserved words (check, where, type, default ...) are never names;
+//         after a '.' any word is a member name (Task 61, D.162)
 string function grade(int score)
     if score >= 90
         return "A"

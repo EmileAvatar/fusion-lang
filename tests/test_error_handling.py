@@ -358,13 +358,13 @@ def test_collection_failures_are_caught():
 
 def test_a_failing_function_given_to_a_list_method():
     assert run_ok(
-        'int, Error function check(int n)\n'
+        'int, Error function checkIt(int n)\n'
         '    if n == 3\n'
         '        return Error("three")\n'
         '    return n\n'
         + main(
             'List<int> xs = [1, 2, 3, 4]\n'
-            'List<int> kept, Error err = xs.filter(func(int n) : check(n) > 1)\n'
+            'List<int> kept, Error err = xs.filter(func(int n) : checkIt(n) > 1)\n'
             'print("{@1} {err}", kept.len())')
     ) == ['0 three']
 

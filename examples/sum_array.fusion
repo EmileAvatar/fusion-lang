@@ -1,6 +1,6 @@
-int function sum_range(int start, int end)
+int function sum_range(int start, int stop)
     int total = 0
-    for i in range(start, end)
+    for i in range(start, stop)
         total = total + i
     return total
 End function
