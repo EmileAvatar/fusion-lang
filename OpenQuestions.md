@@ -30,48 +30,6 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
-#### Q.031 rows / columns / foreach on a jagged array (Task 45.15)
-A jagged array has no single column count, and `[arrays] order = "columns"` walks the columns first.
-```fusion
-int[][] j = [[1], [2, 3, 4], [5, 6]]
-j.setStorage(JAGG)
-print(j.rows)        // 3
-print(j[1].length)   // 3 - that row's own length
-print(j.columns)     // A: -1 (no single count, as one slot's length)  B: 3 (the longest)  C: an error
-foreach (int[] row in j)   // D: a jagged array always walks its rows first, whatever the order setting
-    ...                    // E: the order setting holds - a column skips rows too short for it
-int[] c = j[][1]           // column 1 - F: an IndexError (row 0 has no slot 1)  G: the rows that have it
-```
-Suggested: A, D, F.
-
-**Answer (user, 2026-11-16):** check how other languages handle JAGG arrays; to me depth -> columns -> rows.
-
-**What other languages do (Claude, 2026-11-16):**
-- C#, Java, JavaScript, Go, Python, Rust: a jagged array is an array of arrays - the outer one holds the rows
-- `j.length` is the number of rows; `j[1].length` that row's own length; none has a column count
-- A loop gives the rows, one by one; a column is the programmer's own loop - a row too short for it
-  is an IndexError (C#, Java, Go, Python, Rust) or `undefined` (JavaScript)
-- C# also has a rectangular `int[,]` - `GetLength(0)`, `GetLength(1)`; only that one has columns
-- NumPy refuses uneven rows (an error since 1.24); MATLAB keeps them in a cell array, walked column by column
-- So no language walks a jagged array column by column - Fusion's order (D.148) would be its own
-
-**Answer 2 (user, 2026-11-16):** `j.columns` is not the longest - it is the length of whatever row it is on.
-
-**Understood as:**
-```fusion
-int:[][] j = [[1], [2, 3, 4], [5, 6]]
-j.setStorage(JAGG)
-print(j.rows)            // 3
-print(j[1].columns)      // 3 - the row it is on (the same as j[1].length)
-print(j[0].columns)      // 1
-print(j.columns)         // no row given: an error "each row has its own length - j[r].columns" (to confirm)
-```
-
-**To confirm:**
-- `j.columns` with no row - an error (above)?
-- Walking a column (`j[][1]`, foreach with order = "columns"): a row too short for it skipped, or an IndexError?
-- `[arrays] order = "rows"` walks a jagged array row by row, as the other languages do?
-
 #### Q.038 A resource split into parts - reads, giving back, who splits (Task 42.31, files/Concurrency.md 3.14)
 The database example: T1 writes users, T2 accounts; request R writes both, so T3 takes them over as a group.
 ```fusion
@@ -105,6 +63,7 @@ string type_ = "x"           // C: the module renames it (type_), and keeps a ma
 ```
 Suggested: C for code the module translates, A for a developer who needs one by hand.
 
+Earlier: Q.031 (a jagged array's rows, columns and walking) answered 2026-11-21: Decisions.md D.163, D.148 (a third walk order).
 Earlier: Q.034-Q.037 (script libraries) answered 2026-11-17: Decisions.md D.155-D.157; Q.037 (which Lua) deferred to FEATURES Research R5.
 Earlier: Q.030, Q.032, Q.033 (jagged arrays, 3 dimensions and the stack) answered 2026-11-16: Decisions.md D.144, D.153, D.154.
 Earlier: Q.028 (toCSV on arrays) and Q.029 (toList and null slots) answered 2026-11-16: Decisions.md D.151, D.152, FEATURES 45.11b / 45.11c, Notes/CSV_many_dimensions.md.

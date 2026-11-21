@@ -72,8 +72,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-16: 45.11c (toList skips null slots, D.152), 45.11b (toCSV on arrays of plain values, D.151)
 - Done 2026-11-16: 45.12e parts 1-2 (a whole array given to a new one: moved, byVal a copy), part 3a (replacing, same shape), part 3b (another shape - to the heap)
 - Done 2026-11-16: the index error naming its dimension; 45.16 files/ArrayCube.html
-- 2026-11-16: Q.030, Q.032, Q.033 answered - D.153 (JAGG), D.154 (stack / heap); Q.031 has 3 points left to confirm
-- **Next Action:** the 3D-on-the-heap move (D.154), then 45.15 part 1 (FLAT / RECT; JAGG once Q.031 is confirmed)
+- 2026-11-16: Q.030, Q.032, Q.033 answered - D.153 (JAGG), D.154 (stack / heap); 2026-11-21: Q.031 answered - D.163, D.148
+- **Next Action:** the 3D-on-the-heap move (D.154), then 45.15 part 1 (FLAT / RECT), then JAGG (D.163) and the third walk order
 
 ### 45.12e and 45.15 - the plan (2026-11-16, to approve)
 
@@ -94,8 +94,12 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - The old value's strings and objects freed; every test under the leak check
 - Parts, in order: (1) one dimension on the stack, (2) many dimensions, same shape, (3) another shape (heap), (4) the messages
 
-**45.15 Storage FLAT / RECT / JAGG** (D.144, D.147, D.153, D.154) - JAGG details wait for OpenQuestions Q.031
-- Settings: `[arrays] storage` = "flat" (default) / "rect" - into fusionSettings.xml when built; JAGG per array only
+**45.15 Storage FLAT / RECT / JAGG** (D.144, D.147, D.153, D.154, D.163)
+- Settings: `[arrays] storage` = "flat" (default) / "rect" - into fusionSettings.xml when built; JAGG per array only;
+  `[arrays] order` a third value, depth -> rows -> columns (D.148 - its name decided when built)
+- JAGG (D.163): `j.rows` / `j.columns` 0 when there are none - `j.columns` with no row given is 0; `j[r].columns` that row's
+  length; IndexError only on `j[x][y]` out of range; walked by `[arrays] order` (default columns -> rows), a row too
+  short for a column skipped
 - JAGG: only a growable array of 2 or 3 dimensions, on the heap; RECT stays on the stack while small
 - A built-in enum `Storage`: FLAT, RECT, JAGG, added only when used (as `Dimension`)
 - `m.setStorage(RECT)` the line after the declaration or in its set-up block (D.147); anywhere else an error;
