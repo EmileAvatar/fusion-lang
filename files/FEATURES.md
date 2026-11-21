@@ -313,7 +313,7 @@ then each point is decided and solved completely. One line per section and per l
 				side by side split by "#"; CSV quoting; a null slot an empty field (`1,2,,4`); `[arrays] csvManyDimensions` (default true)
 			[DONE] 45.11c `toList()` skips null slots (D.152) - on every array; a column all null an empty List; replaces 45.11's NullError
 			[POSTPONED - a class of its own, later] An Excel file, several files, a custom CSV or a binary file for many dimensions (D.151)
-	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage` = "flat" / "rect", `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); JAGG only on a growable array of 2 or 3 dimensions, on the heap (D.153); RECT on the stack while small (D.154); one row's `add` only on JAGG (D.144); `j[r].columns` per row, `j.columns` with no row 0, `j.rows` 0 when empty; IndexError only on `j[x][y]`; walking skips a row too short (D.163)
+	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage` = "flat" / "rect", `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); JAGG only on a growable array of 2 or 3 dimensions, on the heap (D.153); RECT not built yet - an error "comes later" (D.164); one row's `add` only on JAGG (D.144); `j[r].columns` per row, `j.columns` with no row 0, `j.rows` 0 when empty; IndexError only on `j[x][y]`; walking skips a row too short (D.163)
 		`[arrays] order` gets a third value: depth -> rows -> columns (D.148 - name decided when built); the developer chooses the walk
 	[DONE] 45.17 A bare enum value where the enum type is known: parameters, declarations, assignments, returns, comparisons, `case` - every enum; a variable of the same name an error (D.150) - tests/test_bare_enum.py, example syntax_enum_bare
 	[DONE] 45.3b `int:[10] g` / `int[[10]] g` - a growable array with 10 slots of the default value, length 10 (D.141); `int:[3] g = [1, 2, 3]` sizes agree - tests/test_growable_arrays.py
@@ -743,9 +743,9 @@ then each point is decided and solved completely. One line per section and per l
 		Auto lanes (like lanes at an airport): the primary thread full or heavy - a new lane for DBAccount;
 			could split by kind (one worker for Account, one for Price) when one is overloaded
 		A database split by table, and a request over two tables taking them over as a group (user, 2026-11-21):
-			files/Concurrency.md 3.14, D.159 (proposed), OpenQuestions Q.038 - reads, giving back, who splits
+			files/Concurrency.md 3.14, D.159 (proposed), D.160 - giving back and who splits decided when built (D.161)
 		Reads during a write see a snapshot by default, a database setting (D.160); a simple implementation
-			in the Database library (DatabaseService, 42.5 / 42.21), built with it - the rest of Q.038 deferred until then
+			in the Database library (DatabaseService, 42.5 / 42.21), built with it - giving back and who splits decided then
 		The query read first, then routed to its parts' worker; a busy part a dedicated thread (3.14)
 		Monitoring per part: reads / writes per table, view, stored procedure; hand-overs; locks and waits;
 			queues; what AUTO decided - so the developer can tune the scheduling (with 36.6)

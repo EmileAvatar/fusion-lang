@@ -565,7 +565,7 @@ allocate.
   (2026-11-10): files/spec/100-Concurrency.md 3.14-3.17, PROPOSED D.125-D.131, FEATURES 42.34-42.40
 - A resource split into parts, each with its own writer (a database by table), and a request over
   several parts taking them over as a group (user, 2026-11-21): files/Concurrency.md 3.14, D.159
-  (proposed), OpenQuestions.md Q.038, FEATURES 42.31. Group rule 8 stays as it is - it only stops several
+  (proposed), D.160, FEATURES 42.31. Group rule 8 stays as it is - it only stops several
   threads acting on one object. **A database is a special case** (user, 2026-11-21): it is its own owner,
   with its own thread managing the threads and operations underneath (the split, the hand-overs) - inside
   the database, not a group service of ours. Not for now (deferred, D.161)

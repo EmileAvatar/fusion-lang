@@ -58,8 +58,8 @@ what it is kept for: `'check' is reserved for loop safety checks (Task 56) - cho
 
 **Other languages' code (user, 2026-11-21):** these lists are Fusion's own. A `Lang.<language>.Fusion` module
 (Task 49) reads that language with its own keywords, so a Java or Python name such as `type` or `service`
-stays readable there; how such a name is written once it becomes Fusion is OpenQuestions Q.039 (deferred
-to Task 49).
+stays readable there; how such a name is written once it becomes Fusion is D.165: `type_`, or `typeJava21_` when
+languages or versions overlap (Task 49).
 
 **The earlier design list** (below) - words in it that are in none of the four lists: `do`,
 `lambda` (today `func`), `thread`, `goroutine` (today `go`), `unlock`, `none`, `allocate` /

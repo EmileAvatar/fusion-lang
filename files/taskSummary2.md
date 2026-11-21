@@ -107,7 +107,9 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
   `setStorage(null)` back to FLAT
 - RECT: a block per row, all the same length - the program reads the same; slots reached through the row
 - JAGG: a block per row, each its own length; one row's `add` (`j[1].add(5)`); anywhere else "use setStorage(JAGG)"
-- Parts, in order: (1) the setting, the enum and `setStorage` checks, (2) RECT, (3) JAGG, (4) docs and Arrays.md rows
+- RECT not built yet (D.164 - Q.040): `setStorage(RECT)` / `storage = "rect"` an error "comes later"
+- Parts, in order: (1) the setting, the enum and `setStorage` checks (JAGG an error "part 2" until built),
+  (2) JAGG, (3) the third walk order, (4) docs and Arrays.md rows
 
 ### 45.12 Up to 3 dimensions - the plan (2026-11-15, replanned after OpenQuestions Q.021-Q.027)
 Settings: `[arrays] order` = "columns" (default) / "rows" (D.148), built with 45.12a; `[arrays] storage` is 45.15.

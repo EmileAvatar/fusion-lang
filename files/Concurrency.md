@@ -1660,7 +1660,7 @@ The thread side of the ownership design (`files/Ownership.md` sections 5-7; the 
 
 The user's example: how one resource can be split so that more than one writer works at once,
 and how a request that needs two parts takes them over without a deadlock. **A design idea,
-not decided:** Decisions.md D.159 (PROPOSED), OpenQuestions.md Q.038, FEATURES 42.31 (auto
+not decided:** Decisions.md D.159 (PROPOSED), D.160, FEATURES 42.31 (auto
 lanes).
 
 **A database is a special case (user, 2026-11-21):** because of its complexity, the database is its own
@@ -1706,7 +1706,7 @@ db.execute("UPDATE users SET ...; UPDATE accounts SET ...")   // both parts: a g
 | 6 | T3 waits until the write T1 is busy with on users, and T2's on accounts, end - completed or failed. A request is never stopped halfway | T1, giving it to T3 | T2, giving it to T3 | T1 |
 | 7 | T1 and T2 hand the ownership of users and accounts to T3 | T3 | T3 | T1 |
 | 8 | T3 runs R as one transaction on one connection, then the users and accounts requests moved to it | T3 | T3 | T1 |
-| 9 | T3's queue is empty: users and accounts go back to a lane (how and when: Q.038) | T1 | T2 | T1 |
+| 9 | T3's queue is empty: users and accounts go back to a lane (how and when: decided when built - D.161) | T1 | T2 | T1 |
 
 #### Why it is safe
 
@@ -1727,7 +1727,7 @@ db.execute("UPDATE users SET ...; UPDATE accounts SET ...")   // both parts: a g
   Both can't take accounts: the parts are always taken in one fixed order, and R2 waits for R1's
   group to finish. A group is never half-formed
 - **Handing over too often:** a group formed and released again and again costs more than it
-  saves; keep the group until its queue is empty and an idle time has passed (Q.038)
+  saves; keep the group until its queue is empty and an idle time has passed (decided when built)
 - **What a statement touches must be known.** A statement, view or stored procedure whose
   tables can't be known (SQL built at run time, triggers, foreign keys that cascade to other
   tables) goes to the whole database - the safe fallback is one writer for everything
