@@ -974,6 +974,9 @@ class ListType(TypeNode):
     array_form: bool = False
     growable: bool = False      # `int:[]` / `int[[]]` - grows and shrinks at its end (Task 45.3)
     start_size: Optional[int] = None    # `int:[10]` - 10 slots made ahead, length 10 (45.3b, D.141)
+    # a jagged array (45.15, D.153): `int:[][] j` + `j.setStorage(JAGG)` - a block of rows, each row a
+    # growable array (`int:[]`) of its own length
+    jagged: bool = False
 
 
 @dataclass

@@ -429,6 +429,8 @@ over depth -> columns -> rows reads the slots one after another.
 | Replace the whole, another shape | `m = [[1, 2], [3, 4]]` on an `int[2][3]` | a plain array lives on the heap from its declaration (never expands); a growable one takes values or a stack array of any shape; fixed: an error | 45.12e part 3b |
 | Grow | `int:[2][3][4] g`, `int[[2],[3],[4]] g`, `int:[][] g = [...]`; `g.expand(ROWS, 1)` | on the heap; a warning; it stays a cube, new slots the default | 45.12d |
 | Grow by a number | `g.expand(0, 1)` | an error - the Collections library | - |
+| Storage | `m.setStorage(FLAT)` / `null`, right after the declaration (D.147) | one block - the default; `RECT` comes later (D.164) | 45.15 |
+| Jagged | `int:[][] j = [[1], [2, 3, 4]]` then `j.setStorage(JAGG)` | rows of their own length: `j.rows`, `j[r].columns`, `j.columns` 0, `j[r].add(v)`, `j.add(row)`; foreach by `[arrays] order` (columns first, short rows skipped); 2 dimensions (D.153, D.163) | 45.15 |
 | To a List | `m.toList()`, `cube.toList()`, `m[1].toList()` | a List of Lists, the outer dimension first; a copy; a null slot skipped, a column all null an empty List (D.152) | 45.11, 45.11c |
 | To CSV | `m.toCSV()`, `m.toCSV(";", "#", "\n")` | a line per row; 3 dimensions the sheets side by side split by `#`; CSV quoting; a null slot an empty field ([arrays] csvManyDimensions) | 45.11b, D.151 |
 | Grow while looping | `foreach (int[] c in g)` ... `g.expand(ROWS, 1)` | a compile error (D.058) | 45.12d |

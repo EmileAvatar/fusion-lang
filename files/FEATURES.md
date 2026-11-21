@@ -317,7 +317,12 @@ then each point is decided and solved completely. One line per section and per l
 		[DONE 2026-11-21] Part 1: `[arrays] storage = "flat"` ("rect" an error - later, "jagg" per array only); the
 			`Storage` enum (FLAT, RECT, JAGG) added when used; `setStorage(...)` only right after the declaration or in
 			its set-up block (D.147), on 2 or 3 dimensions; FLAT / null work; RECT an error (D.164) - tests/test_array_storage.py
-		[ ] Part 2: JAGG on a growable array of 2 or 3 dimensions (D.153, D.163)
+		[DONE 2026-11-21] Part 2: JAGG on a growable array of 2 dimensions (D.153, D.163) - a block of rows, each an
+			`int:[]`; `j.rows`, `j[r].columns`, `j.columns` 0; `j[r].add`, `j.add(row)`; an IndexError only on `j[x][y]`;
+			foreach by `[arrays] order` - columns first (short rows skipped) or rows; a row passed to `int[]` -
+			tests/test_array_storage.py, example syntax_jagged
+		[ ] Later: JAGG on 3 dimensions; passing a whole jagged array, copying it (byVal / move), toList, toCSV, `==`,
+			`j[][1]` - each an error "comes later" today
 		[ ] Part 3: `[arrays] order` gets a third value: depth -> rows -> columns (D.148 - name decided when built); the developer chooses the walk
 	[DONE] 45.17 A bare enum value where the enum type is known: parameters, declarations, assignments, returns, comparisons, `case` - every enum; a variable of the same name an error (D.150) - tests/test_bare_enum.py, example syntax_enum_bare
 	[DONE] 45.3b `int:[10] g` / `int[[10]] g` - a growable array with 10 slots of the default value, length 10 (D.141); `int:[3] g = [1, 2, 3]` sizes agree - tests/test_growable_arrays.py

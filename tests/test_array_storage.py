@@ -9,7 +9,7 @@
 
 import pytest
 
-from src.config.project_config import ProjectConfigError, _load_arrays_section
+from src.config.project_config import ArraysConfig, ProjectConfigError, _load_arrays_section
 from src.semantic import SemanticAnalyzer
 from tests.test_end_to_end import compile_and_run
 from tests.test_structs import main, parse
@@ -39,12 +39,64 @@ def test_flat_right_after_the_declaration_runs(body):
     ('int[3] a\na.setStorage(FLAT)', 'setStorage is for an array of 2 or 3 dimensions'),
     ('int[2][3] m\nm.setStorage(RECT)', 'RECT storage comes later'),
     ('int[2][3] m\nm.setStorage(JAGG)', 'JAGG is only for a growable array'),
-    ('int:[][] g = [[1, 2], [3, 4]]\ng.setStorage(JAGG)', 'JAGG storage is being built'),
+    ('int:[2][2][2] g\ng.setStorage(JAGG)', 'JAGG on 3 dimensions comes later'),
+    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(JAGG)\nprint("{@1}", j.length)', "'j' is jagged"),
+    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(JAGG)\nj.expand(ROWS, 1)', "has no method 'expand'"),
+    ('int:[][] j = [[1], [2, 3]]\nprint("{@1}", j[0][0])\nj.setStorage(JAGG)', 'setStorage comes right after'),
     ('int[2][3] m\nm.setStorage(5)', 'the storage is FLAT, JAGG or null'),
     ('int[2][3] m\nm.setStorage()', 'setStorage takes one value'),
 ])
 def test_wrong_storage_is_an_error(body, message):
     assert any(message in e for e in errors_of(body)), errors_of(body)
+
+
+JAGGED = 'int:[][] j = [[1], [2, 3, 4], [5, 6]]\nj.setStorage(JAGG)\n'
+
+
+def run(body: str, **options) -> list:
+    code, out, err = compile_and_run(main(body), analyzer_options=options or None)   # under the leak check
+    assert code == 0, err
+    return [line for line in out.strip().splitlines() if not line.startswith('[freed')]
+
+
+def test_jagged_rows_each_their_own_length():
+    lines = run(JAGGED + 'print("{@1} {@2} {@3}", j.rows, j.columns, j[1].columns)\n'
+                         'print("{@1} {@2}", j[1][2], j[2][0])\n'
+                         'j[1].add(9)\nj[0][0] = 7\nj.add([8, 8])\n'
+                         'print("{@1} {@2} {@3} {@4}", j[1][3], j[0][0], j[3][1], j.rows)')
+    assert lines == ['3 0 3', '4 5', '9 7 8 4']
+
+
+def test_an_empty_jagged_array_gives_0():
+    # D.163: an array is empty by default - its rows and columns are 0, never null or an error
+    assert run('int:[][] e\ne.setStorage(JAGG)\nprint("{@1} {@2}", e.rows, e.columns)') == ['0 0']
+
+
+def test_a_slot_outside_its_row_is_an_index_error():
+    code, out, err = compile_and_run(main(JAGGED + 'print("{@1}", j[0][1])'))
+    assert code != 0 and 'outside' in (out + err)
+
+
+@pytest.mark.parametrize('order, lines', [
+    # columns first (the default, D.148): each column from the rows long enough for it (D.163)
+    ('columns', ['3: 1', '2: 3', '1: 4']),
+    # rows first: each row as it is
+    ('rows', ['1: 1', '3: 2', '2: 5']),
+])
+def test_walking_follows_the_order(order, lines):
+    body = JAGGED + 'foreach (int[] part in j)\n    print("{@1}: {@2}", part.length, part[0])'
+    assert run(body, arrays_config=ArraysConfig(order=order)) == lines
+
+
+def test_jagged_strings_are_copied_and_freed():
+    body = ('string:[][] s = [["a"], ["b", "c"]]\ns.setStorage(JAGG)\ns[1].add("d")\n'
+            'foreach (string[] column in s)\n    print("{@1} {@2}", column.length, column[0])')
+    assert run(body) == ['2 a', '1 c', '1 d']
+
+
+def test_jagged_in_its_set_up_block():
+    body = 'int:[][] j = [[1], [2, 3]] {\n    j.setStorage(JAGG)\n}\nprint("{@1}", j[1].columns)'
+    assert run(body) == ['2']
 
 
 def test_the_storage_enum_only_where_used():

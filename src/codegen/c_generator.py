@@ -758,6 +758,30 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 '}']
         return name
 
+    def jagg_columns_helper(self, list_c: str, row_type) -> str:
+        """fusion_jagg_columns_X (45.15, D.163): a jagged array's columns, each a new array holding
+        that slot of every row long enough for it - a row too short is skipped."""
+        helpers = self.__dict__.setdefault('collect_helpers', {})
+        name = f'fusion_jagg_columns_{list_c}'
+        if name not in helpers:
+            row_c = self.map_type(row_type)
+            element = row_type.element_type
+            slot = 'j->data[r]->data[c]'
+            value = self.copy_code(element, slot) if self.is_managed(element) else slot
+            helpers[name] = [
+                f'static {list_c} {name}({list_c} j) {{',
+                f'    {list_c} out = {list_c}_new();',
+                '    int most = 0;',
+                '    for (int r = 0; r < j->len; r++) if (j->data[r]->len > most) most = j->data[r]->len;',
+                '    for (int c = 0; c < most; c++) {',
+                f'        {row_c} column = {row_c}_new();',
+                f'        for (int r = 0; r < j->len; r++) if (c < j->data[r]->len) {row_c}_add(column, {value});',
+                f'        {list_c}_add(out, column);',
+                '    }',
+                '    return out;',
+                '}']
+        return name
+
     def collect_helper_lines(self) -> list:
         return [line for lines in getattr(self, 'collect_helpers', {}).values() for line in lines]
 
@@ -2383,7 +2407,14 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.push_scope('block')
         if isinstance(iterable_type, (ListType, MapType)):
             list_c = self.map_type(iterable_type)
-            if collected is not None:
+            if getattr(node, 'jagg_columns', False):
+                # a jagged array, columns first (45.15, D.163): a new array per column, from the rows
+                # long enough for it - gathered for the loop, freed after it
+                helper = self.jagg_columns_helper(list_c, element)
+                self.emit_line(f'{list_c} fusion_iter_{n} = {helper}({self.visit(iterable)})')
+                self.register_owned(f'fusion_iter_{n}', iterable_type)
+                source = f'fusion_iter_{n}->'
+            elif collected is not None:
                 # its iterator() gives the items, gathered into a List for the loop (32.4)
                 helper = self.collect_helper(list_c, collected[1], element)
                 # a null collection object is a NullError, as `.` on it is (Rule 4b)

@@ -467,6 +467,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
         if isinstance(type_node, (StructType, EnumType, ErrorType)):
             return type_node.name
+        if isinstance(type_node, ListType) and type_node.jagged:
+            # a jagged array (45.15): its rows are int:[] - shown as it is written
+            return f"{self.type_to_string(type_node.element_type.element_type)}:[][] (jagged)"
         if isinstance(type_node, ListType) and type_node.growable:
             return f"{self.type_to_string(type_node.element_type)}:[]"    # growable (45.3)
         if isinstance(type_node, ListType) and type_node.array_form:
@@ -913,6 +916,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return  # an error was already reported for an operand
         if getattr(left_type, 'dims', None) or getattr(right_type, 'dims', None):
             self.check_many_dims_equality(node, left_type, right_type)     # many dimensions (45.12c)
+            return
+        if getattr(left_type, 'jagged', False) or getattr(right_type, 'jagged', False):
+            self.errors.append(SemanticError(
+                "Comparing jagged arrays comes later - compare them row by row", node.location))   # 45.15
             return
         strict = node.operator in ('===', '!==')
         if strict and not self._same_type_for_strict(left_type, right_type):
@@ -2547,6 +2554,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 return sizes
         if self.slot_length(node, object_type):                 # cube[1][2][3].length: -1 (45.12b)
             return PrimitiveType(location=node.location, name='int')
+        jagged = self.jagged_member(node, object_type)          # j.rows, j[r].columns (45.15, D.163)
+        if jagged is not None:
+            return jagged
         struct = self.struct_declaration(object_type)
         if struct is None and node.member in self.LENGTH_NAMES and self._has_length(object_type):
             # `x.length` / `x.len` without brackets (Task 30.8): checked as the call x.len(),

@@ -125,11 +125,13 @@ def mark_storage_calls(program) -> None:
                             call = storage_call(inner, statement.name)
                             if call is not None:
                                 call.storage_placed = True
+                                _make_jagged(statement, call)
                         continue
                     call = storage_call(following, statement.name)
                     if call is None:
                         break
                     call.storage_placed = True
+                    _make_jagged(statement, call)
 
     seen, todo = set(), [program]
     while todo:
@@ -144,6 +146,27 @@ def mark_storage_calls(program) -> None:
         for f in fields(node):
             if f.name != 'location':
                 todo.append(getattr(node, f.name))
+
+
+def _make_jagged(decl, call) -> None:
+    """`int:[][] j` then `j.setStorage(JAGG)` (45.15, D.153): a growable array of 2 dimensions becomes
+    a jagged one - a block of rows, each row a growable array (`int:[]`) of its own length. Anything
+    else asking for JAGG is left for the type rule to report."""
+    from src.parser.ast_nodes import ListType
+    if len(call.arguments) != 1:
+        return
+    value = call.arguments[0]
+    which = getattr(value, 'member', None) if isinstance(value, MemberExpr) else getattr(value, 'name', None)
+    kind = decl.var_type
+    if which != 'JAGG' or not isinstance(kind, ArrayType) or not kind.growable \
+            or getattr(kind, 'plain_heap', False) or len(kind.dims or []) != 2:
+        return
+    row = ListType(location=kind.location, element_type=kind.element_type, array_form=True, growable=True)
+    row.jagged_row = True
+    decl.var_type = ListType(location=kind.location, element_type=row, array_form=True, growable=True,
+                             jagged=True)
+    decl.grid_start = None
+    call.made_jagged = True
 
 
 def _add_builtin_enum(program, enum_name: str, values, triggers: set) -> None:
@@ -741,6 +764,8 @@ class ManyDimsMixin:
         node.set_storage = True
         node.callee.many_callee = True
         name = _name_of(node.callee.object)
+        if getattr(node, 'made_jagged', False):
+            return void                                       # j is jagged from its declaration (part 2)
         if not (isinstance(array_type, ArrayType) and array_type.dims) or getattr(array_type, 'view', False):
             self.errors.append(SemanticError(
                 f"setStorage is for an array of 2 or 3 dimensions - '{name}' has one; it is stored as one block "
@@ -775,10 +800,44 @@ class ManyDimsMixin:
                     f"JAGG is only for a growable array - its rows grow on the heap: "
                     f"{self.type_to_string(array_type.element_type)}:{''.join('[]' for _ in array_type.dims)} {name} "
                     f"(D.153)", value.location))
-            else:
+            elif len(array_type.dims) == 3:
                 self.errors.append(SemanticError(
-                    "JAGG storage is being built (Task 45.15 part 2) - not yet", value.location))
+                    "JAGG on 3 dimensions comes later - 2 dimensions for now (rows, each its own length)",
+                    value.location))
         return void
+
+    def jagged_member(self, node, object_type):
+        """A jagged array's sizes (45.15, D.163): `j.rows` - how many rows, 0 when empty; `j.columns` -
+        0, no row given (each row has its own); `j[r].columns` - that row's length. `j.length` and
+        `j.depth` are errors that say which to use. None when it isn't a jagged array."""
+        from src.parser.ast_nodes import ListType
+        int_type = PrimitiveType(location=node.location, name='int')
+        member = node.member
+        if isinstance(object_type, ListType) and object_type.jagged:
+            if member == 'rows':
+                return self._jagged_length(node, node.object, object_type)
+            if member == 'columns':
+                node.length_call = LiteralExpr(location=node.location, value=0, type_hint='int')
+                node.length_call.inferred_type = int_type
+                return int_type
+            if member in ('length', 'len', 'depth'):
+                name = _name_of(node.object)
+                self.errors.append(SemanticError(
+                    f"'{name}' is jagged - each row has its own length: {name}.rows for the rows, "
+                    f"{name}[r].columns for one row's length (D.163)", node.location))
+                return int_type
+            return None
+        if isinstance(object_type, ListType) and getattr(object_type, 'jagged_row', False) and member == 'columns':
+            return self._jagged_length(node, node.object, object_type)
+        return None
+
+    def _jagged_length(self, node, target, kind):
+        """`x.rows` / `x[r].columns` as the length call x.len() - emitted in this node's place."""
+        call = CallExpr(location=node.location,
+                        callee=MemberExpr(location=node.location, object=target, member='len'), arguments=[])
+        self.checked_receivers[id(target)] = kind
+        node.length_call = call
+        return self.visit(call)
 
     def many_dims_to_list(self, node, array_type: ArrayType):
         """`cube.toList()` (45.11): a List of Lists in the loop's order - the outer dimension first

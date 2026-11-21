@@ -103,6 +103,10 @@ class CollectionRulesMixin:
         self.checked_receivers.pop(id(receiver), None)
         if isinstance(receiver_type, ArrayType) and receiver_type.dims:
             return self.many_dims_to_list(node, receiver_type)      # a List of Lists (45.11)
+        if getattr(receiver_type, 'jagged', False):
+            self.errors.append(SemanticError(
+                "toList on a jagged array comes later - loop over it (foreach) and add each part", node.location))
+            return self._void(node)
         element = receiver_type.element_type
         if isinstance(element, ArrayType):
             self.errors.append(SemanticError(
@@ -495,6 +499,10 @@ class CollectionRulesMixin:
             return
         if isinstance(iterable_type, ListType):
             element = iterable_type.element_type
+            if iterable_type.jagged and self.array_order == 'columns':
+                # a jagged array walked as [arrays] order says (D.148, D.163): columns first by
+                # default - each column a new array of the rows long enough for it
+                node.jagg_columns = True
         elif isinstance(iterable_type, MapType):
             element = iterable_type.key_type      # a map's keys, in the order they were added
             declared = getattr(node, 'declared_type', None)
@@ -517,7 +525,9 @@ class CollectionRulesMixin:
             return
         node.element_type = element
         declared = getattr(node, 'declared_type', None)            # foreach (T x in c) - 32.4
-        if declared is not None and not self.types_equal(declared, element):
+        row_as_array = getattr(element, 'jagged_row', False) and isinstance(declared, ArrayType) \
+            and declared.size is None and not declared.dims and self.types_compatible(declared, element)
+        if declared is not None and not self.types_equal(declared, element) and not row_as_array:
             self.errors.append(SemanticError(
                 f"foreach ({self.type_to_string(declared)} {node.variable} in ...): its items are "
                 f"{self.type_to_string(element)}", node.location))

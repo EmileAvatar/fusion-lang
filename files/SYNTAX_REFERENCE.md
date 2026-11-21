@@ -423,6 +423,31 @@ dimension; new slots get the default value (0, "", null). It lives on the heap; 
 passing it to an `int[][]` parameter work as on any array. Not inside a loop over it; `expand(0, 1)` and a
 fourth dimension come with the Collections library.
 
+#### Jagged arrays: each row its own length (`setStorage(JAGG)`)
+
+<!-- example: syntax_jagged | task: 45.15 -->
+```fusion
+void function main()
+    int:[][] j = [[1], [2, 3, 4], [5, 6]]
+    j.setStorage(JAGG)                  // right after the declaration (or in its set-up block)
+    print("{@1} {@2} {@3}", j.rows, j.columns, j[1].columns)   // 3 0 3 - no row given: 0 columns
+    j[0].add(9)                         // one row grows on its own
+    j.add([7, 8])                       // a new row
+    foreach (int[] column in j)         // columns first (the default order): rows too short skipped
+        print("{@1} slots, first {@2}", column.length, column[0])
+    int:[][] empty
+    empty.setStorage(JAGG)
+    print("{@1} {@2}", empty.rows, empty.columns)              // 0 0 - an array is empty by default
+```
+A jagged array is a growable array of 2 dimensions whose rows each have their own length (D.144, D.153). It
+says so right after it is made - `j.setStorage(JAGG)`, the next line or in its set-up block (D.147); on a plain
+array that is an error. `j.rows` is how many rows, `j[r].columns` one row's length, and `j.columns` - no row
+given - is 0 (D.163); `j.length` is an error that says which to use. Only `j[x][y]` outside a row is an
+IndexError. `foreach` follows `[arrays] order`: columns first by default (each column a new array from the rows
+long enough for it), `order = "rows"` gives each row as it is. A row passes to an `int[]` parameter. Passing
+the whole, copying, `toList`, `toCSV`, `==`, `j[][1]` and 3 dimensions come later; `setStorage(FLAT)` /
+`null` is the default (one block), `RECT` comes later (D.164).
+
 #### Functions with arrays of 2 and 3 dimensions
 
 <!-- example: syntax_many_dims_functions | task: 45.12c -->
