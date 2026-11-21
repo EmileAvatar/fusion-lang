@@ -58,6 +58,9 @@ From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in on
 - A question not decided yet goes into `OpenQuestions.md` (`Q.NNN`, with an example code
   block showing Claude's understanding and the options A / B / C - user, 2026-11-07) instead
   of a guess; once answered, the answer goes into `Decisions.md` and the question is removed
+- **Defer until built (user, 2026-11-21 - D.161):** an open question is settled when its section is
+  actually being built, not ahead - mark it **Deferred** with the task it waits for. Fusion provides a
+  simple implementation by default; a project changes it by settings, in `fusion.toml` or on the object
 - After the user decides: update the feature line and the decision row in the same session;
   a replaced decision is removed (git keeps the history); a conflict is a `CLASH` row until
   the user settles it
@@ -106,6 +109,9 @@ GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
 `python check.py --ship "message" --claude` does both, only if every check passes.
 - **Documents only (user, 2026-11-13):** when every changed file is a Markdown document, `--ship`
   runs only the document checks (a few seconds) - no test suite
+- **Markdown changes are not committed straight away (user, 2026-11-21):** run `python check.py --docs`,
+  then leave them uncommitted so the user can review the diff, and list what was changed or added.
+  Commit them (`--ship`) when moving on to the next task, or when the user says so
 - **The full suite** runs for code work, and once when a whole task is complete (e.g. Task 51) to
   verify everything still works: `--ship "message" --claude --full`
 

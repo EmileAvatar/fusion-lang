@@ -1663,6 +1663,11 @@ and how a request that needs two parts takes them over without a deadlock. **A d
 not decided:** Decisions.md D.159 (PROPOSED), OpenQuestions.md Q.038, FEATURES 42.31 (auto
 lanes).
 
+**A database is a special case (user, 2026-11-21):** because of its complexity, the database is its own
+owner, with its own thread that manages the threads and operations underneath - T1, T2 and T3 below are
+the database's, not group services of the program. Service.md group rule 8 is unchanged: it only stops
+several threads acting on one object. Not for now - deferred until the Database library (D.161).
+
 #### The rule of thumb
 
 - **One writer per resource** - a file (its lock), a network connection, a database (P1, P11)
@@ -1731,10 +1736,51 @@ db.execute("UPDATE users SET ...; UPDATE accounts SET ...")   // both parts: a g
   own (one writer), so each line is written whole: lines from different requests interleave,
   but a line is never broken in the middle. A request id or sequence number on every line
   lets a reader put each request's lines back together (case 1)
-- **Reading a part while it is written:** a read must never see half a request - it waits for
-  the write, or reads a snapshot of the last finished state (Q.038)
+- **Reading a part while it is written:** a read must never see half a request - it reads a
+  snapshot of the last finished state and doesn't wait (D.160, for now); a database setting can
+  change it, and the Database library brings a simple implementation
 - **Too many parts:** each part costs a thread or a share of the pool; split only when one
   writer is overloaded (AUTO), and merge again when the load drops
+
+#### How a request is routed (user, 2026-11-21)
+
+- The database service **reads the query first**: which tables, views and stored procedures it
+  reads or writes; then it gives the request to the worker for those parts
+- How it routes depends on the implementation (`DatabaseService`) and its scheduler, and may
+  change with the load: the size of the tables, how fast the requests come, how long they take
+- **Many requests for one part** (users, accounts): that part gets a **dedicated thread**
+  (`SINGLE`) instead of sharing a worker
+
+#### Monitoring: the developer must see the parts (user, 2026-11-21)
+
+The split only works if the developer can see what happens, at the level of each part, and
+tune the scheduling from it (P10; the thread view, FEATURES 36.6):
+- reads and writes per table, view and stored procedure
+- hand-overs: how many, between which threads, how long the group waited for them
+- which thread owns which part, now and over time
+- locks taken and waits: per row and per table, and how long
+- the queue of each part's writer - how full, how old the oldest request
+- what AUTO decided and why: a part split off, given a dedicated thread, merged back
+
+#### Several writers on one table, by row (user, 2026-11-21)
+
+For a table that must take far more writes than one writer can - orders being added all day:
+- **Several writers may write one table**, as long as no two change the **same row**
+- **Adding rows** (inserts) by several writers is allowed: new rows never clash
+- **Changing or deleting rows** locks the row - or the table - first; another request for that
+  row waits until the change is done
+- The callers don't interleave the changes - the **database's own writer** does, when it writes
+  them to its file (its write-ahead log)
+
+#### Too many locks: one dedicated writer for the table (user, 2026-11-21)
+
+- When the row locks clash too often (many writers waiting on the same rows), several writers
+  cost more than they give
+- Then **one dedicated thread takes the table** (or the tables a kind of request needs) and
+  carries out every request for it, one after another - the service for that table, with no
+  locks between callers
+- This is for advanced database handling - one constrained resource under heavy load; the
+  monitoring above is what shows when to switch, and the switch can be AUTO or the developer's
 
 #### Others that do this
 

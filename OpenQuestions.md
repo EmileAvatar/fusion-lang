@@ -18,6 +18,11 @@ question gets the next number (never reused). Claude adds a question here instea
   of the rule as Claude now reads it) and **To confirm** (anything still unclear). After the
   user confirms, it moves to `Decisions.md`
 
+**Deferred until built (user, 2026-11-21 - D.161):** an open question is settled when its section is
+actually being built, not ahead. Until then Fusion plans a simple implementation by default, which a
+project can change by settings - in `fusion.toml` or on the object. A question waiting for its section
+says **Deferred** and the task it waits for.
+
 Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.md`
 ("Open Questions" sections) until they become a task.
 
@@ -84,6 +89,10 @@ string n = db.query("SELECT name FROM users WHERE id = 1")   // while T1 is writ
 service(db).Parts = ["users", "accounts"]    // H / I: a possible form, the name to decide
 ```
 Suggested: B (PostgreSQL and most databases let readers see a snapshot and never wait), E (no handing back and forth), I.
+
+**Answer (user, 2026-11-21):** B for now - configurable in the database's settings; the Database library brings a
+simple implementation for everyday use, built with it (Decisions.md D.160). **Deferred** (D.161): D / E / F and
+G / H / I - decided when 42.31 and the Database library are built.
 
 Earlier: Q.034-Q.037 (script libraries) answered 2026-11-17: Decisions.md D.155-D.157; Q.037 (which Lua) deferred to FEATURES Research R5.
 Earlier: Q.030, Q.032, Q.033 (jagged arrays, 3 dimensions and the stack) answered 2026-11-16: Decisions.md D.144, D.153, D.154.

@@ -741,6 +741,14 @@ then each point is decided and solved completely. One line per section and per l
 			could split by kind (one worker for Account, one for Price) when one is overloaded
 		A database split by table, and a request over two tables taking them over as a group (user, 2026-11-21):
 			files/Concurrency.md 3.14, D.159 (proposed), OpenQuestions Q.038 - reads, giving back, who splits
+		Reads during a write see a snapshot by default, a database setting (D.160); a simple implementation
+			in the Database library (DatabaseService, 42.5 / 42.21), built with it - the rest of Q.038 deferred until then
+		The query read first, then routed to its parts' worker; a busy part a dedicated thread (3.14)
+		Monitoring per part: reads / writes per table, view, stored procedure; hand-overs; locks and waits;
+			queues; what AUTO decided - so the developer can tune the scheduling (with 36.6)
+		Several writers on one table by row: inserts in parallel; an update / delete locks the row or the
+			table; the database's own writer interleaves them. Too many row-lock clashes: one dedicated
+			thread takes the table (advanced)
 		A limit on the threads, or use of the thread pool
 		Forms: 1 a single thread; 2 several threads with a simple buffer; 100x many threads with ring
 			buffers, simple buffers, or channels (other threads send to a named channel); a shared buffer;

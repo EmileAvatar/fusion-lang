@@ -223,6 +223,7 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 | `[concurrency.defaults]` Mailbox, WhenFull, Timeout, Scheduler, Priority, Rule, WorkerThreadType, ThreadPool | per setting (Priority `"5.4.1"`: weighted turns) | Mailbox 12, WhenFull WAIT, Scheduler IMMEDIATE, Rule HIERARCHY | The defaults every service starts from | 42.14 |
 | Trap checks *(name open)* | warning / error, per check | warning | Each concurrency trap check can be made an error | D.074, 42.10 |
 | `[collections] threads`, `sharedThreads` | `shared` / `dedicated`; a number | `shared`, `10` | The worker a List or Map used by several threads gets | D.057, 42.17 |
+| `[database] readWhileWriting` *(name open)* | `snapshot` / `wait` (others when built) | `snapshot` | A read of a table being written: sees the last finished state, or waits for the write; also per database object | D.160, 42.31 |
 
 #### [hotpath] (Task 42.23-42.24, files/Service.md)
 | Setting | Values | Default | What it does | Decision / task |
