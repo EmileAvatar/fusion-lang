@@ -253,6 +253,7 @@ CON.023 [DESIGN] Sleep and wake: the parent holds the worker's channel and wakes
 CON.024 [DESIGN] Interrupts only from the OS, passed on to every pool and child; a service's handler `service(x).setCheckInterrupt(signal, data) { }` (42.37)
 CON.025 [DESIGN] Locks (mutex, read-write lock, semaphore, condition variable) off by default; on in `fusion.toml`, used inside `unsafe`; unlocked at the end of their scope (42.38, D.133)
 CON.026 [DESIGN] A thread holds no state: it uses the service's variables; thread-local storage only in `unsafe` (42.39)
+CON.027 [DESIGN] A resource split into parts, one writer each (a database by table); a request over several parts becomes a group by a hand-over (42.31, D.159)
 
 #### SET - settings and tools
 SET.001 [BUILT] `fusion.toml` (or .yaml / .json / .ini); camelCase, read case-insensitively; a bad key is an error
@@ -445,5 +446,6 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.156 | The script libraries come after self-hosting (Task 35) - `extern "C"` and the library loading they need with them | self-hosting first; the libraries are not needed before | MOD.013 | 2026-11-17 | OpenQuestions Q.035 (answered) | ACTIVE (planned) |
 | D.157 | A script reaches the program only through the interfaces the developer gives it - no files, OS or other code directly; scripts are for a real need (game mods, business rules that change often, without rebuilding the app); the use cases and the safety are researched first (Research R5) | some will try to get round it to steal or corrupt data - never trust code (GOL.008, D.122); Fusion is not the be-all and end-all, it lets developers be flexible | MOD.013 | 2026-11-17 | OpenQuestions Q.036 (answered) | ACTIVE (planned) |
 | D.158 | `Fusion.Lang` is the multi-language library: it loads the `Lang.<language>.Fusion` modules (D.121) and compiles their code to a Fusion AST; the core compiler holds no other language (D.105) | one library handles every language module; the names fit together, not a clash | MOD.011 | 2026-11-20 | files/Research/Libraries/FusionLibraries.md | ACTIVE (planned) |
+| D.159 | A resource may be split into parts, each with its own writer (a database by table); a request over several parts becomes a group that takes them over between requests - the parts' writers stop taking their requests, finish the one running, then hand over; parts are always taken in one fixed order; the details in OpenQuestions Q.038 | one writer per resource, without one slow writer for a whole database; no deadlock - the group holds nothing while it waits, and the writers never wait for it | CON.027 | 2026-11-21 | files/Concurrency.md 3.14 | PROPOSED |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->

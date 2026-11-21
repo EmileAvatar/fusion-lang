@@ -67,6 +67,24 @@ print(j.columns)         // no row given: an error "each row has its own length 
 - Walking a column (`j[][1]`, foreach with order = "columns"): a row too short for it skipped, or an IndexError?
 - `[arrays] order = "rows"` walks a jagged array row by row, as the other languages do?
 
+#### Q.038 A resource split into parts - reads, giving back, who splits (Task 42.31, files/Concurrency.md 3.14)
+The database example: T1 writes users, T2 accounts; request R writes both, so T3 takes them over as a group.
+```fusion
+service Database db = Database.open("connection string")
+string n = db.query("SELECT name FROM users WHERE id = 1")   // while T1 is writing users:
+// A: waits for the write in progress   B: reads a snapshot - the last finished state   C: a setting, default B
+
+// T3 has finished R and its queue is empty:
+// D: users and accounts go back to T1 / T2 at once
+// E: T3 keeps them until an idle time passes, then gives them back
+// F: T3 becomes their writer from now on
+
+// who decides the parts:
+// G: the service only, by load (AUTO)   H: the developer names them   I: both - AUTO, or named by the developer
+service(db).Parts = ["users", "accounts"]    // H / I: a possible form, the name to decide
+```
+Suggested: B (PostgreSQL and most databases let readers see a snapshot and never wait), E (no handing back and forth), I.
+
 Earlier: Q.034-Q.037 (script libraries) answered 2026-11-17: Decisions.md D.155-D.157; Q.037 (which Lua) deferred to FEATURES Research R5.
 Earlier: Q.030, Q.032, Q.033 (jagged arrays, 3 dimensions and the stack) answered 2026-11-16: Decisions.md D.144, D.153, D.154.
 Earlier: Q.028 (toCSV on arrays) and Q.029 (toList and null slots) answered 2026-11-16: Decisions.md D.151, D.152, FEATURES 45.11b / 45.11c, Notes/CSV_many_dimensions.md.
@@ -76,6 +94,6 @@ namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a 
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.038.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.039.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->

@@ -48,6 +48,31 @@ preemption** and **circular wait**.
 
 ---
 
+#### The ways to do concurrency - and Fusion's service forms
+
+The usual ways first, then Fusion's. The full comparison: files/spec/100-Concurrency.md 1.1-1.2.
+
+| Way | Who changes the shared data | What the developer writes | Data races | Deadlocks / freezes | Several values changed together | Used by |
+|---|---|---|---|---|---|---|
+| Mutex / lock | Whoever holds the lock | Every lock and unlock | Only where the lock is used | Easy: two locks in different orders, a forgotten unlock | Lock them all, in one order | C, C++, Java, C#, Go, Python, Rust |
+| Read-write lock | Many readers, or one writer | As a mutex | As a mutex | As a mutex; writers can starve | As a mutex | C++, Java, C#, Go, Rust |
+| Semaphore | Up to N threads at once | Acquire and release | Not prevented | Possible | - | Most languages |
+| Atomic value | Anyone, one indivisible step | `atomic` types, compare-and-set | None for that one value | None | Not possible across values | Most languages |
+| Condition variable | Whoever holds its lock | Wait and signal | Needs a lock | Lost wake-ups | - | C, C++, Java, C#, Python |
+| Channel | The receiver, by convention | Channels, goroutines, `select` | Possible (a pointer sent and kept) | Nobody receiving: a freeze | Send to one owner | Go, C#, Rust, Kotlin |
+| Actor | The actor only | Actors and messages | None | Rare; Erlang's call timeout | One actor owns them | Erlang / Elixir, Akka, Orleans, Swift |
+| async / await, event loop | One thread at a time | `async`, `await` | None in a single-threaded loop | One blocking call stalls everything | Between two `await`s only | JavaScript, Python, C#, Rust |
+| Transactional memory | A transaction, retried on a conflict | `atomically { }` / `dosync` | None inside | No deadlock; retries under contention; no I/O inside | One transaction | Clojure, Haskell |
+| Database transaction | The database (row / table locks, snapshots) | `BEGIN` ... `COMMIT` | None inside the database | Deadlocks found and one side rolled back | One transaction | Every SQL database |
+| **Fusion: temporary service** (made by the compiler) | Its worker only | **Nothing** - two threads use one variable, the compiler makes `service(x)` | **Impossible** - checked | Prevented (P2, P3); every wait a timeout (P4) | - | D.017, D.057 |
+| **Fusion: `service` keyword** (one resource) | Its worker only | `service int counter = 0`; files, sockets, databases are services by default | **Impossible** | Prevented; timeouts | `service(x).run { }` | Service.md rules 1-5 |
+| **Fusion: group service** (several resources) | The group's worker only | `service(a, b) g`, or made by the compiler when a thread uses two resources | **Impossible** | No thread holds two resources (P2) | **The whole group, as one step** | D.077, Service.md "Group services" |
+| Fusion: service class | Its worker; each method one step | `service class Name { }` | Impossible | As a service | Each method | Service.md "Service classes" |
+| Fusion: hot-path service | One dedicated thread that never sleeps | `hotpath service` | Impossible | Never waits (the H rules) | - | Service.md "Hot-path services" |
+| Fusion: a resource split into parts (idea) | One writer per part (a database per table) | Nothing - the service splits itself under load | Impossible | A request over several parts becomes a group; parts taken in one order (trap 23) | A group over the parts | files/Concurrency.md 3.14, D.159 (proposed) |
+
+---
+
 #### The traps
 
 | # | Trap | What goes wrong | General solution | Principles |
@@ -69,6 +94,15 @@ preemption** and **circular wait**.
 | 15 | Thread leaks, too many threads | Threads that never end, or one per request, exhaust memory | Bounded resources and admission control; every task has an owner and an end | P5, P6 |
 | 16 | UI changed from another thread | Random crashes and drawing glitches | Thread affinity: the UI belongs to one thread and is reached only by messages | P1 |
 | 17 | Contention, false sharing | Correct but slow: threads queue for one lock, or fight over one cache line | Locality: keep hot data per thread; share as little and as briefly as possible | P7, P1, P10 |
+| 18 | Self-deadlock | A request waits on its own service (or a lock taken twice by one thread) - frozen | Never wait on yourself: a call to your own service runs in the same step, or is a compile error | P9, P4 |
+| 19 | Unknown outcome after a timeout | The caller gave up, the request still ran; a retry pays twice | Every request has an id and a final state; a repeat is recognised | P4 |
+| 20 | Hidden blocking | `person.name` looks free but waits in a queue - in a loop, a thousand waits | Make waiting visible: an editor mark, a warning in loops; read a copy once | P10 |
+| 21 | One slow resource takes every worker | A slow database fills the shared pool; the log and UI stop too | Bulkheads: a pool or limit per resource, timeouts | P7, P6, P4 |
+| 22 | Retry storm | Every caller retries at once and flattens a recovering service | Backoff with jitter, a retry limit, a circuit breaker | P4, P6 |
+| 23 | Two groups that overlap | Two requests each take one part of a split resource and wait for the other's | A group takes all its parts at once, or in one fixed order; a part in one group at a time | P2, P3 |
+
+Traps 18-23 added 2026-11-21 (the service reviews R1 / R3, the Rust pitfalls R4.6, the database
+example in files/Concurrency.md 3.14).
 
 ---
 

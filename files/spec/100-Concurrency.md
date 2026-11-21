@@ -19,7 +19,7 @@ Gathered 2026-11-10 (Task 51.5a) from every concurrency source; decisions and cl
 | # | Section | What it holds |
 |---|---|---|
 | 1 | [Summary and comparison](#1-summary-and-comparison) | Every way to do concurrency, compared - and the service against them; how languages do it |
-| 2 | [Traps](#2-traps) | The 17 traps, and which part of the service model solves each |
+| 2 | [Traps](#2-traps) | The 23 traps, and which part of the service model solves each |
 | 3 | [The service model](#3-the-service-model) | Fusion's primary way: rules, settings, ownership, forms, hot path, threads, channels, kinds of threads, sleep and wake, baseline timings |
 | 4 | [Other models](#4-other-models) | Threads, mutex, read-write lock, semaphore, atomics, condition variables, channels, async / await, ... |
 | 5 | [What is built](#5-what-is-built) | Today: reserved words only |
@@ -136,6 +136,12 @@ column says what in the service model ([section 3](#3-the-service-model)) solves
 | 15 | Thread leaks, too many threads | Threads never end, or one per request | Bounded pools, owners | A shared pool, never a thread per service (CON.013); owned threads | P5, P6 |
 | 16 | UI changed from another thread | Random crashes, drawing glitches | Thread affinity, messages | The UI as a service | P1 |
 | 17 | Contention, false sharing | Correct but slow | Locality, share little | The service owns its schedule; readers in parallel; hot path with padded rings ([3.10](#310-hot-path)) | P7, P1 |
+| 18 | Self-deadlock | A request waits on its own service | Re-entrant locks | A call to its own service runs in the same step, or a compile error (R3.4) | P9, P4 |
+| 19 | Unknown outcome after a timeout | A retry repeats work that already happened | Idempotency keys | A request id and a final state (rule 5, R3.2) | P4 |
+| 20 | Hidden blocking | A plain-looking read waits in a queue | Read once, profile | An editor mark; a warning for a service read in a loop (R3.6) | P10 |
+| 21 | One slow resource takes every worker | A slow dependency fills the shared pool | Bulkheads | `WorkerThreadType = SINGLE` or a limit per service; timeouts (R1.16) | P7, P6, P4 |
+| 22 | Retry storm | Everyone retries at once | Backoff with jitter, circuit breakers | `Retry` with jitter; a circuit breaker (R1.13, R1.14) | P4, P6 |
+| 23 | Two groups that overlap | Two requests each hold one part the other needs | Take all at once, or in order | A group takes its parts in one fixed order; one group per part (files/Concurrency.md 3.14) | P2, P3 |
 
 ---
 

@@ -563,3 +563,7 @@ allocate.
 - Channels in a service (a default mailbox, named, interrupt and outbound channels), kinds of
   threads, sleep and wake by the parent, a thread holding no state - the user's provisional answers
   (2026-11-10): files/spec/100-Concurrency.md 3.14-3.17, PROPOSED D.125-D.131, FEATURES 42.34-42.40
+- A resource split into parts, each with its own writer (a database by table), and a request over
+  several parts taking them over as a group (user, 2026-11-21): files/Concurrency.md 3.14, D.159
+  (proposed), OpenQuestions.md Q.038, FEATURES 42.31. It extends group rule 8: this group forms while
+  its parts are in use, by a hand-over between requests

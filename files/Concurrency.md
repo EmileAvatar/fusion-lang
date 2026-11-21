@@ -605,6 +605,92 @@ int[8] counters                        // one counter per thread, all in one cac
 - per-thread counters that are combined at the end;
 - padding hot variables to separate cache lines.
 
+Traps 18-23 were added on 2026-11-21, from the service reviews (FEATURES Research R1, R3), the
+Rust rewrite pitfalls (R4.6) and the database example in section 3.14.
+
+#### 18. Self-deadlock: waiting on yourself
+
+A thread waits for something only it can give. With a lock that isn't re-entrant (the default
+`pthread` mutex), a function that locks and then calls another function that locks the same
+mutex waits forever. A service does the same if one of its requests sends a request to the
+**same** service and waits: the service runs one request at a time, so the inner request waits
+for the outer one, which waits for the inner one. A send to itself with a full mailbox and
+`WhenFull = WAIT` freezes the same way.
+
+```fusion
+service class Bank
+    void function transfer(Account a, Account b, money amount)
+        ...
+        bank.audit(a)          // through the service handle: queued behind transfer - waits forever
+```
+
+**Solved by:** re-entrant locks (Java's `synchronized`, C#'s `lock`); in a service, a call to
+itself from inside one of its own requests runs directly as part of the same step, or is a
+compile error - a request never waits on its own service (FEATURES R3.4).
+
+#### 19. Unknown outcome after a timeout
+
+The caller stops waiting, but the request may still run (Service.md rule 5). The caller can't
+tell whether the payment went through, so it retries, and the customer pays twice.
+
+```fusion
+try
+    payments.charge(order, 500)        // times out after 5 s - but the charge may still happen
+catch TimeoutError
+    payments.charge(order, 500)        // a retry: charged twice if the first one went through
+```
+
+**Solved by:** a request id that the service remembers, so a repeat is recognised and not done
+again (payment APIs call it an "idempotency key"); asking for the request's final state
+(completed, failed, timed out, cancelled) before retrying (FEATURES R3.2).
+
+#### 20. Hidden blocking
+
+A line that looks free waits on another thread. In Fusion, `person.name` on a variable in a
+group service quietly becomes a queued request (FEATURES R3.6). Rust's `Arc<Mutex<T>>` added
+everywhere to get past the borrow checker does the same: every access takes a lock, and the
+speed is lost (RustPitfalls P9). In a loop, one wait becomes a thousand.
+
+```fusion
+for i in 0..1000
+    total += person.salary             // 1000 requests to carPerson's queue, each may wait
+```
+
+**Solved by:** making the cost visible - a mark in the editor, a warning for a service read
+inside a loop (P10); reading a copy once before the loop (`Snapshot`).
+
+#### 21. One slow resource takes every worker (no bulkhead)
+
+Every service shares one pool. The database slows down; its requests fill every worker, all
+of them waiting. The log, the cache and the user interface share those workers, so they stop
+too - one slow resource takes the whole program down. Netflix's Hystrix library made the fix,
+the "bulkhead", widely known: like a ship's walls, one flooded room doesn't sink the ship.
+
+**Solved by:** a limit per resource - its own pool (`WorkerThreadType = SINGLE`) or at most N
+of the shared workers; every wait with a timeout (P4); a slow resource's mailbox full gives
+an error, not a frozen worker (P6). FEATURES R1.16.
+
+#### 22. Retry storm (thundering herd)
+
+A service has a short outage. A thousand callers time out together, and all retry at once,
+then again. The service, just recovering, gets three times its normal load and falls over
+again. The same happens when a cache entry expires and every request rebuilds it at once.
+
+**Solved by:** retrying after a growing wait with a random part (backoff with "jitter"), a
+limit on retries, and a circuit breaker that stops calls to a failing service for a while
+(FEATURES R1.13, R1.14; AWS Builders' Library, "Timeouts, retries and backoff with jitter").
+
+#### 23. Two groups that overlap
+
+Two requests each need two parts of one resource, and they share a part. Request A updates
+`users` and then `accounts`; request B updates `accounts` and then `users`. A takes `users`,
+B takes `accounts`, and each waits for the other: trap 3, one level up. It appears as soon
+as a resource is split into parts (section 3.14).
+
+**Solved by:** a group takes all its parts at once, or always in one fixed order (by name or
+number), and a part belongs to one group at a time (Service.md group rule 4). The second
+group waits for the first to finish, and is never half-formed (P2, P3).
+
 #### Summary - how most languages stay safe
 
 | Approach | Idea | Languages |
@@ -653,6 +739,12 @@ Each trap in Section 2 has specific fixes. Behind each fix is a more general pri
 | 15 | Thread leaks, too many threads | Fixed-size pools; semaphores; async for I/O; a clear way for every thread to end | **Bounded resources and admission control**; every task has an owner and an end |
 | 16 | UI from another thread | Post the update to the main thread | **Thread affinity**: an object that belongs to one thread is only reached by messages to it |
 | 17 | Contention, false sharing | Short critical sections; split locks; per-thread counters; padding | **Locality**: keep each thread's hot data its own, and share as little and as briefly as possible |
+| 18 | Self-deadlock | Re-entrant locks; no call back into yourself while holding | **Never wait on yourself**: a call to your own service runs in the same step |
+| 19 | Unknown outcome after a timeout | Idempotency keys; query the final state before retrying | **Every request has an identity and a final state** |
+| 20 | Hidden blocking | Read once into a local; profilers | **Make waiting visible** where it is written |
+| 21 | One slow resource takes every worker | Bulkheads: a pool or limit per dependency; timeouts | **Isolate resources**, so one failure stays in its own room |
+| 22 | Retry storm | Backoff with jitter; retry budgets; circuit breakers | **Spread and limit the retries**, so a recovering service isn't flattened |
+| 23 | Two groups that overlap | Take every part at once, or in one fixed order | **Break the waiting circle** (trap 3) at the level of groups |
 
 Three ideas cover most of the table:
 - **Ownership:** one owner per piece of changeable data.
@@ -1563,6 +1655,95 @@ The thread side of the ownership design (`files/Ownership.md` sections 5-7; the 
   both sides; Fusion makes that a compile error
 - **Hot paths:** `hotpath service` - a dedicated thread that never sleeps (files/Service.md
   "Hot-path services")
+
+### 3.14 One resource split into parts: a database by table (user, 2026-11-21)
+
+The user's example: how one resource can be split so that more than one writer works at once,
+and how a request that needs two parts takes them over without a deadlock. **A design idea,
+not decided:** Decisions.md D.159 (PROPOSED), OpenQuestions.md Q.038, FEATURES 42.31 (auto
+lanes).
+
+#### The rule of thumb
+
+- **One writer per resource** - a file (its lock), a network connection, a database (P1, P11)
+- **A resource may be split further where its parts are independent** - a database by table;
+  each part then has its own writer, so a resource can have several writers, one per part
+- **A request goes to the part it writes:** a view or a stored procedure that writes `users`
+  goes to the `users` writer
+- **Reads of a part that no one is writing never wait**
+- **The resource may still have one writer of its own underneath:** a database writes its raw
+  file through its own log (PostgreSQL's write-ahead log, SQLite's single writer), depending on
+  how it is built. Fusion's split is in the program; the database keeps its own rules, and
+  other programs writing to it are still held back by its own locks
+
+#### The example, step by step
+
+`db` is a service, written by the developer (`service Database db = ...`) or made by Fusion
+because it is a database (`resourceAsService`, the default). T1, T2 and T3 are its writer
+threads; nothing in the code names them.
+
+```fusion
+service Database db = Database.open("connection string")
+
+db.execute("UPDATE users SET ...")                      // to T1, the users writer
+db.execute("UPDATE accounts SET ...")                   // to T2 once accounts has its own lane
+db.execute("SELECT * FROM products")                    // a read of a part no one writes: never waits
+db.execute("UPDATE users SET ...; UPDATE accounts SET ...")   // both parts: a group - T3
+```
+
+| Step | What happens | users | accounts | orders |
+|---|---|---|---|---|
+| 1 | One writer, T1, works through the writes to users, accounts and orders | T1 | T1 | T1 |
+| 2 | Many account updates arrive: T2 is made (AUTO, as with `WorkerThreadType`). T1 passes accounts to T2, with the account requests waiting in its queue, in order. Allowed: they write separate tables | T1 | T2 | T1 |
+| 3 | Reads of other tables (products, a view over them) run alongside T1 and T2 | T1 | T2 | T1 |
+| 4 | Request R updates users **and** accounts in one statement. T3 is made for it - a group service over the two parts | T1, giving it to T3 | T2, giving it to T3 | T1 |
+| 5 | T1 and T2 stop taking requests for users and accounts. Those requests, and those still waiting in T1's and T2's queues, go to T3's queue, keeping their order | T1, giving it to T3 | T2, giving it to T3 | T1 |
+| 6 | T3 waits until the write T1 is busy with on users, and T2's on accounts, end - completed or failed. A request is never stopped halfway | T1, giving it to T3 | T2, giving it to T3 | T1 |
+| 7 | T1 and T2 hand the ownership of users and accounts to T3 | T3 | T3 | T1 |
+| 8 | T3 runs R as one transaction on one connection, then the users and accounts requests moved to it | T3 | T3 | T1 |
+| 9 | T3's queue is empty: users and accounts go back to a lane (how and when: Q.038) | T1 | T2 | T1 |
+
+#### Why it is safe
+
+- **One owner at a time:** users belongs to T1 or to T3, never both (Service.md group rule 4)
+- **Ownership moves only between requests:** a request is one step (rule 1), never split or
+  interrupted, so no table is ever left half-written
+- **No deadlock:** T3 waits for T1 and T2, but T1 and T2 never wait for T3 - they only stop
+  taking requests for those tables. T3 holds nothing while it waits. No circle (Coffman)
+- **R can't starve:** once T3 is announced, T1 and T2 take no new users or accounts requests,
+  so T3 waits only for the writes already running - a known limit, with a timeout as always (P4)
+- **Order is kept:** the moved requests keep their sequence numbers (FEATURES 42.32)
+- **R is atomic:** one connection and one database transaction, so a failure rolls back both
+  tables (group rule 7, D.120)
+
+#### What to watch
+
+- **Two groups that overlap** (trap 23): R1 wants users and accounts, R2 accounts and orders.
+  Both can't take accounts: the parts are always taken in one fixed order, and R2 waits for R1's
+  group to finish. A group is never half-formed
+- **Handing over too often:** a group formed and released again and again costs more than it
+  saves; keep the group until its queue is empty and an idle time has passed (Q.038)
+- **What a statement touches must be known.** A statement, view or stored procedure whose
+  tables can't be known (SQL built at run time, triggers, foreign keys that cascade to other
+  tables) goes to the whole database - the safe fallback is one writer for everything
+- **Each writer needs its own connection**, and the database's own locks still apply
+- **The log file:** requests from several writers log to one file. The log is a service of its
+  own (one writer), so each line is written whole: lines from different requests interleave,
+  but a line is never broken in the middle. A request id or sequence number on every line
+  lets a reader put each request's lines back together (case 1)
+- **Reading a part while it is written:** a read must never see half a request - it waits for
+  the write, or reads a snapshot of the last finished state (Q.038)
+- **Too many parts:** each part costs a thread or a share of the pool; split only when one
+  writer is overloaded (AUTO), and merge again when the load drops
+
+#### Others that do this
+
+- **Databases themselves** lock per row or table, and turn many row locks into one table lock
+  when there are too many ("lock escalation")
+- **VoltDB** runs one single-threaded writer per partition of the data; a transaction that
+  needs several partitions goes to a coordinator that takes all of them first - very close to
+  T3 above
+- **Kafka, Orleans, Akka** split work by key (a partition, a grain, a shard): one writer per key
 
 ---
 

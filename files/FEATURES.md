@@ -739,6 +739,8 @@ then each point is decided and solved completely. One line per section and per l
 		understanding.md, ChatGPT: limited knowledge of Fusion); the hot path service (42.23) is one form
 		Auto lanes (like lanes at an airport): the primary thread full or heavy - a new lane for DBAccount;
 			could split by kind (one worker for Account, one for Price) when one is overloaded
+		A database split by table, and a request over two tables taking them over as a group (user, 2026-11-21):
+			files/Concurrency.md 3.14, D.159 (proposed), OpenQuestions Q.038 - reads, giving back, who splits
 		A limit on the threads, or use of the thread pool
 		Forms: 1 a single thread; 2 several threads with a simple buffer; 100x many threads with ring
 			buffers, simple buffers, or channels (other threads send to a named channel); a shared buffer;
@@ -779,6 +781,9 @@ then each point is decided and solved completely. One line per section and per l
 			decide whether `channel` / `lock` are keywords or library types (`Channel<T>`, `Mutex`)
 	[ ] 42.41 `parallel for` - each loop pass may run on a pool thread (idea, from the earlier spec text;
 		user, 2026-11-11: kept for the future, `go` used for now)
+	[ ] 42.42 Traps 18-23 (2026-11-21 - files/Concurrency_Traps.md): each covered by a rule, a check or a setting
+		18 self-deadlock; 19 unknown outcome after a timeout; 20 hidden blocking; 21 no bulkhead;
+			22 retry storm; 23 two groups that overlap - a test for each once services are built
 
 <a id="task-43"></a>
 #### 43 Core modules design (fusionlib) (user, 2026-10-24) [ ] [index](#index)
