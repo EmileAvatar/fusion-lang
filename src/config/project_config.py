@@ -231,6 +231,7 @@ class ArraysConfig:
     stack_limit: int = 64 * 1024
     order: str = "columns"      # which dimension first - "columns" / "rows" (45.12, D.148)
     csv_many_dimensions: bool = True   # toCSV on 3 dimensions or more (45.11b, D.151)
+    storage: str = "flat"       # how many dimensions are stored - "flat"; "rect" later (45.15, D.144, D.164)
 
 
 @dataclass
@@ -575,11 +576,25 @@ def _load_arrays_section(data: dict, config_path: str) -> ArraysConfig:
     arrays = ArraysConfig()
     section = _require_table(data, "arrays", config_path)
     known = {"stackWarn": "stack_warn", "stackLimit": "stack_limit", "order": "order",
-             "csvManyDimensions": "csv_many_dimensions"}
+             "csvManyDimensions": "csv_many_dimensions", "storage": "storage"}
     for key, value in section.items():
         if key not in known:
             raise ProjectConfigError(
                 f"{config_path}: unknown setting arrays.{key} (known: {sorted(known)})")
+        if key == "storage":
+            # 45.15: "flat" (one block, the default); RECT comes later (D.164); JAGG is per array only (D.153)
+            if value == "rect":
+                raise ProjectConfigError(
+                    f"{config_path}: arrays.storage = \"rect\" comes later (D.164) - \"flat\" for now")
+            if value == "jagg":
+                raise ProjectConfigError(
+                    f"{config_path}: arrays.storage can't be \"jagg\" - a jagged array says so where it is made: "
+                    f"a growable array, then j.setStorage(JAGG) (D.153)")
+            if value != "flat":
+                raise ProjectConfigError(
+                    f"{config_path}: arrays.storage must be \"flat\" (\"rect\" comes later), got {value!r}")
+            arrays.storage = value
+            continue
         if key == "csvManyDimensions":
             if not isinstance(value, bool):
                 raise ProjectConfigError(

@@ -88,10 +88,70 @@ DIMENSION_VALUES = ('ROWS', 'COLUMNS', 'DEPTH')
 def add_dimension_enum(program) -> None:
     """The built-in enum `Dimension` - ROWS, COLUMNS, DEPTH (45.12d, D.143) - added to a program
     that uses it (`expand`, one of its names), so no other program carries it."""
+    _add_builtin_enum(program, 'Dimension', DIMENSION_VALUES, {'expand'})
+
+
+STORAGE_VALUES = ('FLAT', 'RECT', 'JAGG')
+
+
+def add_storage_enum(program) -> None:
+    """The built-in enum `Storage` - FLAT, RECT, JAGG (45.15, D.144) - added to a program that uses
+    it (`setStorage`, one of its names)."""
+    _add_builtin_enum(program, 'Storage', STORAGE_VALUES, {'setStorage'})
+
+
+def mark_storage_calls(program) -> None:
+    """`m.setStorage(...)` is set right after the array is declared (D.147): the next statements, or
+    inside its set-up block (which expand_setup_blocks has put right after it). Each call found there
+    is marked `storage_placed`; the type rule makes any other one an error. Runs before names are
+    resolved, after the set-up blocks are expanded."""
+    from src.parser.ast_nodes import BlockStmt, CallExpr, ExpressionStmt
+
+    def storage_call(statement, name):
+        call = statement.expression if isinstance(statement, ExpressionStmt) else None
+        return call if isinstance(call, CallExpr) and isinstance(call.callee, MemberExpr) \
+            and call.callee.member == 'setStorage' and getattr(call.callee.object, 'name', None) == name \
+            else None
+
+    def visit(node):
+        statements = getattr(node, 'statements', None)
+        if isinstance(statements, list):
+            for i, statement in enumerate(statements):
+                if not isinstance(statement, VarDeclStmt):
+                    continue
+                for following in statements[i + 1:]:
+                    if isinstance(following, BlockStmt) and getattr(following, 'sets_up', None) == statement.name:
+                        for inner in following.statements:
+                            call = storage_call(inner, statement.name)
+                            if call is not None:
+                                call.storage_placed = True
+                        continue
+                    call = storage_call(following, statement.name)
+                    if call is None:
+                        break
+                    call.storage_placed = True
+
+    seen, todo = set(), [program]
+    while todo:
+        node = todo.pop()
+        if isinstance(node, list):
+            todo.extend(node)
+            continue
+        if not is_dataclass(node) or isinstance(node, (type, TypeNode)) or id(node) in seen:
+            continue
+        seen.add(id(node))
+        visit(node)
+        for f in fields(node):
+            if f.name != 'location':
+                todo.append(getattr(node, f.name))
+
+
+def _add_builtin_enum(program, enum_name: str, values, triggers: set) -> None:
+    """A built-in enum added to a program that uses it - its name, one of its values or a trigger."""
     from src.parser.ast_nodes import EnumDecl, EnumVariant
-    if any(isinstance(d, EnumDecl) and d.name == 'Dimension' for d in program.declarations):
+    if any(isinstance(d, EnumDecl) and d.name == enum_name for d in program.declarations):
         return
-    names = {'Dimension', 'expand'} | set(DIMENSION_VALUES)
+    names = {enum_name} | set(triggers) | set(values)
     seen, todo, used = set(), [program], False
     while todo and not used:
         node = todo.pop()
@@ -108,8 +168,8 @@ def add_dimension_enum(program) -> None:
                 todo.append(getattr(node, f.name))
     if used:
         where = program.location
-        program.declarations.insert(0, EnumDecl(location=where, name='Dimension', variants=[
-            EnumVariant(location=where, name=v, value=k) for k, v in enumerate(DIMENSION_VALUES)]))
+        program.declarations.insert(0, EnumDecl(location=where, name=enum_name, variants=[
+            EnumVariant(location=where, name=v, value=k) for k, v in enumerate(values)]))
 
 
 def name_parameter_sizes(program) -> None:
@@ -671,6 +731,53 @@ class ManyDimsMixin:
             f"where you can (D.143)", node.location))
         node.grid_expand = (node.callee.object, len(array_type.dims), array_type.element_type, self.array_order)
         node.callee.grid_expand_callee = True
+        return void
+
+    def many_dims_set_storage(self, node, array_type):
+        """`m.setStorage(FLAT / RECT / JAGG / null)` (45.15, D.144, D.147): only right after the
+        array is declared; FLAT and null (back to FLAT) work - the default already; RECT comes later
+        (D.164); JAGG only on a growable array of 2 or 3 dimensions (D.153), built in part 2."""
+        void = PrimitiveType(location=node.location, name='void')
+        node.set_storage = True
+        node.callee.many_callee = True
+        name = _name_of(node.callee.object)
+        if not (isinstance(array_type, ArrayType) and array_type.dims) or getattr(array_type, 'view', False):
+            self.errors.append(SemanticError(
+                f"setStorage is for an array of 2 or 3 dimensions - '{name}' has one; it is stored as one block "
+                f"already (D.144)", node.location))
+            return void
+        if not getattr(node, 'storage_placed', False):
+            self.errors.append(SemanticError(
+                f"setStorage comes right after '{name}' is declared - the next line, or in its set-up block; "
+                f"how an array is stored is decided before it is used (D.147)", node.location))
+        if len(node.arguments) != 1:
+            self.errors.append(SemanticError("setStorage takes one value: FLAT, JAGG, or null (back to FLAT)",
+                                             node.location))
+            return void
+        value = node.arguments[0]
+        if isinstance(value, LiteralExpr) and value.value is None:
+            return void                                       # null: back to FLAT
+        symbol = self.symbol_table.lookup('Storage')
+        storage = getattr(symbol, 'data_type', None)
+        kind = self._visit_value_for(storage, value) if storage is not None else self.visit(value)
+        if storage is None or not self.types_equal(kind, storage):
+            self.errors.append(SemanticError(
+                f"setStorage: the storage is FLAT, JAGG or null, got {self.type_to_string(kind)}", value.location))
+            return void
+        member = getattr(getattr(value, 'enum_value', None), 'member', None) or getattr(value, 'member', None)
+        if member == 'RECT':
+            self.errors.append(SemanticError(
+                "RECT storage comes later - for an array that never changes size it lays out as FLAT does; "
+                "FLAT (the default) and JAGG for now (D.164)", value.location))
+        elif member == 'JAGG':
+            if not array_type.growable or getattr(array_type, 'plain_heap', False):
+                self.errors.append(SemanticError(
+                    f"JAGG is only for a growable array - its rows grow on the heap: "
+                    f"{self.type_to_string(array_type.element_type)}:{''.join('[]' for _ in array_type.dims)} {name} "
+                    f"(D.153)", value.location))
+            else:
+                self.errors.append(SemanticError(
+                    "JAGG storage is being built (Task 45.15 part 2) - not yet", value.location))
         return void
 
     def many_dims_to_list(self, node, array_type: ArrayType):

@@ -231,6 +231,10 @@ class CollectionRulesMixin:
             self.checked_receivers.pop(id(receiver), None)
             return self.many_dims_expand(node, receiver_type)    # g.expand(ROWS, 1) (45.12d)
         if (isinstance(receiver_type, ArrayType) or getattr(receiver_type, 'array_form', False)) \
+                and node.callee.member == 'setStorage':
+            self.checked_receivers.pop(id(receiver), None)
+            return self.many_dims_set_storage(node, receiver_type)   # m.setStorage(JAGG) (45.15)
+        if (isinstance(receiver_type, ArrayType) or getattr(receiver_type, 'array_form', False)) \
                 and node.callee.member in ('setBufferType', 'setSize'):
             self.checked_receivers.pop(id(receiver), None)      # buffers - after self-hosting (D.146)
             self.errors.append(SemanticError(

@@ -1891,6 +1891,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        if getattr(node.expression, 'set_storage', False):
+            return ''              # m.setStorage(FLAT) - how it is stored, decided while compiling (45.15)
         expr_code = self.visit(node.expression)
         self.emit_line(expr_code)
         return ''

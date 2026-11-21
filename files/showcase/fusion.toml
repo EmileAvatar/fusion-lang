@@ -104,9 +104,11 @@ nullable = false
 stackWarn = "16KB"
 stackLimit = "64KB"
 # [built] Which dimension a loop and length give first: "columns" - the outer first, depth ->
-# columns -> rows (default); "rows" - rows first, as C and Java (45.12, D.148)
+# columns -> rows (default); "rows" - rows first, as C and Java (45.12, D.148); [designed] a third,
+# depth -> rows -> columns (its name decided when built)
 order = "columns"
-# [designed] How an array of many dimensions is stored: "flat" / "rect" / "jagg" (45.15, D.144)
+# [built] How an array of 2 or 3 dimensions is stored: "flat" (one block); [designed] "rect" later
+# (D.164); a jagged array per array - a growable one, then j.setStorage(JAGG) (45.15, D.144, D.153)
 storage = "flat"
 # [built] toCSV on an array of 3 dimensions or more - the sheets split by the secondary delimiter
 # (default true; false: a compile error) (45.11b, D.151)

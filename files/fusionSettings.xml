@@ -149,6 +149,10 @@
     <setting name="csvManyDimensions" type="bool" default="true" task="45.11b">
       <description>toCSV on an array of 3 dimensions: each line holds that row of every sheet side by side, the sheets split by the secondary delimiter ("#"); false: a compile error (D.151)</description>
     </setting>
+    <setting name="storage" type="choice" default="flat" task="45.15">
+      <description>How an array of 2 or 3 dimensions is stored: flat - one block (the default, fastest for matrices); rect - comes later (D.164); a jagged array is set per array, a.setStorage(JAGG) on a growable one (D.144, D.153)</description>
+      <value>flat</value>
+    </setting>
   </section>
 
   <section name="memory" description="How values are owned (files/Ownership.md)">

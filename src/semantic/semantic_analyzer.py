@@ -13,7 +13,8 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .stack_arrays import check_stack_arrays
-from .many_dims import add_dimension_enum, check_many_dims_uses, name_parameter_sizes
+from .many_dims import (add_dimension_enum, add_storage_enum, check_many_dims_uses, mark_storage_calls,
+                        name_parameter_sizes)
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
 from .class_rules import check_class_cycles, check_constructors
@@ -153,6 +154,7 @@ class SemanticAnalyzer:
         self.errors.extend(expand_statics(ast))
         # Form B on any variable (Task 32.2d): a local's set-up block runs right after it
         self.errors.extend(expand_setup_blocks(ast))
+        mark_storage_calls(ast)         # m.setStorage(...) right after its declaration (45.15, D.147)
         # Inheritance (Task 32.7): fields, functions, virtual ones, super - before interfaces
         self.errors.extend(expand_inheritance(ast))
         # Plain arrays that get a new size live on the heap (Task 45.10, D.141)
@@ -165,6 +167,7 @@ class SemanticAnalyzer:
         # nothing after this mistakes an enum for a struct
         self.errors.extend(normalize_errors(ast))     # Task 26
         add_dimension_enum(ast)                  # ROWS / COLUMNS / DEPTH, when used (45.12d)
+        add_storage_enum(ast)                    # FLAT / RECT / JAGG, when used (45.15)
         self.errors.extend(normalize_enums(ast))
         self.errors.extend(check_holding_loops(ast))
 
