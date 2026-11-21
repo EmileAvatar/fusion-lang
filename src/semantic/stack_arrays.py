@@ -3,7 +3,7 @@
 A plain or fixed array that stays a C array lives on the stack, which is small (1 MB on Windows).
 After type checking, each local array - or a local struct holding arrays - is measured: above
 `[arrays] stackWarn` (16KB) a warning, above `stackLimit` (64KB) a compile error. A growable array
-(`int:[]`), a replaced one and a List live on the heap and aren't measured; neither are module
+(`int:[]`), a replaced one, a local of 3 dimensions (D.154) and a List live on the heap and aren't measured; neither are module
 variables (not on the stack) or parameters (passed by reference).
 
 The sizes are the C sizes the code generator uses: int, float and char 4 bytes, double 8, bool and
@@ -86,8 +86,8 @@ def check_stack_arrays(program, stack_warn: int, stack_limit: int) -> tuple:
         if not isinstance(function, FunctionDecl) or getattr(function, 'body', None) is None:
             continue
         for node in _declarations(function.body):
-            if not _holds_array(node.var_type, structs):
-                continue
+            if not _holds_array(node.var_type, structs) or getattr(node.var_type, 'heap_block', False):
+                continue                                 # a 3D array lives on the heap (D.154)
             size, _ = size_and_alignment(node.var_type, structs)
             if size > stack_limit:
                 errors.append(SemanticError(

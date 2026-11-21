@@ -605,8 +605,9 @@ class MemoryManagementMixin:
         if isinstance(type_node, PrimitiveType):
             return type_node.name in ('string', 'bytes')   # bytes: the same struct (18.3.8)
         if isinstance(type_node, ArrayType):
-            # a growable one of many dimensions owns its block (45.12d)
-            return getattr(type_node, 'growable', False) or self.is_managed(type_node.element_type)
+            # a growable one of many dimensions owns its block (45.12d); a 3D one too (D.154)
+            return getattr(type_node, 'growable', False) or getattr(type_node, 'heap_block', False) \
+                or self.is_managed(type_node.element_type)
         if isinstance(type_node, StructType):
             struct = self._struct_decl(type_node)
             if struct.is_class:
@@ -709,6 +710,10 @@ class MemoryManagementMixin:
             # int:[2][3] g (45.12d): its slots, then its block - as many as its sizes say now
             total = ' * '.join(f'({d})' for d in type_node.dims)
             slots = f'for (int {index} = 0; {index} < {total}; {index}++) {{ {inner} }} ' if inner else ''
+            return [f'if ({lvalue}) {{ {slots}fusion_dealloc({lvalue}); {lvalue} = NULL; }}']
+        if getattr(type_node, 'heap_block', False):
+            # a local array of 3 dimensions (D.154): its slots, then its block on the heap
+            slots = f'for (int {index} = 0; {index} < {type_node.size}; {index}++) {{ {inner} }} ' if inner else ''
             return [f'if ({lvalue}) {{ {slots}fusion_dealloc({lvalue}); {lvalue} = NULL; }}']
         return [f'for (int {index} = 0; {index} < {type_node.size}; {index}++) {{ {inner} }}']
 

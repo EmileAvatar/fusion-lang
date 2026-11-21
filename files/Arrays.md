@@ -407,6 +407,7 @@ over depth -> columns -> rows reads the slots one after another.
 | What | Written | Gives | Built |
 |---|---|---|---|
 | Declare | `int[2][3][4] cube`, `int[2],[3],[4] cube`, `int cube[2][3][4]`, `fixed int[2][3] f` | default slots | 45.12a |
+| Where it lives | `int[2][3] m` / `int[2][3][4] cube` (local) | 1D and 2D on the stack (measured by `stackLimit`); 3D always on the heap - the same code, freed when its scope ends, never measured (D.154) | 45.12, 2026-11-21 |
 | From values | `int[][] m = [[1, 2, 3], [4, 5, 6]]` | 2 x 3; rows of different lengths an error | 45.12a |
 | One slot | `cube[1][2][3]`, `cube[1],[2],[3]` | read / write; each index checked (IndexError) | 45.12a |
 | A written index outside | `m[1][3]` on `int[2][3] m` | a compile error | 45.12a |

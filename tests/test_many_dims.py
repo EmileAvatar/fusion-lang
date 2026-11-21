@@ -14,6 +14,7 @@ from src.codegen import CCodeGenerator
 from src.config.project_config import ArraysConfig
 from src.parser.parser import ParserError
 from src.semantic import SemanticAnalyzer
+from tests.test_end_to_end import compile_and_run
 from tests.test_foreach import run
 from tests.test_structs import errors_of, main, parse
 
@@ -128,5 +129,24 @@ def test_wrong_forms(body, message):
 
 def test_the_stack_measure_counts_every_slot():
     analyzer = SemanticAnalyzer()
-    analyzer.analyze(parse(main('int[100][100][2] big')))      # 80,000 bytes
+    analyzer.analyze(parse(main('int[200][100] big')))      # 80,000 bytes
     assert any("'big' takes 80,000 bytes on the stack" in e.message for e in analyzer.get_errors())
+
+
+def test_a_3d_array_lives_on_the_heap_and_is_not_measured():
+    # D.154: 3 dimensions always on the heap - no stack limit, however large
+    analyzer = SemanticAnalyzer()
+    analyzer.analyze(parse(main('int[100][100][2] big\nbig[99][99][1] = 7\nprint("{@1}", big[99][99][1])')))
+    assert not any('on the stack' in e.message for e in analyzer.get_errors() + analyzer.get_warnings())
+
+
+@pytest.mark.parametrize('body, out', [
+    ('int[2][3][4] c\nc[1][2][3] = 9\nprint("{@1} {@2}", c[1][2][3], c[0][0][0])', '9 0'),
+    ('string[2][2][2] s\ns[1][1][1] = "x"\nprint("[{@1}][{@2}]", s[1][1][1], s[0][0][0])', '[x][]'),
+    ('int[][][] v = [[[1, 2], [3, 4]], [[5, 6], [7, 8]]]\nprint("{@1}", v[1][1][1])', '8'),
+    ('int[300][300][2] big\nbig[299][299][1] = 5\nprint("{@1}", big[299][299][1])', '5'),   # 720 KB
+])
+def test_a_3d_array_on_the_heap_runs_and_is_freed(body, out):
+    code, stdout, err = compile_and_run(main(body))      # under the leak check
+    assert code == 0, err
+    assert stdout.strip().splitlines()[0] == out

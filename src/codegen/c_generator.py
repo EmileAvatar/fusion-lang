@@ -1654,6 +1654,33 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             fill = self._grid_fill(element)
             self.emit_line(f'for (int fusion_i = 0; fusion_i < {total}; fusion_i++) {node.name}[fusion_i] = {fill}')
 
+    def _heap_block_declaration(self, node, T: str, size: int, managed: bool) -> None:
+        """A local array of 3 dimensions (D.154): its slots in a block on the heap, freed when its
+        scope ends - the sizes stay known while compiling, so it reads and passes as on the stack."""
+        name = node.name
+        element = node.var_type.element_type
+        self.emit_line(f'{T}* {name} = ({T}*)fusion_alloc(sizeof({T}) * {size})')
+        loop = f'for (int fusion_i = 0; fusion_i < {size}; fusion_i++)'
+        if getattr(node, 'array_from', None) is not None:
+            # int[2][3][4] n = m (45.12e): the slots copied - byVal m: objects copied too
+            source, deep = node.array_from
+            slot = f'{self.visit(source)}[fusion_i]'
+            value = (self.clone_code(element, slot) if deep else self.copy_code(element, slot)) \
+                if self.is_managed(element) else slot
+            self.emit_line(f'{loop} {name}[fusion_i] = {value}')
+        elif self._returns_array(node.initializer):
+            # int[2][3][4] c = make(): defaults first (the copy frees the old strings), then copied in
+            self.emit_line(f'{loop} {name}[fusion_i] = {self._grid_fill(element)}')
+            self.consumed.add(id(node.initializer))
+            wrapper = self.array_wrapper_name(node.initializer.inferred_type)
+            self.emit_line(f'{wrapper}_copy({name}, {self.visit(node.initializer)})')
+        elif node.initializer:
+            init_code = self.owned_value(node.initializer, node.var_type)
+            self.emit(f'{{ {T} fusion_init[{size}] = {init_code}; '
+                      f'{loop} {name}[fusion_i] = fusion_init[fusion_i]; }}')
+        else:
+            self.emit_line(f'{loop} {name}[fusion_i] = {self._grid_fill(element)}')
+
     def _grid_fill(self, element) -> str:
         """A new slot's value: the element's default (a struct as a compound literal)."""
         fill = self._default_value_code(element)
@@ -1910,6 +1937,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                     "no resolved size - semantic analysis must resolve every array's size "
                     "before code generation."
                 )
+            if getattr(node.var_type, 'heap_block', False):
+                self._heap_block_declaration(node, elem_c_type, size, managed)
+                return ''
             if getattr(node, 'array_from', None) is not None:
                 # int[2][3] n = m (45.12e, D.025): the slots copied - a string copied, an object one
                 # more holder (m can't be used after); byVal m: objects copied too

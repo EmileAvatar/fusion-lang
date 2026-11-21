@@ -97,6 +97,12 @@ def _mark_many_locals(function) -> None:
     if body is None:
         return
     nodes = list(_nodes(body))
+    # D.154: a local array of 3 dimensions lives on the heap - its sizes stay known while compiling,
+    # only its slots are in a block on the heap, freed when its scope ends; the stack holds 1D and 2D
+    for n in nodes:
+        if isinstance(n, VarDeclStmt) and isinstance(n.var_type, ArrayType) and n.var_type.dims \
+                and len(n.var_type.dims) == 3 and not n.var_type.growable:
+            n.var_type.heap_block = True
     arrays = {n.name: n for n in nodes if isinstance(n, VarDeclStmt) and isinstance(n.var_type, ArrayType)
               and n.var_type.dims and not n.var_type.growable and not getattr(n, 'is_fixed', False)
               and not n.is_const}

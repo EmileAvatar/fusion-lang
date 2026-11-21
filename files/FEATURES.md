@@ -305,7 +305,9 @@ then each point is decided and solved completely. One line per section and per l
 				growable one, never expands); a growable one takes values or a stack array of any shape - tests/test_array_whole_copy.py
 			[ ] Later: a heap array (growable, or plain given another shape) given whole to a new array or replaced from
 				another heap array or a function; a parameter of any size replaced as a whole
-			[ ] A 3D array (plain / fixed) on the heap, not the stack (D.154)
+			[DONE 2026-11-21] A local 3D array (plain / fixed) on the heap, not the stack (D.154): its sizes still known while
+				compiling, its slots in one block freed when its scope ends; not measured by stackLimit - tests/test_many_dims.py
+			[ ] Later: a 3D array as a struct field (inside a struct on the stack) - on the heap too (D.154)
 		[DONE] 45.11 `toList` on them: a List of Lists, the outer dimension first (D.148 - user, 2026-11-15); a null object slot a NullError, nothing leaked - tests/test_many_dims_to_list.py, example syntax_many_dims_to_list
 			[DONE] 45.11b `toCSV(",", "#", "\n")` on every array of plain values (D.151): a line per row; 3 dimensions and up the sheets
 				side by side split by "#"; CSV quoting; a null slot an empty field (`1,2,,4`); `[arrays] csvManyDimensions` (default true)

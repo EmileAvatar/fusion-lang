@@ -73,7 +73,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-16: 45.12e parts 1-2 (a whole array given to a new one: moved, byVal a copy), part 3a (replacing, same shape), part 3b (another shape - to the heap)
 - Done 2026-11-16: the index error naming its dimension; 45.16 files/ArrayCube.html
 - 2026-11-16: Q.030, Q.032, Q.033 answered - D.153 (JAGG), D.154 (stack / heap); 2026-11-21: Q.031 answered - D.163, D.148
-- **Next Action:** the 3D-on-the-heap move (D.154), then 45.15 part 1 (FLAT / RECT), then JAGG (D.163) and the third walk order
+- Done 2026-11-21: a local 3D array on the heap (D.154) - `heap_block`: sizes known, slots in a heap block
+- **Next Action:** 45.15 part 1 (FLAT / RECT), then JAGG (D.163) and the third walk order
 
 ### 45.12e and 45.15 - the plan (2026-11-16, to approve)
 
