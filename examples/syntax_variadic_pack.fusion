@@ -1,0 +1,8 @@
+void function show(T... items)                      // no condition: values of any type each - a pack
+    print("{@1} values", items.len())
+    for x in items                                   // written out once per value, x of that value's type
+        print("{@1}", x)
+
+void function main()
+    show(1, "two", 3.5)                              // 3 values / 1 / two / 3.500000
+    show(true, 'c')                                  // 2 values / true / c

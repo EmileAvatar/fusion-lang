@@ -2533,6 +2533,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        # A block standing alone that must be a C scope of its own - one value's turn in a
+        # pack's loop (33.2e2), where each turn declares the same names with other types
+        braced = getattr(node, 'braced', False)
+        if braced:
+            self.emit('{')
+            self.indent()
         # Each block frees its own strings when it ends (Task 18.3.1)
         if hasattr(self, 'cleanup_scopes'):
             self.push_scope('block')
@@ -2540,6 +2546,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.visit(stmt)
         if hasattr(self, 'cleanup_scopes'):
             self.pop_scope()
+        if braced:
+            self.dedent()
+            self.emit('}')
 
         return ''
 

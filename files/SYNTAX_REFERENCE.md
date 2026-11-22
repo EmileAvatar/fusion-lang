@@ -324,8 +324,25 @@ empty List), one array, or one List - inside the function it is a `List<int>`. I
 has no default. The values are lent to the call (an object passed this way is still usable after it).
 `T... items` works the same in a generic: T comes from the values (all of one type), or the List / array's element;
 values of several types that all meet a condition (`<T extends Vehicle>(T... vs)` - a Car and a Bus) make T the
-condition's type. Values of any type each (a pack, `show(1, "two", car)`) come with the next step. `main`'s
-`string... args` stays an array.
+condition's type. `main`'s `string... args` stays an array.
+
+<!-- example: syntax_variadic_pack | task: 33.2e2 -->
+```fusion
+void function show(T... items)                      // no condition: values of any type each - a pack
+    print("{@1} values", items.len())
+    for x in items                                   // written out once per value, x of that value's type
+        print("{@1}", x)
+
+void function main()
+    show(1, "two", 3.5)                              // 3 values / 1 / two / 3.500000
+    show(true, 'c')                                  // 2 values / true / c
+```
+Values of different types with no condition on T make a pack (as C++'s variadic templates): the function is made
+once for each combination of types used (`show<int, string, double>`), each value keeping its own type. Inside,
+the pack can be looped (`for x in items` - the body written out per value, T that value's type there), counted
+(`items.len()`, `len(items)`) or read by a written number (`items[1]`); passing it whole, a computed index, T
+outside the loop, T as the result, and `break` / `continue` in that loop are errors that say why. With a condition
+(`<T extends int>`) the values must all meet it instead.
 
 #### Lambdas and function values
 

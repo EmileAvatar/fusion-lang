@@ -420,13 +420,72 @@ def test_variadic(body, lines):
 
 
 @pytest.mark.parametrize('top, body, message', [
-    ('', 'print(firstOf(1, "a"))', "are of different types (int, string)"),
+    ('', 'print(firstOf(1, "a"))', "a pack: the result is T"),     # a pack - but T as the result
     ('', 'int n = howMany()', "T can't be worked out from the arguments"),
     ('', 'int n = sum("a", "b")', "string"),
     ('int function bad(int... ns, int last) : last\n\n', 'print("x")', "must be the last parameter"),
 ])
 def test_variadic_mistakes(top, body, message):
     found = errors_of(body, top=VARIADIC + top)
+    assert any(message in e for e in found), found
+
+
+# ---------------------------------------------------------------- 33.2e2 a pack: values of any type each
+
+PACKS = ('class Car\n'
+         '    public string name\n'
+         '    constructor(string name)\n'
+         '        this.name = name\n\n'
+         'struct Point\n'
+         '    int x\n'
+         '    int y\n\n'
+         'void function show(T... items)\n'
+         '    print("{@1} values", items.len())\n'
+         '    for x in items\n'
+         '        print("{@1}", x)\n\n'
+         'string function describe(string title, T... items)\n'
+         '    string text = title\n'
+         '    foreach (T x in items)\n'
+         '        T copy = x\n'
+         '        text = text + " [" + typeOf(copy) + "]"\n'
+         '    return text\n\n'
+         'string function tagged<K, T>(K tag, T... items)\n'
+         '    return format("{@1}:{@2}:{@3}", tag, len(items), items[1])\n\n')
+
+
+@pytest.mark.parametrize('body, lines', [
+    ('show(1, "two", 3.5)', ['3 values', '1', 'two', '3.500000']),
+    ('show(true, \'c\')\nshow(false, \'d\')', ['2 values', 'true', 'c', '2 values', 'false', 'd']),   # one copy
+    ('Car c = Car("mini")\nprint(describe("t:", 1, "a", c, Point(1, 2)))\nprint(c.name)',
+     ['t: [int] [string] [Car] [Point]', 'mini']),                               # an object lent, still usable
+    ('print(tagged(7, "x", 2.5))', ['7:2:2.500000']),                              # with another type parameter
+    ('show(1, 2)', ['2 values', '1', '2']),                                        # one type - a List as before
+])
+def test_packs(body, lines):
+    assert run(body, top=PACKS) == lines
+
+
+def test_one_copy_per_combination():
+    program = parse(PACKS + 'void function main()\n    show(1, "a")\n    show(2, "b")\n    show("c", 3)\n')
+    SemanticAnalyzer().analyze(program)
+    names = sorted(d.name for d in program.declarations if getattr(d, 'generic_of', None) == 'show')
+    assert names == ['show__int__string', 'show__string__int']
+
+
+@pytest.mark.parametrize('top, body, message', [
+    ('T function firstOf(T... items) : items[0]\n\n', 'print(firstOf(1, "a"))', "the result is T"),
+    ('int function f(T... items)\n    int i = 0\n    return items[i]\n\n', 'int n = f(1, "a")',
+     "takes a number written in the code"),
+    ('void function f(T... items)\n    print(items)\n\n', 'f(1, "a")', "not passed or kept whole"),
+    ('void function f(T... items)\n    List<T> all = items\n\n', 'f(1, "a")', "T is used outside 'for x in items'"),
+    ('void function f(T a, T... items)\n    print("x")\n\n', 'f(1, 2, "b")', "T is int already, from an earlier"),
+    ('void function f(T... items)\n    for x in items\n        break\n\n', 'f(1, "a")', "break / continue"),
+    ('void function f(T... items)\n    foreach (int x in items)\n        print("{@1}", x)\n\n', 'f(1, "a")',
+     "names its item T, or no type"),
+    ('void function f<T extends int>(T... items)\n    print("x")\n\n', 'f(1, "a")', "each must meet <T extends int>"),
+])
+def test_pack_mistakes(top, body, message):
+    found = errors_of(body, top=top)
     assert any(message in e for e in found), found
 
 

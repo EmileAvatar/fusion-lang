@@ -217,6 +217,118 @@ def _rename_own(node, old: str, new: str, seen=None) -> None:
             _rename_own(value, old, new, seen)
 
 
+_SKIP = ('location', 'declaration', 'callee_declaration', 'scope', 'inferred_type')
+_COUNT = ('len', 'length', 'count', 'size')
+
+
+def _children(node):
+    """(field name, value) of each child worth walking in an AST node."""
+    for f in fields(node):
+        if f.name not in _SKIP:
+            value = getattr(node, f.name)
+            if isinstance(value, list) or (is_dataclass(value) and not isinstance(value, type)):
+                yield f.name, value
+
+
+def _mentions_type(node, name: str) -> bool:
+    """Whether a type (or any node) names the type parameter `name`."""
+    if isinstance(node, StructType) and node.name == name:
+        return True
+    if isinstance(node, list):
+        return any(_mentions_type(item, name) for item in node)
+    if not is_dataclass(node) or isinstance(node, type):
+        return False
+    return any(_mentions_type(value, name) for _, value in _children(node))
+
+
+def _rename_variable(node, old: str, new: str) -> None:
+    """Every use of the loop variable `old` becomes the value's parameter `new`."""
+    if isinstance(node, list):
+        for item in node:
+            _rename_variable(item, old, new)
+        return
+    if not is_dataclass(node) or isinstance(node, type):
+        return
+    if isinstance(node, IdentifierExpr) and node.name == old:
+        node.name = new
+    for _, value in _children(node):
+        _rename_variable(value, old, new)
+
+
+def _leaves_loop(node) -> bool:
+    """A break or continue of this loop itself (not of a loop inside it)."""
+    from src.parser.ast_nodes import BreakStmt, ContinueStmt, WhileStmt
+    if isinstance(node, (BreakStmt, ContinueStmt)):
+        return True
+    if isinstance(node, list):
+        return any(_leaves_loop(item) for item in node)
+    if not is_dataclass(node) or isinstance(node, (type, WhileStmt)) or type(node).__name__ == 'ForStmt':
+        return False
+    return any(_leaves_loop(value) for _, value in _children(node))
+
+
+def _unroll_pack(body, pack: str, pack_type: str, kinds: list, program, problems: list):
+    """A pack's function body for these types (33.2e2) - see `GenericsMixin._pack_instance`."""
+    from src.parser.ast_nodes import BlockStmt, ForStmt, LiteralExpr
+
+    def is_pack(node):
+        return isinstance(node, IdentifierExpr) and node.name == pack
+
+    def count(location):
+        return LiteralExpr(location=location, value=len(kinds), type_hint='int')
+
+    def walk(node):
+        if isinstance(node, list):
+            return [walk(item) for item in node]
+        if not is_dataclass(node) or isinstance(node, type):
+            return node
+        if isinstance(node, ForStmt) and is_pack(node.iterable):
+            declared = getattr(node, 'declared_type', None)
+            if declared is not None and not (isinstance(declared, StructType) and declared.name == pack_type):
+                problems.append(f"'foreach' over '{pack}' names its item {pack_type}, or no type - each value "
+                                f"is of its own type")
+            if _leaves_loop(node.body):
+                problems.append(f"break / continue in a loop over '{pack}' comes later - each value's code is "
+                                f"written out in turn")
+            turns = []
+            for n, kind in enumerate(kinds):           # the body once per value, with that value's type
+                turn = copy.deepcopy(node.body, {id(d): d for d in program.declarations})
+                turn = _replace_types(turn, {pack_type: kind}, {id(d): d for d in program.declarations})
+                _rename_variable(turn, node.variable, f'{pack}__{n}')
+                turn = walk(turn)
+                if isinstance(turn, BlockStmt):
+                    turn.braced = True                  # a C scope of its own - names repeat per turn
+                turns.append(turn)
+            return BlockStmt(location=node.location, statements=turns)
+        if isinstance(node, CallExpr) and not node.arguments and isinstance(node.callee, MemberExpr) \
+                and is_pack(node.callee.object) and node.callee.member in _COUNT:
+            return count(node.location)                 # items.len()
+        if isinstance(node, CallExpr) and isinstance(node.callee, IdentifierExpr) \
+                and node.callee.name in _COUNT and len(node.arguments) == 1 and is_pack(node.arguments[0]):
+            return count(node.location)                 # len(items)
+        if isinstance(node, MemberExpr) and is_pack(node.object) and node.member in _COUNT:
+            return count(node.location)                 # items.length
+        if type(node).__name__ == 'IndexExpr' and is_pack(node.array):
+            index = node.index
+            if isinstance(index, LiteralExpr) and index.type_hint == 'int' and 0 <= index.value < len(kinds):
+                return IdentifierExpr(location=node.location, name=f'{pack}__{index.value}')
+            problems.append(f"'{pack}[...]' takes a number written in the code, 0 to {len(kinds) - 1} - each "
+                            f"value is of its own type")
+            return node
+        if is_pack(node):
+            problems.append(f"'{pack}' can be looped (for x in {pack}), counted ({pack}.len()) or read by a "
+                            f"written number ({pack}[0]) - not passed or kept whole")
+            return node
+        if isinstance(node, StructType) and node.name == pack_type:
+            problems.append(f"{pack_type} is used outside 'for x in {pack}' - there it has no one type")
+            return node
+        for name, value in _children(node):
+            setattr(node, name, walk(value))
+        return node
+
+    return walk(body)
+
+
 def _c_part(text: str) -> str:
     """A type as part of a C name: List<int> -> List_int, int[] -> int_arr."""
     return re.sub(r'_+', '_', re.sub(r'\W', '_', text.replace('[]', '_arr'))).strip('_')
@@ -354,8 +466,12 @@ class GenericsMixin:
                 return void                                  # an argument is wrong - said already
             for (_, expected), kind in zip(self._generic_parameters(generic, node), actual):
                 self._bind(expected, kind, bindings, params)
-            if packed and not self._bind_variadic(generic, packed, bindings, params, node):
-                return void
+            if packed:
+                result = self._bind_variadic(generic, packed, bindings, params, node)
+                if result is False:
+                    return void
+                if result == 'pack':
+                    return self._call_pack(node, generic, bindings, params, packed[1])
             missing = [p for p in params if p not in bindings]
             if missing:
                 example = ', '.join('int' for _ in params)
@@ -398,12 +514,79 @@ class GenericsMixin:
                                 declaration=self.struct_declaration(extends))
             bindings[name] = parent           # each value checked against it with the call
             return True
+        conditions = (getattr(generic, 'type_conditions', None) or {}).get(name)
+        if isinstance(expected, StructType) and name in params and name not in bindings and not conditions:
+            return 'pack'                     # values of any type each (33.2e2)
+        if conditions:
+            why = f"each must meet {_condition_text(name, conditions)}"
+        elif name in bindings:
+            why = f"{name} is {self.type_to_string(bindings[name])} already, from an earlier argument"
+        else:
+            why = "give values of one type"
         self.errors.append(SemanticError(
             f"'{generic.name}': the values for '{generic.parameters[-1].name}...' are of different types "
-            f"({', '.join(dict.fromkeys(shown))}) - give values of one type, or a condition they all meet "
-            f"(<{name} extends Vehicle>); values of any type each (a pack) come with the next step of 33.2e",
-            node.location))
+            f"({', '.join(dict.fromkeys(shown))}) - {why}", node.location))
         return False
+
+    def _call_pack(self, node, generic, bindings: dict, params, kinds):
+        """`show(1, "two", car)` (33.2e2): a copy for this combination of types - one parameter per value -
+        and the call made to it with the values as written."""
+        void = PrimitiveType(location=node.location, name='void')
+        pack_type = generic.parameters[-1].param_type.element_type.name
+        missing = [p for p in params if p != pack_type and p not in bindings]
+        if missing:
+            self.errors.append(SemanticError(
+                f"'{generic.name}': {', '.join(missing)} can't be worked out from the arguments - write the "
+                f"types (D.166)", node.location))
+            return void
+        values = node.arguments[-1]
+        node.arguments = node.arguments[:-1] + list(values.elements)
+        instance = self._pack_instance(generic, bindings, params, pack_type, kinds, node)
+        if instance is None:
+            return void
+        node.callee = IdentifierExpr(location=node.callee.location, name=instance.name)
+        node.generic_of = generic.name
+        return self._visit_call(node)
+
+    def _pack_instance(self, generic, bindings, params, pack_type, kinds, node):
+        """The copy for a pack: `items...` becomes `items__0`, `items__1` ... each of its own type; in
+        the body `for x in items` is written out once per value (x that value, T its type),
+        `items.len()` / `len(items)` the count, `items[1]` that value. Anything else with the pack -
+        or T outside such a loop - is an error (each value is of another type)."""
+        others = [p for p in params if p != pack_type]
+        key = tuple(self.type_to_string(bindings[p]) for p in others) + tuple(self.type_to_string(k) for k in kinds)
+        made = generic.instances.get(key)
+        if made is not None:
+            return made
+        memo = {id(d): d for d in self.program.declarations}
+        instance = copy.deepcopy(generic, memo)
+        instance.type_params = None
+        instance.instances = None
+        _replace_types(instance, {p: bindings[p] for p in others}, memo)
+        last = instance.parameters.pop()
+        pack = last.name
+        for n, kind in enumerate(kinds):
+            one = copy.copy(last)
+            one.name, one.is_variadic = f'{pack}__{n}', False
+            one.param_type = copy.deepcopy(kind, {id(d): d for d in self.program.declarations})
+            instance.parameters.append(one)
+        problems = []
+        if _mentions_type(instance.return_type, pack_type):
+            problems.append(f"the result is {pack_type}, but each value is of another type - give the result a "
+                            f"type of its own, or values of one type")
+        instance.body = _unroll_pack(instance.body, pack, pack_type, kinds, self.program, problems)
+        if problems:
+            self.errors.append(SemanticError(
+                f"'{generic.name}' called with values of different types ({', '.join(key[len(others):])}) - a "
+                f"pack: {problems[0]}", node.location))
+            return None
+        instance.name = f"{generic.name}__{'__'.join(_c_part(k) for k in key)}"
+        instance.generic_of = generic.name
+        instance.generic_types = key
+        generic.instances[key] = instance
+        self.program.declarations.append(instance)
+        self.generic_host.register_generic_instance(instance)
+        return instance
 
     def unmet_condition(self, generic, bindings: dict):
         """The message for the first condition a type doesn't meet (33.2d, D.167), or None:
