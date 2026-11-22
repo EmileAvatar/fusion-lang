@@ -720,3 +720,6 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 	[POSTPONED to 42] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19)
 	[DONE 2026-11-22] 45.6 Docs and examples: files/Arrays.md 8c (the truth table, every cell compiled and run - it found
 		toList freed twice and a poor add message, both fixed), spec 031 rewritten, spec 140, the showcase
+
+#### Later / advanced - done by Task 45 (2026-11-22)
+	[DONE - Task 45.12 / 45.15] L6.8 Multi-dimensional arrays (growable lists: done, 18.5.1) - 2 and 3 dimensions, growable, jagged

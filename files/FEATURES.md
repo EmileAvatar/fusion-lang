@@ -934,7 +934,6 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L6.5 `Set<T>`: each value once
 		[ ] L6.6 Slices: a part of a list or string by range (`numbers[0...1]`)
 		[ ] L6.7 Tuples: a few values without declaring a struct (`(string, int) pair = ("Ada", 36)`)
-		[POSTPONED - after MVP] L6.8 Multi-dimensional arrays (growable lists: done, 18.5.1)
 	L7 Control flow
 		[ ] L7.1 `switch` as an alias of `match` (familiar from VB.NET); `elif` an alias for `else if`
 			`match` stays the form in docs and examples (user, 2026-10-31 - D.065)
