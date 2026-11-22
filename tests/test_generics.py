@@ -265,9 +265,51 @@ def test_generic_class_mistakes(body, message):
     assert not any('Box__' in e for e in found), found
 
 
-def test_a_generic_class_with_statics_comes_later():
-    found = errors_of('print("x")', top='class Box<T>\n    T item\n    static int made = 0\n\n')
-    assert any("with static members comes later (Task 33.3c)" in e for e in found), found
+# ---------- 33.3c statics on a generic class (Q.044 -> D.173) ----------
+
+STATICS = ('class Box<T>\n    public static int made = 0\n    public static T last\n    T item\n'
+           '    constructor(T item)\n        this.item = item\n        made = made + 1\n        last = item\n'
+           '    public static int function count() : made\n\n')
+
+
+@pytest.mark.parametrize('ownership', ['move', 'share'])
+def test_statics_one_set_per_copy(ownership):
+    # the default: Box<int> and Box<string> each have their own; a static of type T is that copy's type
+    assert run('Box<int> a = Box(1)\nBox<int> b = Box(2)\nBox<string> c = Box("hat")\n'
+               'print("{@1} {@2}", Box<int>.made, Box<string>.made)\n'
+               'print("{@1} {@2}", Box<int>.last, Box<string>.last)\nprint("{@1}", Box<int>.count())',
+               top=STATICS, memory_config=MemoryConfig(assignment=ownership)) == ['2 1', '2 hat', '2']
+
+
+SHARED_STATICS = ('class Box<T>\n    public static int made = 0\n    T item\n    constructor(T item)\n'
+                  '        this.item = item\n        made = made + 1\n    public static int function count() : made\n\n')
+
+
+def test_statics_shared_by_every_copy():
+    # [generics] sharedStatics = true: one set for all copies, written without the types
+    assert run('Box<int> a = Box(1)\nBox<string> c = Box("x")\nprint("{@1} {@2}", Box.made, Box.count())',
+               top=SHARED_STATICS, generics_config=GenericsConfig(shared_statics=True)) == ['2 2']
+
+
+@pytest.mark.parametrize('top, body, shared, message', [
+    (STATICS, 'Box<int> a = Box(1)\nprint("{@1}", Box.made)', False,
+     "Each copy of 'Box' has its own 'made' - write the types: Box<int>.made (D.173)"),
+    (SHARED_STATICS, 'Box<int> a = Box(1)\nprint("{@1}", Box<int>.made)', True,
+     "'Box' has one set of statics for all its copies ([generics] sharedStatics) - write Box.<name>, without the "
+     "types (D.173)"),
+    ('class Box<T>\n    public static T last\n    T item\n\n', 'print("x")', True,
+     "'last' of 'Box' names a type parameter - one shared static can't be of each copy's type; [generics] "
+     "sharedStatics = false gives each copy its own (D.173)"),
+])
+def test_generic_statics_mistakes(top, body, shared, message):
+    found = errors_of(body, top=top, generics_config=GenericsConfig(shared_statics=shared))
+    assert found[0] == message, found
+
+
+def test_the_shared_statics_setting():
+    assert _load_generics_section({'generics': {'sharedStatics': True}}, 'fusion.toml').shared_statics is True
+    with pytest.raises(ProjectConfigError, match='generics.sharedStatics must be true or false'):
+        _load_generics_section({'generics': {'sharedStatics': 1}}, 'fusion.toml')
 
 
 # ---------- 33.3a a generic class with a plain parent and plain interfaces ----------

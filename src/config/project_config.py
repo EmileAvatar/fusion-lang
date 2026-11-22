@@ -241,8 +241,11 @@ class GenericsConfig:
     Attributes:
         enabled: generic functions, structs and classes allowed (default true); off - a generic
             declaration is an error (the built-in List<T> / Map<K, V> stay)
+        shared_statics: a generic class's statics - false (default) one set per copy (`Box<int>.made`),
+            true one set for all copies (`Box.made`) (33.3c, D.173)
     """
     enabled: bool = True
+    shared_statics: bool = False
 
 
 @dataclass
@@ -645,12 +648,13 @@ def _load_generics_section(data: dict, config_path: str) -> GenericsConfig:
     """Parse and validate the [generics] section (Task 33, D.168)."""
     generics = GenericsConfig()
     section = _require_table(data, "generics", config_path)
+    names = {"enabled": "enabled", "sharedStatics": "shared_statics"}     # sharedStatics: 33.3c (D.173)
     for key, value in section.items():
-        if key != "enabled":
-            raise ProjectConfigError(f"{config_path}: unknown setting generics.{key} (known: ['enabled'])")
+        if key not in names:
+            raise ProjectConfigError(f"{config_path}: unknown setting generics.{key} (known: {sorted(names)})")
         if not isinstance(value, bool):
-            raise ProjectConfigError(f"{config_path}: generics.enabled must be true or false, got {value!r}")
-        generics.enabled = value
+            raise ProjectConfigError(f"{config_path}: generics.{key} must be true or false, got {value!r}")
+        setattr(generics, names[key], value)
     return generics
 
 

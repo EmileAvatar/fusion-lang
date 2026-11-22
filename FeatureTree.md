@@ -48,7 +48,7 @@ Types
    - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where known
    - Generics                 functions, structs, classes; conditions (extends / : / Number / int / implements);
                               T... items - of one type, or a pack show(1, "two", car);
-                              types from the left - Garage<Car> g = Garage(); a parent / interfaces (Box<T>, Collection<T>)
+                              types from the left - Garage<Car> g = Garage(); a parent / interfaces (Box<T>, Collection<T>); statics per copy
 
 Strings
    - Strings as values        freed automatically; changed in place s[i] = c
@@ -121,7 +121,7 @@ Settings
    - Agnostic language        safety + memory settings built; concurrency + backend choice not yet
    - Memory safety            ownership built; some readonly / library parts left
    - ... operator             string... args, int... numbers, T..., ranges 1...10 built; spread [...a] to do
-   - Generics                 statics on a generic class, another List<T> implementation (33.3c-d)
+   - Generics                 another List<T> implementation (33.3d)
    - Casts                    (Shape)aCircle built; some number casts left
    - Arrays in three forms    plain, fixed, growable - RECT storage later
    - Collection<T>            classes, List, Map built; arrays as Collection later

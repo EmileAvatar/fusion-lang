@@ -836,7 +836,9 @@ class Container<T> {
 }
 // [built] A parent and interfaces (33.3a, 33.3b): class Tag<T> inherits Named implements Printable;
 // class Special<T> inherits Box<T>; class IntBox inherits Box<int>; class Bag<T> implements Collection<T> -
-// its types written where it is used (on the left is enough); [designed] statics (33.3c)
+// its types written where it is used (on the left is enough)
+// [built] Statics (33.3c, D.173): one set per copy - Box<int>.made, Box<string>.made, a static T allowed;
+// [generics] sharedStatics = true: one set for all - Box.made
 // [built] Its types from where it is stored - written once, on the left (33.5, D.171): a variable, a field,
 // a parameter, a result; the arguments checked against them. var / let: no type on the left - write it
 // Container<Car> garage = Container()      // T is Car;  Container<Car>() - also fine

@@ -277,8 +277,8 @@ then each point is decided and solved completely. One line per section and per l
 		with the class per set of types (`Box__int.take`); T from the constructor's values or written `Box<string>(...)`;
 		`Box(...)` / `Box<T>` inside its own methods mean the copy; objects in it, in a List, a class field; messages
 		name a copy as written (`Box<int>`) - tests/test_generics.py, example syntax_generics
-		[DONE 2026-11-22 - 33.3a, 33.3b] a generic class with a parent and interfaces, plain or naming T;
-			[POSTPONED to 33.3c] statics
+		[DONE 2026-11-22 - 33.3a, 33.3b, 33.3c] a generic class with a parent and interfaces, plain or naming T;
+			statics
 	[DONE 2026-11-22] 33.2d Conditions (D.167): `<T extends Vehicle>` / `<T : Vehicle>` (a class or struct and its
 		children), `extends Number` (any number), `extends int` (only int), `implements A, B`, both at once; on
 		functions, structs and classes; an unmet one a compile error at the use (a call or a type written), naming
@@ -332,7 +332,8 @@ then each point is decided and solved completely. One line per section and per l
 			Collection<T>` / `Iterator<T>`: copied before inheritance, from the types written (a call alone says to write
 			them); fixed on the way: `e is Person` for an Employee was taken for "never"; Collection<T> written in a
 			generic's copy kept its old name
-		[ ] 33.3c Statics - one set per copy; `[generics] sharedStatics` (D.173)
+		[DONE 2026-11-22] 33.3c Statics - one set per copy (`Box<int>.made`, `static T` allowed), made early as in
+			33.3b; `[generics] sharedStatics = true` one set for all (`Box.made`, a static of type T an error) (D.173)
 		[ ] 33.3d Another implementation behind `List<T>` - a core of five (D.174); a List value holds any (D.175)
 
 <a id="task-45"></a>

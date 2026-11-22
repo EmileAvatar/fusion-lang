@@ -367,6 +367,33 @@ generic collection of your own works in `foreach` and where a `Collection<int>` 
 before inheritance is worked out, from the types written in the program: write its types where it is used, on the left
 is enough (`Special<int> s = Special(5)`); a call alone (`print(Special(5).kind())`) says to write them (33.3b).
 
+#### Statics on a generic class: one set per copy
+
+<!-- example: syntax_generic_statics | task: 33.3c | folder: 09_generics -->
+```fusion
+class Box<T>
+    public static int made = 0                        // one per copy: Box<int>.made, Box<string>.made
+    public static T last                              // of the copy's type - an int in Box<int>
+    T item
+    constructor(T item)
+        this.item = item
+        made = made + 1                               // inside the class: this copy's own
+        last = item
+    public static int function count() : made
+
+void function main()
+    Box<int> a = Box(1)
+    Box<int> b = Box(2)
+    Box<string> c = Box("hat")
+    print("{@1} {@2}", Box<int>.made, Box<string>.made)       // 2 1
+    print("{@1} {@2}", Box<int>.last, Box<string>.last)       // 2 hat
+    print("{@1}", Box<int>.count())                           // 2
+```
+Each copy of a generic class has its own statics (D.173) - written with the types outside the class
+(`Box<int>.made`; `Box.made` alone says to write them), by name inside it. `[generics] sharedStatics = true` gives
+one set for all copies instead, written `Box.made` - then a static of type T is an error, since one value can't be of
+each copy's type.
+
 #### Generic conditions: what a type parameter may be
 
 <!-- example: syntax_generic_conditions | task: 33.2d | folder: 09_generics -->
@@ -2426,6 +2453,13 @@ waitAtExit = false             # true: wait for a key before the window closes (
 mode = "safe"                    # safe (default) | strict (every warning is an error) | unsafe
 maxCallDepth = "max"           # endless recursion: caught by stack use; a number also counts
                                  # calls (memory-constrained devices) - a StackOverflowError
+
+[generics]
+enabled = true                  # generic functions, structs and classes of your own; false: an error
+sharedStatics = false           # a generic class's statics: one set per copy; true: one for all
+
+[ranges]
+strictStep = false              # a step that misses the end: a warning; true: a compile error
 
 [backend]
 target = "c"

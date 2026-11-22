@@ -92,7 +92,8 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
   leaked its own object fields (freed / copied through the parent's helpers)
 - Done 2026-11-22: 33.3b a generic parent or interface (`inherits Box<T>`, `implements Collection<T>`) - copied before
   inheritance from the types written; fixed: `e is Person` taken for never
-- **Next Action:** 33.3c statics on a generic class (D.173); then 33.3d; 33.7 (`--interface` shows a kept parameter) after
+- Done 2026-11-22: 33.3c statics on a generic class - one set per copy, `[generics] sharedStatics` (D.173)
+- **Next Action:** 33.3d another implementation behind `List<T>` (D.174, D.175); 33.7 (`--interface` shows a kept parameter) after
 
 ### 33.3 - plan (to approve): a generic class with a parent, interfaces or statics; another List<T> implementation
 **Settings:** `[generics] sharedStatics` (33.3c, D.173 - default false: one set per copy); none else.

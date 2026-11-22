@@ -58,7 +58,7 @@ def type_parameters(function: FunctionDecl) -> list:
     return [name for name in found if TYPE_PARAMETER.match(name)]
 
 
-def take_generic_functions(program, enabled: bool) -> List[SemanticError]:
+def take_generic_functions(program, enabled: bool, shared_statics: bool = False) -> List[SemanticError]:
     """Take each generic function out of the program, into `program.generic_functions` - its copies
     are made when it is used. Also: a struct, class or enum may not be named T, K or V (D.166)."""
     errors: List[SemanticError] = []
@@ -76,13 +76,10 @@ def take_generic_functions(program, enabled: bool) -> List[SemanticError]:
                     f"'{decl.name}' is generic ({', '.join(decl.type_params)}) - generics are off in this project "
                     f"([generics] enabled = false, D.168)", decl.location))
             # class Box<T> (33.2c): its methods and constructors are copied with it - taken out here
-            # a parent and interfaces (33.3a): already given to it - inheritance and interfaces ran before this
-            if getattr(decl, 'static_fields', None) or getattr(decl, 'static_methods', None) \
-                    or getattr(decl, 'static_block', None):
-                errors.append(SemanticError(
-                    f"A generic {'class' if decl.is_class else 'struct'} ('{decl.name}') with static members comes "
-                    f"later (Task 33.3c)", decl.location))
-            members.update(id(m) for m in decl.methods + getattr(decl, 'static_methods', []))
+            # a parent and interfaces (33.3a, 33.3b): given to it, or to its copies made early; statics (33.3c): each
+            # copy's own (made early), or one set kept in the program ([generics] sharedStatics)
+            shared = list(getattr(decl, 'static_methods', None) or []) if getattr(decl, 'statics_shared', False) else []
+            members.update(id(m) for m in decl.methods + getattr(decl, 'static_methods', []) if m not in shared)
             decl.instances = getattr(decl, 'instances', None) or {}     # some made early (33.3b)
             program.generic_structs[decl.name] = decl
             continue
@@ -176,6 +173,8 @@ def struct_instance(program, generic: StructDecl, kinds: list, key: tuple, regis
     instance.type_params = None
     instance.instances = None
     _replace_types(instance, dict(zip(generic.type_params, kinds)), memo)
+    if getattr(generic, 'statics_shared', False):
+        instance.static_fields, instance.static_methods, instance.static_block = [], [], None   # one set (D.173)
     instance.name = f"{generic.name}__{'__'.join(_c_part(k) for k in key)}"
     instance.generic_of = generic.name
     instance.generic_types = key
@@ -205,13 +204,27 @@ def _mentions(node, names: set) -> bool:
                if f.name not in ('location', 'declaration', 'inferred_type', 'scope'))
 
 
-def instantiate_early(program) -> List[SemanticError]:
+def _has_statics(decl) -> bool:
+    return bool(getattr(decl, 'static_fields', None) or getattr(decl, 'static_methods', None)
+                or getattr(decl, 'static_block', None))
+
+
+def _static_names(decl) -> set:
+    return {f.name for f in getattr(decl, 'static_fields', None) or []} | \
+        {m.method_name for m in getattr(decl, 'static_methods', None) or []}
+
+
+def instantiate_early(program, shared_statics: bool = False) -> List[SemanticError]:
     """A generic class building on a generic one (33.3b): `class Special<T> inherits Box<T>`,
     `class Bag<T> implements Collection<T>`, `class IntBox inherits Box<int>`. Inheritance and interfaces are
     worked out before names are resolved, so these copies are made first, from the types written in the
     program (`Special<int>` - also on the left of `Special<int> s = Special(5)`, D.171): `Special<int>` builds on
     the copy `Box<int>` and answers `Collection<int>`; the passes after take them as any class. A copy only a
-    call would ask for (no type written anywhere) is an error that says to write it (`check_late_copy`)."""
+    call would ask for (no type written anywhere) is an error that says to write it (`check_late_copy`).
+
+    Statics (33.3c, D.173): one set per copy - a class with statics is copied here too, so the statics pass gives
+    each copy its own (`Box<int>.made` is `Box__int.made`); with `[generics] sharedStatics` the class keeps one
+    set for all copies (`Box.made`) and a static of type T is an error."""
     from src.parser.parser import type_text
     errors: List[SemanticError] = []
     templates = {d.name: d for d in program.declarations
@@ -231,12 +244,25 @@ def instantiate_early(program) -> List[SemanticError]:
                 d.early_interfaces.append(kind)
                 d.interface_kinds.remove(kind)
                 d.interfaces = [i for i in d.interfaces if i != kind.name]
-        if d.early_parent or d.early_interfaces:
+        if shared_statics and _has_statics(d):
+            d.statics_shared = True         # the statics pass gives the class one set; copies hold none
+            typed = [f for f in d.static_fields if _mentions(f.field_type, params)] + \
+                [m for m in d.static_methods if _mentions([m.return_type] + [p.param_type for p in m.parameters], params)]
+            for s in typed:
+                errors.append(SemanticError(
+                    f"'{getattr(s, 'method_name', None) or s.name}' of '{d.name}' names a type parameter - one shared "
+                    f"static can't be of each copy's type; [generics] sharedStatics = false gives each copy its own "
+                    f"(D.173)", s.location))
+            if typed:                       # said - left out, so nothing more follows from them
+                d.static_fields = [f for f in d.static_fields if f not in typed]
+                d.static_methods = [m for m in d.static_methods if m not in typed]
+                program.declarations[:] = [x for x in program.declarations if not any(x is s for s in typed)]
+        if d.early_parent or d.early_interfaces or (_has_statics(d) and not shared_statics):
             early.add(d.name)
             d.made_early = True
     plain = [d for d in program.declarations if isinstance(d, StructDecl) and d.name not in templates
              and getattr(d, 'class_parent_args', None)]
-    if not early and not plain:
+    if not early and not plain and not any(_has_statics(d) for d in templates.values()):
         return errors
 
     def make(template, args, where):
@@ -286,6 +312,23 @@ def instantiate_early(program) -> List[SemanticError]:
         if isinstance(node, CallExpr) and getattr(node, 'type_args', None) and isinstance(node.callee, IdentifierExpr) \
                 and node.callee.name in early and not _mentions(node.type_args, all_params):
             found.append((node.callee.name, node.type_args, node.location))      # BagIterator<int>(items)
+        if isinstance(node, IdentifierExpr) and getattr(node, 'type_args', None) and node.name in templates:
+            # Box<int>.made - a copy's static (33.3c): the copy's own, or one set for all
+            if getattr(templates[node.name], 'statics_shared', False):
+                errors.append(SemanticError(
+                    f"'{node.name}' has one set of statics for all its copies ([generics] sharedStatics) - write "
+                    f"{node.name}.<name>, without the types (D.173)", node.location))
+            elif node.name in early and not _mentions(node.type_args, all_params):
+                found.append((node.name, node.type_args, node.location, node))
+        if isinstance(node, MemberExpr) and isinstance(node.object, IdentifierExpr) \
+                and not getattr(node.object, 'type_args', None) and node.object.name in templates \
+                and _has_statics(templates[node.object.name]) \
+                and not getattr(templates[node.object.name], 'statics_shared', False) \
+                and node.member in _static_names(templates[node.object.name]):
+            t = templates[node.object.name]
+            errors.append(SemanticError(
+                f"Each copy of '{t.name}' has its own '{node.member}' - write the types: "
+                f"{t.name}<{', '.join('int' for _ in t.type_params)}>.{node.member} (D.173)", node.location))
         for f in fields(node):
             if f.name not in ('location', 'declaration', 'inferred_type', 'scope'):
                 requests(getattr(node, f.name), found)
@@ -299,8 +342,16 @@ def instantiate_early(program) -> List[SemanticError]:
     while pending:
         found = []
         requests(pending.pop(), found)
-        for name, args, where in found:
-            make(templates[name], args, where)
+        for name, args, where, *node in found:
+            made = make(templates[name], args, where)
+            if node and made is not None:          # Box<int>.made -> Box__int.made, as the statics pass names it
+                node[0].name, node[0].type_args = made.name, None
+    for d in templates.values():
+        if _has_statics(d) and not getattr(d, 'statics_shared', False):
+            # each copy has its statics now - the generic class itself keeps none (its methods go with it)
+            gone = {id(m) for m in d.static_methods}
+            program.declarations[:] = [x for x in program.declarations if id(x) not in gone]
+            d.static_fields, d.static_methods, d.static_block = [], [], None
     return errors
 
 

@@ -160,6 +160,9 @@
     <setting name="enabled" type="bool" default="true" task="33">
       <description>Generic functions, structs and classes of the program's own (T function first&lt;T&gt;(List&lt;T&gt; items)); false: a generic declaration is a compile error - the built-in List&lt;T&gt; and Map&lt;K, V&gt; stay (D.168)</description>
     </setting>
+    <setting name="sharedStatics" type="bool" default="false" task="33.3c">
+      <description>A generic class's statics: false - one set per copy (Box&lt;int&gt;.made and Box&lt;string&gt;.made are separate, a static of type T allowed); true - one set for all copies, written Box.made (a static of type T an error) (D.173)</description>
+    </setting>
   </section>
 
   <section name="ranges" description="Ranges in a loop: for i in 0...13 step 5">

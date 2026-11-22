@@ -1,0 +1,17 @@
+class Box<T>
+    public static int made = 0                        // one per copy: Box<int>.made, Box<string>.made
+    public static T last                              // of the copy's type - an int in Box<int>
+    T item
+    constructor(T item)
+        this.item = item
+        made = made + 1                               // inside the class: this copy's own
+        last = item
+    public static int function count() : made
+
+void function main()
+    Box<int> a = Box(1)
+    Box<int> b = Box(2)
+    Box<string> c = Box("hat")
+    print("{@1} {@2}", Box<int>.made, Box<string>.made)       // 2 1
+    print("{@1} {@2}", Box<int>.last, Box<string>.last)       // 2 hat
+    print("{@1}", Box<int>.count())                           // 2

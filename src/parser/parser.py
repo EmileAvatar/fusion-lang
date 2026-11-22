@@ -511,6 +511,8 @@ class Parser:
                     index=index
                 )
             elif self.match(TokenType.DOT):
+                if type_args is not None and isinstance(expr, IdentifierExpr):
+                    expr.type_args, type_args = type_args, None      # Box<int>.made (33.3c)
                 # Any word may follow '.', a keyword too - m.get(k), x.set(...) (Task 18.5.2):
                 # after a dot it can only be a field or method name
                 if self.peek().type != TokenType.IDENTIFIER and str(self.peek().value).isidentifier():
@@ -3296,8 +3298,10 @@ class Parser:
                 depth += 1
             elif token.type == TokenType.GREATER:
                 depth -= 1
-                if depth == 0:
-                    return self.peek(i + 1).type == TokenType.LPAREN
+                if depth == 0:          # first<int>( ... or Box<int>.made - a copy's static (33.3c)
+                    after = self.peek(i + 1)
+                    return after.type == TokenType.LPAREN or (
+                        after.type == TokenType.DOT and self.peek(i + 2).type == TokenType.IDENTIFIER)
             elif token.type not in self._TYPE_ARG_TOKENS:
                 return False
             i += 1

@@ -97,7 +97,7 @@ negateGuarded = false
 # [built] Generic functions, structs and classes of the program's own (default true); false: a
 # generic declaration is a compile error - List<T> / Map<K, V> stay (Task 33, D.168)
 enabled = true
-# [designed] A generic class's statics: false (default) - one set per copy (Box<int>.made,
+# [built] A generic class's statics: false (default) - one set per copy (Box<int>.made,
 # Box<string>.made); true - one set for all copies (Box.made) (33.3c, D.173)
 sharedStatics = false
 

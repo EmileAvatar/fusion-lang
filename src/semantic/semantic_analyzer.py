@@ -107,6 +107,7 @@ class SemanticAnalyzer:
         self.type_checker.csv_many_dimensions = getattr(arrays_config, 'csv_many_dimensions', True)
         # [generics] enabled (Task 33, D.168): generics of the program's own
         self.generics_enabled = getattr(generics_config, 'enabled', True)
+        self.shared_statics = getattr(generics_config, 'shared_statics', False)   # 33.3c (D.173)
         # [ranges] strictStep (Task 33.2g, D.170): a step that misses the end - a warning, or an error
         self.type_checker.strict_step = getattr(ranges_config, 'strict_step', False)
         self.control_flow_validator = ControlFlowValidator()
@@ -198,7 +199,7 @@ class SemanticAnalyzer:
         # Structs building on structs (Task 32.8): Employee gets its Person part as a field
         # A generic class building on a generic one (33.3b): its copies made now, before inheritance
         from .generics import instantiate_early
-        self.errors.extend(instantiate_early(ast))
+        self.errors.extend(instantiate_early(ast, self.shared_statics))
         parent_errors, parent_warnings = expand_struct_parents(ast)
         self.errors.extend(parent_errors)
         self.warnings.extend(parent_warnings)
@@ -225,7 +226,7 @@ class SemanticAnalyzer:
         # Generic functions (Task 33.2a, D.166): taken out of the program - a copy is made for each
         # set of types used, when the type checker finds the call
         self.errors.extend(variadic_parameters(ast))     # f(int... numbers) - a List inside (33.2e)
-        self.errors.extend(take_generic_functions(ast, self.generics_enabled))
+        self.errors.extend(take_generic_functions(ast, self.generics_enabled, self.shared_statics))
         self.type_checker.program = ast
         self.type_checker.generic_host = self
         self.name_resolver.generic_host = self
