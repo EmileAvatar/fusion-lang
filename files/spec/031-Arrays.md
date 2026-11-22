@@ -2,120 +2,105 @@
 
 # 031 Arrays
 
-The design behind them (arrays, Lists, Maps, truth tables): [files/Arrays.md](../Arrays.md).
+The design behind them (arrays, Lists, Maps): [files/Arrays.md](../Arrays.md) - its section 8c is the truth
+table of every array form and what each can do, every cell compiled and run (Task 45.6).
 
-## Arrays
-
-Description: Fixed-size, homogeneous collections of a single element type.
-
-```
-int[] scores = [10, 20, 30]      // size inferred from the literal
-float[3] buffer                   // explicit size, zero-initialized (no literal needed)
-int[3] three = [1, 2, 3]          // explicit size + literal (must agree)
-int[] none                        // empty - size 0 (Task 45.2)
-int numbers[] = [1, 2]            // the same as int[] numbers - brackets after the name (kept, user 2026-11-15)
-fixed int[3] podium = [3, 1, 2]   // fixed - never another size (Task 45.14, D.141)
-Array.length(scores)              // the Array class - the same as scores.length (Task 45.1, D.142)
-
-scores[0]                         // read
-scores[0] = 99                    // write an element
-int count = len(scores)           // size, as a builtin function call
-```
-
-**Implemented (Task 9 v1):** local array variables, declared with an explicit size
-(`int[N]`), an initializer (`int[] x = [...]`, size inferred), or both (which must agree).
-Reading and writing individual elements (`arr[i]`, `arr[i] = value`). `len(arr)` as a
-builtin - since size is always known at compile time, `len(arr)` compiles directly to that
-size as a literal, not a runtime call. `const int[] arr = [...]` works the same as scalar
-`const` - the array and its elements become immutable.
-
-**Array parameters (implemented, Task 18.1.2):**
+## The three forms (D.141)
 
 ```
-int function sum(int[] values)     // any size - len(values) is its actual length
-int function middle(int[3] trio)   // exactly 3 elements, checked at compile time
+int[] scores = [10, 20, 30]       // plain - the size from the values
+float[3] buffer                   // plain - 3 zeros
+int[] none                        // plain - empty, size 0 (Task 45.2)
+int numbers[] = [1, 2]            // the same as int[] numbers - brackets after the name
+fixed int[3] podium = [3, 1, 2]   // fixed - never another size (Task 45.14)
+int:[] xs                         // growable - also int[[]] xs, int xs[[]] (Task 45.3)
+int:[10] ys                       // growable, 10 slots made ahead - length 10 (45.3b)
 
-int total = sum(scores)            // pass an array variable
-int other = sum([7, 8])            // or an array literal directly
+scores[0] = 99                    // every index checked - outside is an IndexError (Task 27.1)
+scores.length                     // also scores.len, len(scores), Array.length(scores) (45.1, D.142)
+xs.add(4)                         // only a growable array grows - at its end
+int last = xs.removeLast()        // gives the item back (pop() the same); empty: an IndexError
 ```
 
-* Arrays are **passed by reference** - the function works on the caller's array, so element
-  changes are visible to the caller, and nothing is copied
-* `int[]` accepts an array of any size. C loses an array's length when it's passed, so the
-  compiler passes the length alongside it as a hidden parameter, and `len(values)` reads it
-* `int[N]` accepts only an array whose size is known at compile time to be exactly N
-* Element types must match exactly - an `int[]` can't be passed as a `float[]` (no numeric
-  promotion, since the function reads the caller's memory directly)
-* A `const` array can't be passed (the function could change it - a read-only parameter
-  form doesn't exist yet); array parameters can't have default values
-* An array can only be initialized from an array literal - `int[] b = a` is an error
-  (whether that should copy or share `a` is undecided) - or from an array a function
-  returns (below)
+- **plain:** keeps its size until it is replaced as a whole - `scores = [1, 2]`, `scores = make()`; replaced
+  by another size it lives on the heap (a counted block, like a List) and still acts as an array (45.10)
+- **fixed:** the size is set once - written, from the values, or from `f()` while running; replacing it is an
+  error, setting its slots is fine
+- **growable:** on the heap; `add`, `removeLast` / `pop` at the end only - an item never moves position
+- Never null (D.138); an object slot may be null - `Car[] cars = [car1, null]`, `cars[0] = null` frees the
+  object (D.140)
+- Where it lives: a plain or fixed array on the stack, measured in bytes - above `[arrays] stackWarn` (16KB) a
+  warning, above `stackLimit` (64KB) a compile error (45.13, D.145); `setBufferType` / `setSize` are an error
+  "not built yet" (D.146, after self-hosting)
 
-**Array return values (implemented, Task 18.2.4):**
+## Parameters and results
 
 ```
+int function sum(int[] values)     // any size - its length passed hidden
+int function middle(int[3] trio)   // exactly 3, checked while compiling
 int[3] function podium() : [3, 1, 2]
-Point[2] function ends(int size)
-    return [Point(0, 0), Point(size, size)]
+int[] function make(int n)         // any size - on the heap (45.10)
 
-int[3] a = podium()        // copied into a new array
-a = podium()               // replaces a's elements
-int top = podium()[0]      // indexed directly
-team.scores = podium()     // an array field too
+int total = sum(scores)            // the caller's array - changes reach it, nothing copied
+int[3] a = podium()                // copied in; a = podium() replaces its slots
 ```
 
-* A sized return type (`int[3]`) gives exactly that many; `int[]` gives an array of any size,
-  on the heap (Task 45.10, D.141): `int[] function make(int n)`
-* `return` takes an array literal of exactly that size (numbers may be promoted), or any
-  array of exactly the same type and size - a variable, parameter, struct field, or another
-  call; it is copied
-* A returned array can be stored, assigned to an array (or array field), indexed, returned
-  again, or ignored. Passing it straight to another function, `len()`, or `print` is an
-  error - store it in a variable first
-* Copying needs exactly the same element type and size (no int -> float promotion), and a
-  `const` array can't be set from a call
-* Not yet: lambdas and function types returning arrays, and using such a function as a value
-* Under the hood, C can't return an array, so it's returned inside a hidden struct and
-  copied out
+- Element types must match exactly - an `int[]` isn't a `float[]`
+- A returned array can be stored, assigned, indexed or returned; passed straight on, keep it in a variable first
 
-**Not yet implemented (see files/taskSummary2.md Task 9 for the full list and reasoning):**
-- Arrays of 2 and 3 dimensions - built (Task 45.12a, D.143, D.148): `int[2][3][4] cube` (also
-  `int[2],[3],[4]`, `int cube[2][3][4]`), `int[][] m = [[1, 2, 3], [4, 5, 6]]`; `cube[1][2][3]` /
-  `cube[1],[2],[3]`, each index checked; `rows`, `columns`, `depth`, `length` (the outer first); one flat
-  block on the stack laid out in `[arrays] order`. Views (built - 45.12b, D.149): `cube[1]`, `cube[][2][1]`;
-  `foreach` the outer dimension first, its variable a borrowed view; a view to a variable a copy;
-  `length` the outer open dimension, -1 on one slot. Functions (built - 45.12c): `int[2][3] m` / `int[][] m`
-  parameters (any size: its sizes passed hidden), a part passed as a copy, `int[2][3] function f()`,
-  `==` on the same shape. Growable (built - 45.12d): `int:[2][3] g` / `int[[2],[3]] g` / `int:[][] g = [...]`
-  on the heap, `g.expand(ROWS / COLUMNS / DEPTH, n)` (the built-in enum `Dimension`) with a warning; more than
-  3 and `expand(0, n)`: the Collections library. `toList()` (built - 45.11): a List of Lists, the outer
-  dimension first, as foreach; a null object slot a NullError (D.139)
-- An array size given as anything other than an integer literal (`int[n]` where `n` is a
-  variable is not supported; only `int[5]`-style literal sizes are)
-- Whole-array reassignment - built since Task 45.10 (D.141): `arr = [4, 5]` or `arr = make()` replaces
-  it, another size too; such an array lives on the heap (a counted block, like a List) and still
-  acts as an array - no `add`, an object slot may be null. A `fixed` one keeps its size
-- Size on the stack - built (Task 45.13, D.145): a plain or fixed array (or a struct holding one) above
-  `[arrays] stackWarn` (16KB) is a warning, above `stackLimit` (64KB) a compile error - in bytes;
-  `setBufferType` / `setSize` are an error "not built yet" (D.146, after self-hosting)
-- Not changed while looped over - built (Task 45.7, D.058): `add`, `removeLast` / `pop` or replacing the
-  array inside a loop over it is a compile error (also through a function or a method); setting an
-  item is allowed
-- Copying a part - built (Task 45.5, D.046): `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` /
-  `sliceAt`) on every array and List; past the end stops there, a start outside is an IndexError,
-  copyPartAt includes its end and reverses when start > end
-- Combining - built (Task 45.4, D.047): `a + b + c` makes a new array of one type, on the heap; two
-  Lists make a new List; an array and a List don't mix (`toList()` first)
-- Arrays that grow - built (Task 45.3, D.141): `int:[] xs` / `int[[]] xs` / `int xs[[]]` - `add`,
-  `removeLast` (`pop`) at the end - it gives the item back; an empty one's `removeLast` an IndexError;
-  `int:[10] xs` / `int[[10]] xs` has 10 slots made ahead (length 10, as `int[10]` - 45.3b). Up to 3 dimensions -
-  planned (45.12, D.143)
-- Bounds checking - built since then: every index is checked, outside the array is an
-  IndexError (Task 27.1)
-- `arr.length` / `arr.len`, with or without brackets - built (Task 30.8): the same as
-  `len(arr)`, also on strings, bytes, lists and maps. An array is never null (D.138), so it needs
-  no `?.`; a slot of an object array may be null - `Car[] cars = [car1, null]`, `cars[0] = null`
-  frees the object (D.140, Task 52.11)
+## Copying, combining, parts
+
+```
+int[3] b = a                       // moves: the slots copied, a can't be used after (D.025, 45.12e)
+int[3] c = byVal a                 // a copy - a stays usable
+int[] all = a + b + c              // a new array, on the heap (45.4)
+int[] part = scores.copyPart(1, 2) // 2 items from 1 - a copy (slice the same); copyPartAt(1, 2) from 1 to 2 (45.5)
+List<int> l = scores.toList()      // a List copy (32.10a); a null object slot skipped (D.152)
+string csv = scores.toCSV()        // "10,20,30" (45.11b)
+```
+
+- Not changed while looped over: `add`, `removeLast` or replacing it inside a loop over it is a compile
+  error, also through a function or method; setting a slot is fine (45.7, D.058)
+
+## Two and three dimensions (Task 45.12, D.143, D.148-D.150)
+
+```
+int[2][3][4] cube                  // rows x columns x depth - also int[2],[3],[4] cube, int cube[2][3][4]
+int[][] m = [[1, 2, 3], [4, 5, 6]] // sizes from the values
+cube[1][2][3] = 9                  // each index checked against its own size
+m.rows; m.columns; cube.depth      // 2, 3, 4
+cube[1]                            // a view - an index left out means all of it (D.149)
+foreach (int[][] sheet in cube)    // the outer dimension first - [arrays] order
+int:[][] g = [[1, 2], [3, 4]]      // growable - g.expand(ROWS, 1) (a warning: every slot copied)
+```
+
+- `[arrays] order` (D.148): `"columns"` (default) depth -> columns -> rows; `"rows"` rows -> columns -> depth;
+  `"depthRows"` depth -> rows -> columns - loops, `length`, `toList` and the memory layout follow it
+- 1D and 2D live on the stack, a 3D array always on the heap (D.154)
+- Parameters `int[2][3] m` (that shape) or `int[][] m` (any - its sizes passed hidden); `==` on the same
+  shape; `toList` a List of Lists; `toCSV` the sheets side by side (D.151)
+- More than 3 dimensions and `expand(0, n)`: the Collections library
+
+## Storage (Task 45.15, D.144, D.153, D.163, D.164)
+
+```
+int[2][3] m
+m.setStorage(FLAT)                 // right after the declaration, or in its set-up block (D.147)
+int:[][] j = [[1], [2, 3, 4]]
+j.setStorage(JAGG)                 // jagged: rows of their own length - a growable array of 2 dimensions
+j.rows; j[1].columns; j.columns    // 2, 3, 0 - no row given
+j[0].add(5); j.add([7, 8])         // one row grows; a new row
+```
+
+- `[arrays] storage = "flat"` - one block, the default; `RECT` comes later (D.164); JAGG per array only
+- A jagged array: only `j[x][y]` outside a row is an IndexError; `foreach` columns first by default (each a
+  new array from the rows long enough for it) or rows; a row passes to an `int[]` parameter
+- On a jagged array later: passing the whole, copying it, `==`, `toList`, `toCSV`, `j[][1]`, 3 dimensions
+
+## Not built yet
+
+- An array size from a variable - `int[n]`; only a number written in the code
+- Lambdas and function types returning arrays
+- Threads: an array used by two or more threads gets a temporary service (Task 42, files/Ownership.md 6)
 
 [< 030 Types](030-Types.md) | [Index](index.md) | [032 Strings >](032-Strings.md) <!-- nav -->

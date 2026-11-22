@@ -100,7 +100,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 |---|---|---|---|
 | [R](#research) | Research - files to study in full before a task starts | - | open |
 | [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
-| [45](#task-45) | Arrays that grow at the end | 2 | open |
+| [45](#task-45) | Arrays: plain, fixed, growable, up to 3 dimensions - done 2026-11-22; what is left is postponed | 2 | done |
 | [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
 | [53](#task-53) | Check the Core language | 2 | open |
 | [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
@@ -266,71 +266,21 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
 <a id="task-45"></a>
-#### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [ ] [index](#index)
-	Three forms (D.141): plain `int[] a` - a new size only by replacing; `fixed int[10] c` - never another
-	size; growable `int:[] g` / `int[[]] g` - grows and shrinks at its end, on the heap.
-	[DONE] 45.1 The built-in `Array` class: `a.length` is `Array.length(a)`; `toList`, `toCSV` behind it (D.142) - tests/test_array_class.py, example syntax_array_class
-	[DONE] 45.2 `int[] e` - valid, size 0 (was 30.10); a struct field still needs a size until 45.10; C-style `int e[]` / `int e[10]` - the same array, kept (user, 2026-11-15)
-	[DONE] 45.14 `fixed int[10] c`, `fixed int[] d = [5, 2, 3]`, `fixed int[] d = f()` - never another size; `fixed` a keyword (the self-hosted lexer too); `fixed int[] d` alone and `fixed` on a non-array are errors
-		[DONE - 45.10] Its own message: "'d' is fixed - its size never changes"
-		[DONE - 45.3] `fixed int:[]` an error
-		[ ] A struct field / module variable `fixed` - when needed
-	[DONE] 45.10 Replacing a plain array with another size: `a = [1, 2]`, `int[] function make(int n)` - a run-time
-		length, on the heap (a counted block, like a List - src/semantic/heap_arrays.py); passed to an `int[]`
-		parameter as its items and length; an unsized struct field too; the ownership rules stay (D.025) -
-		tests/test_heap_arrays.py, example syntax_array_resize
-		[ ] An array as a Collection<T> value (from 32.6) - removing blocked
-		Normal code: an array moves (`int[] b = a`); `byVal` copies; inside a struct only borrowed
-	[DONE] 45.3 Growable `int:[]` / `int[[]]` (and `int xs[[]]`): `add`, `removeLast` (`pop`); empty `removeLast` an IndexError; an object slot may be null (D.140); `fixed` with it an error - tests/test_growable_arrays.py, example syntax_growable_array
-		[DONE] `removeLast()` / `pop()` give the item back (user, 2026-11-15) - the caller owns it
-		[DONE] Arguments left to right also when a call sits beside a length, a field or a module variable (spec 181)
-	[DONE] 45.4 Combine arrays: `a + b + c` - a new array, all of the same type; Lists the same; on the heap, parts read once left to right; a string copied, an object shared - tests/test_combine.py, example syntax_array_combine
-	[DONE] 45.5 Copying a part: `copyPart(start, count)` / `copyPartAt(start, end)` (`slice` / `sliceAt`) - files/Arrays.md 8; Lists the same; a List's slice past the end now stops there - tests/test_copy_part.py, example syntax_array_copy_part
-	[DONE - 32.4] 45.9 `foreach (string item in names)` over arrays, lists and maps
-	[DONE] 45.7 The array being looped over can't be changed inside the loop (D.058) - a compile error where seen, else ModifiedWhileLoopingError ("the array changed"); `removeLast` / `pop` now count as a change everywhere (readonly, borrowing, set-up blocks) - tests/test_loop_no_change.py
-	[DONE] 45.13 `[arrays] stackWarn = "16KB"` (a warning), `stackLimit = "64KB"` (an error) - in bytes (D.145); `setBufferType` / `setSize` an error "not built yet" (buffers: L16.3, D.146) - a new setting type `bytes` ("512B" / "16KB" / "1MB"); src/semantic/stack_arrays.py; tests/test_stack_arrays.py
-	[ ] 45.12 Up to 3 dimensions: `int[10][5][7]` rows x columns x depth (D.143, D.148-D.150) - the plan: files/taskSummary2.md
-		[DONE] 45.12a Declaring, reading, writing - on the stack, laid out in `[arrays] order`; `rows` / `columns` / `depth`; `m[1],[2]` joins only outside ( ) and [ ] - src/semantic/many_dims.py, tests/test_many_dims.py, example syntax_many_dims
-		[DONE] 45.12b Views `cube[1]`, `cube[][2][1]`; `length` the outer first, -1 when none; `foreach` the outer first; a view to a variable a copy (byVal copies objects) - tests/test_many_dims_views.py, example syntax_many_dims_views
-			[DONE] An index error naming its dimension: "row 5 is outside (rows 2)", "column ... (columns 3)", "sheet ... (depth 4)" - tests/test_many_dims.py
-		[DONE] 45.12c Functions: `int[2][3]` / `int[][]` parameters (any size: hidden sizes), a part passed as a copy (numbers), returning `int[2][3]`, `==` on the same shape - tests/test_many_dims_functions.py, example syntax_many_dims_functions
-			[ ] Later: a part of strings / objects passed; returning any size (heap); copying a part of an any-size parameter; `==` on parts
-		[DONE] 45.12d Growable `int:[2][3][4]` / `int[[2],[3],[4]]` / `int:[][] g = [...]` on the heap; `expand(ROWS / COLUMNS / DEPTH, n)` with a warning; the built-in enum `Dimension`; no expand inside a loop over it - tests/test_many_dims_growable.py, example syntax_many_dims_growable
-		[ ] 45.12e Copying or replacing a whole array (D.025, D.141)
-			[DONE] Parts 1-2: `int[3] b = a` / `int[2][3] n = m` - the slots copied, `a` moved (can't be used after);
-				`byVal a` a deep copy; sizes taken from the source when left out, else they must agree - tests/test_array_whole_copy.py
-			[DONE] Part 3a: replacing with the same shape - `m = [[...]]`, `m = n` / `byVal n`, `m = f()`: the new slots made
-				first, then the old freed and replaced (`m = m` safe); a fixed one an error - tests/test_array_whole_copy.py
-			[DONE] Part 3b: another shape - a plain local array given values of another shape lives on the heap (as a
-				growable one, never expands); a growable one takes values or a stack array of any shape - tests/test_array_whole_copy.py
-			[ ] Later: a heap array (growable, or plain given another shape) given whole to a new array or replaced from
-				another heap array or a function; a parameter of any size replaced as a whole
-			[DONE 2026-11-21] A local 3D array (plain / fixed) on the heap, not the stack (D.154): its sizes still known while
-				compiling, its slots in one block freed when its scope ends; not measured by stackLimit - tests/test_many_dims.py
-			[ ] Later: a 3D array as a struct field (inside a struct on the stack) - on the heap too (D.154)
-		[DONE] 45.11 `toList` on them: a List of Lists, the outer dimension first (D.148 - user, 2026-11-15); a null object slot a NullError, nothing leaked - tests/test_many_dims_to_list.py, example syntax_many_dims_to_list
-			[DONE] 45.11b `toCSV(",", "#", "\n")` on every array of plain values (D.151): a line per row; 3 dimensions and up the sheets
-				side by side split by "#"; CSV quoting; a null slot an empty field (`1,2,,4`); `[arrays] csvManyDimensions` (default true)
-			[DONE] 45.11c `toList()` skips null slots (D.152) - on every array; a column all null an empty List; replaces 45.11's NullError
-			[POSTPONED - a class of its own, later] An Excel file, several files, a custom CSV or a binary file for many dimensions (D.151)
-	[ ] 45.15 Storage FLAT (default) / RECT / JAGG: `[arrays] storage` = "flat" / "rect", `a.setStorage(...)` - right after the declaration or in its set-up block (D.147); JAGG only on a growable array of 2 or 3 dimensions, on the heap (D.153); RECT not built yet - an error "comes later" (D.164); one row's `add` only on JAGG (D.144); `j[r].columns` per row, `j.columns` with no row 0, `j.rows` 0 when empty; IndexError only on `j[x][y]`; walking skips a row too short (D.163)
-		[DONE 2026-11-21] Part 1: `[arrays] storage = "flat"` ("rect" an error - later, "jagg" per array only); the
-			`Storage` enum (FLAT, RECT, JAGG) added when used; `setStorage(...)` only right after the declaration or in
-			its set-up block (D.147), on 2 or 3 dimensions; FLAT / null work; RECT an error (D.164) - tests/test_array_storage.py
-		[DONE 2026-11-21] Part 2: JAGG on a growable array of 2 dimensions (D.153, D.163) - a block of rows, each an
-			`int:[]`; `j.rows`, `j[r].columns`, `j.columns` 0; `j[r].add`, `j.add(row)`; an IndexError only on `j[x][y]`;
-			foreach by `[arrays] order` - columns first (short rows skipped) or rows; a row passed to `int[]` -
-			tests/test_array_storage.py, example syntax_jagged
-		[ ] Later: JAGG on 3 dimensions; passing a whole jagged array, copying it (byVal / move), toList, toCSV, `==`,
-			`j[][1]` - each an error "comes later" today
-		[DONE 2026-11-21] Part 3: `[arrays] order = "depthRows"` - depth -> rows -> columns (D.148); loops, length,
-			the memory layout and expand follow it - tests/test_array_storage.py
-	[DONE] 45.17 A bare enum value where the enum type is known: parameters, declarations, assignments, returns, comparisons, `case` - every enum; a variable of the same name an error (D.150) - tests/test_bare_enum.py, example syntax_enum_bare
-	[DONE] 45.3b `int:[10] g` / `int[[10]] g` - a growable array with 10 slots of the default value, length 10 (D.141); `int:[3] g = [1, 2, 3]` sizes agree - tests/test_growable_arrays.py
-	[DONE] 45.16 files/ArrayCube.html - A cube visualiser (user, 2026-11-15): an HTML page showing a 3-dimension array as a cube and which
-		slots `cube[1]`, `cube[][2][1]`, `foreach` and `expand` reach - how data is fetched (OpenQuestions Q.022-Q.025)
+#### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [DONE 2026-11-22] [index](#index)
+	Done - every line in task/featuresArchive.md; the forms and what each can do: files/Arrays.md 8c. Left for later:
+	[POSTPONED - when needed] 45.14 A struct field or module variable `fixed`
+	[POSTPONED to 33] 45.10 An array as a Collection<T> value (from 32.6) - removing blocked
+	[POSTPONED - when needed] 45.12c A part of strings / objects passed; returning any size (heap); copying a part of
+		an any-size parameter; `==` on parts
+	[POSTPONED - when needed] 45.12e A heap array (growable, or plain given another shape) given whole to a new array or
+		replaced from another heap array or a function; a parameter of any size replaced as a whole
+	[POSTPONED - when needed] 45.12e A 3D array as a struct field (inside a struct on the stack) - on the heap too (D.154)
+	[POSTPONED - when needed] 45.15 JAGG on 3 dimensions; passing a whole jagged array, copying it (byVal / move),
+		toList, toCSV, `==`, `j[][1]` - each an error "comes later" today
+	[POSTPONED - a real need, D.164] 45.15 RECT storage - reusing JAGG's per-row blocks
+	[POSTPONED - a class of its own, later] 45.11b An Excel file, several files, a custom CSV or a binary file for many dimensions (D.151)
 	[POSTPONED to 42] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19)
-	[ ] 45.6 Docs and examples: files/Arrays.md (a truth table), SYNTAX_REFERENCE, spec 031 / 140, the showcase
+	[POSTPONED to L16.3] Buffers for a large array (D.146)
 
 <a id="task-47"></a>
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ] [index](#index)

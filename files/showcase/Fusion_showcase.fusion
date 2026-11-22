@@ -205,7 +205,8 @@ void function strings() {
 // =============================================================================================
 
 void function collections() {
-    // [built] Fixed arrays: size from the literal; every index is checked (IndexError)
+    // [built] Plain arrays: size from the literal; every index is checked (IndexError)
+    // [built] Every form and what it can do: files/Arrays.md 8c (the truth table, 45.6)
     int[] scores = [10, 20, 30]
     float[3] buffer
     // [built] The Array class: every array acts as an object of it (45.1, D.142)
@@ -228,7 +229,8 @@ void function collections() {
     cube[1][2][3] = 5                   // also cube[1],[2],[3]
     int n = cube.length                 // 4 - the outer dimension first (D.148, [arrays] order)
     int[][] m = [[1, 2, 3], [4, 5, 6]]  // the sizes from the values
-    // [built] -1 as the length of one slot (45.12b); [designed] FLAT / RECT / JAGG (D.144)
+    // [built] -1 as the length of one slot (45.12b); storage FLAT / JAGG built, RECT [designed] later (45.15)
+    // [built] [arrays] order: "columns" (default), "rows", "depthRows" - depth -> rows -> columns (D.148)
     int none = cube[1][2][3].length     // -1 - one slot has no length
     // [built] Views (45.12b, D.149): an index left out means all of that dimension
     int[] column = cube[][2][1]         // column 2 of sheet 1, one value per row - copied
@@ -250,8 +252,8 @@ void function collections() {
     jag[0].add(5)                       // jag.rows 2, jag[1].columns 3, jag.columns 0
     // [built] An enum value alone where the type is known (45.17, D.150)
     Dimension d = COLUMNS
-    // [designed] Large arrays: [arrays] stackWarn 16KB, stackLimit 64KB (D.145); buffers
-    //            SINGLE / TWO / THIRD / RING after self-hosting (D.146)
+    // [built] Large arrays: [arrays] stackWarn 16KB, stackLimit 64KB (45.13, D.145)
+    // [designed] buffers SINGLE / TWO / THIRD / RING after self-hosting (D.146)
     // [built] List<T>: grows; add, insert, sort, filter, reduce, ...
     List<int> numbers = [3, 1, 2]
     numbers.add(10)

@@ -110,10 +110,11 @@ scores[0] = 95                   // every index is checked: outside is an IndexE
 print("{@1}", len(scores))       // 3
 ```
 
-The size is fixed when the array is made. `int[] numbers` with no size or values is an empty array,
-size 0 (Task 45.2, D.141) - a struct field still needs its size until arrays can live on the heap (45.10).
+A plain array keeps its size until it is replaced as a whole. `int[] numbers` with no size or values is an
+empty array, size 0 (Task 45.2, D.141); a struct field written without a size lives on the heap (45.10).
 Every array acts as an object of the built-in `Array` class: `Array.length(a)` is `a.length` (45.1, D.142).
-The full design - plain, `fixed`, growable `int:[]`, 3 dimensions: Decisions.md D.141-D.147.
+The full design - plain, `fixed`, growable `int:[]`, 2 and 3 dimensions, storage: Decisions.md D.141-D.154,
+D.163, D.164; every form and what it can do: section 8c.
 
 #### Arrays that grow at the end (user, 2026-10-27 - built: Task 45.3, `int:[]` / `int[[]]`; `+` and `slice` planned)
 
@@ -435,6 +436,38 @@ over depth -> columns -> rows reads the slots one after another.
 | To CSV | `m.toCSV()`, `m.toCSV(";", "#", "\n")` | a line per row; 3 dimensions the sheets side by side split by `#`; CSV quoting; a null slot an empty field ([arrays] csvManyDimensions) | 45.11b, D.151 |
 | Grow while looping | `foreach (int[] c in g)` ... `g.expand(ROWS, 1)` | a compile error (D.058) | 45.12d |
 | 4 dimensions | `int[2][3][4][5]` | a compile error - the Collections library | - |
+
+## 8c. Every array form - a truth table (Task 45.6, 2026-11-22)
+
+Each cell was compiled and run (Rule 4c) - **yes** works, **error** is a compile error that says what to
+do instead, **later** is a compile error "comes later". The forms, as declared:
+- **plain** `int[] a = [1, 2, 3]`, **fixed** `fixed int[3] a`, **growable** `int:[] a` (also `int[[]] a`)
+- **2D** `int[2][3] m`, **3D** `int[2][3][4] c`, **growable 2D / 3D** `int:[][] g` (also `int[[2],[3]] g`)
+- **jagged** `int:[][] j` then `j.setStorage(JAGG)` - rows of their own length (2 dimensions)
+
+| What | plain | fixed | growable | 2D | 3D | growable 2D / 3D | jagged |
+|---|---|---|---|---|---|---|---|
+| Lives on | stack; heap once replaced by another size (45.10) | stack | heap | stack; heap once given another shape | heap (D.154) | heap | heap - a block of rows |
+| Read / write a slot, each index checked | yes | yes | yes | yes | yes | yes | yes - IndexError only on `j[x][y]` (D.163) |
+| `length` | yes | yes | yes | yes - the outer first ([arrays] order) | yes | yes | error - `j.rows`, `j[r].columns` |
+| `rows`, `columns`, `depth` | - | - | - | yes | yes | yes | `j.rows`; `j.columns` 0; `j[r].columns` |
+| Replace the whole, same size | yes | error - fixed | yes | yes | yes | yes | yes |
+| Replace the whole, another size | yes (to the heap) | error - fixed | yes | yes (to the heap) | yes | yes | yes |
+| `add`, `removeLast` / `pop` | error - declare `int:[]` | error | yes | error - `expand` on a growable one | error | error - `expand` | `j.add(row)`, `j[r].add(v)`, `j.removeLast()` (a row) |
+| `expand(ROWS / COLUMNS / DEPTH, n)` | - | - | - | error - only a growable one | error | yes, a warning | error |
+| Given whole to a new one (`b = a` moves) | yes | yes | yes | yes | yes | later | later |
+| `byVal` copy | yes | yes | yes | yes | yes | later | later |
+| Passed to a parameter (`int[]` / `int[][]`) | yes | yes | yes | yes | yes | yes | later - one row passes to `int[]` |
+| `==` | yes | yes | yes | yes - the same shape | yes | later | later |
+| `toList()` | yes | yes | yes | yes - a List of Lists | yes | yes | later |
+| `toCSV()` | yes | yes | yes | yes | yes - sheets side by side | yes | later |
+| `foreach` | yes | yes | yes | yes - [arrays] order | yes | yes | yes - columns first (short rows skipped) or rows |
+| `copyPart` / `slice`, `a + b` | yes | yes | yes | error - one dimension only | error | error | later |
+| `setStorage(FLAT / null)` | error - 2 or 3 dimensions | error | error | yes (the default) | yes | yes | - |
+| `setStorage(RECT)` | - | - | - | later (D.164) | later | later | - |
+
+Found while building this table and fixed: `a.toList().len()` on 2 or 3 dimensions freed the new List twice;
+`a.add(4)` on a plain array said "only structs have fields".
 
 ## 9. Decisions log
 

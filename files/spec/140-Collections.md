@@ -20,10 +20,11 @@ numbers, chars, bools, text, bytes, structs, and lists (`List<List<int>>`).
 - It is never null - empty when declared; no setting changes that (D.138). It never holds null
   either: `add(null)`, `[a, null]`, `m[k] = null` are errors, a null that shows while running is a
   NullError (D.139, Task 52.10); `List<Car> l = [car1, car2]` adds each item
-- A Map works the same way. Arrays follow once they can grow (Task 45); until then they are copied
-- `xs.toList(copy = true)` (Task 32.10a.1): a List's copy, or with `false` the same list, shared; on a
-  one-dimensional array, a new List with copies of its elements (sharing needs arrays on the heap -
-  Task 45). Both are revisited with multi-dimensional arrays
+- A Map works the same way. An array moves the same way too - `int[3] b = a`, `byVal a` copies (Task 45.12e,
+  D.025); its forms and what each can do: [031 Arrays](031-Arrays.md), files/Arrays.md 8c
+- `xs.toList(copy = true)` (Task 32.10a.1): a List's copy, or with `false` the same list, shared; on an
+  array always a new List with copies of its elements - on 2 or 3 dimensions a List of Lists, the outer
+  dimension first (45.11, D.148); a null object slot skipped (D.152)
 - Built-in generic types - user-written generics come later, with classes
 - In C each element type has its own small set of functions, made only when used - no boxing, no
   speed cost
