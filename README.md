@@ -181,7 +181,7 @@ Fusion source -> lexer -> parser -> syntax tree -> semantic analysis -> C genera
 ### Compiling a Fusion Program
 
 ```bash
-python main.py examples/hello_world.fusion
+python main.py examples/01_basics/hello_world.fusion
 ```
 
 This will:
@@ -205,7 +205,8 @@ hello_world.exe
 
 [examples/](examples/) holds one program for every section of
 [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md), fuller demos (`fizzbuzz`, `structs_demo`,
-`control_flow`, ...) and projects of several files (`shop`, `wordcount`). Each program sits next to the C the
+`control_flow`, ...) and projects of several files (`shop`, `wordcount`), in numbered topic folders to
+follow in order - `01_basics`, `02_functions`, ... `13_projects`. Each program sits next to the C the
 compiler made from it and the built program, so the whole pipeline can be inspected. Build them all with
 `python check.py --build-examples`; [examples/CLAUDE.md](examples/CLAUDE.md) explains the
 folder.

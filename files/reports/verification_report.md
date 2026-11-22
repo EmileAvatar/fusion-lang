@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Sun Nov 15 16:10:06 SAST 2026
+**Date:** Sun Nov 22 14:17:47 2026
 **Total Examples:** 20
 
 ## Summary
@@ -10,88 +10,6 @@
 - **Output Matches:** 20/20
 
 ## Detailed Results
-
-### arrays_demo
-
-**Status:** [OK] All Checks Passed
-
-**Output:**
-```
-=== Fusion Arrays Demo ===
-
-First score: 10
-Updated first score: 99
-Number of scores: 5
-
-Buffer: 1.500000, 2.500000, 0.000000
-
-Sum of [10, 20, 30, 40, 50] = 150
-
-All array tests passed!
-```
-
-**Expected:**
-```
-First score: 10
-Updated first score: 99
-Number of scores: 5
-Sum of [10, 20, 30, 40, 50] = 150
-All array tests passed!```
-
-**Generated C Code (first 50 lines):**
-```c
-#include <math.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
-// ASCII text chars == len, and indexing needs no scanning
-typedef struct { char* data; int len; int chars; int owned; } fusion_string;
-// One character: any Unicode code point - or one byte when the project uses ascii encoding
-#ifdef FUSION_ASCII
-typedef unsigned char fusion_char;
-#else
-typedef uint32_t fusion_char;
-#endif
-// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
-// ASCII text; FUSION_STRU gives the character count of non-ASCII text
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
-#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
-
-#ifdef FUSION_LEAK_CHECK
-static void** fusion_live = NULL;
-static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
-static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
-#define FUSION_OBJECT_MADE() (fusion_objects_live++)
-#define FUSION_OBJECT_FREED() (fusion_objects_live--)
-static inline void fusion_leak_report(void) {
-    if (fusion_objects_live > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
-        _Exit(5);
-    }
-    if (fusion_live_count > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
-        _Exit(3);
-    }
-}
-#else
-#define FUSION_OBJECT_MADE() ((void)0)
-#define FUSION_OBJECT_FREED() ((void)0)
-#endif
-// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
-... (truncated)
-```
 
 ### calculator
 
@@ -162,94 +80,6 @@ static inline void fusion_leak_report(void) {
 #ifdef FUSION_TRACE_OBJECTS
 #define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
 #else
-... (truncated)
-```
-
-### classes_demo
-
-**Status:** [OK] All Checks Passed
-
-**Output:**
-```
-Dune (book): 2.00 for 14 days
-Alien (film), 117 min: 3.50 for 7 days
-Tetris (game): 5.00 for 14 days
-total 10.50
-lent for 7 days
-Alien runs 117 minutes
-a Film is not a Game
-Media.Game
-Hall row 2: Dune
-classic: the List has it already (noDuplicates)
-2 tags
-```
-
-**Expected:**
-```
-Dune (book): 2.00 for 14 days
-Alien (film), 117 min: 3.50 for 7 days
-Tetris (game): 5.00 for 14 days
-total 10.50
-lent for 7 days
-Alien runs 117 minutes
-a Film is not a Game
-Media.Game
-Hall row 2: Dune
-classic: the List has it already (noDuplicates)
-2 tags```
-
-**Generated C Code (first 50 lines):**
-```c
-#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
-#include <math.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
-// ASCII text chars == len, and indexing needs no scanning
-typedef struct { char* data; int len; int chars; int owned; } fusion_string;
-// One character: any Unicode code point - or one byte when the project uses ascii encoding
-#ifdef FUSION_ASCII
-typedef unsigned char fusion_char;
-#else
-typedef uint32_t fusion_char;
-#endif
-// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
-// ASCII text; FUSION_STRU gives the character count of non-ASCII text
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
-#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
-
-#ifdef FUSION_LEAK_CHECK
-static void** fusion_live = NULL;
-static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
-static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
-#define FUSION_OBJECT_MADE() (fusion_objects_live++)
-#define FUSION_OBJECT_FREED() (fusion_objects_live--)
-static inline void fusion_leak_report(void) {
-    if (fusion_objects_live > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
-        _Exit(5);
-    }
-    if (fusion_live_count > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
-        _Exit(3);
-    }
-}
-#else
-#define FUSION_OBJECT_MADE() ((void)0)
-#define FUSION_OBJECT_FREED() ((void)0)
-#endif
-// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
 ... (truncated)
 ```
 
@@ -378,168 +208,6 @@ row 3: 3 6 9 12 15 18
 15 is at 2, 99 is at -1
 pears: sold out
 in stock: 10```
-
-**Generated C Code (first 50 lines):**
-```c
-#include <math.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
-// ASCII text chars == len, and indexing needs no scanning
-typedef struct { char* data; int len; int chars; int owned; } fusion_string;
-// One character: any Unicode code point - or one byte when the project uses ascii encoding
-#ifdef FUSION_ASCII
-typedef unsigned char fusion_char;
-#else
-typedef uint32_t fusion_char;
-#endif
-// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
-// ASCII text; FUSION_STRU gives the character count of non-ASCII text
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
-#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
-
-#ifdef FUSION_LEAK_CHECK
-static void** fusion_live = NULL;
-static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
-static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
-#define FUSION_OBJECT_MADE() (fusion_objects_live++)
-#define FUSION_OBJECT_FREED() (fusion_objects_live--)
-static inline void fusion_leak_report(void) {
-    if (fusion_objects_live > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
-        _Exit(5);
-    }
-    if (fusion_live_count > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
-        _Exit(3);
-    }
-}
-#else
-#define FUSION_OBJECT_MADE() ((void)0)
-#define FUSION_OBJECT_FREED() ((void)0)
-#endif
-// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
-... (truncated)
-```
-
-### errors_demo
-
-**Status:** [OK] All Checks Passed
-
-**Output:**
-```
-width = 80
-height = 24
-skip (1): Not 'name=value': depth
-skip (2): A setting needs a name - '=5'
-skip: NumberFormatError: '12x' is not a whole number (check with isInt first)
-total: 3
-total failed: NumberFormatError: 'oops' is not a whole number (check with isInt first)
-totals done
-FileNotFoundError: no_such_settings.txt
-DivideByZeroError: 10 / 0: division by zero
-all handled
-```
-
-**Expected:**
-```
-width = 80
-height = 24
-skip (1): Not 'name=value': depth
-skip (2): A setting needs a name - '=5'
-skip: NumberFormatError: '12x' is not a whole number (check with isInt first)
-total: 3
-total failed: NumberFormatError: 'oops' is not a whole number (check with isInt first)
-totals done
-FileNotFoundError: no_such_settings.txt
-DivideByZeroError: 10 / 0: division by zero
-all handled```
-
-**Generated C Code (first 50 lines):**
-```c
-#include <math.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
-// ASCII text chars == len, and indexing needs no scanning
-typedef struct { char* data; int len; int chars; int owned; } fusion_string;
-// One character: any Unicode code point - or one byte when the project uses ascii encoding
-#ifdef FUSION_ASCII
-typedef unsigned char fusion_char;
-#else
-typedef uint32_t fusion_char;
-#endif
-// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
-// ASCII text; FUSION_STRU gives the character count of non-ASCII text
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
-#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
-
-#ifdef FUSION_LEAK_CHECK
-static void** fusion_live = NULL;
-static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
-static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
-#define FUSION_OBJECT_MADE() (fusion_objects_live++)
-#define FUSION_OBJECT_FREED() (fusion_objects_live--)
-static inline void fusion_leak_report(void) {
-    if (fusion_objects_live > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
-        _Exit(5);
-    }
-    if (fusion_live_count > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
-        _Exit(3);
-    }
-}
-#else
-#define FUSION_OBJECT_MADE() ((void)0)
-#define FUSION_OBJECT_FREED() ((void)0)
-#endif
-// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
-... (truncated)
-```
-
-### expressions
-
-**Status:** [OK] All Checks Passed
-
-**Output:**
-```
-2 + 3 * 4 = 14   (2 + (3 * 4))
-(2 + 3) * 4 = 20   ((2 + 3) * 4)
-100 / 5 / 2 - 1 = 9   (((100 / 5) / 2) - 1)
-7 = 7   7
-```
-
-**Expected:**
-```
-2 + 3 * 4 = 14   (2 + (3 * 4))
-(2 + 3) * 4 = 20   ((2 + 3) * 4)
-100 / 5 / 2 - 1 = 9   (((100 / 5) / 2) - 1)
-7 = 7   7```
 
 **Generated C Code (first 50 lines):**
 ```c
@@ -765,89 +433,6 @@ static inline void fusion_leak_report(void) {
 ... (truncated)
 ```
 
-### functions_demo
-
-**Status:** [OK] All Checks Passed
-
-**Output:**
-```
-=== Fusion Functions Demo ===
-Hello, World!
-Hello, Fusion!
-Welcome, Fusion!
-offset(10) = 5, offset(10, 2) = 12
-sum: 6, 150, 15
-After doubleAll, middle of small = 4
-tripled = 15, added = 105, squared = 49, viaName = 21
-All function tests passed!
-```
-
-**Expected:**
-```
-Hello, World!
-Hello, Fusion!
-Welcome, Fusion!
-offset(10) = 5, offset(10, 2) = 12
-sum: 6, 150, 15
-After doubleAll, middle of small = 4
-tripled = 15, added = 105, squared = 49, viaName = 21
-All function tests passed!```
-
-**Generated C Code (first 50 lines):**
-```c
-#include <math.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
-// ASCII text chars == len, and indexing needs no scanning
-typedef struct { char* data; int len; int chars; int owned; } fusion_string;
-// One character: any Unicode code point - or one byte when the project uses ascii encoding
-#ifdef FUSION_ASCII
-typedef unsigned char fusion_char;
-#else
-typedef uint32_t fusion_char;
-#endif
-// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
-// ASCII text; FUSION_STRU gives the character count of non-ASCII text
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
-#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
-
-#ifdef FUSION_LEAK_CHECK
-static void** fusion_live = NULL;
-static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
-static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
-#define FUSION_OBJECT_MADE() (fusion_objects_live++)
-#define FUSION_OBJECT_FREED() (fusion_objects_live--)
-static inline void fusion_leak_report(void) {
-    if (fusion_objects_live > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
-        _Exit(5);
-    }
-    if (fusion_live_count > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
-        _Exit(3);
-    }
-}
-#else
-#define FUSION_OBJECT_MADE() ((void)0)
-#define FUSION_OBJECT_FREED() ((void)0)
-#endif
-// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
-... (truncated)
-```
-
 ### hello_world
 
 **Status:** [OK] All Checks Passed
@@ -928,272 +513,6 @@ Maximum of 10, 25, 15 is 25
 **Expected:**
 ```
 Maximum of 10, 25, 15 is 25```
-
-**Generated C Code (first 50 lines):**
-```c
-#include <math.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
-// ASCII text chars == len, and indexing needs no scanning
-typedef struct { char* data; int len; int chars; int owned; } fusion_string;
-// One character: any Unicode code point - or one byte when the project uses ascii encoding
-#ifdef FUSION_ASCII
-typedef unsigned char fusion_char;
-#else
-typedef uint32_t fusion_char;
-#endif
-// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
-// ASCII text; FUSION_STRU gives the character count of non-ASCII text
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
-#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
-
-#ifdef FUSION_LEAK_CHECK
-static void** fusion_live = NULL;
-static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
-static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
-#define FUSION_OBJECT_MADE() (fusion_objects_live++)
-#define FUSION_OBJECT_FREED() (fusion_objects_live--)
-static inline void fusion_leak_report(void) {
-    if (fusion_objects_live > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
-        _Exit(5);
-    }
-    if (fusion_live_count > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
-        _Exit(3);
-    }
-}
-#else
-#define FUSION_OBJECT_MADE() ((void)0)
-#define FUSION_OBJECT_FREED() ((void)0)
-#endif
-// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
-... (truncated)
-```
-
-### shop
-
-**Status:** [OK] All Checks Passed
-
-**Output:**
-```
-Receipt
--------
-Coffee beans.. R 12.99
-Mug........... R 8.50
-Filters....... R 3.99
--------
-Subtotal...... R 25.48
-Total + VAT... R 29.30
-```
-
-**Expected:**
-```
-Receipt
--------
-Coffee beans.. R 12.99
-Mug........... R 8.50
-Filters....... R 3.99
--------
-Subtotal...... R 25.48
-Total + VAT... R 29.30```
-
-**Generated C Code (first 50 lines):**
-```c
-#include <math.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
-// ASCII text chars == len, and indexing needs no scanning
-typedef struct { char* data; int len; int chars; int owned; } fusion_string;
-// One character: any Unicode code point - or one byte when the project uses ascii encoding
-#ifdef FUSION_ASCII
-typedef unsigned char fusion_char;
-#else
-typedef uint32_t fusion_char;
-#endif
-// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
-// ASCII text; FUSION_STRU gives the character count of non-ASCII text
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
-#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
-
-#ifdef FUSION_LEAK_CHECK
-static void** fusion_live = NULL;
-static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
-static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
-#define FUSION_OBJECT_MADE() (fusion_objects_live++)
-#define FUSION_OBJECT_FREED() (fusion_objects_live--)
-static inline void fusion_leak_report(void) {
-    if (fusion_objects_live > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
-        _Exit(5);
-    }
-    if (fusion_live_count > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
-        _Exit(3);
-    }
-}
-#else
-#define FUSION_OBJECT_MADE() ((void)0)
-#define FUSION_OBJECT_FREED() ((void)0)
-#endif
-// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
-... (truncated)
-```
-
-### strings_demo
-
-**Status:** [OK] All Checks Passed
-
-**Output:**
-```
-a = apple, b = banana
-original = quiet, loud = LOUD
-a == apple: true, a < b: true
-Ada 555-0100 / Grace 555-0123
-Grace: found, Alan: missing
-Ada Lovelace! has 13 characters, starts with A
-[Lovelace] [ADA] [spaced]
-contains Love: true, index of Love: 4
-42 doubled is 84
-All string tests passed!
-```
-
-**Expected:**
-```
-a = apple, b = banana
-original = quiet, loud = LOUD
-a == apple: true, a < b: true
-Ada 555-0100 / Grace 555-0123
-Grace: found, Alan: missing
-Ada Lovelace! has 13 characters, starts with A
-[Lovelace] [ADA] [spaced]
-contains Love: true, index of Love: 4
-42 doubled is 84
-All string tests passed!```
-
-**Generated C Code (first 50 lines):**
-```c
-#include <math.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
-// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
-// ASCII text chars == len, and indexing needs no scanning
-typedef struct { char* data; int len; int chars; int owned; } fusion_string;
-// One character: any Unicode code point - or one byte when the project uses ascii encoding
-#ifdef FUSION_ASCII
-typedef unsigned char fusion_char;
-#else
-typedef uint32_t fusion_char;
-#endif
-// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
-// ASCII text; FUSION_STRU gives the character count of non-ASCII text
-#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
-#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
-
-#ifdef FUSION_LEAK_CHECK
-static void** fusion_live = NULL;
-static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
-static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
-#define FUSION_OBJECT_MADE() (fusion_objects_live++)
-#define FUSION_OBJECT_FREED() (fusion_objects_live--)
-static inline void fusion_leak_report(void) {
-    if (fusion_objects_live > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
-        _Exit(5);
-    }
-    if (fusion_live_count > 0 && !fusion_leak_skip) {
-        fflush(stdout);
-        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
-        _Exit(3);
-    }
-}
-#else
-#define FUSION_OBJECT_MADE() ((void)0)
-#define FUSION_OBJECT_FREED() ((void)0)
-#endif
-// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
-... (truncated)
-```
-
-### structs_demo
-
-**Status:** [OK] All Checks Passed
-
-**Output:**
-```
-a = (3, 4), b = (10, 4)
-a + b = (13, 8)
-Inside moveRight: x = 103
-After moveRight: a.x = 3
-Ada: health 75.000000, score 15
-Newcomer score: 0, health 100.000000
-Dune Messiah is available
-Origin: (0, 0)
-Named point: (7, 8)
-Linus: health 100.000000, score 42
-Shifted: (8, 9)
-Linus (42) beat Ada (15)
-box: max.x = 4, bigger max.x = 40
-Blue total 22, first position x = 1
-Diagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4
-All struct tests passed!
-```
-
-**Expected:**
-```
-a = (3, 4), b = (10, 4)
-a + b = (13, 8)
-Inside moveRight: x = 103
-After moveRight: a.x = 3
-Ada: health 75.000000, score 15
-Newcomer score: 0, health 100.000000
-Dune Messiah is available
-Origin: (0, 0)
-Named point: (7, 8)
-Linus: health 100.000000, score 42
-Shifted: (8, 9)
-Linus (42) beat Ada (15)
-box: max.x = 4, bigger max.x = 40
-Blue total 22, first position x = 1
-Diagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4
-All struct tests passed!```
 
 **Generated C Code (first 50 lines):**
 ```c
@@ -1466,6 +785,257 @@ static inline void fusion_leak_report(void) {
 ... (truncated)
 ```
 
+### functions_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+=== Fusion Functions Demo ===
+Hello, World!
+Hello, Fusion!
+Welcome, Fusion!
+offset(10) = 5, offset(10, 2) = 12
+sum: 6, 150, 15
+After doubleAll, middle of small = 4
+tripled = 15, added = 105, squared = 49, viaName = 21
+All function tests passed!
+```
+
+**Expected:**
+```
+Hello, World!
+Hello, Fusion!
+Welcome, Fusion!
+offset(10) = 5, offset(10, 2) = 12
+sum: 6, 150, 15
+After doubleAll, middle of small = 4
+tripled = 15, added = 105, squared = 49, viaName = 21
+All function tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+... (truncated)
+```
+
+### strings_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+a = apple, b = banana
+original = quiet, loud = LOUD
+a == apple: true, a < b: true
+Ada 555-0100 / Grace 555-0123
+Grace: found, Alan: missing
+Ada Lovelace! has 13 characters, starts with A
+[Lovelace] [ADA] [spaced]
+contains Love: true, index of Love: 4
+42 doubled is 84
+All string tests passed!
+```
+
+**Expected:**
+```
+a = apple, b = banana
+original = quiet, loud = LOUD
+a == apple: true, a < b: true
+Ada 555-0100 / Grace 555-0123
+Grace: found, Alan: missing
+Ada Lovelace! has 13 characters, starts with A
+[Lovelace] [ADA] [spaced]
+contains Love: true, index of Love: 4
+42 doubled is 84
+All string tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+... (truncated)
+```
+
+### arrays_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+=== Fusion Arrays Demo ===
+
+First score: 10
+Updated first score: 99
+Number of scores: 5
+
+Buffer: 1.500000, 2.500000, 0.000000
+
+Sum of [10, 20, 30, 40, 50] = 150
+
+All array tests passed!
+```
+
+**Expected:**
+```
+First score: 10
+Updated first score: 99
+Number of scores: 5
+Sum of [10, 20, 30, 40, 50] = 150
+All array tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+... (truncated)
+```
+
 ### sum_array
 
 **Status:** [OK] All Checks Passed
@@ -1478,6 +1048,436 @@ Sum of 1 to 10: 55
 **Expected:**
 ```
 Sum of 1 to 10: 55```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+... (truncated)
+```
+
+### structs_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+a = (3, 4), b = (10, 4)
+a + b = (13, 8)
+Inside moveRight: x = 103
+After moveRight: a.x = 3
+Ada: health 75.000000, score 15
+Newcomer score: 0, health 100.000000
+Dune Messiah is available
+Origin: (0, 0)
+Named point: (7, 8)
+Linus: health 100.000000, score 42
+Shifted: (8, 9)
+Linus (42) beat Ada (15)
+box: max.x = 4, bigger max.x = 40
+Blue total 22, first position x = 1
+Diagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4
+All struct tests passed!
+```
+
+**Expected:**
+```
+a = (3, 4), b = (10, 4)
+a + b = (13, 8)
+Inside moveRight: x = 103
+After moveRight: a.x = 3
+Ada: health 75.000000, score 15
+Newcomer score: 0, health 100.000000
+Dune Messiah is available
+Origin: (0, 0)
+Named point: (7, 8)
+Linus: health 100.000000, score 42
+Shifted: (8, 9)
+Linus (42) beat Ada (15)
+box: max.x = 4, bigger max.x = 40
+Blue total 22, first position x = 1
+Diagonal ends at (9, 9); team now at x = 2; diagonal(4)[1].y = 4
+All struct tests passed!```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+... (truncated)
+```
+
+### classes_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+Dune (book): 2.00 for 14 days
+Alien (film), 117 min: 3.50 for 7 days
+Tetris (game): 5.00 for 14 days
+total 10.50
+lent for 7 days
+Alien runs 117 minutes
+a Film is not a Game
+Media.Game
+Hall row 2: Dune
+classic: the List has it already (noDuplicates)
+2 tags
+```
+
+**Expected:**
+```
+Dune (book): 2.00 for 14 days
+Alien (film), 117 min: 3.50 for 7 days
+Tetris (game): 5.00 for 14 days
+total 10.50
+lent for 7 days
+Alien runs 117 minutes
+a Film is not a Game
+Media.Game
+Hall row 2: Dune
+classic: the List has it already (noDuplicates)
+2 tags```
+
+**Generated C Code (first 50 lines):**
+```c
+#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+... (truncated)
+```
+
+### errors_demo
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+width = 80
+height = 24
+skip (1): Not 'name=value': depth
+skip (2): A setting needs a name - '=5'
+skip: NumberFormatError: '12x' is not a whole number (check with isInt first)
+total: 3
+total failed: NumberFormatError: 'oops' is not a whole number (check with isInt first)
+totals done
+FileNotFoundError: no_such_settings.txt
+DivideByZeroError: 10 / 0: division by zero
+all handled
+```
+
+**Expected:**
+```
+width = 80
+height = 24
+skip (1): Not 'name=value': depth
+skip (2): A setting needs a name - '=5'
+skip: NumberFormatError: '12x' is not a whole number (check with isInt first)
+total: 3
+total failed: NumberFormatError: 'oops' is not a whole number (check with isInt first)
+totals done
+FileNotFoundError: no_such_settings.txt
+DivideByZeroError: 10 / 0: division by zero
+all handled```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+... (truncated)
+```
+
+### expressions
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+2 + 3 * 4 = 14   (2 + (3 * 4))
+(2 + 3) * 4 = 20   ((2 + 3) * 4)
+100 / 5 / 2 - 1 = 9   (((100 / 5) / 2) - 1)
+7 = 7   7
+```
+
+**Expected:**
+```
+2 + 3 * 4 = 14   (2 + (3 * 4))
+(2 + 3) * 4 = 20   ((2 + 3) * 4)
+100 / 5 / 2 - 1 = 9   (((100 / 5) / 2) - 1)
+7 = 7   7```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+#ifdef FUSION_TRACE_OBJECTS
+#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
+#else
+... (truncated)
+```
+
+### shop
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+Receipt
+-------
+Coffee beans.. R 12.99
+Mug........... R 8.50
+Filters....... R 3.99
+-------
+Subtotal...... R 25.48
+Total + VAT... R 29.30
+```
+
+**Expected:**
+```
+Receipt
+-------
+Coffee beans.. R 12.99
+Mug........... R 8.50
+Filters....... R 3.99
+-------
+Subtotal...... R 25.48
+Total + VAT... R 29.30```
 
 **Generated C Code (first 50 lines):**
 ```c

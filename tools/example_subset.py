@@ -14,7 +14,9 @@ from src.semantic import SemanticAnalyzer
 from src.config import load_project_config
 from src.parser import ast_nodes as A
 
-progs = sorted((ROOT / 'examples').glob('*.fusion')) + sorted((ROOT / 'examples').glob('*/main.fusion'))
+# examples/<topic>/*.fusion and examples/13_projects/<name>/main.fusion (tools/example_files.py)
+progs = sorted((ROOT / 'examples').glob('*/*.fusion')) + \
+    sorted((ROOT / 'examples').glob('13_projects/*/main.fusion'))
 progs = [p for p in progs if p.name != 'mixed_indent.fusion']
 
 used = collections.defaultdict(set)      # feature -> programs using it

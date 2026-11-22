@@ -1,0 +1,8 @@
+# The examples are for developers to try: each program waits for a key before its window
+# closes, so its output can be read (all other settings: their defaults)
+[build]
+waitAtExit = true
+
+# Methods inside a struct (Task 32.1) - for syntax_struct_methods
+[structs]
+functions = true

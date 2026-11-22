@@ -7309,3 +7309,64 @@ Each part is shipped on its own, in this order:
 
 - **Tests:** Rule 4c - a truth table in files/Arrays.md (form x dimensions x operation), each row a
   test; Rule 4b - a null object slot with and without `?.`; everything under the leak check
+
+### Before 33.3 - from the ChatGPT review of README.md + FeatureTree.md (user, 2026-11-22; reviewed - Rule 3c)
+- Done 2026-11-22: 6 - examples/ in the approved topic folders (tools/example_files.py; a marker names its folder); 5 and the later README features moved to task/taskBacklog.md
+- Done 2026-11-22: 1 (moved to Notes/), 2 (README), 3 (Ownership.md truth table 3b), 4 (FEATURES 33.4);
+  5 stays a plan (designed later); README "Services: Shared State Without Locks" section added (user)
+- Approved 2026-11-22 (user): the topic folder list in 6; a syntax_* example's folder from its marker
+  (`<!-- example: name | folder: X -->`); next: 6 - the split
+1. Move `chatgpt review 2026-11-22.md` from the root to `Notes/` (reviews go there); update Main.md if it lists Notes files
+2. README.md (Rule 6 - goals, not status):
+   - the first line reworded: "Fusion is a configurable programming language and compiler platform. It separates
+     language semantics from implementation strategies, allowing projects to configure how their code is compiled,
+     executed, managed and optimized without changing what the code means" (was "not a traditional programming
+     language ... a configurable compiler platform") - user to approve the wording
+   - one small program shown in all three block styles (indentation, braces, End) - syntax without lock-in
+   - one line pointing to FeatureTree.md for what is built (status stays out of the README)
+   - from its second review (same file, "second review"): the philosophy (code as infrastructure, configurable
+     implementation strategies, syntax without lock-in, one owner / one writer, configurable backends); the
+     pipeline as a small diagram (source -> lexer -> parser -> AST -> semantic analysis -> C generator -> C -> GCC
+     -> native program); a pointer to `examples/` (each has the .fusion, the generated .c and the program); a
+     documentation roadmap - links only, no copied content
+   - its table puts taskSummary2 in `task/` - it is `files/taskSummary2.md` (a limited view, Rule 3c)
+3. files/Ownership.md (Rule 4c): truth-table rows for generics - a pack's values lent (`show(car, bus)`), `T...` values
+   retained in a temporary List, a generic class holding an object (`Box<Car>`), a generic struct's fields, a copy per
+   set of types; tests for any row not covered yet
+4. FEATURES: an interaction test - one program combining generics, ownership, collections, structs and classes, run
+   under the leak check (the review's "test existing features together"); scheduled under Task 33 (33.4) or its own
+6. `examples/` split into numbered topic folders (user, 2026-11-22 - from the second review), easier to follow in order:
+   `01_hello_world/`, `02_variables/`, `03_functions/`, `04_control_flow/`, `05_structs/`, `06_classes/`,
+   `07_generics/` ... each with its .fusion, .c and program; plan the topic list first (the 105 programs, the
+   syntax_* ones from SYNTAX_REFERENCE included)
+   - **Proposed topic folders (to approve)** - the 102 programs and 4 project folders:
+     - `01_basics/` - hello_world, style_indent / braces / end, syntax_functions_and_blocks,
+       syntax_variables_and_control_flow, syntax_let_var, syntax_conditional, syntax_equality, syntax_overflow,
+       syntax_number_conditions, syntax_long_lines, syntax_module_variables, syntax_ranges, const_demo, control_flow,
+       fizzbuzz, factorial, max_three, calculator
+     - `02_functions/` - functions_demo, syntax_defaults_and_named_args, syntax_functions_as_methods, syntax_lambdas,
+       syntax_templates, syntax_variadic, syntax_at_the_call
+     - `03_strings/` - strings_demo, syntax_strings, syntax_string_library / operations / put, syntax_interpolation,
+       syntax_unicode, syntax_bytes, syntax_to_string
+     - `04_arrays/` - arrays_demo, sum_array, syntax_arrays, syntax_array_* (6), syntax_growable_array, syntax_jagged,
+       syntax_length, syntax_many_dims* (5)
+     - `05_collections/` - syntax_lists, syntax_list_collection, syntax_list_options, syntax_maps, syntax_map_entries,
+       syntax_foreach, syntax_shared_lists
+     - `06_match_and_enums/` - syntax_match, syntax_match_value, syntax_fall_match, syntax_enums, syntax_enum_bare,
+       syntax_enum_data
+     - `07_structs/` - structs_demo, syntax_structs, syntax_struct_* (5)
+     - `08_classes/` - classes_demo, syntax_classes, syntax_methods, syntax_statics, syntax_setup_blocks, syntax_getters,
+       syntax_default, syntax_object_copies, syntax_object_text, syntax_inheritance, syntax_interfaces
+     - `09_generics/` - syntax_generics, syntax_generic_conditions, syntax_variadic_pack
+     - `10_errors_and_null/` - errors_demo, syntax_errors, syntax_error_types, syntax_try, syntax_null_enums,
+       syntax_null_guard
+     - `11_ownership/` - syntax_moving, syntax_borrowing, syntax_readonly, syntax_readonly_result, syntax_one_writer
+     - `12_files_and_programs/` - syntax_files, syntax_program_io, syntax_run, syntax_write
+     - `13_projects/` - expressions, project_config_demo, shop, wordcount (folders as they are)
+   - the syntax_* programs are written from SYNTAX_REFERENCE's `<!-- example: name -->` markers - the folder could
+     come from the marker (`<!-- example: syntax_ranges | folder: 01_basics -->`) or from the SYNTAX_REFERENCE
+     section it sits in; a new example then lands in the right folder
+   - update with it: `examples/#list.csv` and `examples/#run.bat`, `check.py --build-examples` (where it writes),
+     `tests/verify_examples.py`, the reference / leaks checks, `examples/CLAUDE.md`, Main.md, any links to examples
+- Not taken: "Current development status" / "What can I do today" in the README (Rule 6 - FeatureTree.md holds it;
+  the second review agrees)

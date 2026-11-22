@@ -20,7 +20,7 @@
 - try / catch / finally / throw (26.3)
 - catchable built-in failures (26.4)
 - the `[errors] returns / exceptions` switches (26.5)
-- Example program: `examples/errors_demo.fusion`
+- Example program: `examples/10_errors_and_null/errors_demo.fusion`
 
 **Custom error types (Task 26.9, user decisions 2026-10-16):**
 - `error FileError` with fields like a struct's; `error FileNotFound : FileError` extends one

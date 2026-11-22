@@ -17,6 +17,7 @@ from src.codegen.c_generator import runtime_header_text
 from src.config import load_project_config
 from src.modules.loader import load_program_file
 from src.semantic import SemanticAnalyzer
+from tools.example_files import example_path
 
 ROOT = Path(__file__).resolve().parent.parent
 RUNTIME = ROOT / 'runtime'
@@ -60,10 +61,10 @@ def test_the_committed_header_is_up_to_date():
 
 
 def test_a_program_using_the_header_has_no_runtime_inside():
-    code = c_code(ROOT / 'examples' / 'hello_world.fusion', runtime_include='fusion_runtime.h')
+    code = c_code(example_path('hello_world'), runtime_include='fusion_runtime.h')
     assert '#include "fusion_runtime.h"' in code
     assert 'static inline fusion_string fusion_str_make' not in code
-    full = c_code(ROOT / 'examples' / 'hello_world.fusion')
+    full = c_code(example_path('hello_world'))
     assert len(code.splitlines()) < 100 < len(full.splitlines())
 
 
@@ -78,7 +79,7 @@ def test_settings_come_before_the_header():
 
 @pytest.mark.parametrize('name', TIER_1)
 def test_tier_1_examples_print_the_same_with_the_shared_header(name):
-    path = ROOT / 'examples' / f'{name}.fusion'
+    path = example_path(name)
     with tempfile.TemporaryDirectory() as tmp:
         folder = Path(tmp)
         inline = build_and_run(c_code(path), folder, 'inline')

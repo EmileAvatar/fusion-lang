@@ -344,10 +344,10 @@ def test_load_program_file_handles_single_files_and_projects(tmp_path):
 
 
 def test_the_shop_example_project_builds(tmp_path):
-    """examples/shop - the example program of several files (Task 18.4.4)."""
+    """examples/13_projects/shop - the example program of several files (Task 18.4.4)."""
     from src.modules import load_program_file
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    program, problems = load_program_file(os.path.join(root, 'examples', 'shop', 'main.fusion'))
+    program, problems = load_program_file(os.path.join(root, 'examples', '13_projects', 'shop', 'main.fusion'))
     assert not problems
     analyzer = SemanticAnalyzer()
     assert analyzer.analyze(program), analyzer.get_errors()

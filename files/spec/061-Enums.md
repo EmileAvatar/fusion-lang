@@ -32,7 +32,7 @@
 - One rule: a value can't hold itself through other types (enum A holds struct S holds A) - hold it in a List instead
 - (The first value may hold the enum too since Task 30.11 - an unset variable is null, not the first value)
 
-Example program using all of it (Task 25.6): `examples/expressions/`
+Example program using all of it (Task 25.6): `examples/13_projects/expressions/`
 - a `Token` enum with data
 - a tokenizer using `match` on chars
 - a parser building an `Expr` tree (`Binary(char op, Expr left, Expr right)`)

@@ -7,7 +7,7 @@ summary - full output only for what failed:
     python check.py                   everything below
     python check.py --quick           unit tests only
     python check.py --status          open items from files/FEATURES.md + the next action (no build)
-    python check.py --build-examples  write files/SYNTAX_REFERENCE.md programs to examples/, build
+    python check.py --build-examples  write files/SYNTAX_REFERENCE.md programs to examples/<topic>/, build
                                       every example (.c + .exe), regenerate #list.csv and
                                       #run.bat (Task 23 - see examples/CLAUDE.md)
     python check.py --fix-ascii       non-ASCII characters -> \\uXXXX escapes, only where the
@@ -33,7 +33,7 @@ Checks:
     tests     pytest (every end-to-end test already runs under the string leak check); on every
               core when pytest-xdist is installed (59.3) - about 50 s instead of 4 min
     examples  tests/verify_examples.py - compile, run, compare output
-    leaks     every examples/*.fusion and every files/SYNTAX_REFERENCE.md program, built with
+    leaks     every examples/<topic>/*.fusion and every files/SYNTAX_REFERENCE.md program, built with
               -DFUSION_LEAK_CHECK and run: exit 3 = a string never freed, 4 = freed twice
     reference every ```fusion block in files/SYNTAX_REFERENCE.md compiles and runs (exit 0), and
               its copy in examples/ is up to date
@@ -57,11 +57,15 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-EXAMPLES = ROOT / 'examples'
 sys.path.insert(0, str(ROOT))
 
-# files/SYNTAX_REFERENCE.md: `<!-- example: <file name> | task: <task> -->` right above a block
-EXAMPLE_MARKER = re.compile(r'<!-- example: (\S+) \| task: (\S+) -->\n```fusion\n(.*?)```', re.S)
+from tools.example_files import (EXAMPLES, DEMO_FOLDERS, example_label, example_name,  # noqa: E402
+                                 example_path, example_sources)
+
+# files/SYNTAX_REFERENCE.md: `<!-- example: <file name> | task: <task> | folder: <topic folder> -->`
+# right above a block - the program is written to examples/<topic folder>/<file name>.fusion
+EXAMPLE_MARKER = re.compile(
+    r'<!-- example: (\S+) \| task: (\S+) \| folder: (\S+) -->\n```fusion\n(.*?)```', re.S)
 
 # Hand-written demos without "(Task N)" in their first line
 DEMO_TASKS = {'arrays_demo': '09', 'const_demo': '08'}
@@ -164,7 +168,7 @@ def reference_programs():
 
 
 def reference_examples():
-    """(file name, task, code) for every marked files/SYNTAX_REFERENCE.md program."""
+    """(file name, task, topic folder, code) for every marked files/SYNTAX_REFERENCE.md program."""
     text = (ROOT / 'files' / 'SYNTAX_REFERENCE.md').read_text(encoding='utf-8')
     return EXAMPLE_MARKER.findall(text)
 
@@ -175,11 +179,18 @@ def check_reference_sync():
     problems = []
     if len(examples) != len(reference_programs()):
         problems.append('a ```fusion block in files/SYNTAX_REFERENCE.md has no '
-                        '<!-- example: name | task: N --> marker above it')
-    for name, _, code in examples:
-        path = EXAMPLES / f'{name}.fusion'
-        if not path.exists() or path.read_text(encoding='utf-8') != code:
-            problems.append(f'examples/{name}.fusion is missing or out of date')
+                        '<!-- example: name | task: N | folder: X --> marker above it')
+    for name, _, folder, code in examples:
+        path = EXAMPLES / folder / f'{name}.fusion'
+        if not (EXAMPLES / folder).is_dir():
+            problems.append(f'{name}: no topic folder examples/{folder}/')
+        elif not path.exists() or path.read_text(encoding='utf-8') != code:
+            problems.append(f'examples/{folder}/{name}.fusion is missing or out of date')
+    named = {name for name, _, _, _ in examples} | set(DEMO_FOLDERS)
+    for path in example_sources():
+        if path.name != 'main.fusion' and path.stem not in named:
+            problems.append(f'examples/{example_label(path)}.fusion: not in SYNTAX_REFERENCE '
+                            'and not in DEMO_FOLDERS (tools/example_files.py)')
     if problems:
         problems.append('fix: python check.py --build-examples')
     return not problems, f'{len(examples)} in sync' if not problems else 'out of sync', \
@@ -235,7 +246,7 @@ def selfhost_report():
             folders = [Path(tmp) / 'python', Path(tmp) / 'selfhost']
             for folder in folders:
                 folder.mkdir()
-                shutil.copy(EXAMPLES / f'{name}.fusion', folder)
+                shutil.copy(example_path(name), folder)
             times = []
             t = time.perf_counter()
             a = run([sys.executable, 'main.py', str(folders[0] / f'{name}.fusion')], timeout=120)
@@ -267,17 +278,6 @@ def write_runtime():
     return 0
 
 
-def example_sources():
-    """Every example program: examples/*.fusion, and the main file of each example project
-    of several files, examples/<name>/main.fusion (Task 18.4.4)."""
-    return sorted(EXAMPLES.glob('*.fusion')) + sorted(EXAMPLES.glob('*/main.fusion'))
-
-
-def example_name(path: Path) -> str:
-    """An example's name: its file name, or for a project its folder (shop/main)."""
-    return path.stem if path.parent == EXAMPLES else f'{path.parent.name}/{path.stem}'
-
-
 def example_task(path: Path, reference_tasks: dict) -> str:
     if path.stem in reference_tasks:
         return reference_tasks[path.stem]
@@ -295,15 +295,21 @@ def first_added(path: Path) -> str:
 
 
 def build_examples():
-    """Task 23: write the reference programs to examples/, build every example, and
+    """Task 23: write the reference programs to examples/<topic>/, build every example, and
     regenerate #list.csv and #run.bat (both local-only, see examples/CLAUDE.md)."""
     examples = reference_examples()
-    reference_tasks = {name: task for name, task, _ in examples}
-    for name, _, code in examples:
-        path = EXAMPLES / f'{name}.fusion'
+    reference_tasks = {name: task for name, task, _, _ in examples}
+    for name, _, folder, code in examples:
+        path = EXAMPLES / folder / f'{name}.fusion'
+        old = example_path(name)
+        if old.exists() and old != path:      # its folder changed: move it (and its build output)
+            for suffix in ('.fusion', '.c', '.exe'):
+                if old.with_suffix(suffix).exists():
+                    old.with_suffix(suffix).replace(path.with_suffix(suffix))
         if not path.exists() or path.read_text(encoding='utf-8') != code:
+            path.parent.mkdir(exist_ok=True)
             path.write_text(code, encoding='utf-8', newline='')
-            print(f'wrote     examples/{path.name}')
+            print(f'wrote     examples/{folder}/{path.name}')
 
     failures = []
     sources = example_sources()
@@ -321,15 +327,17 @@ def build_examples():
         writer = csv.writer(f)
         writer.writerow(['fusion', 'c', 'exe', 'task', 'added'])
         for path in sources:
-            name = example_name(path)
-            added = previous.get(f'{name}.fusion', {}).get('added') or first_added(path)
+            name = example_label(path)
+            # a row keeps its date, also from before the topic folders (keyed by name only)
+            row = previous.get(f'{name}.fusion') or previous.get(f'{example_name(path)}.fusion') or {}
+            added = row.get('added') or first_added(path)
             writer.writerow([f'{name}.fusion', f'{name}.c', f'{name}.exe',
                              example_task(path, reference_tasks), added])
 
     lines = ['@echo off', 'rem Generated by "python check.py --build-examples" - do not edit',
              'cd /d "%~dp0"']
     for path in sources:
-        exe = example_name(path).replace('/', '\\') + '.exe'
+        exe = example_label(path).replace('/', '\\') + '.exe'
         # --headless: each program closes by itself - the script pauses once at the end;
         # < nul: a program reading input (readLine) gets none instead of stopping the script
         lines += ['echo.', 'echo.', f'echo ---- {exe} ----', 'echo.', 'echo.',
@@ -349,8 +357,10 @@ def check_leaks():
     # examples/ (syntax_*) would only repeat them
     programs = [(example_name(p), p.read_text(encoding='utf-8'), str(p))
                 for p in example_sources() if not p.name.startswith('syntax_')]
-    # built as if in examples/ - where they live - so examples/fusion.toml applies
-    programs += [(f'SYNTAX_REFERENCE #{i}', code, str(ROOT / 'examples' / 'reference.fusion'))
+    # built as if in their topic folder - where they live - so its fusion.toml applies
+    marked = {code: folder for _, _, folder, code in reference_examples()}
+    programs += [(f'SYNTAX_REFERENCE #{i}', code,
+                  str(EXAMPLES / marked.get(code, '01_basics') / 'reference.fusion'))
                  for i, code in enumerate(reference_programs(), 1)]
     failures = []
     for name, code, path in programs:
@@ -555,11 +565,9 @@ def show_status():
 # ---------------------------------------------------------------- one example
 
 def find_example(name: str):
-    """examples/NAME.fusion, or the project examples/NAME/main.fusion."""
-    for path in (EXAMPLES / f'{name}.fusion', EXAMPLES / name / 'main.fusion'):
-        if path.exists():
-            return path
-    return None
+    """examples/<topic>/NAME.fusion, or the project examples/13_projects/NAME/main.fusion."""
+    path = example_path(name)
+    return path if path.exists() else None
 
 
 def run_example(name: str, program_args):

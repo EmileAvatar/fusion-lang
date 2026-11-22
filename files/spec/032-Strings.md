@@ -94,7 +94,7 @@ added on top of the simple value model above, which is what MVP needs:
 - With `[build] wait_at_exit = true` a compiled program waits for a key ("Press any key to close...", on
   stderr) before its window closes
 - So a program started by double-clicking it doesn't vanish before its output, or a run-time error, can be read
-- **Off by default**: it is for development, the examples (`examples/fusion.toml` turns it on) and testing -
+- **Off by default**: it is for development, the examples (the `fusion.toml` in each `examples/` topic folder turns it on) and testing -
   or an app that should show its details to the customer
 - `--headless` closes at once
 - It never waits when its input or output is redirected (pipes, files, tests)

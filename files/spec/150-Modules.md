@@ -61,7 +61,7 @@ classes, interfaces, enums, error types, functions and module variables:
       public Price function make(int cents)
       public string function show(Price p)
   ```
-* Example: `examples/shop/` - a program of three files in two modules
+* Example: `examples/13_projects/shop/` - a program of three files in two modules
 * **`public` / `internal` / `private`** (Task 18.4.3; 32.2a; 32.2h, user decisions 2026-10-30):
   - Structs, classes, enums, error types and functions are public unless written `internal`
   - Module variables are private to their module unless written `public` / `internal`

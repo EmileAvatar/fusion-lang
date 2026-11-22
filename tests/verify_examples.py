@@ -192,9 +192,8 @@ def verify_example(fusion_file: Path, expected_outputs: dict) -> VerificationRes
     Returns:
         VerificationResult object
     """
-    # A project (examples/<name>/main.fusion, Task 18.4.4) is named after its folder
-    name = fusion_file.parent.name if fusion_file.name == 'main.fusion' and \
-        fusion_file.parent.name != 'examples' else fusion_file.stem
+    # A project (examples/13_projects/<name>/main.fusion, Task 18.4.4) is named after its folder
+    name = fusion_file.parent.name if fusion_file.name == 'main.fusion' else fusion_file.stem
     result = VerificationResult(name)
 
     print(f"\n{Colors.BOLD}Verifying: {fusion_file.name}{Colors.RESET}")
@@ -380,17 +379,14 @@ def main():
 
     expected_outputs = EXPECTED_OUTPUTS
 
-    # Find all .fusion files in examples/
-    examples_dir = Path('examples')
-    if not examples_dir.exists():
-        print_error(f"Examples directory not found: {examples_dir}")
-        return 1
+    # Every .fusion file in the topic folders examples/<topic>/ (tools/example_files.py)
+    from tools.example_files import single_file_examples, project_examples
 
     # syntax_*.fusion are generated from files/SYNTAX_REFERENCE.md (Task 23) - check.py builds and
     # runs those under the leak check; this script covers the hand-written demos
-    fusion_files = [f for f in examples_dir.glob('*.fusion') if not f.name.startswith('syntax_')]
-    # Example projects of several files: examples/<name>/main.fusion (Task 18.4.4)
-    fusion_files += list(examples_dir.glob('*/main.fusion'))
+    fusion_files = [f for f in single_file_examples() if not f.name.startswith('syntax_')]
+    # Example projects of several files: examples/13_projects/<name>/main.fusion (Task 18.4.4)
+    fusion_files += project_examples()
 
     if not fusion_files:
         print_warning("No .fusion files found in examples/")

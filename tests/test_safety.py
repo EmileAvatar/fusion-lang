@@ -79,7 +79,7 @@ def test_a_written_index_inside_the_array_needs_no_check():
 # ---------------------------------------------------------------- 27.4 the three block styles
 
 def test_the_three_block_styles_compile_to_the_same_c():
-    """examples/style_indent / style_braces / style_end: one program written with
+    """examples/01_basics/style_indent / style_braces / style_end: one program written with
     indentation, braces and End keywords must give identical C - only the source positions
     in run-time error messages ("style_end.fusion:12") may differ (user request, Task 27.4)."""
     import re
@@ -88,10 +88,10 @@ def test_the_three_block_styles_compile_to_the_same_c():
     from src.parser.parser import Parser
     from src.semantic import SemanticAnalyzer
     from src.codegen import CCodeGenerator
-    examples = Path(__file__).resolve().parent.parent / 'examples'
+    from tools.example_files import example_path
     outputs = {}
     for style in ('indent', 'braces', 'end'):
-        path = examples / f'style_{style}.fusion'
+        path = example_path(f'style_{style}')
         source = path.read_text(encoding='utf-8')
         ast = Parser(Lexer(source, str(path)).tokenize()).parse_program()
         analyzer = SemanticAnalyzer()

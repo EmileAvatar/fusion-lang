@@ -21,6 +21,7 @@ import pytest
 
 from src.lexer import Lexer
 from tests.test_runtime_header import TIER_1
+from tools.example_files import example_path
 
 ROOT = Path(__file__).resolve().parent.parent
 SELFHOST = ROOT / 'selfhost' / 'main.exe'
@@ -60,9 +61,7 @@ def selfhost_tokens(exe: Path, path: Path) -> list:
 
 
 ALL_EXAMPLES = sorted(p.relative_to(ROOT / 'examples').as_posix()
-                      for p in list((ROOT / 'examples').glob('*.fusion'))
-                      + list((ROOT / 'examples').glob('*/*.fusion'))
-                      + list((ROOT / 'examples').glob('*/*/*.fusion')))
+                      for p in (ROOT / 'examples').rglob('*.fusion'))
 
 
 @pytest.mark.parametrize('name', ALL_EXAMPLES)
@@ -101,7 +100,7 @@ def run_exe(exe: Path) -> tuple:
 
 @pytest.mark.parametrize('name', SLICES)
 def test_selfhost_builds_the_program_the_python_compiler_builds(selfhost, name):
-    source = ROOT / 'examples' / f'{name}.fusion'
+    source = example_path(name)
     with tempfile.TemporaryDirectory() as tmp:
         python_dir, selfhost_dir = Path(tmp) / 'python', Path(tmp) / 'selfhost'
         python_dir.mkdir()

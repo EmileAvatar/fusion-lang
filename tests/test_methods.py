@@ -100,12 +100,11 @@ def test_a_variable_named_like_a_class_still_works():
 def test_library_programs_compile_without_warnings():
     """Programs that really call the string library, bytes and formatNumber compile with no
     gcc warnings at -O2 under -Wall -Wextra (unused functions alone don't show them all)."""
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    from tools.example_files import example_path
     for name in ('syntax_string_library', 'syntax_bytes', 'syntax_methods', 'syntax_lists',
                  'syntax_maps'):
-        path = os.path.join(root, 'examples', f'{name}.fusion')
-        if not os.path.exists(path):
-            continue
+        path = example_path(name)
+        assert path.exists(), path
         with open(path, encoding='utf-8') as f:
             c_code = generate_c(f.read())
         with tempfile.TemporaryDirectory() as tmp:

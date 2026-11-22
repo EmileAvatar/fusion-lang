@@ -14,7 +14,7 @@ Try it yourself:
 
 ```
 # From the repo root, with this directory's fusion.toml present:
-python main.py examples/project_config_demo/mixed_indent.fusion
+python main.py examples/13_projects/project_config_demo/mixed_indent.fusion
 # -> Lexer exception: ...mixed_indent.fusion:2:1: error: Mixed tabs and spaces in indentation
 
 # Move or rename fusion.toml out of the way and run again:

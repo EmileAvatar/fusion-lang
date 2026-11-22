@@ -2,8 +2,8 @@
 
 A showcase: one short example per **implemented** feature. Every ` ```fusion ` block is a
 complete program that `python check.py` compiles and runs, so this file can't drift from the
-compiler. The marker above each block (`<!-- example: name | task: N -->`) names the program
-`python check.py --build-examples` writes to `examples/`. Planned features are listed in `files/FEATURES.md`; the full design is in
+compiler. The marker above each block (`<!-- example: name | task: N | folder: X -->`) names the program
+`python check.py --build-examples` writes to `examples/X/` (a numbered topic folder, such as `01_basics`). Planned features are listed in `files/FEATURES.md`; the full design is in
 `files/fusion-language-spec.md`.
 
 When a feature ships, add its example here (Auto-Update Policy in `CLAUDE.md`).
@@ -12,7 +12,7 @@ When a feature ships, add its example here (Auto-Update Policy in `CLAUDE.md`).
 
 #### Hello, functions and the three block styles
 
-<!-- example: syntax_functions_and_blocks | task: 01-04 -->
+<!-- example: syntax_functions_and_blocks | task: 01-04 | folder: 01_basics -->
 ```fusion
 // Return type first. One-line functions use ':'
 int function add(int a, int b) : a + b
@@ -42,7 +42,7 @@ End function
 
 #### Variables, constants, control flow
 
-<!-- example: syntax_variables_and_control_flow | task: 08 -->
+<!-- example: syntax_variables_and_control_flow | task: 08 | folder: 01_basics -->
 ```fusion
 void function main()
     int count = 0
@@ -65,7 +65,7 @@ void function main()
 
 #### Ranges: `1...10` in a loop and in a match
 
-<!-- example: syntax_ranges | task: 33.2f -->
+<!-- example: syntax_ranges | task: 33.2f | folder: 01_basics -->
 ```fusion
 string function grade(int score)
     match score
@@ -105,7 +105,7 @@ from its first end to its last; it may not overlap another case.
 
 #### Module variables and constants: shared by a module's functions
 
-<!-- example: syntax_module_variables | task: 44.1 -->
+<!-- example: syntax_module_variables | task: 44.1 | folder: 01_basics -->
 ```fusion
 const int LIMIT = 3                       // a module constant
 int count = 0                             // a module variable - every function sees it
@@ -127,7 +127,7 @@ false` in `fusion.toml` turns module variables off (constants stay allowed).
 
 #### Default parameters and named arguments
 
-<!-- example: syntax_defaults_and_named_args | task: 18.2.2 -->
+<!-- example: syntax_defaults_and_named_args | task: 18.2.2 | folder: 02_functions -->
 ```fusion
 void function greet(string name = "World", int times = 1)
     for i in range(0, times)
@@ -144,7 +144,7 @@ void function main()
 
 #### Interpolation and `{@N}` placeholders
 
-<!-- example: syntax_interpolation | task: 18.2.2b -->
+<!-- example: syntax_interpolation | task: 18.2.2b | folder: 03_strings -->
 ```fusion
 void function main()
     string name = "Ada"
@@ -160,7 +160,7 @@ void function main()
 
 #### String templates: `template string greet = "Hello {@1}"`
 
-<!-- example: syntax_templates | task: 29.3 -->
+<!-- example: syntax_templates | task: 29.3 | folder: 02_functions -->
 ```fusion
 const string SHOP = "Ann's Cafe"
 template string welcome = "Welcome to {SHOP}, {@1}!"     // works like a function
@@ -180,7 +180,7 @@ void function main()
 
 #### Numbers as conditions: `if count` (`[conditions] numbers`)
 
-<!-- example: syntax_number_conditions | task: 30.9 -->
+<!-- example: syntax_number_conditions | task: 30.9 | folder: 01_basics -->
 ```fusion
 void function main()
     int count = 3
@@ -203,7 +203,7 @@ void function main()
 
 #### The conditional operator: `(condition) ? a : b`
 
-<!-- example: syntax_conditional | task: 30.7 -->
+<!-- example: syntax_conditional | task: 30.7 | folder: 01_basics -->
 ```fusion
 void function main()
     int count = 7
@@ -215,7 +215,7 @@ void function main()
 
 #### Long lines: a line break inside `( )` or `[ ]` continues the line
 
-<!-- example: syntax_long_lines | task: 44.3 -->
+<!-- example: syntax_long_lines | task: 44.3 | folder: 01_basics -->
 ```fusion
 int function total(int a, int b, int c) : a + b + c
 
@@ -234,7 +234,7 @@ void function main()
 
 #### Generic functions: one function for many types
 
-<!-- example: syntax_generics | task: 33.2a -->
+<!-- example: syntax_generics | task: 33.2a | folder: 09_generics -->
 ```fusion
 T function first<T>(List<T> items) : items[0]               // the type parameters after the name
 T function last(List<T> items) : items[items.len() - 1]     // also accepted: T, K, V (and T1, K2) in a signature
@@ -282,7 +282,7 @@ methods `Box(...)` and `Box<T>` mean this copy. A generic class with a parent, i
 
 #### Generic conditions: what a type parameter may be
 
-<!-- example: syntax_generic_conditions | task: 33.2d -->
+<!-- example: syntax_generic_conditions | task: 33.2d | folder: 09_generics -->
 ```fusion
 interface Printable
     string function label()
@@ -338,7 +338,7 @@ letter (with digits) - `<T implements Comparable, K>` starts K. `where` stays re
 
 #### Any number of values: `int... numbers`, `T... items`
 
-<!-- example: syntax_variadic | task: 33.2e -->
+<!-- example: syntax_variadic | task: 33.2e | folder: 02_functions -->
 ```fusion
 int function sum(int... numbers)                    // the last parameter; a List<int> inside
     int total = 0
@@ -370,7 +370,7 @@ has no default. The values are lent to the call (an object passed this way is st
 values of several types that all meet a condition (`<T extends Vehicle>(T... vs)` - a Car and a Bus) make T the
 condition's type. `main`'s `string... args` stays an array.
 
-<!-- example: syntax_variadic_pack | task: 33.2e2 -->
+<!-- example: syntax_variadic_pack | task: 33.2e2 | folder: 09_generics -->
 ```fusion
 void function show(T... items)                      // no condition: values of any type each - a pack
     print("{@1} values", items.len())
@@ -390,7 +390,7 @@ outside the loop, T as the result, and `break` / `continue` in that loop are err
 
 #### Lambdas and function values
 
-<!-- example: syntax_lambdas | task: 18.1.3 -->
+<!-- example: syntax_lambdas | task: 18.1.3 | folder: 02_functions -->
 ```fusion
 int function apply((int) : int f, int v) : f(v)
 int function triple(int x) : x * 3
@@ -402,7 +402,7 @@ void function main()
 
 #### Arrays
 
-<!-- example: syntax_arrays | task: 18.2.4 -->
+<!-- example: syntax_arrays | task: 18.2.4 | folder: 04_arrays -->
 ```fusion
 int function sum(int[] values)          // any size, passed by reference
     int total = 0
@@ -429,7 +429,7 @@ void function main()
 
 #### The `Array` class: every array acts as an object
 
-<!-- example: syntax_array_class | task: 45.1 -->
+<!-- example: syntax_array_class | task: 45.1 | folder: 04_arrays -->
 ```fusion
 struct Point
     int x
@@ -451,7 +451,7 @@ Every array acts as if it were an object of the built-in `Array` class (D.142): 
 
 #### Copying a part: `copyPart` / `copyPartAt`
 
-<!-- example: syntax_array_copy_part | task: 45.5 -->
+<!-- example: syntax_array_copy_part | task: 45.5 | folder: 04_arrays -->
 ```fusion
 void function show(int[] xs)
     foreach (int x in xs)
@@ -478,7 +478,7 @@ growable), a List a new List; a string is copied, an object shared.
 
 #### Arrays of 2 and 3 dimensions
 
-<!-- example: syntax_many_dims | task: 45.12a -->
+<!-- example: syntax_many_dims | task: 45.12a | folder: 04_arrays -->
 ```fusion
 void function main()
     int[2][3][4] cube                   // 2 rows x 3 columns x 4 depth - also int[2],[3],[4] cube
@@ -503,7 +503,7 @@ order. Views (`cube[1]`, `cube[][2]`), loops over it, passing and copying it com
 
 #### Parts of an array - views, and foreach over many dimensions
 
-<!-- example: syntax_many_dims_views | task: 45.12b -->
+<!-- example: syntax_many_dims_views | task: 45.12b | folder: 04_arrays -->
 ```fusion
 void function main()
     int[][] m = [[1, 2, 3], [4, 5, 6]]  // 2 rows x 3 columns
@@ -529,7 +529,7 @@ take the outer dimension first: depth, then columns, then rows (`[arrays] order 
 
 #### toList on arrays of 2 and 3 dimensions
 
-<!-- example: syntax_many_dims_to_list | task: 45.11 -->
+<!-- example: syntax_many_dims_to_list | task: 45.11 | folder: 04_arrays -->
 ```fusion
 void function main()
     int[][] m = [[1, 2, 3], [4, 5, 6]]  // 2 rows x 3 columns
@@ -544,7 +544,7 @@ null is skipped - a column whose slots are all null is an empty List (D.152).
 
 #### A whole array given to a new one
 
-<!-- example: syntax_array_whole_copy | task: 45.12e -->
+<!-- example: syntax_array_whole_copy | task: 45.12e | folder: 04_arrays -->
 ```fusion
 void function main()
     int[2][3] m = [[1, 2, 3], [4, 5, 6]]
@@ -572,7 +572,7 @@ growable array takes any shape. A fixed array is never replaced.
 
 #### toCSV on arrays of plain values
 
-<!-- example: syntax_array_csv | task: 45.11b -->
+<!-- example: syntax_array_csv | task: 45.11b | folder: 04_arrays -->
 ```fusion
 void function main()
     int[] a = [1, 2, 3]
@@ -597,7 +597,7 @@ A float is written as short as it can be (`1.5`, `2`). Arrays of structs keep th
 
 #### Growable arrays of 2 and 3 dimensions: `expand`
 
-<!-- example: syntax_many_dims_growable | task: 45.12d -->
+<!-- example: syntax_many_dims_growable | task: 45.12d | folder: 04_arrays -->
 ```fusion
 void function main()
     int:[][] g = [                      // growable - also int:[2][3] g or int[[2],[3]] g
@@ -621,7 +621,7 @@ fourth dimension come with the Collections library.
 
 #### Jagged arrays: each row its own length (`setStorage(JAGG)`)
 
-<!-- example: syntax_jagged | task: 45.15 -->
+<!-- example: syntax_jagged | task: 45.15 | folder: 04_arrays -->
 ```fusion
 void function main()
     int:[][] j = [[1], [2, 3, 4], [5, 6]]
@@ -646,7 +646,7 @@ the whole, copying, `toList`, `toCSV`, `==`, `j[][1]` and 3 dimensions come late
 
 #### Functions with arrays of 2 and 3 dimensions
 
-<!-- example: syntax_many_dims_functions | task: 45.12c -->
+<!-- example: syntax_many_dims_functions | task: 45.12c | folder: 04_arrays -->
 ```fusion
 int function total(int[] values)
     int t = 0
@@ -683,7 +683,7 @@ strings or objects copy it into a variable first. `==` needs the same shape (2 x
 
 #### Combining arrays: `a + b + c`
 
-<!-- example: syntax_array_combine | task: 45.4 -->
+<!-- example: syntax_array_combine | task: 45.4 | folder: 04_arrays -->
 ```fusion
 void function main()
     int[] a = [1, 2]
@@ -706,7 +706,7 @@ copies them: a string copied, an object shared. An array and a List don't mix - 
 
 #### Replacing an array with another size
 
-<!-- example: syntax_array_resize | task: 45.10 -->
+<!-- example: syntax_array_resize | task: 45.10 | folder: 04_arrays -->
 ```fusion
 int function total(int[] values)        // any size
     int t = 0
@@ -735,7 +735,7 @@ hold null in a slot (D.140). `fixed` keeps the size it was made with.
 
 #### A growable array: `int:[]` or `int[[]]`
 
-<!-- example: syntax_growable_array | task: 45.3 -->
+<!-- example: syntax_growable_array | task: 45.3 | folder: 04_arrays -->
 ```fusion
 class Car
     public string color
@@ -772,7 +772,7 @@ to an `int[]` parameter like any array. `fixed` can't go with it.
 
 #### Structs (fields only, copied by value)
 
-<!-- example: syntax_structs | task: 18.2 -->
+<!-- example: syntax_structs | task: 18.2 | folder: 07_structs -->
 ```fusion
 struct Point
     int x
@@ -805,7 +805,7 @@ void function main()
 
 #### Enums
 
-<!-- example: syntax_enums | task: 25.2 -->
+<!-- example: syntax_enums | task: 25.2 | folder: 06_match_and_enums -->
 ```fusion
 enum Color: Red Green Blue                // one line - commas are optional
 
@@ -832,7 +832,7 @@ void function main()
 
 #### An enum value alone where the type is known
 
-<!-- example: syntax_enum_bare | task: 45.17 -->
+<!-- example: syntax_enum_bare | task: 45.17 | folder: 06_match_and_enums -->
 ```fusion
 enum Months: JANUARY FEBRUARY MARCH JUNE
 
@@ -859,7 +859,7 @@ Where a Months is expected, its value's name alone is enough (D.150). Anywhere e
 
 #### Enums can be null: an unset enum is `null`
 
-<!-- example: syntax_null_enums | task: 30.11 -->
+<!-- example: syntax_null_enums | task: 30.11 | folder: 10_errors_and_null -->
 ```fusion
 enum Status
     OK
@@ -884,7 +884,7 @@ void function main()
 
 #### Enums with data
 
-<!-- example: syntax_enum_data | task: 25.4 -->
+<!-- example: syntax_enum_data | task: 25.4 | folder: 06_match_and_enums -->
 ```fusion
 enum Shape                                // a value may carry data
     Circle(double radius)
@@ -911,7 +911,7 @@ void function main()
 
 #### `match`
 
-<!-- example: syntax_match | task: 25.3 -->
+<!-- example: syntax_match | task: 25.3 | folder: 06_match_and_enums -->
 ```fusion
 enum Light: Red Yellow Green
 
@@ -936,7 +936,7 @@ void function main()
 
 #### `fall match`: falls through until `break`
 
-<!-- example: syntax_fall_match | task: 30.13 -->
+<!-- example: syntax_fall_match | task: 30.13 | folder: 06_match_and_enums -->
 ```fusion
 enum Level
     Low
@@ -958,7 +958,7 @@ void function main()
 
 #### `let` and `var`: the type comes from the value
 
-<!-- example: syntax_let_var | task: 46.1 -->
+<!-- example: syntax_let_var | task: 46.1 | folder: 01_basics -->
 ```fusion
 struct Point
     int x
@@ -983,7 +983,7 @@ void function main()
 
 #### `match` that gives a value
 
-<!-- example: syntax_match_value | task: 46.2 -->
+<!-- example: syntax_match_value | task: 46.2 | folder: 06_match_and_enums -->
 ```fusion
 enum Light: Red Yellow Green
 
@@ -1004,7 +1004,7 @@ here, `else` in a match statement, which takes `_` too).
 
 #### `write`: print without ending the line
 
-<!-- example: syntax_write | task: 46.3 -->
+<!-- example: syntax_write | task: 46.3 | folder: 12_files_and_programs -->
 ```fusion
 void function main()
     write("1 + 2 = ")                   // the line stays open
@@ -1015,7 +1015,7 @@ void function main()
 
 #### Strings (values, freed automatically)
 
-<!-- example: syntax_strings | task: 18.3.1 -->
+<!-- example: syntax_strings | task: 18.3.1 | folder: 03_strings -->
 ```fusion
 string function shout(string word)
     word = "LOUD"                       // works on its own copy
@@ -1032,7 +1032,7 @@ void function main()
 
 #### Changing a character: `s[i] = c`
 
-<!-- example: syntax_string_put | task: 29.1 -->
+<!-- example: syntax_string_put | task: 29.1 | folder: 03_strings -->
 ```fusion
 void function main()
     string a = "Andrew"
@@ -1050,7 +1050,7 @@ void function main()
 
 #### String operations (each returns a new string)
 
-<!-- example: syntax_string_operations | task: 18.3.2 -->
+<!-- example: syntax_string_operations | task: 18.3.2 | folder: 03_strings -->
 ```fusion
 void function main()
     string name = "Ada"
@@ -1069,7 +1069,7 @@ void function main()
 
 #### Unicode text (characters vs bytes)
 
-<!-- example: syntax_unicode | task: 18.3.2b -->
+<!-- example: syntax_unicode | task: 18.3.2b | folder: 03_strings -->
 ```fusion
 void function main()
     string word = "caf\u00e9"          // the same as writing the accented letter directly
@@ -1085,7 +1085,7 @@ void function main()
 
 #### String library: inspect, search, extract, change, pad, number bases, formatting, compare, mask
 
-<!-- example: syntax_string_library | task: 18.3.6 -->
+<!-- example: syntax_string_library | task: 18.3.6 | folder: 03_strings -->
 ```fusion
 void function main()
     string s = "caf\u00e9 au lait"
@@ -1121,7 +1121,7 @@ void function main()
 
 #### Files
 
-<!-- example: syntax_files | task: 18.5.5 -->
+<!-- example: syntax_files | task: 18.5.5 | folder: 12_files_and_programs -->
 ```fusion
 void function main()
     string path = "fusion_example.txt"             // relative to the folder the program runs in
@@ -1142,7 +1142,7 @@ void function main()
 
 #### Program arguments, console input, exit
 
-<!-- example: syntax_program_io | task: 18.5.4 -->
+<!-- example: syntax_program_io | task: 18.5.4 | folder: 12_files_and_programs -->
 ```fusion
 void function main(string... args)                // or main() with no parameters
     print("{@1} argument(s)", len(args))          // the program's name and --headless aren't in it
@@ -1160,7 +1160,7 @@ void function main(string... args)                // or main() with no parameter
 
 #### Running another program: `run`
 
-<!-- example: syntax_run | task: 28.1.1 -->
+<!-- example: syntax_run | task: 28.1.1 | folder: 12_files_and_programs -->
 ```fusion
 void function main()
     print("before")
@@ -1175,7 +1175,7 @@ void function main()
 
 #### Lists: `List<T>`
 
-<!-- example: syntax_lists | task: 18.5.1 -->
+<!-- example: syntax_lists | task: 18.5.1 | folder: 05_collections -->
 ```fusion
 struct Team
     string name
@@ -1213,7 +1213,7 @@ void function main()
 
 #### Shared or copied: `byVal` and `byRef`
 
-<!-- example: syntax_shared_lists | task: 32.10a -->
+<!-- example: syntax_shared_lists | task: 32.10a | folder: 05_collections -->
 ```fusion
 struct Order
     List<string> items                  // copied when the Order is copied
@@ -1254,7 +1254,7 @@ copies a struct). Never null - just empty
 
 #### List options: `noDuplicates()`, `noNull()`, `readOnly()` in the set-up block
 
-<!-- example: syntax_list_options | task: 32.14 -->
+<!-- example: syntax_list_options | task: 32.14 | folder: 05_collections -->
 ```fusion
 void function main()
     List<string> tags = ["a"] {
@@ -1268,7 +1268,7 @@ void function main()
 
 #### Maps: `Map<K, V>` (also written `Dictionary<K, V>`)
 
-<!-- example: syntax_map_entries | task: 32.6 -->
+<!-- example: syntax_map_entries | task: 32.6 | folder: 05_collections -->
 ```fusion
 void function main()
     Map<string, int> ages
@@ -1283,7 +1283,7 @@ void function main()
     print(names[0])
 ```
 
-<!-- example: syntax_maps | task: 18.5.2 -->
+<!-- example: syntax_maps | task: 18.5.2 | folder: 05_collections -->
 ```fusion
 void function main()
     Map<string, int> ages = Map<string, int>()   // or just: Map<string, int> ages
@@ -1309,7 +1309,7 @@ void function main()
 
 #### Raw bytes: `byte` and `bytes`
 
-<!-- example: syntax_bytes | task: 18.3.8 -->
+<!-- example: syntax_bytes | task: 18.3.8 | folder: 03_strings -->
 ```fusion
 void function main()
     bytes data = toBytes("kkkkk")                 // a string's raw (UTF-8) bytes
@@ -1328,7 +1328,7 @@ void function main()
 
 #### Methods: `name.toUpper()`, `String.toUpper(name)`
 
-<!-- example: syntax_methods | task: 18.3.7 -->
+<!-- example: syntax_methods | task: 18.3.7 | folder: 08_classes -->
 ```fusion
 struct Person
     string name
@@ -1350,7 +1350,7 @@ void function main()
 
 #### Length: `len` and `length`, with or without brackets
 
-<!-- example: syntax_length | task: 30.8 -->
+<!-- example: syntax_length | task: 30.8 | folder: 04_arrays -->
 ```fusion
 void function main()
     string name = "Ada"
@@ -1366,7 +1366,7 @@ void function main()
 
 #### Classes: objects shared by reference
 
-<!-- example: syntax_classes | task: 32.10b -->
+<!-- example: syntax_classes | task: 32.10b | folder: 08_classes -->
 ```fusion
 class Engine
     public string kind                  // fields are private unless written public
@@ -1421,7 +1421,7 @@ one of the fields to null breaks the circle (Weak references come with Task 38).
 
 #### Statics: set up in three forms, before main
 
-<!-- example: syntax_statics | task: 32.2c -->
+<!-- example: syntax_statics | task: 32.2c | folder: 08_classes -->
 ```fusion
 class Car
     public string name
@@ -1454,7 +1454,7 @@ shows the chain (`Factory can't use Car - Car is still being set up (Car -> Engi
 
 #### Form B on any variable: a block right after the value
 
-<!-- example: syntax_setup_blocks | task: 32.2d -->
+<!-- example: syntax_setup_blocks | task: 32.2d | folder: 08_classes -->
 ```fusion
 class Engine
     public string kind = "none"
@@ -1486,7 +1486,7 @@ before its own body.
 
 #### readonly parameters: read, never changed
 
-<!-- example: syntax_readonly | task: 32.2e -->
+<!-- example: syntax_readonly | task: 32.2e | folder: 11_ownership -->
 ```fusion
 class Account
     public int balance
@@ -1515,7 +1515,7 @@ changed by its own set-up block (`const Point p = Point(1, 2) { p.x = 5 }`).
 
 #### Printing an object: its class name (until ToString)
 
-<!-- example: syntax_object_text | task: 32.2f -->
+<!-- example: syntax_object_text | task: 32.2f | folder: 08_classes -->
 ```fusion
 class Car
     public string name = "Honda"
@@ -1531,7 +1531,7 @@ A class that doesn't implement ToString prints as its class name, and the compil
 per class: `Car doesn't implement ToString - it prints as its class name 'Car'`. A null object
 prints `null`. With ToString (Task 32.5b) it prints its own text:
 
-<!-- example: syntax_to_string | task: 32.5b -->
+<!-- example: syntax_to_string | task: 32.5b | folder: 03_strings -->
 ```fusion
 class Car implements ToString
     string name
@@ -1547,7 +1547,7 @@ void function main()
 
 #### Interfaces: `interface`, `implements`, `is`, a cast in front
 
-<!-- example: syntax_interfaces | task: 32.5a -->
+<!-- example: syntax_interfaces | task: 32.5a | folder: 08_classes -->
 ```fusion
 interface Shape
     float function area()
@@ -1586,7 +1586,7 @@ default method - only with `[interfaces] defaultMethods = true`.
 
 #### Copies of objects: `byVal`, `Cloneable`, `nocopy`, `noshare`
 
-<!-- example: syntax_object_copies | task: 32.5b -->
+<!-- example: syntax_object_copies | task: 32.5b | folder: 08_classes -->
 ```fusion
 class Engine
     public string kind = "V8"
@@ -1613,7 +1613,7 @@ only in a constructor or `clone()`. A `noshare` field is never handed out - `ret
 
 #### Moving: `[memory] ownership = "strict"`
 
-<!-- example: syntax_moving | task: 48.1 -->
+<!-- example: syntax_moving | task: 48.1 | folder: 11_ownership -->
 ```fusion
 class Car
     public string color
@@ -1636,7 +1636,7 @@ keeps two names on one object.
 
 #### Borrowing: passing, elements, for loops
 
-<!-- example: syntax_borrowing | task: 48.2 -->
+<!-- example: syntax_borrowing | task: 48.2 | folder: 11_ownership -->
 ```fusion
 class Car
     public string color
@@ -1672,7 +1672,7 @@ can't be stored or returned (`byVal` copies it). A field or an element can't be 
 
 #### One writer, and storing `this`
 
-<!-- example: syntax_one_writer | task: 48.7 -->
+<!-- example: syntax_one_writer | task: 48.7 | folder: 11_ownership -->
 ```fusion
 class Car
     public string name
@@ -1713,7 +1713,7 @@ last holder lets go. With `"relaxed"` neither rule applies - the before / after 
 
 #### At the call: `readonly`, `byVal`, `byRef`
 
-<!-- example: syntax_at_the_call | task: 48.3 -->
+<!-- example: syntax_at_the_call | task: 48.3 | folder: 02_functions -->
 ```fusion
 class Account
     public int balance = 5
@@ -1743,7 +1743,7 @@ error, and `Car b = byRef a` is a local borrow.
 
 #### A getter lends: its result borrows from the object
 
-<!-- example: syntax_getters | task: 48.9 -->
+<!-- example: syntax_getters | task: 48.9 | folder: 08_classes -->
 ```fusion
 class Engine
     public string kind
@@ -1769,7 +1769,7 @@ collection (D.109). The result can't be stored or returned elsewhere; `byVal` co
 
 #### A readonly result, and a deep `const`
 
-<!-- example: syntax_readonly_result | task: 50 -->
+<!-- example: syntax_readonly_result | task: 50 | folder: 11_ownership -->
 ```fusion
 class Engine
     public int power = 90
@@ -1807,7 +1807,7 @@ may change, except in its own set-up block. Every case: files/Ownership.md "Trut
 
 #### The null guard: `?.` and `??`
 
-<!-- example: syntax_null_guard | task: 52.8 -->
+<!-- example: syntax_null_guard | task: 52.8 | folder: 10_errors_and_null -->
 ```fusion
 class Person
     public string name
@@ -1845,7 +1845,7 @@ first. A string, array, List or Map is never null, so `?.` on one does nothing (
 
 #### `Default`: an object that is never null
 
-<!-- example: syntax_default | task: 32.5b -->
+<!-- example: syntax_default | task: 32.5b | folder: 08_classes -->
 ```fusion
 class Settings implements Default
     public int size = 3
@@ -1861,7 +1861,7 @@ void function main()
 
 #### Inheritance: `inherits`, `override`, `super`, `typeOf`
 
-<!-- example: syntax_inheritance | task: 32.7 -->
+<!-- example: syntax_inheritance | task: 32.7 | folder: 08_classes -->
 ```fusion
 class Person
     public string name
@@ -1885,7 +1885,7 @@ below it. Fusion favours holding an object (composition) over inheritance.
 
 #### `foreach`, and a collection of your own: `Collection<T>`, `Iterator<T>`
 
-<!-- example: syntax_foreach | task: 32.4 -->
+<!-- example: syntax_foreach | task: 32.4 | folder: 05_collections -->
 ```fusion
 void function main()
     List<string> names = ["Ann", "Bob"]
@@ -1899,7 +1899,7 @@ void function main()
 ```
 A List is a `Collection<T>` value too (Task 32.6) - its own functions answer:
 
-<!-- example: syntax_list_collection | task: 32.6 -->
+<!-- example: syntax_list_collection | task: 32.6 | folder: 05_collections -->
 ```fusion
 int function total(Collection<int> c)       // any Collection<int> - a List, or a class of your own
     int sum = 0
@@ -1921,7 +1921,7 @@ A class of your own can be looped over: `class Team implements Collection<Person
 
 #### A struct holding an object
 
-<!-- example: syntax_struct_objects | task: 32.6 -->
+<!-- example: syntax_struct_objects | task: 32.6 | folder: 07_structs -->
 ```fusion
 class Person
     public string name
@@ -1944,7 +1944,7 @@ void function main()
 
 #### Commas between struct fields
 
-<!-- example: syntax_struct_commas | task: 32.12 -->
+<!-- example: syntax_struct_commas | task: 32.12 | folder: 07_structs -->
 ```fusion
 struct Point { int x, int y }             // on one line: commas between the fields
 
@@ -1960,7 +1960,7 @@ void function main()
 
 #### Methods inside a struct (`[structs] functions = true`)
 
-<!-- example: syntax_struct_methods | task: 32.1 -->
+<!-- example: syntax_struct_methods | task: 32.1 | folder: 07_structs -->
 ```fusion
 struct Counter
     string name
@@ -1982,11 +1982,11 @@ void function main()
     c.reset()
     print(c.show())                     // clicks: 0
 ```
-Off by default (structs hold values); `examples/fusion.toml` turns it on for this example.
+Off by default (structs hold values); `examples/07_structs/fusion.toml` turns it on for this example.
 
 #### A struct building on a struct: `implements` (or `extends` / `includes`)
 
-<!-- example: syntax_struct_parents | task: 32.8 -->
+<!-- example: syntax_struct_parents | task: 32.8 | folder: 07_structs -->
 ```fusion
 struct Person
     string name
@@ -2014,7 +2014,7 @@ void function main()
 
 #### A whole struct as text, and `toCSV`
 
-<!-- example: syntax_struct_text | task: 32.13 -->
+<!-- example: syntax_struct_text | task: 32.13 | folder: 07_structs -->
 ```fusion
 struct Point
     int x
@@ -2047,7 +2047,7 @@ struct's name (`Person.tel : "082",...,Employee.tel : "011"`).
 
 #### Your own functions as methods: `p.moved(1, 2)` is `moved(p, 1, 2)`
 
-<!-- example: syntax_functions_as_methods | task: 44.2 -->
+<!-- example: syntax_functions_as_methods | task: 44.2 | folder: 02_functions -->
 ```fusion
 struct Point
     int x
@@ -2103,12 +2103,12 @@ class Till
     private int secret           // Till's own functions only
 ```
 Each file imports what it uses; files of one module share all their names; each module is
-loaded once, so modules may import each other. A whole project to try: `examples/shop/`.
+loaded once, so modules may import each other. A whole project to try: `examples/13_projects/shop/`.
 `python main.py main.fusion --interface` prints the public names of every module it imports.
 
 #### Errors: `T, Error function`, capturing an error
 
-<!-- example: syntax_errors | task: 26.2 -->
+<!-- example: syntax_errors | task: 26.2 | folder: 10_errors_and_null -->
 ```fusion
 struct Ship
     string name
@@ -2137,7 +2137,7 @@ void function main()
 
 #### Whole numbers: overflow and wrapping
 
-<!-- example: syntax_overflow | task: 27.2b -->
+<!-- example: syntax_overflow | task: 27.2b | folder: 01_basics -->
 ```fusion
 int function hash(string text)
     int h = 17
@@ -2159,7 +2159,7 @@ void function main()
 
 #### Custom error types
 
-<!-- example: syntax_error_types | task: 26.9 -->
+<!-- example: syntax_error_types | task: 26.9 | folder: 10_errors_and_null -->
 ```fusion
 error ConfigError : FileError                // a custom error, extending Fusion's FileError:
     int line                                 // every Error field, FileError's path, its own
@@ -2200,7 +2200,7 @@ void function main()
 
 #### `try` / `catch` / `finally` / `throw`
 
-<!-- example: syntax_try | task: 26.3 -->
+<!-- example: syntax_try | task: 26.3 | folder: 10_errors_and_null -->
 ```fusion
 int, Error function half(int n)
     if n % 2 == 1
@@ -2231,7 +2231,7 @@ void function main()
 
 #### Equality: `=`, `==`, `!=`, `===`, `!==`
 
-<!-- example: syntax_equality | task: 18.3.5 -->
+<!-- example: syntax_equality | task: 18.3.5 | folder: 01_basics -->
 ```fusion
 struct Point
     int x
@@ -2327,7 +2327,7 @@ holdCollections   = true        # a struct field may be a List / Map; false: an 
 
 [build]
 waitAtExit = false             # true: wait for a key before the window closes (development,
-                                 # examples, testing) - examples/fusion.toml turns it on
+                                 # examples, testing) - each examples/ topic folder's fusion.toml turns it on
 
 [safety]
 mode = "safe"                    # safe (default) | strict (every warning is an error) | unsafe

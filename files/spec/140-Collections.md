@@ -145,7 +145,7 @@ bool same = ages == other       // the same keys with equal values, in any order
 * Every built-in is tagged with its layer (src/semantic/name_resolver.py) - the groundwork
   for capability checks (Task 39): a library will declare the layer it needs
 
-Example program using all of it: `examples/wordcount/` - modules, a file, `List`, `Map`,
+Example program using all of it: `examples/13_projects/wordcount/` - modules, a file, `List`, `Map`,
 `sortBy` and the text helpers (Task 18.5.7).
 
 [< 131 AutoDocs](131-AutoDocs.md) | [Index](index.md) | [150 Modules >](150-Modules.md) <!-- nav -->

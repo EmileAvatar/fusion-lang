@@ -115,8 +115,8 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [src/](src/) | The compiler - [src/CLAUDE.md](src/CLAUDE.md) explains the pipeline; each subfolder's [CLAUDE.md](CLAUDE.md) has one line per file |
 | [runtime/](runtime/) | The C run-time (`fusion_runtime.h` is generated) |
 | [selfhost/](selfhost/) | The compiler written in Fusion (Task 28, 35) |
-| [tests/](tests/) | The test suite; [examples/](examples/) - example programs with expected output |
-| [tools/](tools/) | Helper scripts (`patch.py`, `builtins_doc.py`, Windows preview) |
+| [tests/](tests/) | The test suite; [examples/](examples/) - example programs with expected output, in numbered topic folders (`01_basics` ... `13_projects`) |
+| [tools/](tools/) | Helper scripts (`patch.py`, `builtins_doc.py`, `example_files.py` - where the examples live, Windows preview) |
 | [debug/](debug/) | Old debug scripts |
 | [Notes/](Notes/) | Internal discussion and sources - not in git |
 | [files/requirements.txt](files/requirements.txt) | Python packages to install |
