@@ -96,7 +96,8 @@ def test_exit_code():
 @pytest.mark.parametrize("source, message", [
     ('void function main(int argc)\n    print("x")\n', "main takes no parameters, or the program's arguments"),
     ('void function main(string args)\n    print("x")\n', "main takes no parameters, or the program's arguments"),
-    ('int function f(int... xs) : 1\n\n' + main('int y = 1'), "'...' is only for main's arguments for now"),
+    # int... xs on any function since 33.2e - tests/test_generics.py
+    ('int function f(int... xs, int y) : 1\n\n' + main('int y = 1'), "must be the last parameter"),
 ])
 def test_errors(source, message):
     assert message in errors_of(source)

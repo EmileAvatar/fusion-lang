@@ -366,6 +366,70 @@ def test_a_condition_names_something_that_exists(top, message):
     assert any(message in e for e in found), found
 
 
+# ---------------------------------------------------------------- 33.2e int... numbers, T... (one type)
+
+VARIADIC = ('class Vehicle\n'
+            '    public string name\n'
+            '    constructor(string name)\n'
+            '        this.name = name\n\n'
+            'class Car inherits Vehicle\n'
+            '    constructor(string name)\n'
+            '        super(name)\n\n'
+            'class Bus inherits Vehicle\n'
+            '    constructor(string name)\n'
+            '        super(name)\n\n'
+            'class Counter\n'
+            '    public int total = 0\n'
+            '    void function addAll(int... ns)\n'
+            '        for n in ns\n'
+            '            total = total + n\n\n'
+            'int function sum(int... numbers)\n'
+            '    int total = 0\n'
+            '    for n in numbers\n'
+            '        total = total + n\n'
+            '    return total\n\n'
+            'string function joinAll(string sep, string... parts)\n'
+            '    string text = ""\n'
+            '    for p in parts\n'
+            '        if text != ""\n'
+            '            text = text + sep\n'
+            '        text = text + p\n'
+            '    return text\n\n'
+            'T function firstOf(T... items) : items[0]\n\n'
+            'int function howMany(T... items) : items.len()\n\n'
+            'string function parkAll<T extends Vehicle>(T... vs)\n'
+            '    string names = ""\n'
+            '    for v in vs\n'
+            '        names = names + v.name + " "\n'
+            '    return names.trim()\n\n')
+
+
+@pytest.mark.parametrize('body, lines', [
+    ('print("{@1} {@2}", sum(1, 2, 3), sum())', ['6 0']),                     # values, none
+    ('int[3] a = [4, 5, 6]\nList<int> xs = [7, 8]\nprint("{@1} {@2}", sum(a), sum(xs))', ['15 15']),   # array, List
+    ('print(joinAll(", ", "x", "y", "z"))\nprint("[{@1}]", joinAll("-"))', ['x, y, z', '[]']),        # after a fixed one
+    ('List<string> names = ["Ada", "Bo"]\nprint("{@1} {@2}", firstOf(names), firstOf("p", "q"))', ['Ada p']),
+    ('int[3] a = [1, 2, 3]\nprint("{@1} {@2}", firstOf(9, 8), howMany(a))', ['9 3']),
+    ('Car c = Car("mini")\nBus b = Bus("big")\nprint(parkAll(c, b))\nprint(c.name)', ['mini big', 'mini']),  # lent
+    ('print(parkAll(Car("c1"), Car("c2")))', ['c1 c2']),
+    ('Counter k = Counter()\nk.addAll(1, 2)\nk.addAll()\nprint("{@1}", k.total)', ['3']),            # a method
+    ('string s = firstOf<string>("only")\nprint(s)', ['only']),
+])
+def test_variadic(body, lines):
+    assert run(body, top=VARIADIC) == lines
+
+
+@pytest.mark.parametrize('top, body, message', [
+    ('', 'print(firstOf(1, "a"))', "are of different types (int, string)"),
+    ('', 'int n = howMany()', "T can't be worked out from the arguments"),
+    ('', 'int n = sum("a", "b")', "string"),
+    ('int function bad(int... ns, int last) : last\n\n', 'print("x")', "must be the last parameter"),
+])
+def test_variadic_mistakes(top, body, message):
+    found = errors_of(body, top=VARIADIC + top)
+    assert any(message in e for e in found), found
+
+
 def test_condition_parsing():
     program = parse('T1 function f<T implements Comparable, Printable, T1 : Vehicle, K>(T a, T1 b, K c) : b\n\n'
                     'void function main()\n    print("x")\n')

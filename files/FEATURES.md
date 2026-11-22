@@ -287,6 +287,11 @@ then each point is decided and solved completely. One line per section and per l
 			conditions - today each copy is checked with its real type, so a T without a condition can use what its
 			type happens to have
 	[ ] 33.2e `T...` and `int... numbers` - an array, a List or values (D.166)
+		[DONE 2026-11-22] 33.2e1 `int... numbers` / `T... items` of one type: the last parameter, a List inside;
+			values one by one (none - an empty List), an array or a List; the values lent (an object still usable);
+			on methods too; T from the values, or a condition's type for its children - tests/test_generics.py,
+			example syntax_variadic
+		[ ] 33.2e2 A pack: `show(1, "two", car)` - values of any type each, the function made per combination
 	[ ] 33.2f Ranges `1...100` in a `for` (SYN.034, user 2026-11-22) - the same `...` as 33.2e; tested next to
 		`range(...)` (`total` in syntax_generic_conditions shown both ways); settled when built (D.161): both ends
 		included, no step (`range(0, 10, 2)` has one), `10...1` an error suggesting `range(10, 0, -1)`; with it, if it

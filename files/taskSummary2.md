@@ -80,7 +80,8 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
 - Done 2026-11-22: 33.2b generic structs - a copy per set of types (`Pair__int__string`), registered when a type or a call needs it
 - Done 2026-11-22: 33.2c generic classes and methods on a generic struct - copied with it; a parent / interfaces / statics later (33.3)
 - Done 2026-11-22: 33.2d conditions - checked at each use (call or type written); the generic code itself checked against them later
-- **Next Action:** 33.2e `T...` and `int... numbers`
+- Done 2026-11-22: 33.2e1 `int... numbers` / `T...` of one type - a List inside; values, an array or a List
+- **Next Action:** 33.2e2 a pack of types (`show(1, "two", car)`)
 
 ### Parts, in order (each shipped on its own)
 1. **33.2a Generic functions:** the forms above without conditions; T, K, V (and digits) without `<...>`; types from the

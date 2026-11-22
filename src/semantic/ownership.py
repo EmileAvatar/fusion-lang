@@ -453,8 +453,8 @@ class _FunctionCheck:
             own = hidden | {p.name for p in node.parameters}
             self._reads_inside(node.body, state, own)
             return
-        if isinstance(node, ArrayLiteralExpr) and isinstance(getattr(node, 'inferred_type', None),
-                                                             ListType):
+        if isinstance(node, ArrayLiteralExpr) and isinstance(getattr(node, 'inferred_type', None), ListType) \
+                and not getattr(node, 'variadic_values', False):     # f(car, bus) borrows them (33.2e)
             for element in node.elements:
                 self._move(element, 'a List', state)
             return

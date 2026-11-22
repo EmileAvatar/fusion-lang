@@ -1779,6 +1779,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             if self._is_bytes_type(first_type):
                 func_type = self.symbol_table.bytes_overloads[func_name]
 
+        # f(int... numbers): the values left over become one List (Task 33.2e)
+        if declaration is not None:
+            self.pack_variadic(node, declaration)
         # Trailing parameters with defaults may be omitted (Task 18.1.1) - for a built-in,
         # its optional arguments (Task 18.3.6)
         expected_count = len(func_type.parameter_types)
@@ -3314,10 +3317,6 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 f"byRef works on a List or Map parameter (shared already); a parameter of "
                 f"type {self.type_to_string(node.param_type)} that changes the caller's value "
                 f"comes later", node.location))
-        if node.is_variadic and getattr(self, 'current_function_name', 'main') != 'main':
-            self.errors.append(SemanticError(
-                "'...' is only for main's arguments for now (main(string... args)) - "
-                "functions taking any number of values come later", node.location))
 
         # Check default value type if present
         if node.default_value:

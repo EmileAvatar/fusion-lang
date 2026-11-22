@@ -1,0 +1,22 @@
+int function sum(int... numbers)                    // the last parameter; a List<int> inside
+    int total = 0
+    for n in numbers
+        total = total + n
+    return total
+
+string function joinAll(string sep, string... parts)
+    string text = ""
+    for p in parts
+        if text != ""
+            text = text + sep
+        text = text + p
+    return text
+
+T function firstOf(T... items) : items[0]            // generic - T from the values
+
+void function main()
+    int[3] a = [4, 5, 6]
+    List<int> xs = [7, 8]
+    print("{@1} {@2} {@3} {@4}", sum(1, 2, 3), sum(), sum(a), sum(xs))   // 6 0 15 15
+    print(joinAll(", ", "x", "y", "z"))              // x, y, z
+    print(firstOf("p", "q"))                         // p

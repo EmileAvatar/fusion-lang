@@ -20,8 +20,9 @@ import re
 from dataclasses import fields, is_dataclass
 from typing import List
 
-from src.parser.ast_nodes import (ArrayType, EnumDecl, FunctionDecl, FunctionType, IdentifierExpr, ListType,
-                                  MapType, PrimitiveType, StructDecl, StructType, TypeNode)
+from src.parser.ast_nodes import (ArrayLiteralExpr, ArrayType, CallExpr, EnumDecl, FunctionDecl, FunctionType,
+                                  IdentifierExpr, ListType, MapType, MemberExpr, PrimitiveType, StructDecl,
+                                  StructType, TypeNode)
 
 from .errors import SemanticError
 
@@ -110,6 +111,29 @@ def take_generic_functions(program, enabled: bool) -> List[SemanticError]:
                 continue
         kept.append(decl)
     program.declarations[:] = kept
+    return errors
+
+
+def variadic_parameters(program) -> List[SemanticError]:
+    """`int... numbers` / `T... items` (33.2e, SYN.034): the last parameter only; inside the function it
+    is a List (main's `string... args` stays an array). At the call `pack_variadic` gathers the values."""
+    errors: List[SemanticError] = []
+    for decl in program.declarations:
+        if not isinstance(decl, FunctionDecl):
+            continue
+        for n, param in enumerate(decl.parameters):
+            if not getattr(param, 'is_variadic', False):
+                continue
+            if n != len(decl.parameters) - 1:
+                errors.append(SemanticError(
+                    f"'{param.name}...' takes the values left over - it must be the last parameter of "
+                    f"'{decl.name}'", param.location))
+            elif param.default_value is not None:
+                errors.append(SemanticError(
+                    f"'{param.name}...' has no default - no values given is an empty List", param.location))
+            elif decl.name != 'main' and isinstance(param.param_type, ArrayType):
+                param.param_type = ListType(location=param.param_type.location,
+                                            element_type=param.param_type.element_type)
     return errors
 
 
@@ -254,6 +278,40 @@ class GenericsMixin:
     """Calls to generic functions - a mixin of the type checker. Set by the analyzer: `program`, and
     `generic_host` (the analyzer - it registers a copy's name)."""
 
+    def pack_variadic(self, node, decl):
+        """A call of `f(int... numbers)` (33.2e): the values after the fixed parameters become one List -
+        written one by one (`f(1, 2, 3)`, or none - an empty List), or one array (`.toList()`) or List
+        (as it is). Returns ('list', element type) or ('values', [each value's type]); None when the
+        function takes no `...` or the call was packed already."""
+        params = decl.parameters
+        if not params or not getattr(params[-1], 'is_variadic', False) or decl.name == 'main' \
+                or getattr(node, 'variadic_packed', False):
+            return None
+        fixed = len(params) - 1
+        if len(node.arguments) < fixed or any(type(a).__name__ == 'NamedArgument' for a in node.arguments):
+            return None                                  # the usual count / name errors say what is wrong
+        node.variadic_packed = True
+        extra = node.arguments[fixed:]
+        if len(extra) == 1:
+            kind = self.visit(extra[0])
+            self.checked_receivers.pop(id(extra[0]), None)
+            if isinstance(kind, ListType) and not kind.array_form:
+                return 'list', kind.element_type        # a List - passed as it is
+            if isinstance(kind, (ArrayType, ListType)):
+                node.arguments[fixed] = CallExpr(       # an array - its values as a List
+                    location=extra[0].location, arguments=[],
+                    callee=MemberExpr(location=extra[0].location, object=extra[0], member='toList'))
+                return 'list', kind.element_type
+        kinds = []
+        for value in extra:
+            kinds.append(self.visit(value))
+            self.checked_receivers.pop(id(value), None)
+        location = extra[0].location if extra else node.location
+        values = ArrayLiteralExpr(location=location, elements=list(extra))
+        values.variadic_values = True          # the values are lent to the call, not moved (ownership)
+        node.arguments = node.arguments[:fixed] + [values]
+        return 'values', kinds
+
     def generic_call(self, node, generic: FunctionDecl):
         """`first(numbers)` / `first<int>(numbers)`: the types worked out, the copy made (once per set of
         types), and the call checked as a call of that copy."""
@@ -275,6 +333,7 @@ class GenericsMixin:
                 node.location))
             return void
         bindings = {}
+        packed = self.pack_variadic(node, generic) if isinstance(generic, FunctionDecl) else None
         written = getattr(node, 'type_args', None)
         if written is not None:
             if len(written) != len(params):
@@ -287,13 +346,16 @@ class GenericsMixin:
                 bindings[name] = kind
         else:
             before = len(self.errors)
-            actual = [self.visit(arg) for arg in node.arguments]
-            for arg in node.arguments:
+            fixed_args = node.arguments[:-1] if packed else node.arguments
+            actual = [self.visit(arg) for arg in fixed_args]
+            for arg in fixed_args:
                 self.checked_receivers.pop(id(arg), None)
             if len(self.errors) > before:
                 return void                                  # an argument is wrong - said already
             for (_, expected), kind in zip(self._generic_parameters(generic, node), actual):
                 self._bind(expected, kind, bindings, params)
+            if packed and not self._bind_variadic(generic, packed, bindings, params, node):
+                return void
             missing = [p for p in params if p not in bindings]
             if missing:
                 example = ', '.join('int' for _ in params)
@@ -312,6 +374,36 @@ class GenericsMixin:
         node.callee = IdentifierExpr(location=node.callee.location, name=instance.name)
         node.generic_of = generic.name
         return self._visit_call(node)
+
+    def _bind_variadic(self, generic, packed, bindings: dict, params, node) -> bool:
+        """`T... items` (33.2e): T from one List / array (its element), or from the values written - all
+        of one type; of several types that all meet `extends Vehicle`, T is Vehicle. False (said why) when
+        the values' types differ otherwise - a pack of types comes with the next step."""
+        expected = generic.parameters[-1].param_type.element_type
+        how, kinds = packed
+        if how == 'list':
+            self._bind(expected, kinds, bindings, params)
+            return True
+        if not kinds:
+            return True                       # no values - T from elsewhere, or "write the types"
+        shown = [self.type_to_string(k) for k in kinds]
+        if len(set(shown)) == 1:
+            self._bind(expected, kinds[0], bindings, params)
+            return True
+        name = getattr(expected, 'name', None)
+        extends = ((getattr(generic, 'type_conditions', None) or {}).get(name) or (None, []))[0] \
+            if isinstance(expected, StructType) and name in params else None
+        if isinstance(extends, StructType) and extends.name != 'Number' and name not in bindings:
+            parent = StructType(location=extends.location, name=extends.name,
+                                declaration=self.struct_declaration(extends))
+            bindings[name] = parent           # each value checked against it with the call
+            return True
+        self.errors.append(SemanticError(
+            f"'{generic.name}': the values for '{generic.parameters[-1].name}...' are of different types "
+            f"({', '.join(dict.fromkeys(shown))}) - give values of one type, or a condition they all meet "
+            f"(<{name} extends Vehicle>); values of any type each (a pack) come with the next step of 33.2e",
+            node.location))
+        return False
 
     def unmet_condition(self, generic, bindings: dict):
         """The message for the first condition a type doesn't meet (33.2d, D.167), or None:

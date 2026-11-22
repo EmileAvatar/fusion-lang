@@ -74,7 +74,7 @@ SYN.030 [BUILT] `unchecked { }` - whole-number `+ - *` inside wrap around on pur
 SYN.031 [POSTPONED] `'` comments (VB style) - off so `'c'` works; maybe only at the start of a line
 SYN.032 [DESIGN] `#Region` / `#End Region`; documentation comments; documentation written from them
 SYN.033 [DESIGN] `loop { } end loop` with safety checks (`check` blocks - Task 56); loop labels; an iteration limit (`[safety] maxIterations`)
-SYN.034 [PARTIAL] The `...` operator: variadic `string... args` of main built; ranges `1...100`, variadic `int... numbers`, spread `[...a, ...b]` designed
+SYN.034 [PARTIAL] The `...` operator: variadic `string... args` of main and `int... numbers` / `T... items` of one type built (33.2e1); a pack of types (33.2e2), ranges `1...100` (33.2f), spread `[...a, ...b]` designed
 SYN.035 [DESIGN] `**` (power) - read by the lexer, not built; annotations `@name(...)`
 SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints
 SYN.037 [DESIGN] Semicolons accepted; reading code written in other languages' syntax
@@ -90,7 +90,7 @@ TYP.003 [PLANNED] `money`: a long of minor units, exact, never a float (47.2)
 TYP.004 [BUILT] Enums; enums with data (tagged unions); an unset enum is null
 TYP.005 [PLANNED] Enums whose values carry fixed data (47.3); the `FusionType` enum (47.4)
 TYP.006 [PLANNED] `fixed(n)`: a maximum size, values may change - `fixed(10) string name`, `fixed(14) List<Person> people` (47.5); an array's `fixed`: D.141
-TYP.007 [PARTIAL] Generics (functions, structs, classes and conditions built - 33.2a-33.2d; T... planned): the program's own generic functions, structs and classes - `T function first<T>(...)`, `<T extends Vehicle>`, `<T implements Comparable>`; `[generics] enabled` (Task 33, D.166-D.168)
+TYP.007 [PARTIAL] Generics (functions, structs, classes, conditions and T... of one type built - 33.2a-33.2e1; a pack of types planned): the program's own generic functions, structs and classes - `T function first<T>(...)`, `<T extends Vehicle>`, `<T implements Comparable>`; `[generics] enabled` (Task 33, D.166-D.168)
 TYP.008 [DESIGN] Operator overloading - only for exceptional cases (a setting, off)
 TYP.009 [BUILT] An int is used as a float only when it fits exactly (a written number that doesn't: compile error; a value: PrecisionError); `[numbers] autoWidening = true` widens with a warning
 TYP.010 [DESIGN] Flag enums combined with `|` (`Permission.Read | Permission.Write`)

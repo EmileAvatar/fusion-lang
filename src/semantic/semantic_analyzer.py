@@ -23,7 +23,7 @@ from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly, check_readonly_calls, check_readonly_values
 from .null_guards import check_surely_null, expand_null_guards
 from .heap_arrays import mark_heap_arrays
-from .generics import take_generic_functions
+from .generics import take_generic_functions, variadic_parameters
 from .interfaces import check_interfaces
 from .case_names import check_case_names
 from .ownership import check_ownership
@@ -213,6 +213,7 @@ class SemanticAnalyzer:
         self.errors.extend(check_holding_loops(ast))
         # Generic functions (Task 33.2a, D.166): taken out of the program - a copy is made for each
         # set of types used, when the type checker finds the call
+        self.errors.extend(variadic_parameters(ast))     # f(int... numbers) - a List inside (33.2e)
         self.errors.extend(take_generic_functions(ast, self.generics_enabled))
         self.type_checker.program = ast
         self.type_checker.generic_host = self

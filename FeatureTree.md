@@ -22,6 +22,7 @@ Core
 Syntax
    - Block styles             indentation, braces, or End if - one meaning
    - Functions                void function main(); one-line body after ':'; default params; named args
+   - Any number of values     int... numbers - values one by one, an array or a List; a List inside
    - Lambdas                  function values; func(int x) : x * 2
    - Control flow             if / while / for / for i in range(a, b, step); numbers as conditions
    - Conditional              (cond) ? a : b
@@ -44,7 +45,8 @@ Types
    - int as float             only when it fits exactly, else an error
    - Conversions              toInt, toFloat, toString, toByte, parseInt
    - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where known
-   - Generics                 functions, structs, classes; conditions (extends / : / Number / int / implements)
+   - Generics                 functions, structs, classes; conditions (extends / : / Number / int / implements);
+                              T... items of one type
 
 Strings
    - Strings as values        freed automatically; changed in place s[i] = c
@@ -116,9 +118,9 @@ Settings
 ```
    - Agnostic language        safety + memory settings built; concurrency + backend choice not yet
    - Memory safety            ownership built; some readonly / library parts left
-   - ... operator             string... args built; T... / int... numbers (33.2e), ranges 1...100 (33.2f),
-                              spread [...a] to do
-   - Generics                 T... still to do (33.2e); another List<T> implementation (33.3)
+   - ... operator             string... args, int... numbers, T... of one type built; a pack of types (33.2e2),
+                              ranges 1...100 (33.2f), spread [...a] to do
+   - Generics                 a pack of types show(1, "two", car) (33.2e2); another List<T> implementation (33.3)
    - Casts                    (Shape)aCircle built; some number casts left
    - Arrays in three forms    plain, fixed, growable - RECT storage later
    - Collection<T>            classes, List, Map built; arrays as Collection later

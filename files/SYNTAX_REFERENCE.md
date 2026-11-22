@@ -292,6 +292,41 @@ type and the condition - `park(Aircraft("x"))`: "'park' <T extends Vehicle>: Air
 letter (with digits) - `<T implements Comparable, K>` starts K. `where` stays reserved.
 `[generics] enabled = false` turns them off (D.168).
 
+#### Any number of values: `int... numbers`, `T... items`
+
+<!-- example: syntax_variadic | task: 33.2e -->
+```fusion
+int function sum(int... numbers)                    // the last parameter; a List<int> inside
+    int total = 0
+    for n in numbers
+        total = total + n
+    return total
+
+string function joinAll(string sep, string... parts)
+    string text = ""
+    for p in parts
+        if text != ""
+            text = text + sep
+        text = text + p
+    return text
+
+T function firstOf(T... items) : items[0]            // generic - T from the values
+
+void function main()
+    int[3] a = [4, 5, 6]
+    List<int> xs = [7, 8]
+    print("{@1} {@2} {@3} {@4}", sum(1, 2, 3), sum(), sum(a), sum(xs))   // 6 0 15 15
+    print(joinAll(", ", "x", "y", "z"))              // x, y, z
+    print(firstOf("p", "q"))                         // p
+```
+A parameter written `int... numbers` takes the values left over at the call: written one by one (none gives an
+empty List), one array, or one List - inside the function it is a `List<int>`. It must be the last parameter and
+has no default. The values are lent to the call (an object passed this way is still usable after it).
+`T... items` works the same in a generic: T comes from the values (all of one type), or the List / array's element;
+values of several types that all meet a condition (`<T extends Vehicle>(T... vs)` - a Car and a Bus) make T the
+condition's type. Values of any type each (a pack, `show(1, "two", car)`) come with the next step. `main`'s
+`string... args` stays an array.
+
 #### Lambdas and function values
 
 <!-- example: syntax_lambdas | task: 18.1.3 -->
