@@ -287,6 +287,10 @@ then each point is decided and solved completely. One line per section and per l
 			conditions - today each copy is checked with its real type, so a T without a condition can use what its
 			type happens to have
 	[ ] 33.2e `T...` and `int... numbers` - an array, a List or values (D.166)
+	[ ] 33.2f Ranges `1...100` in a `for` (SYN.034, user 2026-11-22) - the same `...` as 33.2e; tested next to
+		`range(...)` (`total` in syntax_generic_conditions shown both ways); settled when built (D.161): both ends
+		included, no step (`range(0, 10, 2)` has one), `10...1` an error suggesting `range(10, 0, -1)`; with it, if it
+		fits, L7.7 `case 0...9`
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
@@ -969,7 +973,7 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L7.4 `if` as a value: `string size = if a > 5 then "big" else "small"`
 		[ ] L7.5 do-while: the body runs at least once
 		[ ] L7.6 Guards in match: `case x if x < 0`
-		[ ] L7.7 Ranges in match cases: `case 0...9`
+		[ ] L7.7 Ranges in match cases: `case 0...9` - with 33.2f if it fits
 		[ ] L7.8 `assert cond, "message"` - an AssertionError when false
 	L8 Types, enums and structs
 		[ ] L8.1 Enum values with fixed constants, built by the enum's private constructor:

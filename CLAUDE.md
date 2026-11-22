@@ -173,7 +173,7 @@ it in the same session when a file is added, moved or removed (user, 2026-11-08)
 `files/SYNTAX_REFERENCE.md`, `files/fusion-language-spec.md` (grep it).
 
 Folders (user, 2026-11-07): the root keeps only `CLAUDE.md`, `README.md`, `Main.md`, `Decisions.md`,
-`OpenQuestions.md`, `main.py`, `check.py`, `pytest.ini` (pytest finds it only there) and `.gitignore`; every other
+`OpenQuestions.md`, `FeatureTree.md`, `main.py`, `check.py`, `pytest.ini` (pytest finds it only there) and `.gitignore`; every other
 document and file goes in `files/` (old debug scripts: `debug/`); tests in `tests/`; no
 `docs/` folder until the compiler goes live. `Notes/` is for
 our internal discussion (reviews, sources); `files/` is for developers who need to understand
@@ -192,6 +192,7 @@ When a language feature or spec changes, update every affected file without aski
 |---|---|
 | Any implemented feature | `files/FEATURES.md`, `files/SYNTAX_REFERENCE.md`, an example program, its `Decisions.md` line ([BUILT]) |
 | Any language decision (new, changed, postponed, rejected) | `Decisions.md` (Rule 3b) |
+| A feature built, partly built, newly planned / designed, postponed or rejected (user, 2026-11-22) | `FeatureTree.md` - the at-a-glance tree of what Fusion has and still needs: move or add its one line (group, name, short description), keep it simple, update the date |
 | Any new or changed language feature or rule - built, decided, postponed or rejected (user, 2026-11-03) | `files/showcase/` stays the up-to-date reference for the whole language: `Fusion_showcase.fusion` (every feature, its tag [built] / [designed] / [idea] / [rejected] kept current), `Fusion_template.fusion` (each construct's shape and choices) and the topic file it belongs to (`Ownership.fusion`, `Interfaces.fusion`, or a new one for a new topic, listed in the main file); an ownership / readonly / const rule also in `.claude/skills/fusion-ownership/SKILL.md` |
 | Syntax (lambdas, blocks, types, keywords, operators) | `files/fusion.ebnf`, `files/fusion-language-spec.md`, `files/SYNTAX_REFERENCE.md` |
 | String interpolation | language spec, `files/SYNTAX_REFERENCE.md`, examples |

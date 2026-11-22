@@ -11,7 +11,7 @@ machine without data races. Today: a compiler in Python, Fusion -> C -> a native
 This file is the map: every document, one line each. Rules for working on the project:
 [CLAUDE.md](CLAUDE.md). A file added, moved or removed is updated here in the same session.
 
-**Read first, by question:** what is decided -> [Decisions.md](Decisions.md); what is open -> [OpenQuestions.md](OpenQuestions.md);
+**Read first, by question:** what Fusion has, at a glance -> [FeatureTree.md](FeatureTree.md); what is decided -> [Decisions.md](Decisions.md); what is open -> [OpenQuestions.md](OpenQuestions.md);
 what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/taskSummary2.md](files/taskSummary2.md); what works today ->
 [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md).
 
@@ -25,6 +25,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [Main.md](Main.md) | This map |
 | [Decisions.md](Decisions.md) | Every feature in one line (`AREA.NNN [STATUS]`) and every decision with its why (`D.NNN`) |
 | [OpenQuestions.md](OpenQuestions.md) | Questions not decided yet, each with an example (`Q.NNN`) |
+| [FeatureTree.md](FeatureTree.md) | At a glance: what Fusion has and still needs - a simple tree by group, one line per feature |
 | [main.py](main.py) / [check.py](check.py) | The compiler's command line / every check, `--status`, `--ship` |
 
 #### Status and planning

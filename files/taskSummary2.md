@@ -95,9 +95,12 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
    doesn't meet one - a compile error at the use, naming the type and the condition
 5. **33.2e `T...` and `int... numbers`:** a function taking several values (SYN.034) - an array, a List or
    values one by one; with a condition one type; without one a pack of types, the function made per combination
-6. **33.3 Another implementation behind `List<T>`** (from 32.6) - a generic class implementing `Collection<T>`;
+6. **33.2f Ranges `1...100` in a `for`** (user, 2026-11-22): the same `...` as 33.2e; tested next to `range(...)`;
+   both ends included, no step, `10...1` an error suggesting `range(10, 0, -1)` (settled when built, D.161);
+   L7.7 `case 0...9` with it if it fits
+7. **33.3 Another implementation behind `List<T>`** (from 32.6) - a generic class implementing `Collection<T>`;
    45.10 (an array as a Collection<T> value) if it fits
-7. **Docs:** spec 110 rewritten, SYNTAX_REFERENCE examples (Rule 4) - one with several types (`<T, T1>`, `<K, V>`)
+8. **Docs:** spec 110 rewritten, SYNTAX_REFERENCE examples (Rule 4) - one with several types (`<T, T1>`, `<K, V>`)
    kept as a test, files/fusion.ebnf, files/Symbols.md (`:` and `...` get one more job each), the showcase,
    Decisions.md
 
