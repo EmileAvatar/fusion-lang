@@ -254,6 +254,12 @@ class Box<T>                                                // a generic class (
     void function put(T x)
         item = x
 
+class Garage<T>                                             // no constructor: a List starts empty
+    List<T> items
+    void function park(T item)
+        items.add(item)
+    int function count() : items.len()
+
 void function main()
     List<int> numbers = [3, 1, 2]
     List<string> names = ["Ada", "Bo"]
@@ -267,6 +273,9 @@ void function main()
     Box<string> b = Box("hat")                                            // T from the constructor's values
     b.put("cap")
     print("{@1} {@2}", b.take(), p.left())                                // cap 1
+    Garage<string> g = Garage()                                           // T from the left - written once (33.5)
+    g.park("van")
+    print("{@1}", g.count())                                              // 1
 ```
 A generic function names its types in `<...>` after its name, or uses T, K, V (Type, Key, Value - and T1, K2 ...)
 in its signature (D.166); a struct, class or enum can't be named T, K or V. At a call the types come from the
@@ -278,7 +287,9 @@ it works as any struct (copies, `==`, a field of another struct, `List<Pair<int,
 (`class Box<T>`) and a generic struct's methods are copied with it - `Box<int>` gets its own `take`, `put` and
 constructors; the types come from the constructor's values, or are written (`Box<string>("hat")`); inside its own
 methods `Box(...)` and `Box<T>` mean this copy. A generic class with a parent, interfaces or statics comes later.
-`T...` comes with the next part of Task 33.
+Stored where its type is written - a variable, a field, a parameter, a result - a generic class or struct takes its
+types from there: `Garage<string> g = Garage()` (D.171); the arguments are then checked against them
+(`Box<Car> b = Box("hat")` - expected Car, got string). With `var` / `let` there is no type on the left: write it.
 
 #### Generic conditions: what a type parameter may be
 

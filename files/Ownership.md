@@ -166,7 +166,7 @@ what that means where generics meet the rules above. Test: `tests/test_generics.
 | `show(1, "two", car)` - a pack of types | lent: one parameter per value, passed as any argument; `car` usable after | yes |
 | `firstOf(names)` - a List for `T...` | lent, passed as it is (no copy) | yes |
 | `firstOf(arr)` - an array for `T...` | its values copied into a new List for the call (`toList`), freed after | yes |
-| `T x = item; return x` inside a generic, T a class | the rule of the real type, as in a plain function: it keeps its parameter (D.100), so the call moves the argument under strict (`'c' was moved to 'keep<Car>'`); a local only naming the parameter borrows it (Q.043) | yes (33.4) |
+| `T x = item; return x` inside a generic, T a class | the rule of the real type, as in a plain function: it keeps its parameter (D.100), so the call moves the argument under strict (`'c' was moved to 'keep<Car>'`); a local only naming the parameter (`Car x = item`, `item` used after): relaxed borrows it, strict moves it - `item` after it an error and the function keeps its parameter (D.172, 33.6 - not built yet) | yes (33.4); D.172 no - 33.6 |
 | a generic returning a `T` held in a List (`T function first(List<T> xs) : xs[0]`) | the rule of returning an element - a copy of a value, a shared object (`c.name = "taxi"` shows in `cars[0]`) | yes (33.4) |
 
 #### The error texts (48.1, 48.2)

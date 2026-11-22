@@ -824,7 +824,8 @@ extend string {
 // 15. Generics (Task 33) - List<T> and Map<K, V> are built in already
 // =============================================================================================
 
-// [designed] A generic class
+// [built] A generic class (33.2c) - copied once per set of types, its methods with it; a List<T> field starts
+// empty (no constructor needed); [designed] the property (Task 32.12)
 class Container<T> {
     private List<T> items
     void function add(T item) {
@@ -833,6 +834,9 @@ class Container<T> {
     T function get(int index) : items[index]
     property Count: int { get { return items.len() } }
 }
+// [built] Its types from where it is stored - written once, on the left (33.5, D.171): a variable, a field,
+// a parameter, a result; the arguments checked against them. var / let: no type on the left - write it
+// Container<Car> garage = Container()      // T is Car;  Container<Car>() - also fine
 
 // [built] A generic function - the types after the name; at the call from the arguments (33.2a, D.166)
 T function first<T>(List<T> items) : items[0]
@@ -843,7 +847,7 @@ T function last(List<T> items) : items[items.len() - 1]   // also accepted: T, K
 V function valueOf<K, V>(Map<K, V> m, K key) : m[key]
 T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]
 
-// [designed] Conditions in the <...> (D.167)
+// [built] Conditions in the <...> (33.2d, D.167) - checked at each use
 T function findMax<T implements Comparable>(List<T> items) {   // only a type that implements Comparable
     T best = items[0]
     for item in items {
@@ -857,7 +861,7 @@ T function total<T extends Number>(List<T> xs) { ... }        // only numbers; <
 void function park<T extends Vehicle>(T v) { ... }            // Vehicle or a child - <T : Vehicle> the same (quick typing)
 
 // [built] Generic structs (33.2b) - Pair<string, int> as a type, Pair("a", 1) its types from the values;
-// [designed] generic classes and conditions (D.166, D.167)
+// generic classes and conditions on them (33.2c, 33.2d - D.166, D.167)
 struct Pair<K, V> {
     K key
     V value

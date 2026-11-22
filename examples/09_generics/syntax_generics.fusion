@@ -16,6 +16,12 @@ class Box<T>                                                // a generic class (
     void function put(T x)
         item = x
 
+class Garage<T>                                             // no constructor: a List starts empty
+    List<T> items
+    void function park(T item)
+        items.add(item)
+    int function count() : items.len()
+
 void function main()
     List<int> numbers = [3, 1, 2]
     List<string> names = ["Ada", "Bo"]
@@ -29,3 +35,6 @@ void function main()
     Box<string> b = Box("hat")                                            // T from the constructor's values
     b.put("cap")
     print("{@1} {@2}", b.take(), p.left())                                // cap 1
+    Garage<string> g = Garage()                                           // T from the left - written once (33.5)
+    g.park("van")
+    print("{@1}", g.count())                                              // 1

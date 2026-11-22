@@ -186,7 +186,8 @@ def test_one_struct_copy_per_set_of_types():
     ('Pair<int> p = Pair(1, "a")', "'Pair' has 2 type parameter(s) (A, B) - 1 written"),
     ('Box<int> b', "Unknown generic type 'Box'"),
     ('Pair<int, string> p = Pair(1)', "give a value for each field (2)"),
-    ('Pair<int, string> p = Pair("a", 1)', 'Pair<string, int>'),
+    # the types from the left (D.171): each argument checked against them
+    ('Pair<int, string> p = Pair("a", 1)', "Argument 1 to 'Pair<int, string>' (field 'first'): expected int, got string"),
 ])
 def test_generic_struct_mistakes(body, message):
     found = errors_of(body, top=STRUCTS)
@@ -613,7 +614,39 @@ def test_a_generic_struct_holding_an_object_copied(ownership, moved):
     assert any("'s' was moved to 't'" in e for e in found) == moved, found
 
 
-def test_types_not_worked_out_name_the_declared_type_once():
-    top = KEEPS + 'class Garage<T>\n    List<T> items\n    constructor()\n        items = []\n\n'
-    assert errors_of('Garage<Car> g = Garage()', top=top) == [
-        "'Garage': T can't be worked out from the arguments - write the types: Garage<Car>(...) (D.166)"]
+# ---------- 33.5 a generic's types from where it is stored (Q.042 -> D.171) ----------
+
+LEFT = (KEEPS + 'class Vehicle\n    public string name\n    constructor(string name)\n        this.name = name\n\n'
+        'class Van inherits Vehicle\n    constructor(string name)\n        super(name)\n\n'
+        'class Garage<T>\n    List<T> items\n    void function park(T item)\n        items.add(item)\n'
+        '    int function count() : items.len()\n\n'
+        'class Box<T>\n    T item\n    constructor(T item)\n        this.item = item\n    T function take() : item\n\n'
+        'class Shop\n    public Garage<Car> spare\n\n'
+        'Garage<Car> function newGarage() : Garage()\n\n'
+        'int function sizeOf(Garage<Car> g) : g.count()\n\n')
+
+
+@pytest.mark.parametrize('ownership', ['move', 'share'])
+def test_the_types_come_from_where_it_is_stored(ownership):
+    # a variable, set again, a result, a parameter, a field; a List<T> field starts empty - no constructor needed
+    assert run('Garage<Car> g = Garage()\ng.park(Car("a"))\ng = Garage()\ng.park(Car("b"))\ng.park(Car("c"))\n'
+               'Garage<Car> h = newGarage()\nShop s = Shop()\ns.spare = Garage()\n'
+               'print("{@1} {@2} {@3} {@4}", g.count(), h.count(), sizeOf(Garage()), s.spare.count())',
+               top=LEFT, memory_config=MemoryConfig(assignment=ownership)) == ['2 0 0 0']
+
+
+def test_the_left_wins_and_the_arguments_are_checked_against_it():
+    assert run('Box<Vehicle> v = Box(Van("mini"))\nBox<int> b = Box(5)\nprint("{@1} {@2}", v.take().name, b.take())',
+               top=LEFT) == ['mini 5']
+    assert errors_of('Box<Car> b = Box("hat")', top=LEFT) == ["Argument 1 to 'Box<Car>.new': expected Car, got string"]
+
+
+@pytest.mark.parametrize('body, message', [
+    ('Garage<Car> g = Box(Car("x"))', "'Box(...)' is given where Garage<Car> is expected"),
+    ('var g = Garage()', "T can't be worked out from the arguments - write the types: Garage<int>(...), or on the "
+                         "left: Garage<...> x = Garage(...) (D.166, D.171)"),
+])
+def test_types_from_the_left_mistakes(body, message):
+    found = errors_of(body, top=LEFT)
+    assert message in found[0], found
+    assert not any('Cannot assign' in e for e in found), found

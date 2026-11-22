@@ -47,7 +47,8 @@ Types
    - Conversions              toInt, toFloat, toString, toByte, parseInt
    - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where known
    - Generics                 functions, structs, classes; conditions (extends / : / Number / int / implements);
-                              T... items - of one type, or a pack show(1, "two", car)
+                              T... items - of one type, or a pack show(1, "two", car);
+                              types from the left - Garage<Car> g = Garage()
 
 Strings
    - Strings as values        freed automatically; changed in place s[i] = c

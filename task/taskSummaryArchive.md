@@ -7370,3 +7370,15 @@ Each part is shipped on its own, in this order:
      `tests/verify_examples.py`, the reference / leaks checks, `examples/CLAUDE.md`, Main.md, any links to examples
 - Not taken: "Current development status" / "What can I do today" in the README (Rule 6 - FeatureTree.md holds it;
   the second review agrees)
+
+#### 33.5 plan (approved and built 2026-11-22)
+**33.5 A generic's types from the variable it is stored in (D.171)**
+- `Garage<Car> g = Garage()`: when the arguments leave a type unknown and the value is stored in a variable (or a field,
+  or given to a parameter) of a written generic type of the same class or struct, its types fill the gaps -
+  `generics.py` reads them from the type the value is stored as (the `stored_as` mark 33.4 added)
+- arguments that give a type must agree with the left: `Box<Car> b = Box("hat")` - an error naming both
+- `var` / `let g = Garage()` - no type on the left: the error as today ("write the types: Garage<int>(...)")
+- also `g = Garage()` later, `Garage<Car> f()` returning `Garage()`, `park(Garage())` to a `Garage<Car>` parameter -
+  the same rule wherever the type is known; a struct (`Pair<int, string> p = Pair()`) too
+- tests: each form, strict and relaxed, the leak check; the mismatch error; var / let; FEATURES / Decisions BUILT,
+  SYNTAX_REFERENCE syntax_generics gets the short form (Rule 4), FeatureTree, showcase

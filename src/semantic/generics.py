@@ -472,21 +472,19 @@ class GenericsMixin:
                     return void
                 if result == 'pack':
                     return self._call_pack(node, generic, bindings, params, packed[1])
+            if isinstance(generic, StructDecl):
+                left = self._types_from_the_left(node, generic, bindings)
+                if left is not True:
+                    return left                    # the wrong generic - said; taken as the type expected
+
             missing = [p for p in params if p not in bindings]
-            if missing:
-                # stored in a variable of this type (Box<Car> b = Box()): the hint names it, and the call is
-                # taken as that type - no second error about assigning (33.4)
-                stored = getattr(node, 'stored_as', None)
-                shown = self.type_to_string(stored) if stored is not None else ''
-                if shown.startswith(f'{generic.name}<'):
-                    written = shown
-                else:
-                    stored = None
-                    written = f"{generic.name}<{', '.join('int' for _ in params)}>"
+            if missing:                    # stored where its type is written, the types came from there (D.171)
+                left = f", or on the left: {generic.name}<...> x = {generic.name}(...) (D.166, D.171)" \
+                    if isinstance(generic, StructDecl) else " (D.166)"
                 self.errors.append(SemanticError(
                     f"'{generic.name}': {', '.join(missing)} can't be worked out from the arguments - write the "
-                    f"types: {written}(...) (D.166)", node.location))
-                return stored or void
+                    f"types: {generic.name}<{', '.join('int' for _ in params)}>(...){left}", node.location))
+                return void
         unmet = self.unmet_condition(generic, bindings)
         if unmet:
             self.errors.append(SemanticError(unmet, node.location))
@@ -625,14 +623,33 @@ class GenericsMixin:
                     return f"{where}: {shown} doesn't implement {interface}"
         return None
 
+    def _types_from_the_left(self, node, generic, bindings: dict) -> bool:
+        """D.171 (33.5): a generic class or struct stored where its type is written - `Garage<Car> g = Garage()`,
+        `g = Garage()`, a `Garage<Car>` parameter or result - takes its types from there; the arguments are then
+        checked against that copy (`Box<Car> b = Box("hat")`: Argument 1 ... expected Car, got string). When the
+        value is stored as another generic's type: said why, and that type is returned (no second error)."""
+        stored = getattr(node, 'stored_as', None)
+        declaration = getattr(stored, 'declaration', None) if isinstance(stored, StructType) else None
+        kinds = getattr(declaration, 'generic_kinds', None)
+        if kinds is None:
+            return True                                    # not stored as a generic's copy: as before
+        if declaration.generic_of != generic.name:
+            self.errors.append(SemanticError(
+                f"'{generic.name}(...)' is given where {self.type_to_string(stored)} is expected", node.location))
+            return stored
+        bindings.update(zip(generic.type_params, kinds))
+        return True
+
     def _generic_parameters(self, generic, node):
         """(name, type) pairs the arguments are matched against - a function's parameters, a struct's
         fields (its constructor takes them in order), a class's constructor taking that many (33.2c);
         None when no constructor takes that many."""
         count = len(node.arguments)
         if isinstance(generic, StructDecl) and generic.is_class:
-            maker = next((m for m in generic.methods if getattr(m, 'is_constructor', False)
-                          and len(m.parameters) == count), None)
+            makers = [m for m in generic.methods if getattr(m, 'is_constructor', False)]
+            if not makers and count == 0:
+                return []                      # no constructor: Garage() as Car() (its types from the left, 33.5)
+            maker = next((m for m in makers if len(m.parameters) == count), None)
             return None if maker is None else [(p.name, p.param_type) for p in maker.parameters]
         if isinstance(generic, StructDecl):
             return [(f.name, f.field_type) for f in generic.fields] if count == len(generic.fields) else None
