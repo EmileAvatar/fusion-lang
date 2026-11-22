@@ -341,8 +341,9 @@ then each point is decided and solved completely. One line per section and per l
 			[DONE 2026-11-22] 33.3d2 A `List<int>` value holding any implementation (D.175): `List<int> xs = Ring()` (T
 				from the List), every List operation; changes through the core five, one read held a while, many at
 				once over a copy; `xs[i] = v` / `xs[i].x = 5` set back after the statement; Fusion's own List as fast
-				(-O2: 60 / 61 ms on a List-heavy loop); a List of your own looped over and left by an error caught outside
-				the loop keeps its copy (as an owned loop source always has)
+				(-O2: 60 / 61 ms on a List-heavy loop); a loop's copy freed however the loop ends (error, throw, return,
+				break); changing it while looping a ModifiedWhileLoopingError, as for Fusion's own (the List given is
+				watched, not the copy)
 
 <a id="task-45"></a>
 #### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [DONE 2026-11-22] [index](#index)

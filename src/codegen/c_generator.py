@@ -2471,15 +2471,26 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                     # a List of your own: a copy for the loop, freed after it; Fusion's own: itself, as
                     # before - nothing held (33.3d2)
                     self.emit_line(f'{list_c} fusion_from_{n} = {self.visit(iterable)}')
-                    self.emit_line(f'{list_c} fusion_snap_{n} = {list_c}_snapOf(fusion_from_{n})')
-                    self.register_owned(f'fusion_snap_{n}', iterable_type)
-                    self.emit_line(f'{list_c} fusion_iter_{n} = fusion_snap_{n} ? fusion_snap_{n} : fusion_from_{n}')
+                    snap = f'fusion_snap_{n}'
+                    if getattr(self, 'temp_scopes', None) and getattr(self, 'stmt_temps', None):
+                        # declared at the top of the function: freed when the loop ends, on return / break
+                        # (its scope) and on an error leaving it (the loop statement's temporaries)
+                        snap = self._declare_temp('snap', list_c, 'NULL')
+                        self.stmt_temps[-1].append((snap, iterable_type))
+                        self.emit_line(f'{snap} = {list_c}_snapOf(fusion_from_{n})')
+                    else:
+                        self.emit_line(f'{list_c} {snap} = {list_c}_snapOf(fusion_from_{n})')
+                    self.register_owned(snap, iterable_type)
+                    self.emit_line(f'{list_c} fusion_iter_{n} = {snap} ? {snap} : fusion_from_{n}')
                 else:
                     self.emit_line(f'{list_c} fusion_iter_{n} = {self.visit(iterable)}')
                 source = f'fusion_iter_{n}->'
-                # Elements added or removed while looping: an error, never a skip (27.2e)
+                # Elements added or removed while looping: an error, never a skip (27.2e) - the List
+                # given, not the copy a List of your own is walked over (33.3d2)
                 watched = f'fusion_changes_{n}'
-                self.emit_line(f'int {watched} = fusion_iter_{n}->changes')
+                changes_of = f'fusion_from_{n}->changes' if isinstance(iterable_type, ListType) \
+                    else f'fusion_iter_{n}->changes'
+                self.emit_line(f'int {watched} = {changes_of}')
             else:
                 owned = self.owned_value(iterable, iterable_type)
                 if isinstance(iterable_type, ListType):
@@ -2512,7 +2523,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.emit(f'for (int {index} = 0; {index} < {length}; {index}++) {{')
         self.indent()
         if watched is not None:
-            self.emit(self.loop_change_check(f'fusion_iter_{n}->changes', watched, iterable_type, node))
+            self.emit(self.loop_change_check(changes_of, watched, iterable_type, node))
         self.push_scope('loop')
         # The loop variable lives in a scope inside the loop's, so break and continue free
         # it too (they free everything inside the loop scope)
@@ -2526,7 +2537,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.dedent()
         self.emit('}')
         if watched is not None:     # a change in the last pass, too
-            self.emit(self.loop_change_check(f'fusion_iter_{n}->changes', watched, iterable_type, node))
+            self.emit(self.loop_change_check(changes_of, watched, iterable_type, node))
         self.pop_scope()
         self.dedent()
         self.emit('}')

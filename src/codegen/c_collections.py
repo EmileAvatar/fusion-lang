@@ -412,17 +412,18 @@ class CollectionsMixin:
             f'void {name}_set({name}* dst, {name} value)': [
                 f'{name} old = *dst;', '*dst = value;', f'{name}_free(&old);'],
             f'void {name}_add({name} l, {T} v)': [
-                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->insert(l->ext, l->ops->len(l->ext), v); {free("v")} return; }}',
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->insert(l->ext, l->ops->len(l->ext), v); {free("v")} '
+                'l->changes++; return; }',
                 f'{name}_grow(l, l->len + 1);', 'l->data[l->len++] = v;', 'l->changes++;'],
             f'void {name}_insert({name} l, int i, {T} v, const char* where)': [
-                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->insert(l->ext, i, v); {free("v")} return; }}',
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->insert(l->ext, i, v); {free("v")} l->changes++; return; }}',
                 'if (i < 0 || i > l->len) { fusion_fail(FUSION_KIND_IndexError, where, "insert(position %d) is '
                 f'outside the list (length %d)", i, l->len); {free("v")} return; }}',
                 f'{name}_grow(l, l->len + 1);',
                 f'memmove(l->data + i + 1, l->data + i, sizeof({T}) * (size_t)(l->len - i));',
                 'l->data[i] = v; l->len++; l->changes++;'],
             f'void {name}_removeAt({name} l, int i, const char* where)': [
-                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->removeAt(l->ext, i); return; }}',
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->removeAt(l->ext, i); l->changes++; return; }}',
                 'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "removeAt(%d) is outside '
                 'the list (length %d)", i, l->len); return; }',
                 (free('l->data[i]') if managed else ''),
@@ -437,7 +438,7 @@ class CollectionsMixin:
                 'return l->data[l->len];'],
             f'void {name}_clear({name} l)': [
                 f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); while (!fusion_failed && l->ops->len(l->ext) > 0) '
-                'l->ops->removeAt(l->ext, l->ops->len(l->ext) - 1); return; }',
+                'l->ops->removeAt(l->ext, l->ops->len(l->ext) - 1); l->changes++; return; }',
                 (f'for (int i = 0; i < l->len; i++) {{ {free("l->data[i]")} }}' if managed else ''),
                 'l->len = 0; l->changes++;'],
             f'{T} {name}_at({name} l, int i, const char* where)': [
@@ -497,7 +498,7 @@ class CollectionsMixin:
             # a + b (45.4): another one's items added at the end, copied as slice does
             f'void {name}_append({name} l, {T} const* items, int n)': [
                 f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); for (int i = 0; i < n && !fusion_failed; i++) '
-                'l->ops->insert(l->ext, l->ops->len(l->ext), items[i]); return; }',
+                'l->ops->insert(l->ext, l->ops->len(l->ext), items[i]); l->changes++; return; }',
                 f'{name}_grow(l, l->len + n);',
                 f'for (int i = 0; i < n; i++) l->data[l->len + i] = {copy("items[i]")};',
                 'l->len += n; l->changes++;'],

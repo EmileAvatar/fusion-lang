@@ -73,3 +73,35 @@ def test_an_element_changed_in_place_is_set_back():
 def test_the_type_comes_from_the_list():
     # List<int> xs = Ring() - Ring<T> implements List<T>: T is int (D.171 with the List's element)
     assert run('List<string> names = Ring()\nnames.add("Ada")\nprint(names[0])') == ['Ada']
+
+
+LOOPS = ('int function divide(int x) : 10 / x\n\n'
+         'void function grow(List<int> v)\n    v.add(5)\n\n'
+         'int function firstBig()\n    List<int> xs = Ring()\n    xs.add(3)\n    xs.add(9)\n'
+         '    for x in xs\n        if x > 5\n            return x\n    return 0\n\n')
+
+
+@pytest.mark.parametrize('body, lines', [
+    ('List<int> xs = Ring()\nxs.add(1)\nxs.add(0)\ntry\n    for x in xs\n        print("{@1}", divide(x))\n'
+     'catch e\n    print("caught")', ['10', 'caught']),                    # an error leaving the loop
+    ('List<string> xs = Ring()\nxs.add("a")\ntry\n    for x in xs\n        throw Error("stop {x}")\n'
+     'catch e\n    print("caught")', ['caught']),                          # a throw
+    ('print("{@1}", firstBig())', ['9']),                                   # a return inside
+    ('List<int> xs = Ring()\nxs.add(1)\nxs.add(2)\nfor x in xs\n    break\nprint("done")', ['done']),
+])
+def test_every_way_out_of_a_loop_frees_its_copy(body, lines):
+    # the loop walks a copy of a List of your own - freed however the loop ends (the leak check)
+    source = RING + LOOPS + 'void function main()\n' + ''.join(f'    {line}\n' for line in body.split('\n'))
+    code, out, err = compile_and_run(source, analyzer_options={'memory_config': MemoryConfig(assignment='share')})
+    assert code == 0, out + err
+    assert out.strip().splitlines() == lines
+
+
+def test_changing_it_while_looping_is_an_error():
+    # 27.2e: never a skip - the List given is watched, not the copy walked (relaxed: strict stops it compiling)
+    source = RING + LOOPS + 'void function main()\n' + ''.join(f'    {line}\n' for line in (
+        'List<int> xs = Ring()\nxs.add(1)\ntry\n    for x in xs\n        grow(xs)\ncatch e\n    print("{e.kind}")'
+    ).split('\n'))
+    code, out, err = compile_and_run(source, analyzer_options={'memory_config': MemoryConfig(assignment='share')})
+    assert code == 0, out + err
+    assert out.strip() == 'ModifiedWhileLoopingError'
