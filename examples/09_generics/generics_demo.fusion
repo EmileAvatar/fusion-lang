@@ -1,0 +1,85 @@
+// Generics together: a small parts store (Task 33)
+// Generic functions, structs and classes; conditions; T... values; a generic class on a generic parent;
+// statics per copy; a List of your own behind a List<T>.
+
+interface Labelled
+    string function label()
+
+class Part implements Labelled
+    public string name
+    public int price
+    constructor(string name, int price)
+        this.name = name
+        this.price = price
+    string function label() : format("{@1} ({@2})", name, price)
+
+struct Pair<A, B>                                     // a generic struct
+    A first
+    B second
+
+class Shelf<T>                                        // a generic class: no constructor, a List starts empty
+    public static int made = 0                        // one per copy: Shelf<Part>.made, Shelf<int>.made
+    List<T> items
+    void function put(T item)
+        if items.len() == 0
+            made = made + 1
+        items.add(item)
+    int function count() : items.len()
+    T function at(int i) : items[i]
+
+class Labels<T implements Labelled> inherits Shelf<T> // a generic parent, and a condition
+    string function all()
+        string text = ""
+        int i = 0
+        while i < count()
+            text = text + at(i).label() + "; "
+            i = i + 1
+        return text
+
+class Ring<T> implements List<T>                      // a List of your own: the core five
+    List<T> items
+    int function len() : items.len()
+    T function get(int i) : items[i]
+    void function set(int i, T value)
+        items[i] = value
+    void function insert(int i, T value)
+        items.insert(i, value)
+    void function removeAt(int i)
+        items.removeAt(i)
+
+T function largest<T extends Number>(List<T> xs)      // any number type
+    T best = xs[0]
+    for x in xs
+        if x > best
+            best = x
+    return best
+
+int function sumAll(int... numbers)                   // any number of values
+    int total = 0
+    for n in numbers
+        total = total + n
+    return total
+
+void function show(T... items)                        // values of different types: a pack
+    for x in items
+        print("  {@1}", x)
+
+void function main()
+    Labels<Part> shelf = Labels()                     // its types from the left
+    shelf.put(Part("bolt", 2))
+    shelf.put(Part("gear", 15))
+    print(shelf.all())
+    Shelf<int> counts = Shelf()
+    counts.put(4)
+    print("{@1} {@2}", Shelf<Part>.made, Shelf<int>.made)
+    Pair<string, int> best = Pair("gear", 15)
+    print("{@1} costs {@2}", best.first, best.second)
+    List<int> prices = Ring()                         // a List<int> holding a Ring
+    prices.add(2)
+    prices.add(15)
+    prices.add(7)
+    prices.sortBy(func(int a, int b) : a - b)
+    print("{@1} {@2} {@3}", prices[0], largest(prices), sumAll(2, 15, 7))
+    List<double> weights = [0.5, 2.25]
+    print("{@1}", largest(weights))
+    show("bolt", 2, true)

@@ -594,7 +594,7 @@ error handling) to pick up once those land. This task is that checklist.
       here too, since an example can't exist before the language feature does. Scoping the
       feature is a separate, larger decision than this task covers
 
-#### 16.3: Generics Example - BLOCKED
+#### 16.3: Generics Example - done 2026-11-22 as 33.2 (examples/09_generics/generics_demo.fusion)
 - [ ] Blocked on generic type parameters being implemented - currently just a "Planned
       Features" line item in README, no task tracks building it, no reserved syntax
       decided beyond the general concept

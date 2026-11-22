@@ -25,6 +25,7 @@ DEMO_FOLDERS = {
     'structs_demo': '07_structs',
     'classes_demo': '08_classes',
     'errors_demo': '10_errors_and_null',
+    'generics_demo': '09_generics',
 }
 
 

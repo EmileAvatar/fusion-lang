@@ -723,3 +723,90 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 
 #### Later / advanced - done by Task 45 (2026-11-22)
 	[DONE - Task 45.12 / 45.15] L6.8 Multi-dimensional arrays (growable lists: done, 18.5.1) - 2 and 3 dimensions, growable, jagged
+
+#### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ] [index](#index)
+	[DONE 2026-11-22] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5) - files/taskSummary2.md; D.166-D.168
+	[DONE 2026-11-22] 33.2a Generic functions: `T function first<T>(...)`, T / K / V (and digits) without <...>, several
+		types (<K, V>, <T, T1>); types from the arguments or written `first<int>(...)`; one copy per set of types
+		(`first__int`); a struct / class / enum named T, K, V an error; `[generics] enabled` - src/semantic/generics.py,
+		tests/test_generics.py, example syntax_generics
+		[ ] Later: a generic never called is not checked (only its copies are); named arguments to a generic; a Map's
+			entries / keys looped inside a generic for a Map type written nowhere else in the program
+	[DONE 2026-11-22] 33.2b Generic structs `struct Pair<A, B>`: `Pair<int, string>` as a type (a copy per set of
+		types, `Pair__int__string`), `Pair(1, "a")` - the types from the values - or `Pair<int, string>(...)`; copies,
+		`==`, a field of another struct, nested, in a List, holding an object; `Pair<T, T1>` in a generic function's
+		signature - tests/test_generics.py, example syntax_generics
+		[DONE 2026-11-22] (33.2c) methods on a generic struct - copied with it
+	[DONE 2026-11-22] 33.2c Generic classes `class Box<T>`: fields, methods, constructors (several, `this(...)`), copied
+		with the class per set of types (`Box__int.take`); T from the constructor's values or written `Box<string>(...)`;
+		`Box(...)` / `Box<T>` inside its own methods mean the copy; objects in it, in a List, a class field; messages
+		name a copy as written (`Box<int>`) - tests/test_generics.py, example syntax_generics
+		[DONE 2026-11-22 - 33.3a, 33.3b, 33.3c] a generic class with a parent and interfaces, plain or naming T;
+			statics
+	[DONE 2026-11-22] 33.2d Conditions (D.167): `<T extends Vehicle>` / `<T : Vehicle>` (a class or struct and its
+		children), `extends Number` (any number), `extends int` (only int), `implements A, B`, both at once; on
+		functions, structs and classes; an unmet one a compile error at the use (a call or a type written), naming
+		the type and the condition; a condition naming nothing / the wrong kind an error - tests/test_generics.py,
+		example syntax_generic_conditions
+		[ ] Later (with "a generic never called is not checked"): the generic code itself checked against its
+			conditions - today each copy is checked with its real type, so a T without a condition can use what its
+			type happens to have
+	[DONE 2026-11-22] 33.2e `T...` and `int... numbers` - an array, a List or values (D.166)
+		[DONE 2026-11-22] 33.2e1 `int... numbers` / `T... items` of one type: the last parameter, a List inside;
+			values one by one (none - an empty List), an array or a List; the values lent (an object still usable);
+			on methods too; T from the values, or a condition's type for its children - tests/test_generics.py,
+			example syntax_variadic
+		[DONE 2026-11-22] 33.2e2 A pack: `show(1, "two", car)` - values of any type each, the function made per
+			combination (one parameter per value); `for x in items` written out per value, `items.len()`, `items[1]`;
+			anything else with the pack an error saying why - tests/test_generics.py, example syntax_variadic_pack
+			[ ] Later: break / continue in a loop over a pack; T as the result of a pack function
+	[DONE 2026-11-22] 33.2f Ranges `1...100` in a `for` / `foreach` (SYN.034, D.169 proposed): both ends included,
+		no step, `10...1` in numbers an error suggesting `range(10, 0, -1)`; `total` in syntax_generic_conditions shown
+		both ways; L7.7 `case 0...9` / `'a'...'z'` in a match with it (no overlap); fixed on the way: a line starting
+		with a character literal was taken for a VB comment by the indentation reader - tests/test_ranges.py,
+		example syntax_ranges
+		[ ] Later: the self-hosted lexer (selfhost/lexer) reads `1...10` the same way - with Task 35
+	[DONE 2026-11-22] 33.2g A step on a whole-number range (D.170): `for i in 0...13 step 5` gives 0 5 10 - only the
+		values within the range; a warning when the step doesn't land on the end (numbers written), a compile error
+		with `[ranges] strictStep = true` (default false); a negative step counts down (`10...0 step -2`); the step
+		never 0 - written, a compile error; from a value, a RangeError while running (no endless range); `step` a
+		word only after a range; the end and step worked out once; fixed on the way: `range(10, 0, -1)` ran no turns
+		(the loop always tested `<`) - tests/test_ranges.py, example syntax_ranges
+		[DONE 2026-11-22] The error for `0.5...2.5` says a range counts whole numbers (it named range's arguments)
+	[DONE] 33.4 Features tested together (user, 2026-11-22 - from the ChatGPT review): one program combining generics,
+		ownership, collections, structs and classes (a generic class holding objects in a List, a pack, a condition,
+		a range with a step), run under the leak check and in strict and relaxed ownership; the open rows of
+		files/Ownership.md truth table 3b (`T x = item` of a class under strict; a generic returning an object from
+		a List) - done 2026-11-22: tests/test_generics.py (both ownership modes, leak-clean); every 3b row tested;
+		found: `Garage<Car> g = Garage()` - its hint named `<int>` and a second error followed (fixed); Q.042
+		(the declared type supplying T) and Q.043 (a local taken from a parameter) open
+	[DONE] 33.5 A generic's types from the variable it is stored in (Q.042 -> D.171): `Garage<Car> g = Garage()` - T from
+		the left when the arguments don't give it; `var` / `let` still an error; arguments that give T must agree
+	[DONE] 33.6 A local taken from a parameter, by `[memory] ownership` (Q.043 -> D.172): relaxed borrows; strict moves it -
+		`item` after it an error, the function keeps its parameter so the call moves the argument (B1, for now);
+		readonly changed through it an error (built)
+	[DONE 2026-11-22] 33.7 `--interface` shows a parameter the function keeps - `Car c (kept)`; readonly ones and a
+		class shown too, flags after --interface no longer taken for a module (D.100 says so; never built - found with 33.6):
+		the interface comes from the parsed modules, before the ownership pass - run it, then mark `Car c` kept
+	[DONE 2026-11-22] 33.2 Example (was 16.3): examples/09_generics/generics_demo.fusion - a parts store using generic
+		functions, structs and classes, a condition, T... and a pack, a generic parent, statics per copy, a List of your own
+	[DONE 2026-11-22] 33.3 A generic class with a parent, interfaces or statics; another implementation behind `List<T>` (from 32.6)
+		[DONE 2026-11-22] 33.3a A plain parent and plain interfaces - each copy builds on them (`Tag<int>` as a `Named`,
+			virtual functions, `is`); fixed on the way: an object held as its parent class (`Vehicle v = Holder(...)`, a
+			`List<Vehicle>`) was freed and copied as the parent - the child's own object fields leaked (32.7)
+		[DONE 2026-11-22] 33.3b A generic parent or interface - `inherits Box<T>`, `inherits Box<int>`, `implements
+			Collection<T>` / `Iterator<T>`: copied before inheritance, from the types written (a call alone says to write
+			them); fixed on the way: `e is Person` for an Employee was taken for "never"; Collection<T> written in a
+			generic's copy kept its old name
+		[DONE 2026-11-22] 33.3c Statics - one set per copy (`Box<int>.made`, `static T` allowed), made early as in
+			33.3b; `[generics] sharedStatics = true` one set for all (`Box.made`, a static of type T an error) (D.173)
+		[DONE 2026-11-22] 33.3d Another implementation behind `List<T>` (D.174, D.175)
+			[DONE 2026-11-22] 33.3d1 `class Ring<T> implements List<T>` writes the core five; Fusion adds add, contains,
+				indexOf, remove, clear, toList, copyPart / copyPartAt / slice / sliceAt, filter, sortBy (written in Fusion,
+				src/parser/list_methods.py); `get` / `set` allowed as method names; map / reduce / sort / join not added
+			[DONE 2026-11-22] 33.3d2 A `List<int>` value holding any implementation (D.175): `List<int> xs = Ring()` (T
+				from the List), every List operation; changes through the core five, one read held a while, many at
+				once over a copy; `xs[i] = v` / `xs[i].x = 5` set back after the statement; Fusion's own List as fast
+				(-O2: 60 / 61 ms on a List-heavy loop); a loop's copy freed however the loop ends (error, throw, return,
+				break); changing it while looping a ModifiedWhileLoopingError, as for Fusion's own (the List given is
+				watched, not the copy)
