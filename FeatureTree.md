@@ -162,6 +162,7 @@ Concurrency (Task 42) - nothing built yet
 
 Syntax
    - Duration literals [planned]     500ms, 5s, 2min
+   - Decimal / money ranges [planned 47.6]   0.5...2.5 step 0.5; whole numbers only by default ([ranges] decimals)
    - switch / elif aliases [design]
    - loop { } [design]               must have break / return; check blocks; labels; iteration limit
    - ++ / -- [design]                statements only

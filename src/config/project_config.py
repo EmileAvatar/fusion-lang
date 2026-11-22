@@ -787,13 +787,15 @@ def _canonical_names(data: dict, config_path: str) -> dict:
             canonical = known.get(_folded(key), key) if isinstance(key, str) else key
             if canonical in out:
                 raise ProjectConfigError(
-                    f"{config_path}: {name}.{canonical} is set twice (names ignore case and _)")
+                    f"{config_path}: {name}.{canonical} is set twice (names ignore case, _ and spaces)")
             out[canonical] = value
     return result
 
 
 def _folded(name: str) -> str:
-    return name.replace("_", "").lower()
+    """A setting's name as compared: case, `_` and spaces ignored - strictStep, strict_step and
+    "strict Step" are one setting (D.023; spaces - user, 2026-11-22)."""
+    return name.replace("_", "").replace(" ", "").lower()
 
 
 def _load_project_section(data: dict, config_path: str) -> Optional[str]:

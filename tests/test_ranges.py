@@ -37,6 +37,17 @@ def test_ranges_in_loops(body, lines):
     assert run(body) == lines
 
 
+@pytest.mark.parametrize('body', ['for i in 0.5...2.5\n    print("x")', 'double d = 2.0\nfor i in 0...d\n    print("x")'])
+def test_a_decimal_range_says_whole_numbers(body):
+    found = errors_of(body)
+    assert len(found) == 1 and 'A range ... counts whole numbers' in found[0] and '47.6' in found[0], found
+
+
+def test_setting_names_ignore_spaces():
+    from src.config.project_config import _folded
+    assert _folded('strict Step') == _folded('strict_step') == _folded('strictStep') == 'strictstep'
+
+
 def test_a_range_written_backwards_is_an_error():
     with pytest.raises(ParserError, match=r"10\.\.\.1 counts down .* range\(10, 0, -1\)"):
         parse('void function main()\n    for i in 10...1\n        print("{i}")\n')

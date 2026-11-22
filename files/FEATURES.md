@@ -301,6 +301,12 @@ then each point is decided and solved completely. One line per section and per l
 		with a character literal was taken for a VB comment by the indentation reader - tests/test_ranges.py,
 		example syntax_ranges
 		[ ] Later: the self-hosted lexer (selfhost/lexer) reads `1...10` the same way - with Task 35
+	[ ] 33.2g A step on a whole-number range (D.170): `for i in 0...13 step 5` gives 0 5 10 - only the values
+		within the range; a warning when the step doesn't land on the end (numbers written), a compile error with
+		`[ranges] strictStep = true` (default false); a negative step counts down (`10...0 step -2`); the step never
+		0 - written, a compile error; from a value, an error while running (no endless range); `step` a word only
+		after a range (a variable may still be called step)
+		[DONE 2026-11-22] The error for `0.5...2.5` says a range counts whole numbers (it named range's arguments)
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
@@ -347,6 +353,22 @@ then each point is decided and solved completely. One line per section and per l
 			stays the program's - Fusion only makes each step exact
 		[ ] 47.2.3 Later option: a decimal or arbitrary-precision number type - for amounts past
 			a long's range or more fractional precision than the minor unit gives
+	[ ] 47.6 Ranges over decimals and money (user, 2026-11-22 - after 47.2; extends 33.2f / D.169; Q.041)
+		[ ] 47.6a Whole numbers by default: `[ranges] decimals = false` - `0.5...2.5` a compile error saying how to
+			turn decimals on
+		[ ] 47.6b Decimals with a step: `for x in 0.5...2.5 step 0.5` (float / double) - `[ranges] stepRequired`
+			(default true: a step must be written, else a compile error; false: `defaultStep`, 0.1); each value worked
+			out from its count (start + n * step), never by adding - no drift (0.1 + 0.1 + 0.1 is not 0.3 in a double);
+			`[ranges] rangeMaxStep` (default 3): the finest step 0.001 / -0.001 - finer (0.000000000000001) an error,
+			written or while running (`round(0.001)`, a variable) - no huge or endless range; science / engineering
+			projects raise it
+		[ ] 47.6d A step that misses the end (0.0...1.0 step 0.3 gives 0.0 0.3 0.6 0.9): the same rule as 33.2g -
+			only the values within the range, a warning, `strictStep = true` an error
+		[ ] 47.6e Money ranges: `money` is whole minor units (47.2.1), so a money range with a step is exact -
+			R0.00...R10.00 step R0.25 counts 0 to 1000 by 25; `%` splits by 47.2.2's rule (where a remainder goes);
+			waits for money's literal form (47.2)
+		[ ] 47.6f Ranges in a match on decimals (`case 0.0...0.5`) - a test, not a count; match takes a double only
+			for range cases (exact == on decimals stays out)
 	[ ] 47.3 An enum whose values carry fixed data (Java's `enum Planet(double mass)`):
 		`EARTH(5.976e24)`, read with a method for each field (`Planet.EARTH.mass()`); the data
 		is const and byVal, set once; the constructor is always private. An enum is always
@@ -985,6 +1007,8 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L7.6 Guards in match: `case x if x < 0`
 		[DONE 2026-11-22] L7.7 Ranges in match cases: `case 0...9` - with 33.2f
 		[ ] L7.8 `assert cond, "message"` - an AssertionError when false
+		[ ] L7.9 A range in a number of steps (user, 2026-11-22 - Q.041, left out for now as it may confuse):
+			`for x in 0.0...2.5 step %5` - 5 equal steps, the size worked out (0.5)
 	L8 Types, enums and structs
 		[ ] L8.1 Enum values with fixed constants, built by the enum's private constructor:
 			`enum Planet { Mercury(3.7) ... }`, Planet.Mercury.gravity() / Planet.Mercury.Name

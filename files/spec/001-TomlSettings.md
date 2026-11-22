@@ -203,6 +203,15 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 |---|---|---|---|---|
 | `multipleReturns` | `true` / `false` | `false` | Several return values besides the Error | FUN.005 |
 
+#### [ranges]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `decimals` | `true` / `false` | `false` | Ranges count whole numbers only; true: `0.5...2.5 step 0.5` over float / double | 47.6, D.170 |
+| `stepRequired` | `true` / `false` | `true` | A decimal range with no step: true - a compile error; false - `defaultStep` is used | 47.6, D.170 |
+| `defaultStep` | a number | `0.1` | The step of a decimal range written without one (stepRequired = false) | 47.6, D.170 |
+| `rangeMaxStep` | a whole number of decimal places | `3` | The finest step a decimal range may take: 3 - 0.001 / -0.001; finer is an error (no huge or endless range) | 47.6, D.170 |
+| `strictStep` | `true` / `false` | `false` | A step that doesn't land on the range's end: false - a warning (only the values within the range); true - a compile error | 33.2g, D.170 |
+
 #### [conditions]
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|

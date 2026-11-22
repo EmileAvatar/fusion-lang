@@ -139,6 +139,13 @@ allowChangeWhileLooping = false
 threads = "shared"
 sharedThreads = 10
 
+[ranges]                                   # [designed] Tasks 33.2g, 47.6, D.170
+decimals = false                           # a range counts whole numbers; true: 0.5...2.5 step 0.5 over decimals
+stepRequired = true                        # with decimals: no step written is an error; false - defaultStep is used
+defaultStep = 0.1                          # the step of a decimal range written without one
+rangeMaxStep = 3                           # the finest decimal step: 0.001 - finer is an error (no endless range)
+strictStep = false                         # a step that misses the end (0...13 step 5): a warning; true - an error
+
 [functions]
 # [designed] Several return values per function (user, 2026-10-23: off unless allowed);
 # a function that can fail always has its Error last

@@ -1705,10 +1705,17 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 ))
                 return func_type.return_type
             # For range(), only check the arguments that were provided
+            written_range = getattr(node, 'written_range', False)       # `a...b` (33.2f)
             for i, arg in enumerate(node.arguments):
                 if i < len(func_type.parameter_types):
                     actual_type = self.visit(arg)
                     expected_type = func_type.parameter_types[i]
+                    if written_range and not self.types_compatible(expected_type, actual_type):
+                        self.errors.append(SemanticError(
+                            f"A range ... counts whole numbers - this end is "
+                            f"{self.type_to_string(actual_type)}; for decimals use a while loop (decimal "
+                            f"ranges with a step come with Task 47.6, [ranges] decimals)", arg.location))
+                        break                       # one message for the range, not one per end
                     if not self.types_compatible(expected_type, actual_type):
                         self.errors.append(SemanticError(
                             f"Argument {i+1} to 'range': expected {self.type_to_string(expected_type)}, "
