@@ -1139,8 +1139,8 @@ class NameResolver:
                     f"Undefined function: '{func_name}'",
                     expr.location
                 ))
-            elif symbol.symbol_type == 'struct':
-                pass  # A struct constructor, Point(3, 4) (Task 18.2.1)
+            elif symbol.symbol_type in ('struct', 'generic_function'):
+                pass  # A struct constructor, Point(3, 4) (Task 18.2.1); a generic function (33.2a)
             elif symbol.symbol_type != 'function' and not isinstance(symbol.data_type, FunctionType):
                 # A variable or parameter holding a function can be called (Task 18.1.3)
                 self.errors.append(SemanticError(

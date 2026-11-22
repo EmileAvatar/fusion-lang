@@ -458,7 +458,12 @@ class Parser:
         expr = self.parse_primary()
 
         # Handle chained postfix operators: func()(), arr[i][j], arr[i](), etc.
+        type_args = None
         while True:
+            if isinstance(expr, IdentifierExpr) and type_args is None and self.check(TokenType.LESS) \
+                    and self._type_arguments_ahead():
+                type_args = self._type_arguments()     # first<int>(numbers) (Task 33, D.166)
+                continue
             if self.check(TokenType.SAFE_NAV):
                 # x?.null - quick typing for "x is null" (Task 30.11)
                 if self.peek(1).type == TokenType.NULL:
@@ -489,6 +494,8 @@ class Parser:
                     callee=expr,
                     arguments=arguments
                 )
+                if type_args is not None:
+                    expr.type_args, type_args = type_args, None
             elif isinstance(expr, IndexExpr) and self.check(TokenType.COMMA) \
                     and self.peek(1).type == TokenType.LBRACKET and self._nesting() == 0:
                 self.advance()       # m[1],[2] - the same slot as m[1][2] (D.143); not inside ( ) or [ ]
@@ -3092,6 +3099,9 @@ class Parser:
         else:
             raise ParserError(self.peek(), "Expected function name")
 
+        # T function first<T>(...) / <K, V> / <T, T1> - its type parameters (Task 33, D.166)
+        type_params = self._type_parameters() if self.check(TokenType.LESS) else None
+
         # Parameter list
         self.consume(TokenType.LPAREN, "Expected '(' after function name")
 
@@ -3155,5 +3165,56 @@ class Parser:
             name=name,
             parameters=parameters,
             body=body,
-            is_lambda=is_lambda
+            is_lambda=is_lambda,
+            type_params=type_params
         )
+
+    def _type_parameters(self) -> list:
+        """`<T>`, `<K, V>`, `<T, T1>` after a generic function's name (Task 33, D.166). A condition
+        (`T extends Vehicle`, `T implements Comparable`, `T : Vehicle`) comes with Task 33.2d."""
+        self.consume(TokenType.LESS, "Expected '<'")
+        names = []
+        while True:
+            token = self.consume(TokenType.IDENTIFIER, "Expected a type parameter's name - <T>, <K, V>")
+            if token.value in names:
+                raise ParserError(token, f"Type parameter '{token.value}' is written twice")
+            names.append(token.value)
+            if self.check(TokenType.IMPLEMENTS) or self.check(TokenType.COLON) or \
+                    (self.check(TokenType.IDENTIFIER) and self.peek().value == 'extends'):
+                raise ParserError(self.peek(), "A condition on a type parameter (extends, implements, :) "
+                                               "comes with Task 33.2d - not yet")
+            if not self.match(TokenType.COMMA):
+                break
+        self.consume(TokenType.GREATER, "Expected '>' after the type parameters")
+        return names
+
+    _TYPE_ARG_TOKENS = (TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
+                        TokenType.STRING, TokenType.BOOL, TokenType.CHAR, TokenType.BYTE, TokenType.LONG,
+                        TokenType.SHORT, TokenType.COMMA, TokenType.LBRACKET, TokenType.RBRACKET,
+                        TokenType.COLON, TokenType.DOT)
+
+    def _type_arguments_ahead(self) -> bool:
+        """`first<int>(` - written types and then a call, not a comparison (`a < b`): from the '<' to
+        its '>' only type words, then '('."""
+        depth, i = 0, 0
+        while i < 64:
+            token = self.peek(i)
+            if token.type == TokenType.LESS:
+                depth += 1
+            elif token.type == TokenType.GREATER:
+                depth -= 1
+                if depth == 0:
+                    return self.peek(i + 1).type == TokenType.LPAREN
+            elif token.type not in self._TYPE_ARG_TOKENS:
+                return False
+            i += 1
+        return False
+
+    def _type_arguments(self) -> list:
+        """The types written at a call - `first<int>(...)`, `valueOf<string, int>(...)` (D.166)."""
+        self.consume(TokenType.LESS, "Expected '<'")
+        types = [self.parse_type()]
+        while self.match(TokenType.COMMA):
+            types.append(self.parse_type())
+        self.consume(TokenType.GREATER, "Expected '>' after the types")
+        return types

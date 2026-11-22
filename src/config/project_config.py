@@ -235,6 +235,17 @@ class ArraysConfig:
 
 
 @dataclass
+class GenericsConfig:
+    """Generics of the program's own (Task 33, D.168).
+
+    Attributes:
+        enabled: generic functions, structs and classes allowed (default true); off - a generic
+            declaration is an error (the built-in List<T> / Map<K, V> stay)
+    """
+    enabled: bool = True
+
+
+@dataclass
 class MemoryConfig:
     """Memory (Task 48, files/Ownership.md - Decisions.md D.014, D.102).
 
@@ -335,6 +346,7 @@ class ProjectConfig:
     memory: MemoryConfig = field(default_factory=MemoryConfig)
     collections: CollectionsConfig = field(default_factory=CollectionsConfig)
     arrays: ArraysConfig = field(default_factory=ArraysConfig)
+    generics: GenericsConfig = field(default_factory=GenericsConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
@@ -615,6 +627,19 @@ def _load_arrays_section(data: dict, config_path: str) -> ArraysConfig:
             f"{config_path}: arrays.stackWarn ({arrays.stack_warn:,} bytes) is above arrays.stackLimit "
             f"({arrays.stack_limit:,} bytes) - the warning comes before the error")
     return arrays
+
+
+def _load_generics_section(data: dict, config_path: str) -> GenericsConfig:
+    """Parse and validate the [generics] section (Task 33, D.168)."""
+    generics = GenericsConfig()
+    section = _require_table(data, "generics", config_path)
+    for key, value in section.items():
+        if key != "enabled":
+            raise ProjectConfigError(f"{config_path}: unknown setting generics.{key} (known: ['enabled'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(f"{config_path}: generics.enabled must be true or false, got {value!r}")
+        generics.enabled = value
+    return generics
 
 
 OWNERSHIP_VALUES = {"strict": "move", "relaxed": "share"}   # Task 48.11 (D.124)
@@ -915,6 +940,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         memory=_load_memory_section(data, config_path, warnings),
         collections=_load_collections_section(data, config_path),
         arrays=_load_arrays_section(data, config_path),
+        generics=_load_generics_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),

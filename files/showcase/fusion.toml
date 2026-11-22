@@ -93,6 +93,11 @@ notAroundGuard = false
 # [designed] "!" around a ?. comparison: allowed with a warning (true) or a compile error (D.116; name open)
 negateGuarded = false
 
+[generics]
+# [built] Generic functions, structs and classes of the program's own (default true); false: a
+# generic declaration is a compile error - List<T> / Map<K, V> stay (Task 33, D.168)
+enabled = true
+
 [arrays]
 # [designed] Arrays may be null (default false - [] instead) (Task 30.3); they grow at the
 # end (Task 45)

@@ -76,6 +76,9 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
 - That needs functions taking several values first (`int... numbers` - SYN.034, designed: only main's
   `string... args` is built), so `T...` is its own part, after the conditions
 
+- Done 2026-11-22: 33.2a generic functions - src/semantic/generics.py, tests/test_generics.py, example syntax_generics
+- **Next Action:** 33.2b generic structs
+
 ### Parts, in order (each shipped on its own)
 1. **33.2a Generic functions:** the forms above without conditions; T, K, V (and digits) without `<...>`; types from the
    arguments or written; one type or several (`<T, T1>`, `<K, V>`); T as a parameter, result, local, List<T> /

@@ -23,6 +23,7 @@ from .setup_blocks import expand_setup_blocks
 from .readonly import check_readonly, check_readonly_calls, check_readonly_values
 from .null_guards import check_surely_null, expand_null_guards
 from .heap_arrays import mark_heap_arrays
+from .generics import take_generic_functions
 from .interfaces import check_interfaces
 from .case_names import check_case_names
 from .ownership import check_ownership
@@ -65,7 +66,7 @@ class SemanticAnalyzer:
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
                  conditions_config=None, visibility_config=None, interfaces_config=None, source_config=None, memory_config=None,
-                 collections_config=None, arrays_config=None):
+                 collections_config=None, arrays_config=None, generics_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -104,11 +105,23 @@ class SemanticAnalyzer:
         self.type_checker.array_order = getattr(arrays_config, 'order', 'columns')
         # [arrays] csvManyDimensions (45.11b, D.151): toCSV on 3 dimensions or more
         self.type_checker.csv_many_dimensions = getattr(arrays_config, 'csv_many_dimensions', True)
+        # [generics] enabled (Task 33, D.168): generics of the program's own
+        self.generics_enabled = getattr(generics_config, 'enabled', True)
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
         self.errors: List[SemanticError] = []
         self.warnings: List[SemanticError] = []
+
+    def register_generic_instance(self, instance) -> None:
+        """A copy of a generic function (Task 33.2a), made while another function is being checked:
+        its name goes in the global scope; the function loop checks its body when it reaches it."""
+        scope = self.symbol_table.current_scope
+        self.symbol_table.current_scope = self.symbol_table.global_scope
+        try:
+            self.name_resolver.register_function(instance)
+        finally:
+            self.symbol_table.current_scope = scope
 
     def analyze(self, ast: ProgramNode) -> bool:
         """Analyze the AST and return True if no errors.
@@ -170,6 +183,11 @@ class SemanticAnalyzer:
         add_storage_enum(ast)                    # FLAT / RECT / JAGG, when used (45.15)
         self.errors.extend(normalize_enums(ast))
         self.errors.extend(check_holding_loops(ast))
+        # Generic functions (Task 33.2a, D.166): taken out of the program - a copy is made for each
+        # set of types used, when the type checker finds the call
+        self.errors.extend(take_generic_functions(ast, self.generics_enabled))
+        self.type_checker.program = ast
+        self.type_checker.generic_host = self
 
         # Pass 1: Validate entry point
         ep_errors, ep_warnings = self.entry_point_validator.validate_program(ast)
@@ -225,6 +243,13 @@ class SemanticAnalyzer:
         for decl in ast.declarations:
             if isinstance(decl, FunctionDecl):
                 self.name_resolver.register_function(decl)
+        from .symbol import Symbol
+        for name, generic in ast.generic_functions.items():      # first(...) - a copy when used (33.2a)
+            try:
+                self.symbol_table.define(Symbol(name=name, symbol_type='generic_function', data_type=None,
+                                                location=generic.location, declaration=generic))
+            except SemanticError as e:
+                self.errors.append(e)
 
         # Module-level variables and constants (Task 44.1): checked in the order written, in
         # the global scope - an initializer may use the functions and the module variables

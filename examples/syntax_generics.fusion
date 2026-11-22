@@ -1,0 +1,13 @@
+T function first<T>(List<T> items) : items[0]               // the type parameters after the name
+T function last(List<T> items) : items[items.len() - 1]     // also accepted: T, K, V (and T1, K2) in a signature
+V function valueOf<K, V>(Map<K, V> m, K key) : m[key]       // Key and Value
+T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]    // several types - the result may be any of them
+
+void function main()
+    List<int> numbers = [3, 1, 2]
+    List<string> names = ["Ada", "Bo"]
+    print("{@1} {@2} {@3}", first(numbers), first(names), last(names))    // 3 Ada Bo - types from the arguments
+    print("{@1}", first<int>(numbers))                                    // 3 - or written
+    Map<string, int> ages
+    ages["Ada"] = 36
+    print("{@1} {@2}", valueOf(ages, "Ada"), second(numbers, names))      // 36 Ada

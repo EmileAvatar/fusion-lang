@@ -134,9 +134,18 @@ def _generic_kinds(program) -> list:
             if f.name not in ('location', 'inferred_type', 'declaration', 'scope'):
                 walk(getattr(node, f.name))
     for d in program.declarations:
+        if _is_generic(d):
+            continue                   # T function first<T>(...) - its copies use the types (33.2a)
         walk(d)
         found += getattr(d, 'interface_kinds', [])
     return found + _map_kinds(program)
+
+
+def _is_generic(declaration) -> bool:
+    """A generic function (Task 33.2a) - its types hold T, K, V until a copy is made."""
+    from src.parser.ast_nodes import FunctionDecl
+    from .generics import type_parameters
+    return isinstance(declaration, FunctionDecl) and bool(type_parameters(declaration))
 
 
 def _map_kinds(program) -> list:
@@ -166,7 +175,7 @@ def _map_kinds(program) -> list:
         for f in fields(node):
             if f.name not in ('location', 'inferred_type', 'declaration', 'scope'):
                 walk(getattr(node, f.name))
-    walk(program.declarations)
+    walk([d for d in program.declarations if not _is_generic(d)])
     return kinds
 
 

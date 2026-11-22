@@ -261,7 +261,17 @@ then each point is decided and solved completely. One line per section and per l
 
 <a id="task-33"></a>
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ] [index](#index)
-	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5) - written in files/taskSummary2.md, to approve (2026-11-22)
+	[DONE 2026-11-22] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5) - files/taskSummary2.md; D.166-D.168
+	[DONE 2026-11-22] 33.2a Generic functions: `T function first<T>(...)`, T / K / V (and digits) without <...>, several
+		types (<K, V>, <T, T1>); types from the arguments or written `first<int>(...)`; one copy per set of types
+		(`first__int`); a struct / class / enum named T, K, V an error; `[generics] enabled` - src/semantic/generics.py,
+		tests/test_generics.py, example syntax_generics
+		[ ] Later: a generic never called is not checked (only its copies are); named arguments to a generic; a Map's
+			entries / keys looped inside a generic for a Map type written nowhere else in the program
+	[ ] 33.2b Generic structs `struct Pair<A, B>`
+	[ ] 33.2c Generic classes `class Box<T>`
+	[ ] 33.2d Conditions: extends / : / Number / int / implements (D.167)
+	[ ] 33.2e `T...` and `int... numbers` - an array, a List or values (D.166)
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 

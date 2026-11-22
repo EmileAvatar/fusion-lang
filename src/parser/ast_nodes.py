@@ -755,6 +755,9 @@ class FunctionDecl(ASTNode):
     returns_error: bool = False  # `Ship, Error function` / `Error function` - can fail (Task 26)
     returns_readonly: bool = False  # `readonly Engine function getEngine()` - the caller gets a
                                     # read-only borrow (Task 50.1, D.110)
+    # `T function first<T>(List<T> items)` (Task 33, D.166): the type parameters written in <...>;
+    # None when none are written (T, K, V in the signature still make it generic)
+    type_params: Optional[List[str]] = None
 
 
 @dataclass

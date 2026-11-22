@@ -125,7 +125,8 @@ def compile_file(source_path: str) -> int:
                                 source_config=project_config.source,
                                 memory_config=project_config.memory,
                                 collections_config=project_config.collections,
-                                arrays_config=project_config.arrays)
+                                arrays_config=project_config.arrays,
+                                generics_config=project_config.generics)
     success = analyzer.analyze(ast)
 
     if not success:

@@ -22,6 +22,7 @@ from .number_patterns import number_pattern_problem
 from .name_resolver import builtin_layer
 from .collection_rules import CollectionRulesMixin
 from .many_dims import ManyDimsMixin
+from .generics import GenericsMixin
 from .enums import EnumRulesMixin, ENUM_METHODS
 from .error_rules import ErrorRulesMixin
 from .struct_parents import StructParentRulesMixin, flat_field_names
@@ -50,7 +51,7 @@ def field_default(field: StructField):
 
 
 class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructParentRulesMixin,
-                  InferredRulesMixin, ManyDimsMixin):
+                  InferredRulesMixin, ManyDimsMixin, GenericsMixin):
     """Type checks the AST using visitor pattern.
 
     Validates type compatibility in expressions, assignments, function calls,
@@ -1600,6 +1601,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 node.location
             ))
             return PrimitiveType(location=node.location, name='void')
+
+        if symbol.symbol_type == 'generic_function':
+            return self.generic_call(node, symbol.declaration)       # first(xs) - a copy per type (33.2a)
 
         if symbol.symbol_type == 'struct' and getattr(symbol.declaration, 'is_interface', False):
             self.errors.append(SemanticError(

@@ -156,6 +156,12 @@
     </setting>
   </section>
 
+  <section name="generics" description="Generic functions and types of the program's own">
+    <setting name="enabled" type="bool" default="true" task="33">
+      <description>Generic functions, structs and classes of the program's own (T function first&lt;T&gt;(List&lt;T&gt; items)); false: a generic declaration is a compile error - the built-in List&lt;T&gt; and Map&lt;K, V&gt; stay (D.168)</description>
+    </setting>
+  </section>
+
   <section name="memory" description="How values are owned (files/Ownership.md)">
     <setting name="ownership" type="choice" default="strict" task="48.11">
       <description>strict (the default, the safest): every ownership rule - Car b = a hands the object over (a can't be used until it gets a new value), one writer, a borrow never stored or returned; relaxed: Car b = a shares one object, the rules loosened - for a library with no ownership model (a GC alongside it) or manual memory. byVal copies and byRef borrows in both. Replaces assignment (move / share), still read with a warning (D.124)</description>

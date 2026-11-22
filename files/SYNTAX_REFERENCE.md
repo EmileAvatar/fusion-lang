@@ -192,6 +192,32 @@ void function main()
                 scores[2]))
 ```
 
+#### Generic functions: one function for many types
+
+<!-- example: syntax_generics | task: 33.2a -->
+```fusion
+T function first<T>(List<T> items) : items[0]               // the type parameters after the name
+T function last(List<T> items) : items[items.len() - 1]     // also accepted: T, K, V (and T1, K2) in a signature
+V function valueOf<K, V>(Map<K, V> m, K key) : m[key]       // Key and Value
+T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]    // several types - the result may be any of them
+
+void function main()
+    List<int> numbers = [3, 1, 2]
+    List<string> names = ["Ada", "Bo"]
+    print("{@1} {@2} {@3}", first(numbers), first(names), last(names))    // 3 Ada Bo - types from the arguments
+    print("{@1}", first<int>(numbers))                                    // 3 - or written
+    Map<string, int> ages
+    ages["Ada"] = 36
+    print("{@1} {@2}", valueOf(ages, "Ada"), second(numbers, names))      // 36 Ada
+```
+A generic function names its types in `<...>` after its name, or uses T, K, V (Type, Key, Value - and T1, K2 ...)
+in its signature (D.166); a struct, class or enum can't be named T, K or V. At a call the types come from the
+arguments, or are written - `first<int>(numbers)`; where they can't be worked out the error says to write them.
+One C function is made for each set of types used (`first__int`, `first__string`) - no run-time cost. Without a
+condition a T can be stored, passed, returned, compared with `==` and printed; conditions (`<T extends Number>`,
+`<T implements Comparable>`), generic structs and classes and `T...` come with the next parts of Task 33.
+`[generics] enabled = false` turns them off (D.168).
+
 #### Lambdas and function values
 
 <!-- example: syntax_lambdas | task: 18.1.3 -->

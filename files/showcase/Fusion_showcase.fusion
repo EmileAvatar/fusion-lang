@@ -834,12 +834,12 @@ class Container<T> {
     property Count: int { get { return items.len() } }
 }
 
-// [designed] A generic function - the types after the name; at the call from the arguments (D.166)
+// [built] A generic function - the types after the name; at the call from the arguments (33.2a, D.166)
 T function first<T>(List<T> items) : items[0]
 T function last(List<T> items) : items[items.len() - 1]   // also accepted: T, K, V in a signature are type parameters
 // int a = first(numbers)  - the type from the arguments (preferred);  first<int>(numbers) - written, if wanted
 
-// [designed] Several type parameters: Key and Value, or T and T1 (D.166)
+// [built] Several type parameters: Key and Value, or T and T1 (33.2a, D.166)
 V function valueOf<K, V>(Map<K, V> m, K key) : m[key]
 T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]
 
@@ -864,7 +864,7 @@ struct Pair<K, V> {
 class Box<T implements Comparable> {
     T item
 }
-// [designed] [generics] enabled = true (default) - off: a generic declaration is an error (D.168)
+// [built] [generics] enabled = true (default) - off: a generic declaration is an error (D.168)
 
 
 // =============================================================================================
