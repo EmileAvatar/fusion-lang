@@ -814,6 +814,10 @@ class MemoryManagementMixin:
             release = [f'static inline void fusion_release_{c}({c}** p) {{',
                        f'    {c}* o = *p;',
                        '    *p = NULL;',
+                       # a child's object held as this class (Vehicle v = Holder(...)): its own class frees it -
+                       # its own fields too (32.7; found with 33.3a)
+                       f'    if (o && o->fusion_class != &fusion_class_{c}) {{ void* q = o; '
+                       'o->fusion_class->release(&q); return; }',
                        '    if (!o || --o->fusion_count > 0) return;',
                        '    FUSION_OBJECT_FREED();',
                        f'    FUSION_TRACE_FREED("{escape_c_text(decl.name, chr(34))}");']
@@ -853,6 +857,8 @@ class MemoryManagementMixin:
         c = self._struct_c_name(kind)
         self.emit(f'static {c}* fusion_clone_{c}({c}* o) {{')
         self.emit('    if (!o) return NULL;')
+        # a child's object held as this class: copied by its own class, all of it (32.7; found with 33.3a)
+        self.emit(f'    if (o->fusion_class != &fusion_class_{c}) return ({c}*)o->fusion_class->clone(o);')
         clone = getattr(decl, 'clone_method', None)
         if clone is not None:
             self.emit(f'    return {self._mangle_function_name(clone.name)}(o);')

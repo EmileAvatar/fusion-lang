@@ -168,3 +168,27 @@ def test_protected_and_abstract_from_outside(line, message):
 def test_one_parent_only():
     with pytest.raises(ParserError, match="has one parent"):
         parse('class A\n    int n\n\nclass B\n    int m\n\nclass C inherits A inherits B\n    int k\n')
+
+
+# ---------- freed and copied by its own class when held as its parent (found with 33.3a) ----------
+
+HOLDER = ('class Car\n    public string name\n    constructor(string name)\n        this.name = name\n\n'
+          'class Vehicle\n    public string name\n    constructor(string name)\n        this.name = name\n\n'
+          'class Holder inherits Vehicle\n    public Car car\n    constructor(string name, Car car)\n'
+          '        super(name)\n        this.car = car\n\n')
+
+
+@pytest.mark.parametrize('body', [
+    'Vehicle k = Holder("h", Car("x"))\nprint(k.name)',                           # freed as a Vehicle
+    'List<Vehicle> all = [Holder("h", Car("x"))]\nprint(all[0].name)',            # in a List of parents
+    'Holder h = Holder("h", Car("x"))\nVehicle k = byVal h\nprint(k.name)',       # a copy held as the parent
+    'Vehicle k = Holder("h", Car("x"))\nVehicle m = byVal k\nprint(m.name)',      # copied through the parent
+])
+def test_a_child_held_as_its_parent_frees_and_copies_its_own_fields(body):
+    # the leak check: the child's own object (its car) was never freed - the parent's release ran
+    assert run(HOLDER + main(body)) == ['h']
+
+
+def test_a_copy_through_the_parent_is_the_whole_child():
+    assert run(HOLDER + main('Vehicle k = Holder("h", Car("x"))\nVehicle m = byVal k\n'
+                             'if m is Holder\n    Holder h = (Holder)m\n    print(h.car.name)')) == ['x']

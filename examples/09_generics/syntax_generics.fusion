@@ -16,6 +16,15 @@ class Box<T>                                                // a generic class (
     void function put(T x)
         item = x
 
+class Named
+    public string name
+
+class Tag<T> inherits Named                                 // a parent and interfaces too (33.3a)
+    T value
+    constructor(string name, T value)
+        this.name = name
+        this.value = value
+
 class Garage<T>                                             // no constructor: a List starts empty
     List<T> items
     void function park(T item)
@@ -38,3 +47,5 @@ void function main()
     Garage<string> g = Garage()                                           // T from the left - written once (33.5)
     g.park("van")
     print("{@1}", g.count())                                              // 1
+    Named n = Tag("size", 42)                                             // a Tag<int> where a Named is expected
+    print(n.name)                                                         // size

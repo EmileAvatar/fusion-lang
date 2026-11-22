@@ -32,6 +32,7 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 (none open)
 
+Earlier: Q.044 (statics on a generic class - C), Q.045 (a List implementation's core - B for now), Q.046 (a List value holding any implementation - A for now) answered 2026-11-22: Decisions.md D.173-D.175.
 Earlier: Q.042 (a generic's types from the variable) and Q.043 (a local taken from a parameter: B1, for now) answered 2026-11-22: Decisions.md D.171, D.172.
 Earlier: Q.041 (ranges: the step, `%`, a step that misses the end) answered 2026-11-22: Decisions.md D.170, FEATURES 33.2g, 47.6, L7.9.
 Earlier: Q.038 (a resource split into parts), Q.039 (a keyword as a name in translated code), Q.040 (RECT storage) answered 2026-11-21: Decisions.md D.160, D.165, D.164; the rest of Q.038 revisited when Task 42.31 starts (D.161).
@@ -45,6 +46,6 @@ namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a 
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.044.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.047.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->

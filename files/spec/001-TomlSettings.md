@@ -209,6 +209,11 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 |---|---|---|---|---|
 | `multipleReturns` | `true` / `false` | `false` | Several return values besides the Error | FUN.005 |
 
+#### [generics]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `sharedStatics` | `true` / `false` | `false` | A generic class's statics: false - one set per copy (`Box<int>.made`, `Box<string>.made`); true - one set for all copies (`Box.made`), a static of type T an error | 33.3c, D.173 |
+
 #### [ranges]
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|

@@ -834,6 +834,8 @@ class Container<T> {
     T function get(int index) : items[index]
     property Count: int { get { return items.len() } }
 }
+// [built] A plain parent and plain interfaces (33.3a): class Tag<T> inherits Named implements Printable;
+// [designed] a parent or interface naming T (inherits Box<T>, implements Collection<T>) and statics (33.3b, 33.3c)
 // [built] Its types from where it is stored - written once, on the left (33.5, D.171): a variable, a field,
 // a parameter, a result; the arguments checked against them. var / let: no type on the left - write it
 // Container<Car> garage = Container()      // T is Car;  Container<Car>() - also fine

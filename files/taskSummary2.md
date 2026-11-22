@@ -88,7 +88,43 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
   Q.042 / Q.043 for the user
 - Done 2026-11-22: 33.5 a generic's types from where it is stored (D.171) - `Garage<Car> g = Garage()`
 - Done 2026-11-22: 33.6 a local taken from a parameter (D.172, B1) - strict: the function keeps it; `--interface` showing it is 33.7
-- **Next Action:** plan 33.3 (another implementation behind `List<T>`, a generic class with a parent / interfaces / statics) here, for the user to approve; 33.7 (`--interface` shows a kept parameter) after
+- Done 2026-11-22: 33.3a a generic class with a plain parent and plain interfaces; fixed: a child held as its parent
+  leaked its own object fields (freed / copied through the parent's helpers)
+- **Next Action:** 33.3b (Q.044-Q.046 answered 2026-11-22: D.173-D.175); 33.7 (`--interface` shows a kept parameter) after
+
+### 33.3 - plan (to approve): a generic class with a parent, interfaces or statics; another List<T> implementation
+**Settings:** `[generics] sharedStatics` (33.3c, D.173 - default false: one set per copy); none else.
+Today a generic class with a parent, interfaces or statics is an error ("comes later (Task 33.3)"). The passes for
+inheritance (32.7), interfaces (32.5a) and statics (32.2c) run on the generic class itself, before it is taken out
+and copied per set of types - so a part that doesn't mention T already works on the template; one that does needs
+filling in per copy.
+
+**33.3a A plain parent and plain interfaces** - `class Box<T> inherits Vehicle implements Printable`
+- the error lifted for a parent / interfaces that don't mention T; each copy (`Box<int>`, `Box<Car>`) has the parent's
+  fields and functions, its own table of virtual functions, answers the interface; `is`, casts, `super(...)`
+- a `Box<Car>` given where a `Vehicle` or a `Printable` is expected; a List of them
+- tests: each, strict and relaxed, the leak check; mistakes (a missing interface function) name the copy as written
+
+**33.3b A generic parent or interface** - `class Special<T> inherits Box<T>`, `class Bag<T> implements Collection<T>`
+- the parent copied for the same types first (`Special<int>` builds on `Box<int>`), then the child; an interface with
+  T (`Collection<T>`, `Comparable<T>`) filled in per copy - a generic collection of your own in `foreach`
+- a parent with other types (`class IntBox inherits Box<int>`, a plain class on a generic parent) too
+- tests as 33.3a; `Bag<int>` as a `Collection<int>` value, its iterator
+
+**33.3c Statics** - D.173: per copy; `[generics] sharedStatics = true` one for all
+- `class Box<T>` with `static int made` - one per copy (`Box<int>.made`, `Box<string>.made`) or one for all; a static
+  of type T only per copy; the set-up (forms A, B, C) run for each copy used
+- tests: each form, the set-up order (32.2c)
+
+**33.3d Another implementation behind `List<T>`** - D.174 (a core of five, the rest built from it), D.175 (a List value holds any; one check per call)
+- `class Ring<T> implements List<T>` - what it must write (Q.045); `List<int> xs = Ring()` - a List variable,
+  parameter or field holding it, every List method and `xs[i]`, `foreach`, `len` working on it; what it costs (Q.046)
+- the default implementation stays as it is (never null, D.001 - code to an interface)
+- tests: each List method on a program's own implementation; the default unchanged and as fast; the leak check;
+  examples: syntax_generics / a new syntax_list_implementation; 45.10 (an array as a Collection) after it
+
+**Order:** 33.3a, 33.3b, 33.3c, then 33.3d - each shipped on its own. FeatureTree, Decisions TYP.007 / COL.006,
+showcase (Interfaces.fusion `List<T>` [designed 32.6] -> built), SYNTAX_REFERENCE examples (Rule 4).
 
 ### Parts, in order (each shipped on its own)
 1. **33.2a Generic functions:** the forms above without conditions; T, K, V (and digits) without `<...>`; types from the

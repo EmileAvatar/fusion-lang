@@ -265,15 +265,46 @@ def test_generic_class_mistakes(body, message):
     assert not any('Box__' in e for e in found), found
 
 
-@pytest.mark.parametrize('top, what', [
-    ('class Car\n    int x\n\nclass Box<T> inherits Car\n    T item\n\n', 'a parent'),
-    ('interface Named\n    string function label()\n\nclass Box<T> implements Named\n    T item\n'
-     '    string function label() : "b"\n\n', 'interfaces'),
-    ('class Box<T>\n    T item\n    static int made = 0\n\n', 'static members'),
-])
-def test_a_generic_class_with_a_parent_comes_later(top, what):
-    found = errors_of('print("x")', top=top)
-    assert any(f"with {what} comes later" in e for e in found), found
+def test_a_generic_class_with_statics_comes_later():
+    found = errors_of('print("x")', top='class Box<T>\n    T item\n    static int made = 0\n\n')
+    assert any("with static members comes later (Task 33.3c)" in e for e in found), found
+
+
+# ---------- 33.3a a generic class with a plain parent and plain interfaces ----------
+
+PARENTS = ('interface Printable\n    string function label()\n\n'
+           'class Vehicle\n    public string name\n    constructor(string name)\n        this.name = name\n'
+           '    string function kind() : "vehicle"\n\n'
+           'class Car inherits Vehicle\n    constructor(string name)\n        super(name)\n'
+           '    override string function kind() : "car"\n\n'
+           'class Crate<T> inherits Vehicle implements Printable\n    T item\n    constructor(string name, T item)\n'
+           '        super(name)\n        this.item = item\n    T function take() : item\n'
+           '    override string function kind() : "crate"\n    string function label() : "crate {name}"\n\n'
+           'string function describe(Vehicle v) : format("{@1} is a {@2}", v.name, v.kind())\n\n'
+           'string function show(Printable p) : p.label()\n\n')
+
+
+@pytest.mark.parametrize('ownership', ['move', 'share'])
+def test_a_generic_class_with_a_parent_and_an_interface(ownership):
+    # each copy has the parent's fields and functions, overrides them, answers the interface; is / a List of parents
+    assert run('Crate<int> a = Crate("ints", 5)\nCrate<Car> b = Crate("cars", Car("mini"))\n'
+               'print(describe(a))\nprint(show(b))\nprint("{@1} {@2} {@3}", a.take(), b.take().name, b.take().kind())\n'
+               'List<Vehicle> all = [byVal a, byVal b, Car("van")]\nfor v in all\n    print(v.kind())\n'
+               'Vehicle w = b\nif w is Crate<Car>\n    print("a crate of cars")',
+               top=PARENTS, memory_config=MemoryConfig(assignment=ownership)) == [
+        'ints is a crate', 'crate cars', '5 mini car', 'crate', 'crate', 'car', 'a crate of cars']
+
+
+def test_a_generic_class_missing_an_interface_function():
+    found = errors_of('Crate<int> c = Crate<int>()', top='interface Printable\n    string function label()\n\n'
+                      'class Crate<T> implements Printable\n    T item\n\n')
+    assert "Class 'Crate' implements Printable but has no function 'label' - string function label()" in found
+
+
+def test_a_generic_struct_building_on_a_struct():
+    assert run('Tagged<int> t = Tagged("Ada", 7)\nprint("{@1} {@2} {@3}", t.name, t.tag, nameOf(t))',
+               top='struct Person\n    string name\n\nstruct Tagged<T> implements Person\n    T tag\n\n'
+                   'string function nameOf(Person p) : p.name\n\n') == ['Ada 7 Ada']
 
 
 # ---------------------------------------------------------------- 33.2d conditions (D.167)

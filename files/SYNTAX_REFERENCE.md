@@ -254,6 +254,15 @@ class Box<T>                                                // a generic class (
     void function put(T x)
         item = x
 
+class Named
+    public string name
+
+class Tag<T> inherits Named                                 // a parent and interfaces too (33.3a)
+    T value
+    constructor(string name, T value)
+        this.name = name
+        this.value = value
+
 class Garage<T>                                             // no constructor: a List starts empty
     List<T> items
     void function park(T item)
@@ -276,6 +285,8 @@ void function main()
     Garage<string> g = Garage()                                           // T from the left - written once (33.5)
     g.park("van")
     print("{@1}", g.count())                                              // 1
+    Named n = Tag("size", 42)                                             // a Tag<int> where a Named is expected
+    print(n.name)                                                         // size
 ```
 A generic function names its types in `<...>` after its name, or uses T, K, V (Type, Key, Value - and T1, K2 ...)
 in its signature (D.166); a struct, class or enum can't be named T, K or V. At a call the types come from the
@@ -286,7 +297,9 @@ is made once per set of types used too - `Pair<int, string>`; its types come fro
 it works as any struct (copies, `==`, a field of another struct, `List<Pair<int, string>>`). A generic class
 (`class Box<T>`) and a generic struct's methods are copied with it - `Box<int>` gets its own `take`, `put` and
 constructors; the types come from the constructor's values, or are written (`Box<string>("hat")`); inside its own
-methods `Box(...)` and `Box<T>` mean this copy. A generic class with a parent, interfaces or statics comes later.
+methods `Box(...)` and `Box<T>` mean this copy. A generic class may have a parent and interfaces that don't name T
+(`class Tag<T> inherits Named implements Printable`) - each copy builds on them; one naming T (`inherits Box<T>`)
+and statics come later (33.3b, 33.3c).
 Stored where its type is written - a variable, a field, a parameter, a result - a generic class or struct takes its
 types from there: `Garage<string> g = Garage()` (D.171); the arguments are then checked against them
 (`Box<Car> b = Box("hat")` - expected Car, got string). With `var` / `let` there is no type on the left: write it.

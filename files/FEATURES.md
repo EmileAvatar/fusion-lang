@@ -277,7 +277,8 @@ then each point is decided and solved completely. One line per section and per l
 		with the class per set of types (`Box__int.take`); T from the constructor's values or written `Box<string>(...)`;
 		`Box(...)` / `Box<T>` inside its own methods mean the copy; objects in it, in a List, a class field; messages
 		name a copy as written (`Box<int>`) - tests/test_generics.py, example syntax_generics
-		[POSTPONED to 33.3] a generic class with a parent, interfaces or statics - an error for now
+		[DONE 2026-11-22 - 33.3a] a generic class with a plain parent and plain interfaces; [POSTPONED to 33.3b / 33.3c]
+			one naming T (`inherits Box<T>`, `implements Collection<T>`), statics
 	[DONE 2026-11-22] 33.2d Conditions (D.167): `<T extends Vehicle>` / `<T : Vehicle>` (a class or struct and its
 		children), `extends Number` (any number), `extends int` (only int), `implements A, B`, both at once; on
 		functions, structs and classes; an unmet one a compile error at the use (a call or a type written), naming
@@ -323,7 +324,13 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 33.7 `--interface` shows a parameter the function keeps (D.100 says so; never built - found with 33.6):
 		the interface comes from the parsed modules, before the ownership pass - run it, then mark `Car c` kept
 	[ ] 33.2 Example (was 16.3)
-	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
+	[ ] 33.3 A generic class with a parent, interfaces or statics; another implementation behind `List<T>` (from 32.6)
+		[DONE 2026-11-22] 33.3a A plain parent and plain interfaces - each copy builds on them (`Tag<int>` as a `Named`,
+			virtual functions, `is`); fixed on the way: an object held as its parent class (`Vehicle v = Holder(...)`, a
+			`List<Vehicle>`) was freed and copied as the parent - the child's own object fields leaked (32.7)
+		[ ] 33.3b A generic parent or interface - `inherits Box<T>`, `implements Collection<T>`
+		[ ] 33.3c Statics - one set per copy; `[generics] sharedStatics` (D.173)
+		[ ] 33.3d Another implementation behind `List<T>` - a core of five (D.174); a List value holds any (D.175)
 
 <a id="task-45"></a>
 #### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [DONE 2026-11-22] [index](#index)
@@ -1009,6 +1016,9 @@ Each time a task or section is finished, this list is checked for items the curr
 			examples/control_flow, 2026-10-11 - a map is filled one key at a time today)
 		[ ] L6.5 `Set<T>`: each value once
 		[ ] L6.6 Slices: a part of a list or string by range (`numbers[0...1]`)
+		[POSTPONED to self-hosting] L6.8 Check again every interface of Fusion's own (List<T>, Collection<T>, Iterator<T>,
+			Comparable, Service ...) and the classes implementing the basics - what each must write, what Fusion
+			builds from it (user, 2026-11-22 - D.174)
 		[ ] L6.7 Tuples: a few values without declaring a struct (`(string, int) pair = ("Ada", 36)`)
 	L7 Control flow
 		[ ] L7.1 `switch` as an alias of `match` (familiar from VB.NET); `elif` an alias for `else if`

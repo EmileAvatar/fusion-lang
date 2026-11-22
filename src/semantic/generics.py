@@ -76,15 +76,12 @@ def take_generic_functions(program, enabled: bool) -> List[SemanticError]:
                     f"'{decl.name}' is generic ({', '.join(decl.type_params)}) - generics are off in this project "
                     f"([generics] enabled = false, D.168)", decl.location))
             # class Box<T> (33.2c): its methods and constructors are copied with it - taken out here
-            later = [what for what, there in (('a parent', getattr(decl, 'class_parent', None) or decl.parent),
-                                              ('interfaces', getattr(decl, 'interfaces', None)),
-                                              ('static members', getattr(decl, 'static_fields', None)
-                                               or getattr(decl, 'static_methods', None)
-                                               or getattr(decl, 'static_block', None))) if there]
-            if later:
+            # a parent and interfaces (33.3a): already given to it - inheritance and interfaces ran before this
+            if getattr(decl, 'static_fields', None) or getattr(decl, 'static_methods', None) \
+                    or getattr(decl, 'static_block', None):
                 errors.append(SemanticError(
-                    f"A generic {'class' if decl.is_class else 'struct'} ('{decl.name}') with {later[0]} comes "
-                    f"later (Task 33.3) - only fields, methods and constructors for now", decl.location))
+                    f"A generic {'class' if decl.is_class else 'struct'} ('{decl.name}') with static members comes "
+                    f"later (Task 33.3c)", decl.location))
             members.update(id(m) for m in decl.methods + getattr(decl, 'static_methods', []))
             decl.instances = {}
             program.generic_structs[decl.name] = decl
