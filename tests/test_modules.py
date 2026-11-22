@@ -330,6 +330,28 @@ def test_interface_on_the_command_line(tmp_path):
     assert 'internal int function hidden()' in result.stdout    # D.115
 
 
+KEEPS_PROJECT = {
+    'garage/g.fusion': ('public class Car\n    public string name\n    constructor(string name)\n        this.name = name\n\n'
+                        'List<Car> parked = []\n\n'
+                        'public void function park(Car c)\n    parked.add(c)\n\n'
+                        'public string function nameOf(Car c)\n    Car mine = c\n    return mine.name\n\n'
+                        'public string function look(readonly Car c) : c.name\n'),
+    'main.fusion': 'import garage\n\nvoid function main()\n    print("x")\n',
+}
+
+
+def test_the_interface_shows_a_kept_parameter_and_readonly(tmp_path):
+    # 33.7 (D.100, D.172): a parameter the function keeps - stored, or given to a local - is marked; the call
+    # moves the argument. readonly shown too; a class shown as a class
+    from src.modules import program_interfaces
+    lines, problems = program_interfaces(write_project(str(tmp_path), KEEPS_PROJECT))
+    assert not problems
+    assert '    public class Car' in lines
+    assert '    public void function park(Car c (kept))' in lines
+    assert '    public string function nameOf(Car c (kept))' in lines
+    assert '    public string function look(readonly Car c)' in lines
+
+
 def test_load_program_file_handles_single_files_and_projects(tmp_path):
     from src.modules import load_program_file
     main_file = write_project(str(tmp_path), INTERFACE_PROJECT)

@@ -321,7 +321,8 @@ then each point is decided and solved completely. One line per section and per l
 	[DONE] 33.6 A local taken from a parameter, by `[memory] ownership` (Q.043 -> D.172): relaxed borrows; strict moves it -
 		`item` after it an error, the function keeps its parameter so the call moves the argument (B1, for now);
 		readonly changed through it an error (built)
-	[ ] 33.7 `--interface` shows a parameter the function keeps (D.100 says so; never built - found with 33.6):
+	[DONE 2026-11-22] 33.7 `--interface` shows a parameter the function keeps - `Car c (kept)`; readonly ones and a
+		class shown too, flags after --interface no longer taken for a module (D.100 says so; never built - found with 33.6):
 		the interface comes from the parsed modules, before the ownership pass - run it, then mark `Car c` kept
 	[ ] 33.2 Example (was 16.3)
 	[DONE 2026-11-22] 33.3 A generic class with a parent, interfaces or statics; another implementation behind `List<T>` (from 32.6)

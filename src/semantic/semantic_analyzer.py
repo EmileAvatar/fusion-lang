@@ -160,6 +160,19 @@ class SemanticAnalyzer:
         finally:
             self.symbol_table.current_scope = scope
 
+    @classmethod
+    def for_project(cls, project_config) -> 'SemanticAnalyzer':
+        """An analyzer with every setting of the project (main.py, and --interface - 33.7)."""
+        if project_config is None:
+            return cls()
+        c = project_config
+        return cls(structs_config=c.structs, strings_config=c.strings, stdlib_config=c.stdlib,
+                   errors_config=c.errors, numbers_config=c.numbers, modules_config=c.modules,
+                   conditions_config=c.conditions, visibility_config=c.visibility,
+                   interfaces_config=c.interfaces, source_config=c.source, memory_config=c.memory,
+                   collections_config=c.collections, arrays_config=c.arrays, generics_config=c.generics,
+                   ranges_config=c.ranges)
+
     def analyze(self, ast: ProgramNode) -> bool:
         """Analyze the AST and return True if no errors.
 

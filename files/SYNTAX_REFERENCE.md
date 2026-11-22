@@ -2266,7 +2266,8 @@ class Till
 ```
 Each file imports what it uses; files of one module share all their names; each module is
 loaded once, so modules may import each other. A whole project to try: `examples/13_projects/shop/`.
-`python main.py main.fusion --interface` prints the public names of every module it imports.
+`python main.py main.fusion --interface` prints the public names of every module it imports - a parameter the
+function keeps marked `Car c (kept)` (a call moves the argument, D.100), a readonly one `readonly Car c`.
 
 #### Errors: `T, Error function`, capturing an error
 

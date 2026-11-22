@@ -95,7 +95,8 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
 - Done 2026-11-22: 33.3c statics on a generic class - one set per copy, `[generics] sharedStatics` (D.173)
 - Done 2026-11-22: 33.3d1 a List of your own - `implements List<T>`, the core five written, the rest added (D.174)
 - Done 2026-11-22: 33.3d2 a `List<int>` value holding a List of your own (D.175) - Task 33.3 complete
-- **Next Action:** 33.7 `--interface` shows a parameter the function keeps; then the 33.2 example and Task 33's close
+- Done 2026-11-22: 33.7 `--interface` shows a kept parameter `(kept)`, readonly ones, classes as classes
+- **Next Action:** the 33.2 example (was 16.3), then Task 33's close (FEATURES -> archive, Later list check)
 
 ### 33.3d - plan (to approve): another implementation behind `List<T>` (D.174, D.175)
 **Settings:** none. **What it takes:** Fusion's List is a C block (`data`, `len`, ...) with 42 helpers, and some 190

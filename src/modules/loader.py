@@ -440,7 +440,7 @@ def module_interface(module: Module) -> List[str]:
             continue                                   # private: never shown (D.115)
         level = 'public' if decl.is_public else 'internal'
         if isinstance(decl, StructDecl):
-            lines.append(f'    {level} struct {name}')
+            lines.append(f"    {level} {'class' if decl.is_class else 'struct'} {name}")
             for f in decl.fields:
                 lines.append(f'        {type_text(f.field_type, module.id)} {f.name}')
         elif isinstance(decl, ErrorDecl):
@@ -461,6 +461,10 @@ def module_interface(module: Module) -> List[str]:
             params = []
             for p in decl.parameters:
                 text = f'{type_text(p.param_type, module.id)} {p.name}'
+                if getattr(p, 'is_readonly', False):
+                    text = 'readonly ' + text            # only read, never changed (32.2e)
+                if getattr(p, 'kept', False):
+                    text += ' (kept)'        # the function keeps it: a call moves the argument (D.100, 33.7)
                 if isinstance(p.default_value, LiteralExpr):
                     value = p.default_value.value
                     shown = {'string': f'"{value}"', 'char': f"'{value}'"}.get(
@@ -483,9 +487,16 @@ def program_interfaces(main_file: str, only: Optional[str] = None,
     with open(main_file, encoding='utf-8') as f:
         program = parse(f.read(), main_file)
     loader = ModuleLoader(main_file, parse)
-    loader.load(program)
+    whole = loader.load(program)
     if loader.errors:
         return [], [str(e) for e in loader.errors]
+    try:
+        # analysed, so the ownership pass marks the parameters a function keeps (33.7, D.100); its errors
+        # are the compiler's to report - the interface is printed from what is known
+        from src.semantic import SemanticAnalyzer
+        SemanticAnalyzer.for_project(config).analyze(whole)
+    except Exception:            # noqa: BLE001 - a program that doesn't compile still has an interface
+        pass
     if only is not None and only not in loader.modules:
         return [], [f"The program doesn't import a module named '{only}' "
                     f"(it imports: {', '.join(sorted(loader.modules)) or 'none'})"]

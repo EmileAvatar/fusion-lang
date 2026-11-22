@@ -866,4 +866,6 @@ def check_ownership(program, move_field_out: bool = False) -> List[SemanticError
     for function in functions:
         _FunctionCheck(function, moving, errors, taken, changed,
                        own_struct, lends).frozen(function.body.statements)
+        for i, param in enumerate(function.parameters):     # --interface shows it (33.7, D.100)
+            param.kept = (id(function), i) in taken
     return errors

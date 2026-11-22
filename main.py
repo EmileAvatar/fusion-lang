@@ -113,21 +113,7 @@ def compile_file(source_path: str) -> int:
 
     # Semantic analysis
     print(f"[3/5] Semantic analysis...", file=sys.stderr)
-    analyzer = SemanticAnalyzer(structs_config=project_config.structs,
-                                strings_config=project_config.strings,
-                                stdlib_config=project_config.stdlib,
-                                errors_config=project_config.errors,
-                                numbers_config=project_config.numbers,
-                                modules_config=project_config.modules,
-                                conditions_config=project_config.conditions,
-                                visibility_config=project_config.visibility,
-                                interfaces_config=project_config.interfaces,
-                                source_config=project_config.source,
-                                memory_config=project_config.memory,
-                                collections_config=project_config.collections,
-                                arrays_config=project_config.arrays,
-                                generics_config=project_config.generics,
-                                ranges_config=project_config.ranges)
+    analyzer = SemanticAnalyzer.for_project(project_config)
     success = analyzer.analyze(ast)
 
     if not success:
@@ -248,7 +234,7 @@ def main():
 def print_interfaces(source_path: str, args: list) -> int:
     """`fusion main.fusion --interface [module]` (Task 18.4.4): print the public structs
     and functions of every module the program imports, or of one of them."""
-    rest = [a for a in args if a != '--interface']
+    rest = [a for a in args if not a.startswith('--')]      # --interface, --no-new-config ...
     try:
         project_config = load_project_config(source_path)
         lines, errors = program_interfaces(source_path, rest[0] if rest else None, project_config)

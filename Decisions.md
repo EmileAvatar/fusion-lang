@@ -199,7 +199,7 @@ CLS.019 [BUILT] An interface's functions are public or internal - `private` is a
 
 #### MOD - modules
 MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and constants
-MOD.002 [BUILT] `--interface`: the public and internal interface of the imported modules, readonly results marked (D.115, 50.5)
+MOD.002 [BUILT] `--interface`: the public and internal interface of the imported modules, readonly results and parameters marked, a kept parameter `(kept)` (D.115, 50.5, D.100 - 33.7)
 MOD.003 [POSTPONED] A Fusion library other programs load (`.dll` / `.so`) - a module's folders and files compiled into one library for a larger application; needs `extern`
 MOD.004 [DESIGN] Library trust: nothing trusted by default - a library without source is sandboxed (no files / network) unless the developer trusts it; capability signatures, supply-chain checks (Task 39, D.122)
 MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); `[modules] paths`
