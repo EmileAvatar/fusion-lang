@@ -298,11 +298,74 @@ it works as any struct (copies, `==`, a field of another struct, `List<Pair<int,
 (`class Box<T>`) and a generic struct's methods are copied with it - `Box<int>` gets its own `take`, `put` and
 constructors; the types come from the constructor's values, or are written (`Box<string>("hat")`); inside its own
 methods `Box(...)` and `Box<T>` mean this copy. A generic class may have a parent and interfaces that don't name T
-(`class Tag<T> inherits Named implements Printable`) - each copy builds on them; one naming T (`inherits Box<T>`)
-and statics come later (33.3b, 33.3c).
+(`class Tag<T> inherits Named implements Printable`) - each copy builds on them; one naming T (`inherits Box<T>`) -
+the next section; statics come later (33.3c).
 Stored where its type is written - a variable, a field, a parameter, a result - a generic class or struct takes its
 types from there: `Garage<string> g = Garage()` (D.171); the arguments are then checked against them
 (`Box<Car> b = Box("hat")` - expected Car, got string). With `var` / `let` there is no type on the left: write it.
+
+#### A generic class on a generic parent or interface: `inherits Box<T>`, `implements Collection<T>`
+
+<!-- example: syntax_generic_parents | task: 33.3b | folder: 09_generics -->
+```fusion
+class Box<T>
+    public T item
+    constructor(T item)
+        this.item = item
+    string function kind() : "box"
+
+class Special<T> inherits Box<T>                       // Special<int> builds on Box<int>
+    constructor(T item)
+        super(item)
+    override string function kind() : "special"
+
+class IntBox inherits Box<int>                         // a plain class on a generic parent
+    constructor(int n)
+        super(n)
+
+class BagIterator<T> implements Iterator<T>
+    List<T> items
+    int at = 0
+    constructor(List<T> items)
+        this.items = items
+    bool function hasNext() : at < items.len()
+    T function next()
+        at = at + 1
+        return items[at - 1]
+
+class Bag<T> implements Collection<T>                  // a generic collection of your own
+    List<T> items
+    Iterator<T> function iterator() : BagIterator<T>(items)
+    bool function add(T x)
+        items.add(x)
+        return true
+    bool function remove(T x) : false
+    int function length() : items.len()
+    bool function isEmpty() : items.len() == 0
+    bool function contains(T x) : false
+    bool function addAll(Collection<T> xs) : false
+    bool function removeAll(Collection<T> xs) : false
+    bool function keepOnly(Collection<T> xs) : false
+    void function clear()
+        items.clear()
+
+string function describe(Box<int> b) : format("{@1} {@2}", b.kind(), b.item)
+
+void function main()
+    Special<int> s = Special(5)                       // the types written once - on the left
+    print(describe(s))                                // special 5 - a Special<int> is a Box<int>
+    print(describe(IntBox(9)))                        // box 9
+    Bag<string> names = Bag()
+    names.add("Ada")
+    names.add("Bo")
+    foreach (string n in names)
+        print(n)                                      // Ada / Bo
+```
+A generic class may build on a generic one - `inherits Box<T>` (`Special<int>` builds on `Box<int>`, and is one), or
+`inherits Box<int>` from a plain class - and answer an interface with its types - `implements Collection<T>`, so a
+generic collection of your own works in `foreach` and where a `Collection<int>` is expected. Such a class is copied
+before inheritance is worked out, from the types written in the program: write its types where it is used, on the left
+is enough (`Special<int> s = Special(5)`); a call alone (`print(Special(5).kind())`) says to write them (33.3b).
 
 #### Generic conditions: what a type parameter may be
 

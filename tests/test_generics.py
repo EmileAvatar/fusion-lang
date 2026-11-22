@@ -681,3 +681,60 @@ def test_types_from_the_left_mistakes(body, message):
     found = errors_of(body, top=LEFT)
     assert message in found[0], found
     assert not any('Cannot assign' in e for e in found), found
+
+
+# ---------- 33.3b a generic parent or interface: inherits Box<T>, implements Collection<T> ----------
+
+GENERIC_PARENT = ('class Car\n    public string name\n    constructor(string name)\n        this.name = name\n\n'
+                  'class Box<T>\n    public T item\n    constructor(T item)\n        this.item = item\n'
+                  '    T function take() : item\n    string function kind() : "box"\n\n'
+                  'class Special<T> inherits Box<T>\n    public int stamp\n    constructor(T item, int stamp)\n'
+                  '        super(item)\n        this.stamp = stamp\n    override string function kind() : "special"\n\n'
+                  'class IntBox inherits Box<int>\n    constructor(int n)\n        super(n)\n'
+                  '    override string function kind() : "int box"\n\n'
+                  'string function describe(Box<int> b) : format("{@1} {@2}", b.kind(), b.take())\n\n')
+
+
+@pytest.mark.parametrize('ownership', ['move', 'share'])
+def test_a_generic_parent(ownership):
+    # Special<int> builds on the copy Box<int>; a plain class on Box<int>; `is`; the overrides through the parent
+    assert run('Special<int> s = Special(5, 1)\nSpecial<Car> c = Special(Car("mini"), 2)\nIntBox i = IntBox(9)\n'
+               'Box<int> plain = Box(3)\nprint(describe(s))\nprint(describe(i))\nprint(describe(plain))\n'
+               'print("{@1} {@2} {@3}", c.take().name, c.kind(), c.stamp)\nif s is Box<int>\n    print("a Box<int>")',
+               top=GENERIC_PARENT, memory_config=MemoryConfig(assignment=ownership)) == [
+        'special 5', 'int box 9', 'box 3', 'mini special 2', 'a Box<int>']
+
+
+BAG = ('class Person\n    public string name\n    constructor(string name)\n        this.name = name\n\n'
+       'class BagIterator<T> implements Iterator<T>\n    List<T> items\n    int at = 0\n'
+       '    constructor(List<T> items)\n        this.items = items\n    bool function hasNext() : at < items.len()\n'
+       '    T function next()\n        at = at + 1\n        return items[at - 1]\n\n'
+       'class Bag<T> implements Collection<T>\n    List<T> items\n'
+       '    Iterator<T> function iterator() : BagIterator<T>(items)\n'
+       '    bool function add(T x)\n        items.add(x)\n        return true\n'
+       '    bool function remove(T x) : false\n    int function length() : items.len()\n'
+       '    bool function isEmpty() : items.len() == 0\n    bool function contains(T x) : false\n'
+       '    bool function addAll(Collection<T> xs) : false\n    bool function removeAll(Collection<T> xs) : false\n'
+       '    bool function keepOnly(Collection<T> xs) : false\n    void function clear()\n        items.clear()\n\n'
+       'int function count(Collection<int> c) : c.length()\n\n')
+
+
+@pytest.mark.parametrize('ownership', ['move', 'share'])
+def test_a_generic_collection_of_your_own(ownership):
+    # Bag<T> implements Collection<T>: foreach over each copy, a Bag<int> given as a Collection<int>
+    assert run('Bag<int> numbers = Bag()\nnumbers.add(3)\nnumbers.add(4)\nforeach (int n in numbers)\n'
+               '    print("{@1}", n)\nprint("{@1}", count(numbers))\nBag<Person> people = Bag()\n'
+               'people.add(Person("Ann"))\nforeach (Person p in people)\n    print(p.name)',
+               top=BAG, memory_config=MemoryConfig(assignment=ownership)) == ['3', '4', '2', 'Ann']
+
+
+@pytest.mark.parametrize('top, body, message', [
+    ('', 'print("{@1}", Special(5, 1).take())',
+     "'Special' builds on a generic parent or interface - write its types where it is used: Special<int> x = "
+     "Special(...) (33.3b)"),
+    ('class Odd inherits Car<int>\n    int n\n\n', 'print("x")', "'Car' isn't generic - write it without <...>"),
+    ('class Odd inherits Box<int, string>\n    int n\n\n', 'print("x")', "'Box' has 1 type parameter(s) (T) - 2 written"),
+])
+def test_generic_parent_mistakes(top, body, message):
+    found = errors_of(body, top=GENERIC_PARENT + top)
+    assert found[0] == message, found

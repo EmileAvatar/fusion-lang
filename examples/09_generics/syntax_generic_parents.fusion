@@ -1,0 +1,52 @@
+class Box<T>
+    public T item
+    constructor(T item)
+        this.item = item
+    string function kind() : "box"
+
+class Special<T> inherits Box<T>                       // Special<int> builds on Box<int>
+    constructor(T item)
+        super(item)
+    override string function kind() : "special"
+
+class IntBox inherits Box<int>                         // a plain class on a generic parent
+    constructor(int n)
+        super(n)
+
+class BagIterator<T> implements Iterator<T>
+    List<T> items
+    int at = 0
+    constructor(List<T> items)
+        this.items = items
+    bool function hasNext() : at < items.len()
+    T function next()
+        at = at + 1
+        return items[at - 1]
+
+class Bag<T> implements Collection<T>                  // a generic collection of your own
+    List<T> items
+    Iterator<T> function iterator() : BagIterator<T>(items)
+    bool function add(T x)
+        items.add(x)
+        return true
+    bool function remove(T x) : false
+    int function length() : items.len()
+    bool function isEmpty() : items.len() == 0
+    bool function contains(T x) : false
+    bool function addAll(Collection<T> xs) : false
+    bool function removeAll(Collection<T> xs) : false
+    bool function keepOnly(Collection<T> xs) : false
+    void function clear()
+        items.clear()
+
+string function describe(Box<int> b) : format("{@1} {@2}", b.kind(), b.item)
+
+void function main()
+    Special<int> s = Special(5)                       // the types written once - on the left
+    print(describe(s))                                // special 5 - a Special<int> is a Box<int>
+    print(describe(IntBox(9)))                        // box 9
+    Bag<string> names = Bag()
+    names.add("Ada")
+    names.add("Bo")
+    foreach (string n in names)
+        print(n)                                      // Ada / Bo

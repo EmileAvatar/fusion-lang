@@ -136,6 +136,12 @@ class SemanticAnalyzer:
             if unmet:
                 self.errors.append(SemanticError(unmet, location))
         key = tuple(self.type_checker.type_to_string(k) for k in kinds)
+        if getattr(generic, 'made_early', False) and key not in generic.instances:
+            # its copies are made before inheritance (33.3b) - from the types written in the program
+            shown = f"{generic.name}<{', '.join(key)}>"
+            self.errors.append(SemanticError(
+                f"'{generic.name}' builds on a generic parent or interface - write its types where it is used: "
+                f"{shown} x = {generic.name}(...) (33.3b)", location or generic.location))
         return struct_instance(self.program, generic, kinds, key, self._register_struct_instance)
 
     def _register_struct_instance(self, struct) -> None:
@@ -190,6 +196,9 @@ class SemanticAnalyzer:
         self.warnings.extend(template_warnings)
 
         # Structs building on structs (Task 32.8): Employee gets its Person part as a field
+        # A generic class building on a generic one (33.3b): its copies made now, before inheritance
+        from .generics import instantiate_early
+        self.errors.extend(instantiate_early(ast))
         parent_errors, parent_warnings = expand_struct_parents(ast)
         self.errors.extend(parent_errors)
         self.warnings.extend(parent_warnings)

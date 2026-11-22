@@ -1140,6 +1140,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if self.types_equal(target, operand_type) or self.implements_interface(operand_type, target):
             return 'always'
         target_kind, operand_kind = self._object_kind(target), self._object_kind(operand_type)
+        if target_kind == 'class' and operand_kind == 'class' and self.is_descendant(operand_type, target):
+            return 'always'                 # a Manager is always an Employee (32.7; found with 33.3b)
         if target_kind == 'interface' and operand_kind == 'interface':
             return 'maybe'                  # some class may implement both
         if target_kind == 'class' and operand_kind == 'interface':

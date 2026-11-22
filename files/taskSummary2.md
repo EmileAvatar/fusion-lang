@@ -90,7 +90,9 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
 - Done 2026-11-22: 33.6 a local taken from a parameter (D.172, B1) - strict: the function keeps it; `--interface` showing it is 33.7
 - Done 2026-11-22: 33.3a a generic class with a plain parent and plain interfaces; fixed: a child held as its parent
   leaked its own object fields (freed / copied through the parent's helpers)
-- **Next Action:** 33.3b (Q.044-Q.046 answered 2026-11-22: D.173-D.175); 33.7 (`--interface` shows a kept parameter) after
+- Done 2026-11-22: 33.3b a generic parent or interface (`inherits Box<T>`, `implements Collection<T>`) - copied before
+  inheritance from the types written; fixed: `e is Person` taken for never
+- **Next Action:** 33.3c statics on a generic class (D.173); then 33.3d; 33.7 (`--interface` shows a kept parameter) after
 
 ### 33.3 - plan (to approve): a generic class with a parent, interfaces or statics; another List<T> implementation
 **Settings:** `[generics] sharedStatics` (33.3c, D.173 - default false: one set per copy); none else.

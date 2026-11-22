@@ -2534,7 +2534,7 @@ class Parser:
         name = self.consume(TokenType.IDENTIFIER, "Expected the class name after 'class'").value
         # class Box<T> - a generic class (Task 33.2c, D.166)
         type_params, conditions = self._type_parameters() if self.check(TokenType.LESS) else (None, {})
-        interfaces, parent = [], None
+        interfaces, parent, parent_args = [], None, None
         while True:
             if self.match(TokenType.IMPLEMENTS):
                 interfaces += self._implements_list()
@@ -2546,6 +2546,11 @@ class Parser:
                                             f"object over a second parent (D.083)")
                 parent = self.consume(TokenType.IDENTIFIER, f"Expected the parent class after "
                                                             f"'{word.value}'").value
+                if self.match(TokenType.LESS):     # inherits Box<T> / Box<int> - a generic parent (33.3b)
+                    parent_args = [self.parse_type()]
+                    while self.match(TokenType.COMMA):
+                        parent_args.append(self.parse_type())
+                    self.consume(TokenType.GREATER, f"Expected '>' after the types of '{parent}<...>'")
             elif self.check(TokenType.IDENTIFIER) and self.peek().value == 'includes':
                 raise ParserError(self.peek(), "A class builds on a class with 'inherits' "
                                                "(or 'extends') - 'includes' is for structs")
@@ -2670,6 +2675,7 @@ class Parser:
                           static_fields=static_fields, static_block=static_block,
                           interfaces=interfaces, class_parent=parent)
         decl.interface_kinds = [k for k in self.generic_interfaces if k.name in interfaces]   # 32.4
+        decl.class_parent_args = parent_args
         decl.type_params = type_params
         decl.type_conditions = conditions
         self.attach_methods(decl, methods)

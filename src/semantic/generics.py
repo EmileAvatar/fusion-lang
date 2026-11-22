@@ -83,7 +83,7 @@ def take_generic_functions(program, enabled: bool) -> List[SemanticError]:
                     f"A generic {'class' if decl.is_class else 'struct'} ('{decl.name}') with static members comes "
                     f"later (Task 33.3c)", decl.location))
             members.update(id(m) for m in decl.methods + getattr(decl, 'static_methods', []))
-            decl.instances = {}
+            decl.instances = getattr(decl, 'instances', None) or {}     # some made early (33.3b)
             program.generic_structs[decl.name] = decl
             continue
         if isinstance(decl, (StructDecl, EnumDecl)) and TYPE_PARAMETER.match(decl.name):
@@ -154,6 +154,11 @@ def _replace_types(node, bindings: dict, memo: dict):
     for name in ('type_args',):                      # Collection<T> written in the copy (32.4)
         if getattr(node, name, None):
             setattr(node, name, _replace_types(getattr(node, name), bindings, memo))
+    if isinstance(node, StructType) and getattr(node, 'type_args', None) and '<' in node.name \
+            and not getattr(node, 'generic_base', None):
+        # Fusion's own Collection<T> / Iterator<T>: its name says its types - Collection<int> in the copy (33.3b)
+        from src.parser.parser import type_text
+        node.name = f"{node.name.split('<', 1)[0]}<{', '.join(type_text(a) for a in node.type_args)}>"
     return node
 
 
@@ -163,7 +168,10 @@ def struct_instance(program, generic: StructDecl, kinds: list, key: tuple, regis
     made = generic.instances.get(key)
     if made is not None:
         return made
-    memo = {id(d): d for d in program.declarations}
+    # the program's declarations stay shared - not the class's own methods, still among them when made
+    # early (33.3b)
+    own = {id(m) for m in generic.methods + list(getattr(generic, 'static_methods', None) or [])} | {id(generic)}
+    memo = {id(d): d for d in program.declarations if id(d) not in own}
     instance = copy.deepcopy(generic, memo)
     instance.type_params = None
     instance.instances = None
@@ -178,8 +186,122 @@ def struct_instance(program, generic: StructDecl, kinds: list, key: tuple, regis
     # at the end: the function loop is walking the list (C puts structs in their own order)
     program.declarations.append(instance)
     program.declarations.extend(members)
-    register(instance)
+    if register is not None:            # made early (33.3b): the passes after take it as any class
+        register(instance)
     return instance
+
+
+def _mentions(node, names: set) -> bool:
+    """Does this type (or anything below it) name one of these type parameters?"""
+    if isinstance(node, list):
+        return any(_mentions(n, names) for n in node)
+    if isinstance(node, StructType):
+        if node.name in names or TYPE_PARAMETER.match(node.name):
+            return True
+        return _mentions(getattr(node, 'type_args', None) or [], names)
+    if not is_dataclass(node) or isinstance(node, type):
+        return False
+    return any(_mentions(getattr(node, f.name), names) for f in fields(node)
+               if f.name not in ('location', 'declaration', 'inferred_type', 'scope'))
+
+
+def instantiate_early(program) -> List[SemanticError]:
+    """A generic class building on a generic one (33.3b): `class Special<T> inherits Box<T>`,
+    `class Bag<T> implements Collection<T>`, `class IntBox inherits Box<int>`. Inheritance and interfaces are
+    worked out before names are resolved, so these copies are made first, from the types written in the
+    program (`Special<int>` - also on the left of `Special<int> s = Special(5)`, D.171): `Special<int>` builds on
+    the copy `Box<int>` and answers `Collection<int>`; the passes after take them as any class. A copy only a
+    call would ask for (no type written anywhere) is an error that says to write it (`check_late_copy`)."""
+    from src.parser.parser import type_text
+    errors: List[SemanticError] = []
+    templates = {d.name: d for d in program.declarations
+                 if isinstance(d, StructDecl) and getattr(d, 'type_params', None)}
+    all_params = {p for d in templates.values() for p in d.type_params}
+    early = set()
+    for d in templates.values():
+        params = set(d.type_params)
+        d.instances = getattr(d, 'instances', None) or {}
+        d.early_parent = None
+        d.early_interfaces = []
+        if getattr(d, 'class_parent_args', None):
+            d.early_parent = (d.class_parent, d.class_parent_args)
+            d.class_parent, d.class_parent_args = None, None
+        for kind in list(getattr(d, 'interface_kinds', None) or []):
+            if _mentions(kind.type_args, params):
+                d.early_interfaces.append(kind)
+                d.interface_kinds.remove(kind)
+                d.interfaces = [i for i in d.interfaces if i != kind.name]
+        if d.early_parent or d.early_interfaces:
+            early.add(d.name)
+            d.made_early = True
+    plain = [d for d in program.declarations if isinstance(d, StructDecl) and d.name not in templates
+             and getattr(d, 'class_parent_args', None)]
+    if not early and not plain:
+        return errors
+
+    def make(template, args, where):
+        """The copy of `template` for `args` (written types), made now - its parent's copy first."""
+        if len(args) != len(template.type_params):
+            errors.append(SemanticError(
+                f"'{template.name}' has {len(template.type_params)} type parameter(s) "
+                f"({', '.join(template.type_params)}) - {len(args)} written", where))
+            return None
+        key = tuple(type_text(a) for a in args)
+        if key in template.instances:
+            return template.instances[key]
+        bindings = dict(zip(template.type_params, args))
+        instance = struct_instance(program, template, [copy.deepcopy(a) for a in args], key, None)
+        if template.early_parent:
+            name, parent_args = template.early_parent
+            parent_args = _replace_types(copy.deepcopy(parent_args), bindings, {})
+            instance.class_parent = _parent_copy(name, parent_args, where)
+        for kind in template.early_interfaces:
+            kind = _replace_types(copy.deepcopy(kind), bindings, {})
+            base = kind.name.split('<', 1)[0]
+            kind.name = f"{base}<{', '.join(type_text(a) for a in kind.type_args)}>"
+            instance.interfaces = list(instance.interfaces) + [kind.name]
+            instance.interface_kinds = list(getattr(instance, 'interface_kinds', None) or []) + [kind]
+        pending.append(instance)
+        return instance
+
+    def _parent_copy(name, args, where):
+        parent = templates.get(name)
+        if parent is None:
+            errors.append(SemanticError(f"'{name}' isn't generic - write it without <...>", where))
+            return None                      # said - no parent, so nothing more follows from it
+        made = make(parent, args, where)
+        return made.name if made is not None else None
+
+    def requests(node, found):
+        """Every `Special<int>` written - its types free of type parameters."""
+        if isinstance(node, list):
+            for item in node:
+                requests(item, found)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if isinstance(node, StructType) and getattr(node, 'generic_base', None) in early \
+                and not _mentions(node.type_args, all_params):
+            found.append((node.generic_base, node.type_args, node.location))
+        if isinstance(node, CallExpr) and getattr(node, 'type_args', None) and isinstance(node.callee, IdentifierExpr) \
+                and node.callee.name in early and not _mentions(node.type_args, all_params):
+            found.append((node.callee.name, node.type_args, node.location))      # BagIterator<int>(items)
+        for f in fields(node):
+            if f.name not in ('location', 'declaration', 'inferred_type', 'scope'):
+                requests(getattr(node, f.name), found)
+        for extra in ('type_args',):
+            requests(getattr(node, extra, None) or [], found)
+
+    pending = [d for d in program.declarations if not (isinstance(d, StructDecl) and d.name in templates)]
+    for d in plain:                       # class IntBox inherits Box<int>
+        d.class_parent = _parent_copy(d.class_parent, d.class_parent_args, d.location)
+        d.class_parent_args = None
+    while pending:
+        found = []
+        requests(pending.pop(), found)
+        for name, args, where in found:
+            make(templates[name], args, where)
+    return errors
 
 
 def _rename_own(node, old: str, new: str, seen=None) -> None:

@@ -192,3 +192,8 @@ def test_a_child_held_as_its_parent_frees_and_copies_its_own_fields(body):
 def test_a_copy_through_the_parent_is_the_whole_child():
     assert run(HOLDER + main('Vehicle k = Holder("h", Car("x"))\nVehicle m = byVal k\n'
                              'if m is Holder\n    Holder h = (Holder)m\n    print(h.car.name)')) == ['x']
+
+
+def test_a_child_is_always_its_parent():
+    # `is` with the parent class: always true - it was taken for "never" (found with 33.3b)
+    assert run(PEOPLE + main('Employee e = Employee("Bob", 50)\nif e is Person\n    print("a person")')) == ['a person']
