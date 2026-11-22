@@ -261,7 +261,7 @@ then each point is decided and solved completely. One line per section and per l
 
 <a id="task-33"></a>
 #### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [ ] [index](#index)
-	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5)
+	[ ] 33.1 Plan (List<T> / Map<K, V> are built in since 18.5) - written in files/taskSummary2.md, to approve (2026-11-22)
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 

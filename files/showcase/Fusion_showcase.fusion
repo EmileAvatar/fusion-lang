@@ -834,8 +834,17 @@ class Container<T> {
     property Count: int { get { return items.len() } }
 }
 
-// [designed] A generic function with a constraint
-T function findMax<T>(List<T> items) where T implements Comparable<T> {
+// [designed] A generic function - the types after the name; at the call from the arguments (D.166)
+T function first<T>(List<T> items) : items[0]
+T function last(List<T> items) : items[items.len() - 1]   // also accepted: T, K, V in a signature are type parameters
+// int a = first(numbers)  - the type from the arguments (preferred);  first<int>(numbers) - written, if wanted
+
+// [designed] Several type parameters: Key and Value, or T and T1 (D.166)
+V function valueOf<K, V>(Map<K, V> m, K key) : m[key]
+T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]
+
+// [designed] Conditions in the <...> (D.167)
+T function findMax<T implements Comparable>(List<T> items) {   // only a type that implements Comparable
     T best = items[0]
     for item in items {
         if item.compareTo(best) > 0 {
@@ -844,12 +853,18 @@ T function findMax<T>(List<T> items) where T implements Comparable<T> {
     }
     return best
 }
+T function total<T extends Number>(List<T> xs) { ... }        // only numbers; <T extends int> only int
+void function park<T extends Vehicle>(T v) { ... }            // Vehicle or a child - <T : Vehicle> the same (quick typing)
 
-// [designed] Several type parameters
-class Pair<K, V> {
+// [designed] Generic structs and classes (D.166, D.167)
+struct Pair<K, V> {
     K key
     V value
 }
+class Box<T implements Comparable> {
+    T item
+}
+// [designed] [generics] enabled = true (default) - off: a generic declaration is an error (D.168)
 
 
 // =============================================================================================

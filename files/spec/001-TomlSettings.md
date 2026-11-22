@@ -180,6 +180,11 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 | `[arrays] bufferSmall`, `bufferLarge` | bytes | 2KB / 8KB | The stack buffer a small / large array is worked through | D.146, L16.3 |
 | `[arrays] bufferType` | single / two / third / ring | single | The project's buffer type (`a.setBufferType(...)` per array) | D.146, L16.3 |
 
+#### [generics]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `enabled` | `true` / `false` | `true` | Generic functions, structs and classes of the program's own; off: a generic declaration is an error (List<T> / Map<K, V> stay) | D.168, Task 33 |
+
 #### [errors]
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|
