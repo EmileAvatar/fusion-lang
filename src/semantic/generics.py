@@ -173,6 +173,9 @@ def struct_instance(program, generic: StructDecl, kinds: list, key: tuple, regis
     instance.type_params = None
     instance.instances = None
     _replace_types(instance, dict(zip(generic.type_params, kinds)), memo)
+    if getattr(generic, 'list_element', None) is not None:      # implements List<T>: List<int> in Ring<int> (33.3d2)
+        instance.list_element = _replace_types(copy.deepcopy(generic.list_element),
+                                               dict(zip(generic.type_params, kinds)), {})
     if getattr(generic, 'statics_shared', False):
         instance.static_fields, instance.static_methods, instance.static_block = [], [], None   # one set (D.173)
     instance.name = f"{generic.name}__{'__'.join(_c_part(k) for k in key)}"
@@ -800,6 +803,10 @@ class GenericsMixin:
         checked against that copy (`Box<Car> b = Box("hat")`: Argument 1 ... expected Car, got string). When the
         value is stored as another generic's type: said why, and that type is returned (no second error)."""
         stored = getattr(node, 'stored_as', None)
+        if isinstance(stored, ListType) and getattr(generic, 'list_element', None) is not None:
+            # List<int> xs = Ring() - Ring<T> implements List<T>: T from the List's element (33.3d2)
+            self._bind(generic.list_element, stored.element_type, bindings, generic.type_params)
+            return True
         declaration = getattr(stored, 'declaration', None) if isinstance(stored, StructType) else None
         kinds = getattr(declaration, 'generic_kinds', None)
         if kinds is None:

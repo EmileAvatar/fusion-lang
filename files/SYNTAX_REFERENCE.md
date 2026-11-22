@@ -1446,14 +1446,22 @@ void function main()
     List<int> sorted = r.toList()
     print("{@1} {@2} {@3}", sorted[0], sorted[1], sorted[2])            // 3 5 9
     print("{@1}", r.filter(func(int x) : x > 4).len())                 // 2
+    List<int> xs = Ring()                             // a List<int> holding one (33.3d2): T from the List
+    xs.add(4)
+    xs[0] = 6                                         // set back through Ring's set
+    for x in xs
+        print("{@1}", x)                              // 6
+    print("{@1}", len(xs))                            // 1
 ```
 A class implementing `List<T>` writes the core five - `len()`, `get(i)`, `set(i, v)`, `insert(i, v)`, `removeAt(i)`
 (D.174); Fusion adds every other List method it doesn't write, built from them: `add`, `contains`, `indexOf`,
 `remove`, `clear`, `toList`, `copyPart` / `copyPartAt` / `slice` / `sliceAt`, `filter`, `sortBy`. A class may write
 any of them itself to do better (a faster `contains`). `map`, `reduce`, `sort` and `join` aren't added - the class
 writes them if it needs them. Inside the class, `get` and `set` are called `this.get(i)` / `this.set(i, v)` (they are
-words of `property`). Next (33.3d2): a `List<int>` variable holding one - `List<int> xs = Ring()` - with `xs[i]`,
-`foreach` and `len(xs)`.
+words of `property`). A `List<int>` variable, parameter or field may hold one (D.175) - `List<int> xs = Ring()`, its
+type from the List - and then everything a List does works on it: `xs[i]`, `xs[i] = v`, `foreach`, `len(xs)`, `==`,
+`+`, `map`, `join` ... Each List operation checks which List it is - Fusion's own goes the direct way as before;
+reading many at once from a List of your own works on a copy.
 
 #### Raw bytes: `byte` and `bytes`
 

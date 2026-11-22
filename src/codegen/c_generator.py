@@ -188,6 +188,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.text_helpers = {}           # a whole struct as text (Task 32.8)
         self.list_types = {}             # List<T> C types made so far (Task 18.5.1)
         self.list_protos, self.list_bodies, self.list_extras = [], [], set()
+        self.list_ext_lines, self.list_ext_done = [], set()       # Lists of your own behind a List (33.3d2)
+        self.list_flushes = []                                     # elements to set back after a statement
         self.temp_scopes = []            # per-function temporary declarations (Task 18.2.2)
         self.temp_count = 0
         self.argument_temps = {}         # id(argument expression) -> its temporary's name
@@ -299,7 +301,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # later position first so the earlier index stays valid
         if self.lambda_definitions or getattr(self, 'boxed_enums', None) or getattr(self, 'collect_helpers', None) \
                 or self.list_types:
-            self.output[lambda_index:lambda_index] = self.list_class_lines() + self.lambda_definitions \
+            self.output[lambda_index:lambda_index] = self.list_class_lines() + self.list_ext_lines \
+                + self.lambda_definitions \
                 + self.box_equality_lines() + self.collect_helper_lines()
         # List function bodies (Task 18.5.1) go last of everything inserted here - they
         # call struct, equality and wrapper helpers
@@ -340,6 +343,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Generated C code for this node
         """
+        if getattr(node, 'as_list', None) is not None and not getattr(node, 'wrapping_list', False):
+            return self.list_ext_code(node)          # List<int> xs = Ring() (33.3d2)
         method_name = f'visit_{type(node).__name__}'
         visitor = getattr(self, method_name, self.generic_visit)
         if isinstance(node, self._STATEMENTS) and hasattr(self, 'stmt_temps'):
@@ -349,7 +354,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.begin_statement()
             site = self.open_fail_site() if hasattr(self, 'fail_sites') else None
             try:
-                return visitor(node)
+                result = visitor(node)
+                if getattr(self, 'list_flushes', None):   # xs[i] = v on a List of your own: set back now (33.3d2)
+                    for flush in dict.fromkeys(self.list_flushes):
+                        self.emit_line(flush)
+                    self.list_flushes.clear()
+                return result
             finally:
                 self.end_statement()
                 if site is not None:
@@ -2457,13 +2467,24 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 self.register_owned(f'fusion_iter_{n}', iterable_type)
                 source = f'fusion_iter_{n}->'
             elif isinstance(iterable, (IdentifierExpr, MemberExpr, IndexExpr)):
-                self.emit_line(f'{list_c} fusion_iter_{n} = {self.visit(iterable)}')
+                if isinstance(iterable_type, ListType):
+                    # a List of your own: a copy for the loop, freed after it; Fusion's own: itself, as
+                    # before - nothing held (33.3d2)
+                    self.emit_line(f'{list_c} fusion_from_{n} = {self.visit(iterable)}')
+                    self.emit_line(f'{list_c} fusion_snap_{n} = {list_c}_snapOf(fusion_from_{n})')
+                    self.register_owned(f'fusion_snap_{n}', iterable_type)
+                    self.emit_line(f'{list_c} fusion_iter_{n} = fusion_snap_{n} ? fusion_snap_{n} : fusion_from_{n}')
+                else:
+                    self.emit_line(f'{list_c} fusion_iter_{n} = {self.visit(iterable)}')
                 source = f'fusion_iter_{n}->'
                 # Elements added or removed while looping: an error, never a skip (27.2e)
                 watched = f'fusion_changes_{n}'
                 self.emit_line(f'int {watched} = fusion_iter_{n}->changes')
             else:
-                self.emit_line(f'{list_c} fusion_iter_{n} = {self.owned_value(iterable, iterable_type)}')
+                owned = self.owned_value(iterable, iterable_type)
+                if isinstance(iterable_type, ListType):
+                    owned = f'{list_c}_viewOwn({owned})'      # a List of your own: a copy (33.3d2)
+                self.emit_line(f'{list_c} fusion_iter_{n} = {owned}')
                 self.register_owned(f'fusion_iter_{n}', iterable_type)
                 source = f'fusion_iter_{n}->'
             items = 'keys' if isinstance(iterable_type, MapType) else 'data'   # a map: its keys

@@ -1,6 +1,6 @@
 # Fusion Compiler Verification Report
 
-**Date:** Sun Nov 22 14:17:47 2026
+**Date:** Sun Nov 22 18:36:18 2026
 **Total Examples:** 20
 
 ## Summary
@@ -52,6 +52,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -77,9 +80,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -143,6 +143,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -168,9 +171,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -233,6 +233,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -258,9 +261,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -301,6 +301,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -326,9 +329,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -402,6 +402,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -427,9 +430,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -470,6 +470,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -495,9 +498,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -538,6 +538,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -563,9 +566,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -610,6 +610,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -635,9 +638,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -682,6 +682,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -707,9 +710,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -754,6 +754,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -779,9 +782,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -837,6 +837,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -862,9 +865,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -923,6 +923,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -948,9 +951,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -1005,6 +1005,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -1030,9 +1033,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -1073,6 +1073,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -1098,9 +1101,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -1171,6 +1171,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -1196,9 +1199,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -1260,6 +1260,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -1284,9 +1287,6 @@ static inline void fusion_leak_report(void) {
 #define FUSION_OBJECT_FREED() ((void)0)
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
-// test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
 ... (truncated)
 ```
 
@@ -1347,6 +1347,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -1372,9 +1375,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -1421,6 +1421,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -1446,9 +1449,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -1503,6 +1503,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -1528,9 +1531,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 
@@ -1581,6 +1581,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -1606,9 +1609,6 @@ static inline void fusion_leak_report(void) {
 #endif
 // -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
 // test can check it was freed at the right moment (Task 32.10c)
-#ifdef FUSION_TRACE_OBJECTS
-#define FUSION_TRACE_FREED(name) (fflush(stdout), printf("[freed %s]\n", name), fflush(stdout))
-#else
 ... (truncated)
 ```
 

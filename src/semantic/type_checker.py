@@ -177,6 +177,17 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                    f"{'' if strict else ' ([ranges] strictStep makes this an error)'}")
         (self.errors if strict else self.warnings).append(SemanticError(message, node.location))
 
+    def list_implementation(self, expected, actual):
+        """The class of `actual` when it implements `expected`, a List<E> (33.3d2, D.175) - else None."""
+        if not isinstance(expected, ListType) or getattr(expected, 'growable', False) \
+                or getattr(expected, 'array_form', False) or not isinstance(actual, StructType):
+            return None
+        decl = self.struct_declaration(actual)
+        element = getattr(decl, 'list_element', None)
+        if element is None or not self.types_equal(element, expected.element_type):
+            return None
+        return decl
+
     def types_compatible(self, expected: TypeNode, actual: TypeNode) -> bool:
         """Check if two types are compatible (assignment/parameter passing).
 
@@ -211,6 +222,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 return True
         # A child class where its parent (or the parent's parent ...) is expected (32.7)
         if self.is_descendant(actual, expected):
+            return True
+        # A List of your own where a List<E> is expected (33.3d2, D.175): List<int> xs = Ring()
+        if self.list_implementation(expected, actual) is not None:
             return True
 
         # Numeric promotions (byte -> int -> float -> double)
@@ -402,6 +416,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return expected
         value.stored_as = expected       # Garage<Car> g = Garage(): a generic's types from here (D.171, 33.5)
         result = self.visit(value)
+        impl = self.list_implementation(expected, result)
+        if impl is not None:             # List<int> xs = Ring(): the code generator wraps it in a List (33.3d2)
+            value.as_list, value.list_class, value.list_class_type = expected, impl, result
+            value.inferred_type = expected
+            return expected
         if getattr(value, 'new_array', False) and isinstance(expected, ListType) \
                 and expected.growable and self.types_equal(expected.element_type, result.element_type):
             value.inferred_type = expected      # int:[] g = a + b - a new array, made growable (45.4, 45.5)

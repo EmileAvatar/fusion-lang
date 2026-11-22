@@ -324,7 +324,7 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 33.7 `--interface` shows a parameter the function keeps (D.100 says so; never built - found with 33.6):
 		the interface comes from the parsed modules, before the ownership pass - run it, then mark `Car c` kept
 	[ ] 33.2 Example (was 16.3)
-	[ ] 33.3 A generic class with a parent, interfaces or statics; another implementation behind `List<T>` (from 32.6)
+	[DONE 2026-11-22] 33.3 A generic class with a parent, interfaces or statics; another implementation behind `List<T>` (from 32.6)
 		[DONE 2026-11-22] 33.3a A plain parent and plain interfaces - each copy builds on them (`Tag<int>` as a `Named`,
 			virtual functions, `is`); fixed on the way: an object held as its parent class (`Vehicle v = Holder(...)`, a
 			`List<Vehicle>`) was freed and copied as the parent - the child's own object fields leaked (32.7)
@@ -334,12 +334,15 @@ then each point is decided and solved completely. One line per section and per l
 			generic's copy kept its old name
 		[DONE 2026-11-22] 33.3c Statics - one set per copy (`Box<int>.made`, `static T` allowed), made early as in
 			33.3b; `[generics] sharedStatics = true` one set for all (`Box.made`, a static of type T an error) (D.173)
-		[ ] 33.3d Another implementation behind `List<T>` (D.174, D.175)
+		[DONE 2026-11-22] 33.3d Another implementation behind `List<T>` (D.174, D.175)
 			[DONE 2026-11-22] 33.3d1 `class Ring<T> implements List<T>` writes the core five; Fusion adds add, contains,
 				indexOf, remove, clear, toList, copyPart / copyPartAt / slice / sliceAt, filter, sortBy (written in Fusion,
 				src/parser/list_methods.py); `get` / `set` allowed as method names; map / reduce / sort / join not added
-			[ ] 33.3d2 A `List<int>` value holding any implementation (D.175): `List<int> xs = Ring()`, `xs[i]`,
-				`foreach`, `len(xs)` - each List operation checks which it is; the ~190 direct uses through accessors
+			[DONE 2026-11-22] 33.3d2 A `List<int>` value holding any implementation (D.175): `List<int> xs = Ring()` (T
+				from the List), every List operation; changes through the core five, one read held a while, many at
+				once over a copy; `xs[i] = v` / `xs[i].x = 5` set back after the statement; Fusion's own List as fast
+				(-O2: 60 / 61 ms on a List-heavy loop); a List of your own looped over and left by an error caught outside
+				the loop keeps its copy (as an owned loop source always has)
 
 <a id="task-45"></a>
 #### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [DONE 2026-11-22] [index](#index)

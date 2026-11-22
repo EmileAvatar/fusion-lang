@@ -81,8 +81,16 @@ class CollectionsMixin:
                 element_c = self.map_type(kind.element_type)
                 # count and fusion_class first - laid out like an object, so a List is a
                 # Collection<T> value (Task 32.6)
+                # ext / ops: a List of your own behind it (33.3d2, D.175) - its core five through ops; held:
+                # what get gave (a borrowed read), pending: an element changed in place, set back by flush;
+                # snap: a copy for reading many at once
+                lines.append(f'typedef struct {name}_ops_s {{ int (*len)(void*); {element_c} (*get)(void*, int); '
+                             f'void (*set)(void*, int, {element_c}); void (*insert)(void*, int, {element_c}); '
+                             f'void (*removeAt)(void*, int); void (*release)(void**); }} {name}_ops;')
                 lines.append(f'typedef struct {name}_s {{ int count; const void* fusion_class; '
-                             f'{element_c}* data; int len; int cap; int changes; int flags; }} {name}_s;')
+                             f'{element_c}* data; int len; int cap; int changes; int flags; void* ext; '
+                             f'const {name}_ops* ops; {element_c}* held; int heldAt; int pending; int pendingSlot; '
+                             f'struct {name}_s* snap; }} {name}_s;')
                 lines.append(f'static const void* {name}_class(void);')
             lines.append(f'typedef {name}_s* {name};')
         lines += self.list_protos + ['']
@@ -384,6 +392,7 @@ class CollectionsMixin:
             f'{name} {name}_retain({name} l)': ['if (l) l->count++;', 'return l;'],
             # a new list with copies of the elements - deep (byVal, a struct's copy)
             f'{name} {name}_clone({name} v)': [
+                f'if (FUSION_UNLIKELY(v->ext)) {{ {name} s = {name}_view(v); {name} c = {name}_clone(s); {name}_free(&s); return c; }}',
                 f'{name} r = {name}_new();',
                 f'{name}_grow(r, v->len);',
                 f'for (int i = 0; i < v->len; i++) r->data[i] = {clone("v->data[i]")};',
@@ -395,19 +404,25 @@ class CollectionsMixin:
                 '*l = NULL;',
                 'if (!b || --b->count > 0) return;',
                 (f'for (int i = 0; i < b->len; i++) {{ {free("b->data[i]")} }}' if managed else ''),
+                f'if (FUSION_UNLIKELY(b->ext)) {{ {name}_flush(b); b->ops->release(&b->ext); {name}_free(&b->snap); }}',
+                (f'if (b->held) {{ for (int k = 0; k < 4; k++) {{ {free("b->held[k]")} }} fusion_dealloc(b->held); }}'
+                 if managed else 'if (b->held) fusion_dealloc(b->held);'),
                 'if (b->data) fusion_dealloc(b->data);',
                 'fusion_dealloc(b);'],
             f'void {name}_set({name}* dst, {name} value)': [
                 f'{name} old = *dst;', '*dst = value;', f'{name}_free(&old);'],
             f'void {name}_add({name} l, {T} v)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->insert(l->ext, l->ops->len(l->ext), v); {free("v")} return; }}',
                 f'{name}_grow(l, l->len + 1);', 'l->data[l->len++] = v;', 'l->changes++;'],
             f'void {name}_insert({name} l, int i, {T} v, const char* where)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->insert(l->ext, i, v); {free("v")} return; }}',
                 'if (i < 0 || i > l->len) { fusion_fail(FUSION_KIND_IndexError, where, "insert(position %d) is '
                 f'outside the list (length %d)", i, l->len); {free("v")} return; }}',
                 f'{name}_grow(l, l->len + 1);',
                 f'memmove(l->data + i + 1, l->data + i, sizeof({T}) * (size_t)(l->len - i));',
                 'l->data[i] = v; l->len++; l->changes++;'],
             f'void {name}_removeAt({name} l, int i, const char* where)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); l->ops->removeAt(l->ext, i); return; }}',
                 'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "removeAt(%d) is outside '
                 'the list (length %d)", i, l->len); return; }',
                 (free('l->data[i]') if managed else ''),
@@ -421,21 +436,29 @@ class CollectionsMixin:
                 'l->len--; l->changes++;',
                 'return l->data[l->len];'],
             f'void {name}_clear({name} l)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); while (!fusion_failed && l->ops->len(l->ext) > 0) '
+                'l->ops->removeAt(l->ext, l->ops->len(l->ext) - 1); return; }',
                 (f'for (int i = 0; i < l->len; i++) {{ {free("l->data[i]")} }}' if managed else ''),
                 'l->len = 0; l->changes++;'],
             f'{T} {name}_at({name} l, int i, const char* where)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); return *{name}_hold(l, l->ops->get(l->ext, i)); }}',
                 'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the '
                 f'{what} (length %d)", i, l->len); return {none}; }}',
                 'return l->data[i];'],
             f'{T}* {name}_ptr({name} l, int i, const char* where)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); {T}* p = {name}_hold(l, l->ops->get(l->ext, i)); '
+                'l->pending = i + 1; l->pendingSlot = (int)(p - l->held); return p; }',
                 'if (i < 0 || i >= l->len) { fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the '
                 f'{what} (length %d)", i, l->len); static {T} none; memset(&none, 0, sizeof none); return &none; }}',
                 'return &l->data[i];'],
             f'bool {name}_eq({name} a, {name} b)': [
+                f'if (FUSION_UNLIKELY(a->ext || b->ext)) {{ {name} x = {name}_view(a), y = {name}_view(b); bool r = {name}_eq(x, y); '
+                f'{name}_free(&x); {name}_free(&y); return r; }}',
                 'if (a->len != b->len) return false;',
                 f'for (int i = 0; i < a->len; i++) if (!{eq}) return false;',
                 'return true;'],
             f'int {name}_indexOf({name} l, {T} v)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name} s = {name}_view(l); int r = {name}_indexOf(s, v); {name}_free(&s); return r; }}',
                 f'for (int i = 0; i < l->len; i++) if ({eq_v}) return i;',
                 'return -1;'],
             f'bool {name}_contains({name} l, {T} v)': [f'return {name}_indexOf(l, v) >= 0;'],
@@ -473,6 +496,8 @@ class CollectionsMixin:
                 'return r;'],
             # a + b (45.4): another one's items added at the end, copied as slice does
             f'void {name}_append({name} l, {T} const* items, int n)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); for (int i = 0; i < n && !fusion_failed; i++) '
+                'l->ops->insert(l->ext, l->ops->len(l->ext), items[i]); return; }',
                 f'{name}_grow(l, l->len + n);',
                 f'for (int i = 0; i < n; i++) l->data[l->len + i] = {copy("items[i]")};',
                 'l->len += n; l->changes++;'],
@@ -487,6 +512,7 @@ class CollectionsMixin:
                 'r->len = k;',
                 'return r;'],
             f'{name} {name}_filter({name} l, bool (*keep)({T}))': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name} s = {name}_view(l); {name} r = {name}_filter(s, keep); {name}_free(&s); return r; }}',
                 f'{name} r = {name}_new();',
                 f'for (int i = 0; i < l->len; i++) if (keep(l->data[i])) {name}_add(r, {copy("l->data[i]")});',
                 'return r;'],
@@ -501,10 +527,44 @@ class CollectionsMixin:
                 'while (j < n) tmp[k++] = a[j++];',
                 f'memcpy(a, tmp, sizeof({T}) * (size_t)n);'],
             f'void {name}_sortBy({name} l, int (*cmp)({T}, {T}))': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name} s = {name}_view(l); {name}_sortBy(s, cmp); for (int i = 0; i < s->len && '
+                f'!fusion_failed; i++) l->ops->set(l->ext, i, s->data[i]); {name}_free(&s); return; }}',
                 'if (l->len < 2) return;',
                 f'{T}* tmp = ({T}*)fusion_alloc(sizeof({T}) * (size_t)l->len);',
                 f'{name}_msort(l->data, tmp, l->len, cmp);',
                 'fusion_dealloc(tmp);'],
+            # a List of your own behind a List<E> (33.3d2, D.175): o and its core five (ops)
+            f'{name} {name}_ext(void* o, const {name}_ops* ops)': [
+                f'{name} r = {name}_new();', 'r->ext = o; r->ops = ops;', 'return r;'],
+            # what get gave, kept a while so it can be handed out borrowed as an element is (4 at a time)
+            f'{T}* {name}_hold({name} l, {T} v)': [
+                f'if (!l->held) {{ l->held = ({T}*)fusion_alloc(sizeof({T}) * 4); memset(l->held, 0, sizeof({T}) * 4); }}',
+                'int k = l->heldAt; l->heldAt = (k + 1) % 4;',
+                (free('l->held[k]') if managed else ''),
+                'l->held[k] = v;', 'return &l->held[k];'],
+            # an element changed in place (xs[i] = v, xs[i].x = 5): set back - after the statement, or first
+            # thing in the next operation on it
+            f'void {name}_flush({name} l)': [
+                'if (FUSION_LIKELY(!l || !l->ext || !l->pending)) return;',
+                'int i = l->pending - 1; l->pending = 0;',
+                'l->ops->set(l->ext, i, l->held[l->pendingSlot]);'],
+            # one more holder of a List as Fusion's own: itself, or a copy of a List of your own
+            f'{name} {name}_view({name} l)': [
+                f'if (!l || !l->ext) return {name}_retain(l);',
+                f'{name}_flush(l);',
+                'int n = l->ops->len(l->ext);',
+                f'{name} r = {name}_new();', f'{name}_grow(r, n);',
+                'for (int i = 0; i < n && !fusion_failed; i++) r->data[r->len++] = l->ops->get(l->ext, i);',
+                'return r;'],
+            f'{name} {name}_snapOf({name} l)': [
+                f'return (l && l->ext) ? {name}_view(l) : NULL;'],
+            f'{name} {name}_viewOwn({name} l)': [
+                'if (!l || !l->ext) return l;', f'{name} r = {name}_view(l);', f'{name}_free(&l);', 'return r;'],
+            f'int {name}_len({name} l)': [
+                f'if (FUSION_UNLIKELY(l->ext)) {{ {name}_flush(l); return l->ops->len(l->ext); }}', 'return l->len;'],
+            f'{T}* {name}_data({name} l)': [
+                'if (FUSION_LIKELY(!l->ext)) return l->data;',
+                f'{name}_free(&l->snap);', f'l->snap = {name}_view(l);', 'return l->snap->data;'],
         }
         if isinstance(element, PrimitiveType) and element.name in _SORTABLE:
             order = ('fusion_str_cmp(a, b)' if element.name == 'string'
@@ -517,6 +577,41 @@ class CollectionsMixin:
             self.list_bodies += [f'static inline {signature} {{'] + \
                 [f'    {line}' for line in body if line] + ['}']
 
+    def list_ext_code(self, node) -> str:
+        """`List<int> xs = Ring()` (33.3d2, D.175): a List block around the object - its core five reached
+        through a table made once per List type and class (`fusion_list_int_ops_fu_Ring__int`)."""
+        name = self.map_type(node.as_list)
+        kind, decl = node.list_class_type, node.list_class
+        c = self._struct_c_name(kind)
+        ops = f'{name}_ops_{c}'
+        if ops not in self.list_ext_done:
+            self.list_ext_done.add(ops)
+            T = self.map_type(node.as_list.element_type)
+            m = {n: self._mangle_function_name(f'{decl.name}.{n}') for n in ('len', 'get', 'set', 'insert', 'removeAt')}
+            self.list_ext_lines += [
+                f'// {decl.name} as a List (33.3d2): its core five',
+                f'static int {ops}_len(void* o) {{ return {m["len"]}(({c}*)o); }}',
+                f'static {T} {ops}_get(void* o, int i) {{ return {m["get"]}(({c}*)o, i); }}',
+                f'static void {ops}_set(void* o, int i, {T} v) {{ {m["set"]}(({c}*)o, i, v); }}',
+                f'static void {ops}_insert(void* o, int i, {T} v) {{ {m["insert"]}(({c}*)o, i, v); }}',
+                f'static void {ops}_removeAt(void* o, int i) {{ {m["removeAt"]}(({c}*)o, i); }}',
+                f'static void {ops}_release(void** p) {{ fusion_release_{c}(({c}**)p); }}',
+                f'static const {name}_ops {ops} = {{ {ops}_len, {ops}_get, {ops}_set, {ops}_insert, '
+                f'{ops}_removeAt, {ops}_release }};', '']
+        node.wrapping_list, saved = True, node.inferred_type
+        node.inferred_type = kind
+        was_consumed = id(node) in self.consumed
+        try:
+            obj = self.owned_value(node, kind)             # the List holds the object
+        finally:
+            node.wrapping_list, node.inferred_type = False, saved
+            if not was_consumed:
+                # the object went into the List - the List itself is still the caller's to store or free
+                self.consumed.discard(id(node))
+        code = f'{name}_ext((void*)({obj}), &{ops})'
+        # a new List: stored, or freed after the statement as any fresh value is
+        return code if id(node) in self.consumed else self.fresh_temporary(code, node.as_list)
+
     def list_map_helper(self, source: ListType, result: ListType) -> str:
         """`xs.map(f)`: a list of what f returns for each element."""
         name = f'{self.list_c_name(source)}_map_{self._list_key(result.element_type)}'
@@ -528,8 +623,9 @@ class CollectionsMixin:
             self.list_protos.append(f'static inline {signature};')
             self.list_bodies += [f'static inline {signature} {{',
                                  f'    {dst} r = {dst}_new();',
-                                 f'    for (int i = 0; i < l->len; i++) {dst}_add(r, f(l->data[i]));',
-                                 '    return r;', '}']
+                                 f'    {src} s = {src}_view(l);     // a List of your own: a copy (33.3d2)',
+                                 f'    for (int i = 0; i < s->len; i++) {dst}_add(r, f(s->data[i]));',
+                                 f'    {src}_free(&s);', '    return r;', '}']
         return name
 
     def list_reduce_helper(self, source: ListType, value_type) -> str:
@@ -543,13 +639,14 @@ class CollectionsMixin:
             src = self.list_c_name(source)
             managed = self.is_managed(value_type)
             signature = f'{V} {name}({src} l, {V} start, {V} (*f)({V}, {S}))'
-            step = (f'{V} next = f(acc, l->data[i]); {" ".join(self.free_lines(value_type, "acc"))} acc = next;'
-                    if managed else 'acc = f(acc, l->data[i]);')
+            step = (f'{V} next = f(acc, s->data[i]); {" ".join(self.free_lines(value_type, "acc"))} acc = next;'
+                    if managed else 'acc = f(acc, s->data[i]);')
             self.list_protos.append(f'static inline {signature};')
             self.list_bodies += [f'static inline {signature} {{',
                                  f'    {V} acc = {self.copy_code(value_type, "start") if managed else "start"};',
-                                 f'    for (int i = 0; i < l->len; i++) {{ {step} }}',
-                                 '    return acc;', '}']
+                                 f'    {src} s = {src}_view(l);     // a List of your own: a copy (33.3d2)',
+                                 f'    for (int i = 0; i < s->len; i++) {{ {step} }}',
+                                 f'    {src}_free(&s);', '    return acc;', '}']
         return name
 
     # ------------------------------------------------------------------ expressions
@@ -594,6 +691,9 @@ class CollectionsMixin:
             name = self.list_c_name(inner_type)
             pointer = (f'{name}_ptr({self.list_lvalue(expr.array, False)}, {self.visit(expr.index)}, '
                        f'{self._where(expr)})')
+            if isinstance(expr.array, (IdentifierExpr, MemberExpr)) and hasattr(self, 'list_flushes'):
+                # a List of your own: the changed element set back once the statement is done (33.3d2)
+                self.list_flushes.append(f'{name}_flush({self.visit(expr.array)})')
             return f'(*{self.checked_code(pointer, self.map_type(inner_type.element_type) + "*")})'
         if isinstance(expr, IndexExpr) and isinstance(inner_type, MapType):
             name = self.map_c_name(inner_type)
@@ -630,7 +730,8 @@ class CollectionsMixin:
         first, second = (self.visit(a) for a in node.arguments)
         if isinstance(kind, ListType):
             return (f'__extension__ ({{ {self.map_type(kind)} fusion_p = {self.visit(receiver)}; '
-                    f'{function}(fusion_p->data, fusion_p->len, {first}, {second}, {where}); }})')
+                    f'{function}({self.map_type(kind)}_data(fusion_p), {self.map_type(kind)}_len(fusion_p), '
+                    f'{first}, {second}, {where}); }})')
         items, count = self._array_operand(receiver, kind)
         return f'{function}({items}, {count}, {first}, {second}, {where})'
 
@@ -654,7 +755,8 @@ class CollectionsMixin:
             if isinstance(kind, ListType):
                 held = f'fusion_part_{number}'
                 steps.append(f'{self.map_type(kind)} {held} = {self.visit(part)}; '
-                             f'{name}_append(fusion_r, {held}->data, {held}->len);')
+                             f'{name}_append(fusion_r, {self.map_type(kind)}_data({held}), '
+                             f'{self.map_type(kind)}_len({held}));')
             else:
                 items, count = self._array_operand(part, kind)
                 steps.append(f'{name}_append(fusion_r, {items}, {count});')
@@ -703,7 +805,7 @@ class CollectionsMixin:
         if method in ('contains', 'indexOf', 'remove'):
             return f'{name}_{method}({target}, {self.visit(args[0])})'
         if method == 'len':
-            return f'({target})->len'
+            return f'{name}_len({target})'          # a List of your own: its len() (33.3d2)
         if method == 'slice':
             return f'{name}_slice({target}, {self.visit(args[0])}, {self.visit(args[1])}, {where})'
         if method == 'toList':
@@ -938,16 +1040,18 @@ class CollectionsMixin:
                 '}',
                 f'{lst}_add(r, fusion_str_make(s.data + from, s.len - from));',
                 'return r;'],
-            f'fusion_string fusion_str_join({lst} parts, fusion_string sep, const char* where)': [
+            f'fusion_string fusion_str_join({lst} whole, fusion_string sep, const char* where)': [
+                f'{lst} parts = {lst}_view(whole);     // a List of your own: a copy (33.3d2)',
                 'long long len = 0;',
                 'for (int i = 0; i < parts->len; i++) len += parts->data[i].len + (i > 0 ? sep.len : 0);',
                 'int total = fusion_checked_size(len, "join", where), o = 0;',
-                'if (total < 0) return FUSION_STR("");',
+                f'if (total < 0) {{ {lst}_free(&parts); return FUSION_STR(""); }}',
                 'char* out = (char*)fusion_alloc((size_t)total + 1);',
                 'for (int i = 0; i < parts->len; i++) {',
                 '    if (i > 0) { memcpy(out + o, sep.data, (size_t)sep.len); o += sep.len; }',
                 '    memcpy(out + o, parts->data[i].data, (size_t)parts->data[i].len); o += parts->data[i].len;',
                 '}',
+                f'{lst}_free(&parts);',
                 'return fusion_str_take(out, total);'],
             # Lines without their "\n" (or "\r\n"); a last newline doesn't make an empty line
             f'{lst} fusion_str_lines(fusion_string s)': [

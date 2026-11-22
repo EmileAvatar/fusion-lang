@@ -268,8 +268,9 @@ class StructTextMixin:
         if kind == 'array':
             items, count = self._array_operand(receiver, receiver_type)
         else:
-            code = self.visit(receiver)
-            items, count = f'({code})->data', f'({code})->len'
+            code = self.visit(receiver)       # a List of your own too: its data copied (33.3d2)
+            list_c = self.map_type(receiver_type)
+            items, count = f'{list_c}_data({code})', f'{list_c}_len({code})'
         return f'{self._csv_many_helper(element)}({items}, {count}, {delimiter})'
 
     def _csv_one_helper(self, struct_type) -> str:

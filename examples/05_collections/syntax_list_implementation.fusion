@@ -19,3 +19,9 @@ void function main()
     List<int> sorted = r.toList()
     print("{@1} {@2} {@3}", sorted[0], sorted[1], sorted[2])            // 3 5 9
     print("{@1}", r.filter(func(int x) : x > 4).len())                 // 2
+    List<int> xs = Ring()                             // a List<int> holding one (33.3d2): T from the List
+    xs.add(4)
+    xs[0] = 6                                         // set back through Ring's set
+    for x in xs
+        print("{@1}", x)                              // 6
+    print("{@1}", len(xs))                            // 1

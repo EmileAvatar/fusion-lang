@@ -57,6 +57,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;
@@ -897,6 +900,8 @@ class MemoryManagementMixin:
         yet: a call returning a managed value (including a constructor and the string
         built-ins), or joining strings with `+` (18.3.2). Storing it takes it over;
         otherwise it's freed at the end of the statement."""
+        if getattr(expr, 'as_list', None) is not None and not getattr(expr, 'wrapping_list', False):
+            return True   # a List made around a List of your own - new, count 1 (33.3d2)
         if isinstance(expr, BinaryExpr):
             return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, InterpolatedStringExpr):

@@ -26,6 +26,9 @@ typedef uint32_t fusion_char;
 // ASCII text; FUSION_STRU gives the character count of non-ASCII text
 #define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
 #define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
 
 #ifdef FUSION_LEAK_CHECK
 static void** fusion_live = NULL;

@@ -233,7 +233,9 @@ class RuntimeLoweringMixin:
             return f'({self.visit(arg)}).chars'
         if isinstance(array_type, PrimitiveType) and array_type.name == 'bytes':
             return f'({self.visit(arg)}).len'   # Task 18.3.8
-        if type(array_type).__name__ in ('ListType', 'MapType'):
+        if type(array_type).__name__ == 'ListType':
+            return f'{self.map_type(array_type)}_len({self.visit(arg)})'   # a List of your own too (33.3d2)
+        if type(array_type).__name__ == 'MapType':
             return f'({self.visit(arg)})->len'   # Task 18.5.1
         if isinstance(array_type, ArrayType) and array_type.size is None and isinstance(arg, IdentifierExpr):
             return array_length_name(arg.name)

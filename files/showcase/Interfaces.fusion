@@ -107,7 +107,7 @@ class Team implements Collection<Person> {
 // ---------------------------------------------------------------------------------------------
 // [built 32.6, 33.3d1] List<T> - an interface with a default implementation; a class of your own implements
 // it with the core five (len, get, set, insert, removeAt) and Fusion adds the rest (D.174);
-// [designed 33.3d2] a List<int> value holding it - List<int> xs = Ring() (D.175)
+// [built 33.3d2] a List<int> value holding it - List<int> xs = Ring() - every List operation (D.175)
 // `List<string> names` is never null: it gets the default implementation, which can be
 // swapped for another (program to an interface, not an implementation).
 // ---------------------------------------------------------------------------------------------
