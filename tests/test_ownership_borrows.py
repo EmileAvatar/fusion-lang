@@ -60,10 +60,47 @@ def test_returning_a_parameter_keeps_it():
     assert any("'a' was moved to 'same' (which keeps it)" in e for e in errors(source))
 
 
-def test_reading_a_parameter_into_a_local_does_not_keep_it():
-    source = CAR + 'string function colour(Car c)\n    Car mine = c\n    return mine.color\n\n' + \
+# ---------- a local taken from a parameter (Q.043 -> D.172, B1 for now; 33.6) ----------
+
+COLOUR = 'string function colour({param})\n    Car mine = {value}\n    return {back}.color\n\n'
+
+
+def test_a_local_given_a_parameter_keeps_it_the_call_moves_the_argument():
+    # strict: the function keeps its parameter (D.100) - the caller's car moves (was a borrow until 33.6)
+    source = CAR + COLOUR.format(param='Car c', value='c', back='mine') + \
+        main('Car a = Car("red")\nprint(colour(a))\nprint(a.color)')
+    assert errors(source) == ["'a' was moved to 'colour' (which keeps it) on line 12 - use byVal a for a copy"]
+    # not used after the call: it runs, the car freed once (the leak check)
+    assert run(CAR + COLOUR.format(param='Car c', value='c', back='mine') +
+               main('Car a = Car("red")\nprint(colour(a))')) == ['red']
+
+
+def test_the_parameter_after_the_move_is_an_error():
+    source = CAR + COLOUR.format(param='Car c', value='c', back='c') + main('print(colour(Car("red")))')
+    assert errors(source) == ["'c' was moved to 'mine' on line 7 - use byVal c for a copy"]
+
+
+@pytest.mark.parametrize('param, value, back', [
+    ('Car c', 'byRef c', 'mine'),          # lent on: a borrow
+    ('Car c', 'byVal c', 'c'),             # a copy: nothing moves
+    ('readonly Car c', 'c', 'mine'),       # only read: a borrow (changing it through mine is readonly's error)
+])
+def test_still_a_borrow(param, value, back):
+    source = CAR + COLOUR.format(param=param, value=value, back=back) + \
         main('Car a = Car("red")\nprint(colour(a))\nprint(a.color)')
     assert run(source) == ['red', 'red']
+
+
+def test_a_readonly_parameter_changed_through_a_local_is_an_error():
+    source = CAR + 'string function colour(readonly Car c)\n    Car mine = c\n    mine.color = "blue"\n' \
+        '    return c.color\n\n' + main('print(colour(Car("red")))')
+    assert any("'c' is readonly" in e for e in errors(source))
+
+
+def test_relaxed_a_local_given_a_parameter_borrows_it():
+    source = CAR + COLOUR.format(param='Car c', value='c', back='c') + \
+        main('Car a = Car("red")\nprint(colour(a))\nprint(a.color)')
+    assert run(source, {'memory_config': MemoryConfig(assignment='share')}) == ['red', 'red']
 
 
 def test_a_method_keeping_this_does_not_move_the_object():

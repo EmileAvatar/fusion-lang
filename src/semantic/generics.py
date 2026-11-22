@@ -251,6 +251,7 @@ def _rename_variable(node, old: str, new: str) -> None:
         return
     if isinstance(node, IdentifierExpr) and node.name == old:
         node.name = new
+        node.loop_value = True       # still the loop's value: a local given it borrows it (D.101, not D.172)
     for _, value in _children(node):
         _rename_variable(value, old, new)
 

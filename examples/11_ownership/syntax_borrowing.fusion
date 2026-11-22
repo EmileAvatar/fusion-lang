@@ -11,6 +11,10 @@ class Garage
 void function paint(Car c)             // only changes c: a borrow
     c.color = "blue"
 
+string function colourOf(readonly Car c)
+    Car seen = c                       // readonly: a local borrows it (Car c: colourOf would keep c - D.172)
+    return seen.color
+
 void function main()
     List<Car> fleet = [Car("red"), Car("white")]
     Car first = fleet[0]               // a borrow: fleet is frozen while 'first' is used
@@ -20,7 +24,8 @@ void function main()
     Garage g = Garage()
     Car mine = Car("green")
     g.park(mine)                       // with "move": mine is moved into the garage
-    // print(mine.color) here: 'mine' was moved to 'park' (which keeps it) on line 22
+    // print(mine.color) here: 'mine' was moved to 'park' (which keeps it) on line 26
     for c in fleet
         print(c.color)                 // c borrows each car; g.car = c would be an error
     print("{@1} cars, {g.car.color} parked", fleet.len())
+    print(colourOf(fleet[1]))          // white - lent, fleet unchanged

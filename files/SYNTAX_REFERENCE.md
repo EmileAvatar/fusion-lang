@@ -1662,6 +1662,10 @@ class Garage
 void function paint(Car c)             // only changes c: a borrow
     c.color = "blue"
 
+string function colourOf(readonly Car c)
+    Car seen = c                       // readonly: a local borrows it (Car c: colourOf would keep c - D.172)
+    return seen.color
+
 void function main()
     List<Car> fleet = [Car("red"), Car("white")]
     Car first = fleet[0]               // a borrow: fleet is frozen while 'first' is used
@@ -1671,13 +1675,15 @@ void function main()
     Garage g = Garage()
     Car mine = Car("green")
     g.park(mine)                       // with "move": mine is moved into the garage
-    // print(mine.color) here: 'mine' was moved to 'park' (which keeps it) on line 22
+    // print(mine.color) here: 'mine' was moved to 'park' (which keeps it) on line 26
     for c in fleet
         print(c.color)                 // c borrows each car; g.car = c would be an error
     print("{@1} cars, {g.car.color} parked", fleet.len())
+    print(colourOf(fleet[1]))          // white - lent, fleet unchanged
 ```
 With `"strict"`: passing a value lends it for the call, unless the function keeps it (stores,
-adds or returns it) - then the call moves it. An element or a field read into a local, and a
+adds or returns it, or gives it to a local: `Car x = c` - D.172) - then the call moves it, and `c` after
+`Car x = c` is an error. A `readonly` parameter, `byRef c` and `byVal c` stay a borrow or a copy. An element or a field read into a local, and a
 for loop's variable, borrow: the owner can't change until the borrow's last use, and a borrow
 can't be stored or returned (`byVal` copies it). A field or an element can't be moved out.
 

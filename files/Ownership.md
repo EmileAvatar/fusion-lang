@@ -121,6 +121,7 @@ Car mine = fleet.removeAt(0)   // taking an element out is a move
 | `T b = list[i]` / `T b = obj.field` | copy | copy | **local borrow** - the owner is frozen while `b` is used | local borrow | reader |
 | `this.f = a`, `list.add(a)`, `return a` | copy | copy | **move** | move | one more reader |
 | `f(a)` where f keeps its parameter (D.100) | copy | copy | **move** (worked out from f's body) | move | one more reader |
+| `T x = p` inside f, p a parameter (D.172) | copy | copy | **move**: f keeps p - `f(a)` moves a; p after it an error (a readonly p, `byRef p`, a loop value: a borrow) | move | one more reader |
 | `a = T(...)` after a move | - | - | allowed: alive again | allowed | allowed |
 
 #### Truth table 2: a struct holding a collection (D4)
@@ -166,7 +167,7 @@ what that means where generics meet the rules above. Test: `tests/test_generics.
 | `show(1, "two", car)` - a pack of types | lent: one parameter per value, passed as any argument; `car` usable after | yes |
 | `firstOf(names)` - a List for `T...` | lent, passed as it is (no copy) | yes |
 | `firstOf(arr)` - an array for `T...` | its values copied into a new List for the call (`toList`), freed after | yes |
-| `T x = item; return x` inside a generic, T a class | the rule of the real type, as in a plain function: it keeps its parameter (D.100), so the call moves the argument under strict (`'c' was moved to 'keep<Car>'`); a local only naming the parameter (`Car x = item`, `item` used after): relaxed borrows it, strict moves it - `item` after it an error and the function keeps its parameter (D.172, 33.6 - not built yet) | yes (33.4); D.172 no - 33.6 |
+| `T x = item; return x` inside a generic, T a class | the rule of the real type, as in a plain function: it keeps its parameter (D.100), so the call moves the argument under strict (`'c' was moved to 'keep<Car>'`); a local only naming the parameter (`Car x = item`, `item` used after): relaxed borrows it, strict moves it - `item` after it an error and the function keeps its parameter (D.172, 33.6) | yes (33.4, 33.6) |
 | a generic returning a `T` held in a List (`T function first(List<T> xs) : xs[0]`) | the rule of returning an element - a copy of a value, a shared object (`c.name = "taxi"` shows in `cars[0]`) | yes (33.4) |
 
 #### The error texts (48.1, 48.2)

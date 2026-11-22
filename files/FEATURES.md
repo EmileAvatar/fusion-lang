@@ -317,9 +317,11 @@ then each point is decided and solved completely. One line per section and per l
 		(the declared type supplying T) and Q.043 (a local taken from a parameter) open
 	[DONE] 33.5 A generic's types from the variable it is stored in (Q.042 -> D.171): `Garage<Car> g = Garage()` - T from
 		the left when the arguments don't give it; `var` / `let` still an error; arguments that give T must agree
-	[ ] 33.6 A local taken from a parameter, by `[memory] ownership` (Q.043 -> D.172): relaxed borrows; strict moves it -
+	[DONE] 33.6 A local taken from a parameter, by `[memory] ownership` (Q.043 -> D.172): relaxed borrows; strict moves it -
 		`item` after it an error, the function keeps its parameter so the call moves the argument (B1, for now);
 		readonly changed through it an error (built)
+	[ ] 33.7 `--interface` shows a parameter the function keeps (D.100 says so; never built - found with 33.6):
+		the interface comes from the parsed modules, before the ownership pass - run it, then mark `Car c` kept
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 

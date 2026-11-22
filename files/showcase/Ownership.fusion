@@ -151,6 +151,11 @@ void function passing()
     g.park(byVal b)                    // ok - park keeps a copy
     print(b.color)                     // ok
     b.paint("green")                   // ok - a method's `this` is always borrowed, never taken (D.103)
+    print(nameOf(b))                   // nameOf gives its parameter to a local: it keeps it - b moves (D.172, 33.6)
+    print(b.color)                     // ERROR: 'b' was moved to 'nameOf' (which keeps it) - relaxed: ok
+    // string function nameOf(Car c)
+    //     Car mine = c                // strict: c moves to mine - c after it an error; readonly Car c: a borrow
+    //     return mine.color
     print(b.color)                     // ok
 
 

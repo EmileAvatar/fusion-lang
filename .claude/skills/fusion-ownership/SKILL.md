@@ -44,6 +44,7 @@ Handed over = `T b = a`, `b = a`, `x.f = a`, `list.add(a)` / `insert`, `m[k] = a
 | `Car b = byVal a` | ok - a deep copy; a struct's objects cloned too | D.097 |
 | `f(a)` | ok - lent for the call, a is back after | R3 |
 | `f(a)` where f stores, adds or returns its parameter | moves a (f takes it) | D.100 |
+| `Car x = p` inside f, p a parameter (strict) | f keeps p - `f(a)` moves a; `p` after it an error; relaxed: a borrow; a readonly p, `byRef p`, a pack's loop value: a borrow | D.172 |
 | `car.paint()` where paint keeps `this` | never moves car - `this` is always borrowed | D.103 |
 | `Car c = fleet[0]` / `order.items` / `for c in fleet` | a local borrow; the owner frozen until the borrow's last use | D.101 |
 | change the owner while the borrow is used | error: 'fleet' can't change while 'c' borrows from it | D.101 |

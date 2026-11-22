@@ -7382,3 +7382,30 @@ Each part is shipped on its own, in this order:
   the same rule wherever the type is known; a struct (`Pair<int, string> p = Pair()`) too
 - tests: each form, strict and relaxed, the leak check; the mismatch error; var / let; FEATURES / Decisions BUILT,
   SYNTAX_REFERENCE syntax_generics gets the short form (Rule 4), FeatureTree, showcase
+
+#### 33.6 plan (approved and built 2026-11-22) - from Q.043 (D.172)
+**Settings:** none new - 33.6 follows the existing `[memory] ownership` (strict / relaxed).
+
+**33.6 A local taken from a parameter (D.172, B1 for now)**
+- strict: `Car x = item` (a local given a parameter's object, `item` lent) - the function keeps its parameter: the call
+  moves the caller's argument (D.100 - `'c' was moved to 'nameOf' (which keeps it)`), and inside, `item` after it is an
+  error "'item' was moved to 'x' on line N - use byVal item for a copy"; `--interface` shows the parameter kept
+- relaxed: as today - x borrows item (nothing moves; ownership checks don't run)
+- readonly: changing it through x stays an error ("'item' is readonly" - already built)
+- not a move (stays a borrow): `byVal item` (a copy), `byRef item`, `readonly item`, a pack's loop value (`for x in
+  items` written out per value - 33.2e2), a for loop over a parameter's elements (`for c in cars` - a local borrow)
+- **To note before approving - this reverses a tested rule:** `tests/test_ownership_borrows.py`
+  `test_reading_a_parameter_into_a_local_does_not_keep_it` (Task 48.2) says, under strict:
+  ```fusion
+  string function colour(Car c)
+      Car mine = c          // today: mine borrows c - colour borrows its argument
+      return mine.color
+  Car a = Car("red")
+  print(colour(a))
+  print(a.color)            // today: "red"; with B1: error "'a' was moved to 'colour' (which keeps it)"
+  ```
+  so a function that only names its parameter in a local, to read it, takes it; `byRef c` / `readonly Car c`
+  keeps the old behaviour. A trial run (reverted): only that test and a pack's loop change - no example and no part
+  of the self-hosted compiler uses the pattern. That test is rewritten to the new rule
+- tests: the rows above under strict and relaxed, the error texts, `--interface`; files/Ownership.md 3b row and the
+  section 2 truth table (D.172), the fusion-ownership skill, showcase Ownership.fusion, Decisions MEM.003 BUILT

@@ -26,7 +26,8 @@ given a new value before the next pass is found; a `try` that moved it leaves it
 in the `catch`.
 
 Borrowing (48.2):
-- a parameter is a borrow; a function that keeps it (stores, adds or returns it) takes it
+- a parameter is a borrow; a function that keeps it (stores, adds or returns it, or gives it to a
+  local - D.172) takes it - except a readonly one and a pack's loop value, which a local borrows
   instead, and every call moves the argument (D.100) - worked out across the functions until
   nothing new turns up. A method's `this` is always borrowed
 - an element or a field read into a local (`Car c = fleet[0]`, `List<int> xs = order.items`,
@@ -202,6 +203,7 @@ class _FunctionCheck:
         self.reported = set()
         self.params = {p.name: i for i, p in enumerate(function.parameters) if p.name != 'this'}
         self.mine = {name for name, i in self.params.items() if (id(function), i) in taken}
+        self.readonly = {p.name for p in function.parameters if getattr(p, 'is_readonly', False)}
         self.locals = set(self.params) # names this function declares (fields are not tracked)
         self.loops: List[dict] = []    # each enclosing loop: its breaks and continues
         self.log: List[tuple] = []     # every move, in order - a catch may start after any of them
@@ -380,8 +382,13 @@ class _FunctionCheck:
             return
         param = self.origin.get(name, name if name in self.params else None)
         if param is not None and param not in self.mine:
-            if local is None:
-                self.kept.add(param)           # the function keeps it: it takes it (D.100)
+            # kept - stored, returned, or given to a local (`Car x = item`, D.172): the function takes it
+            # (D.100) and, taken, the move inside it is followed below on the next round. A pack's loop
+            # value written out (`for x in items`, 33.2e2) stays a loop value - a borrow (D.101)
+            # - and a readonly parameter is only read: a local given it borrows it (changing it through
+            # the local is readonly's own error, 32.2e)
+            if local is None or not (getattr(value, 'loop_value', False) or param in self.readonly):
+                self.kept.add(param)
             return
         state[name] = _Moved(_line(expr), to)
         self.log.append((name, state[name]))
