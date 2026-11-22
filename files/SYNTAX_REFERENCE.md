@@ -1421,6 +1421,40 @@ void function main()
     print("{@1} {@2}", groups["admins"].len(), groups.keys().toList()[0])
 ```
 
+#### A List of your own: `implements List<T>` - the core five, the rest added
+
+<!-- example: syntax_list_implementation | task: 33.3d1 | folder: 05_collections -->
+```fusion
+class Ring<T> implements List<T>                      // writes the core five ...
+    List<T> items
+    int function len() : items.len()
+    T function get(int i) : items[i]
+    void function set(int i, T value)
+        items[i] = value
+    void function insert(int i, T value)
+        items.insert(i, value)
+    void function removeAt(int i)
+        items.removeAt(i)
+
+void function main()
+    Ring<int> r = Ring()
+    r.add(5)                                          // ... and Fusion adds the rest from them
+    r.add(3)
+    r.add(9)
+    print("{@1} {@2} {@3}", r.len(), r.contains(3), r.indexOf(9))      // 3 true 2
+    r.sortBy(func(int a, int b) : a - b)
+    List<int> sorted = r.toList()
+    print("{@1} {@2} {@3}", sorted[0], sorted[1], sorted[2])            // 3 5 9
+    print("{@1}", r.filter(func(int x) : x > 4).len())                 // 2
+```
+A class implementing `List<T>` writes the core five - `len()`, `get(i)`, `set(i, v)`, `insert(i, v)`, `removeAt(i)`
+(D.174); Fusion adds every other List method it doesn't write, built from them: `add`, `contains`, `indexOf`,
+`remove`, `clear`, `toList`, `copyPart` / `copyPartAt` / `slice` / `sliceAt`, `filter`, `sortBy`. A class may write
+any of them itself to do better (a faster `contains`). `map`, `reduce`, `sort` and `join` aren't added - the class
+writes them if it needs them. Inside the class, `get` and `set` are called `this.get(i)` / `this.set(i, v)` (they are
+words of `property`). Next (33.3d2): a `List<int>` variable holding one - `List<int> xs = Ring()` - with `xs[i]`,
+`foreach` and `len(xs)`.
+
 #### Raw bytes: `byte` and `bytes`
 
 <!-- example: syntax_bytes | task: 18.3.8 | folder: 03_strings -->

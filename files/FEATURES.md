@@ -334,7 +334,12 @@ then each point is decided and solved completely. One line per section and per l
 			generic's copy kept its old name
 		[DONE 2026-11-22] 33.3c Statics - one set per copy (`Box<int>.made`, `static T` allowed), made early as in
 			33.3b; `[generics] sharedStatics = true` one set for all (`Box.made`, a static of type T an error) (D.173)
-		[ ] 33.3d Another implementation behind `List<T>` - a core of five (D.174); a List value holds any (D.175)
+		[ ] 33.3d Another implementation behind `List<T>` (D.174, D.175)
+			[DONE 2026-11-22] 33.3d1 `class Ring<T> implements List<T>` writes the core five; Fusion adds add, contains,
+				indexOf, remove, clear, toList, copyPart / copyPartAt / slice / sliceAt, filter, sortBy (written in Fusion,
+				src/parser/list_methods.py); `get` / `set` allowed as method names; map / reduce / sort / join not added
+			[ ] 33.3d2 A `List<int>` value holding any implementation (D.175): `List<int> xs = Ring()`, `xs[i]`,
+				`foreach`, `len(xs)` - each List operation checks which it is; the ~190 direct uses through accessors
 
 <a id="task-45"></a>
 #### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [DONE 2026-11-22] [index](#index)

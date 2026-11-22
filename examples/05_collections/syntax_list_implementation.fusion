@@ -1,0 +1,21 @@
+class Ring<T> implements List<T>                      // writes the core five ...
+    List<T> items
+    int function len() : items.len()
+    T function get(int i) : items[i]
+    void function set(int i, T value)
+        items[i] = value
+    void function insert(int i, T value)
+        items.insert(i, value)
+    void function removeAt(int i)
+        items.removeAt(i)
+
+void function main()
+    Ring<int> r = Ring()
+    r.add(5)                                          // ... and Fusion adds the rest from them
+    r.add(3)
+    r.add(9)
+    print("{@1} {@2} {@3}", r.len(), r.contains(3), r.indexOf(9))      // 3 true 2
+    r.sortBy(func(int a, int b) : a - b)
+    List<int> sorted = r.toList()
+    print("{@1} {@2} {@3}", sorted[0], sorted[1], sorted[2])            // 3 5 9
+    print("{@1}", r.filter(func(int x) : x > 4).len())                 // 2

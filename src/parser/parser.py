@@ -2338,10 +2338,16 @@ class Parser:
         names = [self._interface_name()]
         while self.match(TokenType.COMMA):
             names.append(self._interface_name())
-        return names
+        return [n for n in names if n is not None]       # List<T>: not an interface of its own (33.3d1)
 
     def _interface_name(self) -> str:
         token = self.consume(TokenType.IDENTIFIER, "Expected an interface's name after 'implements'")
+        if token.value == 'List' and self.check(TokenType.LESS):
+            # class Ring<T> implements List<T> (33.3d1, D.174): its own List - the core five written, the rest added
+            self.consume(TokenType.LESS, "Expected '<'")
+            self.list_element = self.parse_type()
+            self.consume(TokenType.GREATER, "Expected '>' after the type in List<...>")
+            return None
         if token.value in GENERIC_INTERFACE_NAMES and self.check(TokenType.LESS):
             kind = self._generic_interface_type(token, token.value)
             self.generic_interfaces.append(kind)
@@ -2537,6 +2543,7 @@ class Parser:
         # class Box<T> - a generic class (Task 33.2c, D.166)
         type_params, conditions = self._type_parameters() if self.check(TokenType.LESS) else (None, {})
         interfaces, parent, parent_args = [], None, None
+        self.list_element = None                   # implements List<T> (33.3d1)
         while True:
             if self.match(TokenType.IMPLEMENTS):
                 interfaces += self._implements_list()
@@ -2680,6 +2687,10 @@ class Parser:
         decl.class_parent_args = parent_args
         decl.type_params = type_params
         decl.type_conditions = conditions
+        list_element, self.list_element = getattr(self, 'list_element', None), None
+        if list_element is not None:
+            decl.list_element = list_element
+            methods = methods + self._list_methods(decl, methods, list_element, class_token)
         self.attach_methods(decl, methods)
         for method in static_methods:                # no `this` (Task 32.2c)
             method.method_name, method.method_of = method.name, name
@@ -2804,6 +2815,28 @@ class Parser:
             return set()
         return set().union(*(cls._names_in(getattr(node, f.name)) for f in dataclass_fields(node)
                              if f.name not in ('location', 'inferred_type', 'scope')))
+
+    def _list_methods(self, decl, methods: list, element, where) -> list:
+        """`class Ring<T> implements List<T>` (33.3d1, D.174): the core five must be written; every other
+        List method it doesn't write is added, written in Fusion from them (src/parser/list_methods.py)."""
+        from src.lexer import Lexer
+        from .list_methods import CORE, CORE_SHOWN, missing_text
+        written = {m.name: m for m in methods}
+        shown = CORE_SHOWN.replace('E ', f'{type_text(element)} ')
+        lacking = [n for n in CORE if n not in written]
+        wrong = [n for n, count in CORE.items() if n in written and len(written[n].parameters) != count]
+        if lacking or wrong:
+            what = f"has no {', '.join(lacking)}" if lacking else f"writes {', '.join(wrong)} with other parameters"
+            raise ParserError(where, f"Class '{decl.name}' implements List<{type_text(element)}> but {what} - a List "
+                                     f"of your own writes {shown} (D.174)")
+        text = missing_text(set(written), type_text(element))
+        if not text:
+            return []
+        added = Parser(Lexer(text, f'List<{type_text(element)}> methods').tokenize()).parse_program().declarations
+        for method in added:
+            method.list_default = True               # written by Fusion - a class may write its own instead
+            method.is_private, method.is_static = False, False
+        return added
 
     def attach_methods(self, struct: StructDecl, methods: list) -> None:
         """Methods written inside a struct (Task 32.1): each becomes a function `Struct.name`
@@ -3170,7 +3203,9 @@ class Parser:
 
         # Function name (allow type keywords as function names)
         # This allows functions named "double", "string", "int", etc.
-        if self.check(TokenType.IDENTIFIER) or self.is_type_start():
+        if self.check(TokenType.IDENTIFIER) or self.is_type_start() or (
+                self.peek().value in ('get', 'set') and self.peek(1).type == TokenType.LPAREN):
+            # get / set: words of `property`, also a List of your own's methods (33.3d1, D.174)
             name_token = self.advance()
             name = name_token.value
             location = name_token.location

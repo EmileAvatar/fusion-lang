@@ -93,7 +93,35 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
 - Done 2026-11-22: 33.3b a generic parent or interface (`inherits Box<T>`, `implements Collection<T>`) - copied before
   inheritance from the types written; fixed: `e is Person` taken for never
 - Done 2026-11-22: 33.3c statics on a generic class - one set per copy, `[generics] sharedStatics` (D.173)
-- **Next Action:** 33.3d another implementation behind `List<T>` (D.174, D.175); 33.7 (`--interface` shows a kept parameter) after
+- Done 2026-11-22: 33.3d1 a List of your own - `implements List<T>`, the core five written, the rest added (D.174)
+- **Next Action:** 33.3d2 a `List<int>` value holding any implementation (D.175); 33.7 after
+
+### 33.3d - plan (to approve): another implementation behind `List<T>` (D.174, D.175)
+**Settings:** none. **What it takes:** Fusion's List is a C block (`data`, `len`, ...) with 42 helpers, and some 190
+places in the code generator read `->data[i]` / `->len` directly (indexing, foreach, print, `==`, copies, struct text) -
+some write into an element in place (`xs[i].x = 5`), which a class's `get(i)` can't give. So D.175 (a `List<int>`
+holding a class of your own) is a change through the whole code generator; done in two steps:
+
+**33.3d1 A class implementing `List<T>` - the core five, the rest built from it (D.174)**
+- `class Ring<T> implements List<T>` writes `len()`, `get(i)`, `set(i, v)`, `insert(i, v)`, `removeAt(i)`; Fusion
+  adds every other List method the class doesn't write (add, contains, indexOf, remove, removeLast, clear, copyPart,
+  sort, map, filter, reduce, join, toList ...), written in Fusion from the core five and added to the class as its
+  own methods - so they are checked and compiled like any method (a class may write any of them itself to do better)
+- on a `Ring<int>` value: every List method, `r[i]` / `r[i] = v` (get / set), `foreach` and `len(r)`, `print`
+- a missing core method an error that lists the five; a method with the wrong signature names List's
+- tests: each method on a program's own List (an array-backed one and a linked one), strict and relaxed, the leak
+  check; example syntax_list_implementation
+
+**33.3d2 A `List<int>` value holding any implementation (D.175)**
+- `List<int> xs = Ring()` - a List variable, parameter, field or element holding one; each List operation first
+  checks which it is (a flag in the block): the default goes the direct way as today, another through its class
+- the ~190 direct uses go through small inline accessors (`len`, element at i); an element changed in place
+  (`xs[i].x = 5`) on another implementation: get, change, set
+- measured before and after (the examples, a List-heavy loop) - the default must stay as fast; if not, Q.046's C
+  (a setting) is the fallback
+- tests: every List test run again with a `Ring` behind the `List<int>`; the leak check
+
+**Order:** 33.3d1 first (useful on its own - a List of your own with all 22 methods); 33.3d2 after it.
 
 ### 33.3 - plan (to approve): a generic class with a parent, interfaces or statics; another List<T> implementation
 **Settings:** `[generics] sharedStatics` (33.3c, D.173 - default false: one set per copy); none else.

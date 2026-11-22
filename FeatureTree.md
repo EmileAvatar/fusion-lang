@@ -121,7 +121,7 @@ Settings
    - Agnostic language        safety + memory settings built; concurrency + backend choice not yet
    - Memory safety            ownership built; some readonly / library parts left
    - ... operator             string... args, int... numbers, T..., ranges 1...10 built; spread [...a] to do
-   - Generics                 another List<T> implementation (33.3d)
+   - Generics                 a List<int> value holding a List of your own - List<int> xs = Ring() (33.3d2)
    - Casts                    (Shape)aCircle built; some number casts left
    - Arrays in three forms    plain, fixed, growable - RECT storage later
    - Collection<T>            classes, List, Map built; arrays as Collection later
