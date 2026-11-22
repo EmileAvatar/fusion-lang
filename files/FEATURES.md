@@ -301,11 +301,12 @@ then each point is decided and solved completely. One line per section and per l
 		with a character literal was taken for a VB comment by the indentation reader - tests/test_ranges.py,
 		example syntax_ranges
 		[ ] Later: the self-hosted lexer (selfhost/lexer) reads `1...10` the same way - with Task 35
-	[ ] 33.2g A step on a whole-number range (D.170): `for i in 0...13 step 5` gives 0 5 10 - only the values
-		within the range; a warning when the step doesn't land on the end (numbers written), a compile error with
-		`[ranges] strictStep = true` (default false); a negative step counts down (`10...0 step -2`); the step never
-		0 - written, a compile error; from a value, an error while running (no endless range); `step` a word only
-		after a range (a variable may still be called step)
+	[DONE 2026-11-22] 33.2g A step on a whole-number range (D.170): `for i in 0...13 step 5` gives 0 5 10 - only the
+		values within the range; a warning when the step doesn't land on the end (numbers written), a compile error
+		with `[ranges] strictStep = true` (default false); a negative step counts down (`10...0 step -2`); the step
+		never 0 - written, a compile error; from a value, a RangeError while running (no endless range); `step` a
+		word only after a range; the end and step worked out once; fixed on the way: `range(10, 0, -1)` ran no turns
+		(the loop always tested `<`) - tests/test_ranges.py, example syntax_ranges
 		[DONE 2026-11-22] The error for `0.5...2.5` says a range counts whole numbers (it named range's arguments)
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own

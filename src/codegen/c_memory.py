@@ -512,6 +512,11 @@ static inline fusion_char fusion_fromCharCode(int code, const char* where) {
 #endif
     return (fusion_char)code;
 }
+// A loop's step from a value (Task 33.2g, D.170): never 0 - the loop would never end
+static inline int fusion_range_step(int step, const char* where) {
+    if (step == 0) { fusion_fail(FUSION_KIND_RangeError, where, "a range's step can't be 0 - the loop would never end"); return 1; }
+    return step;
+}
 static inline int fusion_str_byteAt(fusion_string s, int i, const char* where) {
     if (i < 0 || i >= s.len) { fusion_fail(FUSION_KIND_IndexError, where, "byte %d is outside the string (%d bytes)", i, s.len); return 0; }
     return (unsigned char)s.data[i];

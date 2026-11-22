@@ -15,6 +15,8 @@ void function main()
     int n = 3
     for i in 0...n - 1                      // any whole-number values
         print("{i}")                        // 0 1 2
+    for i in 10...0 step -5                 // a step; a negative one counts down
+        print("{i}")                        // 10 5 0
     char c = 'q'
     string kind = match c
         'a'...'z' : "lower"                 // characters too

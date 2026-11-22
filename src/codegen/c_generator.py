@@ -2372,13 +2372,43 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         var_name = node.variable
 
+        # A step from a value is checked while running - 0 would never end (33.2g, D.170); a
+        # written one was checked by the compiler
+        written = isinstance(node.iterable, CallExpr) and len(node.iterable.arguments) >= 3 \
+            and self.constant_value(node.iterable.arguments[2]) is not None
+        if step != '1' and not written:
+            step = self.checked_code(f'fusion_range_step({step}, {self._where(node)})', 'int')
+
         # Bounds that made temporary strings are worked out (once) first (Task 18.3.1)
         if self.has_pending_temps():
             start, end, step = (self._settled_value(code, 'int') for code in (start, end, step))
 
-        # Generate for loop header
-        # for (int i = start; i < end; i += step)
-        self.emit(f'for (int {var_name} = {start}; {var_name} < {end}; {var_name} += {step}) {{')
+        # The end and the step are worked out once, before the first turn (as Python's range) - a
+        # written one stays in place; a negative step counts down - while above the end (33.2g)
+        args = node.iterable.arguments if isinstance(node.iterable, CallExpr) else []
+        end_node = args[0] if len(args) == 1 else (args[1] if len(args) >= 2 else None)
+        written_end = end_node is None or self.constant_value(end_node) is not None
+        written_step = 1 if len(args) < 3 else self.constant_value(args[2])
+        hoisted = []
+        self.temp_count = getattr(self, 'temp_count', 0) + 1
+        if not written_end:
+            hoisted.append(f'int fusion_end_{self.temp_count} = {end};')
+            end = f'fusion_end_{self.temp_count}'
+        if written_step is None:
+            hoisted.append(f'int fusion_step_{self.temp_count} = {step};')
+            step = f'fusion_step_{self.temp_count}'
+        # `a...b` includes its end (33.2f); range(a, b) leaves it out
+        up, down = ('<=', '>=') if getattr(node.iterable, 'inclusive', False) else ('<', '>')
+        if written_step is None:
+            test = f'{step} > 0 ? {var_name} {up} {end} : {var_name} {down} {end}'
+        else:
+            test = f'{var_name} {up if written_step > 0 else down} {end}'
+        if hoisted:
+            self.emit('{')
+            self.indent()
+            for line in hoisted:
+                self.emit(line)
+        self.emit(f'for (int {var_name} = {start}; {test}; {var_name} += {step}) {{')
         self.indent()
 
         self.push_scope('loop')
@@ -2387,6 +2417,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         self.dedent()
         self.emit('}')
+        if hoisted:
+            self.dedent()
+            self.emit('}')
 
         return ''
 

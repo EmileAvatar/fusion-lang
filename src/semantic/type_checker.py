@@ -155,6 +155,28 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
     # Type Compatibility and Helper Methods
     # ========================================================================
 
+    def _check_range_step(self, node) -> None:
+        """A range's step (Task 33.2g, D.170): `range(a, b, 0)` written - an error (never ends); in
+        `0...13 step 5` with every number written, a step that doesn't land on the end is a warning
+        (only 0 5 10 run) - an error with [ranges] strictStep."""
+        from src.parser.parser import Parser
+        args = node.arguments
+        if len(args) == 3 and Parser._written_int(args[2]) == 0:
+            self.errors.append(SemanticError("A range's step can't be 0 - the loop would never end",
+                                             args[2].location))
+            return
+        numbers = getattr(node, 'range_numbers', None)
+        if numbers is None:
+            return
+        first, last, stride = numbers
+        if (last - first) % stride == 0:
+            return
+        strict = getattr(self, 'strict_step', False)
+        reached = first + (last - first) // stride * stride
+        message = (f"{first}...{last} step {stride} doesn't land on {last} - the last value is {reached}"
+                   f"{'' if strict else ' ([ranges] strictStep makes this an error)'}")
+        (self.errors if strict else self.warnings).append(SemanticError(message, node.location))
+
     def types_compatible(self, expected: TypeNode, actual: TypeNode) -> bool:
         """Check if two types are compatible (assignment/parameter passing).
 
@@ -1722,6 +1744,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                             f"got {self.type_to_string(actual_type)}",
                             arg.location
                         ))
+            self._check_range_step(node)
             return func_type.return_type
 
         # Special case for len(): accepts exactly one array argument, of any element type.

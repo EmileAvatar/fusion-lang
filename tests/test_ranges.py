@@ -48,6 +48,71 @@ def test_setting_names_ignore_spaces():
     assert _folded('strict Step') == _folded('strict_step') == _folded('strictStep') == 'strictstep'
 
 
+# ---------------------------------------------------------------- 33.2g a step (D.170)
+
+def collect(loop: str) -> str:
+    return f's = ""\n{loop}\n    s = s + toString(i) + " "\nprint(s.trim())'
+
+
+@pytest.mark.parametrize('loop, line', [
+    ('for i in 0...13 step 5', '0 5 10'),                   # only the values within the range
+    ('for i in 0...15 step 5', '0 5 10 15'),
+    ('for i in 10...0 step -2', '10 8 6 4 2 0'),            # a negative step counts down
+    ('for i in 10...1 step -4', '10 6 2'),
+    ('for i in range(3, 0, -1)', '3 2 1'),                  # range counting down (it ran no turns before)
+    ('for i in range(0, 10, 3)', '0 3 6 9'),
+    ('int step = 3\nfor i in 1...10 step step', '1 4 7 10'),   # step - a word only after a range
+    ('int down = -4\nfor i in 10...1 step down', '10 6 2'),    # a step from a value, either way
+    ('int n = 5\nfor i in 0...n step 2', '0 2 4'),
+])
+def test_steps(loop, line):
+    assert run('string ' + collect(loop)) == [line]
+
+
+def test_a_step_of_0_from_a_value_stops_while_running():
+    body = ('int zero = 0\ntry\n    for i in 1...3 step zero\n        print("never")\n'
+            'catch RangeError e\n    print(e.message)')
+    assert run(body) == ["a range's step can't be 0 - the loop would never end"]
+
+
+def test_the_end_is_worked_out_once():
+    # as Python's range: a List growing inside the loop doesn't make it longer
+    assert run('List<int> xs = [1, 2]\nfor i in 0...xs.len() - 1\n    xs.add(9)\nprint("{@1}", xs.len())') == ['4']
+
+
+def test_a_step_that_misses_the_end_warns():
+    analyzer = SemanticAnalyzer()
+    assert analyzer.analyze(parse('void function main()\n    for i in 0...13 step 5\n        print("{i}")\n'))
+    assert any("0...13 step 5 doesn't land on 13 - the last value is 10" in w.message for w in analyzer.warnings)
+
+
+def test_strict_step_makes_it_an_error():
+    from src.config.project_config import RangesConfig
+    analyzer = SemanticAnalyzer(ranges_config=RangesConfig(strict_step=True))
+    assert not analyzer.analyze(parse('void function main()\n    for i in 0...13 step 5\n        print("{i}")\n'))
+    assert any("doesn't land on 13" in e.message for e in analyzer.get_errors())
+
+
+def test_strict_step_setting_is_read(tmp_path):
+    from src.config.project_config import load_project_config
+    (tmp_path / 'fusion.toml').write_text('[ranges]\n"strict Step" = true\n', encoding='utf-8')
+    assert load_project_config(str(tmp_path / 'main.fusion')).ranges.strict_step is True
+
+
+@pytest.mark.parametrize('loop, message', [
+    ('for i in 1...3 step 0', "step can't be 0"),
+    ('for i in 10...1 step 2', 'a positive step counts up; write step -2'),
+    ('for i in 1...10 step -2', 'a negative step counts down; write step 2'),
+])
+def test_step_mistakes_when_parsing(loop, message):
+    with pytest.raises(ParserError, match=message):
+        parse(f'void function main()\n    {loop}\n        print("x")\n')
+
+
+def test_range_with_a_written_0_step_is_an_error():
+    assert any("step can't be 0" in e for e in errors_of('for i in range(0, 10, 0)\n    print("x")'))
+
+
 def test_a_range_written_backwards_is_an_error():
     with pytest.raises(ParserError, match=r"10\.\.\.1 counts down .* range\(10, 0, -1\)"):
         parse('void function main()\n    for i in 10...1\n        print("{i}")\n')

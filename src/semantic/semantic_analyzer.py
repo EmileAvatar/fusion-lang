@@ -66,7 +66,7 @@ class SemanticAnalyzer:
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
                  conditions_config=None, visibility_config=None, interfaces_config=None, source_config=None, memory_config=None,
-                 collections_config=None, arrays_config=None, generics_config=None):
+                 collections_config=None, arrays_config=None, generics_config=None, ranges_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -107,6 +107,8 @@ class SemanticAnalyzer:
         self.type_checker.csv_many_dimensions = getattr(arrays_config, 'csv_many_dimensions', True)
         # [generics] enabled (Task 33, D.168): generics of the program's own
         self.generics_enabled = getattr(generics_config, 'enabled', True)
+        # [ranges] strictStep (Task 33.2g, D.170): a step that misses the end - a warning, or an error
+        self.type_checker.strict_step = getattr(ranges_config, 'strict_step', False)
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 

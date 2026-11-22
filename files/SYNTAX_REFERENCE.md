@@ -84,6 +84,8 @@ void function main()
     int n = 3
     for i in 0...n - 1                      // any whole-number values
         print("{i}")                        // 0 1 2
+    for i in 10...0 step -5                 // a step; a negative one counts down
+        print("{i}")                        // 10 5 0
     char c = 'q'
     string kind = match c
         'a'...'z' : "lower"                 // characters too
@@ -91,10 +93,15 @@ void function main()
         else : "other"
     print("{@1} {@2}", grade(95), kind)     // A lower
 ```
-`a...b` counts up from a to b, both ends included - `range(a, b + 1)`; there is no step (`range(0, 10, 2)` has one).
-Written the wrong way round in numbers (`10...1`) it is an error that suggests `range(10, 0, -1)`; from values it
-runs no turns when a is larger, as `range` does. A case `0...9` matches whole numbers or characters from its first
-end to its last; it may not overlap another case.
+`a...b` counts from a to b, both ends included - `range(a, b + 1)`; the end and the step are worked out once,
+before the first turn. `step` (D.170) - a word only after a range, so a variable may still be called step: only the
+values within the range run - `0...13 step 5` gives 0 5 10, with a warning that 5 doesn't land on 13
+(`[ranges] strictStep = true` makes it an error); a negative step counts down (`10...0 step -2`). A step of 0 is a
+compile error when written, a RangeError while running when it comes from a value - a loop that never ends can't be
+made. Numbers written against the step's way (`10...1`, `1...10 step -2`) are an error that says what to write;
+from values such a range runs no turns, as `range` does. `range(a, b, step)` leaves b out and counts down with a
+negative step. Decimal and money ranges come with Task 47.6. A case `0...9` matches whole numbers or characters
+from its first end to its last; it may not overlap another case.
 
 #### Module variables and constants: shared by a module's functions
 

@@ -1881,24 +1881,39 @@ class Parser:
         return None
 
     def _range_after(self, start):
-        """`for i in 1...10` (Task 33.2f, SYN.034): both ends included - `range(1, 10 + 1)`. Numbers
-        written the wrong way round (`10...1`) are an error; counting down is `range(10, 0, -1)`."""
+        """`for i in 1...10` (Task 33.2f, SYN.034, D.169): both ends included - a range call marked
+        `inclusive`. `step` (33.2g, D.170) - a word only here: `0...13 step 5` (0 5 10), a negative step
+        counts down (`10...0 step -2`); a written step of 0 is an error, one from a value is checked
+        while running. Numbers written against the step's way (`10...1`) are an error."""
         if not self.check(TokenType.RANGE):
             return start
         dots = self.advance()
         end = self.parse_expression()
+        step = None
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'step':
+            self.advance()
+            step = self.parse_expression()
         first, last = self._written_int(start), self._written_int(end)
-        if first is not None and last is not None and first > last:
-            raise ParserError(dots, f"{first}...{last} counts down - a range counts up, both ends included; "
-                                    f"write range({first}, {last - 1}, -1) to count down")
-        if last is not None:
-            after = LiteralExpr(location=end.location, value=last + 1, type_hint='int')
-        else:
-            after = BinaryExpr(location=end.location, left=end, operator='+',
-                               right=LiteralExpr(location=end.location, value=1, type_hint='int'))
+        stride = 1 if step is None else self._written_int(step)
+        if stride == 0:
+            raise ParserError(dots, "A range's step can't be 0 - the loop would never end")
+        if first is not None and last is not None and stride is not None:
+            if step is None and first > last:
+                raise ParserError(dots, f"{first}...{last} counts down - write {first}...{last} step -1 "
+                                        f"(or range({first}, {last - 1}, -1))")
+            if stride > 0 and first > last:
+                raise ParserError(dots, f"{first}...{last} step {stride} never starts - a positive step counts up; "
+                                        f"write step -{stride} to count down")
+            if stride < 0 and first < last:
+                raise ParserError(dots, f"{first}...{last} step {stride} never starts - a negative step counts "
+                                        f"down; write step {-stride} to count up")
+        arguments = [start, end] + ([step] if step is not None else [])
         call = CallExpr(location=start.location, callee=IdentifierExpr(location=start.location, name='range'),
-                        arguments=[start, after])
+                        arguments=arguments)
         call.written_range = True
+        call.inclusive = True                    # both ends - the C loop compares with <= / >=
+        if first is not None and last is not None and stride is not None:
+            call.range_numbers = (first, last, stride)      # all written: the step checked on the end
         return call
 
     def parse_foreach_statement(self) -> ASTNode:

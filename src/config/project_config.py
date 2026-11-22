@@ -246,6 +246,17 @@ class GenericsConfig:
 
 
 @dataclass
+class RangesConfig:
+    """Ranges in a loop: `for i in 0...13 step 5` (Task 33.2g, D.170).
+
+    Attributes:
+        strict_step: a step that doesn't land on the range's end - false (default) a warning, only the
+            values within the range run; true a compile error
+    """
+    strict_step: bool = False
+
+
+@dataclass
 class MemoryConfig:
     """Memory (Task 48, files/Ownership.md - Decisions.md D.014, D.102).
 
@@ -347,6 +358,7 @@ class ProjectConfig:
     collections: CollectionsConfig = field(default_factory=CollectionsConfig)
     arrays: ArraysConfig = field(default_factory=ArraysConfig)
     generics: GenericsConfig = field(default_factory=GenericsConfig)
+    ranges: RangesConfig = field(default_factory=RangesConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
@@ -640,6 +652,19 @@ def _load_generics_section(data: dict, config_path: str) -> GenericsConfig:
             raise ProjectConfigError(f"{config_path}: generics.enabled must be true or false, got {value!r}")
         generics.enabled = value
     return generics
+
+
+def _load_ranges_section(data: dict, config_path: str) -> RangesConfig:
+    """Parse and validate the [ranges] section (Task 33.2g, D.170)."""
+    ranges = RangesConfig()
+    section = _require_table(data, "ranges", config_path)
+    for key, value in section.items():
+        if key != "strictStep":
+            raise ProjectConfigError(f"{config_path}: unknown setting ranges.{key} (known: ['strictStep'])")
+        if not isinstance(value, bool):
+            raise ProjectConfigError(f"{config_path}: ranges.strictStep must be true or false, got {value!r}")
+        ranges.strict_step = value
+    return ranges
 
 
 OWNERSHIP_VALUES = {"strict": "move", "relaxed": "share"}   # Task 48.11 (D.124)
@@ -943,6 +968,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         collections=_load_collections_section(data, config_path),
         arrays=_load_arrays_section(data, config_path),
         generics=_load_generics_section(data, config_path),
+        ranges=_load_ranges_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),

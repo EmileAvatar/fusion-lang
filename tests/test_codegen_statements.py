@@ -386,7 +386,9 @@ class TestForLoops:
         gen.visit_ForStmt(node)
 
         output = '\n'.join(gen.output)
-        assert 'for (int i = start; i < end; i += 1) {' in output
+        # the end worked out once, before the first turn (33.2g)
+        assert 'int fusion_end_1 = end;' in output
+        assert 'for (int i = start; i < fusion_end_1; i += 1) {' in output
 
     def test_for_single_arg_range(self):
         """Test for with single arg range: for i in range(10) -> for (int i = 0; i < 10; i += 1)"""

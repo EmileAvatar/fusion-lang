@@ -25,7 +25,7 @@ Syntax
    - Any number of values     int... numbers - values one by one, an array or a List; a List inside
    - Lambdas                  function values; func(int x) : x * 2
    - Control flow             if / while / for / for i in range(a, b, step); numbers as conditions
-   - Ranges                   for i in 1...10 (both ends); case 0...9 / 'a'...'z' in a match
+   - Ranges                   for i in 1...10 (both ends); 0...13 step 5, 10...0 step -2; case 0...9 in a match
    - Conditional              (cond) ? a : b
    - match                    match, fall match, match as a value, _ for unused fields
    - let / var                type from the value; let set once

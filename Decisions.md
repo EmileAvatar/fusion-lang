@@ -74,7 +74,7 @@ SYN.030 [BUILT] `unchecked { }` - whole-number `+ - *` inside wrap around on pur
 SYN.031 [POSTPONED] `'` comments (VB style) - off so `'c'` works; maybe only at the start of a line
 SYN.032 [DESIGN] `#Region` / `#End Region`; documentation comments; documentation written from them
 SYN.033 [DESIGN] `loop { } end loop` with safety checks (`check` blocks - Task 56); loop labels; an iteration limit (`[safety] maxIterations`)
-SYN.034 [PARTIAL] The `...` operator: variadic `string... args` of main and `int... numbers` / `T... items` built - of one type, or a pack of types (33.2e); ranges `1...100` built (33.2f, D.169); spread `[...a, ...b]` designed
+SYN.034 [PARTIAL] The `...` operator: variadic `string... args` of main and `int... numbers` / `T... items` built - of one type, or a pack of types (33.2e); ranges `1...100` with a step built (33.2f, 33.2g, D.169, D.170); decimal ranges planned (47.6); spread `[...a, ...b]` designed
 SYN.035 [DESIGN] `**` (power) - read by the lexer, not built; annotations `@name(...)`
 SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints
 SYN.037 [DESIGN] Semicolons accepted; reading code written in other languages' syntax

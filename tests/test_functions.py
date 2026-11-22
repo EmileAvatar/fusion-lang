@@ -165,7 +165,7 @@ def test_unsized_array_parameter_gets_hidden_length():
     assert 'int fu_sum(int* values, int fusion_len_values);' in c_code   # forward declaration
     assert 'int fu_sum(int* values, int fusion_len_values) {' in c_code  # definition
     assert 'fu_sum(a, 3)' in c_code
-    assert 'i < fusion_len_values' in c_code                            # len(values)
+    assert '= fusion_len_values;' in c_code                             # len(values) - the end, once (33.2g)
 
 
 def test_sized_array_parameter_stays_c_array():

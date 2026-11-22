@@ -162,6 +162,12 @@
     </setting>
   </section>
 
+  <section name="ranges" description="Ranges in a loop: for i in 0...13 step 5">
+    <setting name="strictStep" type="bool" default="false" task="33.2g">
+      <description>A range's step that doesn't land on its end (0...13 step 5 gives 0 5 10): false - a warning, only the values within the range run; true - a compile error (D.170)</description>
+    </setting>
+  </section>
+
   <section name="memory" description="How values are owned (files/Ownership.md)">
     <setting name="ownership" type="choice" default="strict" task="48.11">
       <description>strict (the default, the safest): every ownership rule - Car b = a hands the object over (a can't be used until it gets a new value), one writer, a borrow never stored or returned; relaxed: Car b = a shares one object, the rules loosened - for a library with no ownership model (a GC alongside it) or manual memory. byVal copies and byRef borrows in both. Replaces assignment (move / share), still read with a warning (D.124)</description>
