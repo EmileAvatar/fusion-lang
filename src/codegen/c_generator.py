@@ -343,6 +343,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Generated C code for this node
         """
+        if getattr(node, 'as_array_collection', None) is not None and not getattr(node, 'wrapping_list', False):
+            return self.array_collection_code(node)    # int[3] as a Collection<int> (45.10)
         if getattr(node, 'as_list', None) is not None and not getattr(node, 'wrapping_list', False):
             return self.list_ext_code(node)          # List<int> xs = Ring() (33.3d2)
         method_name = f'visit_{type(node).__name__}'

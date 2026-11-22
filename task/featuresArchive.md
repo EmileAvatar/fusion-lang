@@ -810,3 +810,9 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 				(-O2: 60 / 61 ms on a List-heavy loop); a loop's copy freed however the loop ends (error, throw, return,
 				break); changing it while looping a ModifiedWhileLoopingError, as for Fusion's own (the List given is
 				watched, not the copy)
+
+#### 45 Arrays - 45.10 done after the task closed (2026-11-22)
+	[DONE 2026-11-22] 45.10 An array as a Collection<T> value (D.090): reading works, removing a ReadOnlyError; a growable
+		array as itself (adding grows it), a plain / fixed one as a copy (adding refused too); fixed on the way: a growable
+		array as a Collection used the List's table, so removing through it worked - tests/test_array_collection.py,
+		example syntax_array_collection

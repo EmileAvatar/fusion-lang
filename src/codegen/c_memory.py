@@ -902,6 +902,8 @@ class MemoryManagementMixin:
         otherwise it's freed at the end of the statement."""
         if getattr(expr, 'as_list', None) is not None and not getattr(expr, 'wrapping_list', False):
             return True   # a List made around a List of your own - new, count 1 (33.3d2)
+        if getattr(expr, 'as_array_collection', None) is not None and not getattr(expr, 'wrapping_list', False):
+            return True   # an array's values copied for a Collection - new, count 1 (45.10)
         if isinstance(expr, BinaryExpr):
             return expr.operator == '+' and self.is_managed(getattr(expr, 'inferred_type', None))
         if isinstance(expr, InterpolatedStringExpr):

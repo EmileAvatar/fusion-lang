@@ -268,7 +268,6 @@ then each point is decided and solved completely. One line per section and per l
 #### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [DONE 2026-11-22] [index](#index)
 	Done - every line in task/featuresArchive.md; the forms and what each can do: files/Arrays.md 8c. Left for later:
 	[POSTPONED - when needed] 45.14 A struct field or module variable `fixed`
-	[ ] 45.10 An array as a Collection<T> value (from 32.6) - removing blocked; unblocked by Task 33 (2026-11-22)
 	[POSTPONED - when needed] 45.12c A part of strings / objects passed; returning any size (heap); copying a part of
 		an any-size parameter; `==` on parts
 	[POSTPONED - when needed] 45.12e A heap array (growable, or plain given another shape) given whole to a new array or

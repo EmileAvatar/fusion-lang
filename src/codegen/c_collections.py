@@ -117,6 +117,7 @@ class CollectionsMixin:
             T = self.map_type(element)
             copy = (lambda code: self.copy_code(element, code)) if self.is_managed(element) else (lambda code: code)
             it = f'{name}_iter'
+            kind_name = f'{type_text(element)}[]' if name.startswith('fusion_array_') else f'List<{type_text(element)}>'
             lines += [
                 f'// {kind and "List"}<{type_text(element)}> as a Collection and its iterator (Task 32.6)',
                 f'typedef struct {{ int fusion_count; const fusion_class_t* fusion_class; {name} l; int at; }} {it};',
@@ -137,6 +138,7 @@ class CollectionsMixin:
                 f'static void* {name}_c_iterator(void* p) {{ {it}* o = ({it}*)fusion_alloc(sizeof({it})); '
                 f'o->fusion_count = 1; o->fusion_class = &fusion_class_{it}; o->l = {name}_retain(({name})p); '
                 f'o->at = 0; FUSION_OBJECT_MADE(); return o; }}',
+            ] + (self._array_collection_changes(name, element, C, I) if name.startswith('fusion_array_') else [
                 f'static bool {name}_c_add(void* p, {T} v) {{ {name}_add(({name})p, {copy("v")}); return true; }}',
                 f'static bool {name}_c_remove(void* p, {T} v) {{ return {name}_remove(({name})p, v); }}',
                 f'static int {name}_c_length(void* p) {{ return (({name})p)->len; }}',
@@ -151,7 +153,7 @@ class CollectionsMixin:
                 f'static bool {name}_c_keepOnly(void* p, void* items) {{ {name} l = ({name})p; bool any = false; '
                 f'for (int k = l->len - 1; k >= 0; k--) if (!{C}__contains(items, l->data[k])) '
                 f'{{ {name}_removeAt(l, k, NULL); any = true; }} return any; }}',
-                f'static void {name}_c_clear(void* p) {{ {name}_clear(({name})p); }}',
+                f'static void {name}_c_clear(void* p) {{ {name}_clear(({name})p); }}']) + [
                 f'static void {name}_c_release(void** p) {{ {name}_free(({name}*)p); }}',
                 f'static void* {name}_c_clone(void* p) {{ return {name}_clone(({name})p); }}',
                 f'static const fusion_fn {name}_c_fns[] = {{ (fusion_fn){name}_c_iterator, (fusion_fn){name}_c_add, '
@@ -159,11 +161,36 @@ class CollectionsMixin:
                 f'(fusion_fn){name}_c_contains, (fusion_fn){name}_c_addAll, (fusion_fn){name}_c_removeAll, '
                 f'(fusion_fn){name}_c_keepOnly, (fusion_fn){name}_c_clear }};',
                 f'static const fusion_itable_t {name}_c_tables[] = {{ {{ fusion_iface_{C}, {name}_c_fns }} }};',
-                f'static const fusion_class_t fusion_class_{name} = {{ "List<{type_text(element)}>", NULL, '
+                f'static const fusion_class_t fusion_class_{name} = {{ "{kind_name}", NULL, '
                 f'{name}_c_release, {name}_c_clone, 1, {name}_c_tables }};',
                 f'static const void* {name}_class(void) {{ return &fusion_class_{name}; }}',
             ]
         return lines
+
+    def _array_collection_changes(self, name: str, element, C: str, I: str) -> list:
+        """An array as a Collection (45.10, D.090): its own implementation - removing refused (a ReadOnlyError); adding
+        grows a growable array, and is refused on a fixed array's copy (flag 8: an array keeps its size)."""
+        T = self.map_type(element)
+        copy = (lambda code: self.copy_code(element, code)) if self.is_managed(element) else (lambda code: code)
+        keeps = ('fusion_fail(FUSION_KIND_ReadOnlyError, NULL, "an array keeps its items - %s isn\'t possible on an '
+                 'array (D.090)", "{what}");')
+        size = ('fusion_fail(FUSION_KIND_ReadOnlyError, NULL, "an array keeps its size - %s isn\'t possible on an '
+                'array (D.090)", "{what}");')
+        return [
+            f'static bool {name}_c_add(void* p, {T} v) {{ {name} l = ({name})p; if (l->flags & 8) {{ '
+            f'{size.format(what="add")} return false; }} {name}_add(l, {copy("v")}); return true; }}',
+            f'static bool {name}_c_remove(void* p, {T} v) {{ (void)p; (void)v; {keeps.format(what="remove")} return false; }}',
+            f'static int {name}_c_length(void* p) {{ return (({name})p)->len; }}',
+            f'static bool {name}_c_isEmpty(void* p) {{ return (({name})p)->len == 0; }}',
+            f'static bool {name}_c_contains(void* p, {T} v) {{ return {name}_contains(({name})p, v); }}',
+            f'static bool {name}_c_addAll(void* p, void* items) {{ {name} l = ({name})p; if (l->flags & 8) {{ '
+            f'{size.format(what="addAll")} return false; }} void* i = {C}__iterator(items); bool any = false; '
+            f'while ({I}__hasNext(i)) {{ {name}_add(l, {I}__next(i)); any = true; }} fusion_release_{I}(&i); return any; }}',
+            f'static bool {name}_c_removeAll(void* p, void* items) {{ (void)p; (void)items; '
+            f'{keeps.format(what="removeAll")} return false; }}',
+            f'static bool {name}_c_keepOnly(void* p, void* items) {{ (void)p; (void)items; '
+            f'{keeps.format(what="keepOnly")} return false; }}',
+            f'static void {name}_c_clear(void* p) {{ (void)p; {keeps.format(what="clear")} }}']
 
     def map_class_lines(self, name: str, kind) -> list:
         """A Map<K, V> (Task 32.6, D.092, D.095): a Collection<Entry<K, V>> of its entries, and
@@ -534,6 +561,10 @@ class CollectionsMixin:
                 f'{T}* tmp = ({T}*)fusion_alloc(sizeof({T}) * (size_t)l->len);',
                 f'{name}_msort(l->data, tmp, l->len, cmp);',
                 'fusion_dealloc(tmp);'],
+            # an array's values for a Collection (45.10): strings copied, objects shared
+            f'{name} {name}_shallow({T} const* items, int n)': [
+                f'{name} r = {name}_new();', f'{name}_grow(r, n);',
+                f'for (int i = 0; i < n; i++) r->data[i] = {copy("items[i]")};', 'r->len = n;', 'return r;'],
             # a List of your own behind a List<E> (33.3d2, D.175): o and its core five (ops)
             f'{name} {name}_ext(void* o, const {name}_ops* ops)': [
                 f'{name} r = {name}_new();', 'r->ext = o; r->ops = ops;', 'return r;'],
@@ -577,6 +608,21 @@ class CollectionsMixin:
             self.list_protos.append(f'static inline {signature};')
             self.list_bodies += [f'static inline {signature} {{'] + \
                 [f'    {line}' for line in body if line] + ['}']
+
+    def array_collection_code(self, node) -> str:
+        """`int[3]` given as a Collection<int> (45.10, D.090): its values in an array block - strings copied, objects
+        shared, as a List's copy - marked fixed (flag 8), so adding through the Collection is refused as removing is."""
+        kind = node.as_array_collection
+        block = ListType(location=node.location, element_type=kind.element_type)
+        block.array_form = True
+        name = self.list_c_name(block)
+        node.wrapping_list = True
+        try:
+            items, count = self._array_operand(node, kind)
+        finally:
+            node.wrapping_list = False
+        code = f'__extension__ ({{ {name} fusion_c = {name}_shallow({items}, {count}); fusion_c->flags |= 8; fusion_c; }})'
+        return code if id(node) in self.consumed else self.fresh_temporary(code, block)
 
     def list_ext_code(self, node) -> str:
         """`List<int> xs = Ring()` (33.3d2, D.175): a List block around the object - its core five reached

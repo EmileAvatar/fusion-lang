@@ -96,7 +96,8 @@ class Settings implements Default {
 // isn't changed inside the loop - your own only with [collections] allowChangeWhileLooping.
 // [built 32.6] a List is a Collection<T> value: Collection<int> c = xs (D.090)
 // [built 32.6] a Map is a Collection<Entry<K, V>>; keys() / values() are borrowed views (D.092)
-// [designed 45.10] an array too (once on the heap; removing an item blocked)
+// [built 45.10] an array too - reading works, removing a ReadOnlyError (D.090); a growable one given as itself
+// (adding grows it), a plain / fixed one as a copy (adding refused too): Collection<int> c = a
 // ---------------------------------------------------------------------------------------------
 class Team implements Collection<Person> {
     List<Person> people

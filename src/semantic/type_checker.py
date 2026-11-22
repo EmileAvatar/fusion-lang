@@ -215,6 +215,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             from src.parser.parser import type_text
             if expected.name == f'Collection<{type_text(actual.element_type)}>':
                 return True
+        # An array where Collection<X> is expected - its own implementation, removing blocked (45.10, D.090)
+        if isinstance(actual, ArrayType) and getattr(self.struct_declaration(expected), 'is_interface', False):
+            from src.parser.parser import type_text
+            if expected.name == f'Collection<{type_text(actual.element_type)}>':
+                return True
         # A Map<K, V> where Collection<Entry<K, V>> is expected - its entries (32.6, D.092)
         if isinstance(actual, MapType) and getattr(self.struct_declaration(expected), 'is_interface', False):
             from src.parser.parser import type_text
@@ -416,6 +421,17 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             return expected
         value.stored_as = expected       # Garage<Car> g = Garage(): a generic's types from here (D.171, 33.5)
         result = self.visit(value)
+        if isinstance(result, ArrayType) and getattr(self.struct_declaration(expected), 'is_interface', False) \
+                and self.types_compatible(expected, result):
+            # int[3] given as a Collection<int> (45.10, D.090): a copy of its values - a stack array can't
+            # outlive its function; nothing changes through it, so the copy never differs
+            if getattr(result, 'dims', None) or getattr(result, 'view', False):
+                self.errors.append(SemanticError(
+                    f"An array of many dimensions as a {self.type_to_string(expected)} comes later - give "
+                    f"its toList() (45.10)", value.location))
+            else:
+                value.as_array_collection = result
+            return expected
         impl = self.list_implementation(expected, result)
         if impl is not None:             # List<int> xs = Ring(): the code generator wraps it in a List (33.3d2)
             value.as_list, value.list_class, value.list_class_type = expected, impl, result

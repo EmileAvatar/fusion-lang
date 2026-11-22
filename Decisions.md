@@ -121,7 +121,7 @@ COL.002 [PARTIAL] Arrays in three forms: plain (a new size only by replacing), `
 COL.003 [BUILT] `List<T>`, `Map<K, V>` (also `Dictionary`) - never null, just empty
 COL.004 [BUILT] Lists and Maps are counted references; `byVal` copies, `byRef` shares
 COL.005 [BUILT] `foreach (T x in c)` / `foreach x in c` - arrays, Lists, Maps, a Collection<T> class (32.4)
-COL.006 [PARTIAL] `Collection<T>` and `Iterator<T>` - a class of your own, a List and a Map (of `Entry<K, V>`) built (32.4, 32.6); arrays planned (45.10)
+COL.006 [BUILT] `Collection<T>` and `Iterator<T>` - a class of your own, a List, a Map (of `Entry<K, V>`) and an array (32.4, 32.6, 45.10)
 COL.007 [BUILT] List / Map options in the set-up block: noDuplicates, noNull, readOnly - a DuplicateError / NullError / ReadOnlyError (32.14)
 COL.008 [PLANNED] A Collections module: RingBuffer first (43.4)
 COL.009 [BUILT] `toList`, `toCSV`
@@ -378,7 +378,7 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.087 | An interface can build on several: `interface D implements A, B, C` | small interfaces combined into larger ones | CLS.006 | 2026-10-31 | files/taskSummary2.md (32.5) | ACTIVE (planned) |
 | D.088 | A copy of an object is usually a new default object with each field set byVal from the original; `Cloneable` and a written `clone()` only for a `nocopy` field | a copy works without writing `clone()` | CLS.008 | 2026-10-31 | files/Object_Lifetime.md 4b | ACTIVE (planned) |
 | D.089 | `Iterator<T>`: `bool hasNext()`, `T next()`; a collection gives a new one from `iterator()` for each loop (a loop inside a loop works); `foreach` needs it - for your own classes too | a new iterator per loop: a loop inside a loop works | COL.006 | 2026-11-01 | files/Arrays.md 6 | ACTIVE |
-| D.090 | Arrays, Lists and Maps implement Collection<T> and Iterator<T> - each its own implementation: an array's blocks removing an item, a List's / Map's allows it (code to an interface) | code to an interface (D.001); each kind keeps its own rules | COL.006 | 2026-11-01 | files/Arrays.md 6 | ACTIVE (planned - 32.6) |
+| D.090 | Arrays, Lists and Maps implement Collection<T> and Iterator<T> - each its own implementation: an array's blocks removing an item, a List's / Map's allows it (code to an interface) | code to an interface (D.001); each kind keeps its own rules | COL.006 | 2026-11-01 | files/Arrays.md 6 | ACTIVE |
 | D.091 | `Iterator<T>.next()` past the end is not an error for what can be null - an error is for a genuine failure, never to steer a loop; `hasNext()` is the way to check, and Fusion's own code uses it | errors are for failures only; `hasNext()` is the check | COL.006 | 2026-11-01 | files/Arrays.md 6 | ACTIVE |
 | D.092 | A Map is a `Collection<Entry<K, V>>` (each entry its key and value); `keys()` and `values()` give its keys and its values as borrowed collections | a Map works with every Collection function | COL.006 | 2026-11-01 | files/Arrays.md 5 | ACTIVE |
 | D.093 | Struct fields: a comma is needed between fields on one line; on new lines it isn't needed (ignored if written) | one line reads like a list; new lines need nothing | STC.008 | 2026-11-01 | files/SYNTAX_REFERENCE.md | ACTIVE |

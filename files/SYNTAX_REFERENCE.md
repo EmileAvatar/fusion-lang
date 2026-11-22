@@ -884,6 +884,36 @@ the removed item back - the caller owns it (a string or object lives on). Nothin
 inserted in the middle, so an item never moves - a List does that. It lives on the heap; it is passed
 to an `int[]` parameter like any array. `fixed` can't go with it.
 
+#### An array as a `Collection<T>`
+
+<!-- example: syntax_array_collection | task: 45.10 | folder: 04_arrays -->
+```fusion
+int function total(Collection<int> c)
+    int sum = 0
+    foreach n in c
+        sum = sum + n
+    return sum
+
+void function main()
+    int[3] a = [1, 2, 3]
+    print("{@1}", total(a))                           // 6 - an array where a Collection<int> is expected
+    Collection<int> c = a                             // a copy of its values
+    print("{@1} {@2}", c.length(), c.contains(2))     // 3 true
+    try
+        c.remove(1)                                   // an array keeps its items (D.090)
+    catch ReadOnlyError e
+        print(e.message)
+    int:[] g = [5, 6]
+    Collection<int> grows = byRef g                   // a growable array: the array itself
+    grows.add(7)                                      // adding grows it
+    print("{@1}", g.len())                            // 3
+```
+An array is a `Collection<T>` (D.090) with an implementation of its own: reading works - `iterator()`, `length()`,
+`isEmpty()`, `contains()`, `foreach` - and removing is a ReadOnlyError (`remove`, `removeAll`, `keepOnly`, `clear`). A
+growable array (`int:[]`) is given as itself, so `add` grows it; a plain or fixed one (`int[3]`) is given as a copy of its
+values - a stack array can't outlive its function - so `add` is refused too (an array keeps its size). Strings in the
+copy are copied, objects shared. An array of 2 or 3 dimensions: give its `toList()`.
+
 #### Structs (fields only, copied by value)
 
 <!-- example: syntax_structs | task: 18.2 | folder: 07_structs -->

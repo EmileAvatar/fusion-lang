@@ -7589,3 +7589,20 @@ strings, structs and objects (the leak check on every one), and a condition brok
 **Not in this task:** generic interfaces of your own (`interface Stack<T>`) - after 33.2c if easy, else later;
 variance (`List<Dog>` as `List<Animal>`) - no; generics in the self-hosted compiler - Task 35
 - Done 2026-11-22: 33.2 example (examples/09_generics/generics_demo.fusion); Task 33 closed
+
+### 45.10 - plan (approved and built 2026-11-22; A - ReadOnlyError): an array as a `Collection<T>` value (D.090 - an array's own implementation blocks remove)
+**Settings:** none. Today a growable array (`int:[]`, on the heap - a block like a List's) is already taken where a
+`Collection<int>` is expected, with the List's own table - so removing through the Collection works on it, which D.090
+forbids; a plain or fixed array (`int[3]`, on the stack) isn't taken at all.
+- **A growable array** given where a `Collection<T>` is expected: the array itself (shared, as a List is), with an array's
+  own table - `iterator`, `length`, `isEmpty`, `contains`, `add` (it grows) work; `remove`, `removeAll`, `keepOnly`,
+  `clear` a ReadOnlyError "an array keeps its items - remove isn't possible on an array (D.090)"
+- **A plain or fixed array** (`int[3]`, `fixed int[3]`): a copy of its values in an array block - a stack array can't
+  outlive its function, so the Collection holds a copy; the same table, and `add` / `addAll` a ReadOnlyError too ("an
+  array keeps its size") - nothing through the Collection changes, so the copy can't be seen to differ from the array
+- `arr.iterator()` on a one-dimension array - an `Iterator<T>` over it (D.090: arrays answer Iterator<T> too)
+- arrays of 2 or 3 dimensions as a Collection: an error "comes later - give toList()"
+- tests: each Collection function on each form, a `foreach` over the Collection, a Collection parameter given an array,
+  strict and relaxed, the leak check; example syntax_array_collection (04_arrays); Arrays.md truth table row (Rule 4c)
+- **To confirm:** the error kind - ReadOnlyError (exists; "this can't be changed that way") suggested; or a new one
+  (e.g. FixedSizeError) - a new error kind is a language change

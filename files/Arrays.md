@@ -303,9 +303,10 @@ class TeamIterator implements Iterator<Person>
 `c.iterator()` gives an `Iterator<int>`. **`hasNext()` is the way to check** - false when no
 items are left, so `foreach` never fails. `next()` past the end (D.094): **null** for a string,
 List, Map, object or enum - whatever the nullable settings say, null means no more items; a
-primitive (`int`, `double` ...) can't be null: an IndexError, "check hasNext() first". Still
-planned: an array (once on the heap - 45.10, its own implementation blocks removing an item)
-and a Map as `Collection<T>` values - a Map as `Collection<Entry<K, V>>`, with `keys()` and
+primitive (`int`, `double` ...) can't be null: an IndexError, "check hasNext() first". **Built (45.10,
+tests/test_array_collection.py):** an array as a `Collection<T>` - its own implementation: reading works, removing
+is a ReadOnlyError; a growable array given as itself (adding grows it), a plain or fixed one as a copy (adding
+refused too) - section 8c. Also a Map as a `Collection<T>` value - a Map as `Collection<Entry<K, V>>`, with `keys()` and
 `values()` giving its keys and values as borrowed collections (D.092).
 
 `foreach` goes over an array, list or map like `for x in`, but **promises not to change it**:
@@ -465,6 +466,9 @@ do instead, **later** is a compile error "comes later". The forms, as declared:
 | `copyPart` / `slice`, `a + b` | yes | yes | yes | error - one dimension only | error | error | later |
 | `setStorage(FLAT / null)` | error - 2 or 3 dimensions | error | error | yes (the default) | yes | yes | - |
 | `setStorage(RECT)` | - | - | - | later (D.164) | later | later | - |
+| Given as a `Collection<T>` (45.10, D.090) | yes - a copy | yes - a copy | yes - itself | later - `toList()` | later | later | later |
+| Its Collection's `add` / `addAll` | ReadOnlyError (keeps its size) | ReadOnlyError | yes - it grows | - | - | - | - |
+| Its Collection's `remove`, `removeAll`, `keepOnly`, `clear` | ReadOnlyError (keeps its items) | ReadOnlyError | ReadOnlyError | - | - | - | - |
 
 Found while building this table and fixed: `a.toList().len()` on 2 or 3 dimensions freed the new List twice;
 `a.add(4)` on a plain array said "only structs have fields".

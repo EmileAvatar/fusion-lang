@@ -1,0 +1,19 @@
+int function total(Collection<int> c)
+    int sum = 0
+    foreach n in c
+        sum = sum + n
+    return sum
+
+void function main()
+    int[3] a = [1, 2, 3]
+    print("{@1}", total(a))                           // 6 - an array where a Collection<int> is expected
+    Collection<int> c = a                             // a copy of its values
+    print("{@1} {@2}", c.length(), c.contains(2))     // 3 true
+    try
+        c.remove(1)                                   // an array keeps its items (D.090)
+    catch ReadOnlyError e
+        print(e.message)
+    int:[] g = [5, 6]
+    Collection<int> grows = byRef g                   // a growable array: the array itself
+    grows.add(7)                                      // adding grows it
+    print("{@1}", g.len())                            // 3

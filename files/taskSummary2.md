@@ -11,4 +11,5 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 ## Next
 
 - Task 33 (generics) complete 2026-11-22 - its plan in task/taskSummaryArchive.md
-- **Next Action:** the next task - for the user to choose (open: 45.10 an array as a Collection<T>, unblocked by Task 33; Task 47 long / money / decimal ranges; ...) - then its plan here first
+- Done 2026-11-22: 45.10 an array as a Collection<T> (D.090) - its plan in task/taskSummaryArchive.md
+- **Next Action:** the next task - for the user to choose (Task 47 long / money / decimal ranges; ...) - then its plan here first

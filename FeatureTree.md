@@ -62,6 +62,7 @@ Collections
    - Multi-dimension arrays   up to 3D; views cube[1]; foreach; walk orders; jagged rows
    - List<T>, Map<K, V>       never null, counted references; byVal copies, byRef shares
    - foreach                  over arrays, Lists, Maps, your own Collection<T> class
+   - Collection<T>            classes, Lists, Maps and arrays (removing blocked on an array)
    - Collection options       noDuplicates, noNull, readOnly
    - toList, toCSV            on arrays, Lists, structs
 
@@ -123,7 +124,6 @@ Settings
    - ... operator             string... args, int... numbers, T..., ranges 1...10 built; spread [...a] to do
    - Casts                    (Shape)aCircle built; some number casts left
    - Arrays in three forms    plain, fixed, growable - RECT storage later
-   - Collection<T>            classes, List, Map built; arrays as Collection later
    - Large arrays             stack limits built; buffers (RING etc.) after self-hosting
    - readonly at the call     built; library rows wait for Task 39
 ```
