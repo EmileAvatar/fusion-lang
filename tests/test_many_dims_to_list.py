@@ -8,6 +8,7 @@ growable array. Every program runs under the leak check.
 import pytest
 
 from src.config.project_config import ArraysConfig
+from tests.test_end_to_end import compile_and_run
 from tests.test_foreach import run
 from tests.test_structs import errors_of, main
 
@@ -79,3 +80,16 @@ def test_one_dimension_skips_null_slots():
 ])
 def test_wrong_uses(body, message):
     assert message in errors_of(main(body))
+
+
+@pytest.mark.parametrize('declaration', [
+    'int[2][2] a = [[1, 2], [3, 4]]',
+    'int[][][] a = [[[1, 2], [3, 4]], [[5, 6], [7, 8]]]',
+    'int:[][] a = [[1, 2], [3, 4]]',
+])
+def test_to_list_used_straight_away_is_freed_once(declaration):
+    # a.toList().len() - the new List held once, freed once (it was freed twice - found by 45.6)
+    source = f'void function main()\n    {declaration}\n    print("{{@1}}", a.toList().len())\n'
+    code, out, err = compile_and_run(source)
+    assert code == 0, out + err
+    assert out.strip().splitlines()[0] == '2'

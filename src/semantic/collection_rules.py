@@ -26,6 +26,7 @@ MUTATING_MAP_METHODS = {'remove', 'clear'}
 ARRAY_GROW_METHODS = ('add', 'insert', 'removeAt', 'remove', 'clear', 'removeLast', 'pop')
 # Copying a part (45.5, D.046) - on every array and List; slice / sliceAt are quick typing
 PART_METHODS = ('copyPart', 'slice', 'copyPartAt', 'sliceAt')
+JAGGED_LATER = PART_METHODS + ('toCSV',)       # on a jagged array - later (45.15); array methods, not a List's
 LIST_METHOD_NAMES = {'add', 'insert', 'removeAt', 'remove', 'clear', 'len', 'contains', 'indexOf',
                      'join', 'slice', 'copyPart', 'copyPartAt', 'sliceAt', 'sort', 'sortBy', 'filter', 'map', 'reduce', 'toList',
                      'noDuplicates', 'noNull', 'readOnly'}          # options: Task 32.14
@@ -248,11 +249,31 @@ class CollectionRulesMixin:
         if isinstance(receiver_type, ArrayType) and node.callee.member in PART_METHODS:
             self.checked_receivers.pop(id(receiver), None)      # a stack array's part (45.5)
             return self._part_call(node, receiver_type)
+        if isinstance(receiver_type, ArrayType) and node.callee.member in ARRAY_GROW_METHODS \
+                and self.user_method(node.callee.member, receiver_type) is None:
+            # a plain or fixed array doesn't grow (D.141) - say how to get one that does
+            self.checked_receivers.pop(id(receiver), None)
+            element = self.type_to_string(receiver_type.element_type)
+            if receiver_type.dims:
+                shape = ''.join('[]' for _ in receiver_type.dims)
+                what = 'an array of many dimensions' if receiver_type.growable else 'a plain or fixed array'
+                message = (f"{node.callee.member}: {what} doesn't grow by its items - a growable one "
+                           f"({element}:{shape}) grows with expand(ROWS, 1); rows of their own length: "
+                           f"setStorage(JAGG) (D.143, D.153)")
+            else:
+                message = (f"{node.callee.member}: a plain or fixed array doesn't grow or shrink - declare it "
+                           f"{element}:[] - it grows and shrinks at its end (add, removeLast) (D.141)")
+            self.errors.append(SemanticError(message, node.location))
+            return self._void(node)
         if not isinstance(receiver_type, ListType):
             return None
         self.checked_receivers.pop(id(receiver), None)
         method = node.callee.member
         element = receiver_type.element_type
+        if receiver_type.jagged and method in JAGGED_LATER:
+            self.errors.append(SemanticError(
+                f"{method} on a jagged array comes later - loop over it (foreach) instead (45.15)", node.location))
+            return self._void(node)
         if receiver_type.array_form:
             # a plain array on the heap (45.10): the Array class's methods only (D.141, D.142)
             if receiver_type.growable and method in ('add', 'removeLast', 'pop'):

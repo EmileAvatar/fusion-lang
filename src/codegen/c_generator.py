@@ -1790,8 +1790,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             if j > 0:
                 parts.append(f'{names[j - 1]}_add(fusion_l{j - 1}, fusion_l{j});')
         parts.append('fusion_l0; })')
-        code = ' '.join(parts)
-        return code if id(node) in self.consumed else self.fresh_temporary(code, node.inferred_type)
+        # the call that asked for it holds the new List in a temporary when nothing takes it over
+        # (visit_CallExpr) - held here as well it was freed twice (found by 45.6's truth table)
+        return ' '.join(parts)
 
     _DIM_NAMES = (('row', 'rows'), ('column', 'columns'), ('sheet', 'depth'))
 

@@ -44,6 +44,12 @@ def test_flat_right_after_the_declaration_runs(body):
     ('int:[][] j = [[1], [2, 3]]\nj.setStorage(JAGG)\nj.expand(ROWS, 1)', "has no method 'expand'"),
     ('int:[][] j = [[1], [2, 3]]\nprint("{@1}", j[0][0])\nj.setStorage(JAGG)', 'setStorage comes right after'),
     ('int[2][3] m\nm.setStorage(5)', 'the storage is FLAT, JAGG or null'),
+    # 45.6: growing an array that doesn't grow says how to get one that does
+    ('int[3] a\na.add(4)', "a plain or fixed array doesn't grow or shrink - declare it int:[]"),
+    ('fixed int[3] a\nprint("{@1}", a.removeLast())', "a plain or fixed array doesn't grow or shrink"),
+    ('int[2][2] m\nm.add([1, 2])', 'grows with expand(ROWS, 1)'),
+    ('int:[][] g = [[1, 2], [3, 4]]\ng.add([1, 2])', "an array of many dimensions doesn't grow by its items"),
+    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(JAGG)\nprint(j.toCSV())', 'toCSV on a jagged array comes later'),
     ('int[2][3] m\nm.setStorage()', 'setStorage takes one value'),
 ])
 def test_wrong_storage_is_an_error(body, message):
