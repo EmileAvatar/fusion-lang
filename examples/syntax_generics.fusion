@@ -6,6 +6,15 @@ T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]    // several types - th
 struct Pair<A, B>                                           // a generic struct (33.2b)
     A first
     B second
+    A function left() : first                               // methods too (33.2c)
+
+class Box<T>                                                // a generic class (33.2c)
+    T item
+    constructor(T item)
+        this.item = item
+    T function take() : item
+    void function put(T x)
+        item = x
 
 void function main()
     List<int> numbers = [3, 1, 2]
@@ -17,3 +26,6 @@ void function main()
     print("{@1} {@2}", valueOf(ages, "Ada"), second(numbers, names))      // 36 Ada
     Pair<int, string> p = Pair(1, "one")                                  // types from the values, or Pair<int, string>(...)
     print("{@1} {@2}", p.first, p.second)                                 // 1 one
+    Box<string> b = Box("hat")                                            // T from the constructor's values
+    b.put("cap")
+    print("{@1} {@2}", b.take(), p.left())                                // cap 1

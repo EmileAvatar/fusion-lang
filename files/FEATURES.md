@@ -272,8 +272,12 @@ then each point is decided and solved completely. One line per section and per l
 		types, `Pair__int__string`), `Pair(1, "a")` - the types from the values - or `Pair<int, string>(...)`; copies,
 		`==`, a field of another struct, nested, in a List, holding an object; `Pair<T, T1>` in a generic function's
 		signature - tests/test_generics.py, example syntax_generics
-		[ ] Later (33.2c): methods on a generic struct - an error today
-	[ ] 33.2c Generic classes `class Box<T>`
+		[DONE 2026-11-22] (33.2c) methods on a generic struct - copied with it
+	[DONE 2026-11-22] 33.2c Generic classes `class Box<T>`: fields, methods, constructors (several, `this(...)`), copied
+		with the class per set of types (`Box__int.take`); T from the constructor's values or written `Box<string>(...)`;
+		`Box(...)` / `Box<T>` inside its own methods mean the copy; objects in it, in a List, a class field; messages
+		name a copy as written (`Box<int>`) - tests/test_generics.py, example syntax_generics
+		[POSTPONED to 33.3] a generic class with a parent, interfaces or statics - an error for now
 	[ ] 33.2d Conditions: extends / : / Number / int / implements (D.167)
 	[ ] 33.2e `T...` and `int... numbers` - an array, a List or values (D.166)
 	[ ] 33.2 Example (was 16.3)

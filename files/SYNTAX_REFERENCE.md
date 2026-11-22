@@ -204,6 +204,15 @@ T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]    // several types - th
 struct Pair<A, B>                                           // a generic struct (33.2b)
     A first
     B second
+    A function left() : first                               // methods too (33.2c)
+
+class Box<T>                                                // a generic class (33.2c)
+    T item
+    constructor(T item)
+        this.item = item
+    T function take() : item
+    void function put(T x)
+        item = x
 
 void function main()
     List<int> numbers = [3, 1, 2]
@@ -215,6 +224,9 @@ void function main()
     print("{@1} {@2}", valueOf(ages, "Ada"), second(numbers, names))      // 36 Ada
     Pair<int, string> p = Pair(1, "one")                                  // types from the values, or Pair<int, string>(...)
     print("{@1} {@2}", p.first, p.second)                                 // 1 one
+    Box<string> b = Box("hat")                                            // T from the constructor's values
+    b.put("cap")
+    print("{@1} {@2}", b.take(), p.left())                                // cap 1
 ```
 A generic function names its types in `<...>` after its name, or uses T, K, V (Type, Key, Value - and T1, K2 ...)
 in its signature (D.166); a struct, class or enum can't be named T, K or V. At a call the types come from the
@@ -222,9 +234,11 @@ arguments, or are written - `first<int>(numbers)`; where they can't be worked ou
 One C function is made for each set of types used (`first__int`, `first__string`) - no run-time cost. Without a
 condition a T can be stored, passed, returned, compared with `==` and printed. A generic struct (`struct Pair<A, B>`)
 is made once per set of types used too - `Pair<int, string>`; its types come from the values given, or are written;
-it works as any struct (copies, `==`, a field of another struct, `List<Pair<int, string>>`). Conditions
-(`<T extends Number>`, `<T implements Comparable>`), generic classes, methods on a generic struct and `T...` come
-with the next parts of Task 33.
+it works as any struct (copies, `==`, a field of another struct, `List<Pair<int, string>>`). A generic class
+(`class Box<T>`) and a generic struct's methods are copied with it - `Box<int>` gets its own `take`, `put` and
+constructors; the types come from the constructor's values, or are written (`Box<string>("hat")`); inside its own
+methods `Box(...)` and `Box<T>` mean this copy. A generic class with a parent, interfaces or statics comes later.
+Conditions (`<T extends Number>`, `<T implements Comparable>`) and `T...` come with the next parts of Task 33.
 `[generics] enabled = false` turns them off (D.168).
 
 #### Lambdas and function values

@@ -112,6 +112,7 @@ class SemanticAnalyzer:
 
         self.errors: List[SemanticError] = []
         self.warnings: List[SemanticError] = []
+        self.functions_registered = False
 
     def register_generic_instance(self, instance) -> None:
         """A copy of a generic function (Task 33.2a), made while another function is being checked:
@@ -139,6 +140,9 @@ class SemanticAnalyzer:
             self.type_checker.visit(struct)
             for field in struct.fields:
                 self.type_checker._check_collection_type(field.field_type, field.location)
+            if self.functions_registered:        # else the function pass registers them (33.2c)
+                for method in struct.methods + list(getattr(struct, 'static_methods', None) or []):
+                    self.name_resolver.register_function(method)
         finally:
             self.symbol_table.current_scope = scope
 
@@ -271,6 +275,7 @@ class SemanticAnalyzer:
         for decl in ast.declarations:
             if isinstance(decl, FunctionDecl):
                 self.name_resolver.register_function(decl)
+        self.functions_registered = True
         from .symbol import Symbol
         for name, generic in ast.generic_functions.items():      # first(...) - a copy when used (33.2a)
             try:
@@ -392,7 +397,25 @@ class SemanticAnalyzer:
                 seen.add(str(error))
                 kept.append(error)
         self.errors[:] = kept
+        self._generic_names_as_written(ast)
         return len(self.errors) == 0
+
+    def _generic_names_as_written(self, ast) -> None:
+        """A message names a generic's copy as the developer wrote it: `Box__int` -> `Box<int>` (33.2c)."""
+        import re
+        shown = {}
+        for generic in list(getattr(ast, 'generic_structs', {}).values()) + \
+                list(getattr(ast, 'generic_functions', {}).values()):
+            for key, instance in (getattr(generic, 'instances', None) or {}).items():
+                shown[instance.name] = f"{generic.name}<{', '.join(key)}>"
+        if not shown:
+            return
+        pattern = re.compile(r'\b(' + '|'.join(re.escape(n) for n in sorted(shown, key=len, reverse=True)) + r')\b')
+        for error in self.errors + self.warnings:
+            message = pattern.sub(lambda m: shown[m.group(1)], error.message)
+            if message != error.message:
+                error.message = message
+                error.args = (error._format_message(),)
 
     def check_module_variable(self, decl: VarDeclStmt) -> None:
         """A variable or constant declared outside any function (Task 44.1)."""

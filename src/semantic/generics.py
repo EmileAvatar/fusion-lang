@@ -64,17 +64,27 @@ def take_generic_functions(program, enabled: bool) -> List[SemanticError]:
     program.generic_functions = {}
     program.generic_structs = {}
     kept = []
+    members = set()           # a generic class's methods - they go with it (33.2c)
     for decl in program.declarations:
+        if id(decl) in members:
+            continue
         if isinstance(decl, StructDecl) and getattr(decl, 'type_params', None):
             # struct Pair<A, B> (Task 33.2b): a copy per set of types, made when a type or a call needs it
             if not enabled:
                 errors.append(SemanticError(
                     f"'{decl.name}' is generic ({', '.join(decl.type_params)}) - generics are off in this project "
                     f"([generics] enabled = false, D.168)", decl.location))
-            if getattr(decl, 'methods', None):
+            # class Box<T> (33.2c): its methods and constructors are copied with it - taken out here
+            later = [what for what, there in (('a parent', getattr(decl, 'class_parent', None) or decl.parent),
+                                              ('interfaces', getattr(decl, 'interfaces', None)),
+                                              ('static members', getattr(decl, 'static_fields', None)
+                                               or getattr(decl, 'static_methods', None)
+                                               or getattr(decl, 'static_block', None))) if there]
+            if later:
                 errors.append(SemanticError(
-                    f"Methods on a generic struct ('{decl.name}') come with Task 33.2c - use a function taking "
-                    f"the struct for now", decl.location))
+                    f"A generic {'class' if decl.is_class else 'struct'} ('{decl.name}') with {later[0]} comes "
+                    f"later (Task 33.3) - only fields, methods and constructors for now", decl.location))
+            members.update(id(m) for m in decl.methods + getattr(decl, 'static_methods', []))
             decl.instances = {}
             program.generic_structs[decl.name] = decl
             continue
@@ -141,10 +151,46 @@ def struct_instance(program, generic: StructDecl, kinds: list, key: tuple, regis
     instance.generic_of = generic.name
     instance.generic_types = key
     instance.generic_kinds = kinds
+    members = instance.methods + list(getattr(instance, 'static_methods', None) or [])
+    _rename_own(members, generic.name, instance.name)   # Box inside its own methods: this copy (33.2c)
     generic.instances[key] = instance
-    program.declarations.insert(0, instance)        # before the functions that use it
+    # at the end: the function loop is walking the list (C puts structs in their own order)
+    program.declarations.append(instance)
+    program.declarations.extend(members)
     register(instance)
     return instance
+
+
+def _rename_own(node, old: str, new: str, seen=None) -> None:
+    """Inside a generic class's copied methods, its own name means the copy: the `this` parameter, a
+    constructor's result and object, `this(...)`, the method names `Box.get` -> `Box__int.get`."""
+    seen = set() if seen is None else seen
+    if id(node) in seen:
+        return
+    seen.add(id(node))
+    if isinstance(node, list):
+        for item in node:
+            _rename_own(item, old, new, seen)
+        return
+    if not is_dataclass(node) or isinstance(node, type):
+        return
+    if isinstance(node, StructType) and node.name == old and not getattr(node, 'type_args', None):
+        node.name = new
+    elif isinstance(node, IdentifierExpr) and node.name == old:
+        node.name = new
+    elif isinstance(node, FunctionDecl):
+        if node.name.startswith(old + '.'):
+            node.name = new + node.name[len(old):]
+        if getattr(node, 'method_of', None) == old:
+            node.method_of = new
+        if getattr(node, 'delegate', None) is not None:
+            _rename_own(node.delegate, old, new, seen)
+    for f in fields(node):
+        if f.name in ('location', 'declaration', 'callee_declaration', 'scope', 'inferred_type'):
+            continue
+        value = getattr(node, f.name)
+        if isinstance(value, list) or (is_dataclass(value) and not isinstance(value, type)):
+            _rename_own(value, old, new, seen)
 
 
 def _c_part(text: str) -> str:
@@ -161,10 +207,13 @@ class GenericsMixin:
         types), and the call checked as a call of that copy."""
         void = PrimitiveType(location=node.location, name='void')
         params = generic.type_params
-        if isinstance(generic, StructDecl) and len(node.arguments) != len(generic.fields) \
+        if isinstance(generic, StructDecl) and self._generic_parameters(generic, node) is None \
                 and getattr(node, 'type_args', None) is None:
+            what = 'a constructor taking ' if generic.is_class else 'a value for each field '
+            sizes = sorted({len(m.parameters) for m in generic.methods if getattr(m, 'is_constructor', False)}) \
+                if generic.is_class else [len(generic.fields)]
             self.errors.append(SemanticError(
-                f"'{generic.name}' is generic - give a value for each field ({len(generic.fields)}) so its types can "
+                f"'{generic.name}' is generic - give {what}({' or '.join(map(str, sizes))}) so its types can "
                 f"be worked out, or write them: {generic.name}<{', '.join('int' for _ in params)}>(...)",
                 node.location))
             return void
@@ -191,7 +240,7 @@ class GenericsMixin:
                 self.checked_receivers.pop(id(arg), None)
             if len(self.errors) > before:
                 return void                                  # an argument is wrong - said already
-            for (_, expected), kind in zip(self._generic_parameters(generic), actual):
+            for (_, expected), kind in zip(self._generic_parameters(generic, node), actual):
                 self._bind(expected, kind, bindings, params)
             missing = [p for p in params if p not in bindings]
             if missing:
@@ -208,11 +257,17 @@ class GenericsMixin:
         node.generic_of = generic.name
         return self._visit_call(node)
 
-    def _generic_parameters(self, generic):
+    def _generic_parameters(self, generic, node):
         """(name, type) pairs the arguments are matched against - a function's parameters, a struct's
-        fields (its constructor takes them in order)."""
+        fields (its constructor takes them in order), a class's constructor taking that many (33.2c);
+        None when no constructor takes that many."""
+        count = len(node.arguments)
+        if isinstance(generic, StructDecl) and generic.is_class:
+            maker = next((m for m in generic.methods if getattr(m, 'is_constructor', False)
+                          and len(m.parameters) == count), None)
+            return None if maker is None else [(p.name, p.param_type) for p in maker.parameters]
         if isinstance(generic, StructDecl):
-            return [(f.name, f.field_type) for f in generic.fields]
+            return [(f.name, f.field_type) for f in generic.fields] if count == len(generic.fields) else None
         return [(p.name, p.param_type) for p in generic.parameters]
 
     def _bind(self, expected, actual, bindings: dict, params) -> None:

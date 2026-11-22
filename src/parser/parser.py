@@ -2476,6 +2476,8 @@ class Parser:
         token has already been consumed."""
         class_token = self.previous()
         name = self.consume(TokenType.IDENTIFIER, "Expected the class name after 'class'").value
+        # class Box<T> - a generic class (Task 33.2c, D.166)
+        type_params = self._type_parameters() if self.check(TokenType.LESS) else None
         interfaces, parent = [], None
         while True:
             if self.match(TokenType.IMPLEMENTS):
@@ -2612,6 +2614,7 @@ class Parser:
                           static_fields=static_fields, static_block=static_block,
                           interfaces=interfaces, class_parent=parent)
         decl.interface_kinds = [k for k in self.generic_interfaces if k.name in interfaces]   # 32.4
+        decl.type_params = type_params
         self.attach_methods(decl, methods)
         for method in static_methods:                # no `this` (Task 32.2c)
             method.method_name, method.method_of = method.name, name

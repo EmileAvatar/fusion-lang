@@ -193,7 +193,83 @@ def test_generic_struct_mistakes(body, message):
     assert any(message in e for e in found), found
 
 
-def test_methods_on_a_generic_struct_come_later():
-    top = 'struct Box<T>\n    T item\n    T function fetch() : item\n\n'
+# ---------------------------------------------------------------- 33.2c generic classes, methods
+
+CLASSES = ('class Box<T>\n'
+           '    T item\n'
+           '    public int uses = 0\n'
+           '    constructor(T item)\n'
+           '        this.item = item\n'
+           '    constructor(T item, int uses)\n'
+           '        this(item)\n'
+           '        this.uses = uses\n'
+           '    T function take()\n'
+           '        uses = uses + 1\n'
+           '        return item\n'
+           '    void function put(T x)\n'
+           '        item = x\n'
+           '    bool function holds(T x) : item == x\n'
+           '    T function twice()\n'
+           '        take()\n'
+           '        return take()\n'
+           '    Box<T> function copyBox() : Box(item)\n\n'
+           'struct Pair<A, B>\n'
+           '    A first\n'
+           '    B second\n'
+           '    A function left() : first\n'
+           '    void function setLeft(A x)\n'
+           '        first = x\n\n'
+           'class Car\n'
+           '    public string name\n'
+           '    constructor(string name)\n'
+           '        this.name = name\n\n'
+           'class Shelf\n'
+           '    public Box<int> box = Box(4)\n\n'
+           'T function unbox(Box<T> b) : b.take()\n\n')
+
+
+@pytest.mark.parametrize('body, lines', [
+    ('Box<int> a = Box(5)\nint n = a.take()\na.put(7)\nprint("{@1} {@2} {@3} {@4}", n, a.take(), a.holds(7), a.uses)',
+     ['5 7 true 2']),
+    ('Box<string> s = Box<string>("hi")\nprint("{@1} {@2}", s.take(), unbox(s))', ['hi hi']),
+    ('Box<Car> c = Box(Car("Ada"))\nprint(c.take().name)\nc.put(Car("Bo"))\nprint(c.take().name)', ['Ada', 'Bo']),
+    ('Box<int> a = Box(1, 10)\nprint("{@1}", a.uses)', ['10']),
+    ('Box<string> s = Box("x")\nprint("{@1} {@2}", s.twice(), s.uses)', ['x 2']),
+    ('Box<int> a = Box(3)\nBox<int> b = a.copyBox()\nb.put(4)\nprint("{@1} {@2}", a.take(), b.take())', ['3 4']),
+    ('List<Box<int>> boxes = [Box(1), Box(2)]\nboxes.add(Box(3))\nprint("{@1}", boxes[2].take())', ['3']),
+    ('Shelf s = Shelf()\nprint("{@1}", s.box.take())', ['4']),
+    ('Pair<int, string> p = Pair(1, "one")\np.setLeft(9)\nprint("{@1} {@2}", p.left(), p.second)', ['9 one']),
+])
+def test_generic_classes(body, lines):
+    assert run(body, top=CLASSES) == lines
+
+
+def test_one_class_copy_with_its_methods():
+    program = parse(CLASSES + 'void function main()\n    Box<int> a = Box(1)\n    Box<int> b = Box(2)\n')
+    SemanticAnalyzer().analyze(program)
+    names = [d.name for d in program.declarations if d.name.startswith('Box')]
+    assert 'Box__int' in names and 'Box__int.take' in names and 'Box__int.new' in names
+    assert not any(n.startswith('Box.') for n in names)       # the generic's own methods aren't compiled
+    assert names.count('Box__int') == 1
+
+
+@pytest.mark.parametrize('body, message', [
+    ('Box<int> a = Box(1)\na.put("x")', "Box<int>"),                 # named as written, not Box__int
+    ('Box<int> a = Box(1)\nprint(a.item)', "Field 'item' of class 'Box<int>' is private"),
+    ('Box<int> a = Box(1, 2, 3)', "give a constructor taking (1 or 2)"),
+])
+def test_generic_class_mistakes(body, message):
+    found = errors_of(body, top=CLASSES)
+    assert any(message in e for e in found), found
+    assert not any('Box__' in e for e in found), found
+
+
+@pytest.mark.parametrize('top, what', [
+    ('class Car\n    int x\n\nclass Box<T> inherits Car\n    T item\n\n', 'a parent'),
+    ('interface Named\n    string function label()\n\nclass Box<T> implements Named\n    T item\n'
+     '    string function label() : "b"\n\n', 'interfaces'),
+    ('class Box<T>\n    T item\n    static int made = 0\n\n', 'static members'),
+])
+def test_a_generic_class_with_a_parent_comes_later(top, what):
     found = errors_of('print("x")', top=top)
-    assert any('Methods on a generic struct' in e for e in found), found
+    assert any(f"with {what} comes later" in e for e in found), found
