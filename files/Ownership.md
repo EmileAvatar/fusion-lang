@@ -151,6 +151,24 @@ borrowed; the whole struct moves or is borrowed. Arrays, Lists and Maps move in 
 | a function value capturing a borrow | an error (R5); capturing a moved value or a copy is fine |
 | a borrow alive while the owner is used | reading the owner: fine if the borrow only reads; changing it: an error |
 
+#### Truth table 3b: generics (Task 33 - D.166, D.170)
+
+A generic is copied once per set of types, so each copy follows the rules of its real types - the table says
+what that means where generics meet the rules above. Test: `tests/test_generics.py` (the leak check on each).
+
+| Case | Result | Tested |
+|---|---|---|
+| `first(cars)` - a `List<Car>` passed to a generic function | lent, as any List argument; `cars` usable after | yes |
+| `Box<Car> b = Box(car)` - an object into a generic class's field | the field shares the counted object (as a class field); `car` usable after under relaxed, moved under strict - the same as a non-generic class | partly (relaxed) |
+| `Pair<int, string> p = q` - a generic struct copied | a copy, as any struct; a field holding an object shared (D.097) | yes |
+| `b.put(x)` - a generic class's method changing `this` | the same as a class method: `this` is a reference | yes |
+| `parkAll(car, bus)` - values for `T... vs` (one type, or a condition's) | lent: the call's List retains each object, frees the List after; `car` usable after | yes |
+| `show(1, "two", car)` - a pack of types | lent: one parameter per value, passed as any argument; `car` usable after | yes |
+| `firstOf(names)` - a List for `T...` | lent, passed as it is (no copy) | yes |
+| `firstOf(arr)` - an array for `T...` | its values copied into a new List for the call (`toList`), freed after | yes |
+| `T x = item` inside a generic, T a class | the rule of the real type - under strict, a move out of a parameter is an error, as in any function | no - a test to add |
+| a generic returning a `T` held in a List (`T function first(List<T> xs) : xs[0]`) | the rule of returning an element - a copy of a value, a shared object | yes (objects: no - a test to add) |
+
 #### The error texts (48.1, 48.2)
 
 | Case | Message |

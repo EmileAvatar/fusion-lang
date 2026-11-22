@@ -2,7 +2,7 @@
 
 # Fusion Programming Language 🏗️
 
-Fusion is not a traditional programming language. It is a configurable compiler platform where syntax is optional, behavior is declarative, and execution is pluggable.
+Fusion is a configurable programming language and compiler platform. It separates language semantics from implementation strategies, allowing projects to configure how their code is compiled, executed, managed and optimized without changing what the code means.
 
 Instead of choosing a language and accepting its trade-offs, Fusion lets you assemble the language your project needs.
 
@@ -34,6 +34,18 @@ Fusion separates **how code is written** from **how it is compiled and executed*
 - Brace-based (C / Java-like)
 - Keyword-based (VB-style: `End if`, `End function`)
 
+The same function, three ways - one meaning:
+
+```fusion
+// 1. Indentation                  // 2. Braces                          // 3. End keywords
+int function bigger(int a, int b)  int function bigger(int a, int b) {   int function bigger(int a, int b)
+    if a > b                           if a > b {                            if a > b
+        return a                           return a                              return a
+    return b                           }                                     End if
+                                       return b                              return b
+                                   }                                     End function
+```
+
 Syntax is a preference, not a limitation.
 
 ## One Owner, One Writer
@@ -42,15 +54,79 @@ Fusion aims to be memory-safe and free of data races by construction, without a 
 collector by default: every value has one owner, assigning moves it, passing lends it, and a
 value several threads use gets exactly one writer - a service. The rules: `files/Ownership.md`.
 
+## Services: Shared State Without Locks
+
+**The problem.** Modern machines have many cores, and a server may handle thousands of requests
+at once. When two threads change the same value, the usual tools cause trouble:
+
+- **Race conditions** - two threads read a balance of 1000 at the same time, both withdraw 800,
+  and both succeed. The result depends on timing, so the bug hides in testing and appears in
+  production.
+- **Locks** - the classic fix: every caller must remember to lock the value before touching it
+  and unlock it afterwards. Forget once and the race is back; hold it too long and every other
+  thread waits.
+- **Deadlocks** - thread A holds lock 1 and waits for lock 2; thread B holds lock 2 and waits for
+  lock 1. Both wait forever and the program freezes.
+
+The outdated part is the thinking behind it: **every caller guards the shared data by hand**.
+The safety of the whole program then depends on every line written by every developer, and the
+compiler cannot check it.
+
+**Fusion's answer: the `service`.** Shared state is declared as a service. The service owns the
+data and is its only writer; threads send it requests instead of touching the data themselves.
+Each request is one indivisible step, and the compiler decides how it runs - a plain variable
+when only one thread uses it, CPU atomic instructions for a simple value, or a queue served by a
+worker thread for anything larger.
+
+```fusion
+class Account
+    int balance = 1000
+
+void function withdraw(Account account, int amount)
+    // The check and the change are one step: no other thread can
+    // slip in between them, so two withdrawals can't both pass.
+    service(account).run
+        if account.balance >= amount
+            account.balance -= amount
+
+void function main()
+    service Account account = Account()   // shared state: one owner, one writer
+    service int requests = 0              // a simple value: runs as an atomic
+
+    go withdraw(account, 800)             // two threads withdraw at the same time
+    go withdraw(account, 800)
+    requests += 2                         // one indivisible step - no lock written
+
+    print(account.balance)                // reads a copy: 200, never -600
+```
+
+**Why this solves it:**
+
+- **No race conditions** - only the service changes its data, one request at a time, so two
+  threads can never interleave inside a change
+- **No hand-written locks** - the developer says *what* is shared; the compiler picks *how* to
+  protect it, and nothing is left to remember
+- **No deadlocks by design** - a caller never holds a lock while waiting for another; what is
+  left (a service waiting on itself, a cycle between services) is caught by rules and becomes a
+  clear error instead of a silent freeze, and a timeout turns a long wait into an error that can
+  be handled
+- **No cost when not needed** - a service used by one thread compiles to a plain variable
+- **Scales with the cores** - readers run in parallel, and many services work independently, the
+  goal being a million requests on one machine
+
+Manual locking stays available as a last resort. The full design: `files/Service.md`, the traps
+it answers: `files/Concurrency_Traps.md`. Services are designed and will be built in Task 42.
+
 ## Status
 
 Fusion is in early development. The capability-driven vision above is the direction; what
 exists today is a compiler, written in Python, that proves the pipeline:
 
 ```
-Fusion source -> C -> GCC -> native executable
+Fusion source -> lexer -> parser -> syntax tree -> semantic analysis -> C generator -> C -> GCC -> native program
 ```
 
+- **What Fusion has and still needs, at a glance:** [FeatureTree.md](FeatureTree.md)
 - **What the language can do today, with examples:** [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md)
   and the programs in [examples/](examples/)
 - **Status of every task and feature - done, open, postponed:** [files/FEATURES.md](files/FEATURES.md)
@@ -129,7 +205,8 @@ hello_world.exe
 
 [examples/](examples/) holds one program for every section of
 [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md), fuller demos (`fizzbuzz`, `structs_demo`,
-`control_flow`, ...) and projects of several files (`shop`, `wordcount`). Build them all with
+`control_flow`, ...) and projects of several files (`shop`, `wordcount`). Each program sits next to the C the
+compiler made from it and the built program, so the whole pipeline can be inspected. Build them all with
 `python check.py --build-examples`; [examples/CLAUDE.md](examples/CLAUDE.md) explains the
 folder.
 
@@ -178,6 +255,9 @@ python -m pytest tests/ --cov=src --cov-report=html
 
 ## Documentation
 
+- **[FeatureTree.md](FeatureTree.md)** - What Fusion has and still needs, at a glance
+- **[Decisions.md](Decisions.md)** - Every language feature in one line, and every design decision with its why
+- **[Main.md](Main.md)** - The map of every document
 - **[CLAUDE.md](CLAUDE.md)** - Quick reference for AI assistant
 - **[fusion-language-spec.md](files/fusion-language-spec.md)** - Complete language specification
 - **[fusion.ebnf](files/fusion.ebnf)** - EBNF grammar specification
