@@ -159,15 +159,15 @@ what that means where generics meet the rules above. Test: `tests/test_generics.
 | Case | Result | Tested |
 |---|---|---|
 | `first(cars)` - a `List<Car>` passed to a generic function | lent, as any List argument; `cars` usable after | yes |
-| `Box<Car> b = Box(car)` - an object into a generic class's field | the field shares the counted object (as a class field); `car` usable after under relaxed, moved under strict - the same as a non-generic class | partly (relaxed) |
-| `Pair<int, string> p = q` - a generic struct copied | a copy, as any struct; a field holding an object shared (D.097) | yes |
+| `Box<Car> b = Box(car)` - an object into a generic class's field | the field shares the counted object (as a class field); `car` usable after under relaxed, moved under strict - the same as a non-generic class | yes (33.4 - both) |
+| `Slot<Car> t = s` - a generic struct copied | as any struct (D.097): under strict it moves as a whole (`byVal s` copies it and clones the object); under relaxed a copy that shares its object | yes |
 | `b.put(x)` - a generic class's method changing `this` | the same as a class method: `this` is a reference | yes |
 | `parkAll(car, bus)` - values for `T... vs` (one type, or a condition's) | lent: the call's List retains each object, frees the List after; `car` usable after | yes |
 | `show(1, "two", car)` - a pack of types | lent: one parameter per value, passed as any argument; `car` usable after | yes |
 | `firstOf(names)` - a List for `T...` | lent, passed as it is (no copy) | yes |
 | `firstOf(arr)` - an array for `T...` | its values copied into a new List for the call (`toList`), freed after | yes |
-| `T x = item` inside a generic, T a class | the rule of the real type - under strict, a move out of a parameter is an error, as in any function | no - a test to add |
-| a generic returning a `T` held in a List (`T function first(List<T> xs) : xs[0]`) | the rule of returning an element - a copy of a value, a shared object | yes (objects: no - a test to add) |
+| `T x = item; return x` inside a generic, T a class | the rule of the real type, as in a plain function: it keeps its parameter (D.100), so the call moves the argument under strict (`'c' was moved to 'keep<Car>'`); a local only naming the parameter borrows it (Q.043) | yes (33.4) |
+| a generic returning a `T` held in a List (`T function first(List<T> xs) : xs[0]`) | the rule of returning an element - a copy of a value, a shared object (`c.name = "taxi"` shows in `cars[0]`) | yes (33.4) |
 
 #### The error texts (48.1, 48.2)
 

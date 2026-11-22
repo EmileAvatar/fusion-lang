@@ -474,11 +474,19 @@ class GenericsMixin:
                     return self._call_pack(node, generic, bindings, params, packed[1])
             missing = [p for p in params if p not in bindings]
             if missing:
-                example = ', '.join('int' for _ in params)
+                # stored in a variable of this type (Box<Car> b = Box()): the hint names it, and the call is
+                # taken as that type - no second error about assigning (33.4)
+                stored = getattr(node, 'stored_as', None)
+                shown = self.type_to_string(stored) if stored is not None else ''
+                if shown.startswith(f'{generic.name}<'):
+                    written = shown
+                else:
+                    stored = None
+                    written = f"{generic.name}<{', '.join('int' for _ in params)}>"
                 self.errors.append(SemanticError(
                     f"'{generic.name}': {', '.join(missing)} can't be worked out from the arguments - write the "
-                    f"types: {generic.name}<{example}>(...) (D.166)", node.location))
-                return void
+                    f"types: {written}(...) (D.166)", node.location))
+                return stored or void
         unmet = self.unmet_condition(generic, bindings)
         if unmet:
             self.errors.append(SemanticError(unmet, node.location))

@@ -30,7 +30,42 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
-(none open)
+#### Q.042 A generic class's types from the variable it is stored in (Task 33.4 - found by the interaction test)
+`Garage<Car> g = Garage()` - no argument says what T is. Today it is an error that names the fix; should the
+declared type supply T?
+
+```fusion
+class Garage<T>
+    List<T> items
+    constructor()
+        items = []
+
+Garage<Car> g = Garage<Car>()   // today: T written twice - works
+Garage<Car> g = Garage()        // today: error "T can't be worked out ... write the types: Garage<Car>(...)"
+// A: keep it - the types come from the arguments or are written (D.166 as it is)
+// B: the declared type supplies them when the arguments can't (Java new ArrayList<>(), C# new(), Rust's let);
+//    only where a type is written on the left - var / let g = Garage() stays an error
+```
+
+Suggested: B - the familiar form, nothing guessed (the type is written once, on the left).
+
+#### Q.043 A local taken from a parameter: `Car x = item` inside a function (Task 33.4 / Task 48 - Ownership.md)
+Under strict ownership, a function that keeps a parameter takes it (D.100: returned or stored). A local
+that is only an alias of the parameter is not a "keep" today - the function borrows `item`, `x` is a second
+name for it, and `item` stays usable after. The same in a plain function and a generic one.
+
+```fusion
+string function nameOf(Car item)
+    Car x = item          // today: x borrows item; nothing moves; nameOf borrows its argument
+    x.name = "taxi"
+    return item.name      // today: allowed - "taxi"
+// A: keep it - a local from a parameter is a borrow (the caller's car stays the caller's)
+// B: a move inside the function - item.name after it an error "'item' was moved to 'x'" (as for a local
+//    Car b = a), and nameOf then keeps its parameter (the caller's car moves)
+// C: as A, and an error to change it through x (a borrowed parameter is readonly through a second name)
+```
+
+Suggested: A - passing lends (the README's "passing lends it"); a local name for it is part of that loan.
 
 Earlier: Q.041 (ranges: the step, `%`, a step that misses the end) answered 2026-11-22: Decisions.md D.170, FEATURES 33.2g, 47.6, L7.9.
 Earlier: Q.038 (a resource split into parts), Q.039 (a keyword as a name in translated code), Q.040 (RECT storage) answered 2026-11-21: Decisions.md D.160, D.165, D.164; the rest of Q.038 revisited when Task 42.31 starts (D.161).
@@ -44,6 +79,6 @@ namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a 
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.041.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.044.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->

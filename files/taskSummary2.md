@@ -84,8 +84,10 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
 - Done 2026-11-22: 33.2e2 a pack - a copy per combination of types, the loop written out per value
 - Done 2026-11-22: 33.2f ranges `1...10` in a for / foreach and `case 0...9` (L7.7); D.169 proposed
 - Done 2026-11-22: 33.2g a step on a whole-number range (D.170); `range(10, 0, -1)` counts down now
-- **Next Action:** first the review tasks below (before any code changes), then 33.3 another implementation behind
-  `List<T>` (and a generic class with a parent / interfaces)
+- Done 2026-11-22: 33.4 features tested together - tests/test_generics.py; every Ownership.md 3b row tested;
+  Q.042 / Q.043 for the user
+- **Next Action:** 33.3 another implementation behind `List<T>` (and a generic class with a parent / interfaces)
+  - plan it here first
 
 ### Parts, in order (each shipped on its own)
 1. **33.2a Generic functions:** the forms above without conditions; T, K, V (and digits) without `<...>`; types from the

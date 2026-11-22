@@ -400,6 +400,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     f"an enum can{hint}", value.location))
             value.inferred_type = expected
             return expected
+        value.stored_as = expected       # a generic call's types it can't work out: the hint names it (33.4)
         result = self.visit(value)
         if getattr(value, 'new_array', False) and isinstance(expected, ListType) \
                 and expected.growable and self.types_equal(expected.element_type, result.element_type):

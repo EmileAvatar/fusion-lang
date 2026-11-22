@@ -14,7 +14,7 @@ One C function per set of types used. Every program runs under the leak check; o
 
 import pytest
 
-from src.config.project_config import GenericsConfig, ProjectConfigError, _load_generics_section
+from src.config.project_config import GenericsConfig, MemoryConfig, ProjectConfigError, _load_generics_section
 from src.semantic import SemanticAnalyzer
 from tests.test_end_to_end import compile_and_run
 from tests.test_structs import parse
@@ -497,3 +497,123 @@ def test_condition_parsing():
     assert f.type_conditions['T'] == (None, ['Comparable', 'Printable'])
     assert f.type_conditions['T1'][0].name == 'Vehicle'
     assert 'K' not in f.type_conditions
+
+
+# ---------- 33.4 features tested together (the ChatGPT review; files/Ownership.md truth table 3b) ----------
+
+TOGETHER = (
+    'interface Printable\n'
+    '    string function label()\n'
+    '\n'
+    'class Car implements Printable\n'
+    '    public string name\n'
+    '    public int seats\n'
+    '    constructor(string name, int seats)\n'
+    '        this.name = name\n'
+    '        this.seats = seats\n'
+    '    string function label() : "car {name}"\n'
+    '\n'
+    'struct Spot\n'
+    '    int row\n'
+    '    Car car\n'
+    '\n'
+    'class Garage<T implements Printable>\n'
+    '    List<T> items\n'
+    '    constructor()\n'
+    '        items = []\n'
+    '    void function park(T item)\n'
+    '        items.add(item)\n'
+    '    int function count() : items.len()\n'
+    '    T function at(int i) : items[i]\n'
+    '    string function labels()\n'
+    '        string all = ""\n'
+    '        for x in items\n'
+    '            all = all + x.label() + ";"\n'
+    '        return all\n'
+    '\n'
+    'T function firstOf<T>(List<T> xs) : xs[0]\n'
+    '\n'
+    'T function total<T extends Number>(List<T> xs)\n'
+    '    T sum = xs[0]\n'
+    '    for i in 1...xs.len() - 1\n'
+    '        sum = sum + xs[i]\n'
+    '    return sum\n'
+    '\n'
+    'T function keep<T>(T item)\n'
+    '    T x = item\n'
+    '    return x\n'
+    '\n'
+    'void function show(T... items)\n'
+    '    for x in items\n'
+    '        print("{@1}", x)\n'
+    '\n\n')
+
+TOGETHER_MAIN = '\n'.join([
+    'Car a = Car("mini", 4)',
+    'Car b = Car("van", 8)',
+    'Garage<Car> g = Garage<Car>()',
+    'g.park(a)',
+    'g.park(b)',
+    'print("{@1} {@2}", g.count(), g.labels())',
+    'print(g.at(1).name)',
+    'List<Car> cars = [Car("cab", 5), Car("bus", 40)]',
+    'Car c = firstOf(cars)',
+    'print("{@1} {@2}", c.name, cars.len())',
+    'List<int> seats = []',
+    'for car in cars',
+    '    seats.add(car.seats)',
+    'print("{@1}", total(seats))',
+    'Spot s = Spot(1, Car("taxi", 4))',
+    'Spot t = byVal s',
+    't.row = 2',
+    'print("{@1} {@2} {@3}", s.row, t.row, t.car.name)',
+    'show(1, "two", s.car.name)',
+    'for i in 0...10 step 5',
+    '    print("{@1}", i)',
+    'Car k = keep(Car("kept", 2))',
+    'print(k.label())',
+])
+
+
+@pytest.mark.parametrize('ownership', ['move', 'share'])
+def test_features_together(ownership):
+    """A generic class holding objects in a List, under a condition (implements); a generic function over a
+    List of objects and one over numbers (extends Number); a struct holding an object, copied with byVal; a
+    pack; a range with a step; a generic keeping its parameter - strict and relaxed, under the leak check."""
+    assert run(TOGETHER_MAIN, top=TOGETHER, memory_config=MemoryConfig(assignment=ownership)) == [
+        '2 car mini;car van;', 'van', 'cab 2', '45', '1 2 taxi', '1', 'two', 'taxi', '0', '5', '10', 'car kept']
+
+
+KEEPS = 'class Car\n    public string name\n    constructor(string name)\n        this.name = name\n\n'
+
+
+@pytest.mark.parametrize('function', [
+    'Car function keep(Car item)\n    Car x = item\n    return x\n\n',
+    'T function keep<T>(T item)\n    T x = item\n    return x\n\n',
+])
+def test_a_generic_keeping_its_parameter_takes_it_as_a_plain_function_does(function):
+    # Ownership.md 3b: `T x = item`, T a class - the rule of the real type (D.100)
+    found = errors_of('Car c = Car("a")\nCar k = keep(c)\nprint(k.name)\nprint(c.name)', top=KEEPS + function)
+    assert len(found) == 1 and "'c' was moved to 'keep" in found[0], found
+
+
+def test_a_generic_returns_an_object_from_a_list_shared_and_a_number_copied():
+    assert run('List<Car> cars = [Car("cab"), Car("bus")]\nCar c = firstOf(cars)\nc.name = "taxi"\n'
+               'print("{@1} {@2} {@3}", c.name, cars[0].name, cars.len())\n'
+               'List<int> ns = [4, 5]\nint n = firstOf(ns)\nn = 9\nprint("{@1} {@2}", n, ns[0])',
+               top=KEEPS + 'T function firstOf<T>(List<T> xs) : xs[0]\n\n') == ['taxi taxi 2', '9 4']
+
+
+@pytest.mark.parametrize('ownership, moved', [('move', True), ('share', False)])
+def test_a_generic_struct_holding_an_object_copied(ownership, moved):
+    # D.097: under strict it moves as a whole (byVal copies it); under relaxed the copy shares its object
+    top = KEEPS + 'struct Slot<T>\n    int n\n    T item\n\n'
+    found = errors_of('Slot<Car> s = Slot(1, Car("a"))\nSlot<Car> t = s\nprint(s.item.name)', top=top,
+                      memory_config=MemoryConfig(assignment=ownership))
+    assert any("'s' was moved to 't'" in e for e in found) == moved, found
+
+
+def test_types_not_worked_out_name_the_declared_type_once():
+    top = KEEPS + 'class Garage<T>\n    List<T> items\n    constructor()\n        items = []\n\n'
+    assert errors_of('Garage<Car> g = Garage()', top=top) == [
+        "'Garage': T can't be worked out from the arguments - write the types: Garage<Car>(...) (D.166)"]

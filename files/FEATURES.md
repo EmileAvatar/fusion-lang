@@ -308,11 +308,13 @@ then each point is decided and solved completely. One line per section and per l
 		word only after a range; the end and step worked out once; fixed on the way: `range(10, 0, -1)` ran no turns
 		(the loop always tested `<`) - tests/test_ranges.py, example syntax_ranges
 		[DONE 2026-11-22] The error for `0.5...2.5` says a range counts whole numbers (it named range's arguments)
-	[ ] 33.4 Features tested together (user, 2026-11-22 - from the ChatGPT review): one program combining generics,
+	[DONE] 33.4 Features tested together (user, 2026-11-22 - from the ChatGPT review): one program combining generics,
 		ownership, collections, structs and classes (a generic class holding objects in a List, a pack, a condition,
 		a range with a step), run under the leak check and in strict and relaxed ownership; the open rows of
 		files/Ownership.md truth table 3b (`T x = item` of a class under strict; a generic returning an object from
-		a List)
+		a List) - done 2026-11-22: tests/test_generics.py (both ownership modes, leak-clean); every 3b row tested;
+		found: `Garage<Car> g = Garage()` - its hint named `<int>` and a second error followed (fixed); Q.042
+		(the declared type supplying T) and Q.043 (a local taken from a parameter) open
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
