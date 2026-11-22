@@ -409,6 +409,8 @@ class EnumsMixin:
             enum = struct.enum_decl if struct is not None else subject_type.declaration
             number = self.enum_number(enum.variant(pattern.name).value)
             return f'{subject}.tag == {number}' if struct is not None else f'{subject} == {number}'
+        if getattr(pattern, 'range_end', None) is not None:     # case 0...9 (33.2f)
+            return f'({subject} >= {self.visit(pattern.value)} && {subject} <= {self.visit(pattern.range_end)})'
         return self.value_equality(subject, subject_type, self.visit(pattern.value),
                                    pattern.value.inferred_type)
 

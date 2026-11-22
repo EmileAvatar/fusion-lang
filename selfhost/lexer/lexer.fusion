@@ -214,16 +214,13 @@ int function colAt(bytes data, int lineStart, int pos) {
     return col
 }
 
-// A line the indentation rules skip: blank, or only a comment (// or /* - and ', as the
-// Python lexer still treats a line starting with ' as a comment line there)
+// A line the indentation rules skip: blank, or only a comment (// or /*) - not one starting
+// with ': VB comments are off (SYN.031), so 'a'...'z' : "lower" is code (Task 33.2f)
 bool function skipLine(bytes data, int pos) {
     int n = len(data)
     while pos < n and data[pos] != 10 {
         int c = data[pos]
         if c != 32 and c != 9 and c != 13 and c != 11 and c != 12 {
-            if c == 39 {
-                return true
-            }
             if c == 47 and pos + 1 < n and (data[pos + 1] == 47 or data[pos + 1] == 42) {
                 return true
             }
@@ -277,8 +274,10 @@ NumScan, Error function scanNumber(bytes data, int pos) {
         }
     }
     int stop = skipDigits(data, pos, 10)
-    // A float: digits '.' digits - but '.' followed by a letter is a method call (255.toHex())
-    if stop < n and data[stop] == 46 and not (stop + 1 < n and (isAlphaByte(data[stop + 1]) or data[stop + 1] == 95)) {
+    // A float: digits '.' digits - but '.' followed by a letter is a method call (255.toHex()),
+    // and '...' is a range (1...10 - Task 33.2f)
+    bool isRange = stop + 2 < n and data[stop + 1] == 46 and data[stop + 2] == 46
+    if stop < n and data[stop] == 46 and not isRange and not (stop + 1 < n and (isAlphaByte(data[stop + 1]) or data[stop + 1] == 95)) {
         stop = skipDigits(data, stop + 1, 10)
         if stop < n and (data[stop] == 102 or data[stop] == 70 or data[stop] == 100 or data[stop] == 68) {
             stop = stop + 1

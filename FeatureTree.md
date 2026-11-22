@@ -25,6 +25,7 @@ Syntax
    - Any number of values     int... numbers - values one by one, an array or a List; a List inside
    - Lambdas                  function values; func(int x) : x * 2
    - Control flow             if / while / for / for i in range(a, b, step); numbers as conditions
+   - Ranges                   for i in 1...10 (both ends); case 0...9 / 'a'...'z' in a match
    - Conditional              (cond) ? a : b
    - match                    match, fall match, match as a value, _ for unused fields
    - let / var                type from the value; let set once
@@ -118,8 +119,7 @@ Settings
 ```
    - Agnostic language        safety + memory settings built; concurrency + backend choice not yet
    - Memory safety            ownership built; some readonly / library parts left
-   - ... operator             string... args, int... numbers, T... built; ranges 1...100 (33.2f),
-                              spread [...a] to do
+   - ... operator             string... args, int... numbers, T..., ranges 1...10 built; spread [...a] to do
    - Generics                 another List<T> implementation (33.3)
    - Casts                    (Shape)aCircle built; some number casts left
    - Arrays in three forms    plain, fixed, growable - RECT storage later
@@ -162,12 +162,11 @@ Concurrency (Task 42) - nothing built yet
 
 Syntax
    - Duration literals [planned]     500ms, 5s, 2min
-   - Ranges [planned 33.2f]          for i in 1...10
    - switch / elif aliases [design]
    - loop { } [design]               must have break / return; check blocks; labels; iteration limit
    - ++ / -- [design]                statements only
    - if as a value, do-while [design]
-   - Match guards + ranges [design]  case x if x < 0, case 0...9
+   - Match guards [design]           case x if x < 0
    - assert [design]
    - Extension methods, overloading [design]
    - Copy with changes, tuples [design]   a with { x = 5 }

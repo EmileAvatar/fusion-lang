@@ -1810,7 +1810,15 @@ class Parser:
                         break
                 self.consume(TokenType.RPAREN, "Expected ')' after the names")
             return MatchPattern(location=location, name=name, bindings=bindings)
-        return MatchPattern(location=location, value=self.parse_unary())
+        pattern = MatchPattern(location=location, value=self.parse_unary())
+        if self.check(TokenType.RANGE):              # case 0...9 - both ends included (33.2f, L7.7)
+            dots = self.advance()
+            pattern.range_end = self.parse_unary()
+            first, last = self._written_int(pattern.value), self._written_int(pattern.range_end)
+            if first is not None and last is not None and first > last:
+                raise ParserError(dots, f"case {first}...{last} - a range goes from the smaller to the larger: "
+                                        f"case {last}...{first}")
+        return pattern
 
     def parse_while_statement(self) -> ASTNode:
         """Parse while loop: while condition { body }
@@ -1862,6 +1870,37 @@ class Parser:
             i += 1
         return False
 
+    @staticmethod
+    def _written_int(node):
+        """A whole number written in the code (`5`, `-2`), or None."""
+        if isinstance(node, LiteralExpr) and node.type_hint == 'int':
+            return integer_value(node.value) if isinstance(node.value, str) else node.value
+        if isinstance(node, UnaryExpr) and node.operator == '-':
+            inner = Parser._written_int(node.operand)
+            return None if inner is None else -inner
+        return None
+
+    def _range_after(self, start):
+        """`for i in 1...10` (Task 33.2f, SYN.034): both ends included - `range(1, 10 + 1)`. Numbers
+        written the wrong way round (`10...1`) are an error; counting down is `range(10, 0, -1)`."""
+        if not self.check(TokenType.RANGE):
+            return start
+        dots = self.advance()
+        end = self.parse_expression()
+        first, last = self._written_int(start), self._written_int(end)
+        if first is not None and last is not None and first > last:
+            raise ParserError(dots, f"{first}...{last} counts down - a range counts up, both ends included; "
+                                    f"write range({first}, {last - 1}, -1) to count down")
+        if last is not None:
+            after = LiteralExpr(location=end.location, value=last + 1, type_hint='int')
+        else:
+            after = BinaryExpr(location=end.location, left=end, operator='+',
+                               right=LiteralExpr(location=end.location, value=1, type_hint='int'))
+        call = CallExpr(location=start.location, callee=IdentifierExpr(location=start.location, name='range'),
+                        arguments=[start, after])
+        call.written_range = True
+        return call
+
     def parse_foreach_statement(self) -> ASTNode:
         """`foreach (string n in names)` / `foreach n in names` (Task 32.4, D.049): a loop over
         any collection - an array, List, Map (its keys) or a class implementing
@@ -1873,7 +1912,7 @@ class Parser:
             declared = self.parse_type()
         variable = self.consume(TokenType.IDENTIFIER, "Expected the item's name in foreach").value
         self.consume(TokenType.IN, "Expected 'in' after the item in foreach")
-        iterable = self.parse_expression()
+        iterable = self._range_after(self.parse_expression())
         if parens:
             self.consume(TokenType.RPAREN, "Expected ')' after the collection in foreach")
         while self.match(TokenType.NEWLINE):
@@ -1902,8 +1941,8 @@ class Parser:
         # 'in' keyword
         self.consume(TokenType.IN, "Expected 'in' after loop variable")
 
-        # Iterable expression
-        iterable = self.parse_expression()
+        # Iterable expression - or a range `1...10` (Task 33.2f)
+        iterable = self._range_after(self.parse_expression())
 
         # Skip newlines after iterable
         while self.match(TokenType.NEWLINE):

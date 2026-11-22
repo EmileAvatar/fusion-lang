@@ -82,7 +82,8 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
 - Done 2026-11-22: 33.2d conditions - checked at each use (call or type written); the generic code itself checked against them later
 - Done 2026-11-22: 33.2e1 `int... numbers` / `T...` of one type - a List inside; values, an array or a List
 - Done 2026-11-22: 33.2e2 a pack - a copy per combination of types, the loop written out per value
-- **Next Action:** 33.2f ranges `1...100` in a `for`
+- Done 2026-11-22: 33.2f ranges `1...10` in a for / foreach and `case 0...9` (L7.7); D.169 proposed
+- **Next Action:** 33.3 another implementation behind `List<T>` (and a generic class with a parent / interfaces)
 
 ### Parts, in order (each shipped on its own)
 1. **33.2a Generic functions:** the forms above without conditions; T, K, V (and digits) without `<...>`; types from the

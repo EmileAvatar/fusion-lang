@@ -63,6 +63,39 @@ void function main()
         print("count {count}, grade {grade}, ready {ready}")   // a bool prints as true / false
 ```
 
+#### Ranges: `1...10` in a loop and in a match
+
+<!-- example: syntax_ranges | task: 33.2f -->
+```fusion
+string function grade(int score)
+    match score
+        case 90...100                       // both ends included
+            return "A"
+        case 80...89, 79
+            return "B"
+        else
+            return "C"
+
+void function main()
+    int total = 0
+    for i in 1...10                         // 1 to 10 - the same as range(1, 11)
+        total = total + i
+    print("{total}")                        // 55
+    int n = 3
+    for i in 0...n - 1                      // any whole-number values
+        print("{i}")                        // 0 1 2
+    char c = 'q'
+    string kind = match c
+        'a'...'z' : "lower"                 // characters too
+        'A'...'Z' : "upper"
+        else : "other"
+    print("{@1} {@2}", grade(95), kind)     // A lower
+```
+`a...b` counts up from a to b, both ends included - `range(a, b + 1)`; there is no step (`range(0, 10, 2)` has one).
+Written the wrong way round in numbers (`10...1`) it is an error that suggests `range(10, 0, -1)`; from values it
+runs no turns when a is larger, as `range` does. A case `0...9` matches whole numbers or characters from its first
+end to its last; it may not overlap another case.
+
 #### Module variables and constants: shared by a module's functions
 
 <!-- example: syntax_module_variables | task: 44.1 -->
@@ -258,11 +291,15 @@ class Car inherits Vehicle implements Printable
     string function label() : "car {name}"
 
 T function total<T extends Number>(List<T> xs)             // any number type
-    T sum = xs[0]
-    int i = 1
-    while i < xs.len()
+    T sum = xs[0]                                           // the first item starts it (0 is an int, T may not be)
+    for i in 1...xs.len() - 1                               // then the rest: 1 to the last index, both ends included
         sum = sum + xs[i]
-        i = i + 1
+    return sum
+
+T function totalToo<T extends Number>(List<T> xs)          // the same with range(start, end) - end left out
+    T sum = xs[0]
+    for i in range(1, xs.len())                             // 1 to len - 1: range leaves its end out
+        sum = sum + xs[i]
     return sum
 
 int function count<T extends int>(List<T> xs) : xs.len()   // only int
@@ -277,7 +314,7 @@ class Box<T implements Printable>                           // on classes and st
 
 void function main()
     List<int> ns = [1, 2, 3]
-    print("{@1} {@2}", total(ns), count(ns))                // 6 3
+    print("{@1} {@2} {@3}", total(ns), totalToo(ns), count(ns))   // 6 6 3
     print(park(Vehicle("van")))                             // van
     print(show(Car("mini")))                                // car mini
     Box<Car> b = Box(Car("cab"))

@@ -298,8 +298,8 @@ def test_is_comment_line_double_slash(tracker):
 
 
 def test_is_comment_line_single_quote(tracker):
-    """Test comment detection - ' style."""
-    assert tracker.is_comment_line("' This is a comment") is True
+    """' comments (VB) are off (SYN.031) - a line starting with ' is code: 'a'...'z' : "lower" (33.2f)."""
+    assert tracker.is_comment_line("'a'...'z' : \"lower\"") is False
 
 
 def test_is_comment_line_block_comment(tracker):
@@ -335,7 +335,7 @@ def test_should_skip_blank_line(tracker):
 def test_should_skip_comment_line(tracker):
     """Test skipping comment-only lines."""
     assert tracker.should_skip_line("// Comment") is True
-    assert tracker.should_skip_line("' Comment") is True
+    assert tracker.should_skip_line("'q' : \"q\"") is False      # ' comments are off (SYN.031)
 
 
 def test_should_not_skip_code_line(tracker):

@@ -62,7 +62,7 @@ SYN.018 [DESIGN] `switch` as an alias of `match` (VB.NET); `elif` for `else if`
 SYN.019 [DESIGN] `loop { }` - no break / return inside is a compile error; the keyword may be dropped
 SYN.020 [DESIGN] `++` / `--` as statements only, never inside an expression
 SYN.021 [DESIGN] `if` as a value; do-while
-SYN.022 [DESIGN] Guards and ranges in match cases (`case x if x < 0`, `case 0...9`)
+SYN.022 [PARTIAL] Guards and ranges in match cases: ranges `case 0...9` built (33.2f, D.169); guards `case x if x < 0` designed
 SYN.023 [DESIGN] `assert cond, "message"` - an AssertionError when false
 SYN.024 [BUILT] Type tests `if s is string`; `typeOf(x)` as text (32.5a, 32.7)
 SYN.025 [DESIGN] Extension methods (`extend string { }`); function overloading by parameter types
@@ -74,7 +74,7 @@ SYN.030 [BUILT] `unchecked { }` - whole-number `+ - *` inside wrap around on pur
 SYN.031 [POSTPONED] `'` comments (VB style) - off so `'c'` works; maybe only at the start of a line
 SYN.032 [DESIGN] `#Region` / `#End Region`; documentation comments; documentation written from them
 SYN.033 [DESIGN] `loop { } end loop` with safety checks (`check` blocks - Task 56); loop labels; an iteration limit (`[safety] maxIterations`)
-SYN.034 [PARTIAL] The `...` operator: variadic `string... args` of main and `int... numbers` / `T... items` built - of one type, or a pack of types (33.2e); ranges `1...100` (33.2f), spread `[...a, ...b]` designed
+SYN.034 [PARTIAL] The `...` operator: variadic `string... args` of main and `int... numbers` / `T... items` built - of one type, or a pack of types (33.2e); ranges `1...100` built (33.2f, D.169); spread `[...a, ...b]` designed
 SYN.035 [DESIGN] `**` (power) - read by the lexer, not built; annotations `@name(...)`
 SYN.036 [DESIGN] `'''` comment blocks; comment levels 0-5; coding hints
 SYN.037 [DESIGN] Semicolons accepted; reading code written in other languages' syntax
@@ -457,5 +457,6 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.166 | Generic functions and types: the type parameters after the name - `T function first<T>(List<T> items)`, `struct Pair<A, B>`, `class Box<T>`; several at once (`<T, T1>`); `T function first(List<T> items)` without `<T>` is accepted too - T, K, V (Type, Key, Value), and those followed by digits (T1, K2), used in a signature are its type parameters; any other name is written in `<...>`; a struct, class or enum named T, K or V is an error. `T...` takes an array, a List, or values written one by one (`firstOf(a, b, c)`) - the values may each be of any type, unless a condition makes them one type or class (`<T extends Vehicle>` - every value a Vehicle). At the call the types are taken from the arguments (preferred) or written (`first<int>(xs)`) | the familiar form (C#, Java, Rust); T, K, V tell the developer a type goes there | TYP.007 | 2026-11-22 | files/taskSummary2.md Task 33 | ACTIVE (planned) |
 | D.167 | What a type parameter may be, written in its `<...>`: `T extends Vehicle` (or `T : Vehicle` - quick typing; `extends` the default, its meaning clear) - Vehicle or a child of it, anything else rejected; `T extends Number` - any number type; `T extends int` - only int; `T implements Comparable` - only a type that implements it; two at once - `<T implements Comparable, Printable>`, `<T extends Vehicle implements Comparable>`; on functions, structs and classes (`class Box<T implements Comparable>`). A type that doesn't meet a condition is a compile error at the use - `first(aircrafts)` where Aircraft doesn't implement Comparable. `where` stays reserved, not used for now | the condition sits where T is named; the same words as a class's own parents (`extends`, `implements`) | TYP.007 | 2026-11-22 | files/taskSummary2.md Task 33 | ACTIVE (planned) |
 | D.168 | `[generics] enabled` (default true): a project can turn generics of its own off - then a generic declaration is an error; the built-in `List<T>` / `Map<K, V>` stay | very useful, so on; off for a project that doesn't want them (features become settings) | TYP.007 | 2026-11-22 | files/spec/001-TomlSettings.md | ACTIVE (planned) |
+| D.169 | Ranges `a...b` (SYN.034): both ends included - `for i in 1...10` is `range(1, 11)`; no step (`range(0, 10, 2)` has one); written backwards in numbers (`10...1`) an error suggesting `range(10, 0, -1)`, from values (`a...b`, a larger) no turns as `range` does; in a match case `case 0...9` / `'a'...'z'` - whole numbers and characters, no overlap with another case | the familiar meaning (Swift, Kotlin, Ada); `range` stays for steps and counting down; settled when built (D.161) | SYN.034 | 2026-11-22 | files/SYNTAX_REFERENCE.md "Ranges" | PROPOSED |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->

@@ -12,11 +12,15 @@ class Car inherits Vehicle implements Printable
     string function label() : "car {name}"
 
 T function total<T extends Number>(List<T> xs)             // any number type
-    T sum = xs[0]
-    int i = 1
-    while i < xs.len()
+    T sum = xs[0]                                           // the first item starts it (0 is an int, T may not be)
+    for i in 1...xs.len() - 1                               // then the rest: 1 to the last index, both ends included
         sum = sum + xs[i]
-        i = i + 1
+    return sum
+
+T function totalToo<T extends Number>(List<T> xs)          // the same with range(start, end) - end left out
+    T sum = xs[0]
+    for i in range(1, xs.len())                             // 1 to len - 1: range leaves its end out
+        sum = sum + xs[i]
     return sum
 
 int function count<T extends int>(List<T> xs) : xs.len()   // only int
@@ -31,7 +35,7 @@ class Box<T implements Printable>                           // on classes and st
 
 void function main()
     List<int> ns = [1, 2, 3]
-    print("{@1} {@2}", total(ns), count(ns))                // 6 3
+    print("{@1} {@2} {@3}", total(ns), totalToo(ns), count(ns))   // 6 6 3
     print(park(Vehicle("van")))                             // van
     print(show(Car("mini")))                                // car mini
     Box<Car> b = Box(Car("cab"))

@@ -295,10 +295,12 @@ then each point is decided and solved completely. One line per section and per l
 			combination (one parameter per value); `for x in items` written out per value, `items.len()`, `items[1]`;
 			anything else with the pack an error saying why - tests/test_generics.py, example syntax_variadic_pack
 			[ ] Later: break / continue in a loop over a pack; T as the result of a pack function
-	[ ] 33.2f Ranges `1...100` in a `for` (SYN.034, user 2026-11-22) - the same `...` as 33.2e; tested next to
-		`range(...)` (`total` in syntax_generic_conditions shown both ways); settled when built (D.161): both ends
-		included, no step (`range(0, 10, 2)` has one), `10...1` an error suggesting `range(10, 0, -1)`; with it, if it
-		fits, L7.7 `case 0...9`
+	[DONE 2026-11-22] 33.2f Ranges `1...100` in a `for` / `foreach` (SYN.034, D.169 proposed): both ends included,
+		no step, `10...1` in numbers an error suggesting `range(10, 0, -1)`; `total` in syntax_generic_conditions shown
+		both ways; L7.7 `case 0...9` / `'a'...'z'` in a match with it (no overlap); fixed on the way: a line starting
+		with a character literal was taken for a VB comment by the indentation reader - tests/test_ranges.py,
+		example syntax_ranges
+		[ ] Later: the self-hosted lexer (selfhost/lexer) reads `1...10` the same way - with Task 35
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own
 
@@ -981,7 +983,7 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L7.4 `if` as a value: `string size = if a > 5 then "big" else "small"`
 		[ ] L7.5 do-while: the body runs at least once
 		[ ] L7.6 Guards in match: `case x if x < 0`
-		[ ] L7.7 Ranges in match cases: `case 0...9` - with 33.2f if it fits
+		[DONE 2026-11-22] L7.7 Ranges in match cases: `case 0...9` - with 33.2f
 		[ ] L7.8 `assert cond, "message"` - an AssertionError when false
 	L8 Types, enums and structs
 		[ ] L8.1 Enum values with fixed constants, built by the enum's private constructor:

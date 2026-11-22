@@ -188,8 +188,9 @@ class IndentationTracker:
         if len(stripped) == 0:
             return False
 
-        # Check for single-line comments
-        if stripped.startswith('//') or stripped.startswith("'"):
+        # Check for single-line comments - not "'": VB comments are off (SYN.031), so a line
+        # starting with a character literal ('a' : "lower" in a match) is code
+        if stripped.startswith('//'):
             return True
 
         # Check for multi-line comment start

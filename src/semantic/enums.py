@@ -450,24 +450,41 @@ class EnumRulesMixin:
 
     def _check_constant_cases(self, node: MatchStmt, subject_type: PrimitiveType) -> None:
         seen = set()
+        spans = []                     # (low, high) of each int case so far - a range overlapping one (33.2f)
         for case in node.cases:
             for pattern in case.patterns:
-                value = pattern.value
-                constant = isinstance(value, LiteralExpr) and value.type_hint != 'null' or (
-                    isinstance(value, UnaryExpr) and value.operator == '-'
-                    and isinstance(value.operand, LiteralExpr)
-                    and value.operand.type_hint in ('int', 'float', 'double'))
-                if not constant:
+                end = getattr(pattern, 'range_end', None)
+                ends = [pattern.value] + ([end] if end is not None else [])
+                if not all(self._constant_case(v) for v in ends):
                     self.errors.append(SemanticError(
                         f"A case on {subject_type.name} needs a constant, such as 42, 'x' or "
                         f"\"text\"", pattern.location))
                     continue
-                value_type = self.visit(value)
-                if not self.types_compatible(subject_type, value_type):
+                kinds = [self.visit(v) for v in ends]
+                wrong = next((k for k in kinds if not self.types_compatible(subject_type, k)), None)
+                if wrong is not None:
                     self.errors.append(SemanticError(
-                        f"This case is {self.type_to_string(value_type)}, but the match is on "
+                        f"This case is {self.type_to_string(wrong)}, but the match is on "
                         f"{subject_type.name}", pattern.location))
                     continue
+                if end is not None and subject_type.name not in ('int', 'char', 'byte'):
+                    self.errors.append(SemanticError(
+                        f"A range in a case (case 0...9) works on whole numbers and characters - the match is "
+                        f"on {subject_type.name}", pattern.location))
+                    continue
+                numbers = [self._case_number(v) for v in ends]
+                if None not in numbers:
+                    low, high = numbers[0], numbers[-1]
+                    if end is not None and low > high:
+                        self.errors.append(SemanticError(
+                            f"This range goes down - write the smaller end first", pattern.location))
+                        continue
+                    if any(low <= b and a <= high for a, b in spans):
+                        self.errors.append(SemanticError(
+                            "This value is already handled by an earlier case", pattern.location))
+                    spans.append((low, high))
+                    continue
+                value = pattern.value
                 key = ('-', value.operand.value) if isinstance(value, UnaryExpr) else value.value
                 if key in seen:
                     self.errors.append(SemanticError(
@@ -477,6 +494,31 @@ class EnumRulesMixin:
             self.errors.append(SemanticError(
                 f"A match on {subject_type.name} needs an else (or _) - its values can't all "
                 f"be listed", node.location))
+
+    @staticmethod
+    def _constant_case(value) -> bool:
+        """A constant a case can match: a literal, or `-` and a number."""
+        return isinstance(value, LiteralExpr) and value.type_hint != 'null' or (
+            isinstance(value, UnaryExpr) and value.operator == '-'
+            and isinstance(value.operand, LiteralExpr)
+            and value.operand.type_hint in ('int', 'float', 'double'))
+
+    @staticmethod
+    def _case_number(value):
+        """A whole number or character case as a number (for overlaps), or None."""
+        from src.lexer.literals import decode_char_literal, integer_value
+        sign = 1
+        if isinstance(value, UnaryExpr):
+            sign, value = -1, value.operand
+        if not isinstance(value, LiteralExpr):
+            return None
+        if value.type_hint == 'int':
+            number = integer_value(value.value) if isinstance(value.value, str) else value.value
+            return sign * number
+        if value.type_hint == 'char':
+            text = value.value if len(str(value.value)) == 1 else decode_char_literal(value.value)
+            return ord(text) if isinstance(text, str) and len(text) == 1 else None
+        return None
 
     def _check_enum_construction(self, node: EnumStaticCall, decl: EnumDecl, variant) -> None:
         """Token.Number(42) or Token.Number(value = 42) - one argument per field (Task 25.4)."""
