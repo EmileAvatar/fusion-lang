@@ -7,6 +7,7 @@ Syntax Tree (AST). Uses precedence climbing for binary operators.
 
 import copy
 import json
+import re
 from dataclasses import fields as dataclass_fields, is_dataclass
 from typing import List, Optional
 from src.lexer.token import Token, TokenType, SourceLocation
@@ -2390,7 +2391,7 @@ class Parser:
         struct_token = self.previous()
         name_token = self.consume(TokenType.IDENTIFIER, "Expected struct name after 'struct'")
         # struct Pair<A, B> - a generic struct (Task 33.2b, D.166)
-        type_params = self._type_parameters() if self.check(TokenType.LESS) else None
+        type_params, conditions = self._type_parameters() if self.check(TokenType.LESS) else (None, {})
 
         # The struct it builds on (Task 32.8): implements, or extends / includes (not keywords)
         parent = None
@@ -2456,6 +2457,7 @@ class Parser:
         struct = StructDecl(location=struct_token.location, name=name_token.value, fields=fields,
                             parent=parent)
         struct.type_params = type_params
+        struct.type_conditions = conditions
         self.attach_methods(struct, methods)
         return struct
 
@@ -2477,7 +2479,7 @@ class Parser:
         class_token = self.previous()
         name = self.consume(TokenType.IDENTIFIER, "Expected the class name after 'class'").value
         # class Box<T> - a generic class (Task 33.2c, D.166)
-        type_params = self._type_parameters() if self.check(TokenType.LESS) else None
+        type_params, conditions = self._type_parameters() if self.check(TokenType.LESS) else (None, {})
         interfaces, parent = [], None
         while True:
             if self.match(TokenType.IMPLEMENTS):
@@ -2615,6 +2617,7 @@ class Parser:
                           interfaces=interfaces, class_parent=parent)
         decl.interface_kinds = [k for k in self.generic_interfaces if k.name in interfaces]   # 32.4
         decl.type_params = type_params
+        decl.type_conditions = conditions
         self.attach_methods(decl, methods)
         for method in static_methods:                # no `this` (Task 32.2c)
             method.method_name, method.method_of = method.name, name
@@ -3113,7 +3116,7 @@ class Parser:
             raise ParserError(self.peek(), "Expected function name")
 
         # T function first<T>(...) / <K, V> / <T, T1> - its type parameters (Task 33, D.166)
-        type_params = self._type_parameters() if self.check(TokenType.LESS) else None
+        type_params, conditions = self._type_parameters() if self.check(TokenType.LESS) else (None, {})
 
         # Parameter list
         self.consume(TokenType.LPAREN, "Expected '(' after function name")
@@ -3179,27 +3182,44 @@ class Parser:
             parameters=parameters,
             body=body,
             is_lambda=is_lambda,
-            type_params=type_params
+            type_params=type_params,
+            type_conditions=conditions
         )
 
-    def _type_parameters(self) -> list:
-        """`<T>`, `<K, V>`, `<T, T1>` after a generic function's name (Task 33, D.166). A condition
-        (`T extends Vehicle`, `T implements Comparable`, `T : Vehicle`) comes with Task 33.2d."""
+    def _type_parameters(self) -> tuple:
+        """`<T>`, `<K, V>`, `<T, T1>` after a generic's name (Task 33, D.166), each with an optional
+        condition (33.2d, D.167): `T extends Vehicle` / `T : Vehicle` (one class, struct, `Number` or a
+        basic type), `T implements Comparable, Printable` (interfaces), or both - extends first.
+        After `implements` a name after a comma is one more interface, unless it is one capital letter
+        (and digits) - `<T implements Comparable, K>` starts K. Returns (names, {name: (extends, [interfaces])})."""
         self.consume(TokenType.LESS, "Expected '<'")
-        names = []
+        names, conditions = [], {}
         while True:
             token = self.consume(TokenType.IDENTIFIER, "Expected a type parameter's name - <T>, <K, V>")
             if token.value in names:
                 raise ParserError(token, f"Type parameter '{token.value}' is written twice")
             names.append(token.value)
-            if self.check(TokenType.IMPLEMENTS) or self.check(TokenType.COLON) or \
-                    (self.check(TokenType.IDENTIFIER) and self.peek().value == 'extends'):
-                raise ParserError(self.peek(), "A condition on a type parameter (extends, implements, :) "
-                                               "comes with Task 33.2d - not yet")
+            extends, interfaces = None, []
+            if self.match(TokenType.COLON) or (self.check(TokenType.IDENTIFIER) and self.peek().value == 'extends'
+                                               and self.advance()):
+                extends = self.parse_type()
+            if self.match(TokenType.IMPLEMENTS):
+                while True:
+                    interfaces.append(self.consume(TokenType.IDENTIFIER, "Expected an interface after 'implements'")
+                                      .value)
+                    if not (self.check(TokenType.COMMA) and self.peek(1).type == TokenType.IDENTIFIER
+                            and not re.match(r'^[A-Z]\d*$', self.peek(1).value)):
+                        break
+                    self.advance()
+            if self.check(TokenType.IDENTIFIER) and self.peek().value == 'extends':
+                raise ParserError(self.peek(), f"'extends' comes before 'implements' - "
+                                               f"<{token.value} extends Vehicle implements Comparable>")
+            if extends is not None or interfaces:
+                conditions[token.value] = (extends, interfaces)
             if not self.match(TokenType.COMMA):
                 break
         self.consume(TokenType.GREATER, "Expected '>' after the type parameters")
-        return names
+        return names, conditions
 
     _TYPE_ARG_TOKENS = (TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                         TokenType.STRING, TokenType.BOOL, TokenType.CHAR, TokenType.BYTE, TokenType.LONG,

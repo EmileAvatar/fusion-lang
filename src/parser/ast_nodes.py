@@ -758,6 +758,8 @@ class FunctionDecl(ASTNode):
     # `T function first<T>(List<T> items)` (Task 33, D.166): the type parameters written in <...>;
     # None when none are written (T, K, V in the signature still make it generic)
     type_params: Optional[List[str]] = None
+    # <T extends Vehicle implements Comparable> (33.2d, D.167): {name: (extends type or None, [interfaces])}
+    type_conditions: Optional[dict] = None
 
 
 @dataclass

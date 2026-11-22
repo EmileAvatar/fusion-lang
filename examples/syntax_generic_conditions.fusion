@@ -1,0 +1,38 @@
+interface Printable
+    string function label()
+
+class Vehicle
+    public string name
+    constructor(string name)
+        this.name = name
+
+class Car inherits Vehicle implements Printable
+    constructor(string name)
+        super(name)
+    string function label() : "car {name}"
+
+T function total<T extends Number>(List<T> xs)             // any number type
+    T sum = xs[0]
+    int i = 1
+    while i < xs.len()
+        sum = sum + xs[i]
+        i = i + 1
+    return sum
+
+int function count<T extends int>(List<T> xs) : xs.len()   // only int
+string function park<T : Vehicle>(T v) : v.name            // Vehicle or a child of it (':' = extends)
+string function show<T extends Vehicle implements Printable>(T v) : v.label()   // both
+
+class Box<T implements Printable>                           // on classes and structs too
+    T item
+    constructor(T item)
+        this.item = item
+    string function shown() : item.label()
+
+void function main()
+    List<int> ns = [1, 2, 3]
+    print("{@1} {@2}", total(ns), count(ns))                // 6 3
+    print(park(Vehicle("van")))                             // van
+    print(show(Car("mini")))                                // car mini
+    Box<Car> b = Box(Car("cab"))
+    print(b.shown())                                        // car cab

@@ -273,3 +273,104 @@ def test_generic_class_mistakes(body, message):
 def test_a_generic_class_with_a_parent_comes_later(top, what):
     found = errors_of('print("x")', top=top)
     assert any(f"with {what} comes later" in e for e in found), found
+
+
+# ---------------------------------------------------------------- 33.2d conditions (D.167)
+
+CONDITIONS = ('interface Comparable\n'
+              '    int function compareTo(int other)\n\n'
+              'interface Printable\n'
+              '    string function label()\n\n'
+              'class Vehicle\n'
+              '    public string name\n'
+              '    constructor(string name)\n'
+              '        this.name = name\n\n'
+              'class Car inherits Vehicle implements Comparable, Printable\n'
+              '    public int speed\n'
+              '    constructor(string name, int speed)\n'
+              '        super(name)\n'
+              '        this.speed = speed\n'
+              '    int function compareTo(int other) : speed - other\n'
+              '    string function label() : "car {name}"\n\n'
+              'class Aircraft\n'
+              '    public string name\n'
+              '    constructor(string name)\n'
+              '        this.name = name\n\n'
+              'T function biggest<T implements Comparable>(List<T> xs)\n'
+              '    T best = xs[0]\n'
+              '    for x in xs\n'
+              '        if x.compareTo(best.speed) > 0\n'
+              '            best = x\n'
+              '    return best\n\n'
+              'T function total<T extends Number>(List<T> xs)\n'
+              '    T sum = xs[0]\n'
+              '    int i = 1\n'
+              '    while i < xs.len()\n'
+              '        sum = sum + xs[i]\n'
+              '        i = i + 1\n'
+              '    return sum\n\n'
+              'int function count<T extends int>(List<T> xs) : xs.len()\n\n'
+              'string function park<T : Vehicle>(T v) : v.name\n\n'
+              'string function parkToo<T extends Vehicle>(T v) : v.name\n\n'
+              'string function show<T implements Comparable, Printable>(T x) : x.label()\n\n'
+              'string function rank<T extends Vehicle implements Comparable>(T v) : v.name\n\n'
+              'class Box<T implements Printable>\n'
+              '    T item\n'
+              '    constructor(T item)\n'
+              '        this.item = item\n'
+              '    string function shown() : item.label()\n\n'
+              'struct Tagged<T extends Number, K>\n'
+              '    T amount\n'
+              '    K tag\n\n')
+
+
+@pytest.mark.parametrize('body, lines', [
+    ('List<Car> cars = [Car("a", 5), Car("b", 9), Car("c", 2)]\nprint(biggest(cars).name)', ['b']),
+    ('List<double> ds = [1.5, 2.5]\nList<int> ns = [1, 2, 3]\nprint("{@1} {@2}", total(ds), total(ns))', ['4.000000 6']),
+    ('List<int> ns = [1, 2]\nprint("{@1}", count(ns))', ['2']),
+    ('print(park(Car("d", 1)))\nprint(park(Vehicle("v")))\nprint(parkToo(Car("e", 2)))', ['d', 'v', 'e']),
+    ('Car c = Car("f", 3)\nprint(show(c))\nprint(rank(c))', ['car f', 'f']),
+    ('Box<Car> b = Box(Car("g", 4))\nprint(b.shown())', ['car g']),
+    ('Tagged<int, string> t = Tagged(5, "five")\nprint("{@1} {@2}", t.amount, t.tag)', ['5 five']),
+])
+def test_conditions_met(body, lines):
+    assert run(body, top=CONDITIONS) == lines
+
+
+@pytest.mark.parametrize('body, message', [
+    ('List<Aircraft> a = [Aircraft("x")]\nAircraft b = biggest(a)',
+     "'biggest' <T implements Comparable>: Aircraft doesn't implement Comparable"),
+    ('List<string> s = ["a"]\nstring t = total(s)', "'total' <T extends Number>: string is not a number type"),
+    ('List<double> d = [1.0]\nint c = count(d)', "'count' <T extends int>: double is not int - only int is accepted"),
+    ('string n = park(Aircraft("x"))', "'park' <T extends Vehicle>: Aircraft is not Vehicle or a child of it"),
+    ('string n = park<Aircraft>(Aircraft("x"))', "Aircraft is not Vehicle or a child of it"),
+    ('string n = show(Vehicle("v"))', "Vehicle doesn't implement Comparable"),
+    ('string n = rank(Vehicle("v"))', "'rank' <T extends Vehicle implements Comparable>: Vehicle doesn't implement"),
+    ('Box<Aircraft> b', "'Box' <T implements Printable>: Aircraft doesn't implement Printable"),
+    ('Box<Vehicle> b = Box(Vehicle("v"))', "Vehicle doesn't implement Printable"),
+    ('Tagged<string, int> t = Tagged("a", 1)', "string is not a number type"),
+])
+def test_a_condition_not_met_is_an_error_at_the_use(body, message):
+    found = errors_of(body, top=CONDITIONS)
+    assert any(message in e for e in found), found
+
+
+@pytest.mark.parametrize('top, message', [
+    ('T function f<T extends Nothing>(T x) : x\n\n', "no class or struct 'Nothing'"),
+    ('interface I\n    int function n()\n\nT function f<T extends I>(T x) : x\n\n', "write <T implements I>"),
+    ('class C\n    int x\n\nT function f<T implements C>(T x) : x\n\n', "'C' is not an interface - write <T extends C>"),
+    ('T function f<T implements Nothing>(T x) : x\n\n', "'Nothing' is not an interface"),
+])
+def test_a_condition_names_something_that_exists(top, message):
+    found = errors_of('print("x")', top=top)
+    assert any(message in e for e in found), found
+
+
+def test_condition_parsing():
+    program = parse('T1 function f<T implements Comparable, Printable, T1 : Vehicle, K>(T a, T1 b, K c) : b\n\n'
+                    'void function main()\n    print("x")\n')
+    f = program.declarations[0]
+    assert f.type_params == ['T', 'T1', 'K']
+    assert f.type_conditions['T'] == (None, ['Comparable', 'Printable'])
+    assert f.type_conditions['T1'][0].name == 'Vehicle'
+    assert 'K' not in f.type_conditions

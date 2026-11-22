@@ -238,7 +238,58 @@ it works as any struct (copies, `==`, a field of another struct, `List<Pair<int,
 (`class Box<T>`) and a generic struct's methods are copied with it - `Box<int>` gets its own `take`, `put` and
 constructors; the types come from the constructor's values, or are written (`Box<string>("hat")`); inside its own
 methods `Box(...)` and `Box<T>` mean this copy. A generic class with a parent, interfaces or statics comes later.
-Conditions (`<T extends Number>`, `<T implements Comparable>`) and `T...` come with the next parts of Task 33.
+`T...` comes with the next part of Task 33.
+
+#### Generic conditions: what a type parameter may be
+
+<!-- example: syntax_generic_conditions | task: 33.2d -->
+```fusion
+interface Printable
+    string function label()
+
+class Vehicle
+    public string name
+    constructor(string name)
+        this.name = name
+
+class Car inherits Vehicle implements Printable
+    constructor(string name)
+        super(name)
+    string function label() : "car {name}"
+
+T function total<T extends Number>(List<T> xs)             // any number type
+    T sum = xs[0]
+    int i = 1
+    while i < xs.len()
+        sum = sum + xs[i]
+        i = i + 1
+    return sum
+
+int function count<T extends int>(List<T> xs) : xs.len()   // only int
+string function park<T : Vehicle>(T v) : v.name            // Vehicle or a child of it (':' = extends)
+string function show<T extends Vehicle implements Printable>(T v) : v.label()   // both
+
+class Box<T implements Printable>                           // on classes and structs too
+    T item
+    constructor(T item)
+        this.item = item
+    string function shown() : item.label()
+
+void function main()
+    List<int> ns = [1, 2, 3]
+    print("{@1} {@2}", total(ns), count(ns))                // 6 3
+    print(park(Vehicle("van")))                             // van
+    print(show(Car("mini")))                                // car mini
+    Box<Car> b = Box(Car("cab"))
+    print(b.shown())                                        // car cab
+```
+A condition sits where the type parameter is named (D.167): `T extends Vehicle` (or `T : Vehicle`) - Vehicle or a
+child of it; `T extends Number` - any number type; `T extends int` - only int; `T implements Printable` - only a type
+that implements it; several interfaces `<T implements Comparable, Printable>`; both, extends first
+`<T extends Vehicle implements Comparable>`. A type that doesn't meet one is a compile error at the use, naming the
+type and the condition - `park(Aircraft("x"))`: "'park' <T extends Vehicle>: Aircraft is not Vehicle or a child of it";
+`Box<Aircraft>` the same. After `implements`, a name after a comma is one more interface unless it is one capital
+letter (with digits) - `<T implements Comparable, K>` starts K. `where` stays reserved.
 `[generics] enabled = false` turns them off (D.168).
 
 #### Lambdas and function values

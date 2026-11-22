@@ -198,6 +198,58 @@ def _c_part(text: str) -> str:
     return re.sub(r'_+', '_', re.sub(r'\W', '_', text.replace('[]', '_arr'))).strip('_')
 
 
+NUMBER_TYPES = ('byte', 'short', 'int', 'long', 'float', 'double')
+
+
+def _condition_text(name: str, condition) -> str:
+    """<T extends Vehicle implements Comparable> as written - for a message."""
+    extends, interfaces = condition
+    text = name
+    if extends is not None:
+        text += f" extends {getattr(extends, 'name', extends)}"
+    if interfaces:
+        text += f" implements {', '.join(interfaces)}"
+    return f'<{text}>'
+
+
+def check_condition_declarations(program) -> List[SemanticError]:
+    """Each condition names something that exists (33.2d, D.167): `extends` a class or struct of the
+    program, `Number` or a basic type; `implements` an interface."""
+    errors: List[SemanticError] = []
+    declared = {d.name: d for d in program.declarations if isinstance(d, (StructDecl, EnumDecl))}
+    declared.update(getattr(program, 'generic_structs', {}))
+    generics = list(getattr(program, 'generic_functions', {}).values()) + \
+        list(getattr(program, 'generic_structs', {}).values())
+    for generic in generics:
+        for name, (extends, interfaces) in (getattr(generic, 'type_conditions', None) or {}).items():
+            where = _condition_text(name, (extends, interfaces))
+            if isinstance(extends, StructType) and extends.name != 'Number':
+                target = declared.get(extends.name)
+                if target is None:
+                    errors.append(SemanticError(f"'{generic.name}' {where}: no class or struct '{extends.name}'",
+                                                generic.location))
+                elif getattr(target, 'is_interface', False):
+                    errors.append(SemanticError(
+                        f"'{generic.name}' {where}: '{extends.name}' is an interface - write "
+                        f"<{name} implements {extends.name}>", generic.location))
+                elif isinstance(target, EnumDecl):
+                    errors.append(SemanticError(
+                        f"'{generic.name}' {where}: '{extends.name}' is an enum - nothing extends it; write the "
+                        f"enum type itself", generic.location))
+            elif extends is not None and not isinstance(extends, (StructType, PrimitiveType)):
+                errors.append(SemanticError(
+                    f"'{generic.name}' {where}: extends takes a class, a struct, Number or a basic type",
+                    generic.location))
+            for interface in interfaces:
+                target = declared.get(interface)
+                if not getattr(target, 'is_interface', False):
+                    errors.append(SemanticError(
+                        f"'{generic.name}' {where}: '{interface}' is not an interface"
+                        + (f" - write <{name} extends {interface}>" if target is not None else ''),
+                        generic.location))
+    return errors
+
+
 class GenericsMixin:
     """Calls to generic functions - a mixin of the type checker. Set by the analyzer: `program`, and
     `generic_host` (the analyzer - it registers a copy's name)."""
@@ -249,6 +301,10 @@ class GenericsMixin:
                     f"'{generic.name}': {', '.join(missing)} can't be worked out from the arguments - write the "
                     f"types: {generic.name}<{example}>(...) (D.166)", node.location))
                 return void
+        unmet = self.unmet_condition(generic, bindings)
+        if unmet:
+            self.errors.append(SemanticError(unmet, node.location))
+            return void
         if isinstance(generic, StructDecl):
             instance = self.generic_host.struct_instance(generic, [bindings[p] for p in params])
         else:
@@ -256,6 +312,35 @@ class GenericsMixin:
         node.callee = IdentifierExpr(location=node.callee.location, name=instance.name)
         node.generic_of = generic.name
         return self._visit_call(node)
+
+    def unmet_condition(self, generic, bindings: dict):
+        """The message for the first condition a type doesn't meet (33.2d, D.167), or None:
+        `extends X` / `: X` - X or a child of it; `extends Number` - any number; `extends int` - only int;
+        `implements I` - a class (or interface) that implements I."""
+        for name, (extends, interfaces) in (getattr(generic, 'type_conditions', None) or {}).items():
+            kind = bindings.get(name)
+            if kind is None:
+                continue
+            shown = self.type_to_string(kind)
+            where = f"'{generic.name}' {_condition_text(name, (extends, interfaces))}"
+            if isinstance(extends, StructType) and extends.name == 'Number':
+                if not (isinstance(kind, PrimitiveType) and kind.name in NUMBER_TYPES):
+                    return f"{where}: {shown} is not a number type"
+            elif isinstance(extends, PrimitiveType):
+                if not (isinstance(kind, PrimitiveType) and kind.name == extends.name):
+                    return f"{where}: {shown} is not {extends.name} - only {extends.name} is accepted"
+            elif isinstance(extends, StructType):
+                target = StructType(location=extends.location, name=extends.name,
+                                    declaration=self.struct_declaration(extends))
+                if not (isinstance(kind, StructType) and self.types_compatible(target, kind)):
+                    return f"{where}: {shown} is not {extends.name} or a child of it"
+            for interface in interfaces:
+                target = StructType(location=generic.location, name=interface)
+                target.declaration = self.struct_declaration(target)
+                if not (isinstance(kind, StructType) and (kind.name == interface
+                                                          or self.implements_interface(kind, target))):
+                    return f"{where}: {shown} doesn't implement {interface}"
+        return None
 
     def _generic_parameters(self, generic, node):
         """(name, type) pairs the arguments are matched against - a function's parameters, a struct's

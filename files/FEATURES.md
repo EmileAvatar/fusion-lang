@@ -278,7 +278,14 @@ then each point is decided and solved completely. One line per section and per l
 		`Box(...)` / `Box<T>` inside its own methods mean the copy; objects in it, in a List, a class field; messages
 		name a copy as written (`Box<int>`) - tests/test_generics.py, example syntax_generics
 		[POSTPONED to 33.3] a generic class with a parent, interfaces or statics - an error for now
-	[ ] 33.2d Conditions: extends / : / Number / int / implements (D.167)
+	[DONE 2026-11-22] 33.2d Conditions (D.167): `<T extends Vehicle>` / `<T : Vehicle>` (a class or struct and its
+		children), `extends Number` (any number), `extends int` (only int), `implements A, B`, both at once; on
+		functions, structs and classes; an unmet one a compile error at the use (a call or a type written), naming
+		the type and the condition; a condition naming nothing / the wrong kind an error - tests/test_generics.py,
+		example syntax_generic_conditions
+		[ ] Later (with "a generic never called is not checked"): the generic code itself checked against its
+			conditions - today each copy is checked with its real type, so a T without a condition can use what its
+			type happens to have
 	[ ] 33.2e `T...` and `int... numbers` - an array, a List or values (D.166)
 	[ ] 33.2 Example (was 16.3)
 	[ ] 33.3 Another implementation behind `List<T>` (from 32.6) - needs generic classes of your own

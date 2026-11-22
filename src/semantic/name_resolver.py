@@ -559,7 +559,7 @@ class NameResolver:
             return
         for arg in args:
             self.resolve_type(arg)
-        instance = host.struct_instance(generic, args)
+        instance = host.struct_instance(generic, args, type_node.location)
         type_node.name = instance.name
         type_node.declaration = instance
         type_node.generic_base = None

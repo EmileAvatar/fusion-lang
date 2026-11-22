@@ -124,10 +124,15 @@ class SemanticAnalyzer:
         finally:
             self.symbol_table.current_scope = scope
 
-    def struct_instance(self, generic, kinds):
+    def struct_instance(self, generic, kinds, location=None):
         """The copy of a generic struct for these types (Task 33.2b) - made once, registered and checked
-        as the struct pass does for every struct."""
+        as the struct pass does for every struct. With `location` (a type written - `Box<Aircraft>`) its
+        conditions are checked here (33.2d); a call checks them itself."""
         from .generics import struct_instance
+        if location is not None:
+            unmet = self.type_checker.unmet_condition(generic, dict(zip(generic.type_params, kinds)))
+            if unmet:
+                self.errors.append(SemanticError(unmet, location))
         key = tuple(self.type_checker.type_to_string(k) for k in kinds)
         return struct_instance(self.program, generic, kinds, key, self._register_struct_instance)
 
@@ -233,6 +238,8 @@ class SemanticAnalyzer:
         self.name_resolver.register_enums(ast)
         self.name_resolver.register_error_types(ast)   # Task 26.9
         self.name_resolver.register_structs(ast)
+        from .generics import check_condition_declarations
+        self.errors.extend(check_condition_declarations(ast))       # <T extends Vehicle> (33.2d)
         structs = [d for d in ast.declarations if isinstance(d, StructDecl)]
         for struct in structs:
             self.type_checker.visit(struct)

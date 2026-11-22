@@ -79,7 +79,8 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
 - Done 2026-11-22: 33.2a generic functions - src/semantic/generics.py, tests/test_generics.py, example syntax_generics
 - Done 2026-11-22: 33.2b generic structs - a copy per set of types (`Pair__int__string`), registered when a type or a call needs it
 - Done 2026-11-22: 33.2c generic classes and methods on a generic struct - copied with it; a parent / interfaces / statics later (33.3)
-- **Next Action:** 33.2d conditions (extends / : / Number / int / implements)
+- Done 2026-11-22: 33.2d conditions - checked at each use (call or type written); the generic code itself checked against them later
+- **Next Action:** 33.2e `T...` and `int... numbers`
 
 ### Parts, in order (each shipped on its own)
 1. **33.2a Generic functions:** the forms above without conditions; T, K, V (and digits) without `<...>`; types from the
