@@ -139,3 +139,61 @@ def test_the_setting():
 def test_a_comparison_is_still_a_comparison():
     # a < b > (c) - not types: only type words between < and > make a written call
     assert run('int a = 1\nint b = 2\nbool r = a < b\nprint("{@1}", r)', top='') == ['true']
+
+
+# ---------------------------------------------------------------- 33.2b generic structs
+
+STRUCTS = ('struct Pair<A, B>\n'
+           '    A first\n'
+           '    B second\n\n'
+           'struct Labelled<T>\n'
+           '    string label\n'
+           '    T value\n\n'
+           'class Car\n'
+           '    public string name\n'
+           '    constructor(string name)\n'
+           '        this.name = name\n\n'
+           'struct Garage\n'
+           '    Pair<int, string> slot\n\n'
+           'T function pickFirst<T, T1>(Pair<T, T1> p) : p.first\n\n')
+
+
+@pytest.mark.parametrize('body, lines', [
+    ('Pair<int, string> p = Pair(1, "one")\nprint("{@1} {@2}", p.first, p.second)', ['1 one']),
+    ('Pair<string, string> q = Pair<string, string>("a", "b")\nq.second = "c"\nprint("{@1}{@2}", q.first, q.second)',
+     ['ac']),
+    ('Labelled<int> l = Labelled("n", 7)\nprint("{@1} {@2}", l.label, l.value)', ['n 7']),
+    ('Pair<int, string> p = Pair(1, "one")\nPair<int, string> r = p\nprint("{@1}", r == Pair(1, "one"))', ['true']),
+    ('Pair<int, string> p = Pair(1, "one")\nprint("{@1}", pickFirst(p))', ['1']),
+    ('List<Pair<int, string>> pairs = [Pair(2, "two"), Pair(3, "three")]\nprint(pairs[1].second)', ['three']),
+    ('Pair<Car, int> c = Pair(Car("Ada"), 3)\nprint("{@1} {@2}", c.first.name, c.second)', ['Ada 3']),
+    ('Pair<Pair<int, int>, string> n = Pair(Pair(1, 2), "x")\nprint("{@1}", n.first.second)', ['2']),
+    ('Garage g = Garage(Pair(5, "five"))\nprint(g.slot.second)', ['five']),
+])
+def test_generic_structs(body, lines):
+    assert run(body, top=STRUCTS) == lines
+
+
+def test_one_struct_copy_per_set_of_types():
+    program = parse(STRUCTS + 'void function main()\n    Pair<int, string> a = Pair(1, "a")\n'
+                              '    Pair<int, string> b = Pair(2, "b")\n    Pair<string, int> c = Pair("c", 3)\n')
+    SemanticAnalyzer().analyze(program)
+    names = [d.name for d in program.declarations if getattr(d, 'generic_of', None) == 'Pair']
+    assert sorted(names) == ['Pair__int__string', 'Pair__string__int']
+
+
+@pytest.mark.parametrize('body, message', [
+    ('Pair<int> p = Pair(1, "a")', "'Pair' has 2 type parameter(s) (A, B) - 1 written"),
+    ('Box<int> b', "Unknown generic type 'Box'"),
+    ('Pair<int, string> p = Pair(1)', "give a value for each field (2)"),
+    ('Pair<int, string> p = Pair("a", 1)', 'Pair<string, int>'),
+])
+def test_generic_struct_mistakes(body, message):
+    found = errors_of(body, top=STRUCTS)
+    assert any(message in e for e in found), found
+
+
+def test_methods_on_a_generic_struct_come_later():
+    top = 'struct Box<T>\n    T item\n    T function fetch() : item\n\n'
+    found = errors_of('print("x")', top=top)
+    assert any('Methods on a generic struct' in e for e in found), found

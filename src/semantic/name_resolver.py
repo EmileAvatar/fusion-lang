@@ -540,6 +540,30 @@ class NameResolver:
                     field.default_value.location
                 ))
 
+    def _resolve_generic_type(self, type_node: StructType) -> None:
+        """`Pair<int, string>` (Task 33.2b, D.166): the generic struct's copy for those types - made once;
+        the type then names the copy."""
+        host = getattr(self, 'generic_host', None)
+        program = getattr(host, 'program', None)
+        generic = getattr(program, 'generic_structs', {}).get(type_node.generic_base)
+        if generic is None:
+            self.errors.append(SemanticError(
+                f"Unknown generic type '{type_node.generic_base}' - no struct {type_node.generic_base}<...> is "
+                f"declared", type_node.location))
+            return
+        args = type_node.type_args
+        if len(args) != len(generic.type_params):
+            self.errors.append(SemanticError(
+                f"'{generic.name}' has {len(generic.type_params)} type parameter(s) "
+                f"({', '.join(generic.type_params)}) - {len(args)} written", type_node.location))
+            return
+        for arg in args:
+            self.resolve_type(arg)
+        instance = host.struct_instance(generic, args)
+        type_node.name = instance.name
+        type_node.declaration = instance
+        type_node.generic_base = None
+
     def resolve_type(self, type_node: TypeNode) -> None:
         """Check that every struct named in a type exists, and link its declaration
         (Task 18.2.1). Recurses into array element types and function types.
@@ -547,7 +571,9 @@ class NameResolver:
         Args:
             type_node: The type to check
         """
-        if isinstance(type_node, StructType):
+        if isinstance(type_node, StructType) and getattr(type_node, 'generic_base', None):
+            self._resolve_generic_type(type_node)                # Pair<int, string> (Task 33.2b)
+        elif isinstance(type_node, StructType):
             symbol = self.symbol_table.global_scope.lookup(type_node.name)
             if symbol is not None and symbol.symbol_type == 'struct':
                 type_node.declaration = symbol.declaration
@@ -1139,7 +1165,7 @@ class NameResolver:
                     f"Undefined function: '{func_name}'",
                     expr.location
                 ))
-            elif symbol.symbol_type in ('struct', 'generic_function'):
+            elif symbol.symbol_type in ('struct', 'generic_function', 'generic_struct'):
                 pass  # A struct constructor, Point(3, 4) (Task 18.2.1); a generic function (33.2a)
             elif symbol.symbol_type != 'function' and not isinstance(symbol.data_type, FunctionType):
                 # A variable or parameter holding a function can be called (Task 18.1.3)

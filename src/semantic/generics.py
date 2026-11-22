@@ -62,8 +62,22 @@ def take_generic_functions(program, enabled: bool) -> List[SemanticError]:
     are made when it is used. Also: a struct, class or enum may not be named T, K or V (D.166)."""
     errors: List[SemanticError] = []
     program.generic_functions = {}
+    program.generic_structs = {}
     kept = []
     for decl in program.declarations:
+        if isinstance(decl, StructDecl) and getattr(decl, 'type_params', None):
+            # struct Pair<A, B> (Task 33.2b): a copy per set of types, made when a type or a call needs it
+            if not enabled:
+                errors.append(SemanticError(
+                    f"'{decl.name}' is generic ({', '.join(decl.type_params)}) - generics are off in this project "
+                    f"([generics] enabled = false, D.168)", decl.location))
+            if getattr(decl, 'methods', None):
+                errors.append(SemanticError(
+                    f"Methods on a generic struct ('{decl.name}') come with Task 33.2c - use a function taking "
+                    f"the struct for now", decl.location))
+            decl.instances = {}
+            program.generic_structs[decl.name] = decl
+            continue
         if isinstance(decl, (StructDecl, EnumDecl)) and TYPE_PARAMETER.match(decl.name):
             what = 'an enum' if isinstance(decl, EnumDecl) else 'a class' if getattr(decl, 'is_class', False) \
                 else 'a struct'
@@ -112,6 +126,27 @@ def _replace_types(node, bindings: dict, memo: dict):
     return node
 
 
+def struct_instance(program, generic: StructDecl, kinds: list, key: tuple, register) -> StructDecl:
+    """The copy of a generic struct for these types (Task 33.2b) - made once: its fields' types
+    replaced, named `Pair__int__string`, added to the program and registered (`register`)."""
+    made = generic.instances.get(key)
+    if made is not None:
+        return made
+    memo = {id(d): d for d in program.declarations}
+    instance = copy.deepcopy(generic, memo)
+    instance.type_params = None
+    instance.instances = None
+    _replace_types(instance, dict(zip(generic.type_params, kinds)), memo)
+    instance.name = f"{generic.name}__{'__'.join(_c_part(k) for k in key)}"
+    instance.generic_of = generic.name
+    instance.generic_types = key
+    instance.generic_kinds = kinds
+    generic.instances[key] = instance
+    program.declarations.insert(0, instance)        # before the functions that use it
+    register(instance)
+    return instance
+
+
 def _c_part(text: str) -> str:
     """A type as part of a C name: List<int> -> List_int, int[] -> int_arr."""
     return re.sub(r'_+', '_', re.sub(r'\W', '_', text.replace('[]', '_arr'))).strip('_')
@@ -126,6 +161,13 @@ class GenericsMixin:
         types), and the call checked as a call of that copy."""
         void = PrimitiveType(location=node.location, name='void')
         params = generic.type_params
+        if isinstance(generic, StructDecl) and len(node.arguments) != len(generic.fields) \
+                and getattr(node, 'type_args', None) is None:
+            self.errors.append(SemanticError(
+                f"'{generic.name}' is generic - give a value for each field ({len(generic.fields)}) so its types can "
+                f"be worked out, or write them: {generic.name}<{', '.join('int' for _ in params)}>(...)",
+                node.location))
+            return void
         if any(type(a).__name__ == 'NamedArgument' for a in node.arguments):
             self.errors.append(SemanticError(
                 f"Named arguments to a generic function ('{generic.name}') come later - give them in order",
@@ -149,8 +191,8 @@ class GenericsMixin:
                 self.checked_receivers.pop(id(arg), None)
             if len(self.errors) > before:
                 return void                                  # an argument is wrong - said already
-            for param, kind in zip(generic.parameters, actual):
-                self._bind(param.param_type, kind, bindings, params)
+            for (_, expected), kind in zip(self._generic_parameters(generic), actual):
+                self._bind(expected, kind, bindings, params)
             missing = [p for p in params if p not in bindings]
             if missing:
                 example = ', '.join('int' for _ in params)
@@ -158,10 +200,20 @@ class GenericsMixin:
                     f"'{generic.name}': {', '.join(missing)} can't be worked out from the arguments - write the "
                     f"types: {generic.name}<{example}>(...) (D.166)", node.location))
                 return void
-        instance = self._generic_instance(generic, [bindings[p] for p in params], bindings)
+        if isinstance(generic, StructDecl):
+            instance = self.generic_host.struct_instance(generic, [bindings[p] for p in params])
+        else:
+            instance = self._generic_instance(generic, [bindings[p] for p in params], bindings)
         node.callee = IdentifierExpr(location=node.callee.location, name=instance.name)
         node.generic_of = generic.name
         return self._visit_call(node)
+
+    def _generic_parameters(self, generic):
+        """(name, type) pairs the arguments are matched against - a function's parameters, a struct's
+        fields (its constructor takes them in order)."""
+        if isinstance(generic, StructDecl):
+            return [(f.name, f.field_type) for f in generic.fields]
+        return [(p.name, p.param_type) for p in generic.parameters]
 
     def _bind(self, expected, actual, bindings: dict, params) -> None:
         """Match a parameter's type against an argument's: each type parameter found gets the type in
@@ -170,6 +222,13 @@ class GenericsMixin:
             return
         if isinstance(expected, StructType) and expected.name in params:
             bindings.setdefault(expected.name, actual)
+            return
+        if isinstance(expected, StructType) and getattr(expected, 'generic_base', None) \
+                and isinstance(actual, StructType) \
+                and getattr(actual.declaration, 'generic_of', None) == expected.generic_base:
+            # Pair<T, T1> against Pair<int, string> (33.2b): each type argument in its place
+            for inner, kind in zip(expected.type_args, actual.declaration.generic_kinds):
+                self._bind(inner, kind, bindings, params)
             return
         if isinstance(expected, ArrayType) and isinstance(actual, (ArrayType, ListType)):
             self._bind(expected.element_type, actual.element_type, bindings, params)

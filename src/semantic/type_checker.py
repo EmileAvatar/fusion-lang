@@ -466,6 +466,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if isinstance(type_node, ArrayType):
             size_str = str(type_node.size) if type_node.size is not None else ''
             return f"{self.type_to_string(type_node.element_type)}[{size_str}]"
+        if isinstance(type_node, StructType) and getattr(type_node.declaration, 'generic_of', None):
+            decl = type_node.declaration                    # Pair<int, string> - a generic's copy (33.2b)
+            return f"{decl.generic_of}<{', '.join(decl.generic_types)}>"
         if isinstance(type_node, (StructType, EnumType, ErrorType)):
             return type_node.name
         if isinstance(type_node, ListType) and type_node.jagged:
@@ -1602,8 +1605,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             ))
             return PrimitiveType(location=node.location, name='void')
 
-        if symbol.symbol_type == 'generic_function':
-            return self.generic_call(node, symbol.declaration)       # first(xs) - a copy per type (33.2a)
+        if symbol.symbol_type in ('generic_function', 'generic_struct'):
+            return self.generic_call(node, symbol.declaration)       # first(xs), Pair(1, "a") - a copy per type (33.2)
 
         if symbol.symbol_type == 'struct' and getattr(symbol.declaration, 'is_interface', False):
             self.errors.append(SemanticError(

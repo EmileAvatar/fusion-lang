@@ -90,7 +90,7 @@ TYP.003 [PLANNED] `money`: a long of minor units, exact, never a float (47.2)
 TYP.004 [BUILT] Enums; enums with data (tagged unions); an unset enum is null
 TYP.005 [PLANNED] Enums whose values carry fixed data (47.3); the `FusionType` enum (47.4)
 TYP.006 [PLANNED] `fixed(n)`: a maximum size, values may change - `fixed(10) string name`, `fixed(14) List<Person> people` (47.5); an array's `fixed`: D.141
-TYP.007 [PARTIAL] Generics (functions built - 33.2a; structs, classes, conditions, T... planned): the program's own generic functions, structs and classes - `T function first<T>(...)`, `<T extends Vehicle>`, `<T implements Comparable>`; `[generics] enabled` (Task 33, D.166-D.168)
+TYP.007 [PARTIAL] Generics (functions and structs built - 33.2a, 33.2b; classes, conditions, T... planned): the program's own generic functions, structs and classes - `T function first<T>(...)`, `<T extends Vehicle>`, `<T implements Comparable>`; `[generics] enabled` (Task 33, D.166-D.168)
 TYP.008 [DESIGN] Operator overloading - only for exceptional cases (a setting, off)
 TYP.009 [BUILT] An int is used as a float only when it fits exactly (a written number that doesn't: compile error; a value: PrecisionError); `[numbers] autoWidening = true` widens with a warning
 TYP.010 [DESIGN] Flag enums combined with `|` (`Permission.Read | Permission.Write`)

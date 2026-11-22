@@ -123,6 +123,25 @@ class SemanticAnalyzer:
         finally:
             self.symbol_table.current_scope = scope
 
+    def struct_instance(self, generic, kinds):
+        """The copy of a generic struct for these types (Task 33.2b) - made once, registered and checked
+        as the struct pass does for every struct."""
+        from .generics import struct_instance
+        key = tuple(self.type_checker.type_to_string(k) for k in kinds)
+        return struct_instance(self.program, generic, kinds, key, self._register_struct_instance)
+
+    def _register_struct_instance(self, struct) -> None:
+        scope = self.symbol_table.current_scope
+        self.symbol_table.current_scope = self.symbol_table.global_scope
+        try:
+            self.name_resolver.register_struct(struct)
+            self.name_resolver.check_struct(struct)
+            self.type_checker.visit(struct)
+            for field in struct.fields:
+                self.type_checker._check_collection_type(field.field_type, field.location)
+        finally:
+            self.symbol_table.current_scope = scope
+
     def analyze(self, ast: ProgramNode) -> bool:
         """Analyze the AST and return True if no errors.
 
@@ -188,6 +207,15 @@ class SemanticAnalyzer:
         self.errors.extend(take_generic_functions(ast, self.generics_enabled))
         self.type_checker.program = ast
         self.type_checker.generic_host = self
+        self.name_resolver.generic_host = self
+        self.program = ast
+        from .symbol import Symbol
+        for name, generic in ast.generic_structs.items():         # Pair(1, "a"), Pair<int, string> (33.2b)
+            try:
+                self.symbol_table.define(Symbol(name=name, symbol_type='generic_struct', data_type=None,
+                                                location=generic.location, declaration=generic))
+            except SemanticError as e:
+                self.errors.append(e)
 
         # Pass 1: Validate entry point
         ep_errors, ep_warnings = self.entry_point_validator.validate_program(ast)

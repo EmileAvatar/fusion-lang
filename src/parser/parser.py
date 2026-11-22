@@ -896,6 +896,13 @@ class Parser:
             elif name == 'bytes':
                 # Raw bytes (Task 18.3.8) - a built-in type, not a keyword
                 base_type = PrimitiveType(location=token.location, name='bytes')
+            elif self.check(TokenType.LESS):
+                # Pair<int, string> - a generic struct with its types (Task 33.2b, D.166)
+                args = self._type_arguments()
+                base_type = StructType(location=token.location,
+                                       name=f'{name}<{", ".join(type_text(a) for a in args)}>')
+                base_type.type_args = args
+                base_type.generic_base = name
             else:
                 base_type = StructType(location=token.location, name=name)
         else:
@@ -954,8 +961,8 @@ class Parser:
             return False
         offset = 1
         # List<int> xs, Map<string, int> ages (Task 18.5); Collection<int> c (Task 32.4)
-        if (self.peek().value in COLLECTION_TYPE_NAMES or self.peek().value in GENERIC_INTERFACE_NAMES) \
-                and self.peek(1).type == TokenType.LESS:
+        # ... and Pair<int, string> p - a generic struct (Task 33.2b): a name must follow the '>'
+        if self.peek(1).type == TokenType.LESS:
             offset = self._skip_type_arguments(1)
             if offset < 0:
                 return False
@@ -2382,6 +2389,8 @@ class Parser:
         """
         struct_token = self.previous()
         name_token = self.consume(TokenType.IDENTIFIER, "Expected struct name after 'struct'")
+        # struct Pair<A, B> - a generic struct (Task 33.2b, D.166)
+        type_params = self._type_parameters() if self.check(TokenType.LESS) else None
 
         # The struct it builds on (Task 32.8): implements, or extends / includes (not keywords)
         parent = None
@@ -2446,6 +2455,7 @@ class Parser:
 
         struct = StructDecl(location=struct_token.location, name=name_token.value, fields=fields,
                             parent=parent)
+        struct.type_params = type_params
         self.attach_methods(struct, methods)
         return struct
 

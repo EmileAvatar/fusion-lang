@@ -856,7 +856,8 @@ T function findMax<T implements Comparable>(List<T> items) {   // only a type th
 T function total<T extends Number>(List<T> xs) { ... }        // only numbers; <T extends int> only int
 void function park<T extends Vehicle>(T v) { ... }            // Vehicle or a child - <T : Vehicle> the same (quick typing)
 
-// [designed] Generic structs and classes (D.166, D.167)
+// [built] Generic structs (33.2b) - Pair<string, int> as a type, Pair("a", 1) its types from the values;
+// [designed] generic classes and conditions (D.166, D.167)
 struct Pair<K, V> {
     K key
     V value

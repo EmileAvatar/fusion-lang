@@ -268,7 +268,11 @@ then each point is decided and solved completely. One line per section and per l
 		tests/test_generics.py, example syntax_generics
 		[ ] Later: a generic never called is not checked (only its copies are); named arguments to a generic; a Map's
 			entries / keys looped inside a generic for a Map type written nowhere else in the program
-	[ ] 33.2b Generic structs `struct Pair<A, B>`
+	[DONE 2026-11-22] 33.2b Generic structs `struct Pair<A, B>`: `Pair<int, string>` as a type (a copy per set of
+		types, `Pair__int__string`), `Pair(1, "a")` - the types from the values - or `Pair<int, string>(...)`; copies,
+		`==`, a field of another struct, nested, in a List, holding an object; `Pair<T, T1>` in a generic function's
+		signature - tests/test_generics.py, example syntax_generics
+		[ ] Later (33.2c): methods on a generic struct - an error today
 	[ ] 33.2c Generic classes `class Box<T>`
 	[ ] 33.2d Conditions: extends / : / Number / int / implements (D.167)
 	[ ] 33.2e `T...` and `int... numbers` - an array, a List or values (D.166)

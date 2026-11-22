@@ -128,7 +128,8 @@ def _generic_kinds(program) -> list:
             return
         if not is_dataclass(node) or isinstance(node, type):
             return
-        if isinstance(node, StructType) and getattr(node, 'type_args', None):
+        if isinstance(node, StructType) and getattr(node, 'type_args', None) \
+                and not getattr(node, 'generic_base', None):       # Pair<int, string> - the program's own (33.2b)
             found.append(node)
         for f in fields(node):
             if f.name not in ('location', 'inferred_type', 'declaration', 'scope'):
@@ -145,6 +146,8 @@ def _is_generic(declaration) -> bool:
     """A generic function (Task 33.2a) - its types hold T, K, V until a copy is made."""
     from src.parser.ast_nodes import FunctionDecl
     from .generics import type_parameters
+    if isinstance(declaration, StructDecl) and getattr(declaration, 'type_params', None):
+        return True                    # struct Pair<A, B> (33.2b)
     return isinstance(declaration, FunctionDecl) and bool(type_parameters(declaration))
 
 

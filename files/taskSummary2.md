@@ -77,7 +77,8 @@ park(car, bus)                // void function park<T extends Vehicle>(T... vs) 
   `string... args` is built), so `T...` is its own part, after the conditions
 
 - Done 2026-11-22: 33.2a generic functions - src/semantic/generics.py, tests/test_generics.py, example syntax_generics
-- **Next Action:** 33.2b generic structs
+- Done 2026-11-22: 33.2b generic structs - a copy per set of types (`Pair__int__string`), registered when a type or a call needs it
+- **Next Action:** 33.2c generic classes (and methods on a generic struct)
 
 ### Parts, in order (each shipped on its own)
 1. **33.2a Generic functions:** the forms above without conditions; T, K, V (and digits) without `<...>`; types from the

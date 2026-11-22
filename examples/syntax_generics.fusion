@@ -3,6 +3,10 @@ T function last(List<T> items) : items[items.len() - 1]     // also accepted: T,
 V function valueOf<K, V>(Map<K, V> m, K key) : m[key]       // Key and Value
 T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]    // several types - the result may be any of them
 
+struct Pair<A, B>                                           // a generic struct (33.2b)
+    A first
+    B second
+
 void function main()
     List<int> numbers = [3, 1, 2]
     List<string> names = ["Ada", "Bo"]
@@ -11,3 +15,5 @@ void function main()
     Map<string, int> ages
     ages["Ada"] = 36
     print("{@1} {@2}", valueOf(ages, "Ada"), second(numbers, names))      // 36 Ada
+    Pair<int, string> p = Pair(1, "one")                                  // types from the values, or Pair<int, string>(...)
+    print("{@1} {@2}", p.first, p.second)                                 // 1 one

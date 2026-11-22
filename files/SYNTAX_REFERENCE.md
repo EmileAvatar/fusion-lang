@@ -201,6 +201,10 @@ T function last(List<T> items) : items[items.len() - 1]     // also accepted: T,
 V function valueOf<K, V>(Map<K, V> m, K key) : m[key]       // Key and Value
 T1 function second<T, T1>(List<T> a, List<T1> b) : b[0]    // several types - the result may be any of them
 
+struct Pair<A, B>                                           // a generic struct (33.2b)
+    A first
+    B second
+
 void function main()
     List<int> numbers = [3, 1, 2]
     List<string> names = ["Ada", "Bo"]
@@ -209,13 +213,18 @@ void function main()
     Map<string, int> ages
     ages["Ada"] = 36
     print("{@1} {@2}", valueOf(ages, "Ada"), second(numbers, names))      // 36 Ada
+    Pair<int, string> p = Pair(1, "one")                                  // types from the values, or Pair<int, string>(...)
+    print("{@1} {@2}", p.first, p.second)                                 // 1 one
 ```
 A generic function names its types in `<...>` after its name, or uses T, K, V (Type, Key, Value - and T1, K2 ...)
 in its signature (D.166); a struct, class or enum can't be named T, K or V. At a call the types come from the
 arguments, or are written - `first<int>(numbers)`; where they can't be worked out the error says to write them.
 One C function is made for each set of types used (`first__int`, `first__string`) - no run-time cost. Without a
-condition a T can be stored, passed, returned, compared with `==` and printed; conditions (`<T extends Number>`,
-`<T implements Comparable>`), generic structs and classes and `T...` come with the next parts of Task 33.
+condition a T can be stored, passed, returned, compared with `==` and printed. A generic struct (`struct Pair<A, B>`)
+is made once per set of types used too - `Pair<int, string>`; its types come from the values given, or are written;
+it works as any struct (copies, `==`, a field of another struct, `List<Pair<int, string>>`). Conditions
+(`<T extends Number>`, `<T implements Comparable>`), generic classes, methods on a generic struct and `T...` come
+with the next parts of Task 33.
 `[generics] enabled = false` turns them off (D.168).
 
 #### Lambdas and function values
