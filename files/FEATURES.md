@@ -508,8 +508,12 @@ then each point is decided and solved completely. One line per section and per l
 		from src/lexer/keywords.py (JSON for VS Code, a plist for Sublime / TextMate); - VS Code, Sublime Text, JetBrains
 		IDEs (TextMate bundles), Atom-family editors and GitHub all read this format
 	[DONE 2026-11-23] 36.2 VS Code extension: the grammar, comment / bracket / indent rules, folding - a `.vsix` made
-		by build_grammar.py --vsix; [ ] the `.fusion` file icon - later
+		by build_grammar.py --vsix; the `.fusion` file icon (a crane over a building - the official icon's idea, user
+		2026-11-23), shown where the file-icon theme has none of its own
 	[DONE 2026-11-23] 36.3 Sublime Text package - tools/editors/sublime/ (the grammar, comment toggling), installed by copying
+		(installed on this PC 2026-11-23); `step` coloured as a keyword everywhere - accepted (user)
+	[ ] 36.8 Fusion's colours (user, 2026-11-23): one palette file, changeable by the developers, colour-blind safe -
+		the plan in files/taskSummary2.md
 	[ ] 36.4 Others as needed: Notepad++ (user-defined language), Vim / Neovim, tree-sitter grammar
 	[ ] 36.6 Later: a thread view - a "stack of threads" (what each thread does, which variables
 		and files / sockets / databases it touches), profiling, graphs and heat maps

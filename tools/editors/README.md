@@ -22,6 +22,18 @@ then reload VS Code (Ctrl+Shift+P - "Developer: Reload Window"). Remove: `code -
 (Windows: `%APPDATA%\Sublime Text\Packages\Fusion`; macOS: `~/Library/Application Support/Sublime Text/Packages/Fusion`),
 then open a `.fusion` file - View > Syntax shows Fusion.
 
+## Changing a colour
+The grammar only names each piece (`keyword.control.fusion`, `string.quoted.double.fusion` ...); the theme
+gives the colours. To change one in your own VS Code, without touching the project - in settings.json:
+```json
+"editor.tokenColorCustomizations": {
+  "textMateRules": [
+    { "scope": "keyword.control.fusion", "settings": { "foreground": "#0072B2", "fontStyle": "bold" } }
+  ]
+}
+```
+Fusion's own palettes (dark, light, colour-blind safe) - FEATURES 36.8.
+
 ## What is highlighted
 Keywords by kind (control, declaration, modifier, operator words, literals, reserved words), the words that are
 keywords only in place (`byVal`, `readonly`, `step`, `foreach` ...), types (built in, and any capitalised name),

@@ -16,6 +16,22 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - **Next Action (next session):** 47.1 `long` / `short` (the plan below - to approve); the research R10 (money
   and decimals: COBOL and other languages) before any money code (47.2, 47.6) - Q.047 / Q.048 A for now
 
+## 36.8 - Fusion's colours: one palette, changeable, colour-blind safe (plan - to approve)
+**Settings:** none (editor colours, not fusion.toml). The grammar only names each piece (`keyword.control.fusion` ...);
+a theme gives the colours. Today the developer's own theme colours Fusion; this adds Fusion's palette:
+- `tools/editors/colors.json` - one file, the colours by role (keyword, declaration, modifier, type, function, string,
+  interpolation, number, comment, operator, literal, reserved) in four palettes: Fusion Dark, Fusion Light, Fusion
+  Colour-Safe Dark, Fusion Colour-Safe Light; a developer changes a colour there and runs build_grammar.py
+- colour-blind safe: the Colour-Safe palettes from the Okabe-Ito colours (safe for the three common kinds of colour
+  blindness); never colour alone - keywords bold, comments italic, so a piece is told apart by its style too; every
+  colour meets WCAG AA contrast (4.5:1) on its background - a test checks it
+- written from colors.json by build_grammar.py: four VS Code colour themes (token colours only - the editor's own
+  colours stay the default dark / light), Sublime Text colour schemes, and the tutorial site's fusion-code.css (the
+  same colours on the site as in the editor; a colour-safe switch on the site later with the JS)
+- a developer may also override any piece in their own editor settings (`editor.tokenColorCustomizations`) - written
+  up in tools/editors/README.md
+- tests: the palettes cover every scope the grammar uses, the contrast check, the written files in step (the editors check)
+
 ## Task 47 - Types: long, short, money, decimal ranges (plan for next session - to approve)
 **Order:** 47.1 `long` / `short` first, then 47.2 `money`, then 47.6 ranges over decimals and money - each shipped on its
 own. 47.3 (enums with fixed data), 47.4 (`FusionType`) and 47.5 (`fixed(n)`) stay in Task 47, planned after the

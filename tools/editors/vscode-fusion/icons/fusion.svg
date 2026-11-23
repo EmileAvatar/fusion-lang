@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Fusion's icon (the official one is the building-construction emoji): a crane over a building, on Fusion green -->
+  <rect x="1" y="1" width="30" height="30" rx="6" fill="#2f9e6f"/>
+  <!-- the crane: mast, jib, counter-jib, the cable and its hook -->
+  <rect x="8" y="5" width="2.4" height="21" fill="#ffffff"/>
+  <rect x="4" y="5" width="22" height="2.2" fill="#ffffff"/>
+  <rect x="4" y="7.2" width="3" height="2.6" fill="#ffffff"/>
+  <rect x="22" y="7.2" width="1.2" height="5" fill="#ffffff"/>
+  <path d="M20.6 12.2 h4 v1.2 h-1.4 v1.6 h-1.2 v-1.6 h-1.4 z" fill="#ffffff"/>
+  <!-- the building going up: two floors of blocks -->
+  <rect x="14" y="19" width="12" height="8" fill="#f0b429"/>
+  <rect x="16" y="15.5" width="8" height="3.5" fill="#f0b429"/>
+  <rect x="15.5" y="21" width="2.5" height="2.5" fill="#2f9e6f"/>
+  <rect x="19.5" y="21" width="2.5" height="2.5" fill="#2f9e6f"/>
+  <rect x="23" y="21" width="1.8" height="2.5" fill="#2f9e6f"/>
+  <rect x="6" y="26" width="21" height="1.5" fill="#ffffff"/>
+</svg>

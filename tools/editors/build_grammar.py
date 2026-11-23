@@ -23,7 +23,7 @@ from src.lexer.keywords import KEYWORDS, RESERVED_WORDS  # noqa: E402
 HERE = Path(__file__).resolve().parent
 VSCODE = HERE / 'vscode-fusion'
 SUBLIME = HERE / 'sublime'
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 
 # Each keyword by kind - the scope a theme colours it by
 CONTROL = {'if', 'else', 'for', 'while', 'loop', 'End', 'end', 'break', 'continue', 'return', 'match', 'case',
@@ -141,7 +141,7 @@ MANIFEST = '''<?xml version="1.0" encoding="utf-8"?>
     <Description xml:space="preserve">Syntax highlighting for the Fusion programming language</Description>
     <Categories>Programming Languages</Categories>
     <Properties>
-      <Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.60.0" />
+      <Property Id="Microsoft.VisualStudio.Code.Engine" Value="^1.71.0" />
     </Properties>
   </Metadata>
   <Installation>
@@ -158,6 +158,7 @@ CONTENT_TYPES = '''<?xml version="1.0" encoding="utf-8"?>
   <Default Extension=".json" ContentType="application/json" />
   <Default Extension=".vsixmanifest" ContentType="text/xml" />
   <Default Extension=".md" ContentType="text/markdown" />
+  <Default Extension=".svg" ContentType="image/svg+xml" />
 </Types>
 '''
 
