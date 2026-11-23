@@ -1,0 +1,28 @@
+{
+  "name": "fusion-lang",
+  "displayName": "Fusion Language",
+  "description": "Syntax highlighting for the Fusion programming language (Task 36.0)",
+  "version": "0.1.0",
+  "publisher": "fusion-lang",
+  "license": "SEE LICENSE IN the Fusion repository",
+  "repository": { "type": "git", "url": "https://github.com/EmileAvatar/fusion-lang" },
+  "engines": { "vscode": "^1.60.0" },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "fusion",
+        "aliases": ["Fusion", "fusion"],
+        "extensions": [".fusion"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "fusion",
+        "scopeName": "source.fusion",
+        "path": "./syntaxes/fusion.tmLanguage.json"
+      }
+    ]
+  }
+}

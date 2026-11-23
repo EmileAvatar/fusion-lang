@@ -38,6 +38,7 @@ Checks:
     reference every ```fusion block in files/SYNTAX_REFERENCE.md compiles and runs (exit 0), and
               its copy in examples/ is up to date
     builtins  files/Builtins.md matches the compiler's built-in functions and methods
+    editors   the editors' grammar (tools/editors/) matches the lexer's keywords (36.1)
     runtime   runtime/fusion_runtime.h matches the run-time the compiler writes into C files
     decisions Decisions.md in shape: feature lines AREA.NNN [STATUS] in order, decision rows
               in order and naming a feature that exists (CLAUDE.md Rule 3b, Task 49.9)
@@ -195,6 +196,17 @@ def check_reference_sync():
         problems.append('fix: python check.py --build-examples')
     return not problems, f'{len(examples)} in sync' if not problems else 'out of sync', \
         '\n'.join(problems)
+
+
+def check_editors():
+    """The editors' grammar (tools/editors/) is what build_grammar.py writes from the lexer's keywords (36.1)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('build_grammar', ROOT / 'tools' / 'editors' / 'build_grammar.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    stale = [p for p, data in module.outputs().items() if not p.exists() or p.read_bytes() != data]
+    problems = [f'{p.relative_to(ROOT)} is out of date - fix: python tools/editors/build_grammar.py' for p in stale]
+    return not problems, 'up to date' if not problems else 'out of date', '\n'.join(problems)
 
 
 def check_builtins():
@@ -693,7 +705,7 @@ def main(argv):
     return 0 if run_checks(quick='--quick' in argv, docs='--docs' in argv) else 1
 
 
-DOC_CHECKS = [('builtins', check_builtins), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links),
+DOC_CHECKS = [('builtins', check_builtins), ('editors', check_editors), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links),
               ('settings', check_settings_doc), ('ascii', check_ascii)]
 
 
@@ -703,7 +715,7 @@ def run_checks(quick: bool, docs: bool = False) -> bool:
         checks = list(DOC_CHECKS)
     elif not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
-                   ('reference', check_reference_sync), ('builtins', check_builtins),
+                   ('reference', check_reference_sync), ('builtins', check_builtins), ('editors', check_editors),
                    ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links), ('settings', check_settings_doc),
                    ('ascii', check_ascii)]
     all_ok = True

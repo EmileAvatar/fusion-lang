@@ -12,5 +12,8 @@
   (or `<a id>`); the "links" check in check.py (51.6)
 - `settings_doc.py` - writes the "Built" part of files/spec/001-TomlSettings.md from
   files/fusionSettings.xml; the "settings" check in check.py (51.5)
+- `editors/build_grammar.py` - the syntax highlighting for editors (Task 36): one TextMate grammar written from the
+  lexer's keywords - `editors/vscode-fusion/` (VS Code, `--vsix` packs it) and `editors/sublime/` (Sublime Text,
+  TextMate); `--check` is the "editors" check in check.py (see editors/README.md)
 - `windows/fusion-file-preview.reg` - Explorer preview pane shows `.fusion` files as text (23.8)
 - `windows/fusion-file-preview-undo.reg` - removes that again

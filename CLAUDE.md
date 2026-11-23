@@ -139,6 +139,7 @@ python check.py --ship "msg" --claude --full  # every check, even when only docu
 python check.py --docs               # the document checks only (a few seconds)
 python check.py --example wordcount  # build, run, compare one example
 python check.py --builtins           # rewrite files/Builtins.md after adding a built-in
+python tools/editors/build_grammar.py --vsix   # rewrite the editors' grammar after a keyword change (+ VS Code package)
 python check.py --runtime            # rewrite runtime/fusion_runtime.h after changing the C run-time
 python check.py --selfhost           # the Fusion-written compiler vs the Python one, tier 1 (28.7)
 python check.py --fix-ascii          # non-ASCII -> \uXXXX where the meaning is unchanged
@@ -150,7 +151,8 @@ python tests/verify_examples.py      # examples directly
 `check.py` runs: the test suite (end-to-end tests compile with `-DFUSION_LEAK_CHECK`), the
 examples, a leak check of every example and every `files/SYNTAX_REFERENCE.md` program (exit 3 =
 string never freed, 4 = freed twice), that `files/Builtins.md` and `runtime/fusion_runtime.h`
-match the compiler, that `Decisions.md` is in shape (Rule 3b), and the ASCII rule.
+match the compiler, that the editors' grammar matches the lexer (`tools/editors/`), that `Decisions.md` is in shape
+(Rule 3b), and the ASCII rule.
 
 ### Setting up a new machine
 1. Python 3.11+ (`tomllib`), and GCC on PATH (Windows: MinGW-w64, e.g.

@@ -7606,3 +7606,17 @@ forbids; a plain or fixed array (`int[3]`, on the stack) isn't taken at all.
   strict and relaxed, the leak check; example syntax_array_collection (04_arrays); Arrays.md truth table row (Rule 4c)
 - **To confirm:** the error kind - ReadOnlyError (exists; "this can't be changed that way") suggested; or a new one
   (e.g. FixedSizeError) - a new error kind is a language change
+
+## 36.0 - a simple Fusion highlighter for VS Code and Sublime Text (auto-approved by the user, 2026-11-23 - built the same day)
+**Settings:** none. In `tools/editors/`:
+- `build_grammar.py` writes one TextMate grammar from the lexer's own tables (`src/lexer/keywords.py` - keywords,
+  reserved words) plus the words that are keywords only in place (`byVal`, `readonly`, `step`, `foreach` ...):
+  `vscode-fusion/syntaxes/fusion.tmLanguage.json` (VS Code) and `sublime/Fusion.tmLanguage` (Sublime Text, TextMate);
+  `--check` (a check.py check: the grammar matches the lexer); `--vsix` packs the VS Code extension
+- the grammar: `//` and `/* */` comments, strings with `{name}` / `{@1}` and escapes, chars, numbers (0x / 0b / 0o,
+  `_`, decimals - `1...10` stays a range), keywords by kind (control, declaration, modifier, type, operator word,
+  literal, reserved), function names (a name before `(`, after `function`), type names (capitalised, after class /
+  struct / interface / enum), operators (`...`, `?.`, `??`, `===`)
+- `vscode-fusion/package.json` + `language-configuration.json`: `.fusion` files, comment toggling, brackets,
+  auto-closing, folding by indentation (all three styles are indented), indent after a block line
+- installed into VS Code with `code --install-extension` (the user, 2026-11-23); FEATURES 36.0 / 36.1 / 36.2 / 36.3

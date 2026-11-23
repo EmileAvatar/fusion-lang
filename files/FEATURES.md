@@ -500,13 +500,16 @@ then each point is decided and solved completely. One line per section and per l
 <a id="task-36"></a>
 #### 36 Editor support: syntax highlighting for code editors and IDEs (was 24) [ ] [index](#index)
 	(user request 2026-10-11 - after self-hosting, when the syntax has settled)
-	[ ] 36.0 First small version - right after Task 32 (user, 2026-10-29): VS Code and Sublime
+	[DONE 2026-11-23] 36.0 First small version - right after Task 32 (user, 2026-10-29): VS Code and Sublime
 		Text / TextMate (macOS too) - keywords, types, numbers, strings with {name} / {@1},
-		chars, comments, function names; installed by copying a folder (no marketplace)
-	[ ] 36.1 One shared TextMate grammar (fusion.tmLanguage) - VS Code, Sublime Text, JetBrains
+		chars, comments, function names; installed by copying a folder (no marketplace) - tools/editors/, installed in
+		VS Code (code --install-extension); tests/test_editor_grammar.py, the "editors" check
+	[DONE 2026-11-23] 36.1 One shared TextMate grammar (fusion.tmLanguage) - written by tools/editors/build_grammar.py
+		from src/lexer/keywords.py (JSON for VS Code, a plist for Sublime / TextMate); - VS Code, Sublime Text, JetBrains
 		IDEs (TextMate bundles), Atom-family editors and GitHub all read this format
-	[ ] 36.2 VS Code extension: the grammar, `.fusion` file icon, comment / bracket / indent rules
-	[ ] 36.3 Sublime Text package
+	[DONE 2026-11-23] 36.2 VS Code extension: the grammar, comment / bracket / indent rules, folding - a `.vsix` made
+		by build_grammar.py --vsix; [ ] the `.fusion` file icon - later
+	[DONE 2026-11-23] 36.3 Sublime Text package - tools/editors/sublime/ (the grammar, comment toggling), installed by copying
 	[ ] 36.4 Others as needed: Notepad++ (user-defined language), Vim / Neovim, tree-sitter grammar
 	[ ] 36.6 Later: a thread view - a "stack of threads" (what each thread does, which variables
 		and files / sockets / databases it touches), profiling, graphs and heat maps

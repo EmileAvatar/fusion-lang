@@ -4,7 +4,7 @@ What Fusion has, and what it still needs, at a glance. Kept simple - one line pe
 Detail: `Decisions.md` (every feature line and decision), `files/FEATURES.md` (tasks and status),
 `files/SYNTAX_REFERENCE.md` (examples of what works).
 
-Updated: 2026-11-22
+Updated: 2026-11-23
 
 Tags: **[partial]** some of it built - **[planned]** decided, scheduled as a task - **[design]** described,
 not settled - **[postponed]** waits for something else
@@ -113,7 +113,10 @@ Memory
 Settings
    - Built                    [build] waitAtExit, --headless; [indentation]; [stdlib] layer std / alloc / core;
                               [strings] maxLength, encoding; [structs] limits; [backend] target = "c";
-                              [generics] enabled
+                              [generics] enabled, sharedStatics; [ranges] strictStep
+
+Tooling
+   - Syntax highlighting      VS Code and Sublime Text - one grammar from the lexer's keywords (Task 36.0)
 ```
 
 ## Partly implemented
@@ -240,7 +243,7 @@ Memory
 
 Settings & tooling
    - Core modules [planned]          Time, Data formats, Currency (Task 43)
-   - Syntax highlighting, language server [planned]   (Task 36)
+   - Language server [planned]       errors as you type, go to definition (Task 36.5); a .fusion file icon
    - LLVM backend, IR layer [planned]   (Task 40); HIDL for hardware (Task 41)
    - Enforce [safety] / [backend] [planned]
    - Errors for tools / AI [planned]    fix: hints; --errors json

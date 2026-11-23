@@ -12,9 +12,9 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 
 - Task 33 (generics) complete 2026-11-22 - its plan in task/taskSummaryArchive.md
 - Done 2026-11-22: 45.10 an array as a Collection<T> (D.090) - its plan in task/taskSummaryArchive.md
-- **Next Action (next session):** 36.0 first - a simple Fusion highlighter for VS Code and Sublime Text (Q.050:
-  A) - its plan here, for the user to approve; then 47.1 `long` / `short`; the research R10 (money and decimals:
-  COBOL and other languages) before any money code (47.2, 47.6) - Q.047 / Q.048 are A for now, deferred to R10
+- Done 2026-11-23: 36.0 a simple highlighter for VS Code and Sublime Text (tools/editors/, installed in VS Code)
+- **Next Action (next session):** 47.1 `long` / `short` (the plan below - to approve); the research R10 (money
+  and decimals: COBOL and other languages) before any money code (47.2, 47.6) - Q.047 / Q.048 A for now
 
 ## Task 47 - Types: long, short, money, decimal ranges (plan for next session - to approve)
 **Order:** 47.1 `long` / `short` first, then 47.2 `money`, then 47.6 ranges over decimals and money - each shipped on its
