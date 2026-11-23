@@ -30,8 +30,45 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
-(none open)
+#### Q.047 How `money` is written and printed (Task 47.2 - D.021)
+`money` is a long of minor units (cents). How is an amount written in the code, and how does it print?
 
+```fusion
+// A: a decimal literal, its places checked against [money] decimals (2): stored as minor units
+money price = 123.45            // stored 12345; 123.456 an error (more places than the minor unit)
+print(price)                    // 123.45
+// B: a suffix marks it - plain numbers stay int / double
+money price = 123.45m
+// C: minor units only - nothing new to read
+money price = money(12345)      // 123.45
+```
+
+Suggested: A, with B accepted as quick typing (`123.45m` where the type isn't written, e.g. `var`).
+
+**Answer** (user, 2026-11-23): A for now - until something better turns up in the research R10 (COBOL
+and other languages; money is a special kind of decimal, handled accurately as COBOL does).
+**Deferred** until R10 is done (FEATURES Research R10) - then settled with 47.2.
+
+#### Q.048 The default rounding for money (Task 47.2.2)
+Dividing, a percentage or a split can leave half a cent. Which way does it go by default (a project changes it in
+`[money] rounding`)?
+
+```fusion
+money m = 0.05
+print(m.percent(50))            // 0.025 -> ?
+// A: halfEven (banker's): 0.02 - the default of C#'s Math.Round, Python's Decimal; no drift over many sums
+// B: halfUp: 0.03 - what most people expect on paper
+// C: no default - a project must set it
+```
+
+Suggested: A (`halfEven`), with `halfUp`, `down`, `up` as the other values.
+
+**Answer** (user, 2026-11-23): A (halfEven) - checked against the research R10 first.
+**Deferred** until R10 is done - then settled with 47.2.2.
+
+Earlier: Q.049 (Task 47's other parts - A: they stay in Task 47, after the number types) and Q.050 (36.0 first -
+A: a simple VS Code / Sublime highlighter before Task 47) answered 2026-11-23: FEATURES Task 47 and 36.0 - task
+order, not language features, so no Decisions.md row.
 Earlier: Q.044 (statics on a generic class - C), Q.045 (a List implementation's core - B for now), Q.046 (a List value holding any implementation - A for now) answered 2026-11-22: Decisions.md D.173-D.175.
 Earlier: Q.042 (a generic's types from the variable) and Q.043 (a local taken from a parameter: B1, for now) answered 2026-11-22: Decisions.md D.171, D.172.
 Earlier: Q.041 (ranges: the step, `%`, a step that misses the end) answered 2026-11-22: Decisions.md D.170, FEATURES 33.2g, 47.6, L7.9.
@@ -46,6 +83,6 @@ namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a 
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.047.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.051.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->

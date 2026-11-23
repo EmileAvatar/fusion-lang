@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ownership - Fusion</title>
+  <link rel="stylesheet" href="site.css">
+  <link rel="stylesheet" href="fusion-code.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="brand" href="index.html">&#127959;&#65039; Fusion</a>
+    <nav class="tabs">
+      <a class="tab" href="index.html">Home</a>
+      <a class="tab" href="learn.html">Learn</a>
+      <a class="tab active" href="ownership.html">Ownership</a>
+      <a class="tab" href="services.html">Services</a>
+      <a class="tab" href="hidl.html">HIDL</a>
+      <a class="tab" href="cross-compiler.html">Cross Compiler</a>
+      <a class="tab" href="https://github.com/EmileAvatar/fusion-lang" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+
+    <aside class="sidebar">
+      <div class="sidebar-title">Ownership</div>
+      <a class="active" href="#one-owner">One owner</a>
+      <a href="#moving">Moving</a>
+      <a href="#borrowing">Borrowing</a>
+      <a href="#readonly">readonly</a>
+      <a href="#one-writer">One writer</a>
+      <details>
+        <summary>Settings</summary>
+        <a href="#strict">strict</a>
+        <a href="#relaxed">relaxed</a>
+      </details>
+    </aside>
+
+    <main class="content">
+      <h1 id="one-owner">One owner, one writer</h1>
+      <p class="lead">Every value has one owner. Assigning it moves it, passing it lends it - so memory is freed
+        exactly once, never too early, never forgotten, and without a garbage collector.</p>
+
+      <h2 id="moving">Moving</h2>
+      <p><code>Car b = a</code> hands the car over: <code>b</code> owns it, and <code>a</code> can't be used until it
+        gets a new value. <code>byVal</code> makes a copy instead.</p>
+      <div class="example">
+        <div class="example-title">Example</div>
+<pre class="fusion"><code><span class="kw">class</span> <span class="type">Car</span>
+    <span class="kw">public</span> <span class="type">string</span> color
+    <span class="kw">constructor</span>(<span class="type">string</span> color)
+        <span class="kw">this</span>.color = color
+
+<span class="kw">void</span> <span class="kw">function</span> <span class="fn">main</span>()
+    <span class="type">Car</span> a = <span class="type">Car</span>(<span class="str">"red"</span>)
+    <span class="type">Car</span> b = a                     <span class="com">// with "move": b owns the car now</span>
+    <span class="com">// print(a.color) here: 'a' was moved to 'b' on line 8 - use byVal a for a copy</span>
+    a = <span class="type">Car</span>(<span class="str">"blue"</span>)               <span class="com">// a new value brings a back</span>
+    <span class="type">Car</span> c = <span class="kw">byVal</span> b               <span class="com">// a copy: two cars</span>
+    c.color = <span class="str">"green"</span>
+    <span class="fn">print</span>(<span class="str">"{a.color} {b.color} {c.color}"</span>)   <span class="com">// blue red green</span></code></pre>
+        <div class="example-output">blue red green</div>
+      </div>
+
+      <h2 id="borrowing">Borrowing</h2>
+      <p>Passing a value to a function lends it for the call - it is back afterwards. A function that keeps what it is
+        given (stores or returns it) takes it instead, and the call moves the argument.</p>
+
+      <h2 id="one-writer">One writer</h2>
+      <p>A value several threads use gets exactly one writer - a <a href="services.html">service</a> - so two threads
+        can never change it at once.</p>
+
+      <div class="note" id="settings">A project chooses in <code>fusion.toml</code>: <code>[memory] ownership =
+        "strict"</code> (the default - every rule) or <code>"relaxed"</code> (shared objects, the rules loosened).
+        More pages to come.</div>
+    </main>
+
+  </div>
+
+  <footer class="footer">Fusion - a first version of the site (the plan: main.md)</footer>
+
+</body>
+</html>

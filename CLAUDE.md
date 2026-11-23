@@ -249,3 +249,5 @@ When a language feature or spec changes, update every affected file without aski
   a `DUT` block (ports, widths, clocks), drive / expect vectors (`[CLK, RST] -> [Q]`),
   pipeline depth `->n`, clock / timing declarations, `trigger f() when cond`, arbitrary bit
   widths, 2- / 4-state values (X, Z), bit slices
+- **Performance (user, 2026-11-23):** tune only what actively hinders compiling / building the language until
+  self-hosting; then profile against Goose's benchmarks - the goal is nanosecond performance (FEATURES L16.0)

@@ -1,0 +1,164 @@
+/* The Fusion site's look - layout, top bar, index, page (one file for the whole site).
+   Fusion code blocks have their own file: fusion-code.css */
+
+:root {
+  --bar: #282a35;          /* top bar */
+  --bar-text: #f5f7fa;
+  --accent: #2f9e6f;       /* Fusion green: active tab, active item, links, example border */
+  --side: #e7e9eb;         /* index bar */
+  --side-hover: #cccccc;
+  --text: #1f2933;
+  --muted: #616e7c;
+  --line: #d9dee3;
+  --page: #ffffff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Verdana, sans-serif;
+  color: var(--text);
+  background: var(--page);
+  line-height: 1.6;
+}
+
+/* Top bar: the site's parts - Home, Learn, Ownership, Services, HIDL, Cross Compiler, GitHub.
+   Not the tutorial itself: each part may have its own index on the left */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--bar);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.brand { color: var(--bar-text); font-weight: 700; font-size: 19px; text-decoration: none; white-space: nowrap; }
+.tabs { display: flex; overflow-x: auto; }
+.tab {
+  color: var(--bar-text);
+  text-decoration: none;
+  padding: 12px 14px;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tab:hover { background: #000000; }
+.tab.active { background: var(--accent); }
+
+/* Below the bar: the index on the left, the page on the right */
+.layout { display: flex; min-height: calc(100vh - 48px - 40px); }
+
+/* The index (as w3schools): a title, then the main items - always visible. Only an item with items of its own
+   folds (a caret on the right); a group heading never folds */
+.sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  background: var(--side);
+  padding: 12px 0 24px;
+}
+.sidebar-title {
+  padding: 6px 16px 6px 24px;
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sidebar-group {                      /* a heading inside the index - never folds */
+  margin-top: 14px;
+  padding: 4px 16px 4px 24px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.sidebar a, .sidebar summary {
+  display: block;
+  padding: 3px 16px 3px 24px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 15px;
+  border-left: 4px solid transparent;
+}
+.sidebar a:hover, .sidebar summary:hover { background: var(--side-hover); }
+.sidebar a.active { background: var(--side-hover); border-left-color: var(--accent); font-weight: 700; }
+
+.sidebar details > summary { cursor: pointer; list-style: none; position: relative; }
+.sidebar details > summary::-webkit-details-marker { display: none; }
+.sidebar details > summary::after {   /* the caret: only items with items of their own have it */
+  content: "\25BE";
+  position: absolute;
+  right: 14px;
+  color: var(--muted);
+}
+.sidebar details[open] > summary::after { content: "\25B4"; }
+.sidebar details > a { padding-left: 44px; font-size: 14px; }
+
+/* The page */
+.content { flex: 1; max-width: 920px; padding: 24px 40px 48px; }
+.content h1 { font-size: 40px; font-weight: 400; margin: 8px 0 16px; }
+.content h2 { font-size: 26px; font-weight: 400; margin-top: 32px; }
+.lead { font-size: 18px; color: var(--muted); }
+.content a { color: var(--accent); }
+
+.welcome { display: flex; align-items: center; gap: 12px; }
+.logo {                                /* the Fusion icon */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--accent);
+  font-size: 28px;
+}
+
+.pager { display: flex; justify-content: space-between; margin: 8px 0 24px; }
+.button {
+  display: inline-block;
+  padding: 6px 18px;
+  border: 1px solid var(--text);
+  border-radius: 5px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 16px;
+}
+.button.next { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+.content a.button { color: var(--text); }
+.content a.button.next { color: #ffffff; }
+
+.card { border: 1px solid var(--line); border-radius: 6px; padding: 8px 24px 16px; margin: 16px 0; }
+
+.features { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 12px 0; }
+.feature { border: 1px solid var(--line); border-radius: 6px; padding: 10px 16px; }
+.feature h3 { margin: 4px 0; font-size: 17px; }
+.feature p { margin: 4px 0; color: var(--muted); font-size: 15px; }
+.tag { font-size: 12px; padding: 1px 6px; border-radius: 3px; background: #eef1f4; color: var(--muted); }
+
+/* An example: its title, the code (fusion-code.css), what it prints */
+.example { background: #e7f5ee; border-left: 4px solid var(--accent); padding: 8px 16px 16px; margin: 16px 0; }
+.example-title { font-weight: 600; margin-bottom: 8px; }
+.example-output {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  font-family: Consolas, "Courier New", monospace;
+  white-space: pre;
+}
+.example-output::before { content: "Output: "; color: var(--muted); }
+
+.note { background: #fff8e1; border-left: 4px solid #f0b429; padding: 8px 16px; margin: 16px 0; }
+
+code { font-family: Consolas, "Courier New", monospace; background: #eef1f4; padding: 1px 4px; }
+
+.footer { height: 40px; padding: 10px 16px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+
+/* Narrow screens: the index above the page */
+@media (max-width: 760px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; }
+  .content { padding: 16px; }
+}

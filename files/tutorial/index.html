@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fusion</title>
+  <link rel="stylesheet" href="site.css">
+  <link rel="stylesheet" href="fusion-code.css">
+</head>
+<body>
+
+  <!-- Top bar: the site's parts (tutorial.json "bar") - not the tutorial itself; each may have its own index -->
+  <header class="topbar">
+    <a class="brand" href="index.html">&#127959;&#65039; Fusion</a>
+    <nav class="tabs">
+      <a class="tab active" href="index.html">Home</a>
+      <a class="tab" href="learn.html">Learn</a>
+      <a class="tab" href="ownership.html">Ownership</a>
+      <a class="tab" href="services.html">Services</a>
+      <a class="tab" href="hidl.html">HIDL</a>
+      <a class="tab" href="cross-compiler.html">Cross Compiler</a>
+      <a class="tab" href="https://github.com/EmileAvatar/fusion-lang" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+
+    <!-- Home's own index -->
+    <aside class="sidebar">
+      <div class="sidebar-title">Fusion</div>
+      <a class="active" href="#welcome">Welcome</a>
+      <a href="#what">What is Fusion?</a>
+      <a href="#why">Why Fusion?</a>
+      <details>
+        <summary>Major features</summary>
+        <a href="#configurable">Configurable</a>
+        <a href="#styles">Syntax without lock-in</a>
+        <a href="#ownership-feature">One owner, one writer</a>
+        <a href="#services-feature">Services</a>
+        <a href="#generics">Generics</a>
+      </details>
+      <a href="#status">What works today</a>
+      <a href="learn.html">Start learning</a>
+    </aside>
+
+    <main class="content">
+      <h1 id="welcome" class="welcome"><span class="logo">&#127959;&#65039;</span> Welcome to Fusion</h1>
+      <p class="lead">Fusion is a configurable programming language. One language - and each project chooses how its code
+        is written, how memory is managed and how strict the compiler is, in one settings file: <code>fusion.toml</code>.</p>
+      <div class="pager"><span></span><a class="button next" href="learn.html">Start learning &#8250;</a></div>
+
+      <div class="card">
+        <h2 id="what">What is Fusion?</h2>
+        <p>Fusion compiles to C and then to a native program - fast, small, with no virtual machine. It aims to be
+          memory-safe and free of data races by construction, without a garbage collector by default.</p>
+        <h2 id="why">Why Fusion?</h2>
+        <p>Every language makes you choose: C is fast but unsafe, Python is easy but slow, Rust is safe but strict, Go
+          is simple but restrictive. Fusion's goal is to remove that forced choice - reconfigure Fusion instead of
+          switching languages when your project's needs change.</p>
+      </div>
+
+      <h2>Major features</h2>
+      <div class="features">
+        <div class="feature" id="configurable"><h3>Configurable</h3>
+          <p>Safety, memory, settings and backend chosen per project in <code>fusion.toml</code>.</p></div>
+        <div class="feature" id="styles"><h3>Syntax without lock-in</h3>
+          <p>Indentation, braces or <code>End</code> words - one meaning, your choice.</p></div>
+        <div class="feature" id="ownership-feature"><h3>One owner, one writer</h3>
+          <p>Every value has one owner; no crashes from freed memory, no leaks.</p></div>
+        <div class="feature" id="services-feature"><h3>Services <span class="tag">designed</span></h3>
+          <p>Shared state without locks: no race conditions, no deadlocks by design.</p></div>
+        <div class="feature" id="generics"><h3>Generics</h3>
+          <p>One function or class for many types - copied per type, no run-time cost.</p></div>
+        <div class="feature"><h3>HIDL <span class="tag">idea</span></h3>
+          <p>Hardware described in Fusion - testbenches and more.</p></div>
+        <div class="feature"><h3>Cross compiler <span class="tag">idea</span></h3>
+          <p>Other languages run through Fusion: <code>Lang.&lt;Language&gt;.Fusion</code>.</p></div>
+      </div>
+
+      <h2>Write it your way</h2>
+      <div class="example">
+        <div class="example-title">Example</div>
+<pre class="fusion"><code><span class="type">int</span> <span class="kw">function</span> <span class="fn">bigger</span>(<span class="type">int</span> a, <span class="type">int</span> b)
+    <span class="kw">if</span> a &gt; b
+        <span class="kw">return</span> a
+    <span class="kw">return</span> b
+
+<span class="kw">void</span> <span class="kw">function</span> <span class="fn">main</span>()
+    <span class="fn">print</span>(<span class="str">"{@1}"</span>, <span class="fn">bigger</span>(<span class="num">4</span>, <span class="num">9</span>))   <span class="com">// 9</span></code></pre>
+        <div class="example-output">9</div>
+      </div>
+
+      <div class="note" id="status">What works today is listed in the project's FeatureTree.md - every example on
+        this site is a real program from <code>examples/</code>, compiled and run by the test suite.</div>
+    </main>
+
+  </div>
+
+  <footer class="footer">Fusion - a first version of the site (the plan: main.md)</footer>
+
+</body>
+</html>

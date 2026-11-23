@@ -920,7 +920,7 @@ in Explorer's preview pane.
 
 ## The tutorial site and later README features (user, 2026-11-22 - from the ChatGPT review, not started)
 
-5. A tutorial site in `files/tutorial/` (user, 2026-11-22 - designed later; only the folder and plan for now), in the
+5. (started 2026-11-22 - files/tutorial/, FEATURES L15.3) A tutorial site in `files/tutorial/` (user, 2026-11-22 - designed later; only the folder and plan for now), in the
    style of w3schools - the review's "Getting Started" level:
    - left: an index bar - headings (collapsible) and sub-headings
    - right: the main page - the tutorial text and its code

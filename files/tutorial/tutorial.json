@@ -1,0 +1,89 @@
+{
+  "title": "Fusion",
+  "about": "The site's structure. bar: the top bar's parts - not the tutorial itself; each part has its own index (left). In an index: a group is a heading that never folds; an item with items of its own folds; every other item is a link, always visible. The JS (later) builds the bar and the indexes from this file; each lesson's example is a program from examples/.",
+  "bar": [
+    {
+      "id": "home", "title": "Home", "page": "index.html",
+      "index": [
+        { "title": "Welcome" },
+        { "title": "What is Fusion?" },
+        { "title": "Why Fusion?" },
+        { "title": "Major features", "items": [
+          { "title": "Configurable" }, { "title": "Syntax without lock-in" }, { "title": "One owner, one writer" },
+          { "title": "Services" }, { "title": "Generics" } ] },
+        { "title": "What works today" },
+        { "title": "Start learning", "page": "learn.html" }
+      ]
+    },
+    {
+      "id": "learn", "title": "Learn", "page": "learn.html",
+      "index": [
+        { "title": "Fusion HOME", "page": "learn.html" },
+        { "title": "Fusion Intro" },
+        { "title": "Fusion Get Started", "example": "01_basics/hello_world" },
+        { "title": "Fusion Syntax", "example": "01_basics/style_indent" },
+        { "title": "Fusion Output", "example": "12_files_and_programs/syntax_write" },
+        { "title": "Fusion Comments" },
+        { "title": "Fusion Variables", "items": [
+          { "title": "Declaring", "example": "01_basics/syntax_variables_and_control_flow" },
+          { "title": "let and var", "example": "01_basics/syntax_let_var" },
+          { "title": "const", "example": "01_basics/const_demo" } ] },
+        { "title": "Fusion Data Types" },
+        { "title": "Fusion Type Casting" },
+        { "title": "Fusion User Input", "example": "12_files_and_programs/syntax_program_io" },
+        { "title": "Fusion Operators", "items": [
+          { "title": "Arithmetic" }, { "title": "Comparison", "example": "01_basics/syntax_equality" },
+          { "title": "and, or, not" }, { "title": "The conditional (? :)", "example": "01_basics/syntax_conditional" } ] },
+        { "title": "Fusion Strings", "items": [
+          { "title": "Strings", "example": "03_strings/syntax_strings" },
+          { "title": "Interpolation", "example": "03_strings/syntax_interpolation" },
+          { "title": "The string library", "example": "03_strings/syntax_string_library" },
+          { "title": "Unicode and bytes", "example": "03_strings/syntax_unicode" } ] },
+        { "title": "Fusion If...Else", "example": "01_basics/control_flow" },
+        { "title": "Fusion match", "items": [
+          { "title": "match", "example": "06_match_and_enums/syntax_match" },
+          { "title": "Ranges in a case", "example": "01_basics/syntax_ranges" },
+          { "title": "fall match", "example": "06_match_and_enums/syntax_fall_match" } ] },
+        { "title": "Fusion While Loop" },
+        { "title": "Fusion For Loop", "items": [
+          { "title": "for" }, { "title": "Ranges and step", "example": "01_basics/syntax_ranges" },
+          { "title": "foreach", "example": "05_collections/syntax_foreach" } ] },
+        { "title": "Fusion Arrays", "items": [
+          { "title": "Arrays", "example": "04_arrays/syntax_arrays" },
+          { "title": "Growable arrays", "example": "04_arrays/syntax_growable_array" },
+          { "title": "2 and 3 dimensions", "example": "04_arrays/syntax_many_dims" } ] },
+        { "group": "Fusion Functions" },
+        { "title": "Fusion Functions", "example": "02_functions/functions_demo" },
+        { "title": "Fusion Parameters", "example": "02_functions/syntax_defaults_and_named_args" },
+        { "title": "Fusion Lambdas", "example": "02_functions/syntax_lambdas" },
+        { "title": "Fusion Any Number of Values", "example": "02_functions/syntax_variadic" },
+        { "group": "Fusion Classes" },
+        { "title": "Fusion Structs", "example": "07_structs/syntax_structs" },
+        { "title": "Fusion Classes", "example": "08_classes/syntax_classes" },
+        { "title": "Fusion Interfaces", "example": "08_classes/syntax_interfaces" },
+        { "title": "Fusion Inheritance", "example": "08_classes/syntax_inheritance" },
+        { "title": "Fusion Enums", "example": "06_match_and_enums/syntax_enums" },
+        { "group": "Fusion Collections" },
+        { "title": "Fusion Lists", "example": "05_collections/syntax_lists" },
+        { "title": "Fusion Maps", "example": "05_collections/syntax_maps" },
+        { "title": "Fusion Generics", "example": "09_generics/syntax_generics" },
+        { "group": "Fusion Errors" },
+        { "title": "Fusion Errors", "example": "10_errors_and_null/syntax_errors" },
+        { "title": "Fusion try / catch", "example": "10_errors_and_null/syntax_try" },
+        { "title": "Fusion Null Guard", "example": "10_errors_and_null/syntax_null_guard" }
+      ]
+    },
+    { "id": "ownership", "title": "Ownership", "page": "ownership.html", "index": [
+      { "title": "One owner" }, { "title": "Moving", "example": "11_ownership/syntax_moving" },
+      { "title": "Borrowing", "example": "11_ownership/syntax_borrowing" },
+      { "title": "readonly", "example": "11_ownership/syntax_readonly" },
+      { "title": "One writer", "example": "11_ownership/syntax_one_writer" } ] },
+    { "id": "services", "title": "Services", "page": "services.html", "status": "designed", "index": [
+      { "title": "The problem: races, locks, deadlocks" }, { "title": "What a service is" },
+      { "title": "Using a service" }, { "title": "Why it solves them" } ] },
+    { "id": "hidl", "title": "HIDL", "page": "hidl.html", "status": "idea", "index": [ { "title": "What HIDL will be" } ] },
+    { "id": "cross-compiler", "title": "Cross Compiler", "page": "cross-compiler.html", "status": "idea", "index": [
+      { "title": "Lang.<Language>.Fusion" } ] },
+    { "id": "github", "title": "GitHub", "link": "https://github.com/EmileAvatar/fusion-lang", "newTab": true }
+  ]
+}

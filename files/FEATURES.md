@@ -254,6 +254,26 @@ then each point is decided and solved completely. One line per section and per l
 		(JavaScript, Python), sync-over-async deadlocks (C#), `Pin` / `Send` (Rust), leaked goroutines (Go) - against Concurrency.md 11-14 and D.127
 	[ ] R9.4 For each pitfall: does Fusion avoid it, a rule or a setting - fed into Task 59, Symbols.md and the courses (L15.2)
 
+#### R10 Money and decimals: COBOL and other languages - for Task 47 (47.2, 47.6) (user, 2026-11-23) [ ] [index](#index)
+	Findings go into files/Research/Money/. Money handled accurately, as COBOL does (user) - the research comes before
+	any money code and settles Q.047 (the literal form) and Q.048 (the default rounding). The preference (user,
+	2026-11-23): money stays a long (D.021) - the long just holds a value, the Currency module (43.3) gives it its
+	meaning (places, steps, symbol); a decimal type is the backup, in case the research shows a long falls short
+	[ ] R10.1 COBOL: PIC 9(n)V99 fixed-point fields, packed decimal (COMP-3), how arithmetic keeps its scale, the
+		ROUNDED clause and its modes, ON SIZE ERROR (overflow), intermediate precision - why banks still trust it
+	[ ] R10.2 Other languages: C# decimal (128-bit), Java BigDecimal (RoundingMode, MathContext), Python decimal
+		(contexts, ROUND_HALF_EVEN), SQL DECIMAL(p, s) / NUMERIC and SQL Server's MONEY (its known flaws), PL/I fixed
+		decimal, Ada fixed-point and decimal types, IEEE 754-2008 decimal64 / decimal128, Rust / Go decimal libraries,
+		JavaScript (none built in) - what each gets right and wrong
+	[ ] R10.3 Money in practice: minor units against a decimal type, each currency's places (ISO 4217), rounding rules
+		by country and by use (banker's or half-up, tax, interest), splitting an amount (Fowler's Money pattern - where
+		the remainder goes), the order of steps, the range needed (a long or 128 bits), exchange rates (more places
+		than money - not money)
+	[ ] R10.4 For Fusion: check the preference - money a long of minor units (D.021), its meaning from the Currency
+		module - against what COBOL and the others show; where a long falls short (range, more places, rates), the
+		decimal backup (`decimal(p, s)`, TYP.015); the literal and printed form (Q.047 - A for now), the default
+		rounding (Q.048 - halfEven for now), money and decimal ranges (47.6) - each a decision for the user
+
 ---
 
 <a id="phase-2"></a>
@@ -282,7 +302,9 @@ then each point is decided and solved completely. One line per section and per l
 
 <a id="task-47"></a>
 #### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ] [index](#index)
-	After Task 32 and 36.0. The type table: files/FusionTypes.html
+	After Task 32 and 36.0 (Q.050: 36.0 first - user, 2026-11-23). The type table: files/FusionTypes.html. 47.3, 47.4 and
+	47.5 stay in this task, after the number types (Q.049, user 2026-11-23). Money (47.2) and its ranges (47.6) wait for
+	the research R10 (COBOL and other languages) - no money code before it
 	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow
 		checked like int) and `short` (16-bit) - reserved words today, not built
 	[ ] 47.2 `money`: a `long` counting a currency's minor units - kind value, default 0, min /
@@ -1016,7 +1038,17 @@ Each time a task or section is finished, this list is checked for items the curr
 			a curated course for beginners and one for experienced professionals, so the language is easy to pick up;
 			a skill.md so other AIs can learn and write Fusion. The goal: people want to program in Fusion.
 			Use the Rust complaints (Research R4.1, Points.md) as a guide - what puts people off a language
+		[ ] L15.3 The tutorial site files/tutorial/ (user, 2026-11-22 - w3schools style: tabs on top, a folding index on
+			the left, the lesson on the right) - started 2026-11-22: index.html (Home), learn.html (the Learn index), site.css, fusion-code.css,
+			tutorial.json (the structure), main.md (the plan as a text hierarchy), CLAUDE.md; next: one JS file (the bar
+			and index from tutorial.json), then a page per lesson - each example a real program from examples/
+			[ ] To review (user, 2026-11-23): Goose's tutorial https://aardappel.github.io/goose/docs/tutorial.html -
+				the other option for the tutorial's style: simple and clean (compare with the w3schools layout)
 	L16 Compiler optimisation - after self-hosting, profiled first (user, 2026-11-14: "we profile the heck out of it", no pre-optimising)
+		[POSTPONED - after self-hosting] L16.0 Profile Fusion against Goose's benchmarks (user, 2026-11-23):
+			https://aardappel.github.io/goose/bench/results.html - the goal: nanosecond performance. Until then, tune
+			only what actively hinders compiling / building the language (as reading files as text was slow and as
+			bytes fast); a slow spot found now may be profiled now
 		[POSTPONED - after self-hosting (Task 35) and profiling] L16.1 Large arrays through two buffers on the
 			stack: one being worked on by the CPU while the other loads the next part from the heap, then they swap
 		[POSTPONED - after self-hosting and profiling] L16.2 Or a ring buffer on the stack: one part read

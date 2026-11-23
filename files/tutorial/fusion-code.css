@@ -1,0 +1,23 @@
+/* Fusion code blocks - one file for the colours of Fusion source, used by every page.
+   A block: <pre class="fusion"><code> ... </code></pre>, each part in a span:
+   kw (keyword), type, fn (function name), str (string), num (number), com (comment), op (operator) */
+
+pre.fusion {
+  margin: 0;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid #d9dee3;
+  overflow-x: auto;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 15px;
+  line-height: 1.5;
+}
+pre.fusion code { background: none; padding: 0; }
+
+pre.fusion .kw   { color: #0b5cad; font-weight: 600; }  /* function, if, return, class ... */
+pre.fusion .type { color: #8a3ffc; }                    /* int, string, List<T> ... */
+pre.fusion .fn   { color: #9a5b00; }                    /* main, print, bigger ... */
+pre.fusion .str  { color: #1a7f37; }                    /* "text" */
+pre.fusion .num  { color: #c4320a; }                    /* 42, 3.5 */
+pre.fusion .com  { color: #6e7781; font-style: italic; }/* // a comment */
+pre.fusion .op   { color: #1f2933; }                    /* + - * / ... */

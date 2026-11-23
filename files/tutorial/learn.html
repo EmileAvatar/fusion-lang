@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Learn Fusion</title>
+  <link rel="stylesheet" href="site.css">
+  <link rel="stylesheet" href="fusion-code.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="brand" href="index.html">&#127959;&#65039; Fusion</a>
+    <nav class="tabs">
+      <a class="tab" href="index.html">Home</a>
+      <a class="tab active" href="learn.html">Learn</a>
+      <a class="tab" href="ownership.html">Ownership</a>
+      <a class="tab" href="services.html">Services</a>
+      <a class="tab" href="hidl.html">HIDL</a>
+      <a class="tab" href="cross-compiler.html">Cross Compiler</a>
+      <a class="tab" href="https://github.com/EmileAvatar/fusion-lang" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+
+    <!-- The learning index (tutorial.json "learn"): main items always visible; only an item with items of its own
+         folds; a group heading never folds -->
+    <aside class="sidebar">
+      <div class="sidebar-title">Fusion Tutorial</div>
+      <a class="active" href="learn.html">Fusion HOME</a>
+      <a href="#intro">Fusion Intro</a>
+      <a href="#get-started">Fusion Get Started</a>
+      <a href="#syntax">Fusion Syntax</a>
+      <a href="#output">Fusion Output</a>
+      <a href="#comments">Fusion Comments</a>
+      <details>
+        <summary>Fusion Variables</summary>
+        <a href="#var-declare">Declaring</a>
+        <a href="#var-let">let and var</a>
+        <a href="#var-const">const</a>
+      </details>
+      <a href="#types">Fusion Data Types</a>
+      <a href="#casting">Fusion Type Casting</a>
+      <a href="#input">Fusion User Input</a>
+      <details>
+        <summary>Fusion Operators</summary>
+        <a href="#op-math">Arithmetic</a>
+        <a href="#op-compare">Comparison</a>
+        <a href="#op-logic">and, or, not</a>
+        <a href="#op-conditional">The conditional (? :)</a>
+      </details>
+      <details>
+        <summary>Fusion Strings</summary>
+        <a href="#str-basics">Strings</a>
+        <a href="#str-interpolation">Interpolation</a>
+        <a href="#str-library">The string library</a>
+        <a href="#str-unicode">Unicode and bytes</a>
+      </details>
+      <a href="#if">Fusion If...Else</a>
+      <details>
+        <summary>Fusion match</summary>
+        <a href="#match">match</a>
+        <a href="#match-ranges">Ranges in a case</a>
+        <a href="#fall-match">fall match</a>
+      </details>
+      <a href="#while">Fusion While Loop</a>
+      <details>
+        <summary>Fusion For Loop</summary>
+        <a href="#for">for</a>
+        <a href="#ranges">Ranges and step</a>
+        <a href="#foreach">foreach</a>
+      </details>
+      <details>
+        <summary>Fusion Arrays</summary>
+        <a href="#arrays">Arrays</a>
+        <a href="#arrays-growable">Growable arrays</a>
+        <a href="#arrays-dims">2 and 3 dimensions</a>
+      </details>
+
+      <div class="sidebar-group">Fusion Functions</div>
+      <a href="#functions">Fusion Functions</a>
+      <a href="#parameters">Fusion Parameters</a>
+      <a href="#lambdas">Fusion Lambdas</a>
+      <a href="#variadic">Fusion Any Number of Values</a>
+
+      <div class="sidebar-group">Fusion Classes</div>
+      <a href="#structs">Fusion Structs</a>
+      <a href="#classes">Fusion Classes</a>
+      <a href="#interfaces">Fusion Interfaces</a>
+      <a href="#inheritance">Fusion Inheritance</a>
+      <a href="#enums">Fusion Enums</a>
+
+      <div class="sidebar-group">Fusion Collections</div>
+      <a href="#lists">Fusion Lists</a>
+      <a href="#maps">Fusion Maps</a>
+      <a href="#generics">Fusion Generics</a>
+
+      <div class="sidebar-group">Fusion Errors</div>
+      <a href="#errors">Fusion Errors</a>
+      <a href="#try">Fusion try / catch</a>
+      <a href="#null">Fusion Null Guard</a>
+    </aside>
+
+    <main class="content">
+      <h1>Fusion Tutorial</h1>
+      <div class="pager"><a class="button" href="index.html">&#8249; Home</a>
+        <a class="button next" href="#intro">Next &#8250;</a></div>
+
+      <div class="card">
+        <h2 class="welcome"><span class="logo">&#127959;&#65039;</span> Learn Fusion</h2>
+        <p>Fusion is a configurable programming language: one language, set up per project in <code>fusion.toml</code>.
+          It compiles to C and then to a native program.</p>
+        <p>This tutorial starts with the basics and goes step by step - every example is a real program, compiled and
+          run by Fusion's test suite.</p>
+      </div>
+
+      <h2>Examples in each chapter</h2>
+      <div class="example">
+        <div class="example-title">Example</div>
+<pre class="fusion"><code><span class="kw">void</span> <span class="kw">function</span> <span class="fn">main</span>()
+    <span class="fn">print</span>(<span class="str">"Hello, Fusion!"</span>)</code></pre>
+        <div class="example-output">Hello, Fusion!</div>
+      </div>
+
+      <div class="pager"><a class="button" href="index.html">&#8249; Home</a>
+        <a class="button next" href="#intro">Next &#8250;</a></div>
+    </main>
+
+  </div>
+
+  <footer class="footer">Fusion - a first version of the site (the plan: main.md)</footer>
+
+</body>
+</html>

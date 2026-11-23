@@ -53,6 +53,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/FusionTypes.html](files/FusionTypes.html) | Every type: default, range, size, status (open in a browser) |
 | [files/ArrayCube.html](files/ArrayCube.html) | An array of 3 dimensions as a cube: which slots `cube[1]`, `cube[][2][1]`, `foreach` and `expand` reach, the flat block (open in a browser, Task 45.16) |
 | [files/fusionSettings.xml](files/fusionSettings.xml) | Every built project setting: values, default (the master template) |
+| [files/tutorial/](files/tutorial/) | The tutorial site (w3schools style, started 2026-11-22): `index.html`, `site.css`, `fusion-code.css`, `tutorial.json`; the plan as a text hierarchy in [main.md](files/tutorial/main.md) (FEATURES L15.3) |
 | [files/showcase/](files/showcase/) | The whole language as code: `Fusion_showcase.fusion` (every feature, tagged), `Fusion_template.fusion` (each construct's shape), `Ownership.fusion`, `Interfaces.fusion`, `fusion.toml` (every setting, tagged) |
 | [files/FusionTemplate.md](files/FusionTemplate.md) | How a .fusion file is laid out |
 

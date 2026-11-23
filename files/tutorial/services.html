@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Services - Fusion</title>
+  <link rel="stylesheet" href="site.css">
+  <link rel="stylesheet" href="fusion-code.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <a class="brand" href="index.html">&#127959;&#65039; Fusion</a>
+    <nav class="tabs">
+      <a class="tab" href="index.html">Home</a>
+      <a class="tab" href="learn.html">Learn</a>
+      <a class="tab" href="ownership.html">Ownership</a>
+      <a class="tab active" href="services.html">Services</a>
+      <a class="tab" href="hidl.html">HIDL</a>
+      <a class="tab" href="cross-compiler.html">Cross Compiler</a>
+      <a class="tab" href="https://github.com/EmileAvatar/fusion-lang" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+
+    <aside class="sidebar">
+      <div class="sidebar-title">Services</div>
+      <a class="active" href="#the-problem">The problem</a>
+      <a href="#what-a-service-is">What a service is</a>
+      <a href="#using-a-service">Using a service</a>
+      <a href="#why-it-solves-them">Why it solves them</a>
+      <details>
+        <summary>How a service runs</summary>
+        <a href="#a-plain-variable">A plain variable</a>
+        <a href="#atomics">Atomics</a>
+        <a href="#a-mailbox">A mailbox</a>
+      </details>
+    </aside>
+
+    <main class="content">
+      <h1 id="the-problem">Services <span class="tag">designed - Task 42</span></h1>
+      <p class="lead">Shared state without locks: a resource becomes a service, instead of every caller guarding it by
+        hand.</p>
+
+      <h2>The problem</h2>
+      <p><b>Race conditions</b> - two threads read a balance of 1000 at once, both withdraw 800, and both succeed.
+        <b>Locks</b> - every caller must remember to lock and unlock; forget once and the race is back.
+        <b>Deadlocks</b> - two threads each hold what the other waits for, and the program freezes.</p>
+
+      <h2 id="what-a-service-is">What a service is</h2>
+      <p>The service owns the data and is its only writer; threads send it requests instead of touching the data.
+        Each request is one indivisible step, and the compiler decides how it runs.</p>
+
+      <h2 id="using-a-service">Using a service</h2>
+      <div class="example">
+        <div class="example-title">Example (designed - not built yet)</div>
+<pre class="fusion"><code><span class="kw">class</span> <span class="type">Account</span>
+    <span class="type">int</span> balance = <span class="num">1000</span>
+
+<span class="kw">void</span> <span class="kw">function</span> <span class="fn">withdraw</span>(<span class="type">Account</span> account, <span class="type">int</span> amount)
+    <span class="com">// The check and the change are one step: no other thread can</span>
+    <span class="com">// slip in between them, so two withdrawals can't both pass.</span>
+    <span class="kw">service</span>(account).<span class="kw">run</span>
+        <span class="kw">if</span> account.balance &gt;= amount
+            account.balance -= amount
+
+<span class="kw">void</span> <span class="kw">function</span> <span class="fn">main</span>()
+    <span class="kw">service</span> <span class="type">Account</span> account = <span class="type">Account</span>()   <span class="com">// shared state: one owner, one writer</span>
+    <span class="kw">go</span> <span class="fn">withdraw</span>(account, <span class="num">800</span>)             <span class="com">// two threads withdraw at the same time</span>
+    <span class="kw">go</span> <span class="fn">withdraw</span>(account, <span class="num">800</span>)
+    <span class="fn">print</span>(account.balance)                <span class="com">// 200, never -600</span></code></pre>
+      </div>
+
+      <h2 id="why-it-solves-them">Why it solves them</h2>
+      <p>No race conditions - only the service changes its data, one request at a time. No hand-written locks. No
+        deadlocks by design - a caller never holds a lock while waiting. No cost when not needed - a service used by
+        one thread is a plain variable.</p>
+      <div class="note">More pages to come - the full design is in the project's files/Service.md.</div>
+    </main>
+
+  </div>
+
+  <footer class="footer">Fusion - a first version of the site (the plan: main.md)</footer>
+
+</body>
+</html>
