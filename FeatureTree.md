@@ -117,6 +117,7 @@ Settings
 
 Tooling
    - Syntax highlighting      VS Code and Sublime Text - one grammar from the lexer's keywords (Task 36.0)
+   - Colour themes            Fusion Dark / Light and colour-blind safe ones, one colours file (36.8)
 ```
 
 ## Partly implemented

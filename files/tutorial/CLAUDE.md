@@ -11,7 +11,7 @@ Compiler, GitHub - not the tutorial itself; each part may have its own index on 
 | `services.html` | Services: the problem, what a service is, why it solves it (designed - a first page) |
 | `hidl.html`, `cross-compiler.html` | HIDL and the cross compiler (ideas - a first page each) |
 | `site.css` | The whole site's look - bar, index, pages, examples, notes; one file for every page |
-| `fusion-code.css` | The colours of Fusion code blocks (`<pre class="fusion">`, spans kw / type / fn / str / num / com / op) |
+| `fusion-code.css` | The colours of Fusion code blocks (`<pre class="fusion">`, spans kw / type / fn / str / num / com / op) - written by `tools/editors/build_grammar.py` from `tools/editors/colors.json` (the editors' colours, 36.8); `class="colour-safe"` on a page gives the colour-blind safe palette |
 | `tutorial.json` | The structure: the bar's parts, each part's index, each lesson's example program (`examples/<topic>/<name>`) |
 | `main.md` | The plan in words: the site as a simple text hierarchy - what will be built |
 

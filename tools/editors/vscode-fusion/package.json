@@ -1,21 +1,37 @@
 {
   "name": "fusion-lang",
   "displayName": "Fusion Language",
-  "description": "Syntax highlighting for the Fusion programming language (Task 36.0)",
-  "version": "0.1.1",
+  "description": "Syntax highlighting and colour themes for the Fusion programming language (Tasks 36.0, 36.8)",
+  "version": "0.1.2",
   "publisher": "fusion-lang",
   "license": "SEE LICENSE IN the Fusion repository",
-  "repository": { "type": "git", "url": "https://github.com/EmileAvatar/fusion-lang" },
-  "engines": { "vscode": "^1.71.0" },
-  "categories": ["Programming Languages"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EmileAvatar/fusion-lang"
+  },
+  "engines": {
+    "vscode": "^1.71.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Themes"
+  ],
   "contributes": {
     "languages": [
       {
         "id": "fusion",
-        "aliases": ["Fusion", "fusion"],
-        "extensions": [".fusion"],
+        "aliases": [
+          "Fusion",
+          "fusion"
+        ],
+        "extensions": [
+          ".fusion"
+        ],
         "configuration": "./language-configuration.json",
-        "icon": { "light": "./icons/fusion.svg", "dark": "./icons/fusion.svg" }
+        "icon": {
+          "light": "./icons/fusion.svg",
+          "dark": "./icons/fusion.svg"
+        }
       }
     ],
     "grammars": [
@@ -23,6 +39,28 @@
         "language": "fusion",
         "scopeName": "source.fusion",
         "path": "./syntaxes/fusion.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Fusion Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/fusion-dark-color-theme.json"
+      },
+      {
+        "label": "Fusion Light",
+        "uiTheme": "vs",
+        "path": "./themes/fusion-light-color-theme.json"
+      },
+      {
+        "label": "Fusion Colour-Safe Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/fusion-colour-safe-dark-color-theme.json"
+      },
+      {
+        "label": "Fusion Colour-Safe Light",
+        "uiTheme": "vs",
+        "path": "./themes/fusion-colour-safe-light-color-theme.json"
       }
     ]
   }

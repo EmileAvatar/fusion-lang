@@ -1,6 +1,8 @@
-/* Fusion code blocks - one file for the colours of Fusion source, used by every page.
-   A block: <pre class="fusion"><code> ... </code></pre>, each part in a span:
-   kw (keyword), type, fn (function name), str (string), num (number), com (comment), op (operator) */
+/* Fusion code blocks - the colours of Fusion source on every page of the site.
+   Written by tools/editors/build_grammar.py from tools/editors/colors.json - change a colour there, not here
+   (the same colours as the editors). A block: <pre class="fusion"><code> ... </code></pre>, each part in a
+   span: kw (keyword), type, fn (function name), str (string), num (number), com (comment), op (operator).
+   A page (or body) with class="colour-safe" uses the colour-blind safe palette. */
 
 pre.fusion {
   margin: 0;
@@ -14,10 +16,18 @@ pre.fusion {
 }
 pre.fusion code { background: none; padding: 0; }
 
-pre.fusion .kw   { color: #0b5cad; font-weight: 600; }  /* function, if, return, class ... */
-pre.fusion .type { color: #8a3ffc; }                    /* int, string, List<T> ... */
-pre.fusion .fn   { color: #9a5b00; }                    /* main, print, bigger ... */
-pre.fusion .str  { color: #1a7f37; }                    /* "text" */
-pre.fusion .num  { color: #c4320a; }                    /* 42, 3.5 */
-pre.fusion .com  { color: #6e7781; font-style: italic; }/* // a comment */
-pre.fusion .op   { color: #1f2933; }                    /* + - * / ... */
+pre.fusion .kw { color: #0B5CAD; font-weight: 600; }
+pre.fusion .type { color: #8A3FFC; }
+pre.fusion .fn { color: #8A5000; }
+pre.fusion .str { color: #1A7F37; }
+pre.fusion .num { color: #C4320A; }
+pre.fusion .com { color: #6E7781; font-style: italic; }
+pre.fusion .op { color: #1F2933; }
+
+.colour-safe pre.fusion .kw { color: #0072B2; font-weight: 600; }
+.colour-safe pre.fusion .type { color: #00785A; }
+.colour-safe pre.fusion .fn { color: #1F2933; font-weight: 600; }
+.colour-safe pre.fusion .str { color: #8F5A00; }
+.colour-safe pre.fusion .num { color: #A0457A; }
+.colour-safe pre.fusion .com { color: #6E7781; font-style: italic; }
+.colour-safe pre.fusion .op { color: #1F2933; }

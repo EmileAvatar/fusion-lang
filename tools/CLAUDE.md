@@ -14,6 +14,7 @@
   files/fusionSettings.xml; the "settings" check in check.py (51.5)
 - `editors/build_grammar.py` - the syntax highlighting for editors (Task 36): one TextMate grammar written from the
   lexer's keywords - `editors/vscode-fusion/` (VS Code, `--vsix` packs it) and `editors/sublime/` (Sublime Text,
-  TextMate); `--check` is the "editors" check in check.py (see editors/README.md)
+  TextMate); `--check` is the "editors" check in check.py (see editors/README.md); from `editors/colors.json` (Fusion's
+  colours, 36.8) also the four colour themes / schemes and the site's `files/tutorial/fusion-code.css`
 - `windows/fusion-file-preview.reg` - Explorer preview pane shows `.fusion` files as text (23.8)
 - `windows/fusion-file-preview-undo.reg` - removes that again

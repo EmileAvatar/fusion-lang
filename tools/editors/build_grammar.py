@@ -9,6 +9,10 @@ the words that are keywords only in their place (byVal, readonly, step, foreach 
 - vscode-fusion/syntaxes/fusion.tmLanguage.json  VS Code (with vscode-fusion/package.json, language-configuration.json)
 - sublime/Fusion.tmLanguage                      Sublime Text and TextMate (an XML plist - the same grammar)
 - sublime/Comments.tmPreferences                 Sublime: // and /* */ for comment toggling
+Fusion's colours (36.8) come from colors.json - change a colour there and run this again. Written from it:
+- vscode-fusion/themes/fusion-<palette>-color-theme.json  four VS Code colour themes (and their list in package.json)
+- sublime/Fusion-<Palette>.sublime-color-scheme           the same four for Sublime Text
+- files/tutorial/fusion-code.css                          the site's code colours (light; colour-safe under .colour-safe)
 """
 import json
 import plistlib
@@ -23,7 +27,9 @@ from src.lexer.keywords import KEYWORDS, RESERVED_WORDS  # noqa: E402
 HERE = Path(__file__).resolve().parent
 VSCODE = HERE / 'vscode-fusion'
 SUBLIME = HERE / 'sublime'
-VERSION = '0.1.1'
+SITE_CSS = ROOT / 'files' / 'tutorial' / 'fusion-code.css'
+COLORS = HERE / 'colors.json'
+VERSION = '0.1.2'
 
 # Each keyword by kind - the scope a theme colours it by
 CONTROL = {'if', 'else', 'for', 'while', 'loop', 'End', 'end', 'break', 'continue', 'return', 'match', 'case',
@@ -123,14 +129,131 @@ def comments_preferences() -> dict:
         {'name': 'TM_COMMENT_START_2', 'value': '/*'}, {'name': 'TM_COMMENT_END_2', 'value': '*/'}]}}
 
 
+# ---------------------------------------------------------------- colours (36.8)
+
+def colors() -> dict:
+    return json.loads(COLORS.read_text(encoding='ascii'))
+
+
+def _title(key: str) -> str:
+    """'colour-safe-dark' -> 'Colour-Safe-Dark'."""
+    return '-'.join(part.capitalize() for part in key.split('-'))
+
+
+def _json(data) -> bytes:
+    return (json.dumps(data, indent=2) + '\n').encode('ascii')
+
+
+def vscode_theme(palette: dict, roles: dict) -> dict:
+    """A VS Code colour theme: Fusion's token colours on the editor's own default look (dark or light)."""
+    token_colors = []
+    for role, look in palette['colors'].items():
+        settings = {'foreground': look['color']}
+        if look.get('style'):
+            settings['fontStyle'] = look['style']
+        token_colors.append({'name': role, 'scope': roles[role]['scopes'], 'settings': settings})
+    return {'name': palette['name'], 'type': palette['type'],
+            'colors': {'editor.background': palette['background'], 'editor.foreground': palette['foreground']},
+            'tokenColors': token_colors}
+
+
+def sublime_scheme(palette: dict, roles: dict) -> dict:
+    dark = palette['type'] == 'dark'
+    rules = []
+    for role, look in palette['colors'].items():
+        rule = {'name': role, 'scope': ', '.join(roles[role]['scopes']), 'foreground': look['color']}
+        if look.get('style'):
+            rule['font_style'] = look['style']
+        rules.append(rule)
+    return {'name': palette['name'],
+            'globals': {'background': palette['background'], 'foreground': palette['foreground'],
+                        'caret': palette['foreground'], 'selection': '#264F78' if dark else '#ADD6FF',
+                        'line_highlight': '#2A2D2E' if dark else '#F3F3F3'},
+            'rules': rules}
+
+
+def _css_look(look: dict) -> str:
+    style = look.get('style', '')
+    parts = [f'color: {look["color"]};']
+    if 'bold' in style:
+        parts.append('font-weight: 600;')
+    if 'italic' in style:
+        parts.append('font-style: italic;')
+    if 'underline' in style:
+        parts.append('text-decoration: underline;')
+    return ' '.join(parts)
+
+
+def site_css(data: dict) -> str:
+    """The site's code colours: the light palette, the colour-safe light one under `.colour-safe` (a switch later)."""
+    roles = data['roles']
+    light, safe = data['palettes']['light'], data['palettes']['colour-safe-light']
+    lines = ['/* Fusion code blocks - the colours of Fusion source on every page of the site.',
+             '   Written by tools/editors/build_grammar.py from tools/editors/colors.json - change a colour there, not here',
+             '   (the same colours as the editors). A block: <pre class="fusion"><code> ... </code></pre>, each part in a',
+             '   span: kw (keyword), type, fn (function name), str (string), num (number), com (comment), op (operator).',
+             '   A page (or body) with class="colour-safe" uses the colour-blind safe palette. */',
+             '',
+             'pre.fusion {',
+             '  margin: 0;',
+             '  padding: 12px 16px;',
+             f'  background: {light["background"].lower()};',
+             '  border: 1px solid #d9dee3;',
+             '  overflow-x: auto;',
+             '  font-family: Consolas, "Courier New", monospace;',
+             '  font-size: 15px;',
+             '  line-height: 1.5;',
+             '}',
+             'pre.fusion code { background: none; padding: 0; }',
+             '']
+    site_roles = [(role, spec['site']) for role, spec in roles.items() if 'site' in spec]
+    for role, cls in site_roles:
+        lines.append(f'pre.fusion .{cls} {{ {_css_look(light["colors"][role])} }}')
+    lines.append('')
+    for role, cls in site_roles:
+        lines.append(f'.colour-safe pre.fusion .{cls} {{ {_css_look(safe["colors"][role])} }}')
+    return '\n'.join(lines) + '\n'
+
+
+def package_json(data: dict) -> dict:
+    themes = [{'label': p['name'], 'uiTheme': 'vs-dark' if p['type'] == 'dark' else 'vs',
+               'path': f'./themes/fusion-{key}-color-theme.json'} for key, p in data['palettes'].items()]
+    return {
+        'name': 'fusion-lang',
+        'displayName': 'Fusion Language',
+        'description': 'Syntax highlighting and colour themes for the Fusion programming language (Tasks 36.0, 36.8)',
+        'version': VERSION,
+        'publisher': 'fusion-lang',
+        'license': 'SEE LICENSE IN the Fusion repository',
+        'repository': {'type': 'git', 'url': 'https://github.com/EmileAvatar/fusion-lang'},
+        'engines': {'vscode': '^1.71.0'},
+        'categories': ['Programming Languages', 'Themes'],
+        'contributes': {
+            'languages': [{'id': 'fusion', 'aliases': ['Fusion', 'fusion'], 'extensions': ['.fusion'],
+                           'configuration': './language-configuration.json',
+                           'icon': {'light': './icons/fusion.svg', 'dark': './icons/fusion.svg'}}],
+            'grammars': [{'language': 'fusion', 'scopeName': 'source.fusion',
+                          'path': './syntaxes/fusion.tmLanguage.json'}],
+            'themes': themes,
+        },
+    }
+
+
 def outputs() -> dict:
     """path -> the bytes it should hold."""
     g = grammar()
-    return {
-        VSCODE / 'syntaxes' / 'fusion.tmLanguage.json': (json.dumps(g, indent=2) + '\n').encode('ascii'),
+    data = colors()
+    written = {
+        VSCODE / 'syntaxes' / 'fusion.tmLanguage.json': _json(g),
         SUBLIME / 'Fusion.tmLanguage': plistlib.dumps({k: v for k, v in g.items() if k != '$schema'}),
         SUBLIME / 'Comments.tmPreferences': plistlib.dumps(comments_preferences()),
+        VSCODE / 'package.json': _json(package_json(data)),
+        SITE_CSS: site_css(data).encode('ascii'),
     }
+    for key, palette in data['palettes'].items():
+        written[VSCODE / 'themes' / f'fusion-{key}-color-theme.json'] = _json(vscode_theme(palette, data['roles']))
+        written[SUBLIME / f'Fusion-{_title(key)}.sublime-color-scheme'] = _json(sublime_scheme(palette, data['roles']))
+    return written
 
 
 MANIFEST = '''<?xml version="1.0" encoding="utf-8"?>

@@ -533,8 +533,10 @@ then each point is decided and solved completely. One line per section and per l
 		2026-11-23), shown where the file-icon theme has none of its own
 	[DONE 2026-11-23] 36.3 Sublime Text package - tools/editors/sublime/ (the grammar, comment toggling), installed by copying
 		(installed on this PC 2026-11-23); `step` coloured as a keyword everywhere - accepted (user)
-	[ ] 36.8 Fusion's colours (user, 2026-11-23): one palette file, changeable by the developers, colour-blind safe -
-		the plan in files/taskSummary2.md
+	[DONE 2026-11-24] 36.8 Fusion's colours (user, 2026-11-23): tools/editors/colors.json - every colour in one file,
+		changeable by the developers; four palettes (Fusion Dark / Light, Colour-Safe Dark / Light - Okabe-Ito); colour
+		never the only signal (keywords bold, comments italic); WCAG AA contrast tested; written from it: four VS Code
+		themes (extension 0.1.2, installed), four Sublime colour schemes (installed), the site's fusion-code.css
 	[ ] 36.4 Others as needed: Notepad++ (user-defined language), Vim / Neovim, tree-sitter grammar
 	[ ] 36.6 Later: a thread view - a "stack of threads" (what each thread does, which variables
 		and files / sockets / databases it touches), profiling, graphs and heat maps

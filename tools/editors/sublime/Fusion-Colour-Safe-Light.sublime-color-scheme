@@ -1,0 +1,89 @@
+{
+  "name": "Fusion Colour-Safe Light",
+  "globals": {
+    "background": "#FFFFFF",
+    "foreground": "#1F2933",
+    "caret": "#1F2933",
+    "selection": "#ADD6FF",
+    "line_highlight": "#F3F3F3"
+  },
+  "rules": [
+    {
+      "name": "keyword",
+      "scope": "keyword.control, keyword.operator.word",
+      "foreground": "#0072B2",
+      "font_style": "bold"
+    },
+    {
+      "name": "declaration",
+      "scope": "storage.type",
+      "foreground": "#0072B2",
+      "font_style": "bold"
+    },
+    {
+      "name": "modifier",
+      "scope": "storage.modifier",
+      "foreground": "#0072B2",
+      "font_style": "italic"
+    },
+    {
+      "name": "type",
+      "scope": "support.type.primitive, support.class.builtin, entity.name.type",
+      "foreground": "#00785A"
+    },
+    {
+      "name": "function",
+      "scope": "entity.name.function, entity.name.function.call",
+      "foreground": "#1F2933",
+      "font_style": "bold"
+    },
+    {
+      "name": "string",
+      "scope": "string.quoted",
+      "foreground": "#8F5A00"
+    },
+    {
+      "name": "escape",
+      "scope": "constant.character.escape",
+      "foreground": "#A0457A"
+    },
+    {
+      "name": "interpolation",
+      "scope": "meta.interpolation, punctuation.section.interpolation, variable.other.interpolated",
+      "foreground": "#A0457A"
+    },
+    {
+      "name": "number",
+      "scope": "constant.numeric",
+      "foreground": "#A0457A"
+    },
+    {
+      "name": "comment",
+      "scope": "comment",
+      "foreground": "#6E7781",
+      "font_style": "italic"
+    },
+    {
+      "name": "operator",
+      "scope": "keyword.operator",
+      "foreground": "#1F2933"
+    },
+    {
+      "name": "literal",
+      "scope": "constant.language",
+      "foreground": "#B34F00"
+    },
+    {
+      "name": "this",
+      "scope": "variable.language",
+      "foreground": "#0072B2",
+      "font_style": "italic"
+    },
+    {
+      "name": "reserved",
+      "scope": "keyword.other.reserved",
+      "foreground": "#B34F00",
+      "font_style": "bold underline"
+    }
+  ]
+}

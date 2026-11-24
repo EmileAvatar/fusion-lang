@@ -7735,3 +7735,21 @@ only once the user decides it (Rule 3b, D.161). **Order (user):** the research i
 - printing, `format`, interpolation, `toString`, `==` / `<`, `toLong(text)`; mixed int / long gives a long
 - tests: limits (min / max of each), overflow both ways, widening, the checked conversions, in collections; example
   syntax_long (01_basics); FusionTypes.html, Decisions TYP.002 BUILT
+
+---
+
+## 36.8 - Fusion's colours: one palette, changeable, colour-blind safe (done 2026-11-24)
+**Settings:** none (editor colours, not fusion.toml). The grammar only names each piece (`keyword.control.fusion` ...);
+a theme gives the colours. Today the developer's own theme colours Fusion; this adds Fusion's palette:
+- `tools/editors/colors.json` - one file, the colours by role (keyword, declaration, modifier, type, function, string,
+  interpolation, number, comment, operator, literal, reserved) in four palettes: Fusion Dark, Fusion Light, Fusion
+  Colour-Safe Dark, Fusion Colour-Safe Light; a developer changes a colour there and runs build_grammar.py
+- colour-blind safe: the Colour-Safe palettes from the Okabe-Ito colours (safe for the three common kinds of colour
+  blindness); never colour alone - keywords bold, comments italic, so a piece is told apart by its style too; every
+  colour meets WCAG AA contrast (4.5:1) on its background - a test checks it
+- written from colors.json by build_grammar.py: four VS Code colour themes (token colours only - the editor's own
+  colours stay the default dark / light), Sublime Text colour schemes, and the tutorial site's fusion-code.css (the
+  same colours on the site as in the editor; a colour-safe switch on the site later with the JS)
+- a developer may also override any piece in their own editor settings (`editor.tokenColorCustomizations`) - written
+  up in tools/editors/README.md
+- tests: the palettes cover every scope the grammar uses, the contrast check, the written files in step (the editors check)

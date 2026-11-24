@@ -1,0 +1,88 @@
+{
+  "name": "Fusion Colour-Safe Dark",
+  "globals": {
+    "background": "#1E1E1E",
+    "foreground": "#D4D4D4",
+    "caret": "#D4D4D4",
+    "selection": "#264F78",
+    "line_highlight": "#2A2D2E"
+  },
+  "rules": [
+    {
+      "name": "keyword",
+      "scope": "keyword.control, keyword.operator.word",
+      "foreground": "#56B4E9",
+      "font_style": "bold"
+    },
+    {
+      "name": "declaration",
+      "scope": "storage.type",
+      "foreground": "#56B4E9",
+      "font_style": "bold"
+    },
+    {
+      "name": "modifier",
+      "scope": "storage.modifier",
+      "foreground": "#56B4E9",
+      "font_style": "italic"
+    },
+    {
+      "name": "type",
+      "scope": "support.type.primitive, support.class.builtin, entity.name.type",
+      "foreground": "#00B384"
+    },
+    {
+      "name": "function",
+      "scope": "entity.name.function, entity.name.function.call",
+      "foreground": "#F0E442"
+    },
+    {
+      "name": "string",
+      "scope": "string.quoted",
+      "foreground": "#E69F00"
+    },
+    {
+      "name": "escape",
+      "scope": "constant.character.escape",
+      "foreground": "#CC79A7"
+    },
+    {
+      "name": "interpolation",
+      "scope": "meta.interpolation, punctuation.section.interpolation, variable.other.interpolated",
+      "foreground": "#CC79A7"
+    },
+    {
+      "name": "number",
+      "scope": "constant.numeric",
+      "foreground": "#CC79A7"
+    },
+    {
+      "name": "comment",
+      "scope": "comment",
+      "foreground": "#A0A0A0",
+      "font_style": "italic"
+    },
+    {
+      "name": "operator",
+      "scope": "keyword.operator",
+      "foreground": "#D4D4D4"
+    },
+    {
+      "name": "literal",
+      "scope": "constant.language",
+      "foreground": "#F07B3F"
+    },
+    {
+      "name": "this",
+      "scope": "variable.language",
+      "foreground": "#56B4E9",
+      "font_style": "italic"
+    },
+    {
+      "name": "reserved",
+      "scope": "keyword.other.reserved",
+      "foreground": "#F07B3F",
+      "font_style": "bold underline"
+    }
+  ]
+}

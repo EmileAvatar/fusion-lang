@@ -123,7 +123,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [runtime/](runtime/) | The C run-time (`fusion_runtime.h` is generated) |
 | [selfhost/](selfhost/) | The compiler written in Fusion (Task 28, 35) |
 | [tests/](tests/) | The test suite; [examples/](examples/) - example programs with expected output, in numbered topic folders (`01_basics` ... `13_projects`) |
-| [tools/](tools/) | Helper scripts (`patch.py`, `builtins_doc.py`, `example_files.py` - where the examples live, Windows preview); [tools/editors/](tools/editors/README.md) - syntax highlighting for VS Code and Sublime Text (Task 36) |
+| [tools/](tools/) | Helper scripts (`patch.py`, `builtins_doc.py`, `example_files.py` - where the examples live, Windows preview); [tools/editors/](tools/editors/README.md) - syntax highlighting for VS Code and Sublime Text (Task 36), Fusion's colours in `colors.json` - four themes, colour-blind safe ones too (36.8) |
 | [debug/](debug/) | Old debug scripts |
 | [Notes/](Notes/) | Internal discussion and sources - not in git |
 | [files/requirements.txt](files/requirements.txt) | Python packages to install |

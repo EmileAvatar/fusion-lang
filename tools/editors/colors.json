@@ -1,0 +1,99 @@
+{
+  "about": "Fusion's colours (Task 36.8) - change a colour here, then run: python tools/editors/build_grammar.py --vsix. Every colour must reach WCAG AA contrast (4.5:1) on its palette's background - tests/test_editor_grammar.py checks it. style: bold / italic / underline - so a piece is told apart by more than its colour.",
+  "roles": {
+    "keyword":       {"scopes": ["keyword.control", "keyword.operator.word"], "site": "kw"},
+    "declaration":   {"scopes": ["storage.type"]},
+    "modifier":      {"scopes": ["storage.modifier"]},
+    "type":          {"scopes": ["support.type.primitive", "support.class.builtin", "entity.name.type"], "site": "type"},
+    "function":      {"scopes": ["entity.name.function", "entity.name.function.call"], "site": "fn"},
+    "string":        {"scopes": ["string.quoted"], "site": "str"},
+    "escape":        {"scopes": ["constant.character.escape"]},
+    "interpolation": {"scopes": ["meta.interpolation", "punctuation.section.interpolation", "variable.other.interpolated"]},
+    "number":        {"scopes": ["constant.numeric"], "site": "num"},
+    "comment":       {"scopes": ["comment"], "site": "com"},
+    "operator":      {"scopes": ["keyword.operator"], "site": "op"},
+    "literal":       {"scopes": ["constant.language"]},
+    "this":          {"scopes": ["variable.language"]},
+    "reserved":      {"scopes": ["keyword.other.reserved"]}
+  },
+  "palettes": {
+    "dark": {
+      "name": "Fusion Dark", "type": "dark", "background": "#1E1E1E", "foreground": "#D4D4D4",
+      "colors": {
+        "keyword":       {"color": "#6CB6FF", "style": "bold"},
+        "declaration":   {"color": "#D2A8FF", "style": "bold"},
+        "modifier":      {"color": "#F69D50"},
+        "type":          {"color": "#4EC9B0"},
+        "function":      {"color": "#DCDCAA"},
+        "string":        {"color": "#CE9178"},
+        "escape":        {"color": "#D7BA7D"},
+        "interpolation": {"color": "#9CDCFE"},
+        "number":        {"color": "#B5CEA8"},
+        "comment":       {"color": "#8B949E", "style": "italic"},
+        "operator":      {"color": "#D4D4D4"},
+        "literal":       {"color": "#6CB6FF"},
+        "this":          {"color": "#9CDCFE", "style": "italic"},
+        "reserved":      {"color": "#F47067", "style": "underline"}
+      }
+    },
+    "light": {
+      "name": "Fusion Light", "type": "light", "background": "#FFFFFF", "foreground": "#1F2933",
+      "colors": {
+        "keyword":       {"color": "#0B5CAD", "style": "bold"},
+        "declaration":   {"color": "#0B5CAD", "style": "bold"},
+        "modifier":      {"color": "#B31D28"},
+        "type":          {"color": "#8A3FFC"},
+        "function":      {"color": "#8A5000"},
+        "string":        {"color": "#1A7F37"},
+        "escape":        {"color": "#0A3069"},
+        "interpolation": {"color": "#953800"},
+        "number":        {"color": "#C4320A"},
+        "comment":       {"color": "#6E7781", "style": "italic"},
+        "operator":      {"color": "#1F2933"},
+        "literal":       {"color": "#0550AE"},
+        "this":          {"color": "#6639BA", "style": "italic"},
+        "reserved":      {"color": "#A40E26", "style": "underline"}
+      }
+    },
+    "colour-safe-dark": {
+      "name": "Fusion Colour-Safe Dark", "type": "dark", "background": "#1E1E1E", "foreground": "#D4D4D4",
+      "about": "Okabe-Ito colours (safe for the three common kinds of colour blindness), lightened where needed for contrast; fewer colours, told apart by style too",
+      "colors": {
+        "keyword":       {"color": "#56B4E9", "style": "bold"},
+        "declaration":   {"color": "#56B4E9", "style": "bold"},
+        "modifier":      {"color": "#56B4E9", "style": "italic"},
+        "type":          {"color": "#00B384"},
+        "function":      {"color": "#F0E442"},
+        "string":        {"color": "#E69F00"},
+        "escape":        {"color": "#CC79A7"},
+        "interpolation": {"color": "#CC79A7"},
+        "number":        {"color": "#CC79A7"},
+        "comment":       {"color": "#A0A0A0", "style": "italic"},
+        "operator":      {"color": "#D4D4D4"},
+        "literal":       {"color": "#F07B3F"},
+        "this":          {"color": "#56B4E9", "style": "italic"},
+        "reserved":      {"color": "#F07B3F", "style": "bold underline"}
+      }
+    },
+    "colour-safe-light": {
+      "name": "Fusion Colour-Safe Light", "type": "light", "background": "#FFFFFF", "foreground": "#1F2933",
+      "about": "Okabe-Ito colours (safe for the three common kinds of colour blindness), darkened where needed for contrast; fewer colours, told apart by style too",
+      "colors": {
+        "keyword":       {"color": "#0072B2", "style": "bold"},
+        "declaration":   {"color": "#0072B2", "style": "bold"},
+        "modifier":      {"color": "#0072B2", "style": "italic"},
+        "type":          {"color": "#00785A"},
+        "function":      {"color": "#1F2933", "style": "bold"},
+        "string":        {"color": "#8F5A00"},
+        "escape":        {"color": "#A0457A"},
+        "interpolation": {"color": "#A0457A"},
+        "number":        {"color": "#A0457A"},
+        "comment":       {"color": "#6E7781", "style": "italic"},
+        "operator":      {"color": "#1F2933"},
+        "literal":       {"color": "#B34F00"},
+        "this":          {"color": "#0072B2", "style": "italic"},
+        "reserved":      {"color": "#B34F00", "style": "bold underline"}
+      }
+    }
+  }
+}

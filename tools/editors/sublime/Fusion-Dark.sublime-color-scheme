@@ -1,0 +1,87 @@
+{
+  "name": "Fusion Dark",
+  "globals": {
+    "background": "#1E1E1E",
+    "foreground": "#D4D4D4",
+    "caret": "#D4D4D4",
+    "selection": "#264F78",
+    "line_highlight": "#2A2D2E"
+  },
+  "rules": [
+    {
+      "name": "keyword",
+      "scope": "keyword.control, keyword.operator.word",
+      "foreground": "#6CB6FF",
+      "font_style": "bold"
+    },
+    {
+      "name": "declaration",
+      "scope": "storage.type",
+      "foreground": "#D2A8FF",
+      "font_style": "bold"
+    },
+    {
+      "name": "modifier",
+      "scope": "storage.modifier",
+      "foreground": "#F69D50"
+    },
+    {
+      "name": "type",
+      "scope": "support.type.primitive, support.class.builtin, entity.name.type",
+      "foreground": "#4EC9B0"
+    },
+    {
+      "name": "function",
+      "scope": "entity.name.function, entity.name.function.call",
+      "foreground": "#DCDCAA"
+    },
+    {
+      "name": "string",
+      "scope": "string.quoted",
+      "foreground": "#CE9178"
+    },
+    {
+      "name": "escape",
+      "scope": "constant.character.escape",
+      "foreground": "#D7BA7D"
+    },
+    {
+      "name": "interpolation",
+      "scope": "meta.interpolation, punctuation.section.interpolation, variable.other.interpolated",
+      "foreground": "#9CDCFE"
+    },
+    {
+      "name": "number",
+      "scope": "constant.numeric",
+      "foreground": "#B5CEA8"
+    },
+    {
+      "name": "comment",
+      "scope": "comment",
+      "foreground": "#8B949E",
+      "font_style": "italic"
+    },
+    {
+      "name": "operator",
+      "scope": "keyword.operator",
+      "foreground": "#D4D4D4"
+    },
+    {
+      "name": "literal",
+      "scope": "constant.language",
+      "foreground": "#6CB6FF"
+    },
+    {
+      "name": "this",
+      "scope": "variable.language",
+      "foreground": "#9CDCFE",
+      "font_style": "italic"
+    },
+    {
+      "name": "reserved",
+      "scope": "keyword.other.reserved",
+      "foreground": "#F47067",
+      "font_style": "underline"
+    }
+  ]
+}
