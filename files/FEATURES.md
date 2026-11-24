@@ -263,21 +263,22 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R9.4 For each pitfall: does Fusion avoid it, a rule or a setting - fed into Task 59, Symbols.md and the courses (L15.2)
 
 #### R10 Money and decimals: COBOL and other languages - for Task 47 (47.2, 47.6) (user, 2026-11-23) [ ] [index](#index)
-	Findings go into files/Research/Money/. Money handled accurately, as COBOL does (user) - the research comes before
-	any money code and settles Q.047 (the literal form) and Q.048 (the default rounding). The preference (user,
+	Findings: [files/Research/Money/Money.md](Research/Money/Money.md) (2026-11-24) - the preference holds; new: the steps
+	in between in 128 bits (Q.051), rates kept exact (Q.052); Q.047 / Q.048 supported - waiting for the user's answers.
+	Money handled accurately, as COBOL does (user) - the research comes before any money code and settles Q.047 (the literal form) and Q.048 (the default rounding). The preference (user,
 	2026-11-23): money stays a long (D.021) - the long just holds a value, the Currency module (43.3) gives it its
 	meaning (places, steps, symbol); a decimal type is the backup, in case the research shows a long falls short
-	[ ] R10.1 COBOL: PIC 9(n)V99 fixed-point fields, packed decimal (COMP-3), how arithmetic keeps its scale, the
+	[DONE 2026-11-24] R10.1 COBOL: PIC 9(n)V99 fixed-point fields, packed decimal (COMP-3), how arithmetic keeps its scale, the
 		ROUNDED clause and its modes, ON SIZE ERROR (overflow), intermediate precision - why banks still trust it
-	[ ] R10.2 Other languages: C# decimal (128-bit), Java BigDecimal (RoundingMode, MathContext), Python decimal
+	[DONE 2026-11-24] R10.2 Other languages: C# decimal (128-bit), Java BigDecimal (RoundingMode, MathContext), Python decimal
 		(contexts, ROUND_HALF_EVEN), SQL DECIMAL(p, s) / NUMERIC and SQL Server's MONEY (its known flaws), PL/I fixed
 		decimal, Ada fixed-point and decimal types, IEEE 754-2008 decimal64 / decimal128, Rust / Go decimal libraries,
 		JavaScript (none built in) - what each gets right and wrong
-	[ ] R10.3 Money in practice: minor units against a decimal type, each currency's places (ISO 4217), rounding rules
+	[DONE 2026-11-24] R10.3 Money in practice: minor units against a decimal type, each currency's places (ISO 4217), rounding rules
 		by country and by use (banker's or half-up, tax, interest), splitting an amount (Fowler's Money pattern - where
 		the remainder goes), the order of steps, the range needed (a long or 128 bits), exchange rates (more places
 		than money - not money)
-	[ ] R10.4 For Fusion: check the preference - money a long of minor units (D.021), its meaning from the Currency
+	[ ] R10.4 (written - Money.md section 4; waits for the answers to Q.047, Q.048, Q.051, Q.052) For Fusion: check the preference - money a long of minor units (D.021), its meaning from the Currency
 		module - against what COBOL and the others show; where a long falls short (range, more places, rates), the
 		decimal backup (`decimal(p, s)`, TYP.015); the literal and printed form (Q.047 - A for now), the default
 		rounding (Q.048 - halfEven for now), money and decimal ranges (47.6) - each a decision for the user
@@ -328,7 +329,12 @@ then each point is decided and solved completely. One line per section and per l
 	[DONE] 47.1 `long` (64-bit; overflow checked like int) and `short` (16-bit) - every place a type goes; a literal past
 		int a long; int -> long widens, back only by toInt / toShort (checked); short arithmetic gives an int; a long as a
 		float / double must fit exactly; Map keys, sort, match, CSV; toLong(text); tests/test_long_short.py, syntax_long
-	[ ] 47.2 `money`: a `long` counting a currency's minor units - kind value, default 0, min /
+	[ ] 47.7 `int128`, `int256` - signed wide whole numbers, used like any number (D.179) - next
+	[ ] 47.8 `decimal` - exact base-10: an int128 and its scale, 38 digits; + - * always exact, a division rounded once
+		(D.182) - after 47.7
+	[ ] 47.2 `money` (replanned 2026-11-24 - files/taskSummary2.md, D.180-D.187): a sealed 16-byte value struct - value,
+		scale, currency, symbol; + - * by the compiler, the rest by the Currency module's statics - after 47.8. The
+		earlier notes below stay for reference: a `long` counting a currency's minor units - kind value, default 0, min /
 		max as long, 8 bytes, never null; exact whole-number arithmetic with overflow checking -
 		not a decimal, never a float. Plan the literal / printing form first
 		[ ] 47.2.1 Minor units (user, 2026-10-29): `money` is a signed 64-bit whole number -
@@ -602,6 +608,14 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 41.9 Docs & examples
 	[ ] 41.10 Hardware testing ideas from Maia (maia-eda.net): a DUT block, drive / expect vectors,
 		clocks, bit widths - in the HIDL library, not the core (files/FutureFeatures.md "HIDL Library")
+	[ ] 41.11 Sizes on small or restricted targets (user, 2026-11-24) - recheck every size decided for a full machine:
+		older CPUs and restricted environments may have only 8 or 16 bytes or less for a value, or no heap at all, so
+		the compiler may override the sizes depending on the final output
+		[ ] 41.11a Money's 16 bytes (D.184) - smaller layouts for small targets
+		[ ] 41.11b Every primitive type - int, long, int128 / int256 (47.7), decimal (47.8) - what each target can hold
+		[ ] 41.11c Strings with no heap memory - fixed sizes, static storage (with R11's STATIC / REGISTER-ONLY profiles)
+		[ ] 41.11d A hot-path service's ring buffer: the bytes a target has for it, while keeping the <50 ns goal
+			(Service.md H1-H9)
 
 <a id="task-42"></a>
 #### 42 Concurrency: services and threads (user, 2026-10-23) [ ] [index](#index)

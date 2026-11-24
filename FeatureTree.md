@@ -185,8 +185,9 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - money [planned]                 exact minor units (47.2)
-   - decimal(p, s) [design]          after money
+   - int128, int256 [planned]        signed wide whole numbers (47.7)
+   - decimal [planned]               exact base-10, 38 digits (47.8)
+   - money [planned]                 a 16-byte value struct: value, scale, currency, symbol (47.2)
    - Enums with fixed data, FusionType enum [planned]
    - fixed(n) [planned]              max size: fixed(10) string name
    - Operator overloading [design]   a setting, off
