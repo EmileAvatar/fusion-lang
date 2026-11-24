@@ -42,7 +42,7 @@ Syntax
    - Reserved words           keywords + words kept for future features, with a clear error
 
 Types
-   - Numbers                  int, float, double, bool, char, byte - overflow checked, overflowWrap setting
+   - Numbers                  int, long, short, float, double, bool, char, byte - overflow checked, overflowWrap setting
    - int as float             only when it fits exactly, else an error
    - Conversions              toInt, toFloat, toString, toByte, parseInt
    - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where known
@@ -184,7 +184,6 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - long, short [planned]           Task 47.1
    - money [planned]                 exact minor units (47.2)
    - decimal(p, s) [design]          after money
    - Enums with fixed data, FusionType enum [planned]

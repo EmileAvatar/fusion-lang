@@ -325,8 +325,9 @@ then each point is decided and solved completely. One line per section and per l
 	After Task 32 and 36.0 (Q.050: 36.0 first - user, 2026-11-23). The type table: files/FusionTypes.html. 47.3, 47.4 and
 	47.5 stay in this task, after the number types (Q.049, user 2026-11-23). Money (47.2) and its ranges (47.6) wait for
 	the research R10 (COBOL and other languages) - no money code before it
-	[ ] 47.1 `long` (64-bit, -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; overflow
-		checked like int) and `short` (16-bit) - reserved words today, not built
+	[DONE] 47.1 `long` (64-bit; overflow checked like int) and `short` (16-bit) - every place a type goes; a literal past
+		int a long; int -> long widens, back only by toInt / toShort (checked); short arithmetic gives an int; a long as a
+		float / double must fit exactly; Map keys, sort, match, CSV; toLong(text); tests/test_long_short.py, syntax_long
 	[ ] 47.2 `money`: a `long` counting a currency's minor units - kind value, default 0, min /
 		max as long, 8 bytes, never null; exact whole-number arithmetic with overflow checking -
 		not a decimal, never a float. Plan the literal / printing form first

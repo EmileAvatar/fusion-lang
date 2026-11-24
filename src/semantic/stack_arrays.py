@@ -18,7 +18,8 @@ from src.parser.ast_nodes import (ArrayType, FunctionDecl, PrimitiveType, Struct
 from .errors import SemanticError
 from .heap_arrays import _functions
 
-_SIZES = {'int': 4, 'float': 4, 'double': 8, 'bool': 1, 'char': 4, 'byte': 1, 'string': 24, 'bytes': 24}
+_SIZES = {'int': 4, 'float': 4, 'double': 8, 'bool': 1, 'char': 4, 'byte': 1, 'string': 24, 'bytes': 24,
+          'short': 2, 'long': 8}
 
 
 def size_and_alignment(type_node, structs: dict, seen=()) -> tuple:

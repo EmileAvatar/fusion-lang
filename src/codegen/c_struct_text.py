@@ -187,7 +187,8 @@ class StructTextMixin:
             return [], f'(({code}) ? "true" : "false")'
         if name == 'char':
             return ['char fusion_v[5] = {0};', f'fusion_utf8_encode({code}, fusion_v);'], 'fusion_v'
-        spec, cast = ('%g', 'double') if name in ('float', 'double') else ('%d', 'int')
+        spec, cast = (('%g', 'double') if name in ('float', 'double')
+                      else ('%lld', 'long long') if name == 'long' else ('%d', 'int'))     # long: 47.1
         return [f'char fusion_v[32]; snprintf(fusion_v, sizeof fusion_v, "{spec}", ({cast})({code}));'], 'fusion_v'
 
     def _csv_delimiter(self, number: int, argument, default: str) -> list:

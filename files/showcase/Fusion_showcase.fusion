@@ -126,12 +126,15 @@ void function types() {
     // [built] byte (0-255) and bytes (raw binary data)
     byte b = 255
     bytes raw = [0x00, 0xFF, 0x41]
-    // [designed] Sized and unsigned whole numbers (spec "Complete Type Specifications")
-    sbyte tiny = -128
+    // [built] long (64 bits) and short (16 bits) - a written number past an int's range is a long (47.1)
     short small = 32767
+    long big = 9000000000000000000
+    int back = toInt(big / 1000000000000)    // narrowing written and checked: an OverflowError
+    short s2 = toShort(back)
+    // [designed] Unsigned and signed-byte whole numbers (spec "Complete Type Specifications")
+    sbyte tiny = -128
     ushort port = 65535
     uint count = 4000000000
-    long big = 9000000000000000000
     ulong huge = 18000000000000000000
     // [designed] decimal: exact base-10 numbers for money
     decimal price = 19.99
@@ -142,7 +145,7 @@ void function types() {
     byte narrow = toByte(200)
     // [designed] cast<T>: a narrowing conversion that checks the value fits
     int cut = cast<int>(d)
-    // [designed] Widening a whole number to a bigger one is automatic
+    // [built] Widening a whole number to a bigger one is automatic (47.1)
     long l = i
     // [rejected] int? - a value type can't hold null; only objects and strings can (spec
     //            "Type Categories"; the spec's own `int? first = arr?[0]` is settled in Task 30)

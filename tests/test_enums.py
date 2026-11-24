@@ -307,7 +307,7 @@ def test_a_match_that_always_returns_needs_no_return_after_it():
     ('match 5\n    case 1, 1: print("one")\n    else: print("x")', "This value is already handled"),
     ('match 5\n    case "a": print("a")\n    else: print("x")', "This case is string, but the match is on int"),
     ('int k = 1\nmatch 5\n    case k: print("a")\n    else: print("x")', "A case on int needs a constant"),
-    ('match 2.5\n    case 1: print("a")\n    else: print("x")', "match works on an enum, int, byte, char or string value, got float"),
+    ('match 2.5\n    case 1: print("a")\n    else: print("x")', "match works on an enum, whole number (int, long, short, byte), char or string value, got float"),
     ('match l\n    case Light.Red: print("x")\n    else: print("y")', "In a case, write just the value's name: case Red"),
 ])
 def test_match_errors(body, message):
@@ -420,7 +420,7 @@ def test_binding_names_that_clash_with_c_are_renamed():
     ('Token t = Token.Plus()', "'Token.Plus' is a value, not a function"),
     ('Token t = Token.Pair(c = 1)', "has no field named 'c'"),
     ('List<Token> ts = Token.values()', "Token.values() only works on an enum whose values carry no data"),
-    ('Map<Token, int> m', "Map keys can be string, int, char or an enum without data"),
+    ('Map<Token, int> m', "Map keys can be string, a whole number (int, long, short), char or an enum without data"),
     ('Token t = Token.Plus\nmatch t\n    case Number(a, b): print("x")\n    else: print("y")',
      "'Number' carries 1 value(s) (value) - name each, or write just case Number"),
     ('Token t = Token.Plus\nmatch t\n    case Number(a), Word(b): print("x")\n    else: print("y")',

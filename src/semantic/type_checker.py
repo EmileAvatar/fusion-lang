@@ -241,6 +241,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if isinstance(expected, PrimitiveType) and expected.name == 'byte' \
                 and getattr(actual, 'fits_byte', False):
             return True
+        # A short the same way: an int literal -32768...32767; any other int needs toShort(n) (47.1)
+        if isinstance(expected, PrimitiveType) and expected.name == 'short' \
+                and getattr(actual, 'fits_short', False):
+            return True
 
         # Arrays: element types compatible (allowing numeric promotion), and sizes match
         # if both are known (an unresolved size, still None, is treated as "don't know
@@ -324,11 +328,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if not isinstance(target, PrimitiveType) or not isinstance(source, PrimitiveType):
             return False
 
-        # Promotion hierarchy: int -> float -> double
+        # Promotion hierarchy: byte -> short -> int -> long -> float -> double (47.1). A long
+        # (or an int) stored as a float or double is checked to fit exactly (widen_to_float)
         promotions = {
-            'double': ['byte', 'int', 'float', 'double'],
-            'float': ['byte', 'int', 'float'],
-            'int': ['byte', 'int'],
+            'double': ['byte', 'short', 'int', 'long', 'float', 'double'],
+            'float': ['byte', 'short', 'int', 'long', 'float'],
+            'long': ['byte', 'short', 'int', 'long'],
+            'int': ['byte', 'short', 'int'],
+            'short': ['byte', 'short'],
             'byte': ['byte'],
         }
 
@@ -347,16 +354,17 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if not isinstance(type1, PrimitiveType) or not isinstance(type2, PrimitiveType):
             return PrimitiveType(location=type1.location, name='void')
 
-        # Width hierarchy: double > float > int > byte. Arithmetic on bytes gives an int,
-        # as in C# (Task 18.3.8)
-        widths = {'double': 3, 'float': 2, 'int': 1, 'byte': 0}
+        # Width hierarchy: double > float > long > int > short, byte. Arithmetic on bytes and
+        # shorts gives an int, as in C# and Java (Task 18.3.8, 47.1); an int with a long a long
+        widths = {'double': 4, 'float': 3, 'long': 2, 'int': 1, 'short': 0, 'byte': 0}
         width1 = widths.get(type1.name, 0)
         width2 = widths.get(type2.name, 0)
 
         wider = type1 if width1 >= width2 else type2
         # A fresh type, so a literal's "fits in a byte" mark never reaches the result:
         # 100 + 200 is not a byte literal
-        return PrimitiveType(location=wider.location, name='int' if wider.name == 'byte' else wider.name)
+        return PrimitiveType(location=wider.location,
+                             name='int' if wider.name in ('byte', 'short') else wider.name)
 
     def is_numeric_type(self, type_node: TypeNode) -> bool:
         """Check if type is numeric (int, float, double).
@@ -369,7 +377,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """
         if not isinstance(type_node, PrimitiveType):
             return False
-        return type_node.name in ['int', 'float', 'double', 'byte']
+        return type_node.name in ['int', 'float', 'double', 'byte', 'short', 'long']
 
     @staticmethod
     def _is_string_type(type_node: TypeNode) -> bool:
@@ -460,16 +468,23 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         [numbers] auto_widening = false (the default) it must fit exactly - a written number
         that doesn't is a compile error, any other value is checked while the program runs.
         With true it widens automatically, and gets a warning."""
-        if not (isinstance(target_type, PrimitiveType) and target_type.name == 'float'
-                and isinstance(value_type, PrimitiveType) and value_type.name in ('int', 'byte')):
+        if not (isinstance(target_type, PrimitiveType) and isinstance(value_type, PrimitiveType)):
+            return
+        # An int (byte, short) as a float, or a long as a float or a double (47.1: a double
+        # holds whole numbers exactly only up to 2^53)
+        if not ((target_type.name == 'float' and value_type.name in ('int', 'byte', 'short', 'long'))
+                or (target_type.name == 'double' and value_type.name == 'long')):
             return
         if isinstance(value, LiteralExpr) and isinstance(value.value, int):
             import struct
-            exact = struct.unpack('f', struct.pack('f', float(value.value)))[0] == value.value
+            code = 'f' if target_type.name == 'float' else 'd'
+            exact = struct.unpack(code, struct.pack(code, float(value.value)))[0] == value.value
             if exact:
                 return
-            problem = (f"{value.value} can't be stored exactly in a float (a float holds whole "
-                       f"numbers exactly only up to 16,777,216) - use a double")
+            limit = '16,777,216' if target_type.name == 'float' else '9,007,199,254,740,992'
+            better = ' - use a double' if target_type.name == 'float' and value_type.name != 'long' else ''
+            problem = (f"{value.value} can't be stored exactly in a {target_type.name} (a "
+                       f"{target_type.name} holds whole numbers exactly only up to {limit}){better}")
             if getattr(self, 'auto_widening', False):
                 self.warnings.append(SemanticError(problem + " ([numbers] autoWidening = true)",
                                                    value.location))
@@ -477,12 +492,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 self.errors.append(SemanticError(
                     problem + ", or set [numbers] autoWidening = true", value.location))
             return
-        if value_type.name == 'byte':
-            return                   # 0-255 always fits
+        if value_type.name in ('byte', 'short'):
+            return                   # 0-255 and -32768...32767 always fit
         if getattr(self, 'auto_widening', False):
+            limit = '16,777,216' if target_type.name == 'float' else '9,007,199,254,740,992'
             self.warnings.append(SemanticError(
-                "An int becomes a float here and may lose precision above 16,777,216 "
-                "([numbers] autoWidening = true)", value.location))
+                f"A{'n' if value_type.name == 'int' else ''} {value_type.name} becomes a "
+                f"{target_type.name} here and may lose precision above {limit} "
+                f"([numbers] autoWidening = true)", value.location))
             return
         # Checked while running: the node becomes WidenExpr(the value), in place
         import copy
@@ -601,9 +618,19 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             'null': 'void'  # null is treated as void type
         }
         type_name = type_map.get(node.type_hint, 'void')
-        if type_name == 'int' and isinstance(node.value, int) and 0 <= node.value <= 255:
+        if type_name == 'int' and isinstance(node.value, int) and not isinstance(node.value, bool):
+            if not -2147483648 <= node.value <= 2147483647:
+                # Past an int's range: a long (47.1); past a long's an error, never a cut value
+                if not -9223372036854775808 <= node.value <= 9223372036854775807:
+                    self.errors.append(SemanticError(
+                        f"{node.value} doesn't fit in a long (-9223372036854775808 to "
+                        f"9223372036854775807)", node.location))
+                return PrimitiveType(location=node.location, name='long')
             literal_type = PrimitiveType(location=node.location, name='int')
-            literal_type.fits_byte = True   # may be stored as a byte (Task 18.3.8)
+            if 0 <= node.value <= 255:
+                literal_type.fits_byte = True   # may be stored as a byte (Task 18.3.8)
+            if -32768 <= node.value <= 32767:
+                literal_type.fits_short = True  # may be stored as a short (47.1)
             return literal_type
 
         # [strings] max_length applies to source text too (Task 18.3.4b): too long is an error,
@@ -964,7 +991,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         return receiver_type.name in ('int', 'byte', 'float') and self.types_compatible(first, receiver_type) \
             and isinstance(first, PrimitiveType) and first.name in ('double', 'float')
 
-    _NUMBER_TYPES = ('int', 'float', 'double', 'byte')
+    _NUMBER_TYPES = ('int', 'float', 'double', 'byte', 'short', 'long')
 
     def _check_equality(self, node: BinaryExpr, left_type: TypeNode, right_type: TypeNode) -> None:
         """The equality operators (Task 18.3.5, user decisions 2026-10-07):
@@ -1271,6 +1298,17 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Returns:
             Result type of the unary operation
         """
+        operand = node.operand
+        if node.operator == '-' and isinstance(operand, LiteralExpr) and operand.type_hint == 'int' \
+                and isinstance(operand.value, int) and not isinstance(operand.value, bool):
+            # A minus on a written whole number is part of the number (47.1): -9223372036854775808 is
+            # a long, -2147483648 an int, -32768 fits a short
+            negated = LiteralExpr(location=node.location, value=-operand.value, type_hint='int')
+            result = self.visit(negated)
+            operand.inferred_type = result
+            node.negated_literal = -operand.value
+            node.unchecked = self.unchecked_depth > 0
+            return result
         operand_type = self.visit(node.operand)
         node.unchecked = self.unchecked_depth > 0     # Task 27.2d
 
@@ -2823,8 +2861,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     f"A {self.type_to_string(held)} array slot can't be null - only an array of "
                     f"objects or enums may hold null (D.140)", node.location))
             return
-        # Skip the element-type check for an empty literal - there's nothing to compare
-        if init_type.size and not self.types_compatible(array_type.element_type, init_type.element_type):
+        # Skip the element-type check for an empty literal - there's nothing to compare. A short or
+        # byte array takes written numbers that each fit (`short[2] s = [1, -2]`, 47.1)
+        elements = getattr(node.initializer, 'elements', None) or []
+        each_fits = bool(elements) and all(
+            self.types_compatible(array_type.element_type, getattr(e, 'inferred_type', None)) for e in elements)
+        if init_type.size and not each_fits \
+                and not self.types_compatible(array_type.element_type, init_type.element_type):
             self.errors.append(SemanticError(
                 f"Cannot initialize {self.type_to_string(array_type.element_type)}[] with "
                 f"elements of type {self.type_to_string(init_type.element_type)}",
@@ -3221,7 +3264,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
     def visit_WidenExpr(self, node) -> TypeNode:
         self.visit(node.operand)
-        return PrimitiveType(location=node.location, name='float')
+        target = getattr(node, 'inferred_type', None)
+        return target if isinstance(target, PrimitiveType) else PrimitiveType(location=node.location, name='float')
 
     def visit_UncheckedStmt(self, node) -> None:
         """unchecked: arithmetic inside wraps around (Task 27.2d)."""

@@ -153,6 +153,102 @@ static inline float fusion_int_to_float(int x, const char* where) {
     }
     return f;
 }
+// long (47.1): 64 bits, the same checks as an int - an OverflowError, never a changed value
+#define FUSION_LONG_MIN (-9223372036854775807LL - 1)
+static inline long long fusion_div_long(long long a, long long b, int check, const char* where) {
+    if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%lld / 0: division by zero", a); return 0; }
+    if (b == -1) {
+        if (check && a == FUSION_LONG_MIN) {
+            fusion_fail(FUSION_KIND_OverflowError, where, "%lld / -1 doesn't fit in a long", a);
+            return 0;
+        }
+        return (long long)(0ull - (unsigned long long)a);
+    }
+    return a / b;
+}
+static inline long long fusion_mod_long(long long a, long long b, int check, const char* where) {
+    (void)check;
+    if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%lld %% 0: division by zero", a); return 0; }
+    if (b == -1) return 0;
+    return a % b;
+}
+static inline long long fusion_add_long(long long a, long long b, const char* where) {
+    long long r;
+    if (__builtin_add_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%lld + %lld doesn't fit in a long", a, b); return 0; }
+    return r;
+}
+static inline long long fusion_sub_long(long long a, long long b, const char* where) {
+    long long r;
+    if (__builtin_sub_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%lld - %lld doesn't fit in a long", a, b); return 0; }
+    return r;
+}
+static inline long long fusion_mul_long(long long a, long long b, const char* where) {
+    long long r;
+    if (__builtin_mul_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%lld * %lld doesn't fit in a long", a, b); return 0; }
+    return r;
+}
+static inline long long fusion_neg_long(long long a, const char* where) {
+    if (a == FUSION_LONG_MIN) { fusion_fail(FUSION_KIND_OverflowError, where, "-(%lld) doesn't fit in a long", a); return 0; }
+    return -a;
+}
+static inline long long fusion_wrap_add_long(long long a, long long b) { return (long long)((unsigned long long)a + (unsigned long long)b); }
+static inline long long fusion_wrap_sub_long(long long a, long long b) { return (long long)((unsigned long long)a - (unsigned long long)b); }
+static inline long long fusion_wrap_mul_long(long long a, long long b) { return (long long)((unsigned long long)a * (unsigned long long)b); }
+// A long used as a float or a double: it must fit exactly (as 27.2f for an int)
+static inline float fusion_long_to_float(long long x, const char* where) {
+    float f = (float)x;
+    if ((long double)f != (long double)x) {
+        fusion_fail(FUSION_KIND_PrecisionError, where, "%lld can't be stored exactly in a float "
+                    "(it would become %.0f) - set [numbers] autoWidening = true to allow it", x, (double)f);
+    }
+    return f;
+}
+static inline double fusion_long_to_double(long long x, const char* where) {
+    double d = (double)x;
+    if ((long double)d != (long double)x) {
+        fusion_fail(FUSION_KIND_PrecisionError, where, "%lld can't be stored exactly in a double "
+                    "(it would become %.0f) - set [numbers] autoWidening = true to allow it", x, d);
+    }
+    return d;
+}
+// Narrowing, always written (47.1, D.003): toInt(long), toShort(n) - an OverflowError when it doesn't fit
+static inline int fusion_long_toInt(long long n, const char* where) {
+    if (n < -2147483647LL - 1 || n > 2147483647LL) { fusion_fail(FUSION_KIND_OverflowError, where, "%lld doesn't fit in an int (-2147483648 to 2147483647)", n); return 0; }
+    return (int)n;
+}
+static inline short fusion_long_toShort(long long n, const char* where) {
+    if (n < -32768LL || n > 32767LL) { fusion_fail(FUSION_KIND_OverflowError, where, "%lld doesn't fit in a short (-32768 to 32767)", n); return 0; }
+    return (short)n;
+}
+static inline short fusion_int_toShort(int n, const char* where) { return fusion_long_toShort(n, where); }
+static inline long long fusion_int_toLong(int n, const char* where) { (void)where; return n; }
+static inline long long fusion_long_toLong(long long n, const char* where) { (void)where; return n; }
+static inline fusion_string fusion_long_to_str(long long value) { char buf[24]; int n = snprintf(buf, sizeof buf, "%lld", value); return fusion_str_make(buf, n); }
+// Text to a long / short: the whole text a number that fits, or a NumberFormatError
+static inline bool fusion_parse_long(fusion_string s, long long* out) {
+    int i = 0; unsigned long long value = 0; int negative = 0;
+    if (i < s.len && (s.data[i] == '+' || s.data[i] == '-')) negative = s.data[i++] == '-';
+    if (i >= s.len) return false;
+    for (; i < s.len; i++) {
+        if (s.data[i] < '0' || s.data[i] > '9') return false;
+        if (value > 922337203685477580ULL) return false;
+        value = value * 10 + (unsigned long long)(s.data[i] - '0');
+        if (value > 9223372036854775808ULL) return false;
+    }
+    if (!negative && value > 9223372036854775807ULL) return false;
+    *out = negative ? (long long)(0ull - value) : (long long)value;
+    return true;
+}
+static inline long long fusion_str_toLong(fusion_string s, const char* where) {
+    long long v;
+    if (!fusion_parse_long(s, &v)) { fusion_fail(FUSION_KIND_NumberFormatError, where, "'%.*s' is not a whole number that fits in a long", s.len, s.data); return 0; }
+    return v;
+}
+static inline short fusion_str_toShort(fusion_string s, const char* where) {
+    long long v;
+    if (!fusion_parse_long(s, &v) || v < -32768LL || v > 32767LL) { fusion_fail(FUSION_KIND_NumberFormatError, where, "'%.*s' is not a whole number that fits in a short (-32768 to 32767)", s.len, s.data); return 0; }
+    return (short)v;
+}
 // Two errors are equal when they are the same type with the same code and message
 static inline bool fusion_error_eq(fusion_error a, fusion_error b) {
     return a.active == b.active && a.kind == b.kind && a.code == b.code && fusion_str_eq(a.message, b.message);
@@ -500,10 +596,18 @@ class ErrorsMixin:
 
     @staticmethod
     def whole_number_operands(node) -> bool:
-        """int (or byte) arithmetic - its result is an int (Task 27.2b)."""
-        whole = ('int', 'byte')
+        """int (or byte, short) arithmetic - its result is an int (Task 27.2b, 47.1)."""
+        whole = ('int', 'byte', 'short')
         operands = [node.operand] if type(node).__name__ == 'UnaryExpr' else [node.left, node.right]
         return all(getattr(getattr(o, 'inferred_type', None), 'name', None) in whole for o in operands)
+
+    @staticmethod
+    def long_operands(node) -> bool:
+        """Whole-number arithmetic with a long in it - its result is a long (47.1)."""
+        whole = ('int', 'byte', 'short', 'long')
+        operands = [node.operand] if type(node).__name__ == 'UnaryExpr' else [node.left, node.right]
+        names = [getattr(getattr(o, 'inferred_type', None), 'name', None) for o in operands]
+        return all(n in whole for n in names) and 'long' in names
 
     def wraps(self, node) -> bool:
         """Arithmetic that wraps around: [numbers] overflowWrap (Task 32.0 - it was [safety]
@@ -552,7 +656,7 @@ class ErrorsMixin:
         written number other than 0 can't be."""
         if node.operator not in ('/', '%'):
             return False
-        whole = ('int', 'byte')
+        whole = ('int', 'byte', 'short', 'long')
         if getattr(getattr(node.left, 'inferred_type', None), 'name', None) not in whole or \
                 getattr(getattr(node.right, 'inferred_type', None), 'name', None) not in whole:
             return False
@@ -827,9 +931,12 @@ class ErrorsMixin:
         return f'{self._errdata(holder)}_of({self.visit(node.object)})->{self._errfield_path(decl, owner, field)}'
 
     def visit_WidenExpr(self, node) -> str:
-        """An int used as a float, checked to fit exactly (Task 27.2f)."""
-        return self.checked_code(f'fusion_int_to_float({self.visit(node.operand)}, '
-                                 f'{self._where(node)})', 'float')
+        """An int used as a float, checked to fit exactly (Task 27.2f) - a long as a float or a
+        double too (47.1)."""
+        source = getattr(getattr(node.operand, 'inferred_type', None), 'name', 'int')
+        target = getattr(getattr(node, 'inferred_type', None), 'name', 'float')
+        function = f'fusion_{"long" if source == "long" else "int"}_to_{target}'
+        return self.checked_code(f'{function}({self.visit(node.operand)}, {self._where(node)})', target)
 
     def visit_ErrorActiveExpr(self, node) -> str:
         return f'(({self.visit(node.operand)}).active)'

@@ -7722,3 +7722,16 @@ only once the user decides it (Rule 3b, D.161). **Order (user):** the research i
 - **Main.md:** one line per moved or new file. Research folder notes as needed.
 - **CLAUDE.md:** the memory, image and Gemini notes, and the three links, come out once they live in FEATURES and R11.
 - **Checks:** `python check.py --docs`; then left uncommitted for review (Rule 7).
+
+---
+
+## Task 47.1 - long and short (done 2026-11-24)
+
+**47.1 `long` (64-bit) and `short` (16-bit)** - reserved words today (tokens exist), not types
+- the type in every place a type goes: variables, parameters, results, fields, arrays, List / Map elements, `T`
+- literals: a whole number past int's range is a long (`long big = 5000000000`); one that fits stays an int and widens
+- arithmetic checked for overflow as int is (`[numbers] overflowWrap` the same); `int` -> `long` widens by itself,
+  `long` -> `int` / `short` only through `toInt(x)` / `toShort(x)` - an OverflowError when it doesn't fit (D.003)
+- printing, `format`, interpolation, `toString`, `==` / `<`, `toLong(text)`; mixed int / long gives a long
+- tests: limits (min / max of each), overflow both ways, widening, the checked conversions, in collections; example
+  syntax_long (01_basics); FusionTypes.html, Decisions TYP.002 BUILT

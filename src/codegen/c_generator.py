@@ -436,6 +436,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     _ZERO_VALUES = {
         'int': '0', 'float': '0.0f', 'double': '0.0', 'bool': 'false', 'char': "'\\0'",
         'string': 'FUSION_STR("")', 'byte': '0', 'bytes': 'FUSION_STR("")',
+        'short': '0', 'long': '0',      # 47.1
     }
 
     # Arrays up to this size whose default isn't all-zero get their defaults spelled out in
@@ -1037,6 +1038,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if type_hint == 'int':
             if node.value == -2147483648:
                 return '(-2147483647 - 1)'
+            if not -2147483648 <= node.value <= 2147483647:     # a long literal (47.1)
+                if node.value == -9223372036854775808:
+                    return '(-9223372036854775807LL - 1)'
+                return f'({node.value}LL)' if node.value < 0 else f'{node.value}LL'
             return f'({node.value})' if node.value < 0 else str(node.value)
 
         elif type_hint == 'float':
@@ -1171,12 +1176,19 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         # Whole-number / and % by zero: a DivideByZeroError, not a crash (Task 26.12)
         if op in ('/', '%') and self.int_division_can_fail(node):
-            function = 'fusion_div_int' if op == '/' else 'fusion_mod_int'
+            kind = 'long' if self.long_operands(node) else 'int'      # 47.1
+            function = f'fusion_{"div" if op == "/" else "mod"}_{kind}'
             overflow = 0 if self.wraps(node) else 1
-            return self.checked_code(f'{function}({left}, {right}, {overflow}, {self._where(node)})', 'int')
+            return self.checked_code(f'{function}({left}, {right}, {overflow}, {self._where(node)})',
+                                     'long long' if kind == 'long' else 'int')
 
         # Whole-number + - *: an OverflowError when it doesn't fit (Task 27.2b) - or it wraps
         # around (unsafe mode, an unchecked block) - never C's undefined behaviour
+        if op in ('+', '-', '*') and self.long_operands(node):
+            name = {'+': 'add', '-': 'sub', '*': 'mul'}[op]     # a long with whole numbers (47.1)
+            if self.wraps(node):
+                return f'fusion_wrap_{name}_long({left}, {right})'
+            return self.checked_code(f'fusion_{name}_long({left}, {right}, {self._where(node)})', 'long long')
         if op in ('+', '-', '*') and self.whole_number_operands(node):
             name = {'+': 'add', '-': 'sub', '*': 'mul'}[op]
             if self.wraps(node):
@@ -1214,8 +1226,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C unary operation expression
         """
+        if getattr(node, 'negated_literal', None) is not None:
+            # -5000000000, -2147483648: the number written with its minus (47.1)
+            return self.visit_LiteralExpr(LiteralExpr(location=node.location, value=node.negated_literal,
+                                                      type_hint='int'))
         operand = self.visit(node.operand)
-        # -n of the smallest int doesn't fit (Task 27.2b)
+        # -n of the smallest int doesn't fit (Task 27.2b) - nor of the smallest long (47.1)
+        if node.operator == '-' and self.long_operands(node) and type(node.operand).__name__ != 'LiteralExpr':
+            if self.wraps(node):
+                return f'fusion_wrap_sub_long(0, {operand})'
+            return self.checked_code(f'fusion_neg_long({operand}, {self._where(node)})', 'long long')
         if node.operator == '-' and self.whole_number_operands(node) \
                 and type(node.operand).__name__ != 'LiteralExpr':
             if self.wraps(node):
@@ -1425,6 +1445,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'compareNatural': ('fusion_str_compareNatural', False),
         # Raw bytes (18.3.8, c_bytes.py) - toBytes picks fusion_<str|char|int|byte>_toBytes
         'toBytes': ('fusion_str_toBytes', False), 'toByte': ('fusion_toByte', True),
+        # long and short (47.1): toLong / toShort by the argument's type (fusion_<str|int|long>_...)
+        'toLong': ('fusion_str_toLong', True), 'toShort': ('fusion_int_toShort', True),
         # Wrapping on purpose (Task 27.2d)
         'wrapAdd': ('fusion_wrap_add', False), 'wrapSub': ('fusion_wrap_sub', False),
         'wrapMul': ('fusion_wrap_mul', False),
@@ -1435,9 +1457,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'rawToHex': ('fusion_bytes_rawToHex', True), 'hexToRaw': ('fusion_str_hexToRaw', True),
     }
     # C name prefix per type, for built-ins whose first argument may have several types
-    _TYPE_PREFIX = {'int': 'int', 'string': 'str', 'char': 'char', 'byte': 'byte', 'bytes': 'bytes'}
+    _TYPE_PREFIX = {'int': 'int', 'string': 'str', 'char': 'char', 'byte': 'byte', 'bytes': 'bytes',
+                    'short': 'int', 'long': 'long'}     # a short is passed as an int (47.1)
     _BYTES_OVERLOADS = ('indexOf',)
     _TO_STRING = {'int': 'fusion_int_to_str', 'byte': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
+                  'short': 'fusion_int_to_str', 'long': 'fusion_long_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
                   'char': 'fusion_char_to_str', 'string': 'fusion_str_copy'}
 

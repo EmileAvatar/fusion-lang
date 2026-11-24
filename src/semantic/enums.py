@@ -276,7 +276,7 @@ class EnumRulesMixin:
 
     # ------------------------------------------------------------------ match (Task 25.3)
 
-    _MATCH_CONSTANT_TYPES = ('int', 'byte', 'char', 'string')
+    _MATCH_CONSTANT_TYPES = ('int', 'byte', 'char', 'string', 'short', 'long')     # long, short: 47.1
 
     def visit_MatchStmt(self, node: MatchStmt) -> None:
         """A match on an enum: bare value names, every value covered unless there is an
@@ -322,7 +322,7 @@ class EnumRulesMixin:
             self._check_constant_cases(node, subject_type)
         elif not (isinstance(subject_type, PrimitiveType) and subject_type.name == 'void'):
             self.errors.append(SemanticError(
-                f"match works on an enum, int, byte, char or string value, got "
+                f"match works on an enum, whole number (int, long, short, byte), char or string value, got "
                 f"{self.type_to_string(subject_type)}", node.subject.location))
         for case in node.cases:
             self.visit(case.body)
@@ -467,7 +467,7 @@ class EnumRulesMixin:
                         f"This case is {self.type_to_string(wrong)}, but the match is on "
                         f"{subject_type.name}", pattern.location))
                     continue
-                if end is not None and subject_type.name not in ('int', 'char', 'byte'):
+                if end is not None and subject_type.name not in ('int', 'char', 'byte', 'short', 'long'):
                     self.errors.append(SemanticError(
                         f"A range in a case (case 0...9) works on whole numbers and characters - the match is "
                         f"on {subject_type.name}", pattern.location))

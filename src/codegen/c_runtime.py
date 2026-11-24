@@ -98,6 +98,8 @@ class RuntimeLoweringMixin:
         'string': '%s',
         'char': '%s',   # printed via fusion_char_text - any Unicode character (18.3.2b)
         'byte': '%d',
+        'short': '%d',  # promoted to int in varargs (47.1)
+        'long': '%lld', # a C long long (47.1)
         'bytes': '%s',  # plain lowercase hex, nothing added (Task 18.3.8)
         'bool': '%s',   # printed as true / false; still 1 / 0 as a value (Task 18.3.5b)
     }

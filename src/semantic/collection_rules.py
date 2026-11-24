@@ -32,8 +32,8 @@ LIST_METHOD_NAMES = {'add', 'insert', 'removeAt', 'remove', 'clear', 'len', 'con
                      'noDuplicates', 'noNull', 'readOnly'}          # options: Task 32.14
 MAP_METHOD_NAMES = {'has', 'get', 'remove', 'keys', 'values', 'len', 'clear', 'noDuplicates',
                     'noNull', 'readOnly'}
-MAP_KEY_TYPES = ('string', 'int', 'char')
-_SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
+MAP_KEY_TYPES = ('string', 'int', 'char', 'short', 'long')
+_SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool', 'short', 'long')
 
 
 class CollectionRulesMixin:
@@ -145,7 +145,8 @@ class CollectionRulesMixin:
                     or (isinstance(key, EnumType)
                         and not any(v.fields for v in key.declaration.variants))):
                 self.errors.append(SemanticError(
-                    f"Map keys can be string, int, char or an enum without data, got {self.type_to_string(key)}",
+                    f"Map keys can be string, a whole number (int, long, short), char or an enum without data, "
+                    f"got {self.type_to_string(key)}",
                     location))
             self._check_held_type(type_node.value_type, 'A Map', location)
         elif isinstance(type_node, ListType):

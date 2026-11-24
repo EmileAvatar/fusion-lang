@@ -443,7 +443,7 @@ class Parser:
         if self.peek(1).type not in (TokenType.IDENTIFIER, TokenType.LPAREN, TokenType.LBRACKET,
                                      TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                                      TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
-                                     TokenType.BYTE):
+                                     TokenType.BYTE, TokenType.SHORT, TokenType.LONG):
             return None
         return PASSING_WORDS[self.peek().value]
 
@@ -879,7 +879,7 @@ class Parser:
         # Otherwise a primitive type or a struct name (optionally as an array)
         if self.match(TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                       TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
-                      TokenType.VOID, TokenType.BYTE):
+                      TokenType.VOID, TokenType.BYTE, TokenType.SHORT, TokenType.LONG):
             token = self.previous()
             base_type = PrimitiveType(
                 location=token.location,
@@ -2058,7 +2058,8 @@ class Parser:
 
     # The type keywords - a cast `(int)x` starts with one (Task 32.5a)
     PRIMITIVE_TYPE_TOKENS = (TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE, TokenType.STRING,
-                             TokenType.BOOL, TokenType.CHAR, TokenType.BYTE)
+                             TokenType.BOOL, TokenType.CHAR, TokenType.BYTE, TokenType.SHORT,
+                             TokenType.LONG)
 
     def is_readonly_result_start(self) -> bool:
         """`readonly Engine function ...` - `readonly` before a function's result type (Task 50.1).
@@ -2089,7 +2090,7 @@ class Parser:
         return self.check_any(
             TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
             TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
-            TokenType.VOID, TokenType.BYTE
+            TokenType.VOID, TokenType.BYTE, TokenType.SHORT, TokenType.LONG
         )
 
     def check_any(self, *token_types: TokenType) -> bool:

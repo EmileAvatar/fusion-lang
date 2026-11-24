@@ -35,6 +35,8 @@ class TypeMapperMixin:
                 'char': 'fusion_char',  # any Unicode character (Task 18.3.2b)
                 'string': 'fusion_string',  # an owned string value (Task 18.3.1)
                 'byte': 'uint8_t',          # one raw byte, 0-255 (Task 18.3.8)
+                'short': 'short',           # 16 bits (47.1)
+                'long': 'long long',        # 64 bits (47.1)
                 'bytes': 'fusion_bytes',    # raw bytes - the string struct, any bytes (18.3.8)
                 'void': 'void'
             }

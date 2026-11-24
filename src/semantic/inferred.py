@@ -116,7 +116,7 @@ class InferredRulesMixin:
                 self._check_constant_cases(node, subject_type)
             elif not (isinstance(subject_type, PrimitiveType) and subject_type.name == 'void'):
                 self.errors.append(SemanticError(
-                    f"match works on an enum, int, byte, char or string value, got "
+                    f"match works on an enum, whole number (int, long, short, byte), char or string value, got "
                     f"{self.type_to_string(subject_type)}", node.subject.location))
         finally:
             for case, patterns in zip(node.cases, all_patterns):

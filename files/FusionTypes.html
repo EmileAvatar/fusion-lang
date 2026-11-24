@@ -147,14 +147,14 @@
       <tr>
         <td class="type"><code>short</code></td><td class="kind-value">value</td>
         <td class="num">0</td><td class="num">-32,768</td><td class="num">32,767</td>
-        <td class="num">2</td><td>no</td><td><span class="badge planned">planned</span></td>
-        <td class="notes">A reserved word only - not built yet.</td>
+        <td class="num">2</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Takes a literal -32,768 to 32,767; any other int needs <code>toShort(n)</code>, which checks the range. Its arithmetic gives an int (47.1).</td>
       </tr>
       <tr>
         <td class="type"><code>long</code></td><td class="kind-value">value</td>
         <td class="num">0</td><td class="num">-9,223,372,036,854,775,808</td><td class="num">9,223,372,036,854,775,807</td>
-        <td class="num">8</td><td>no</td><td><span class="badge planned">planned</span></td>
-        <td class="notes">A reserved word only - not built yet.</td>
+        <td class="num">8</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">A written number past an int's range is a long; an int widens to it; <code>toInt(n)</code> back is checked. Overflow checked as an int's (47.1).</td>
       </tr>
 
       <tr class="group"><td colspan="9">Fractions</td></tr>
@@ -291,7 +291,6 @@
   <h2>Open points this table brought up</h2>
   <div class="card">
     <ol>
-      <li><code>short</code> and <code>long</code> are reserved words but not built - using one gives no clear "not built yet" error.</li>
       <li><code>money</code> - decided (2026-10-29): a <code>long</code> of minor units, no currency (Task 47.2).</li>
       <li>An enum whose values carry fixed data (like a table of these types) - Task 47.3.</li>
     </ol>

@@ -85,7 +85,7 @@ SYN.041 [BUILT] Reserved words: `end` a keyword; words kept for a planned featur
 
 #### TYP - types
 TYP.001 [BUILT] int, float, double, bool, char, byte - overflow checked; `[numbers] overflowWrap` wraps
-TYP.002 [PLANNED] `long`, `short` (47.1)
+TYP.002 [BUILT] `long`, `short` (47.1): a literal past int is a long; int -> long widens; narrowing only by toInt / toShort, checked
 TYP.003 [PLANNED] `money`: a long of minor units, exact, never a float (47.2)
 TYP.004 [BUILT] Enums; enums with data (tagged unions); an unset enum is null
 TYP.005 [PLANNED] Enums whose values carry fixed data (47.3); the `FusionType` enum (47.4)

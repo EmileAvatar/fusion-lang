@@ -22,7 +22,7 @@ from ..parser.ast_nodes import (
     ListType, MapType, FunctionType, EnumType,
 )
 
-_SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool')
+_SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool', 'short', 'long')
 
 
 class CollectionsMixin:
@@ -924,9 +924,14 @@ class CollectionsMixin:
                          'for (int i = 0; i < k.len; i++) { h ^= (unsigned char)k.data[i]; h *= 16777619u; }',
                          'return h;']
             missing = ('fusion_fail(FUSION_KIND_KeyError, where, "key \\"%.*s\\" is not in the map", k.len, k.data);')
+        elif key.name == 'long':                            # 47.1: both halves count
+            hash_body = ['unsigned long long u = (unsigned long long)k;',
+                         'return (uint32_t)(u ^ (u >> 32)) * 2654435761u;']
+            missing = 'fusion_fail(FUSION_KIND_KeyError, where, "key %lld is not in the map", k);'
         else:
             hash_body = ['return (uint32_t)k * 2654435761u;']
-            missing = ('fusion_fail(FUSION_KIND_KeyError, where, "key %d is not in the map", (int)k);' if key.name == 'int'
+            missing = ('fusion_fail(FUSION_KIND_KeyError, where, "key %d is not in the map", (int)k);'
+                       if key.name in ('int', 'short')
                        else 'fusion_fail(FUSION_KIND_KeyError, where, "key \'%s\' is not in the map", fusion_char_text(k).bytes);')
         key_eq = self.value_equality('m->keys[e - 1]', key, 'k', key)
         value_eq = self.value_equality('a->vals[i]', value, 'b->vals[j]', value)

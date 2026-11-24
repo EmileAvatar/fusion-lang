@@ -56,6 +56,8 @@ BUILTIN_DEFAULTS = {
 FLEXIBLE_FIRST_ARG = {
     'toHex': ('int', 'string'), 'toBinary': ('int', 'string'), 'toOctal': ('int', 'string'),
     'toBase': ('int', 'string'), 'toBytes': ('string', 'char', 'int', 'byte'),
+    # long and short (47.1): toInt(text) or toInt(aLong); toLong(text or a whole number); toShort
+    'toInt': ('string', 'long'), 'toLong': ('string', 'int', 'long'), 'toShort': ('int', 'long', 'string'),
 }
 
 # Built-ins that change their first argument in place, which must be a variable (or a
@@ -65,7 +67,8 @@ MUTATING_BUILTINS = {'setInt', 'setInt16'}
 # Standard-library layers (Task 18.5.6, the D lesson - layer the stdlib from day one): a
 # built-in's layer is the lowest a project must allow to use it. Every built-in not listed
 # here is "alloc" (it takes or makes text, bytes, lists or maps)
-CORE_BUILTINS = {'range', 'len', 'charCode', 'fromCharCode', 'toByte', 'wrapAdd', 'wrapSub', 'wrapMul'}
+CORE_BUILTINS = {'range', 'len', 'charCode', 'fromCharCode', 'toByte', 'wrapAdd', 'wrapSub', 'wrapMul',
+                 'toShort'}
 STD_BUILTINS = {'print', 'write', 'readLine', 'isEndOfInput', 'exit', 'readText', 'readLines',
                 'writeText', 'appendText', 'readBytes', 'writeBytes', 'fileExists',
                 'deleteFile', 'run'}
@@ -321,6 +324,9 @@ class NameResolver:
             # Raw bytes (18.3.8)
             'toBytes': ([string_type, bool_type], bytes_type),
             'toByte': ([int_type], byte_type),
+            # long and short (47.1): toLong(text), toShort(n) - checked, never a cut value
+            'toLong': ([string_type], PrimitiveType(location=builtin_loc, name='long')),
+            'toShort': ([int_type], PrimitiveType(location=builtin_loc, name='short')),
             # Whole numbers that wrap around on purpose (Task 27.2d)
             'wrapAdd': ([int_type, int_type], int_type),
             'wrapSub': ([int_type, int_type], int_type),

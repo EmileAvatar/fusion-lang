@@ -2350,6 +2350,34 @@ void function main()
 ```
 `[numbers] overflowWrap = true` in fusion.toml makes all `+ - *` wrap (array bounds stay checked).
 
+#### Whole numbers of other sizes: `long` and `short`
+
+<!-- example: syntax_long | task: 47.1 | folder: 01_basics -->
+```fusion
+void function main()
+    long population = 8100000000             // past an int's range: a long (64 bits)
+    int perCity = 2000000
+    long twice = population * 2              // an int with a long gives a long
+    long fromInt = perCity                   // int -> long widens by itself
+    short year = 2026                        // 16 bits: a written number -32768...32767
+    int next = year + 1                      // a short's arithmetic gives an int
+    print("{population} {twice} {fromInt} {year} {next}")
+    int back = toInt(population / 10000)     // long -> int is written, and checked
+    short small = toShort(back / 1000)
+    print("{back} {small} {@1}", toLong("-9223372036854775808"))
+    try
+        print("{@1}", toInt(population))     // doesn't fit in an int: an OverflowError
+    catch OverflowError e
+        print("{e}")
+    Map<long, string> ids                    // a long or short as a Map key, in a List, sorted
+    ids[9000000000] = "nine billion"
+    List<long> sizes = [population, 5, perCity]
+    sizes.sort()
+    print("{@1} {@2}", ids[9000000000], sizes[0])
+```
+A long is checked for overflow as an int is; a long stored as a `float` or `double` must fit exactly (a double
+holds whole numbers up to 2^53). `toInt`, `toShort` and `toLong` take a whole number or text.
+
 #### Custom error types
 
 <!-- example: syntax_error_types | task: 26.9 | folder: 10_errors_and_null -->
