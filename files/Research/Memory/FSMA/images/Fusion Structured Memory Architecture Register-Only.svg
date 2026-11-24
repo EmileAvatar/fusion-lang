@@ -1,0 +1,247 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1000" viewBox="0 0 1500 1000" xmlns:c2pa="http://c2pa.org/manifest">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#60a5fa"/>
+    </marker>
+    <marker id="greenArrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#34d399"/>
+    </marker>
+    <style>
+      text { font-family: Arial, sans-serif; fill: #e5e7eb; }
+      .title { font-size: 28px; font-weight: bold; }
+      .heading { font-size: 20px; font-weight: bold; }
+      .subheading { font-size: 15px; fill: #cbd5e1; }
+      .label { font-size: 15px; font-weight: bold; }
+      .box { font-size: 13px; }
+      .small { font-size: 12px; fill: #cbd5e1; }
+      .tiny { font-size: 11px; fill: #cbd5e1; }
+      .hdr { font-size: 12px; font-weight: bold; fill: #93c5fd; }
+      .step { fill: #3a2f17; stroke: #fbbf24; stroke-width: 1.5; }
+      .io { fill: #263449; stroke: #60a5fa; stroke-width: 1.5; }
+      .reg { fill: #174b43; stroke: #34d399; stroke-width: 1.3; }
+      .free { fill: #253244; stroke: #64748b; stroke-dasharray: 4 3; }
+      .rom { fill: #3b2a63; stroke: #a78bfa; stroke-width: 1.3; }
+      .alu { fill: #5a2f3a; stroke: #f472b6; stroke-width: 1.5; }
+      .region { fill: #182b3e; stroke: #60a5fa; stroke-width: 2; }
+      .cell { fill: #1c2b3f; stroke: #334155; stroke-width: 1; }
+      .cellh { fill: #243b50; stroke: #60a5fa; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect width="1500" height="1000" rx="12" fill="#101827"/>
+
+  <text x="750" y="42" text-anchor="middle" class="title">Fusion – Register-Only / Memory-Limited Target</text>
+  <text x="750" y="70" text-anchor="middle" class="subheading">No stack, no heap: ownership resolved at compile time, values live in registers (plus optional fixed RAM and ROM)</text>
+
+  <!-- COMPILE-TIME PIPELINE -->
+  <text x="60" y="108" class="hdr">COMPILE TIME – Fusion compiler (profile: register-only)</text>
+
+  <rect x="60" y="122" width="205" height="60" rx="8" class="step"/>
+  <text x="162" y="148" text-anchor="middle" class="label">Fusion source</text>
+  <text x="162" y="168" text-anchor="middle" class="small">ownership-based code</text>
+
+  <rect x="295" y="122" width="205" height="60" rx="8" class="step"/>
+  <text x="397" y="148" text-anchor="middle" class="label">Ownership + lifetimes</text>
+  <text x="397" y="168" text-anchor="middle" class="small">borrow check, drop points</text>
+
+  <rect x="530" y="122" width="205" height="60" rx="8" class="step"/>
+  <text x="632" y="148" text-anchor="middle" class="label">Call-graph flatten</text>
+  <text x="632" y="168" text-anchor="middle" class="small">inline calls, no recursion</text>
+
+  <rect x="765" y="122" width="205" height="60" rx="8" class="step"/>
+  <text x="867" y="148" text-anchor="middle" class="label">Static memory plan</text>
+  <text x="867" y="168" text-anchor="middle" class="small">size every Data Stack</text>
+
+  <rect x="1000" y="122" width="205" height="60" rx="8" class="step"/>
+  <text x="1102" y="148" text-anchor="middle" class="label">Register allocation</text>
+  <text x="1102" y="168" text-anchor="middle" class="small">owners → registers / slots</text>
+
+  <rect x="1235" y="122" width="205" height="60" rx="8" class="step"/>
+  <text x="1337" y="148" text-anchor="middle" class="label">Target code</text>
+  <text x="1337" y="168" text-anchor="middle" class="small">MCU • PLC • FPGA • ASIC</text>
+
+  <path d="M265 152 H291" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M500 152 H526" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M735 152 H761" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M970 152 H996" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M1205 152 H1231" stroke="#fbbf24" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <text x="750" y="208" text-anchor="middle" class="small">Compiler rejects anything needing runtime memory management: recursion, unbounded growth, dynamic allocation. Nothing is left to manage at runtime.</text>
+
+  <!-- DEVICE CONTAINER -->
+  <rect x="30" y="225" width="1440" height="395" rx="12" fill="#17283d" stroke="#60a5fa" stroke-width="2"/>
+  <text x="750" y="253" text-anchor="middle" class="heading">TARGET DEVICE – REGISTER-ONLY</text>
+  <text x="750" y="273" text-anchor="middle" class="small">No primary stack • No managed heap • No dynamic allocation • Fixed, known-at-compile-time layout</text>
+
+  <!-- INPUT REGISTERS -->
+  <rect x="60" y="300" width="240" height="290" rx="8" class="region"/>
+  <text x="180" y="324" text-anchor="middle" class="label">INPUT REGISTERS</text>
+  <rect x="80" y="340" width="200" height="40" rx="5" class="io"/>
+  <text x="180" y="365" text-anchor="middle" class="box">IN0 – sensor / pin</text>
+  <rect x="80" y="390" width="200" height="40" rx="5" class="io"/>
+  <text x="180" y="415" text-anchor="middle" class="box">IN1 – sensor / pin</text>
+  <rect x="80" y="440" width="200" height="40" rx="5" class="io"/>
+  <text x="180" y="465" text-anchor="middle" class="box">IN2 – bus data</text>
+  <rect x="80" y="490" width="200" height="40" rx="5" class="io"/>
+  <text x="180" y="515" text-anchor="middle" class="box">IN3 – bus data</text>
+  <text x="180" y="560" text-anchor="middle" class="tiny">Simple input values</text>
+  <text x="180" y="576" text-anchor="middle" class="tiny">(read-only for the program)</text>
+
+  <path d="M300 445 H356" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- WORKING REGISTERS -->
+  <rect x="360" y="300" width="620" height="290" rx="8" class="region"/>
+  <text x="670" y="324" text-anchor="middle" class="label">WORKING REGISTERS (temporary calculation storage)</text>
+
+  <rect x="380" y="345" width="130" height="50" rx="5" class="reg"/>
+  <text x="445" y="367" text-anchor="middle" class="box">R0 / ACC</text>
+  <text x="445" y="384" text-anchor="middle" class="tiny">owner: calc()</text>
+  <rect x="525" y="345" width="130" height="50" rx="5" class="reg"/>
+  <text x="590" y="367" text-anchor="middle" class="box">R1</text>
+  <text x="590" y="384" text-anchor="middle" class="tiny">owner: calc()</text>
+  <rect x="670" y="345" width="130" height="50" rx="5" class="reg"/>
+  <text x="735" y="367" text-anchor="middle" class="box">R2</text>
+  <text x="735" y="384" text-anchor="middle" class="tiny">owner: scale()</text>
+  <rect x="815" y="345" width="130" height="50" rx="5" class="reg"/>
+  <text x="880" y="367" text-anchor="middle" class="box">R3</text>
+  <text x="880" y="384" text-anchor="middle" class="tiny">owner: scale()</text>
+
+  <rect x="380" y="405" width="130" height="50" rx="5" class="reg"/>
+  <text x="445" y="427" text-anchor="middle" class="box">R4</text>
+  <text x="445" y="444" text-anchor="middle" class="tiny">owner: filter()</text>
+  <rect x="525" y="405" width="130" height="50" rx="5" class="reg"/>
+  <text x="590" y="427" text-anchor="middle" class="box">R5</text>
+  <text x="590" y="444" text-anchor="middle" class="tiny">owner: filter()</text>
+  <rect x="670" y="405" width="130" height="50" rx="5" class="free"/>
+  <text x="735" y="434" text-anchor="middle" class="box">R6 (free)</text>
+  <rect x="815" y="405" width="130" height="50" rx="5" class="free"/>
+  <text x="880" y="434" text-anchor="middle" class="box">R7 (free)</text>
+
+  <path d="M445 459 V486" stroke="#34d399" stroke-width="2" marker-end="url(#greenArrow)"/>
+  <path d="M590 459 V486" stroke="#34d399" stroke-width="2" marker-end="url(#greenArrow)"/>
+  <path d="M735 459 V486" stroke="#34d399" stroke-width="2" stroke-dasharray="3 3"/>
+  <path d="M880 459 V486" stroke="#34d399" stroke-width="2" stroke-dasharray="3 3"/>
+
+  <rect x="380" y="488" width="565" height="50" rx="6" class="alu"/>
+  <text x="662" y="510" text-anchor="middle" class="label">ALU / compute unit</text>
+  <text x="662" y="528" text-anchor="middle" class="small">add • sub • mul • compare • shift • logic</text>
+
+  <text x="670" y="564" text-anchor="middle" class="tiny">Each register has one owner; it is reused when that owner's scope ends (decided at compile time)</text>
+  <text x="670" y="580" text-anchor="middle" class="tiny">Locals of inlined functions become registers – there are no call frames</text>
+
+  <path d="M980 445 H1036" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- OUTPUT REGISTERS -->
+  <rect x="1040" y="300" width="240" height="290" rx="8" class="region"/>
+  <text x="1160" y="324" text-anchor="middle" class="label">OUTPUT REGISTERS</text>
+  <rect x="1060" y="340" width="200" height="40" rx="5" class="io"/>
+  <text x="1160" y="365" text-anchor="middle" class="box">OUT0 – actuator / pin</text>
+  <rect x="1060" y="390" width="200" height="40" rx="5" class="io"/>
+  <text x="1160" y="415" text-anchor="middle" class="box">OUT1 – actuator / pin</text>
+  <rect x="1060" y="440" width="200" height="40" rx="5" class="io"/>
+  <text x="1160" y="465" text-anchor="middle" class="box">OUT2 – bus data</text>
+  <rect x="1060" y="490" width="200" height="40" rx="5" class="io"/>
+  <text x="1160" y="515" text-anchor="middle" class="box">OUT3 – status flags</text>
+  <text x="1160" y="560" text-anchor="middle" class="tiny">Simple output values</text>
+  <text x="1160" y="576" text-anchor="middle" class="tiny">(written by the program)</text>
+
+  <!-- ROM -->
+  <rect x="1300" y="300" width="150" height="290" rx="8" class="region" stroke="#a78bfa"/>
+  <text x="1375" y="324" text-anchor="middle" class="label">FLASH / ROM</text>
+  <rect x="1312" y="340" width="126" height="40" rx="5" class="rom"/>
+  <text x="1375" y="365" text-anchor="middle" class="box">Program code</text>
+  <rect x="1312" y="390" width="126" height="40" rx="5" class="rom"/>
+  <text x="1375" y="415" text-anchor="middle" class="box">Constants</text>
+  <rect x="1312" y="440" width="126" height="40" rx="5" class="rom"/>
+  <text x="1375" y="465" text-anchor="middle" class="box">String table</text>
+  <rect x="1312" y="490" width="126" height="40" rx="5" class="rom"/>
+  <text x="1375" y="515" text-anchor="middle" class="box">Lookup tables</text>
+  <text x="1375" y="560" text-anchor="middle" class="tiny">Read-only,</text>
+  <text x="1375" y="576" text-anchor="middle" class="tiny">fixed at build time</text>
+
+  <text x="750" y="610" text-anchor="middle" class="tiny">Rust-style ownership is enforced at compile time only – no runtime checks, no allocator, no GC on this target</text>
+
+  <!-- MAPPING TABLE -->
+  <rect x="30" y="640" width="920" height="335" rx="10" fill="#192638" stroke="#475569"/>
+  <text x="50" y="666" class="label">HOW THE FULL FUSION MODEL MAPS DOWN</text>
+
+  <rect x="45" y="680" width="240" height="30" class="cellh"/>
+  <text x="55" y="700" class="hdr">Full model concept</text>
+  <rect x="295" y="680" width="320" height="30" class="cellh"/>
+  <text x="305" y="700" class="hdr">Static-RAM profile (small MCU)</text>
+  <rect x="625" y="680" width="310" height="30" class="cellh"/>
+  <text x="635" y="700" class="hdr">Register-only profile</text>
+
+  <rect x="45" y="718" width="240" height="36" class="cell"/>
+  <text x="55" y="741" class="box">Primary stack</text>
+  <rect x="295" y="718" width="320" height="36" class="cell"/>
+  <text x="305" y="741" class="small">Fixed-depth static frames (proven)</text>
+  <rect x="625" y="718" width="310" height="36" class="cell"/>
+  <text x="635" y="741" class="small">Calls inlined, locals → registers</text>
+
+  <rect x="45" y="758" width="240" height="36" class="cell"/>
+  <text x="55" y="781" class="box">Data Stack&lt;Single&gt;</text>
+  <rect x="295" y="758" width="320" height="36" class="cell"/>
+  <text x="305" y="781" class="small">Static struct in fixed RAM</text>
+  <rect x="625" y="758" width="310" height="36" class="cell"/>
+  <text x="635" y="781" class="small">Fields held in registers</text>
+
+  <rect x="45" y="798" width="240" height="36" class="cell"/>
+  <text x="55" y="821" class="box">Data Stack&lt;Mixed&gt;</text>
+  <rect x="295" y="798" width="320" height="36" class="cell"/>
+  <text x="305" y="821" class="small">Fixed-capacity slots, sized at compile time</text>
+  <rect x="625" y="798" width="310" height="36" class="cell"/>
+  <text x="635" y="821" class="small">Not available (compile error)</text>
+
+  <rect x="45" y="838" width="240" height="36" class="cell"/>
+  <text x="55" y="861" class="box">Data Stack&lt;General&gt;</text>
+  <rect x="295" y="838" width="320" height="36" class="cell"/>
+  <text x="305" y="861" class="small">Not available (no dynamic allocation)</text>
+  <rect x="625" y="838" width="310" height="36" class="cell"/>
+  <text x="635" y="861" class="small">Not available (compile error)</text>
+
+  <rect x="45" y="878" width="240" height="36" class="cell"/>
+  <text x="55" y="901" class="box">Data Stack&lt;String&gt; pool</text>
+  <rect x="295" y="878" width="320" height="36" class="cell"/>
+  <text x="305" y="901" class="small">Interned in ROM string table</text>
+  <rect x="625" y="878" width="310" height="36" class="cell"/>
+  <text x="635" y="901" class="small">ROM table; string ID kept in a register</text>
+
+  <rect x="45" y="918" width="240" height="36" class="cell"/>
+  <text x="55" y="941" class="box">Data Stack&lt;Type&gt; name pool</text>
+  <rect x="295" y="918" width="320" height="36" class="cell"/>
+  <text x="305" y="941" class="small">Fixed-size array [N] of that type</text>
+  <rect x="625" y="918" width="310" height="36" class="cell"/>
+  <text x="635" y="941" class="small">Only if all N objects fit in registers</text>
+
+  <!-- PROFILES + KEY -->
+  <rect x="970" y="640" width="500" height="335" rx="10" fill="#192638" stroke="#475569"/>
+  <text x="990" y="666" class="label">MEMORY PROFILES (chosen at compile time)</text>
+
+  <rect x="990" y="680" width="460" height="56" rx="8" fill="#17283d" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="1005" y="703" class="box" font-weight="bold">FULL – stack + heap + Data Stacks</text>
+  <text x="1005" y="723" class="tiny">Ownership by default; manual or GC if configured</text>
+
+  <rect x="990" y="746" width="460" height="56" rx="8" fill="#174b43" stroke="#34d399" stroke-width="1.5"/>
+  <text x="1005" y="769" class="box" font-weight="bold">STATIC – fixed RAM, no heap</text>
+  <text x="1005" y="789" class="tiny">Data Stacks become static regions sized at compile time</text>
+
+  <rect x="990" y="812" width="460" height="56" rx="8" fill="#3a2f17" stroke="#fbbf24" stroke-width="1.5"/>
+  <text x="1005" y="835" class="box" font-weight="bold">REGISTER-ONLY – registers + ROM</text>
+  <text x="1005" y="855" class="tiny">No RAM allocation at all; input → working → output</text>
+
+  <text x="990" y="892" class="label">KEY:</text>
+  <rect x="1040" y="879" width="16" height="16" rx="3" class="io"/>
+  <text x="1062" y="892" class="tiny">I/O registers</text>
+  <rect x="1150" y="879" width="16" height="16" rx="3" class="reg"/>
+  <text x="1172" y="892" class="tiny">Registers in use</text>
+  <rect x="1290" y="879" width="16" height="16" rx="3" class="free"/>
+  <text x="1312" y="892" class="tiny">Free register</text>
+  <rect x="1040" y="905" width="16" height="16" rx="3" class="rom"/>
+  <text x="1062" y="918" class="tiny">Flash / ROM</text>
+  <rect x="1150" y="905" width="16" height="16" rx="3" class="alu"/>
+  <text x="1172" y="918" class="tiny">ALU</text>
+  <rect x="1290" y="905" width="16" height="16" rx="3" class="step"/>
+  <text x="1312" y="918" class="tiny">Compile step</text>
+  <text x="990" y="955" class="tiny">Conceptual diagram – layouts vary by target chip.</text>
+<metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTo5ZjA3MzcwZi0zZWFiLTRlOTMtYjVhMy03MmE4OGZlMTEyNmUAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaHfeDkZ63GgdePMxVL0J+TwAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDo3MTRlMWVlMy1jMDg2LTQ5ZGEtOWQwOC04YjQ2ODU0MmUzODVscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNohI8kbFaSjBl9bUZE4zUSfQAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggn2zk0pz9zwIg4oCXTZMGBnY6sgPvhbQofYUhruKDaQukZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaMTAN7l4M1JynJPGUl6GfEgAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYILXtUfmX5INPu/XdxVp5lpI/fDW6G61AUDsQAS3osxc2ZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GT1YZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjlmMDczNzBmLTNlYWItNGU5My1iNWEzLTcyYTg4ZmUxMTI2ZS9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjNlOGEwZmIyLTYyMDQtNGQzMy05MmNmLTRmMzJiYzVjYmEwMnJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCCfbOTSnP3PAiDigJdNkwYGdjqyA++FtCh9hSGu4oNpC6JjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFgg9BWJV15KcY6P6pfPSR8JLO5/G7d0f1ZvcNNTzekjVBCiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggjiDBPxVoHd3MTXhl3ug1TiPDVa0JmElM9B2QgWvr+KJ0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQB6+emb0+mmCmphlIpK8D+TeDHdwS+utn1IpHZzk1hM5nfD6H7c8yxt4xPg2Ol184N/b7AmNnUt8C3nU6+Qp+/c=</c2pa:manifest></metadata></svg>

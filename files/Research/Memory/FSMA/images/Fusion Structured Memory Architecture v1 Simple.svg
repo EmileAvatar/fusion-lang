@@ -1,0 +1,146 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#60a5fa"></path>
+    </marker>
+    <marker id="greenArrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#34d399"></path>
+    </marker>
+    <marker id="yellowArrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#fbbf24"></path>
+    </marker>
+    <style>
+      text { font-family: Arial, sans-serif; fill: #e5e7eb; }
+      .heading { font-size: 22px; font-weight: bold; }
+      .subheading { font-size: 15px; fill: #cbd5e1; }
+      .label { font-size: 15px; font-weight: bold; }
+      .small { font-size: 12px; fill: #cbd5e1; }
+      .tiny { font-size: 11px; fill: #cbd5e1; }
+      .frame { fill: #263449; stroke: #60a5fa; stroke-width: 1.5; }
+      .object { fill: #174b43; stroke: #34d399; stroke-width: 1.3; }
+      .unused { fill: #253244; stroke: #64748b; stroke-dasharray: 4 3; }
+      .dataStack { fill: #182b3e; stroke: #60a5fa; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="850" rx="12" fill="#101827"></rect>
+
+  <text x="600" y="38" text-anchor="middle" font-size="27" font-weight="bold">Fusion – Proposed Structured Memory Architecture</text>
+  <text x="600" y="65" text-anchor="middle" class="subheading">Primary execution stack + managed heap containing multiple Data Stacks</text>
+
+  <!-- PRIMARY STACK -->
+  <rect x="35" y="105" width="330" height="590" rx="12" fill="#17283d" stroke="#60a5fa" stroke-width="2"></rect>
+  <text x="200" y="140" text-anchor="middle" class="heading">PRIMARY STACK</text>
+  <text x="200" y="164" text-anchor="middle" class="small">Active execution / function frames</text>
+
+  <rect x="65" y="188" width="270" height="75" rx="6" class="frame"></rect>
+  <text x="200" y="215" text-anchor="middle" class="label">Frame 3 – Current</text>
+  <text x="200" y="239" text-anchor="middle" class="small">Local variables / pointers</text>
+
+  <rect x="65" y="273" width="270" height="75" rx="6" class="frame"></rect>
+  <text x="200" y="300" text-anchor="middle" class="label">Frame 2 – Caller</text>
+  <text x="200" y="324" text-anchor="middle" class="small">Local variables / pointers</text>
+
+  <rect x="65" y="358" width="270" height="75" rx="6" class="frame"></rect>
+  <text x="200" y="385" text-anchor="middle" class="label">Frame 1 – Main</text>
+  <text x="200" y="409" text-anchor="middle" class="small">Local variables / pointers</text>
+
+  <rect x="65" y="453" width="270" height="65" rx="6" fill="#243b50" stroke="#60a5fa"></rect>
+  <text x="200" y="478" text-anchor="middle" class="label">Object references</text>
+  <text x="200" y="500" text-anchor="middle" class="small">Pointers to Data Stacks</text>
+
+  <path d="M200 525 V555" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow)"></path>
+  <text x="200" y="578" text-anchor="middle" class="small">Execution stack grows</text>
+  <text x="200" y="596" text-anchor="middle" class="small">and shrinks with calls</text>
+
+  <rect x="65" y="620" width="270" height="48" rx="6" fill="#243b50" stroke="#64748b"></rect>
+  <text x="200" y="649" text-anchor="middle" class="small">Stack pointer (SP)</text>
+
+  <!-- HEAP -->
+  <rect x="420" y="105" width="745" height="590" rx="12" fill="#17283d" stroke="#a78bfa" stroke-width="2"></rect>
+  <text x="792" y="140" text-anchor="middle" class="heading">MANAGED HEAP</text>
+  <text x="792" y="164" text-anchor="middle" class="small">Structured allocation space – not one random allocation pool</text>
+
+  <!-- Data stacks and manager moved down 24px to leave room for the pointer lanes above them -->
+  <g transform="translate(0,24)">
+  <!-- Data stack A -->
+  <rect x="445" y="190" width="215" height="355" rx="8" class="dataStack"></rect>
+  <text x="552" y="220" text-anchor="middle" class="label">DATA STACK A</text>
+  <text x="552" y="241" text-anchor="middle" class="tiny">Transaction service</text>
+
+  <rect x="460" y="260" width="185" height="46" rx="5" class="object"></rect>
+  <text x="552" y="288" text-anchor="middle" class="small">Account object</text>
+  <rect x="460" y="311" width="185" height="46" rx="5" class="object"></rect>
+  <text x="552" y="339" text-anchor="middle" class="small">Ledger object</text>
+  <rect x="460" y="362" width="185" height="46" rx="5" class="object"></rect>
+  <text x="552" y="390" text-anchor="middle" class="small">Transaction data</text>
+  <rect x="460" y="413" width="185" height="46" rx="5" class="object"></rect>
+  <text x="552" y="441" text-anchor="middle" class="small">Audit object</text>
+  <rect x="460" y="464" width="185" height="55" rx="5" class="unused"></rect>
+  <text x="552" y="488" text-anchor="middle" class="tiny">Available capacity</text>
+  <text x="552" y="505" text-anchor="middle" class="tiny">Reserved space</text>
+  <path d="M630 260 V454" stroke="#34d399" stroke-width="2" stroke-dasharray="4 3"></path>
+  <path d="M620 454 L630 464 L640 454" fill="none" stroke="#34d399" stroke-width="2"></path>
+  <text x="552" y="533" text-anchor="middle" class="tiny">Data pointer →</text>
+
+  <!-- Data stack B -->
+  <rect x="680" y="190" width="215" height="355" rx="8" class="dataStack"></rect>
+  <text x="787" y="220" text-anchor="middle" class="label">DATA STACK B</text>
+  <text x="787" y="241" text-anchor="middle" class="tiny">Reporting service</text>
+
+  <rect x="695" y="260" width="185" height="46" rx="5" class="object"></rect>
+  <text x="787" y="288" text-anchor="middle" class="small">Report object</text>
+  <rect x="695" y="311" width="185" height="46" rx="5" class="object"></rect>
+  <text x="787" y="339" text-anchor="middle" class="small">Result collection</text>
+  <rect x="695" y="362" width="185" height="46" rx="5" class="unused"></rect>
+  <text x="787" y="390" text-anchor="middle" class="small">Available capacity</text>
+  <rect x="695" y="413" width="185" height="106" rx="5" class="unused"></rect>
+  <text x="787" y="463" text-anchor="middle" class="small">Reserved / free</text>
+  <path d="M865 260 V352" stroke="#34d399" stroke-width="2" stroke-dasharray="4 3"></path>
+  <path d="M855 352 L865 362 L875 352" fill="none" stroke="#34d399" stroke-width="2"></path>
+  <text x="787" y="533" text-anchor="middle" class="tiny">Data pointer →</text>
+
+  <!-- Data stack C -->
+  <rect x="915" y="190" width="225" height="355" rx="8" class="dataStack"></rect>
+  <text x="1027" y="220" text-anchor="middle" class="label">GENERAL HEAP</text>
+  <text x="1027" y="241" text-anchor="middle" class="tiny">Individual allocations</text>
+
+  <rect x="930" y="260" width="195" height="46" rx="5" fill="#654b28" stroke="#fbbf24"></rect>
+  <text x="1027" y="288" text-anchor="middle" class="small">Standalone object A</text>
+  <rect x="930" y="311" width="195" height="46" rx="5" fill="#654b28" stroke="#fbbf24"></rect>
+  <text x="1027" y="339" text-anchor="middle" class="small">Standalone object B</text>
+  <rect x="930" y="362" width="195" height="46" rx="5" fill="#654b28" stroke="#fbbf24"></rect>
+  <text x="1027" y="390" text-anchor="middle" class="small">Standalone object C</text>
+  <rect x="930" y="413" width="195" height="106" rx="5" class="unused"></rect>
+  <text x="1027" y="463" text-anchor="middle" class="small">Available heap space</text>
+  <text x="1027" y="533" text-anchor="middle" class="tiny">Individual allocation / free</text>
+
+  <!-- Heap control -->
+  <rect x="445" y="565" width="695" height="95" rx="8" fill="#253047" stroke="#a78bfa"></rect>
+  <text x="792" y="592" text-anchor="middle" class="label">Heap / Memory Manager</text>
+  <text x="792" y="615" text-anchor="middle" class="small">Allocates Data Stacks • Grows capacity • Tracks pointers</text>
+  <text x="792" y="638" text-anchor="middle" class="small">Releases entire Data Stacks • Manages general allocations</text>
+  </g>
+
+  <!-- Main pointer connections: one lane each above the stacks, no crossings -->
+  <path d="M365 225 H380 V176 H1027 V206" stroke="#fbbf24" stroke-width="2.5" fill="none" marker-end="url(#yellowArrow)"></path>
+  <text x="1035" y="205" class="tiny">General heap reference</text>
+  <path d="M365 310 H390 V186 H787 V206" stroke="#60a5fa" stroke-width="2.5" fill="none" marker-end="url(#arrow)"></path>
+  <text x="795" y="205" class="tiny">Pointer B</text>
+  <path d="M365 395 H400 V196 H552 V206" stroke="#60a5fa" stroke-width="2.5" fill="none" marker-end="url(#arrow)"></path>
+  <text x="560" y="205" class="tiny">Pointer A</text>
+
+  <!-- Footer -->
+  <rect x="35" y="725" width="1130" height="95" rx="10" fill="#192638" stroke="#475569"></rect>
+  <text x="55" y="751" class="label">KEY:</text>
+  <rect x="110" y="738" width="18" height="18" rx="3" fill="#263449" stroke="#60a5fa"></rect>
+  <text x="137" y="752" class="small">Primary stack frames</text>
+  <rect x="310" y="738" width="18" height="18" rx="3" fill="#174b43" stroke="#34d399"></rect>
+  <text x="337" y="752" class="small">Allocated Data Stack objects</text>
+  <rect x="575" y="738" width="18" height="18" rx="3" fill="#253244" stroke="#64748b" stroke-dasharray="3 2"></rect>
+  <text x="602" y="752" class="small">Available capacity</text>
+  <rect x="790" y="738" width="18" height="18" rx="3" fill="#654b28" stroke="#fbbf24"></rect>
+  <text x="817" y="752" class="small">General heap allocations</text>
+  <text x="55" y="790" class="small">Conceptual diagram – logical allocation regions, not a literal physical memory layout.</text>
+</svg>

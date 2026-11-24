@@ -15,6 +15,7 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-23: 36.0 a simple highlighter for VS Code and Sublime Text (tools/editors/, installed in VS Code)
 - **Next Action (next session):** 47.1 `long` / `short` (the plan below - to approve); the research R10 (money
   and decimals: COBOL and other languages) before any money code (47.2, 47.6) - Q.047 / Q.048 A for now
+- Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## 36.8 - Fusion's colours: one palette, changeable, colour-blind safe (plan - to approve)
 **Settings:** none (editor colours, not fusion.toml). The grammar only names each piece (`keyword.control.fusion` ...);

@@ -7620,3 +7620,105 @@ forbids; a plain or fixed array (`int[3]`, on the stack) isn't taken at all.
 - `vscode-fusion/package.json` + `language-configuration.json`: `.fusion` files, comment toggling, brackets,
   auto-closing, folding by indentation (all three styles are indented), indent after a block line
 - installed into VS Code with `code --install-extension` (the user, 2026-11-23); FEATURES 36.0 / 36.1 / 36.2 / 36.3
+
+---
+
+## R11 - FSMA, the Fusion Structured Memory Architecture: set up the research (done 2026-11-24)
+**Settings:** none now - the memory settings are proposals in FSMA.md; each goes into `files/spec/001-TomlSettings.md`
+only once the user decides it (Rule 3b, D.161). **Order (user):** the research itself after R10 (money).
+
+#### The rule of thumb (user, 2026-11-24)
+- A Data Stack is just a stack in the heap with a purpose - nothing special about it
+- What is special is how the Fusion compiler creates, fills and releases them
+- The kinds of Data Stack are a guideline for the compiler, not a fixed list
+- Rules added over time tell the compiler how to manage the memory properly
+
+#### The Data Stack kinds (user's answers, 2026-11-24)
+- `<Single>`, two forms:
+  - form 1: the objects of the current frame, of whatever type they are;
+  - form 2: one type (e.g. Car objects) with its internals and its children's types. The named Data Stack is an example of this form.
+- `<Mixed>`: a grid of blocks, like a mini heap. A freed block is reused without the stack growing (v2's two columns). Gemini's version is not taken (Rule 3c).
+- `<Scoped: Frame>`: Gemini's frame or loop arena, added next to Mixed **as needed**. It doesn't replace Mixed.
+- `<General>`: the catch-all: one-time, short-lived, or fitting nowhere else. It uses size classes and a free list (Gemini agrees).
+- `<String: StringPool>`: each distinct string stored once and reused.
+- `<Type: NamePool>`: a named pool that holds only one type of object, with its child objects (form 2 of Single, named).
+
+#### Files: where each goes (moved with `git mv` / Move-Item, never deleted)
+- `files/Research/Memory/FSMA/`:
+  - `MemoryAllocation.md` (was `memoryalocation.md`, the primer);
+  - `MemoryAllocationNew.md` (was `memoryalocation new.md`, Data Stacks A/B/C);
+  - `Gemini_FSMA_Review.md` (was `fusion_structured_memory_architecture_review_plan.md`).
+- `files/Research/Memory/FSMA/images/` - the five SVGs, names kept:
+  - v1 Simple (the overlap under "Result collection" fixed 2026-11-24);
+  - v2 Complex (**the main image**);
+  - v3 Complex to fix (where FSMA needs care);
+  - Hierarchy (where data lives on hardware);
+  - Register-Only (hardware and devices with little or no memory, HIDL).
+- `files/Research/Memory/GooseVsRust.md` - next to `Points.md` (R6); ChatGPT's notes from before and after the FSMA talk.
+- `files/Research/Services/Gemini_Service_Review.md` (was `fusion_service_concurrency_review_implementation_plan.md`).
+- Already in `Notes/` (the user moved them): the old images.
+
+#### New: `files/Research/Memory/FSMA/FSMA.md` - the abstract of every rule and setting
+1. **What FSMA is.**
+   - The Primary Stack, then a heap of Data Stacks, then the Memory Manager; the rule of thumb above.
+   - v2 is the main picture; the images and their roles.
+2. **The kinds.** The list above, each with:
+   - what it holds;
+   - how a block is allocated and freed (bump, grid slot, free list, interned);
+   - when the whole stack is released (reset or destroyed).
+3. **The rules - proposals, each a decision for the user:**
+   - **A1:** ownership stays first (D.013). A Data Stack only decides *where* an object lives; who owns it is still decided by the ownership rules.
+   - **A2:** every Data Stack has one owner: a frame, an object, a service or the program. It is released when that owner ends.
+   - **A3:** Gemini's R1, outlives. A longer-lived stack never holds a reference into a shorter-lived one; this is our "a borrow is never stored" (MEM.003) taken to stacks.
+   - **A4:** Gemini's R2, promotion. A value that escapes its stack (returned, or stored in a longer-lived stack) is allocated in the longer-lived one from the start, decided at compile time.
+   - **A5:** Gemini's R3. Nothing borrowed from a service's stack outlives the request (S3).
+   - **A6:** a service owns its Data Stacks. Only its worker allocates in them, so there are no locks (S1, S8).
+   - **A7:** a hot-path service's stacks are made in its set-up block and never grow while it runs (H1, H8).
+   - **A8:** a slot in Mixed or a NamePool is reached by a handle with a generation number, so a reference to a reused slot is caught, not followed (ChatGPT).
+   - **A9:** moving a value into a service moves its whole page when it lives alone in a NamePool; otherwise it is copied (Gemini).
+   - **A10:** GC and MANUAL objects live apart (MEM.005). A Data Stack holding a GC root registers it (Gemini's issue 5).
+   - **A11:** the Memory Manager must never be a bottleneck: each thread or service has its own; nothing is global except read-only pools.
+4. **Memory profiles,** chosen by the target (Register-Only image):
+   - FULL: stack, heap, Data Stacks;
+   - STATIC: fixed RAM, no heap; Data Stacks become static regions sized at compile time;
+   - REGISTER-ONLY: registers and ROM, no RAM allocation.
+
+   They are tied to `[stdlib] layer` (std / alloc / core) and HIDL (Task 41).
+5. **Settings - proposals only (names to decide), each with a safe default:**
+   - `[memory] model = "fsma" | "heap"`: FSMA on, or today's plain heap;
+   - `[memory] profile = "full" | "static" | "registers"`;
+   - `[memory.stacks] general = "freeList"`, `mixedSlots = true`, `scoped = false` (Gemini's frame arena when needed);
+   - `stringPool = true`, `initialSize`, `growBy`, `maxSize` (an error, not a crash, when full);
+   - `[memory.stacks] handles = "generation" | "pointer"` (the safety check against speed);
+   - `[memory.pools.<Name>] type = "Customer"`, `children = true`, `initialSize`: a named pool;
+   - `[memory.services] ownStacks = true`; `hotpathPrefault = true`;
+   - `[memory] strategy` (existing: ownership / GC / manual - MEM.005) and how it meets FSMA.
+6. **Gemini's review,** what we take and what we don't:
+   - taken: A3, A4, A5, A6, A9, the C mark/restore blueprint;
+   - not taken: Mixed replaced, Single as one type only.
+7. **Open points for the research:**
+   - choosing a kind from the code (by type, by owner, by a word in the code, or by toml);
+   - growing a stack (chained pages, as in Goose, against copying);
+   - fragmentation in Mixed;
+   - measuring against today's counting (benchmarks, L16.0).
+
+#### FEATURES and other files
+- **FEATURES "Research": new `#### R11 FSMA` (after R10), its files linked:**
+  - R11.1 the kinds and how each allocates;
+  - R11.2 the rules A1-A11;
+  - R11.3 the memory profiles (with Task 41, `[stdlib] layer`);
+  - R11.4 the settings;
+  - R11.5 Gemini's v3 checked point by point;
+  - R11.6 the prior work: Goose's data stacks, Zig's allocators, Rust and arenas, Erlang's per-process heaps (with R6 and R4.3);
+  - R11.7 the decisions for the user, then a task.
+- **R3, Gemini's service review linked:**
+  - its edge cases 1, 4 and 5 answer R3.4 (plus cycles across several services), R3.2 (PENDING, then CLAIMED or CANCELLED) and R3.3;
+  - new: R3.9 what a `run` block may capture (a copy, a move or another service - S6);
+  - new: R3.10 a `[blocking]` mark, so a service doing I/O gets its own worker (AUTO becomes SINGLE);
+  - new: R3.11 the lowering tiers 0-4 against Service.md rule 2.
+- **R6.2 gets the CLAUDE.md links:** TinyCC (bellard.org/tcc and TinyCC-builder) and Goose's threads reference (also R3).
+- **Decisions.md:** MEM.009 points to R11 (still DESIGN); no new decision rows until the research.
+- **FeatureTree.md:** a "Memory: FSMA" line, marked designed or researching.
+- **Main.md:** one line per moved or new file. Research folder notes as needed.
+- **CLAUDE.md:** the memory, image and Gemini notes, and the three links, come out once they live in FEATURES and R11.
+- **Checks:** `python check.py --docs`; then left uncommitted for review (Rule 7).

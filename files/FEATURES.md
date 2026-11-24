@@ -188,6 +188,11 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R3.7 `Scheduler`, `Priority` and `Rule` all affect order - a worked example in Service.md
 	[ ] R3.8 Service.md tidy-ups: `Readers` missing from the settings tables; the default `Timeout` of a plain service vs `missingTimeout = "error"`;
 		AUTO switching SHARED to SINGLE while running; `max_unit` / `file_lock` in the text vs camelCase in fusion.toml
+	Gemini's review (2026-11-24): [files/Research/Services/Gemini_Service_Review.md](Research/Services/Gemini_Service_Review.md) - its edge
+	case 1 answers R3.4 (plus cycles across several services: A -> B -> A), 4 answers R3.2 (PENDING, then CLAIMED or CANCELLED), 5 answers R3.3
+	[ ] R3.9 What a `run` block may capture from the caller: a copy, a move or another service - a borrowed changeable local an error (S6)
+	[ ] R3.10 A `[blocking]` mark (I/O, sleep), carried through calls: AUTO gives such a service its own worker; SHARED a warning
+	[ ] R3.11 The lowering tiers 0-4 (plain, atomic, shared pool, own worker, hot path) against Service.md rule 2
 
 #### R4 Rust and Zig: the points for Fusion, and `comptime` (user, 2026-11-17) - reviewed in Task 59 [ ] [index](#index)
 	File: [files/Research/RustZig/Points.md](Research/RustZig/Points.md) - Claude's list from two YouTube transcripts and a ChatGPT comparison (same folder);
@@ -214,7 +219,10 @@ then each point is decided and solved completely. One line per section and per l
 	File: [files/Research/Memory/Points.md](Research/Memory/Points.md) - Claude's points from ChatGPT's Goose comparison (same folder),
 	fil-c.org and the user's notes; each marked have / take / discuss / skip
 	[ ] R6.1 What an arena is: allocating and freeing, the speed against the heap, when it fits (section 1) - with MEM.009 and R4.3 (an arena per service)
-	[ ] R6.2 Goose G1-G11 (section 2) - to take: a `--check` command (G7); TinyCC for script mode (G6, Task 58.2)
+	[ ] R6.2 Goose G1-G11 (section 2) - to take: a `--check` command (G7); TinyCC for script mode (G6, Task 58.2) - links (user):
+		https://bellard.org/tcc/, https://github.com/dakudaddy3390/TinyCC-builder, Goose's threads
+		https://aardappel.github.io/goose/docs/reference.html#22-threads (also R3); ChatGPT's Goose against Rust:
+		[files/Research/Memory/GooseVsRust.md](Research/Memory/GooseVsRust.md) (its FSMA part goes to R11)
 	[ ] R6.3 Fil-C F1-F4 (section 3) - a memory-safe C compiler: a second safety net for the generated C and for C libraries (Task 60, 39)
 	[ ] R6.4 Rust's gaps R1-R7 (section 4) - check the list of Rust CVEs in safe code and what each means for Fusion's checker
 	[ ] R6.5 Zig's allocators (section 5, R4 C1 / Z5) - where an arena is chosen: per function, service or request
@@ -273,6 +281,18 @@ then each point is decided and solved completely. One line per section and per l
 		module - against what COBOL and the others show; where a long falls short (range, more places, rates), the
 		decimal backup (`decimal(p, s)`, TYP.015); the literal and printed form (Q.047 - A for now), the default
 		rounding (Q.048 - halfEven for now), money and decimal ranges (47.6) - each a decision for the user
+
+#### R11 FSMA - the Fusion Structured Memory Architecture - after R10 (user, 2026-11-24) [ ] [index](#index)
+	File: [files/Research/Memory/FSMA/FSMA.md](Research/Memory/FSMA/FSMA.md) - the abstract of every rule and setting (proposals); the
+	primers, Gemini's review and the five images in the same folder (v2 Complex the main image). The heap becomes Data Stacks with a
+	purpose; the compiler creates and manages them; ownership stays first (D.013). The full form of MEM.009; ends in decisions, then a task
+	[ ] R11.1 The kinds: Single (two forms), Mixed (a grid, reused slots), Scoped frame (Gemini, as needed), General, StringPool, NamePool - how each allocates and is released
+	[ ] R11.2 The rules A1-A11 (FSMA.md section 3): one owner per stack, outlives, promotion, service-owned stacks, generation handles, GC apart
+	[ ] R11.3 The memory profiles FULL / STATIC / REGISTER-ONLY - with Task 41 (HIDL) and `[stdlib] layer`
+	[ ] R11.4 The `[memory]` settings (FSMA.md section 5) - names, defaults, each a decision
+	[ ] R11.5 Gemini's v3 checked point by point (taken, as needed, not taken - FSMA.md section 6)
+	[ ] R11.6 Prior work: Goose's data stacks, Zig's allocators, Rust arenas, Erlang's per-process heaps, mimalloc - with R6 and R4.3
+	[ ] R11.7 The decisions for the user, then a task (with Task 38 / 42); measured against today's counting (L16.0)
 
 ---
 

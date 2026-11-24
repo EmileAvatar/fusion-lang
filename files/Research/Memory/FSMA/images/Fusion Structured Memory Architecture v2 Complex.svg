@@ -1,0 +1,231 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="990" viewBox="0 0 1500 990" xmlns:c2pa="http://c2pa.org/manifest">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#60a5fa"/>
+    </marker>
+    <style>
+      text { font-family: Arial, sans-serif; fill: #e5e7eb; }
+      .title { font-size: 28px; font-weight: bold; }
+      .heading { font-size: 22px; font-weight: bold; }
+      .dsTitle { font-size: 14px; font-weight: bold; }
+      .subheading { font-size: 15px; fill: #cbd5e1; }
+      .label { font-size: 15px; font-weight: bold; }
+      .box { font-size: 12.5px; }
+      .small { font-size: 12px; fill: #cbd5e1; }
+      .tiny { font-size: 11px; fill: #cbd5e1; }
+      .frame { fill: #263449; stroke: #60a5fa; stroke-width: 1.5; }
+      .object { fill: #174b43; stroke: #34d399; stroke-width: 1.3; }
+      .freed { fill: #6b2230; stroke: #f87171; stroke-width: 1.3; }
+      .unused { fill: #253244; stroke: #64748b; stroke-dasharray: 4 3; }
+      .general { fill: #654b28; stroke: #fbbf24; stroke-width: 1.3; }
+      .pool { fill: #3b2a63; stroke: #a78bfa; stroke-width: 1.3; }
+      .namepool { fill: #0e4a5c; stroke: #22d3ee; stroke-width: 1.3; }
+      .child { fill: #12394a; stroke: #22d3ee; stroke-width: 1; }
+      .dataStack { fill: #182b3e; stroke: #60a5fa; stroke-width: 2; }
+    </style>
+  </defs>
+
+  <rect width="1500" height="990" rx="12" fill="#101827"/>
+
+  <text x="750" y="44" text-anchor="middle" class="title">Fusion – Structured Memory Architecture</text>
+  <text x="750" y="72" text-anchor="middle" class="subheading">Primary stack + managed heap that is a container of typed Data Stacks • Rust-style ownership (configurable: manual or GC)</text>
+
+  <!-- PRIMARY STACK -->
+  <rect x="30" y="110" width="300" height="620" rx="12" fill="#17283d" stroke="#60a5fa" stroke-width="2"/>
+  <text x="180" y="145" text-anchor="middle" class="heading">PRIMARY STACK</text>
+  <text x="180" y="168" text-anchor="middle" class="small">Active execution / function frames</text>
+
+  <rect x="50" y="185" width="260" height="80" rx="6" class="frame"/>
+  <text x="180" y="217" text-anchor="middle" class="label">Frame 3 – Current</text>
+  <text x="180" y="241" text-anchor="middle" class="small">Local variables / owned handles</text>
+
+  <rect x="50" y="280" width="260" height="80" rx="6" class="frame"/>
+  <text x="180" y="312" text-anchor="middle" class="label">Frame 2 – Caller</text>
+  <text x="180" y="336" text-anchor="middle" class="small">Local variables / owned handles</text>
+
+  <rect x="50" y="375" width="260" height="80" rx="6" class="frame"/>
+  <text x="180" y="407" text-anchor="middle" class="label">Frame 1 – Main</text>
+  <text x="180" y="431" text-anchor="middle" class="small">Local variables / owned handles</text>
+
+  <rect x="50" y="475" width="260" height="80" rx="6" fill="#243b50" stroke="#60a5fa"/>
+  <text x="180" y="508" text-anchor="middle" class="label">Object references</text>
+  <text x="180" y="532" text-anchor="middle" class="small">Owners / borrows → Data Stacks</text>
+
+  <path d="M180 562 V590" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="180" y="612" text-anchor="middle" class="small">Execution stack grows</text>
+  <text x="180" y="630" text-anchor="middle" class="small">and shrinks with calls</text>
+
+  <rect x="50" y="650" width="260" height="30" rx="6" fill="#243b50" stroke="#64748b"/>
+  <text x="180" y="670" text-anchor="middle" class="small">Stack pointer (SP)</text>
+  <text x="180" y="702" text-anchor="middle" class="tiny">When the primary stack ends, the program ends</text>
+  <text x="180" y="717" text-anchor="middle" class="tiny">and ALL stack + heap memory is reclaimed.</text>
+
+  <!-- HEAP -->
+  <rect x="380" y="110" width="1090" height="620" rx="12" fill="#17283d" stroke="#a78bfa" stroke-width="2"/>
+  <text x="925" y="142" text-anchor="middle" class="heading">MANAGED HEAP</text>
+  <text x="925" y="162" text-anchor="middle" class="small">Container of Data Stacks – structured allocation space, not one random allocation pool</text>
+
+  <!-- pointer bus -->
+  <path d="M310 515 H355 V178 H1351" stroke="#60a5fa" stroke-width="2.5" fill="none"/>
+  <text x="352" y="560" text-anchor="end" class="tiny">refs</text>
+  <path d="M499 178 V190" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M712 178 V190" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M925 178 V190" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M1138 178 V190" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path d="M1351 178 V190" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- 1: Data Stack<Single> -->
+  <rect x="400" y="190" width="198" height="435" rx="8" class="dataStack"/>
+  <text x="499" y="214" text-anchor="middle" class="dsTitle">DATA STACK&lt;Single&gt;</text>
+  <text x="499" y="233" text-anchor="middle" class="tiny">Storage for related objects</text>
+  <text x="499" y="248" text-anchor="middle" class="tiny">(one purpose / one service)</text>
+  <rect x="414" y="265" width="170" height="40" rx="5" class="object"/>
+  <text x="499" y="290" text-anchor="middle" class="box">Account object</text>
+  <rect x="414" y="315" width="170" height="40" rx="5" class="object"/>
+  <text x="499" y="340" text-anchor="middle" class="box">Ledger object</text>
+  <rect x="414" y="365" width="170" height="40" rx="5" class="object"/>
+  <text x="499" y="390" text-anchor="middle" class="box">Transaction data</text>
+  <rect x="414" y="415" width="170" height="40" rx="5" class="object"/>
+  <text x="499" y="440" text-anchor="middle" class="box">Audit object</text>
+  <rect x="414" y="465" width="170" height="50" rx="5" class="unused"/>
+  <text x="499" y="486" text-anchor="middle" class="tiny">Available capacity</text>
+  <text x="499" y="502" text-anchor="middle" class="tiny">Reserved space</text>
+  <text x="499" y="590" text-anchor="middle" class="tiny">Bump-allocated in order;</text>
+  <text x="499" y="606" text-anchor="middle" class="tiny">released as one unit</text>
+
+  <!-- 2: Data Stack<Mixed> -->
+  <rect x="613" y="190" width="198" height="435" rx="8" class="dataStack"/>
+  <text x="712" y="214" text-anchor="middle" class="dsTitle">DATA STACK&lt;Mixed&gt;</text>
+  <text x="712" y="233" text-anchor="middle" class="tiny">General-purpose stack</text>
+  <text x="712" y="248" text-anchor="middle" class="tiny">(boxes freed + reused individually)</text>
+
+  <rect x="627" y="265" width="80" height="40" rx="5" class="object"/>
+  <text x="667" y="290" text-anchor="middle" class="box">Order</text>
+  <rect x="715" y="265" width="80" height="40" rx="5" class="object"/>
+  <text x="755" y="290" text-anchor="middle" class="box">Config</text>
+
+  <rect x="627" y="315" width="80" height="40" rx="5" class="freed"/>
+  <text x="667" y="332" text-anchor="middle" class="box">Session</text>
+  <text x="667" y="347" text-anchor="middle" class="tiny">reclaiming…</text>
+  <rect x="715" y="315" width="80" height="40" rx="5" class="object"/>
+  <text x="755" y="340" text-anchor="middle" class="box">Vec&lt;i32&gt;</text>
+
+  <rect x="627" y="365" width="80" height="40" rx="5" class="object"/>
+  <text x="667" y="390" text-anchor="middle" class="box">Cache</text>
+  <rect x="715" y="365" width="80" height="40" rx="5" class="object"/>
+  <text x="755" y="390" text-anchor="middle" class="box">Point</text>
+
+  <rect x="627" y="415" width="80" height="40" rx="5" class="object"/>
+  <text x="667" y="440" text-anchor="middle" class="box">User</text>
+  <rect x="715" y="415" width="80" height="40" rx="5" class="freed"/>
+  <text x="755" y="432" text-anchor="middle" class="box">Map</text>
+  <text x="755" y="447" text-anchor="middle" class="tiny">reclaiming…</text>
+
+  <rect x="627" y="465" width="80" height="40" rx="5" class="object"/>
+  <text x="667" y="490" text-anchor="middle" class="box">Timer</text>
+  <rect x="715" y="465" width="80" height="40" rx="5" class="object"/>
+  <text x="755" y="490" text-anchor="middle" class="box">Node</text>
+
+  <text x="712" y="590" text-anchor="middle" class="tiny">Freed slots are reused</text>
+  <text x="712" y="606" text-anchor="middle" class="tiny">without new allocations</text>
+
+  <!-- 3: Data Stack<General> -->
+  <rect x="826" y="190" width="198" height="435" rx="8" class="dataStack"/>
+  <text x="925" y="214" text-anchor="middle" class="dsTitle">DATA STACK&lt;General&gt;</text>
+  <text x="925" y="233" text-anchor="middle" class="tiny">Mixed content that fits nowhere else</text>
+  <text x="925" y="248" text-anchor="middle" class="tiny">(one-time / short-lived objects)</text>
+  <rect x="840" y="265" width="170" height="40" rx="5" class="general"/>
+  <text x="925" y="290" text-anchor="middle" class="box">Temp buffer</text>
+  <rect x="840" y="315" width="170" height="40" rx="5" class="general"/>
+  <text x="925" y="340" text-anchor="middle" class="box">One-time object</text>
+  <rect x="840" y="365" width="170" height="40" rx="5" class="general"/>
+  <text x="925" y="390" text-anchor="middle" class="box">Short-lived value</text>
+  <rect x="840" y="415" width="170" height="100" rx="5" class="unused"/>
+  <text x="925" y="470" text-anchor="middle" class="tiny">Available space</text>
+  <text x="925" y="590" text-anchor="middle" class="tiny">Individual allocate / free</text>
+  <text x="925" y="606" text-anchor="middle" class="tiny">(catch-all)</text>
+
+  <!-- 4: Data Stack<String> : String Pool -->
+  <rect x="1039" y="190" width="198" height="435" rx="8" class="dataStack"/>
+  <text x="1138" y="214" text-anchor="middle" class="dsTitle">DATA STACK&lt;String&gt;</text>
+  <text x="1138" y="233" text-anchor="middle" class="tiny">Named: StringPool</text>
+  <text x="1138" y="248" text-anchor="middle" class="tiny">(strings only – reused, not duplicated)</text>
+  <rect x="1053" y="265" width="170" height="40" rx="5" class="pool"/>
+  <text x="1068" y="290" class="box">"Active"</text>
+  <text x="1210" y="290" text-anchor="end" class="tiny">×14 refs</text>
+  <rect x="1053" y="315" width="170" height="40" rx="5" class="pool"/>
+  <text x="1068" y="340" class="box">"USD"</text>
+  <text x="1210" y="340" text-anchor="end" class="tiny">×32 refs</text>
+  <rect x="1053" y="365" width="170" height="40" rx="5" class="pool"/>
+  <text x="1068" y="390" class="box">"Pending"</text>
+  <text x="1210" y="390" text-anchor="end" class="tiny">×6 refs</text>
+  <rect x="1053" y="415" width="170" height="40" rx="5" class="pool"/>
+  <text x="1068" y="440" class="box">"ZA"</text>
+  <text x="1210" y="440" text-anchor="end" class="tiny">×21 refs</text>
+  <rect x="1053" y="465" width="170" height="50" rx="5" class="unused"/>
+  <text x="1138" y="495" text-anchor="middle" class="tiny">Available capacity</text>
+  <text x="1138" y="590" text-anchor="middle" class="tiny">Duplicate strings share</text>
+  <text x="1138" y="606" text-anchor="middle" class="tiny">one slot (interned)</text>
+
+  <!-- 5: Data Stack<Customer> : Name pool -->
+  <rect x="1252" y="190" width="198" height="435" rx="8" class="dataStack"/>
+  <text x="1351" y="214" text-anchor="middle" class="dsTitle">DATA STACK&lt;Customer&gt;</text>
+  <text x="1351" y="233" text-anchor="middle" class="tiny">Named: CustomerPool</text>
+  <text x="1351" y="248" text-anchor="middle" class="tiny">(one object type + its children)</text>
+  <rect x="1266" y="265" width="170" height="40" rx="5" class="namepool"/>
+  <text x="1351" y="290" text-anchor="middle" class="box">Customer #1</text>
+  <rect x="1286" y="310" width="150" height="34" rx="5" class="child"/>
+  <text x="1361" y="332" text-anchor="middle" class="box">Address</text>
+  <rect x="1286" y="349" width="150" height="34" rx="5" class="child"/>
+  <text x="1361" y="371" text-anchor="middle" class="box">Contact</text>
+  <rect x="1266" y="395" width="170" height="40" rx="5" class="namepool"/>
+  <text x="1351" y="420" text-anchor="middle" class="box">Customer #2</text>
+  <rect x="1286" y="440" width="150" height="34" rx="5" class="child"/>
+  <text x="1361" y="462" text-anchor="middle" class="box">Address</text>
+  <rect x="1266" y="484" width="170" height="36" rx="5" class="unused"/>
+  <text x="1351" y="507" text-anchor="middle" class="tiny">Available capacity</text>
+  <text x="1351" y="590" text-anchor="middle" class="tiny">Only this type is stored;</text>
+  <text x="1351" y="606" text-anchor="middle" class="tiny">child objects live inside</text>
+
+  <!-- Heap manager -->
+  <rect x="400" y="640" width="1050" height="75" rx="8" fill="#253047" stroke="#a78bfa"/>
+  <text x="925" y="665" text-anchor="middle" class="label">Heap / Memory Manager</text>
+  <text x="925" y="686" text-anchor="middle" class="small">Creates Data Stacks (Single • Mixed • General • String pool • Named type pools) • Grows capacity • Tracks pointers</text>
+  <text x="925" y="704" text-anchor="middle" class="small">Releases a whole Data Stack at once • Frees / reuses individual boxes • Handles the General Data Stack</text>
+
+  <!-- Bottom panels -->
+  <rect x="30" y="750" width="720" height="215" rx="10" fill="#192638" stroke="#475569"/>
+  <text x="50" y="778" class="label">MEMORY MODEL: Rust-style ownership (default)</text>
+  <text x="50" y="804" class="small">• Every object has a single owner; borrowing via shared / mutable references.</text>
+  <text x="50" y="826" class="small">• Object is released when its owner goes out of scope (drop).</text>
+  <text x="50" y="848" class="small">• A Data Stack is released as one unit when its owner is dropped.</text>
+  <text x="50" y="870" class="small">• Configurable per program or per Data Stack:</text>
+  <rect x="70" y="882" width="190" height="30" rx="6" fill="#174b43" stroke="#34d399"/>
+  <text x="165" y="902" text-anchor="middle" class="box">Ownership (default)</text>
+  <rect x="275" y="882" width="190" height="30" rx="6" fill="#654b28" stroke="#fbbf24"/>
+  <text x="370" y="902" text-anchor="middle" class="box">Manual management</text>
+  <rect x="480" y="882" width="190" height="30" rx="6" fill="#3b2a63" stroke="#a78bfa"/>
+  <text x="575" y="902" text-anchor="middle" class="box">Garbage collection</text>
+  <text x="50" y="946" class="tiny">Primary stack ends → program ends → all stack and heap memory reclaimed.</text>
+
+  <rect x="770" y="750" width="700" height="215" rx="10" fill="#192638" stroke="#475569"/>
+  <text x="790" y="778" class="label">KEY:</text>
+  <rect x="790" y="795" width="18" height="18" rx="3" class="frame"/>
+  <text x="818" y="809" class="small">Primary stack frames</text>
+  <rect x="1010" y="795" width="18" height="18" rx="3" class="object"/>
+  <text x="1038" y="809" class="small">Active Data Stack objects</text>
+  <rect x="1250" y="795" width="18" height="18" rx="3" class="freed"/>
+  <text x="1278" y="809" class="small">Reclaimed boxes</text>
+  <rect x="790" y="830" width="18" height="18" rx="3" class="unused"/>
+  <text x="818" y="844" class="small">Available capacity</text>
+  <rect x="1010" y="830" width="18" height="18" rx="3" class="general"/>
+  <text x="1038" y="844" class="small">General (short-lived) allocations</text>
+  <rect x="790" y="865" width="18" height="18" rx="3" class="pool"/>
+  <text x="818" y="879" class="small">String pool entries</text>
+  <rect x="1010" y="865" width="18" height="18" rx="3" class="namepool"/>
+  <text x="1038" y="879" class="small">Named type pool objects</text>
+  <rect x="1250" y="865" width="18" height="18" rx="3" class="child"/>
+  <text x="1278" y="879" class="small">Child objects</text>
+  <text x="790" y="915" class="small">Data Stacks group related objects; boxes can be freed individually.</text>
+  <text x="790" y="945" class="tiny">Conceptual diagram – logical allocation regions, not a literal physical memory layout.</text>
+<metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTo3MjU4ZGVjOC0yYmFlLTQ4ZTYtYTgwNC05MzQ3OGRmZTBmMmQAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaFZSX5iJeCDmlVASYBl6RQkAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDpjZDVlZjM0Yi01M2QzLTQ1ZWUtYWQ1NC1iNjM1N2FjZTMxOGVscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNo66CHRLc+Y9n9NbelwPKSQwAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggVzFlupufzrTCnm7JXXrGx78Ck4MVeKZsEaMYpLLt8M2kZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaJigaklaTiCp1dqjmIAOP+UAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYILRd0EVz9C5LFWo0+x1Ins1Nn4dNxzOZwtxLRvVfWzHoZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GT4LZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjcyNThkZWM4LTJiYWUtNDhlNi1hODA0LTkzNDc4ZGZlMGYyZC9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjEyYjU2MWI0LTczNjEtNGM0NS05MTRhLWE1Yjc1MjU2YTJmNHJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCBXMWW6m5/OtMKebsldesbHvwKTgxV4pmwRoxiksu3wzaJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggilmYHdp0p4TwjDAMThntR6KEb0TYxOGCGnoSjAViy4eiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggLGDI3lipr1Q3terz2L03PwzyUQ1YvTy1FMHzYKjGhaZ0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQEoeaeeQ1TjuzcZ1z05snQ6xxhGFohb/cHhFgQXp0aAqZ0mWV+zZHqy2WbLSWN7O2OySz8aIMBkH0keeph+cCwo=</c2pa:manifest></metadata></svg>

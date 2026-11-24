@@ -4,7 +4,7 @@ What Fusion has, and what it still needs, at a glance. Kept simple - one line pe
 Detail: `Decisions.md` (every feature line and decision), `files/FEATURES.md` (tasks and status),
 `files/SYNTAX_REFERENCE.md` (examples of what works).
 
-Updated: 2026-11-23
+Updated: 2026-11-24
 
 Tags: **[partial]** some of it built - **[planned]** decided, scheduled as a task - **[design]** described,
 not settled - **[postponed]** waits for something else
@@ -240,6 +240,7 @@ Memory
    - unsafe blocks, free [design]
    - copy(x) / copyDeep(x) [planned]
    - Arenas / regions, memory-mapped resources [design]
+   - FSMA [research]                 the heap as Data Stacks with a purpose; FULL / STATIC / REGISTER-ONLY (R11)
 
 Settings & tooling
    - Core modules [planned]          Time, Data formats, Currency (Task 43)

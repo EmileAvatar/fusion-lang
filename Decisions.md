@@ -221,7 +221,7 @@ MEM.005 [DESIGN] GC and MANUAL as project strategies, never the default; `Shared
 MEM.006 [DESIGN] `unsafe` blocks; `free` / `deallocate`; memory never freed is freed at the end of its scope (D.134)
 MEM.007 [BUILT] The leak check: every example and test
 MEM.008 [PLANNED] `copy(x)` follows `[memory] copy` (deep by default); `copyDeep(x)` always deep
-MEM.009 [DESIGN] Arena / region memory (many objects freed together); memory-mapped resources
+MEM.009 [DESIGN] Arena / region memory (many objects freed together); memory-mapped resources - researched as FSMA, Data Stacks in the heap (R11)
 MEM.010 [BUILT] `const` on an object is deep - no field set, no changing method; a `byVal` copy may change (50.2, D.112)
 MEM.011 [BUILT] Storing `this` shares the object (counted): one car in several collections is one car, freed when the last holder lets go (48.12, D.103)
 MEM.012 [BUILT] While a borrow changes a value, its owner may still be read - only changing it another way is an error (48.10, D.123)
