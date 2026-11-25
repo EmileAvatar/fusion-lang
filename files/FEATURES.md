@@ -350,9 +350,11 @@ then each point is decided and solved completely. One line per section and per l
 		symbol); the fields read and set, checked; + - * (a whole number or a decimal) and comparing by the compiler -
 		the currencies the same or one empty, else a CurrencyError; printing R100.05; toDecimal / money(d); in
 		structs, Lists, Maps, arrays, text, CSV (src/codegen/c_money.py); tests/test_money.py, syntax_money
-	[ ] 47.2b The Currency module (Currency.fusion, 43.3 starts here - D.186): static methods the compiler calls -
-		convert(m, from, to, rate), round, dividing (`/` on money), percent, split (the parts add up exactly),
-		formatting; a symbol longer than 4 bytes swapped for a short code (D.184) - next
+	[DONE 2026-11-25] 47.2b The Currency module (src/stdlib/Currency.fusion, written in Fusion - D.186): added to a
+		program that uses money (src/semantic/currency.py); every active ISO 4217 currency (166 - places and symbol,
+		at most 4 bytes, a longer one kept as the code); divide (`m / n`), split / splitBy (the parts add up), percent,
+		round / roundWith / settle, convert (the developer's rate), format; `m.convert(...)` and the other methods
+		on money are its statics; tests/test_currency.py, syntax_currency
 	[ ] 47.2 (the notes below, from the first plan, kept for reference) `money` (replanned 2026-11-24 - files/taskSummary2.md, D.180-D.187): a sealed 16-byte value struct - value,
 		scale, currency, symbol; + - * by the compiler, the rest by the Currency module's statics - after 47.8. The
 		earlier notes below stay for reference: a `long` counting a currency's minor units - kind value, default 0, min /
@@ -884,7 +886,8 @@ then each point is decided and solved completely. One line per section and per l
 		a big task, after Fusion modules exist
 		[ ] JSON and XML written in the code: (FILE_LANG.XML)"""...""".save("a.xml") - needs
 			multi-line strings (Later); the marker's form, compile-time checks, escaping open
-	[ ] 43.3 Currency module (user, 2026-10-29): how `money` (47.2) is used per currency -
+	[ ] 43.3 Currency module (user, 2026-10-29) - started 2026-11-25 as src/stdlib/Currency.fusion (47.2b: the ISO 4217
+		table, divide, split, percent, round, convert, format); what is left here: parsing, locale formats - how `money` (47.2) is used per currency -
 		currency definitions with their decimal places (USD 2, JPY 0, KWD 3) and so their
 		units (USD 100, JPY 100 in whole steps, KWD 1000), formatting, parsing, and exchange-
 		rate conversion with rates the developer supplies.

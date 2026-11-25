@@ -584,10 +584,20 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                         node.location))
                 node.money_op = 'mul_decimal'
             return money
+        if op == '/' and getattr(left_type, 'name', None) == 'money' \
+                and getattr(right_type, 'name', None) in ('byte', 'short', 'int') \
+                and self.symbol_table.lookup('Currency') is not None:
+            # m / n is Currency.divide(m, n) - the money's own places, rounded once (47.2b, D.186)
+            call = CallExpr(location=node.location, arguments=[node.left, node.right],
+                            callee=IdentifierExpr(location=node.location, name='Currency.divide'))
+            node.__class__ = CallExpr
+            node.__dict__.clear()
+            node.__dict__.update(call.__dict__)
+            return self.visit(node)
         if op in ('/', '%'):
             self.errors.append(SemanticError(
-                f"'{op}' on money is the Currency module's (round, split - Task 47.2b); toDecimal(m) "
-                f"gives the amount as a decimal", node.location))
+                f"'{op}' on money - divide by a whole number (m / 3), or split(m, 3) for parts that add up; "
+                f"toDecimal(m) gives the amount as a decimal", node.location))
             return money
         left_type = self.to_money(node.left, left_type)
         right_type = self.to_money(node.right, right_type)
@@ -1582,6 +1592,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """Check a call, then check that a returned array is used in a supported place
         (Task 18.2.4). C returns the array inside a hidden struct, which can be copied into
         an array or indexed - but not passed on by reference or printed whole."""
+        self._money_method_call(node)               # m.convert(...) -> Currency.convert(m, ...) (47.2b)
         result = self._visit_call(node)
         self._copy_by_val_arguments(node)          # `byVal List<int> xs` (Task 32.10a)
         if isinstance(result, ArrayType) and id(node) not in self.allowed_array_calls:
@@ -1593,6 +1604,21 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         return result
 
     LENGTH_NAMES = ('len', 'length')
+
+    def _money_method_call(self, node) -> None:
+        """A method on money - m.convert(...), m.round(2), m.split(3) ... - is the Currency module's static of that
+        name with the money first (47.2b, D.186): the call is rewritten in place."""
+        from .currency import CURRENCY_METHODS
+        callee = node.callee
+        if not (isinstance(callee, MemberExpr) and callee.member in CURRENCY_METHODS
+                and isinstance(callee.object, (IdentifierExpr, MemberExpr, IndexExpr, CallExpr))
+                and self.symbol_table.lookup('Currency') is not None):
+            return
+        if getattr(self.visit(callee.object), 'name', None) != 'money':
+            return
+        node.arguments = [callee.object] + list(node.arguments)
+        # the statics pass has already named Currency's static functions `Currency.<name>` (32.2c)
+        node.callee = IdentifierExpr(location=callee.location, name=f'Currency.{callee.member}')
 
     # ------------------------------------------------------------------ classes (32.10b)
 

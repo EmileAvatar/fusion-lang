@@ -71,7 +71,7 @@ def test_written_mistakes_are_compile_errors():
     assert "isn't a currency code" in errors_of(main('money r = money(1, "rand")'))
     assert 'money keeps up to 4' in errors_of(main('money r = money(1, "ZAR", "RANDS")'))
     assert 'money * money has no meaning' in errors_of(main('money a = 1\nmoney b = 2\nmoney c = a * b'))
-    assert "the Currency module's" in errors_of(main('money a = 10\nmoney b = a / 3'))
+    assert 'divide by a whole number' in errors_of(main('money a = 10\nmoney b = a % 3'))
     assert "doesn't become money by itself" in errors_of(main('decimal d = 1.5\nmoney m = d'))
     assert "doesn't become money by itself" in errors_of(main('double d = 1.5\nmoney m = d'))
     assert 'money has no field' in errors_of(main('money m = 1\nprint("{@1}", m.amount)'))

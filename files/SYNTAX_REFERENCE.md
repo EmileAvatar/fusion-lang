@@ -2457,7 +2457,28 @@ void function main()
     print("{amount} {twice}")
 ```
 `money` is 16 bytes - value (a long), scale, currency, symbol - never on the heap. Two amounts add when their
-currencies are the same or one is empty. Dividing, rounding, converting and formatting come with the Currency module.
+currencies are the same or one is empty. Dividing, rounding, converting and formatting are the Currency module's.
+
+#### The Currency module: dividing, splitting, rounding, converting
+
+<!-- example: syntax_currency | task: 47.2b | folder: 01_basics -->
+```fusion
+void function main()
+    money bill = money(100.00, "ZAR", "R")
+    print("{@1}", bill / 3)                        // R33.33 - the money's own places, rounded once
+    List<money> shares = bill.split(3)            // parts that add up exactly: R33.34 R33.33 R33.33
+    print("{@1} {@2} {@3}", shares[0], shares[1], shares[2])
+    List<money> owners = bill.splitBy([70, 30])   // by ratios: R70.00 R30.00
+    print("{@1} {@2}", owners[0], owners[1])
+    print("{@1}", bill.percent(15.5))             // R15.50
+    money raw = money(12.345, "ZAR", "R")
+    print("{@1} {@2}", raw.settle(), raw.roundWith(2, halfUp))   // R12.34 (halfEven) R12.35
+    money yen = bill.convert("ZAR", "JPY", 8.4211)   // your rate - never fetched; JPY has 0 places
+    print("{yen} {@1} {@2}", Currency.places("KWD"), Currency.symbol("EUR"))
+    print(money(1234567.891, "USD", "$").format())   // $1,234,567.891
+```
+The Currency module (`src/stdlib/Currency.fusion`) is written in Fusion and added to a program that uses money. It
+knows every ISO 4217 currency - its places and its symbol (at most 4 bytes; a longer one is kept as the code).
 
 #### Custom error types
 

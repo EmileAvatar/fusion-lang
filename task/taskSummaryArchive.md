@@ -7784,3 +7784,32 @@ Built with `[numbers] rounding` (not a new `[decimal]` section) and the maximum 
   multiplying adds them (capped by `maxScale`, rounding once if past it)
 - `value`, `scale`, `toString()` ("1.323242"), `round(places, mode)`, `toDouble()` (said to be inexact), `toDecimal(text)`
 - a rate is a decimal (Q.052): `price * 1.155`, `price.percent(15.5)`
+
+---
+
+## Task 47.2 - money and the Currency module (done 2026-11-25)
+
+**47.2 `money`** (D.021, D.180-D.187) - a sealed 16-byte value struct built into the compiler
+- C: `typedef struct { int64_t value; uint8_t scale; char currency[3]; char symbol[4]; } fusion_money;`
+  (16 bytes, 8-aligned, two registers)
+- On older CPUs or restricted targets the compiler may override these sizes for the final output - rechecked with
+  HIDL (FEATURES 41.11, user 2026-11-24)
+- fields read as a struct's (`m.value`, `m.scale`, `m.currency`, `m.symbol`); made by `money(123.45, "ZAR", "R")` or
+  `money price = 123.45` (scale from the places written - D.176); a symbol over 4 bytes a compile error until the
+  Currency module gives short codes (D.184)
+- by the compiler, with no call:
+  - `a + b`, `a - b`: the scales lined up, the larger kept (100.05 + 200.125 = 300.175);
+  - `a * 3`: the value multiplied;
+  - `==`, `<`: by amount;
+  - the currencies the same or one empty (the result takes the one set), else a compile error where it can be
+    seen, or a CurrencyError;
+  - overflow checked; the steps in between in int128 (D.178)
+- by the Currency module's static methods (Currency.fusion, written in Fusion - 43.3 starts here):
+  - `Currency.convert(m, "JPY", "ZAR", 0.11)`;
+  - `round(m, places, mode)`, dividing, `percent`, `split` (the parts add up exactly);
+  - formatting.
+  - `m.convert(...)` written as a method is the same call. The default rounding is `[money] rounding = "halfEven"`.
+- money * money an error; `toDecimal(m)` / `toMoney(d)`
+- printing by the compiler, not as a struct: `R100.05` with a symbol, `100.05` without (D.187)
+- tests: every operation, currencies (same, empty, different), scales, the struct's size (16), printing, the
+  Currency statics (convert, round, split sums); example syntax_money

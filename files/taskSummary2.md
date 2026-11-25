@@ -21,7 +21,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-25: 47.7 `int128` / `int256` (tests/test_wide_numbers.py, syntax_wide_numbers) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-25: 47.8 `decimal` (tests/test_decimal.py, syntax_decimal) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-25: 47.2a `money` - the type (tests/test_money.py, syntax_money)
-- **Next Action:** 47.2b the Currency module (Currency.fusion - convert, round, divide, percent, split, format) - its plan to write
+- Done 2026-11-25: 47.2b the Currency module (tests/test_currency.py, syntax_currency) - 47.2 complete, its plan in task/taskSummaryArchive.md
+- **Next Action:** 47.6 ranges over decimals and money (the plan below)
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)
@@ -45,31 +46,6 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - `[decimal] maxScale` (18);
 - `[ranges] ...` (D.170) with 47.6.
 - Each goes into fusionSettings.xml once built. No `[money] currency` - empty is the default (D.183).
-
-**47.2 `money`** (D.021, D.180-D.187) - a sealed 16-byte value struct built into the compiler
-- C: `typedef struct { int64_t value; uint8_t scale; char currency[3]; char symbol[4]; } fusion_money;`
-  (16 bytes, 8-aligned, two registers)
-- On older CPUs or restricted targets the compiler may override these sizes for the final output - rechecked with
-  HIDL (FEATURES 41.11, user 2026-11-24)
-- fields read as a struct's (`m.value`, `m.scale`, `m.currency`, `m.symbol`); made by `money(123.45, "ZAR", "R")` or
-  `money price = 123.45` (scale from the places written - D.176); a symbol over 4 bytes a compile error until the
-  Currency module gives short codes (D.184)
-- by the compiler, with no call:
-  - `a + b`, `a - b`: the scales lined up, the larger kept (100.05 + 200.125 = 300.175);
-  - `a * 3`: the value multiplied;
-  - `==`, `<`: by amount;
-  - the currencies the same or one empty (the result takes the one set), else a compile error where it can be
-    seen, or a CurrencyError;
-  - overflow checked; the steps in between in int128 (D.178)
-- by the Currency module's static methods (Currency.fusion, written in Fusion - 43.3 starts here):
-  - `Currency.convert(m, "JPY", "ZAR", 0.11)`;
-  - `round(m, places, mode)`, dividing, `percent`, `split` (the parts add up exactly);
-  - formatting.
-  - `m.convert(...)` written as a method is the same call. The default rounding is `[money] rounding = "halfEven"`.
-- money * money an error; `toDecimal(m)` / `toMoney(d)`
-- printing by the compiler, not as a struct: `R100.05` with a symbol, `100.05` without (D.187)
-- tests: every operation, currencies (same, empty, different), scales, the struct's size (16), printing, the
-  Currency statics (convert, round, split sums); example syntax_money
 
 **47.6 Ranges over decimals and money** (47.6a-f in FEATURES, D.170)
 - `[ranges] decimals = false` (default): `0.5...2.5` the error saying how to turn it on (today's message, kept)

@@ -43,6 +43,7 @@ Syntax
 
 Types
    - Numbers                  int, long, short, int128, int256, decimal, float, double, bool, char, byte - overflow checked, overflowWrap setting
+   - Money                    money (16 bytes: value, scale, currency, symbol) and the Currency module - every ISO 4217 currency
    - int as float             only when it fits exactly, else an error
    - Conversions              toInt, toFloat, toString, toByte, parseInt
    - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where known
@@ -185,7 +186,6 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - money [partial]                 a 16-byte value struct built; the Currency module next (47.2b)
    - Enums with fixed data, FusionType enum [planned]
    - fixed(n) [planned]              max size: fixed(10) string name
    - Operator overloading [design]   a setting, off

@@ -1,0 +1,173 @@
+// The Currency module (Task 47.2b, D.186) - written in Fusion; the compiler adds it to a program that uses money.
+// money is only a container of its four values (D.186): what a currency means - its places, its symbol - and every
+// rule that rounds, divides or converts is here. m / n, m.convert(...), m.split(3) ... are calls of these statics.
+// No rate is ever fetched (the hard rule): a conversion takes the rate the developer passes in.
+// Every active ISO 4217 currency: its code, its places (minor units) and its symbol - at most 4 bytes (D.184): a
+// longer symbol is kept as the code (AED, OMR). Not money: XAU, XAG, XPD, XPT, XDR and the other units without places.
+
+class Currency
+    static Map<string, int> placesOf
+    static Map<string, string> symbolOf
+    static
+        List<string> table = [
+            "AED 2 AED", "AFN 2 \u060B", "ALL 2 L", "AMD 2 \u058F", "ANG 2 \u0192", "AOA 2 Kz", "ARS 2 $",
+            "AUD 2 A$", "AWG 2 \u0192", "AZN 2 \u20BC", "BAM 2 KM", "BBD 2 Bds$", "BDT 2 \u09F3", "BGN 2 \u043B\u0432",
+            "BHD 3 BD", "BIF 0 FBu", "BMD 2 $", "BND 2 B$", "BOB 2 Bs", "BOV 2 BOV", "BRL 2 R$", "BSD 2 B$",
+            "BTN 2 Nu.", "BWP 2 P", "BYN 2 Br", "BZD 2 BZ$", "CAD 2 C$", "CDF 2 FC", "CHE 2 CHE", "CHF 2 CHF",
+            "CHW 2 CHW", "CLF 4 UF", "CLP 0 $", "CNY 2 \u00A5", "COP 2 $", "COU 2 COU", "CRC 2 \u20A1", "CUP 2 $",
+            "CVE 2 Esc", "CZK 2 K\u010D", "DJF 0 Fdj", "DKK 2 kr", "DOP 2 RD$", "DZD 2 DA", "EGP 2 E\u00A3",
+            "ERN 2 Nfk", "ETB 2 Br", "EUR 2 \u20AC", "FJD 2 FJ$", "FKP 2 \u00A3", "GBP 2 \u00A3", "GEL 2 \u20BE",
+            "GHS 2 GH\u00A2", "GIP 2 \u00A3", "GMD 2 D", "GNF 0 FG", "GTQ 2 Q", "GYD 2 G$", "HKD 2 HK$", "HNL 2 L",
+            "HTG 2 G", "HUF 2 Ft", "IDR 2 Rp", "ILS 2 \u20AA", "INR 2 \u20B9", "IQD 3 IQD", "IRR 2 \uFDFC",
+            "ISK 0 kr", "JMD 2 J$", "JOD 3 JD", "JPY 0 \u00A5", "KES 2 KSh", "KGS 2 som", "KHR 2 \u17DB",
+            "KMF 0 CF", "KPW 2 \u20A9", "KRW 0 \u20A9", "KWD 3 KD", "KYD 2 CI$", "KZT 2 \u20B8", "LAK 2 \u20AD",
+            "LBP 2 LBP", "LKR 2 Rs", "LRD 2 L$", "LSL 2 L", "LYD 3 LD", "MAD 2 MAD", "MDL 2 L", "MGA 2 Ar",
+            "MKD 2 den", "MMK 2 K", "MNT 2 \u20AE", "MOP 2 MOP$", "MRU 2 UM", "MUR 2 Rs", "MVR 2 Rf", "MWK 2 MK",
+            "MXN 2 $", "MXV 2 MXV", "MYR 2 RM", "MZN 2 MT", "NAD 2 N$", "NGN 2 \u20A6", "NIO 2 C$", "NOK 2 kr",
+            "NPR 2 Rs", "NZD 2 NZ$", "OMR 3 OMR", "PAB 2 B/.", "PEN 2 S/", "PGK 2 K", "PHP 2 \u20B1", "PKR 2 Rs",
+            "PLN 2 z\u0142", "PYG 0 \u20B2", "QAR 2 QR", "RON 2 lei", "RSD 2 din", "RUB 2 \u20BD", "RWF 0 FRw",
+            "SAR 2 SR", "SBD 2 SI$", "SCR 2 SR", "SDG 2 SDG", "SEK 2 kr", "SGD 2 S$", "SHP 2 \u00A3", "SLE 2 Le",
+            "SOS 2 Sh", "SRD 2 $", "SSP 2 \u00A3", "STN 2 Db", "SVC 2 \u20A1", "SYP 2 \u00A3", "SZL 2 E",
+            "THB 2 \u0E3F", "TJS 2 SM", "TMT 2 m", "TND 3 DT", "TOP 2 T$", "TRY 2 \u20BA", "TTD 2 TT$",
+            "TWD 2 NT$", "TZS 2 TSh", "UAH 2 \u20B4", "UGX 0 USh", "USD 2 $", "USN 2 $", "UYI 0 UYI", "UYU 2 $U",
+            "UYW 4 UYW", "UZS 2 UZS", "VED 2 Bs.", "VES 2 Bs.", "VND 0 \u20AB", "VUV 0 VT", "WST 2 WS$",
+            "XAF 0 FCFA", "XCD 2 EC$", "XCG 2 Cg", "XOF 0 CFA", "XPF 0 F", "YER 2 \uFDFC", "ZAR 2 R",
+            "ZMW 2 ZK", "ZWG 2 ZiG"
+        ]
+        foreach row in table
+            List<string> parts = row.split(" ")
+            placesOf[parts[0]] = toInt(parts[1])
+            symbolOf[parts[0]] = parts[2]
+
+    // ---------------------------------------------------------------- what a currency is
+
+    public static bool function known(string code) : placesOf.has(code)
+
+    // Its places (minor units): ZAR 2, JPY 0, KWD 3 - an unknown code is a CurrencyError
+    public static int function places(string code)
+        if not placesOf.has(code)
+            throw CurrencyError("'{code}' isn't an ISO 4217 currency code")
+        return placesOf[code]
+
+    public static string function symbol(string code)
+        if not symbolOf.has(code)
+            throw CurrencyError("'{code}' isn't an ISO 4217 currency code")
+        return symbolOf[code]
+
+    // An amount in a currency: its places and symbol from the table, rounded once by [numbers] rounding
+    public static money function of(decimal amount, string code)
+        return money(amount.round(places(code)), code, symbol(code))
+
+    // ---------------------------------------------------------------- rounding
+
+    public static money function round(money m, int digits)
+        return money(toDecimal(m).round(digits), m.currency, m.symbol)
+
+    public static money function roundWith(money m, int digits, Rounding mode)
+        return money(toDecimal(m).round(digits, mode), m.currency, m.symbol)
+
+    // To its currency's places - an amount that can be paid: R12.345 -> R12.34 (halfEven)
+    public static money function settle(money m)
+        if m.currency == ""
+            throw CurrencyError("settle needs a currency - money(amount, \"ZAR\")")
+        return round(m, places(m.currency))
+
+    // ---------------------------------------------------------------- dividing (m / n)
+
+    // m / n keeps the money's own places, rounded once by [numbers] rounding; split(m, n) when the parts must add up
+    public static money function divide(money m, int n)
+        return money(toDecimal(m).divide(toDecimal(n), m.scale), m.currency, m.symbol)
+
+    // A percentage, rounded to the money's own places: percent(R200.00, 15.5) is R31.00
+    public static money function percent(money m, decimal rate)
+        decimal amount = toDecimal(m) * rate / 100
+        return money(amount.round(m.scale), m.currency, m.symbol)
+
+    // n parts that add up exactly (Fowler): R100.00 / 3 is R33.34 + R33.33 + R33.33 - the left-over smallest steps
+    // go to the first parts, one each
+    public static List<money> function split(money m, int n)
+        if n < 1
+            throw ValueError("split into 1 or more parts")
+        List<money> parts = []
+        long each = m.value / n
+        long left = m.value - each * n
+        long step = 1
+        if left < 0
+            step = -1
+            left = -left
+        for i in range(0, n)
+            money part = m
+            part.value = each
+            if i < left
+                part.value = each + step
+            parts.add(part)
+        return parts
+
+    // Parts by ratios - splitBy(R100.00, [70, 30]) is R70.00 + R30.00; they add up exactly
+    public static List<money> function splitBy(money m, List<int> ratios)
+        long total = 0
+        foreach r in ratios
+            if r < 0
+                throw ValueError("a ratio is 0 or more")
+            total = total + r
+        if total == 0
+            throw ValueError("the ratios add up to 0")
+        List<money> parts = []
+        long given = 0
+        foreach r in ratios
+            money part = m
+            part.value = toLong(toInt128(m.value) * r / total)
+            given = given + part.value
+            parts.add(part)
+        long left = m.value - given
+        long step = 1
+        if left < 0
+            step = -1
+            left = -left
+        int i = 0
+        while left > 0
+            if ratios[i] > 0
+                money bumped = parts[i]
+                bumped.value = bumped.value + step
+                parts[i] = bumped
+                left = left - 1
+            i = i + 1
+            if i == ratios.len()
+                i = 0
+        return parts
+
+    // ---------------------------------------------------------------- converting
+
+    // From one currency to another with the developer's rate - never fetched (the hard rule); rounded once to the
+    // new currency's places
+    public static money function convert(money m, string from, string to, decimal rate)
+        if m.currency != "" and m.currency != from
+            throw CurrencyError("this money is {m.currency}, not {from}")
+        return of(toDecimal(m) * rate, to)
+
+    // ---------------------------------------------------------------- text
+
+    // The symbol and the amount with its thousands grouped: R1,234,567.89, -$5.00
+    public static string function format(money m)
+        decimal amount = toDecimal(m)
+        string sign = ""
+        if amount < 0
+            sign = "-"
+            amount = -amount
+        string digits = toString(amount)
+        string whole = digits
+        string rest = ""
+        int point = digits.indexOf(".")
+        if point >= 0
+            whole = digits.substring(0, point)
+            rest = digits.substring(point, digits.len() - point)       // substring(start, count)
+        string grouped = ""
+        int count = 0
+        int i = whole.len() - 1
+        while i >= 0
+            if count > 0 and count % 3 == 0
+                grouped = "," + grouped
+            grouped = whole.substring(i, 1) + grouped
+            count = count + 1
+            i = i - 1
+        return sign + m.symbol + grouped + rest

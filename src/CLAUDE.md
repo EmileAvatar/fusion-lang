@@ -18,6 +18,7 @@ A `.fusion` file goes through these stages, in order (driven by `main.py` in the
 | `modules/` | `import`: module folders, loading each once, merging into one program |
 | `semantic/` | Symbol table, name resolution, type checking, control-flow and entry-point checks |
 | `codegen/` | C code generation, the C runtime for strings, type and name mapping |
+| `stdlib/` | Fusion's own library modules, written in Fusion, added when a program needs them (Currency.fusion) |
 | `utils/` | Shared error/diagnostic classes |
 
 Each folder has its own `CLAUDE.md` with one line per file. Keep them current when a file is

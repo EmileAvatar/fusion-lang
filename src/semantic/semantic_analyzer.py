@@ -13,7 +13,8 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .stack_arrays import check_stack_arrays
-from .many_dims import (add_dimension_enum, add_storage_enum, add_rounding_enum,check_many_dims_uses, mark_storage_calls,
+from .currency import add_currency_module
+from .many_dims import (add_dimension_enum, add_storage_enum, add_rounding_enum, check_many_dims_uses, mark_storage_calls,
                         name_parameter_sizes)
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
@@ -196,6 +197,10 @@ class SemanticAnalyzer:
 
         if not self.case_sensitive:       # 32.11 - the names as written, before any rewrite
             self.errors.extend(check_case_names(ast))
+
+        # The Currency module (47.2b, D.186): Currency.fusion added when money is used - first, so every
+        # pass after this treats it as the program's own class
+        add_currency_module(ast)
 
         # The null guard (Task 52.8): c?.name, c?.f(), a ?? b rewritten into `is not null`,
         # `and`, `? :` and `if` - before anything else looks at the program
