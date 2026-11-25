@@ -143,6 +143,7 @@ def compile_file(source_path: str) -> int:
                                max_call_depth=project_config.max_call_depth,
                                wait_at_exit=project_config.build.wait_at_exit,
                                overflow_wrap=project_config.numbers.overflow_wrap)
+    generator.rounding = project_config.numbers.rounding      # [numbers] rounding (47.8)
     try:
         c_code = generator.generate(ast)
     except Exception as e:

@@ -120,6 +120,14 @@
     <setting name="overflowWrap" type="bool" default="false" task="32.0">
       <description>Whole-number + - * wraps around (a byte: 255 + 1 is 0); false: it is an OverflowError</description>
     </setting>
+    <setting name="rounding" type="choice" default="halfEven" task="47.8">
+      <description>How a decimal is rounded when a result has more places than it keeps (* past 18 places, / that doesn't end, round without a mode): halfEven (banker's - no drift over many sums), halfUp, down (toward zero), up (away from zero), exact (rounding needed is a RoundingError) (D.177)</description>
+      <value>halfEven</value>
+      <value>halfUp</value>
+      <value>down</value>
+      <value>up</value>
+      <value>exact</value>
+    </setting>
   </section>
 
   <section name="modules" description="Modules">

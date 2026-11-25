@@ -139,8 +139,10 @@ void function types() {
     ushort port = 65535
     uint count = 4000000000
     ulong huge = 18000000000000000000
-    // [designed] decimal: exact base-10 numbers for money
+    // [built] decimal: an exact base-10 number - 0.1 + 0.2 is 0.3 (47.8); round(x, 2, halfUp)
     decimal price = 19.99
+    decimal withTax = price * 1.15
+    decimal cents = round(withTax, 2)
     // [built] An int used as a double is always exact; as a float it must fit (PrecisionError)
     double wide = i
     // [built] Conversions are functions that check (toInt of "12x" is a NumberFormatError)

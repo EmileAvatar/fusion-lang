@@ -19,7 +19,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-25: files/fusion.ebnf synced with the compiler (no version until self-hosting - 35.7), the "ebnf" check;
   the memory tiers note to R11.8, Vale to R11.6, flash wear 41.11e
 - Done 2026-11-25: 47.7 `int128` / `int256` (tests/test_wide_numbers.py, syntax_wide_numbers) - its plan in task/taskSummaryArchive.md
-- **Next Action:** 47.8 `decimal` (the plan below)
+- Done 2026-11-25: 47.8 `decimal` (tests/test_decimal.py, syntax_decimal) - its plan in task/taskSummaryArchive.md
+- **Next Action:** 47.2 `money` (the plan below)
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)
@@ -43,20 +44,6 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - `[decimal] maxScale` (18);
 - `[ranges] ...` (D.170) with 47.6.
 - Each goes into fusionSettings.xml once built. No `[money] currency` - empty is the default (D.183).
-
-**47.8 `decimal`** (D.182) - exact base-10: a whole number and its scale (how many places)
-- the whole number an int128 - 38 digits (SQL's DECIMAL(38, s), more than C#'s 28) - so science and engineering
-  get room, and every step stays exact
-- **Exact for money and finance - no drift:**
-  - + - * are always exact (no rounding at all);
-  - only a division that doesn't end (1 / 3) needs rounding, and it is rounded once, by the mode named or
-    `[decimal] rounding` (exact makes it an error);
-  - 0.1 + 0.2 is 0.3 exactly;
-  - its limit is digits (38), never accuracy - past 38 is an OverflowError, never a lost place
-- a literal `1.323242` where a decimal is expected keeps its places; adding lines up the scales (keeps the larger);
-  multiplying adds them (capped by `maxScale`, rounding once if past it)
-- `value`, `scale`, `toString()` ("1.323242"), `round(places, mode)`, `toDouble()` (said to be inexact), `toDecimal(text)`
-- a rate is a decimal (Q.052): `price * 1.155`, `price.percent(15.5)`
 
 **47.2 `money`** (D.021, D.180-D.187) - a sealed 16-byte value struct built into the compiler
 - C: `typedef struct { int64_t value; uint8_t scale; char currency[3]; char symbol[4]; } fusion_money;`

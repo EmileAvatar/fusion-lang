@@ -340,8 +340,11 @@ then each point is decided and solved completely. One line per section and per l
 		toShort / toInt128); arithmetic in the widest kind, overflow checked; never mixed with a float; text, Map keys,
 		sort, match, CSV; tests/test_wide_numbers.py, syntax_wide_numbers. Found with it: a number declared without a
 		value held whatever was in memory - now 0 / false
-	[ ] 47.8 `decimal` - exact base-10: an int128 and its scale, 38 digits; + - * always exact, a division rounded once
-		(D.182) - after 47.7
+	[DONE 2026-11-25] 47.8 `decimal` - exact base-10: an int128 and its scale (0-18), 38 digits (D.182): a written
+		number keeps its places; + - * exact, a division that doesn't end rounded once to 18 places; every step in
+		int256 (D.178); round / divide with the built-in enum Rounding or `[numbers] rounding` (halfEven - D.177), exact
+		a RoundingError; toDecimal(text / whole number), toDouble; never from a float by itself; in structs, Lists,
+		Maps, arrays, generics, text, CSV (src/codegen/c_decimal.py); tests/test_decimal.py, syntax_decimal
 	[ ] 47.2 `money` (replanned 2026-11-24 - files/taskSummary2.md, D.180-D.187): a sealed 16-byte value struct - value,
 		scale, currency, symbol; + - * by the compiler, the rest by the Currency module's statics - after 47.8. The
 		earlier notes below stay for reference: a `long` counting a currency's minor units - kind value, default 0, min /

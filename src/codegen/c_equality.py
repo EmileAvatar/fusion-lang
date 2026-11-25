@@ -66,6 +66,9 @@ class EqualityMixin:
             return f'((void*)({left}) {"!=" if negate else "=="} (void*)({right}))'
         elif isinstance(left_type, StructType):
             helper = self._struct_equality_helper(left_type, right_type)
+        elif 'decimal' in (left_name, right_name):
+            # by amount: 1.50 == 1.5 (47.8)
+            return f'(fusion_decimal_cmp({left}, {right}) {"!=" if negate else "=="} 0)'
         elif left_name == right_name and left_name in ('string', 'bytes'):
             helper = 'fusion_str_eq'   # bytes: the same struct, byte by byte (18.3.8)
         elif 'string' in (left_name, right_name):

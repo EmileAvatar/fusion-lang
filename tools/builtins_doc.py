@@ -35,6 +35,7 @@ TOPICS = [
     ('Text - masks', ['mask', 'maskEmail', 'formatMask']),
     ('Conversions and formatting', ['toString', 'typeOf', 'toInt', 'toLong', 'toInt128', 'toInt256', 'toFloat', 'parseInt',
                                     'formatNumber']),
+    ('Decimals', ['toDecimal', 'toDouble', 'round', 'divide']),
     ('Number bases', ['toHex', 'toBinary', 'toOctal', 'toBase', 'fromHex', 'fromBinary',
                       'fromOctal']),
     ('Raw bytes', ['toBytes', 'newBytes', 'byteAt', 'getInt', 'getInt16', 'getUInt16', 'setInt',

@@ -590,11 +590,13 @@ class Parser:
         # Float literal
         if self.match(TokenType.FLOAT_LIT):
             token = self.previous()
-            return LiteralExpr(
+            literal = LiteralExpr(
                 location=token.location,
-                value=float(token.value),
+                value=float(token.value.rstrip('fFdD')),
                 type_hint="float"
             )
+            literal.written = token.value.replace('_', '')   # its digits as written - a decimal keeps them (47.8)
+            return literal
 
         # String literal (with interpolation check)
         if self.match(TokenType.STRING_LIT):
@@ -896,9 +898,9 @@ class Parser:
                 base_type = self.parse_collection_type(token)
             elif name in GENERIC_INTERFACE_NAMES and self.check(TokenType.LESS):
                 base_type = self._generic_interface_type(token, name)      # Task 32.4
-            elif name == 'bytes':
-                # Raw bytes (Task 18.3.8) - a built-in type, not a keyword
-                base_type = PrimitiveType(location=token.location, name='bytes')
+            elif name in ('bytes', 'decimal'):
+                # Raw bytes (Task 18.3.8), an exact decimal (47.8) - built-in types, not keywords
+                base_type = PrimitiveType(location=token.location, name=name)
             elif self.check(TokenType.LESS):
                 # Pair<int, string> - a generic struct with its types (Task 33.2b, D.166)
                 args = self._type_arguments()

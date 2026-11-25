@@ -103,6 +103,15 @@ def add_dimension_enum(program) -> None:
     _add_builtin_enum(program, 'Dimension', DIMENSION_VALUES, {'expand'})
 
 
+ROUNDING_VALUES = ('halfEven', 'halfUp', 'down', 'up', 'exact')     # the C runtime's FUSION_ROUND_* order
+
+
+def add_rounding_enum(program) -> None:
+    """The built-in enum `Rounding` - halfEven, halfUp, down, up, exact (47.8, D.177) - added to a program that
+    uses it (`round`, `divide`, one of its names)."""
+    _add_builtin_enum(program, 'Rounding', ROUNDING_VALUES, {'round', 'divide'})
+
+
 STORAGE_VALUES = ('FLAT', 'RECT', 'JAGG')
 
 
@@ -880,7 +889,7 @@ class ManyDimsMixin:
         return result
 
     CSV_DELIMITERS = ('primaryDelimiter', 'secondaryDelimiter', 'lineDelimiter')
-    CSV_PLAIN = ('int', 'byte', 'float', 'double', 'string', 'bool', 'char', 'short', 'long', 'int128', 'int256')
+    CSV_PLAIN = ('int', 'byte', 'float', 'double', 'string', 'bool', 'char', 'short', 'long', 'int128', 'int256', 'decimal')
 
     def plain_csv_array(self, array_type) -> bool:
         """An array (one dimension, many, a view, on the heap) of plain values - toCSV per D.151."""

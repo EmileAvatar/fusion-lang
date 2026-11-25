@@ -57,6 +57,9 @@ nullable = false
 autoWidening = false
 # [built] Whole-number + - * wraps (a byte: 255 + 1 is 0); false: an OverflowError (Task 32.0)
 overflowWrap = false
+# [built] How a decimal rounds when a result has more places than it keeps: halfEven (default), halfUp, down, up,
+# exact (rounding needed is a RoundingError) - Task 47.8, D.177
+rounding = "halfEven"
 
 [errors]
 # [built] T, Error function / capturing errors

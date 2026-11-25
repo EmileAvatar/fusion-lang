@@ -183,10 +183,16 @@
         <td class="notes">About 15-16 digits. Whole numbers exact up to 9,007,199,254,740,992.</td>
       </tr>
       <tr>
+        <td class="type"><code>decimal</code></td><td class="kind-value">value</td>
+        <td class="num">0</td><td class="num">38 digits</td><td class="num">38 digits, 18 places</td>
+        <td class="num">32</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Exact base-10: an int128 and its scale. + - * exact; a division that doesn't end rounded once to 18 places by <code>[numbers] rounding</code>; <code>round(x, places, mode)</code>. Never from a float by itself (47.8).</td>
+      </tr>
+      <tr>
         <td class="type"><code>money</code></td><td class="kind-value">value</td>
         <td class="num">0</td><td class="num">-9,223,372,036,854,775,808</td><td class="num">9,223,372,036,854,775,807</td>
-        <td class="num">8</td><td>no</td><td><span class="badge planned">planned</span></td>
-        <td class="notes">A signed 64-bit whole number of the currency's minor units - for USD / ZAR, cents: 12345 is $123.45 or R123.45; JPY the same, in whole steps of 100 (&yen;1 is 100); KWD in thousandths (1 KWD is 1000). Exact on every device: rounding, discounts and tax follow fixed rules (Task 47.2.2).
+        <td class="num">16</td><td>no</td><td><span class="badge planned">planned</span></td>
+        <td class="notes">Replanned 2026-11-24 (D.180-D.187): a 16-byte value struct - value (a long), scale, currency (3 letters), symbol. Earlier: a signed 64-bit whole number of the currency's minor units - for USD / ZAR, cents: 12345 is $123.45 or R123.45; JPY the same, in whole steps of 100 (&yen;1 is 100); KWD in thousandths (1 KWD is 1000). Exact on every device: rounding, discounts and tax follow fixed rules (Task 47.2.2).
         Exact whole-number arithmetic with overflow checking - not a decimal. The number only, no
         currency: the Currency module decides what a unit means and converts (Task 47.2).</td>
       </tr>

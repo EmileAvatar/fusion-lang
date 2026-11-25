@@ -19,7 +19,7 @@ from .errors import SemanticError
 from .heap_arrays import _functions
 
 _SIZES = {'int': 4, 'float': 4, 'double': 8, 'bool': 1, 'char': 4, 'byte': 1, 'string': 24, 'bytes': 24,
-          'short': 2, 'long': 8, 'int128': 16, 'int256': 32}
+          'short': 2, 'long': 8, 'int128': 16, 'int256': 32, 'decimal': 32}
 
 
 def size_and_alignment(type_node, structs: dict, seen=()) -> tuple:

@@ -438,6 +438,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'string': 'FUSION_STR("")', 'byte': '0', 'bytes': 'FUSION_STR("")',
         'short': '0', 'long': '0',      # 47.1
         'int128': '0', 'int256': '0',   # 47.7
+        'decimal': '((fusion_decimal){0, 0})',   # 47.8
     }
 
     # Arrays up to this size whose default isn't all-zero get their defaults spelled out in
@@ -1035,6 +1036,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             C literal representation
         """
         type_hint = node.type_hint
+        if getattr(node, 'decimal_literal', None) is not None:
+            return self.decimal_literal_code(*node.decimal_literal)     # 1.50 as a decimal (47.8)
 
         if type_hint == 'int':
             if node.value == -2147483648:
@@ -1113,6 +1116,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C binary operation expression
         """
+        if self._is_decimal(node.left) or self._is_decimal(node.right):
+            return self.decimal_binary_code(node)       # exact (47.8, c_decimal.py)
         # ==, !=, ===, !== - generated per type, never C's raw == on strings, structs or
         # arrays (Task 18.3.5, see c_equality.py)
         if node.operator in EQUALITY_OPERATORS:
@@ -1233,6 +1238,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C unary operation expression
         """
+        if getattr(node, 'decimal_literal', None) is not None:
+            return self.decimal_literal_code(*node.decimal_literal)     # -1.50 (47.8)
+        if node.operator == '-' and self._is_decimal(node.operand):
+            return self.checked_code(f'fusion_decimal_neg({self.visit(node.operand)}, {self._where(node)})',
+                                     'fusion_decimal')
         if getattr(node, 'negated_literal', None) is not None:
             # -5000000000, -2147483648: the number written with its minus (47.1)
             return self.visit_LiteralExpr(LiteralExpr(location=node.location, value=node.negated_literal,
@@ -1259,6 +1269,39 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         c_op = operator_map.get(op, op)
         return f'({c_op}{operand})'
+
+    @staticmethod
+    def _is_decimal(expr) -> bool:
+        inferred = getattr(expr, 'inferred_type', None)
+        return isinstance(inferred, PrimitiveType) and inferred.name == 'decimal'
+
+    _ROUNDING_C = {'halfEven': 'FUSION_ROUND_HALF_EVEN', 'halfUp': 'FUSION_ROUND_HALF_UP', 'down': 'FUSION_ROUND_DOWN',
+                   'up': 'FUSION_ROUND_UP', 'exact': 'FUSION_ROUND_EXACT'}
+
+    def decimal_mode(self) -> str:
+        """The project's rounding mode - [numbers] rounding (47.8, D.177), halfEven by default."""
+        return self._ROUNDING_C[getattr(self, 'rounding', 'halfEven')]
+
+    def decimal_literal_code(self, number: int, scale: int) -> str:
+        value = str(number) if -(1 << 63) < number < (1 << 63) else f'({"-" if number < 0 else ""}{abs(number)}wb)'
+        return f'fusion_decimal_make((fusion_int128){value}LL, {scale})' if 'wb' not in value \
+            else f'fusion_decimal_make((fusion_int128){value}, {scale})'
+
+    def decimal_binary_code(self, node) -> str:
+        """+ - * / and comparing between decimals (47.8): the runtime's exact functions; every operand is a
+        decimal by now (the type checker turned written and whole numbers into decimals)."""
+        left, right, op = self.visit(node.left), self.visit(node.right), node.operator
+        where = self._where(node)
+        if op in ('+', '-'):
+            name = 'add' if op == '+' else 'sub'
+            return self.checked_code(f'fusion_decimal_{name}({left}, {right}, {where})', 'fusion_decimal')
+        if op == '*':
+            return self.checked_code(f'fusion_decimal_mul({left}, {right}, {self.decimal_mode()}, {where})', 'fusion_decimal')
+        if op == '/':
+            return self.checked_code(f'fusion_decimal_div({left}, {right}, {self.decimal_mode()}, {where})', 'fusion_decimal')
+        if op in ('===', '!=='):
+            op = '==' if op == '===' else '!='
+        return f'(fusion_decimal_cmp({left}, {right}) {op} 0)'
 
     @staticmethod
     def _is_string(expr) -> bool:
@@ -1456,6 +1499,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # long and short (47.1): toLong / toShort by the argument's type (fusion_<str|int|long>_...)
         'toLong': ('fusion_str_toLong', True), 'toShort': ('fusion_int_toShort', True),
         'toInt128': ('fusion_str_toInt128', True), 'toInt256': ('fusion_str_toInt256', True),   # 47.7
+        'toDecimal': ('fusion_str_toDecimal', True), 'toDouble': ('fusion_decimal_toDouble', False),  # 47.8
+        'round': ('fusion_decimal_round', True), 'divide': ('fusion_decimal_divide', True),
         # Wrapping on purpose (Task 27.2d)
         'wrapAdd': ('fusion_wrap_add', False), 'wrapSub': ('fusion_wrap_sub', False),
         'wrapMul': ('fusion_wrap_mul', False),
@@ -1468,11 +1513,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     # C name prefix per type, for built-ins whose first argument may have several types
     _TYPE_PREFIX = {'int': 'int', 'string': 'str', 'char': 'char', 'byte': 'byte', 'bytes': 'bytes',
                     'short': 'int', 'long': 'long',     # a short is passed as an int (47.1)
-                    'int128': 'int128', 'int256': 'int256'}
+                    'int128': 'int128', 'int256': 'int256', 'decimal': 'decimal'}
     _BYTES_OVERLOADS = ('indexOf',)
     _TO_STRING = {'int': 'fusion_int_to_str', 'byte': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
                   'short': 'fusion_int_to_str', 'long': 'fusion_long_to_str',
                   'int128': 'fusion_int128_to_str', 'int256': 'fusion_int256_to_str',
+                  'decimal': 'fusion_decimal_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
                   'char': 'fusion_char_to_str', 'string': 'fusion_str_copy'}
 
@@ -1487,6 +1533,13 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         borrowed and evaluated left to right as written."""
         name = node.callee.name
         c_function, needs_where = self._STRING_BUILTINS[name]
+        if getattr(node, 'rounding_call', None):
+            # round(x, places [, mode]) / divide(a, b, places [, mode]) (47.8): the mode an enum Rounding value -
+            # its number is the runtime's FUSION_ROUND_* - or the project's [numbers] rounding
+            codes = [self.visit(arg) for arg in node.arguments]
+            if len(codes) == (2 if name == 'round' else 3):
+                codes.append(self.decimal_mode())
+            return self.checked_code(f'{c_function}({", ".join(codes)}, {self._where(node)})', 'fusion_decimal')
         if name in ('split', 'join', 'lines', 'words', 'readLines'):
             self.text_list_helpers()   # made on demand, after List<string> (Task 18.5.3)
         # With any optional arguments filled in by their defaults (Task 18.3.6)

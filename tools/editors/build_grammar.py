@@ -51,7 +51,7 @@ IN_PLACE = {
     'variable': ['super'],
 }
 # Built-in type names that aren't keywords
-BUILTIN_TYPES = ['bytes', 'List', 'Map', 'Dictionary', 'Collection', 'Iterator', 'Entry', 'Error', 'Default',
+BUILTIN_TYPES = ['bytes', 'decimal', 'Rounding','List', 'Map', 'Dictionary', 'Collection', 'Iterator', 'Entry', 'Error', 'Default',
                  'Cloneable', 'Number']
 
 

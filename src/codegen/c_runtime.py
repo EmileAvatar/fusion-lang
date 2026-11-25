@@ -102,6 +102,7 @@ class RuntimeLoweringMixin:
         'long': '%lld', # a C long long (47.1)
         'int128': '%s', # its digits, through fusion_int128_text (47.7)
         'int256': '%s',
+        'decimal': '%s',  # 1.50 - its places as held (47.8)
         'bytes': '%s',  # plain lowercase hex, nothing added (Task 18.3.8)
         'bool': '%s',   # printed as true / false; still 1 / 0 as a value (Task 18.3.5b)
     }
@@ -155,6 +156,8 @@ class RuntimeLoweringMixin:
             return f'fusion_str_text({code})'      # a null one prints null (D.094)
         if isinstance(inferred, PrimitiveType) and inferred.name == 'char':
             return f'fusion_char_text({code}).bytes'
+        if isinstance(inferred, PrimitiveType) and inferred.name == 'decimal':
+            return f'fusion_decimal_text({code}).bytes'          # a buffer, nothing allocated (47.8)
         if isinstance(inferred, PrimitiveType) and inferred.name in ('int128', 'int256'):
             return f'fusion_{inferred.name}_text({code}).bytes'     # a buffer, nothing allocated (47.7)
         if isinstance(inferred, PrimitiveType) and inferred.name == 'bytes':

@@ -940,6 +940,8 @@ class ErrorsMixin:
         double too (47.1)."""
         source = getattr(getattr(node.operand, 'inferred_type', None), 'name', 'int')    # never int128 / int256
         target = getattr(getattr(node, 'inferred_type', None), 'name', 'float')
+        if target == 'decimal':        # a whole number as a decimal, scale 0 - always exact (47.8)
+            return f'fusion_decimal_of_whole({self.visit(node.operand)})'
         function = f'fusion_{"long" if source == "long" else "int"}_to_{target}'
         return self.checked_code(f'{function}({self.visit(node.operand)}, {self._where(node)})', target)
 

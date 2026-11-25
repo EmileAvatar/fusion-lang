@@ -67,6 +67,7 @@ BUILTIN_ERROR_TYPES = [
     ('CastError', 'ValueError', False, None),                   # Task 32.5a
     ('DuplicateError', 'ValueError', False, None),              # Task 32.14
     ('ReadOnlyError', 'ValueError', False, None),               # Task 32.14
+    ('RoundingError', 'ArithmeticError', False, None),          # Task 47.8 - rounding needed, the mode exact
 ]
 BUILTIN_ERROR_NAMES = [name for name, _, _, _ in BUILTIN_ERROR_TYPES]
 

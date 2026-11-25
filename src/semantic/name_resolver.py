@@ -61,6 +61,7 @@ FLEXIBLE_FIRST_ARG = {
     'toShort': ('int', 'long', 'string', 'int128', 'int256'),
     # int128 / int256 (47.7): from text or any whole number - widening, or narrowing checked
     'toInt128': ('string', 'int', 'long', 'int128', 'int256'), 'toInt256': ('string', 'int', 'long', 'int128', 'int256'),
+    'toDecimal': ('string', 'int', 'long', 'int128', 'decimal'),     # 47.8 - never from a float
 }
 
 # Built-ins that change their first argument in place, which must be a variable (or a
@@ -87,7 +88,8 @@ def builtin_layer(name: str) -> str:
 # Built-in type classes (Task 18.3.7): `name.toUpper()` and `String.toUpper(name)` both mean
 # the built-in toUpper(name). Class name -> the type its methods are called on
 TYPE_CLASSES = {'String': 'string', 'Bytes': 'bytes', 'Int': 'int', 'Char': 'char',
-                'Float': 'float', 'Double': 'double', 'Byte': 'byte', 'Bool': 'bool'}
+                'Float': 'float', 'Double': 'double', 'Byte': 'byte', 'Bool': 'bool',
+                'Decimal': 'decimal'}      # d.round(2), Decimal.round(d, 2) (47.8)
 # Static members that don't take the class's own type first: Int.parseInt("ff", 16)
 CLASS_STATICS = {'Int': {'parseInt', 'fromHex', 'fromBinary', 'fromOctal'},
                  'Char': {'fromCharCode'},
@@ -332,6 +334,14 @@ class NameResolver:
             'toShort': ([int_type], PrimitiveType(location=builtin_loc, name='short')),
             'toInt128': ([string_type], PrimitiveType(location=builtin_loc, name='int128')),   # 47.7
             'toInt256': ([string_type], PrimitiveType(location=builtin_loc, name='int256')),
+            # decimal (47.8): read exactly, round / divide with a mode (the type checker's own rule)
+            'toDecimal': ([string_type], PrimitiveType(location=builtin_loc, name='decimal')),
+            'toDouble': ([PrimitiveType(location=builtin_loc, name='decimal')], double_type),
+            'round': ([PrimitiveType(location=builtin_loc, name='decimal'), int_type],
+                      PrimitiveType(location=builtin_loc, name='decimal')),
+            'divide': ([PrimitiveType(location=builtin_loc, name='decimal'),
+                        PrimitiveType(location=builtin_loc, name='decimal'), int_type],
+                       PrimitiveType(location=builtin_loc, name='decimal')),
             # Whole numbers that wrap around on purpose (Task 27.2d)
             'wrapAdd': ([int_type, int_type], int_type),
             'wrapSub': ([int_type, int_type], int_type),
@@ -414,7 +424,7 @@ class NameResolver:
                         self.enum_value_names.setdefault(v.name, []).append(d.name)
         for enum in (d for d in program.declarations if isinstance(d, EnumDecl)):
             self.errors.extend(check_enum_declaration(enum))
-            if enum.name in ('bytes', 'byte') or enum.name in BUILT_IN_CLASS_NAMES \
+            if enum.name in ('bytes', 'byte', 'decimal') or enum.name in BUILT_IN_CLASS_NAMES \
                     or enum.name in COLLECTION_TYPE_NAMES:
                 self.errors.append(SemanticError(
                     f"'{enum.name}' is a built-in type - choose another name for the enum",
@@ -433,7 +443,7 @@ class NameResolver:
         """Register every custom error type's name (Task 26.9) - it can't share a name with a
         struct, function or another type."""
         for decl in (d for d in program.declarations if isinstance(d, ErrorDecl)):
-            if decl.name in ('bytes', 'byte') or decl.name in BUILT_IN_CLASS_NAMES \
+            if decl.name in ('bytes', 'byte', 'decimal') or decl.name in BUILT_IN_CLASS_NAMES \
                     or decl.name in COLLECTION_TYPE_NAMES:
                 self.errors.append(SemanticError(
                     f"'{decl.name}' is a built-in type - choose another name for the error type",
@@ -457,7 +467,7 @@ class NameResolver:
         Args:
             struct: Struct declaration node
         """
-        if struct.name in ('bytes', 'byte') or struct.name in BUILT_IN_CLASS_NAMES \
+        if struct.name in ('bytes', 'byte', 'decimal') or struct.name in BUILT_IN_CLASS_NAMES \
                 or struct.name in COLLECTION_TYPE_NAMES:
             self.errors.append(SemanticError(
                 f"'{struct.name}' is a built-in type - choose another name for the struct",

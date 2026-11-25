@@ -13,7 +13,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
 from .enums import normalize_enums, check_holding_loops
 from .templates import expand_templates
 from .stack_arrays import check_stack_arrays
-from .many_dims import (add_dimension_enum, add_storage_enum, check_many_dims_uses, mark_storage_calls,
+from .many_dims import (add_dimension_enum, add_storage_enum, add_rounding_enum,check_many_dims_uses, mark_storage_calls,
                         name_parameter_sizes)
 from .struct_parents import expand_struct_parents
 from .inferred import check_set_once
@@ -234,6 +234,7 @@ class SemanticAnalyzer:
         self.errors.extend(normalize_errors(ast))     # Task 26
         add_dimension_enum(ast)                  # ROWS / COLUMNS / DEPTH, when used (45.12d)
         add_storage_enum(ast)                    # FLAT / RECT / JAGG, when used (45.15)
+        add_rounding_enum(ast)                   # halfEven / halfUp / down / up / exact, when used (47.8)
         self.errors.extend(normalize_enums(ast))
         self.errors.extend(check_holding_loops(ast))
         # Generic functions (Task 33.2a, D.166): taken out of the program - a copy is made for each

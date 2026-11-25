@@ -2405,6 +2405,34 @@ void function main()
 `int128` and `int256` are signed (negative values too). They never mix with a `float` or `double` - they hold more
 digits than a double keeps. `toInt128` / `toInt256` take text or any whole number.
 
+#### Exact numbers: `decimal`
+
+<!-- example: syntax_decimal | task: 47.8 | folder: 01_basics -->
+```fusion
+void function main()
+    decimal a = 0.1
+    decimal b = 0.2
+    print("{@1} {@2}", a + b, a + b == 0.3)        // 0.3 true - exact, never a double's 0.30000000000000004
+    decimal price = 100.05                         // a written number keeps its places
+    decimal sum = price + 200.125                  // + - exact, the larger scale kept: 300.175
+    decimal vat = price * 1.155                    // * exact, the scales added: 115.55775
+    decimal third = 1.00 / 3                       // doesn't end: 18 places, rounded once
+    decimal quarter = 10.00 / 4                    // ends: exact, 2.50
+    print("{sum} {vat} {third} {quarter}")
+    print("{@1} {@2}", round(vat, 2), vat.round(2, halfUp))       // halfEven unless a mode is named
+    print("{@1}", divide(10.00, 3, 4, down))       // places and mode written: 3.3333
+    decimal read = toDecimal("-12.50")             // from text exactly - never from a float
+    print("{read} {@1}", toDouble(quarter))
+    try
+        decimal cents = round(third, 2, exact)     // the mode exact: rounding needed is an error
+        print("{cents}")
+    catch RoundingError e
+        print("{e}")
+```
+A decimal is a whole number and its scale - the value an int128 (38 digits), up to 18 places; every step in between
+is done in 256 bits and rounded once. A float or double never becomes a decimal by itself (write the number, or
+`toDecimal(text)`). `[numbers] rounding` - halfEven (default), halfUp, down, up or exact - is the project's mode.
+
 #### Custom error types
 
 <!-- example: syntax_error_types | task: 26.9 | folder: 10_errors_and_null -->

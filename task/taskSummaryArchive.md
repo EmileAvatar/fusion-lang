@@ -7764,3 +7764,23 @@ a theme gives the colours. Today the developer's own theme colours Fusion; this 
   (`toLong(x)`, `toInt128(x)`); overflow checked (+ - * / % and minus); wrapping in `unchecked`
 - printing: its own to-text (printf has no format for them); `toString`, `toInt128(text)`, Map keys, sort, match
 - tests as tests/test_long_short.py; example syntax_wide_numbers
+
+---
+
+## Task 47.8 - decimal (done 2026-11-25)
+
+Built with `[numbers] rounding` (not a new `[decimal]` section) and the maximum scale fixed at 18 (no `maxScale` setting yet).
+
+**47.8 `decimal`** (D.182) - exact base-10: a whole number and its scale (how many places)
+- the whole number an int128 - 38 digits (SQL's DECIMAL(38, s), more than C#'s 28) - so science and engineering
+  get room, and every step stays exact
+- **Exact for money and finance - no drift:**
+  - + - * are always exact (no rounding at all);
+  - only a division that doesn't end (1 / 3) needs rounding, and it is rounded once, by the mode named or
+    `[decimal] rounding` (exact makes it an error);
+  - 0.1 + 0.2 is 0.3 exactly;
+  - its limit is digits (38), never accuracy - past 38 is an OverflowError, never a lost place
+- a literal `1.323242` where a decimal is expected keeps its places; adding lines up the scales (keeps the larger);
+  multiplying adds them (capped by `maxScale`, rounding once if past it)
+- `value`, `scale`, `toString()` ("1.323242"), `round(places, mode)`, `toDouble()` (said to be inexact), `toDecimal(text)`
+- a rate is a decimal (Q.052): `price * 1.155`, `price.percent(15.5)`

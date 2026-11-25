@@ -333,6 +333,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         # int128 / int256 (47.7) widen from every smaller whole number, never into a float or double
         # (they hold more digits than a double can - toDouble later, with a check)
         promotions = {
+            'decimal': ['byte', 'short', 'int', 'long', 'int128', 'decimal'],    # exact (47.8)
             'int256': ['byte', 'short', 'int', 'long', 'int128', 'int256'],
             'int128': ['byte', 'short', 'int', 'long', 'int128'],
             'double': ['byte', 'short', 'int', 'long', 'float', 'double'],
@@ -357,6 +358,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """
         if not isinstance(type1, PrimitiveType) or not isinstance(type2, PrimitiveType):
             return PrimitiveType(location=type1.location, name='void')
+        if 'decimal' in (type1.name, type2.name):       # a decimal with a whole number is a decimal (47.8)
+            return PrimitiveType(location=type1.location, name='decimal')
 
         # Width hierarchy: double > float > long > int > short, byte. Arithmetic on bytes and
         # shorts gives an int, as in C# and Java (Task 18.3.8, 47.1); an int with a long a long
@@ -381,7 +384,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """
         if not isinstance(type_node, PrimitiveType):
             return False
-        return type_node.name in ['int', 'float', 'double', 'byte', 'short', 'long', 'int128', 'int256']
+        return type_node.name in ['int', 'float', 'double', 'byte', 'short', 'long', 'int128', 'int256', 'decimal']
 
     @staticmethod
     def _is_string_type(type_node: TypeNode) -> bool:
@@ -454,6 +457,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             value.inferred_type = expected      # int:[] g = a + b - a new array, made growable (45.4, 45.5)
             return expected
         self.widen_to_float(value, result, expected)
+        if isinstance(expected, PrimitiveType) and expected.name == 'decimal':
+            result = self.to_decimal(value, result)            # 1.50, 7 - exact (47.8)
         return self.as_parent_part(value, result, expected) or result
 
     def null_collection(self, expected) -> str:
@@ -466,6 +471,92 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 f"{empty}; it is never null (D.138)")
 
     _FLOAT_EXACT = 16777216   # 2^24: every whole number up to here fits a float exactly
+
+    def to_decimal(self, value, value_type):
+        """A value used as a decimal (47.8): a written number keeps its places exactly (1.50 is 150 at
+        scale 2); a whole number becomes a decimal of scale 0; a float or double is an error - it isn't
+        exact (toDecimal(text) reads one exactly). The value's node is changed in place; returns its type."""
+        name = getattr(value_type, 'name', None)
+        decimal = PrimitiveType(location=value.location, name='decimal')
+        if name == 'decimal':
+            return value_type
+        if isinstance(value, BinaryExpr) and value.operator in ('+', '-', '*', '/') \
+                and name in ('float', 'double', 'byte', 'short', 'int', 'long', 'int128'):
+            # 1.00 / 3, 2 * 0.5 stored as a decimal: done as a decimal - each side made one (47.8)
+            left = self.to_decimal(value.left, value.left.inferred_type)
+            right = self.to_decimal(value.right, value.right.inferred_type)
+            if getattr(left, 'name', None) == 'decimal' and getattr(right, 'name', None) == 'decimal':
+                value.inferred_type = decimal
+                return decimal
+            return value_type
+        literal, negative = value, False
+        if isinstance(value, UnaryExpr) and value.operator == '-':
+            literal, negative = value.operand, True
+        if isinstance(literal, LiteralExpr) and literal.type_hint == 'float' and getattr(literal, 'written', None):
+            whole, _, places = literal.written.rstrip('fFdD').partition('.')
+            if len(places) > 18:
+                self.errors.append(SemanticError(
+                    f"{literal.written} has {len(places)} places - a decimal holds up to 18", value.location))
+            number = int(whole + places) * (-1 if negative else 1)
+            if abs(number) >= 10 ** 38:
+                self.errors.append(SemanticError(
+                    f"{literal.written} has more than 38 digits - more than a decimal holds", value.location))
+            value.decimal_literal = (number, len(places))
+            value.inferred_type = decimal
+            return decimal
+        if name in ('byte', 'short', 'int', 'long', 'int128'):
+            import copy
+            inner = copy.copy(value)
+            value.__class__ = WidenExpr
+            value.__dict__.clear()
+            value.__dict__.update(WidenExpr(location=inner.location, operand=inner, inferred_type=decimal).__dict__)
+            return decimal
+        if name in ('float', 'double'):
+            self.errors.append(SemanticError(
+                f"A {name} can't become a decimal exactly - write the number (1.50), or toDecimal(text)",
+                value.location))
+            return decimal
+        if name == 'int256':
+            self.errors.append(SemanticError(
+                "An int256 doesn't fit in a decimal (38 digits) - toInt128(x) first", value.location))
+            return decimal
+        return value_type
+
+    def _check_rounding_call(self, node, func_name: str):
+        """round(x, places [, mode]) and divide(a, b, places [, mode]) on decimals (47.8, D.177): the mode a
+        value of the built-in enum Rounding - written alone (halfUp) - or the project's [numbers] rounding."""
+        args = node.arguments
+        numbers = 1 if func_name == 'round' else 2
+        if not numbers + 1 <= len(args) <= numbers + 2:
+            self.errors.append(SemanticError(
+                f"{func_name} takes {'x, places' if numbers == 1 else 'a, b, places'} and an optional rounding "
+                f"mode, got {len(args)} argument(s)", node.location))
+        decimal = PrimitiveType(location=node.location, name='decimal')
+        for i, arg in enumerate(args):
+            if i < numbers:
+                kind = self.to_decimal(arg, self.visit(arg))
+                if getattr(kind, 'name', None) != 'decimal':
+                    self.errors.append(SemanticError(
+                        f"Argument {i + 1} to '{func_name}': expected a decimal, got {self.type_to_string(kind)}",
+                        arg.location))
+            elif i == numbers:
+                kind = self.visit(arg)
+                if not (isinstance(kind, PrimitiveType) and kind.name in ('int', 'byte', 'short')):
+                    self.errors.append(SemanticError(
+                        f"Argument {i + 1} to '{func_name}': the places, a whole number from 0 to 18", arg.location))
+            else:
+                symbol = self.symbol_table.lookup('Rounding')
+                decl = getattr(symbol, 'declaration', None)
+                kind = self._visit_value_for(self.enum_type(decl, arg.location), arg) if decl is not None \
+                    else self.visit(arg)
+                if getattr(kind, 'name', None) != 'Rounding':
+                    self.errors.append(SemanticError(
+                        f"Argument {i + 1} to '{func_name}': a rounding mode - halfEven, halfUp, down, up or exact",
+                        arg.location))
+        node.rounding_call = func_name
+        node.resolved_arguments = list(args)
+        node.inferred_type = decimal
+        return decimal
 
     def widen_to_float(self, value, value_type, target_type) -> None:
         """An int (or byte) used as a float (Task 27.2f, user decision 2026-10-17): with
@@ -801,6 +892,13 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if node.operator in ('+', '-', '*', '/', '%', '<', '>', '<=', '>=', '==', '!='):
             self.widen_to_float(node.left, left_type, right_type)
             self.widen_to_float(node.right, right_type, left_type)
+            # A decimal beside a written number or a whole number: the other side becomes a decimal (47.8)
+            if 'decimal' in (getattr(left_type, 'name', None), getattr(right_type, 'name', None)):
+                left_type = self.to_decimal(node.left, left_type)
+                right_type = self.to_decimal(node.right, right_type)
+                if node.operator == '%':
+                    self.errors.append(SemanticError(
+                        "'%' isn't defined on a decimal - divide(a, b, places) or round(x, places)", node.location))
             # An int128 / int256 beside a float or double: more digits than a double holds (47.7)
             names = {getattr(left_type, 'name', None), getattr(right_type, 'name', None)}
             wide = names & {'int128', 'int256'}
@@ -1005,7 +1103,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         return receiver_type.name in ('int', 'byte', 'float') and self.types_compatible(first, receiver_type) \
             and isinstance(first, PrimitiveType) and first.name in ('double', 'float')
 
-    _NUMBER_TYPES = ('int', 'float', 'double', 'byte', 'short', 'long', 'int128', 'int256')
+    _NUMBER_TYPES = ('int', 'float', 'double', 'byte', 'short', 'long', 'int128', 'int256', 'decimal')
 
     def _check_equality(self, node: BinaryExpr, left_type: TypeNode, right_type: TypeNode) -> None:
         """The equality operators (Task 18.3.5, user decisions 2026-10-07):
@@ -1800,6 +1898,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 func_name=func_name)
             node.callee_declaration = declaration
             return func_type.return_type
+
+        if declaration is None and func_name in ('round', 'divide'):
+            return self._check_rounding_call(node, func_name)      # decimals (47.8)
 
         # print(text, ...) - extra arguments fill {@1}, {@2}, ... placeholders (Task 18.2.2b);
         # format(text, ...) builds the same text as a string (18.3.3)
@@ -2878,6 +2979,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         # Skip the element-type check for an empty literal - there's nothing to compare. A short or
         # byte array takes written numbers that each fit (`short[2] s = [1, -2]`, 47.1)
         elements = getattr(node.initializer, 'elements', None) or []
+        if getattr(array_type.element_type, 'name', None) == 'decimal' and elements:
+            for element in elements:       # decimal[2] a = [1.1, 2.2] - each written number exact (47.8)
+                self.to_decimal(element, getattr(element, 'inferred_type', None))
+            init_type.element_type = array_type.element_type
         each_fits = bool(elements) and all(
             self.types_compatible(array_type.element_type, getattr(e, 'inferred_type', None)) for e in elements)
         if init_type.size and not each_fits \
@@ -3277,7 +3382,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                           right=LiteralExpr(location=expr.location, value=0, type_hint='int'))
 
     def visit_WidenExpr(self, node) -> TypeNode:
-        self.visit(node.operand)
+        if getattr(getattr(node, 'operand', None), 'inferred_type', None) is None:
+            self.visit(node.operand)
         target = getattr(node, 'inferred_type', None)
         return target if isinstance(target, PrimitiveType) else PrimitiveType(location=node.location, name='float')
 

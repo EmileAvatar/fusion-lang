@@ -21,7 +21,8 @@ SHARE = {'memory_config': MemoryConfig(assignment='share')}
 
 
 def compile_and_run(fusion_code: str, safety_mode: str = 'safe',
-                    overflow_wrap: bool = False, analyzer_options: dict = None) -> tuple[int, str, str]:
+                    overflow_wrap: bool = False, analyzer_options: dict = None,
+                    rounding: str = 'halfEven') -> tuple[int, str, str]:
     """Compile Fusion code and run the executable.
 
     Args:
@@ -51,6 +52,7 @@ def compile_and_run(fusion_code: str, safety_mode: str = 'safe',
 
         # [safety] mode; [numbers] overflowWrap (Task 32.0 - it was [safety] mode = "unsafe")
         generator = CCodeGenerator(safety_mode=safety_mode, overflow_wrap=overflow_wrap)
+        generator.rounding = rounding                 # [numbers] rounding (47.8)
         c_code = generator.generate(ast)
 
         # Write C code

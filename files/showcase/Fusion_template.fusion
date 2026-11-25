@@ -240,4 +240,5 @@ typeOf(<value>)                                     // "Person.Employee.Manager"
 //   [collections] allowChangeWhileLooping = <false | true>
 //   [source]      caseSensitive = <true | false>
 //   [numbers]     overflowWrap = <false | true>
+//   [numbers]     rounding = <halfEven | halfUp | down | up | exact>
 //   [conditions]  numbers = <...>              (files/Nullable_Values.md)

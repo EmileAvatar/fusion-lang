@@ -39,6 +39,7 @@ class TypeMapperMixin:
                 'long': 'long long',        # 64 bits (47.1)
                 'int128': 'fusion_int128',  # __int128 (47.7)
                 'int256': 'fusion_int256',  # _BitInt(256) (47.7)
+                'decimal': 'fusion_decimal',  # value and scale (47.8)
                 'bytes': 'fusion_bytes',    # raw bytes - the string struct, any bytes (18.3.8)
                 'void': 'void'
             }

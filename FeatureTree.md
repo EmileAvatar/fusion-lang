@@ -42,7 +42,7 @@ Syntax
    - Reserved words           keywords + words kept for future features, with a clear error
 
 Types
-   - Numbers                  int, long, short, int128, int256, float, double, bool, char, byte - overflow checked, overflowWrap setting
+   - Numbers                  int, long, short, int128, int256, decimal, float, double, bool, char, byte - overflow checked, overflowWrap setting
    - int as float             only when it fits exactly, else an error
    - Conversions              toInt, toFloat, toString, toByte, parseInt
    - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where known
@@ -185,7 +185,6 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - decimal [planned]               exact base-10, 38 digits (47.8)
    - money [planned]                 a 16-byte value struct: value, scale, currency, symbol (47.2)
    - Enums with fixed data, FusionType enum [planned]
    - fixed(n) [planned]              max size: fixed(10) string name

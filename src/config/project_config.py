@@ -171,6 +171,7 @@ class NumbersConfig:
     """
     auto_widening: bool = False
     overflow_wrap: bool = False   # overflowWrap (Task 32.0): whole-number + - * wraps around
+    rounding: str = 'halfEven'    # rounding (47.8, D.177): a decimal's * / and round without a mode written
 
 
 @dataclass
@@ -534,10 +535,17 @@ def _load_numbers_section(data: dict, config_path: str) -> NumbersConfig:
     numbers = NumbersConfig()
     section = _require_table(data, "numbers", config_path)
     for key, value in section.items():
-        if key not in ("autoWidening", "overflowWrap"):
+        if key not in ("autoWidening", "overflowWrap", "rounding"):
             raise ProjectConfigError(
                 f"{config_path}: unknown setting numbers.{key} (known: ['autoWidening', "
-                f"'overflowWrap'])")
+                f"'overflowWrap', 'rounding'])")
+        if key == "rounding":
+            modes = ("halfEven", "halfUp", "down", "up", "exact")
+            if value not in modes:
+                raise ProjectConfigError(
+                    f"{config_path}: numbers.rounding must be one of {list(modes)}, got {value!r}")
+            numbers.rounding = value
+            continue
         if not isinstance(value, bool):
             raise ProjectConfigError(
                 f"{config_path}: numbers.{key} must be true or false, got {value!r}")

@@ -177,7 +177,7 @@
         },
         {
           "name": "support.class.builtin.fusion",
-          "match": "(?<![\\w.])\\b(Collection|Dictionary|Cloneable|Iterator|Default|Number|Entry|Error|bytes|List|Map)\\b"
+          "match": "(?<![\\w.])\\b(Collection|Dictionary|Cloneable|Iterator|Rounding|Default|decimal|Number|Entry|Error|bytes|List|Map)\\b"
         },
         {
           "name": "entity.name.type.fusion",
