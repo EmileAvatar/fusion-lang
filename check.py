@@ -687,12 +687,15 @@ def ship(message: str, claude: bool, full: bool = False):
     if commit.returncode != 0:
         print(f'\ncommit failed:\n{commit.stdout}{commit.stderr}')
         return 1
-    print('\ncommitted ' + git('log', '--oneline', '-1').stdout.strip())
+    print('\ncommitted ' + git('log', '--oneline', '-1').stdout.strip(), flush=True)
+    task_progress('check.py --ship: pushing')
     push = git('push', '-q')
     if push.returncode != 0:
         print(f'push failed:\n{push.stderr.strip()}')
+        task_progress('check.py --ship: push failed', state='failed')
         return 1
     print('pushed')
+    task_progress('check.py --ship: committed and pushed', state='done')
     return 0
 
 
@@ -729,6 +732,24 @@ DOC_CHECKS = [('builtins', check_builtins), ('editors', check_editors), ('ebnf',
               ('settings', check_settings_doc), ('ascii', check_ascii)]
 
 
+TASK_STATUS = ROOT / 'tools' / 'local' / 'task_status.json'
+
+
+def task_progress(text: str, done: int = None, total: int = None, state: str = 'running') -> None:
+    """What is running, for the local status-bar extension (tools/local/, git ignored): written only when that
+    folder exists. A stage starting also prints a line at once, so a watched run never looks stuck."""
+    if not TASK_STATUS.parent.is_dir():
+        return
+    import json
+    import time
+    percent = round(done * 100 / total) if done is not None and total else None
+    data = {'text': text, 'percent': percent, 'done': done, 'total': total, 'state': state, 'time': time.time()}
+    try:
+        TASK_STATUS.write_text(json.dumps(data), encoding='utf-8')
+    except OSError:
+        pass
+
+
 def run_checks(quick: bool, docs: bool = False) -> bool:
     checks = [('tests', check_tests)]
     if docs:
@@ -740,14 +761,17 @@ def run_checks(quick: bool, docs: bool = False) -> bool:
                    ('ascii', check_ascii)]
     all_ok = True
     details = []
-    for name, check in checks:
+    for number, (name, check) in enumerate(checks):
+        task_progress(f'check.py: {name} ({number + 1}/{len(checks)})', number, len(checks))
         ok, summary, detail = check()
         all_ok &= ok
-        print(f'{name:9} {"[OK]  " if ok else "[FAIL]"} {summary}')
+        print(f'{name:9} {"[OK]  " if ok else "[FAIL]"} {summary}', flush=True)
         if not ok and detail:
             details.append(f'--- {name} ---\n{detail}')
     for block in details:
         print('\n' + block)
+    task_progress(f'check.py: {"all passed" if all_ok else "a check failed"}', len(checks), len(checks),
+                  'done' if all_ok else 'failed')
     return all_ok
 
 

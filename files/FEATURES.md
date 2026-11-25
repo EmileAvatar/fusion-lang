@@ -407,6 +407,22 @@ then each point is decided and solved completely. One line per section and per l
 		[DONE 2026-11-25] 47.3g-h One static const table per enum - a value is its id, a field read a lookup (a null
 			value a NullError); nothing on the heap
 		[DONE 2026-11-25] 47.3i Capitals in the examples, SYNTAX_REFERENCE and the showcase
+	[ ] 47.9 Number notations still missing (user, 2026-11-25 - found with 47.3; D.195, D.196)
+		[ ] 47.9a Exponents: `6.67e-11`, `5.976E24`, `1e6`, with `_` and the f / d suffix (`1.5e3f`); a double
+			unless stored as a float or decimal; for a decimal or money the digits kept exactly (`decimal d = 1.25e2`
+			is 125.00 - 47.8); a float or double that overflows (`1e400`) a compile error, never infinity
+		[ ] 47.9b Hex, binary and octal past 32 bits - a long, int128 or int256 as needed (0xFFFF_FFFF_FFFF), the
+			same rule as decimal numbers (47.1, 47.7); today past 32 bits is an error
+		[ ] 47.9c A digit on both sides of the point (D.195): `.5` and `5.` compile errors saying "write 0.5" /
+			"write 5.0" (today `2.` is accepted)
+		[ ] 47.9d Suffixes (D.196): `1.50m` money, `1.50dec` decimal - for let / var (`let price = 1.50m`), places
+			kept; without one the smallest type that holds it, as today; `d` stays double
+		[ ] 47.9e Constants for the special values: `Double.MAX`, `Double.MIN`, `Double.EPSILON`, infinity and NaN
+			by name only (`Double.INFINITY`, `Double.NAN`) - never written as a number; with 47.4 FusionType
+		[ ] 47.9f The editors' grammar, the self-hosted lexer (selfhost/lexer) and fusion.ebnf read each new form
+	[ ] 47.10 An enum value alone anywhere (D.197, extends D.150): `print(OK)` when only one enum has OK and no
+		variable is named OK; a name shared by two or more enums or variables a compile error listing each
+		(Status.OK, Reply.OK, the variable OK)
 	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - files/Ownership.md, files/Service.md)
 		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
 		`fixed(10) string name`: at most 10 characters, kept inline - no heap

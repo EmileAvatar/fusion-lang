@@ -61,3 +61,6 @@ Notes/
 # - Source files: *.fusion, *.py
 # - Documentation: *.md
 # - Configuration: *.ini, *.json, *.yaml
+
+# Local helpers, never committed (CLAUDE.md Rule 9)
+tools/local/

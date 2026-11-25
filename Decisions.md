@@ -82,6 +82,7 @@ SYN.038 [DESIGN] A minimum variable-name length in strict mode (default 3; loop 
 SYN.039 [BUILT] `and`, `or`, `not`; a lambda as `func(int x) : x * 2`
 SYN.040 [BUILT] `[source] caseSensitive` (default true); false: names that differ only in case are an error, each pair listed (32.11)
 SYN.041 [BUILT] Reserved words: `end` a keyword; words kept for a planned feature or for future use - an error as a name that says what each is kept for; a member name after `.` (Task 61)
+SYN.042 [PLANNED] Number notations (47.9): exponents (`6.67e-11`), hex / binary / octal past 32 bits, a digit on both sides of the point (D.195), suffixes `m` money and `dec` decimal (D.196), named special values (`Double.INFINITY`)
 
 #### TYP - types
 TYP.001 [BUILT] int, float, double, bool, char, byte - overflow checked; `[numbers] overflowWrap` wraps
@@ -484,5 +485,8 @@ SET.025 [POSTPONED] Precepts: `c.precept.fusion`, `java.precept.fusion`, ... - a
 | D.192 | An enum's methods and toString(): methods read the fields, id and enumTypeName and change nothing - allowed whatever `[structs] functions` says; `toString()` gives enumTypeName (EARTH) unless the enum writes its own, used wherever the value becomes text; an enum can't inherit or implement an interface (for now - may change) | an enum is a special struct, not a class | TYP.005 | 2026-11-25 | files/Value_Structs.md 5 | ACTIVE (built 47.3) |
 | D.193 | Every enum has the built-in statics `fromString("OK")` (by enumTypeName) and `fromValue(403)` (by id) - the value when it exists; for reading files and settings into an enum | configs and files hold names and numbers | TYP.005 | 2026-11-25 | files/Value_Structs.md 5 | ACTIVE (built 47.3) |
 | D.194 | `[enums] upperCaseNames`: false (default) - a value name not in capitals allowed, no warning; true - a warning; strict - an error. Capitals encouraged: the examples, SYNTAX_REFERENCE and the showcase written RED, GREEN, EARTH | capitals show a reader the name is a special, fixed value | TYP.005 | 2026-11-25 | files/Value_Structs.md 5 | ACTIVE (built 47.3) |
+| D.195 | A written number has a digit on both sides of its point (Q.067): `0.5` and `5.0` - `.5` and `5.` are compile errors saying what to write | the point stays visible; `x.5` never mistaken for a field | SYN.042 | 2026-11-25 | FEATURES 47.9c | ACTIVE (planned 47.9) |
+| D.196 | Suffixes where no type is written (Q.068): `1.50m` money, `1.50dec` decimal - so a `let` / `var` knows its type (`let price = 1.50m`); the places kept as written (D.176, 47.8); without a suffix a written number takes the smallest type that holds it, as today (an int, then a long ...; a number with a point a float); `d` stays double | let / var say the type in the value; nothing guessed | SYN.042 | 2026-11-25 | FEATURES 47.9d | ACTIVE (planned 47.9) |
+| D.197 | An enum value alone anywhere (Q.069, extends D.150): `print(OK)` is Status.OK when only one enum has a value OK and no variable is named OK; when two or more enums or variables share the name, a compile error listing each (Status.OK, Reply.OK, the variable OK) - the developer writes which | short where it is clear, never a silent pick | TYP.018 | 2026-11-25 | FEATURES 47.10 | ACTIVE (planned 47.10) |
 
 [< Main](Main.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [OpenQuestions >](OpenQuestions.md) <!-- nav -->
