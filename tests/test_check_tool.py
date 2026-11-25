@@ -157,3 +157,37 @@ def test_the_ebnf_check_finds_a_missing_word_and_non_ascii():
                                    + '\n' + EMOJI)
     assert "'while' (a keyword) is not in files/fusion.ebnf" in problems
     assert any('non-ASCII' in p for p in problems)
+
+
+# ---------------------------------------------------------------- the grammar's page (2026-11-25)
+
+def _ebnf_html():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('ebnf_html', ROOT / 'tools' / 'ebnf_html.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_grammar_page_is_up_to_date_and_ascii():
+    module = _ebnf_html()
+    page = module.build_page(module.EBNF.read_text(encoding='utf-8'))
+    assert module.PAGE.read_text(encoding='utf-8') == page
+    assert all(ord(c) < 128 for c in page)
+
+
+def test_the_grammar_page_statuses_and_links():
+    module = _ebnf_html()
+    text = ('(* ========== Types ========== *)\n\n(* Task 47.1: long *)\nprimitive_type = "long" ;\n\n'
+            '(* ===================================================================== *)\n'
+            '(* PLANNED - designed, not built *)\n'
+            '(* ===================================================================== *)\n\n'
+            '(* Task 47.7 (D.179): wide numbers *)\nwide = "int128" ;\n\n'
+            '(* Task 48.5, POSTPONED (D.106): shared *)\nshared = "shared" ;\n\n'
+            '(* An endless loop *)\nloop_statement = "loop" ;\n')
+    page = module.build_page(text)
+    assert '<a class="task" href="FEATURES.md#task-47">47.1</a>\n<span class="status built">built</span>' in page
+    assert '47.7</a>\n<span class="status planned">planned</span>' in page
+    assert '<span class="status planned">postponed</span>' in page
+    assert '<span class="task">-</span>\n<span class="status notbuilt">not built</span>' in page
+    assert '<span class="rule">loop_statement</span>' in page and 'href="#top">top</a>' in page

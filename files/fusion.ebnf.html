@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fusion Grammar</title>
+<style>
+:root { --bg: #f6f7f9; --card: #ffffff; --line: #d9dee3; --text: #1f2933; --muted: #5b6672;
+  --built: #1a7f37; --planned: #b35900; --rejected: #c62828; --notbuilt: #0b5cad;
+  --comment-bg: #eef0f3; --code-bg: #fbfcfd; }
+@media (prefers-color-scheme: dark) { :root { --bg: #16191d; --card: #1f2328; --line: #343a40; --text: #e6e8eb;
+  --muted: #a0a8b0; --built: #3fb950; --planned: #f0a040; --rejected: #ff6b6b; --notbuilt: #6cb6ff;
+  --comment-bg: #2a2f35; --code-bg: #1b1f24; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 "Segoe UI", Arial, sans-serif; }
+header { padding: 20px 24px 8px; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+.sub { color: var(--muted); margin: 0 0 12px; }
+.legend span { margin-right: 14px; white-space: nowrap; }
+.intro { margin-top: 12px; background: var(--comment-bg); color: var(--muted); border-radius: 6px; padding: 8px 12px;
+  white-space: pre-wrap; font-size: 13.5px; }
+.layout { display: flex; gap: 20px; padding: 0 24px 40px; align-items: flex-start; }
+nav { position: sticky; top: 12px; width: 260px; flex: none; max-height: calc(100vh - 24px); overflow-y: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+nav a { color: var(--text); text-decoration: none; display: block; padding: 2px 0; }
+nav a:hover { text-decoration: underline; }
+nav .sec { font-weight: 600; margin-top: 8px; }
+nav .rules { color: var(--muted); padding-left: 10px; font-size: 12px; }
+nav .rules a { display: inline; color: var(--muted); }
+main { flex: 1; min-width: 0; }
+h2 { font-size: 19px; margin: 26px 0 10px; padding-bottom: 4px; border-bottom: 2px solid var(--line); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; margin: 0 0 12px; overflow: hidden; }
+.head { display: flex; gap: 8px; align-items: flex-start; padding: 8px; }
+.task, .status, .top { flex: none; font-size: 12px; font-weight: 600; border-radius: 4px; padding: 3px 8px; white-space: nowrap; }
+.task { border: 1px solid var(--line); color: var(--text); text-decoration: none; min-width: 64px; text-align: center; }
+a.task:hover { border-color: var(--notbuilt); }
+.status { color: #fff; min-width: 76px; text-align: center; }
+.status.built { background: var(--built); } .status.planned { background: var(--planned); }
+.status.rejected { background: var(--rejected); } .status.notbuilt { background: var(--notbuilt); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.dot.built { background: var(--built); } .dot.planned { background: var(--planned); }
+.dot.rejected { background: var(--rejected); } .dot.notbuilt { background: var(--notbuilt); }
+.comment { flex: 1; min-width: 0; background: var(--comment-bg); color: var(--muted); border-radius: 4px; padding: 4px 10px;
+  white-space: pre-wrap; font-size: 13.5px; }
+.top { color: var(--muted); text-decoration: none; border: 1px solid var(--line); }
+pre { margin: 0; padding: 10px 14px; background: var(--code-bg); border-top: 1px solid var(--line); overflow-x: auto;
+  font: 14px/1.5 Consolas, "Courier New", monospace; }
+.rule { color: var(--text); font-weight: 700; } .nt { color: #8a3ffc; } .s { color: var(--built); }
+.sp { color: var(--planned); font-style: italic; } .o { color: var(--muted); } .c { color: var(--muted); font-style: italic; }
+@media (prefers-color-scheme: dark) { .nt { color: #d2a8ff; } }
+@media (max-width: 800px) { .layout { flex-direction: column; } nav { position: static; width: 100%; max-height: none; } }
+</style>
+</head>
+<body>
+<header id="top"><h1>Fusion grammar</h1>
+<p class="sub">files/fusion.ebnf, one card per entry - written by tools/ebnf_html.py; do not edit by hand. A task links to files/FEATURES.md (a finished one to the archive), a decision to Decisions.md.</p>
+<div class="legend"><span><i class="dot built"></i>built (86)</span><span><i class="dot planned"></i>planned / postponed / partial (10)</span><span><i class="dot rejected"></i>rejected (0)</span><span><i class="dot notbuilt"></i>not built yet (4)</span></div>
+<div class="intro">Fusion Programming Language - EBNF Grammar
+
+No version number until the compiler hosts itself (FEATURES 35.7).
+Synced with the Python compiler 2026-11-25: src/lexer/ (tokens,
+keywords.py), src/parser/parser.py, files/SYNTAX_REFERENCE.md and
+Decisions.md. The &quot;ebnf&quot; check in check.py fails when a keyword or
+reserved word of the lexer is missing here.
+
+Every rule above the PLANNED part is BUILT - the parser reads it.
+Rules for what is designed but not built are in the PLANNED part at
+the end, each with its task; the lexer may already read their tokens.
+
+NOTE: the &quot;;&quot; ending each rule is EBNF notation. Fusion itself has no
+semicolons - a statement ends at the end of its line.</div>
+</header>
+<div class="layout">
+<nav><a class="sec" href="#layout-and-block-styles">Layout and block styles</a>
+<div class="rules"><a href="#layout-and-block-styles-block">block</a>, <a href="#layout-and-block-styles-end-marker">end_marker</a></div>
+<a class="sec" href="#program">Program</a>
+<div class="rules"><a href="#program-program">program</a>, <a href="#program-namespace-line">namespace_line</a>, <a href="#program-import-statement">import_statement</a>, <a href="#program-import-statement">module_path</a>, <a href="#program-top-level">top_level</a>, <a href="#program-visibility">visibility</a>, <a href="#program-module-variable">module_variable</a></div>
+<a class="sec" href="#functions">Functions</a>
+<div class="rules"><a href="#functions-function-declaration">function_declaration</a>, <a href="#functions-function-name">function_name</a>, <a href="#functions-result-type">result_type</a>, <a href="#functions-parameter-list">parameter_list</a>, <a href="#functions-parameter">parameter</a>, <a href="#functions-parameter-name">parameter_name</a>, <a href="#functions-passing">passing</a>, <a href="#functions-type-parameters">type_parameters</a>, <a href="#functions-type-parameters">type_parameter</a></div>
+<a class="sec" href="#types">Types</a>
+<div class="rules"><a href="#types-type">type</a>, <a href="#types-primitive-type">primitive_type</a>, <a href="#types-named-type">named_type</a>, <a href="#types-named-type">qualified_name</a>, <a href="#types-function-type">function_type</a>, <a href="#types-array-suffix">array_suffix</a>, <a href="#types-array-brackets">array_brackets</a></div>
+<a class="sec" href="#statements">Statements</a>
+<div class="rules"><a href="#statements-statement">statement</a>, <a href="#statements-variable-declaration">variable_declaration</a>, <a href="#statements-template-declaration">template_declaration</a>, <a href="#statements-assignment">assignment</a>, <a href="#statements-return-statement">return_statement</a>, <a href="#statements-throw-statement">throw_statement</a>, <a href="#statements-unchecked-statement">unchecked_statement</a></div>
+<a class="sec" href="#control-flow">Control flow</a>
+<div class="rules"><a href="#control-flow-if-statement">if_statement</a>, <a href="#control-flow-for-statement">for_statement</a>, <a href="#control-flow-foreach-statement">foreach_statement</a>, <a href="#control-flow-iterable">iterable</a>, <a href="#control-flow-while-statement">while_statement</a>, <a href="#control-flow-match-statement">match_statement</a>, <a href="#control-flow-match-case">match_case</a>, <a href="#control-flow-match-case">match_else</a>, <a href="#control-flow-match-case">case_body</a>, <a href="#control-flow-match-expression">match_expression</a>, <a href="#control-flow-match-expression">value_case</a>, <a href="#control-flow-pattern">pattern</a>, <a href="#control-flow-try-statement">try_statement</a></div>
+<a class="sec" href="#expressions-lowest-precedence-first">Expressions (lowest precedence first)</a>
+<div class="rules"><a href="#expressions-lowest-precedence-first-expression">expression</a>, <a href="#expressions-lowest-precedence-first-conditional">conditional</a>, <a href="#expressions-lowest-precedence-first-coalesce">coalesce</a>, <a href="#expressions-lowest-precedence-first-logical-or">logical_or</a>, <a href="#expressions-lowest-precedence-first-logical-or">logical_and</a>, <a href="#expressions-lowest-precedence-first-equality">equality</a>, <a href="#expressions-lowest-precedence-first-comparison">comparison</a>, <a href="#expressions-lowest-precedence-first-comparison">additive</a>, <a href="#expressions-lowest-precedence-first-comparison">multiplicative</a>, <a href="#expressions-lowest-precedence-first-unary">unary</a>, <a href="#expressions-lowest-precedence-first-postfix">postfix</a>, <a href="#expressions-lowest-precedence-first-member-name">member_name</a>, <a href="#expressions-lowest-precedence-first-primary">primary</a>, <a href="#expressions-lowest-precedence-first-lambda">lambda</a>, <a href="#expressions-lowest-precedence-first-argument-list">argument_list</a>, <a href="#expressions-lowest-precedence-first-argument">argument</a></div>
+<a class="sec" href="#literals">Literals</a>
+<div class="rules"><a href="#literals-literal">literal</a>, <a href="#literals-integer-literal">integer_literal</a>, <a href="#literals-float-literal">float_literal</a>, <a href="#literals-string-literal">string_literal</a>, <a href="#literals-string-literal">interpolation</a>, <a href="#literals-char-literal">char_literal</a>, <a href="#literals-boolean-literal">boolean_literal</a>, <a href="#literals-array-literal">array_literal</a>, <a href="#literals-escape-sequence">escape_sequence</a>, <a href="#literals-digits">digits</a>, <a href="#literals-digits">digit</a>, <a href="#literals-digits">hex_digit</a>, <a href="#literals-digits">binary_digit</a>, <a href="#literals-digits">octal_digit</a></div>
+<a class="sec" href="#classes">Classes</a>
+<div class="rules"><a href="#classes-class-declaration">class_declaration</a>, <a href="#classes-interface-name">interface_name</a>, <a href="#classes-class-member">class_member</a>, <a href="#classes-access">access</a>, <a href="#classes-constructor">constructor</a>, <a href="#classes-method">method</a>, <a href="#classes-field">field</a></div>
+<a class="sec" href="#interfaces">Interfaces</a>
+<div class="rules"><a href="#interfaces-interface-declaration">interface_declaration</a>, <a href="#interfaces-interface-member">interface_member</a></div>
+<a class="sec" href="#structs">Structs</a>
+<div class="rules"><a href="#structs-struct-declaration">struct_declaration</a>, <a href="#structs-struct-member">struct_member</a>, <a href="#structs-struct-field">struct_field</a></div>
+<a class="sec" href="#error-types-task-26-9">Error types (Task 26.9)</a>
+<div class="rules"><a href="#error-types-task-26-9-error-declaration">error_declaration</a>, <a href="#error-types-task-26-9-error-line">error_line</a></div>
+<a class="sec" href="#enums-task-25">Enums (Task 25)</a>
+<div class="rules"><a href="#enums-task-25-enum-declaration">enum_declaration</a>, <a href="#enums-task-25-enum-body">enum_body</a>, <a href="#enums-task-25-enum-values">enum_values</a>, <a href="#enums-task-25-enum-value">enum_value</a></div>
+<a class="sec" href="#comments-and-lexical-elements">Comments and lexical elements</a>
+<div class="rules"><a href="#comments-and-lexical-elements-single-line-comment">single_line_comment</a>, <a href="#comments-and-lexical-elements-single-line-comment">multi_line_comment</a>, <a href="#comments-and-lexical-elements-identifier">identifier</a>, <a href="#comments-and-lexical-elements-identifier">letter</a>, <a href="#comments-and-lexical-elements-identifier">character</a>, <a href="#comments-and-lexical-elements-identifier">string_character</a>, <a href="#comments-and-lexical-elements-newline">NEWLINE</a>, <a href="#comments-and-lexical-elements-newline">INDENT</a>, <a href="#comments-and-lexical-elements-newline">DEDENT</a></div>
+<a class="sec" href="#keywords-src-lexer-keywords-py">Keywords (src/lexer/keywords.py)</a>
+<a class="sec" href="#operator-precedence-highest-first">Operator precedence (highest first)</a>
+<a class="sec" href="#planned-designed-not-built">Planned - designed, not built</a>
+<div class="rules"><a href="#planned-designed-not-built-planned-primitive-type">planned_primitive_type</a>, <a href="#planned-designed-not-built-money-literal">money_literal</a>, <a href="#planned-designed-not-built-duration-literal">duration_literal</a>, <a href="#planned-designed-not-built-switch-statement">switch_statement</a>, <a href="#planned-designed-not-built-switch-statement">elif_clause</a>, <a href="#planned-designed-not-built-loop-statement">loop_statement</a>, <a href="#planned-designed-not-built-property-declaration">property_declaration</a>, <a href="#planned-designed-not-built-fixed-size-type">fixed_size_type</a>, <a href="#planned-designed-not-built-shared-declaration">shared_declaration</a>, <a href="#planned-designed-not-built-pointer-type">pointer_type</a>, <a href="#planned-designed-not-built-service-declaration">service_declaration</a>, <a href="#planned-designed-not-built-service-declaration">service_class</a>, <a href="#planned-designed-not-built-service-declaration">service_run</a>, <a href="#planned-designed-not-built-service-declaration">service_setting</a>, <a href="#planned-designed-not-built-service-declaration">service_group</a>, <a href="#planned-designed-not-built-service-declaration">hotpath_function</a>, <a href="#planned-designed-not-built-go-statement">go_statement</a>, <a href="#planned-designed-not-built-go-statement">await_expression</a>, <a href="#planned-designed-not-built-go-statement">async_function</a>, <a href="#planned-designed-not-built-go-statement">channel_send</a>, <a href="#planned-designed-not-built-go-statement">channel_receive</a>, <a href="#planned-designed-not-built-annotation">annotation</a>, <a href="#planned-designed-not-built-unsafe-block">unsafe_block</a></div></nav>
+<main>
+<h2 id="layout-and-block-styles">Layout and block styles</h2>
+<div class="card" id="layout-and-block-styles-1">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">44.3</a>
+<span class="status built">built</span>
+<div class="comment">Three block styles, mixed freely (SYN.001):
+   1. indentation (Python): INDENT ... DEDENT
+   2. braces (C):           { ... }
+   3. End (VB.NET):         the block, then &quot;End&quot; and its word - End if, End for, End function
+   &quot;End&quot; may follow an indented or braced block as well; &quot;end&quot; is a keyword too (SYN.041).
+   Inside ( ) and [ ] a line break only continues the line - no NEWLINE, INDENT or DEDENT
+   there (Task 44.3), so an expression may span lines.</div>
+<a class="top" href="#top">top</a>
+</div>
+</div>
+<div class="card" id="layout-and-block-styles-block">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">block</span> <span class="o">=</span> <span class="nt">INDENT</span> <span class="o">{</span> <span class="nt">statement</span> <span class="o">}</span> <span class="nt">DEDENT</span>
+      <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="o">{</span> <span class="nt">statement</span> <span class="o">}</span> <span class="s">&quot;}&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="layout-and-block-styles-end-marker">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">then the block&#x27;s word: if, for, while ...</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">end_marker</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">NEWLINE</span> <span class="o">]</span> <span class="o">(</span> <span class="s">&quot;End&quot;</span> <span class="o">|</span> <span class="s">&quot;end&quot;</span> <span class="o">)</span> <span class="o">;</span>      <span class="c">(* then the block&#x27;s word: if, for, while ... *)</span></pre>
+</div>
+<h2 id="program">Program</h2>
+<div class="card" id="program-program">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">program</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">namespace_line</span> <span class="o">]</span> <span class="o">{</span> <span class="nt">import_statement</span> <span class="o">}</span> <span class="o">{</span> <span class="nt">top_level</span> <span class="o">}</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="program-namespace-line">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.2h</a>
+<span class="status built">built</span>
+<div class="comment">Task 32.2h</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">namespace_line</span> <span class="o">=</span> <span class="s">&quot;namespace&quot;</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;.&quot;</span> <span class="nt">identifier</span> <span class="o">}</span> <span class="nt">NEWLINE</span> <span class="o">;</span>      <span class="c">(* Task 32.2h *)</span></pre>
+</div>
+<div class="card" id="program-import-statement">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.4</a>
+<span class="status built">built</span>
+<div class="comment">Task 18.4.2: import money / import money.Price / import money.* / import lib.utils as u.
+   A module is a folder next to the main file</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">import_statement</span> <span class="o">=</span> <span class="s">&quot;import&quot;</span> <span class="nt">module_path</span> <span class="o">[</span> <span class="s">&quot;.&quot;</span> <span class="s">&quot;*&quot;</span> <span class="o">|</span> <span class="s">&quot;as&quot;</span> <span class="nt">identifier</span> <span class="o">]</span> <span class="nt">NEWLINE</span> <span class="o">;</span>
+<span class="rule">module_path</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;.&quot;</span> <span class="nt">identifier</span> <span class="o">}</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="program-top-level">
+<div class="head">
+<a class="task" href="FEATURES.md#task-29">29.3</a>
+<span class="status built">built</span>
+<div class="comment">Task 29.3</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">top_level</span> <span class="o">=</span>
+      <span class="o">[</span> <span class="nt">visibility</span> <span class="o">]</span> <span class="o">(</span> <span class="nt">function_declaration</span>
+                     <span class="o">|</span> <span class="nt">class_declaration</span>
+                     <span class="o">|</span> <span class="nt">struct_declaration</span>
+                     <span class="o">|</span> <span class="nt">interface_declaration</span>
+                     <span class="o">|</span> <span class="nt">enum_declaration</span>
+                     <span class="o">|</span> <span class="nt">error_declaration</span>
+                     <span class="o">|</span> <span class="nt">module_variable</span> <span class="o">)</span>
+    <span class="o">|</span> <span class="nt">template_declaration</span>                                   <span class="c">(* Task 29.3 *)</span>
+    <span class="o">|</span> <span class="nt">statement</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="program-visibility">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.2h</a>
+<span class="status built">built</span>
+<div class="comment">public / internal before a top-level item; private only on a module variable (32.2h)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">visibility</span> <span class="o">=</span> <span class="s">&quot;public&quot;</span> <span class="o">|</span> <span class="s">&quot;internal&quot;</span> <span class="o">|</span> <span class="s">&quot;private&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="program-module-variable">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">44.1</a>
+<span class="status built">built</span>
+<div class="comment">Task 44.1, 46.1: a variable or constant outside any function</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">module_variable</span> <span class="o">=</span>
+      <span class="s">&quot;const&quot;</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span>
+    <span class="o">|</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="o">(</span> <span class="s">&quot;let&quot;</span> <span class="o">|</span> <span class="s">&quot;var&quot;</span> <span class="o">)</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<h2 id="functions">Functions</h2>
+<div class="card" id="functions-function-declaration">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">26</a>
+<span class="status built">built</span>
+<div class="comment">`int function add(int a, int b) : a + b`; `Ship, Error function load()` can fail (Task 26);
+   `readonly Engine function getEngine()` - a readonly result (Task 50.1, D.110);
+   `T function first&lt;T&gt;(List&lt;T&gt; items)` - generic (Task 33, D.166)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">function_declaration</span> <span class="o">=</span>
+    <span class="o">[</span> <span class="s">&quot;readonly&quot;</span> <span class="o">]</span> <span class="nt">result_type</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="s">&quot;Error&quot;</span> <span class="o">]</span> <span class="o">(</span> <span class="s">&quot;function&quot;</span> <span class="o">|</span> <span class="s">&quot;func&quot;</span> <span class="o">)</span>
+    <span class="nt">function_name</span> <span class="o">[</span> <span class="nt">type_parameters</span> <span class="o">]</span> <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">parameter_list</span> <span class="o">]</span> <span class="s">&quot;)&quot;</span>
+    <span class="o">(</span> <span class="s">&quot;:&quot;</span> <span class="nt">expression</span> <span class="nt">NEWLINE</span>                      <span class="c">(* one expression - its value is returned *)</span>
+    <span class="o">|</span> <span class="s">&quot;:&quot;</span> <span class="nt">block</span>
+    <span class="o">|</span> <span class="nt">block</span> <span class="o">)</span>
+    <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;function&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="functions-function-name">
+<div class="head">
+<a class="task" href="../Decisions.md">D.174</a>
+<span class="status built">built</span>
+<div class="comment">get / set: a List of your own, D.174</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">function_name</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">|</span> <span class="nt">primitive_type</span> <span class="o">|</span> <span class="s">&quot;get&quot;</span> <span class="o">|</span> <span class="s">&quot;set&quot;</span> <span class="o">;</span>   <span class="c">(* get / set: a List of your own, D.174 *)</span></pre>
+</div>
+<div class="card" id="functions-result-type">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">`Error function save()` - fails, no value</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">result_type</span> <span class="o">=</span> <span class="nt">type</span> <span class="o">|</span> <span class="s">&quot;Error&quot;</span> <span class="o">;</span>                    <span class="c">(* `Error function save()` - fails, no value *)</span></pre>
+</div>
+<div class="card" id="functions-parameter-list">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">parameter_list</span> <span class="o">=</span> <span class="nt">parameter</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">parameter</span> <span class="o">}</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="functions-parameter">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">46.1</a>
+<span class="status built">built</span>
+<div class="comment">let (46.1): never changed inside; readonly (32.2e): never changed, stands alone;
+   byVal / byValue: a copy; byRef: shared (32.10a); `string... args`, `T... items` - any
+   number of values (18.5.4, 33.2e); `int numbers[]` - brackets after the name (D.141)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">parameter</span> <span class="o">=</span>
+    <span class="o">[</span> <span class="s">&quot;let&quot;</span> <span class="o">|</span> <span class="s">&quot;var&quot;</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;readonly&quot;</span> <span class="o">|</span> <span class="nt">passing</span> <span class="o">]</span> <span class="nt">type</span> <span class="o">[</span> <span class="s">&quot;...&quot;</span> <span class="o">]</span> <span class="nt">parameter_name</span>
+    <span class="o">[</span> <span class="nt">array_brackets</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="functions-parameter-name">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">parameter_name</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">|</span> <span class="nt">primitive_type</span> <span class="o">|</span> <span class="s">&quot;end&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="functions-passing">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">words, special only before a type or a value</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">passing</span> <span class="o">=</span> <span class="s">&quot;byVal&quot;</span> <span class="o">|</span> <span class="s">&quot;byValue&quot;</span> <span class="o">|</span> <span class="s">&quot;byRef&quot;</span> <span class="o">;</span>          <span class="c">(* words, special only before a type or a value *)</span></pre>
+</div>
+<div class="card" id="functions-type-parameters">
+<div class="head">
+<a class="task" href="FEATURES.md#task-33">33</a>
+<span class="status built">built</span>
+<div class="comment">Task 33, D.166-D.167: &lt;T&gt;, &lt;K, V&gt;; a condition per name - `T extends Vehicle` / `T : Vehicle`
+   (a class, a struct, Number or a basic type), `T implements Comparable, Printable`, or both,
+   extends first. After implements, a name after a comma starts the next type parameter when it
+   is one capital letter (and digits): &lt;T implements Comparable, K&gt;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">type_parameters</span> <span class="o">=</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type_parameter</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type_parameter</span> <span class="o">}</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">;</span>
+<span class="rule">type_parameter</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="o">(</span> <span class="s">&quot;extends&quot;</span> <span class="o">|</span> <span class="s">&quot;:&quot;</span> <span class="o">)</span> <span class="nt">type</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;implements&quot;</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">identifier</span> <span class="o">}</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="functions-9">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">The entry point: `void function main()` or `void function main(string... args)`</div>
+<a class="top" href="#top">top</a>
+</div>
+</div>
+<h2 id="types">Types</h2>
+<div class="card" id="types-type">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">type</span> <span class="o">=</span>
+      <span class="nt">primitive_type</span> <span class="o">[</span> <span class="nt">array_suffix</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="nt">named_type</span> <span class="o">[</span> <span class="nt">array_suffix</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="nt">function_type</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="types-primitive-type">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.3</a>
+<span class="status built">built</span>
+<div class="comment">byte: 0-255 (18.3.8); short / long: 16 / 64 bits (47.1); bytes: raw binary data, a
+   built-in type name, not a keyword</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">primitive_type</span> <span class="o">=</span> <span class="s">&quot;int&quot;</span> <span class="o">|</span> <span class="s">&quot;long&quot;</span> <span class="o">|</span> <span class="s">&quot;short&quot;</span> <span class="o">|</span> <span class="s">&quot;byte&quot;</span> <span class="o">|</span> <span class="s">&quot;float&quot;</span> <span class="o">|</span> <span class="s">&quot;double&quot;</span>
+               <span class="o">|</span> <span class="s">&quot;bool&quot;</span> <span class="o">|</span> <span class="s">&quot;char&quot;</span> <span class="o">|</span> <span class="s">&quot;string&quot;</span> <span class="o">|</span> <span class="s">&quot;void&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="types-named-type">
+<div class="head">
+<a class="task" href="FEATURES.md#task-33">33</a>
+<span class="status built">built</span>
+<div class="comment">A struct, class, enum, interface or error type - `money.Price` from another module;
+   List&lt;T&gt;, Map&lt;K, V&gt; (Dictionary&lt;K, V&gt; the same), Collection&lt;T&gt;, Iterator&lt;T&gt;, Entry&lt;K, V&gt;
+   and a generic struct / class, Pair&lt;int, string&gt; (Task 33)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">named_type</span> <span class="o">=</span> <span class="nt">qualified_name</span> <span class="o">[</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="o">}</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">]</span> <span class="o">|</span> <span class="s">&quot;bytes&quot;</span> <span class="o">;</span>
+<span class="rule">qualified_name</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;.&quot;</span> <span class="nt">identifier</span> <span class="o">}</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="types-function-type">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.1</a>
+<span class="status built">built</span>
+<div class="comment">`(int, int) : int` or `(int, int) -&gt; int` - a variable or parameter holding a function (18.1.3)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">function_type</span> <span class="o">=</span> <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">type</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="o">}</span> <span class="o">]</span> <span class="s">&quot;)&quot;</span> <span class="o">(</span> <span class="s">&quot;:&quot;</span> <span class="o">|</span> <span class="s">&quot;-&gt;&quot;</span> <span class="o">)</span> <span class="nt">type</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="types-array-suffix">
+<div class="head">
+<a class="task" href="FEATURES.md#task-45">45</a>
+<span class="status built">built</span>
+<div class="comment">Arrays (Task 45, D.141-D.153): int[5], int[] (its size from its values); up to 3 dimensions,
+   int[2][3] or int[2],[3] (D.143); growable: int:[], int:[10] (10 slots made ahead),
+   int:[2][3], or int[[]], int[[2],[3]] (45.3, 45.12d)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">array_suffix</span> <span class="o">=</span>
+      <span class="nt">array_brackets</span>
+    <span class="o">|</span> <span class="s">&quot;:&quot;</span> <span class="s">&quot;[&quot;</span> <span class="o">[</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="s">&quot;]&quot;</span> <span class="o">{</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">]</span> <span class="s">&quot;[&quot;</span> <span class="o">[</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="s">&quot;]&quot;</span> <span class="o">}</span>
+    <span class="o">|</span> <span class="s">&quot;[&quot;</span> <span class="s">&quot;[&quot;</span> <span class="o">[</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="s">&quot;]&quot;</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="s">&quot;[&quot;</span> <span class="o">[</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="s">&quot;]&quot;</span> <span class="o">}</span> <span class="s">&quot;]&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="types-array-brackets">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">array_brackets</span> <span class="o">=</span> <span class="s">&quot;[&quot;</span> <span class="o">[</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="s">&quot;]&quot;</span> <span class="o">{</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">]</span> <span class="s">&quot;[&quot;</span> <span class="o">[</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="s">&quot;]&quot;</span> <span class="o">}</span> <span class="o">;</span></pre>
+</div>
+<h2 id="statements">Statements</h2>
+<div class="card" id="statements-statement">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">a call: print(&quot;hi&quot;), list.add(3)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">statement</span> <span class="o">=</span>
+      <span class="nt">variable_declaration</span>
+    <span class="o">|</span> <span class="nt">template_declaration</span>
+    <span class="o">|</span> <span class="nt">assignment</span>
+    <span class="o">|</span> <span class="nt">if_statement</span>
+    <span class="o">|</span> <span class="nt">for_statement</span>
+    <span class="o">|</span> <span class="nt">foreach_statement</span>
+    <span class="o">|</span> <span class="nt">while_statement</span>
+    <span class="o">|</span> <span class="nt">match_statement</span>
+    <span class="o">|</span> <span class="nt">try_statement</span>
+    <span class="o">|</span> <span class="nt">throw_statement</span>
+    <span class="o">|</span> <span class="nt">unchecked_statement</span>
+    <span class="o">|</span> <span class="nt">return_statement</span>
+    <span class="o">|</span> <span class="s">&quot;break&quot;</span>
+    <span class="o">|</span> <span class="s">&quot;continue&quot;</span>
+    <span class="o">|</span> <span class="nt">block</span>
+    <span class="o">|</span> <span class="nt">expression</span> <span class="o">;</span>                     <span class="c">(* a call: print(&quot;hi&quot;), list.add(3) *)</span></pre>
+</div>
+<div class="card" id="statements-variable-declaration">
+<div class="head">
+<a class="task" href="FEATURES.md#task-45">45.14</a>
+<span class="status built">built</span>
+<div class="comment">`int x = 5`; `int numbers[] = [1, 2]` (D.141); `fixed int[3] top` - never changes size (45.14);
+   `Ship s, err = load()` / `Ship s, Error err = load()` - capture an error (Task 26);
+   a set-up block right after the value sets the variable up and changes nothing else (32.2d)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">variable_declaration</span> <span class="o">=</span>
+      <span class="o">[</span> <span class="s">&quot;fixed&quot;</span> <span class="o">]</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="nt">array_brackets</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">[</span> <span class="nt">block</span> <span class="o">]</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="s">&quot;,&quot;</span> <span class="o">[</span> <span class="s">&quot;Error&quot;</span> <span class="o">]</span> <span class="nt">identifier</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span>
+    <span class="o">|</span> <span class="s">&quot;const&quot;</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">[</span> <span class="nt">block</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="o">(</span> <span class="s">&quot;let&quot;</span> <span class="o">|</span> <span class="s">&quot;var&quot;</span> <span class="o">)</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">[</span> <span class="nt">block</span> <span class="o">]</span> <span class="o">]</span> <span class="o">;</span>
+    <span class="c">(* let: set once, never changed; var: may change - the type from the value (46.1).
+       Without a value: set before it is read on every path, a let exactly once *)</span></pre>
+</div>
+<div class="card" id="statements-template-declaration">
+<div class="head">
+<a class="task" href="FEATURES.md#task-29">29.3</a>
+<span class="status built">built</span>
+<div class="comment">Task 29.3: a fixed text that works as a function - greet(&quot;Ann&quot;, 30) fills its {@N}</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">template_declaration</span> <span class="o">=</span> <span class="s">&quot;template&quot;</span> <span class="s">&quot;string&quot;</span> <span class="nt">identifier</span> <span class="s">&quot;=&quot;</span> <span class="nt">string_literal</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="statements-assignment">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">The target: a variable, an element, a field - x = 1, a[0] = 1, m[&quot;k&quot;] = 2, p.x = 3.
+   Assignment is a statement, never an expression; only &quot;=&quot; (no += - PLANNED)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">assignment</span> <span class="o">=</span> <span class="nt">postfix</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="statements-return-statement">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">return_statement</span> <span class="o">=</span> <span class="s">&quot;return&quot;</span> <span class="o">[</span> <span class="nt">expression</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">expression</span> <span class="o">}</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="statements-throw-statement">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">26.3</a>
+<span class="status built">built</span>
+<div class="comment">an Error - Task 26.3</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">throw_statement</span> <span class="o">=</span> <span class="s">&quot;throw&quot;</span> <span class="nt">expression</span> <span class="o">;</span>                        <span class="c">(* an Error - Task 26.3 *)</span></pre>
+</div>
+<div class="card" id="statements-unchecked-statement">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">27.2d</a>
+<span class="status built">built</span>
+<div class="comment">Task 27.2d: whole-number + - * inside wrap around instead of an OverflowError;
+   `unchecked` is a word only before a block</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">unchecked_statement</span> <span class="o">=</span> <span class="s">&quot;unchecked&quot;</span> <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;unchecked&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<h2 id="control-flow">Control flow</h2>
+<div class="card" id="control-flow-if-statement">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.3</a>
+<span class="status built">built</span>
+<div class="comment">Inside a condition (if, else if, while) &quot;=&quot; compares, the same as &quot;==&quot; (Task 18.3.5)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">if_statement</span> <span class="o">=</span>
+    <span class="s">&quot;if&quot;</span> <span class="nt">expression</span> <span class="nt">block</span>
+    <span class="o">{</span> <span class="s">&quot;else&quot;</span> <span class="s">&quot;if&quot;</span> <span class="nt">expression</span> <span class="nt">block</span> <span class="o">}</span>
+    <span class="o">[</span> <span class="s">&quot;else&quot;</span> <span class="nt">block</span> <span class="o">]</span>
+    <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;if&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-for-statement">
+<div class="head">
+<a class="task" href="FEATURES.md#task-33">33.2f</a>
+<span class="status built">built</span>
+<div class="comment">`for i in 1...10`, `for i in 0...13 step 5` (33.2f-g, D.169-D.170): both ends included;
+   a negative step counts down. `for x in list` / `for i in range(0, 10)`</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">for_statement</span> <span class="o">=</span> <span class="s">&quot;for&quot;</span> <span class="nt">identifier</span> <span class="s">&quot;in&quot;</span> <span class="nt">iterable</span> <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;for&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-foreach-statement">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.4</a>
+<span class="status built">built</span>
+<div class="comment">Task 32.4: `foreach (string n in names)` or `foreach n in names` - an array, List, Map (its
+   keys) or a class implementing Collection&lt;T&gt;; `foreach` is a word, not a keyword</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">foreach_statement</span> <span class="o">=</span>
+    <span class="s">&quot;foreach&quot;</span> <span class="o">(</span> <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">type</span> <span class="o">]</span> <span class="nt">identifier</span> <span class="s">&quot;in&quot;</span> <span class="nt">iterable</span> <span class="s">&quot;)&quot;</span> <span class="o">|</span> <span class="nt">identifier</span> <span class="s">&quot;in&quot;</span> <span class="nt">iterable</span> <span class="o">)</span>
+    <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="o">(</span> <span class="s">&quot;foreach&quot;</span> <span class="o">|</span> <span class="s">&quot;for&quot;</span> <span class="o">)</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-iterable">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">iterable</span> <span class="o">=</span> <span class="nt">expression</span> <span class="o">[</span> <span class="s">&quot;...&quot;</span> <span class="nt">expression</span> <span class="o">[</span> <span class="s">&quot;step&quot;</span> <span class="nt">expression</span> <span class="o">]</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-while-statement">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">while_statement</span> <span class="o">=</span> <span class="s">&quot;while&quot;</span> <span class="nt">expression</span> <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;while&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-match-statement">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">25.3</a>
+<span class="status built">built</span>
+<div class="comment">Task 25.3: a match statement - indented, braced or closed by End match. A case body is a
+   block, or one statement after &quot;:&quot;. `fall match` falls through until break (30.13)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">match_statement</span> <span class="o">=</span>
+    <span class="o">[</span> <span class="s">&quot;fall&quot;</span> <span class="o">]</span> <span class="s">&quot;match&quot;</span> <span class="nt">expression</span>
+    <span class="o">(</span> <span class="nt">INDENT</span> <span class="nt">match_case</span> <span class="o">{</span> <span class="nt">match_case</span> <span class="o">}</span> <span class="o">[</span> <span class="nt">match_else</span> <span class="o">]</span> <span class="nt">DEDENT</span>
+    <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="nt">match_case</span> <span class="o">{</span> <span class="nt">match_case</span> <span class="o">}</span> <span class="o">[</span> <span class="nt">match_else</span> <span class="o">]</span> <span class="s">&quot;}&quot;</span> <span class="o">)</span>
+    <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;match&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-match-case">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">match_case</span> <span class="o">=</span> <span class="s">&quot;case&quot;</span> <span class="nt">pattern</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">pattern</span> <span class="o">}</span> <span class="nt">case_body</span> <span class="o">;</span>
+<span class="rule">match_else</span> <span class="o">=</span> <span class="o">(</span> <span class="s">&quot;else&quot;</span> <span class="o">|</span> <span class="s">&quot;_&quot;</span> <span class="o">|</span> <span class="s">&quot;case&quot;</span> <span class="s">&quot;_&quot;</span> <span class="o">)</span> <span class="nt">case_body</span> <span class="o">;</span>
+<span class="rule">case_body</span>  <span class="o">=</span> <span class="s">&quot;:&quot;</span> <span class="nt">statement</span> <span class="o">|</span> <span class="nt">block</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-match-expression">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">46.2</a>
+<span class="status built">built</span>
+<div class="comment">Task 46.2: a match that gives a value - one value per case, never falls through:
+   string day = match n { 6, 7 : &quot;Weekend&quot;, _ : &quot;Weekday&quot; }</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">match_expression</span> <span class="o">=</span>
+    <span class="s">&quot;match&quot;</span> <span class="nt">expression</span>
+    <span class="o">(</span> <span class="s">&quot;{&quot;</span> <span class="nt">value_case</span> <span class="o">{</span> <span class="o">(</span> <span class="s">&quot;,&quot;</span> <span class="o">|</span> <span class="nt">NEWLINE</span> <span class="o">)</span> <span class="nt">value_case</span> <span class="o">}</span> <span class="s">&quot;}&quot;</span>
+    <span class="o">|</span> <span class="nt">INDENT</span> <span class="nt">value_case</span> <span class="o">{</span> <span class="nt">NEWLINE</span> <span class="nt">value_case</span> <span class="o">}</span> <span class="nt">DEDENT</span> <span class="o">)</span> <span class="o">;</span>
+<span class="rule">value_case</span> <span class="o">=</span> <span class="o">(</span> <span class="nt">pattern</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">pattern</span> <span class="o">}</span> <span class="o">|</span> <span class="s">&quot;_&quot;</span> <span class="o">|</span> <span class="s">&quot;else&quot;</span> <span class="o">)</span> <span class="s">&quot;:&quot;</span> <span class="nt">expression</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-pattern">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">26.10</a>
+<span class="status built">built</span>
+<div class="comment">An enum value - bare: Red, Circle(r) (its data, in field order; _ skips one - 25.4);
+   an error type: MissingConfig, files.FileError (26.10); a constant: 42, -1, &#x27;x&#x27;, &quot;go&quot;;
+   a range: 0...9, &#x27;a&#x27;...&#x27;z&#x27; (both ends included - 33.2f); null - at most one (30.12)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">pattern</span> <span class="o">=</span>
+      <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;(&quot;</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">identifier</span> <span class="o">}</span> <span class="s">&quot;)&quot;</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="nt">identifier</span> <span class="s">&quot;.&quot;</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;.&quot;</span> <span class="nt">identifier</span> <span class="o">}</span>
+    <span class="o">|</span> <span class="nt">unary</span> <span class="o">[</span> <span class="s">&quot;...&quot;</span> <span class="nt">unary</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="s">&quot;null&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-try-statement">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">26.3</a>
+<span class="status built">built</span>
+<div class="comment">Task 26.3, 26.11: catches, a finally, or both. `catch FileError e` takes a FileError or a
+   subtype; `catch e` - any error, last</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">try_statement</span> <span class="o">=</span>
+    <span class="s">&quot;try&quot;</span> <span class="nt">block</span>
+    <span class="o">{</span> <span class="s">&quot;catch&quot;</span> <span class="o">[</span> <span class="o">[</span> <span class="nt">qualified_name</span> <span class="o">]</span> <span class="nt">identifier</span> <span class="o">]</span> <span class="nt">block</span> <span class="o">}</span>
+    <span class="o">[</span> <span class="s">&quot;finally&quot;</span> <span class="nt">block</span> <span class="o">]</span>
+    <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;try&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<h2 id="expressions-lowest-precedence-first">Expressions (lowest precedence first)</h2>
+<div class="card" id="expressions-lowest-precedence-first-expression">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">expression</span> <span class="o">=</span> <span class="nt">conditional</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-conditional">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">30.7</a>
+<span class="status built">built</span>
+<div class="comment">Task 30.7: (count &gt; 5) ? &quot;big&quot; : &quot;small&quot; - nests to the right</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">conditional</span> <span class="o">=</span> <span class="nt">coalesce</span> <span class="o">[</span> <span class="s">&quot;?&quot;</span> <span class="nt">conditional</span> <span class="s">&quot;:&quot;</span> <span class="nt">conditional</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-coalesce">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">52.8</a>
+<span class="status built">built</span>
+<div class="comment">Task 52.8: a ?? b - a, or b when a is null; groups to the right</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">coalesce</span> <span class="o">=</span> <span class="nt">logical_or</span> <span class="o">[</span> <span class="s">&quot;??&quot;</span> <span class="nt">coalesce</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-logical-or">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">logical_or</span>  <span class="o">=</span> <span class="nt">logical_and</span> <span class="o">{</span> <span class="o">(</span> <span class="s">&quot;or&quot;</span> <span class="o">|</span> <span class="s">&quot;||&quot;</span> <span class="o">)</span> <span class="nt">logical_and</span> <span class="o">}</span> <span class="o">;</span>
+<span class="rule">logical_and</span> <span class="o">=</span> <span class="nt">equality</span> <span class="o">{</span> <span class="o">(</span> <span class="s">&quot;and&quot;</span> <span class="o">|</span> <span class="s">&quot;&amp;&amp;&quot;</span> <span class="o">)</span> <span class="nt">equality</span> <span class="o">}</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-equality">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.3</a>
+<span class="status built">built</span>
+<div class="comment">== != compare values; === !== value and type (18.3.5); &quot;=&quot; compares only in a condition.
+   x == null / x is null / x is not null - null tests (30.11); x is Circle - a type test (32.5a)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">equality</span> <span class="o">=</span>
+    <span class="nt">comparison</span> <span class="o">{</span> <span class="o">(</span> <span class="s">&quot;==&quot;</span> <span class="o">|</span> <span class="s">&quot;!=&quot;</span> <span class="o">|</span> <span class="s">&quot;===&quot;</span> <span class="o">|</span> <span class="s">&quot;!==&quot;</span> <span class="o">|</span> <span class="s">&quot;=&quot;</span> <span class="o">)</span> <span class="nt">comparison</span> <span class="o">}</span>
+    <span class="o">[</span> <span class="s">&quot;is&quot;</span> <span class="o">[</span> <span class="s">&quot;not&quot;</span> <span class="o">]</span> <span class="o">(</span> <span class="s">&quot;null&quot;</span> <span class="o">|</span> <span class="nt">type</span> <span class="o">)</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-comparison">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">comparison</span>     <span class="o">=</span> <span class="nt">additive</span> <span class="o">{</span> <span class="o">(</span> <span class="s">&quot;&lt;&quot;</span> <span class="o">|</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">|</span> <span class="s">&quot;&lt;=&quot;</span> <span class="o">|</span> <span class="s">&quot;&gt;=&quot;</span> <span class="o">)</span> <span class="nt">additive</span> <span class="o">}</span> <span class="o">;</span>
+<span class="rule">additive</span>       <span class="o">=</span> <span class="nt">multiplicative</span> <span class="o">{</span> <span class="o">(</span> <span class="s">&quot;+&quot;</span> <span class="o">|</span> <span class="s">&quot;-&quot;</span> <span class="o">)</span> <span class="nt">multiplicative</span> <span class="o">}</span> <span class="o">;</span>
+<span class="rule">multiplicative</span> <span class="o">=</span> <span class="nt">unary</span> <span class="o">{</span> <span class="o">(</span> <span class="s">&quot;*&quot;</span> <span class="o">|</span> <span class="s">&quot;/&quot;</span> <span class="o">|</span> <span class="s">&quot;%&quot;</span> <span class="o">)</span> <span class="nt">unary</span> <span class="o">}</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-unary">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.10a</a>
+<span class="status built">built</span>
+<div class="comment">a cast in front: (Shape)aCircle - D.082 byVal a - a copy; byRef a - shared (32.10a) f(readonly a) - the caller&#x27;s demand (48.3)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">unary</span> <span class="o">=</span>
+      <span class="o">(</span> <span class="s">&quot;-&quot;</span> <span class="o">|</span> <span class="s">&quot;!&quot;</span> <span class="o">|</span> <span class="s">&quot;not&quot;</span> <span class="o">)</span> <span class="nt">unary</span>
+    <span class="o">|</span> <span class="s">&quot;(&quot;</span> <span class="nt">type</span> <span class="s">&quot;)&quot;</span> <span class="nt">unary</span>                       <span class="c">(* a cast in front: (Shape)aCircle - D.082 *)</span>
+    <span class="o">|</span> <span class="nt">passing</span> <span class="nt">unary</span>                            <span class="c">(* byVal a - a copy; byRef a - shared (32.10a) *)</span>
+    <span class="o">|</span> <span class="s">&quot;readonly&quot;</span> <span class="nt">unary</span>                         <span class="c">(* f(readonly a) - the caller&#x27;s demand (48.3) *)</span>
+    <span class="o">|</span> <span class="nt">postfix</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-postfix">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">30.11</a>
+<span class="status built">built</span>
+<div class="comment">first&lt;int&gt;(xs), Box&lt;int&gt;.made - types written (33) a call an index; cube[][2] - a whole dimension, a view (D.149) m[1],[2] - the same as m[1][2] (D.143) a field or method: p.x, name.toUpper(), 255.toHex() x?.null - the same as x is null (30.11) the null guard on a member or method (52.8)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">postfix</span> <span class="o">=</span>
+    <span class="nt">primary</span> <span class="o">[</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="o">}</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">]</span>      <span class="c">(* first&lt;int&gt;(xs), Box&lt;int&gt;.made - types written (33) *)</span>
+    <span class="o">{</span>   <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">argument_list</span> <span class="o">]</span> <span class="s">&quot;)&quot;</span>              <span class="c">(* a call *)</span>
+      <span class="o">|</span> <span class="s">&quot;[&quot;</span> <span class="o">[</span> <span class="nt">expression</span> <span class="o">]</span> <span class="s">&quot;]&quot;</span>                 <span class="c">(* an index; cube[][2] - a whole dimension, a view (D.149) *)</span>
+      <span class="o">|</span> <span class="s">&quot;,&quot;</span> <span class="s">&quot;[&quot;</span> <span class="nt">expression</span> <span class="s">&quot;]&quot;</span>                 <span class="c">(* m[1],[2] - the same as m[1][2] (D.143) *)</span>
+      <span class="o">|</span> <span class="s">&quot;.&quot;</span> <span class="nt">member_name</span>                        <span class="c">(* a field or method: p.x, name.toUpper(), 255.toHex() *)</span>
+      <span class="o">|</span> <span class="s">&quot;?.&quot;</span> <span class="s">&quot;null&quot;</span>                            <span class="c">(* x?.null - the same as x is null (30.11) *)</span>
+      <span class="o">|</span> <span class="s">&quot;?.&quot;</span> <span class="nt">member_name</span> <span class="o">}</span> <span class="o">;</span>                   <span class="c">(* the null guard on a member or method (52.8) *)</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-member-name">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">after &quot;.&quot; any word - m.get(k), x.set(...)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">member_name</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">|</span> <span class="nt">keyword</span> <span class="o">;</span>           <span class="c">(* after &quot;.&quot; any word - m.get(k), x.set(...) *)</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-primary">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.10b</a>
+<span class="status built">built</span>
+<div class="comment">a type word too: a function named double new Car(&quot;Honda&quot;) - the same as Car(&quot;Honda&quot;) (32.10b) Task 46.2 an empty one (18.5) Entry&lt;string, int&gt;(&quot;a&quot;, 1) - 32.6</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">primary</span> <span class="o">=</span>
+      <span class="nt">literal</span>
+    <span class="o">|</span> <span class="nt">identifier</span>                               <span class="c">(* a type word too: a function named double *)</span>
+    <span class="o">|</span> <span class="s">&quot;this&quot;</span>
+    <span class="o">|</span> <span class="s">&quot;null&quot;</span>
+    <span class="o">|</span> <span class="s">&quot;new&quot;</span> <span class="nt">postfix</span>                            <span class="c">(* new Car(&quot;Honda&quot;) - the same as Car(&quot;Honda&quot;) (32.10b) *)</span>
+    <span class="o">|</span> <span class="nt">match_expression</span>                         <span class="c">(* Task 46.2 *)</span>
+    <span class="o">|</span> <span class="o">(</span> <span class="s">&quot;List&quot;</span> <span class="o">|</span> <span class="s">&quot;Map&quot;</span> <span class="o">|</span> <span class="s">&quot;Dictionary&quot;</span> <span class="o">)</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="o">}</span> <span class="s">&quot;&gt;&quot;</span> <span class="s">&quot;(&quot;</span> <span class="s">&quot;)&quot;</span>   <span class="c">(* an empty one (18.5) *)</span>
+    <span class="o">|</span> <span class="s">&quot;Entry&quot;</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="s">&quot;&gt;&quot;</span>            <span class="c">(* Entry&lt;string, int&gt;(&quot;a&quot;, 1) - 32.6 *)</span>
+    <span class="o">|</span> <span class="nt">lambda</span>
+    <span class="o">|</span> <span class="s">&quot;(&quot;</span> <span class="nt">expression</span> <span class="s">&quot;)&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-lambda">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.1</a>
+<span class="status built">built</span>
+<div class="comment">Task 18.1.3: (int x, int y) : x + y, func(int x) : x * 2, function(int x) : x * 2 -
+   one expression; the result type from the body</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">lambda</span> <span class="o">=</span> <span class="o">[</span> <span class="s">&quot;func&quot;</span> <span class="o">|</span> <span class="s">&quot;function&quot;</span> <span class="o">]</span> <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">parameter_list</span> <span class="o">]</span> <span class="s">&quot;)&quot;</span> <span class="s">&quot;:&quot;</span> <span class="nt">expression</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-argument-list">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">argument_list</span> <span class="o">=</span> <span class="nt">argument</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">argument</span> <span class="o">}</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="expressions-lowest-precedence-first-argument">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.2</a>
+<span class="status built">built</span>
+<div class="comment">Named arguments (18.2.2) in any order, after the unnamed ones - declared functions and
+   constructors only; evaluated left to right as written</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">argument</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">|</span> <span class="nt">expression</span> <span class="o">;</span></pre>
+</div>
+<h2 id="literals">Literals</h2>
+<div class="card" id="literals-literal">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">literal</span> <span class="o">=</span> <span class="nt">integer_literal</span> <span class="o">|</span> <span class="nt">float_literal</span> <span class="o">|</span> <span class="nt">string_literal</span> <span class="o">|</span> <span class="nt">char_literal</span>
+        <span class="o">|</span> <span class="nt">boolean_literal</span> <span class="o">|</span> <span class="nt">array_literal</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="literals-integer-literal">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.3</a>
+<span class="status built">built</span>
+<div class="comment">&quot;_&quot; between digits (1_000_000); hex, binary and octal read as the bit pattern, up to 32 bits
+   (18.3.6d); past an int&#x27;s range a number is a long (47.1); an optional L suffix</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">integer_literal</span> <span class="o">=</span>
+      <span class="nt">digits</span> <span class="o">[</span> <span class="s">&quot;L&quot;</span> <span class="o">|</span> <span class="s">&quot;l&quot;</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="s">&quot;0&quot;</span> <span class="o">(</span> <span class="s">&quot;x&quot;</span> <span class="o">|</span> <span class="s">&quot;X&quot;</span> <span class="o">)</span> <span class="nt">hex_digit</span> <span class="o">{</span> <span class="o">[</span> <span class="s">&quot;_&quot;</span> <span class="o">]</span> <span class="nt">hex_digit</span> <span class="o">}</span>
+    <span class="o">|</span> <span class="s">&quot;0&quot;</span> <span class="o">(</span> <span class="s">&quot;b&quot;</span> <span class="o">|</span> <span class="s">&quot;B&quot;</span> <span class="o">)</span> <span class="nt">binary_digit</span> <span class="o">{</span> <span class="o">[</span> <span class="s">&quot;_&quot;</span> <span class="o">]</span> <span class="nt">binary_digit</span> <span class="o">}</span>
+    <span class="o">|</span> <span class="s">&quot;0&quot;</span> <span class="o">(</span> <span class="s">&quot;o&quot;</span> <span class="o">|</span> <span class="s">&quot;O&quot;</span> <span class="o">)</span> <span class="nt">octal_digit</span> <span class="o">{</span> <span class="o">[</span> <span class="s">&quot;_&quot;</span> <span class="o">]</span> <span class="nt">octal_digit</span> <span class="o">}</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="literals-float-literal">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">no exponent (3.2e5) yet</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">float_literal</span> <span class="o">=</span> <span class="nt">digits</span> <span class="s">&quot;.&quot;</span> <span class="nt">digits</span> <span class="o">[</span> <span class="s">&quot;f&quot;</span> <span class="o">|</span> <span class="s">&quot;F&quot;</span> <span class="o">|</span> <span class="s">&quot;d&quot;</span> <span class="o">|</span> <span class="s">&quot;D&quot;</span> <span class="o">]</span> <span class="o">;</span>      <span class="c">(* no exponent (3.2e5) yet *)</span></pre>
+</div>
+<div class="card" id="literals-string-literal">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.2</a>
+<span class="status built">built</span>
+<div class="comment">&quot;Hello {name}&quot; - interpolation; &quot;{@1}&quot; - print&#x27;s / format&#x27;s own arguments (18.2.2b);
+   \{ and \} - a brace itself (28.1.5)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">string_literal</span> <span class="o">=</span> <span class="s">&#x27;&quot;&#x27;</span> <span class="o">{</span> <span class="nt">string_character</span> <span class="o">|</span> <span class="nt">escape_sequence</span> <span class="o">|</span> <span class="nt">interpolation</span> <span class="o">}</span> <span class="s">&#x27;&quot;&#x27;</span> <span class="o">;</span>
+<span class="rule">interpolation</span>  <span class="o">=</span> <span class="s">&quot;{&quot;</span> <span class="o">(</span> <span class="s">&quot;@&quot;</span> <span class="nt">digits</span> <span class="o">|</span> <span class="nt">expression</span> <span class="o">)</span> <span class="s">&quot;}&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="literals-char-literal">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.3</a>
+<span class="status built">built</span>
+<div class="comment">any Unicode character (18.3.2b)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">char_literal</span> <span class="o">=</span> <span class="s">&quot;&#x27;&quot;</span> <span class="o">(</span> <span class="nt">character</span> <span class="o">|</span> <span class="nt">escape_sequence</span> <span class="o">)</span> <span class="s">&quot;&#x27;&quot;</span> <span class="o">;</span>     <span class="c">(* any Unicode character (18.3.2b) *)</span></pre>
+</div>
+<div class="card" id="literals-boolean-literal">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">boolean_literal</span> <span class="o">=</span> <span class="s">&quot;true&quot;</span> <span class="o">|</span> <span class="s">&quot;false&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="literals-array-literal">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">also a List&#x27;s or bytes&#x27; values</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">array_literal</span> <span class="o">=</span> <span class="s">&quot;[&quot;</span> <span class="o">[</span> <span class="nt">expression</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">expression</span> <span class="o">}</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">]</span> <span class="o">]</span> <span class="s">&quot;]&quot;</span> <span class="o">;</span>   <span class="c">(* also a List&#x27;s or bytes&#x27; values *)</span></pre>
+</div>
+<div class="card" id="literals-escape-sequence">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">not a surrogate half</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">escape_sequence</span> <span class="o">=</span>
+      <span class="s">&quot;\&quot;</span> <span class="o">(</span> <span class="s">&quot;n&quot;</span> <span class="o">|</span> <span class="s">&quot;t&quot;</span> <span class="o">|</span> <span class="s">&quot;r&quot;</span> <span class="o">|</span> <span class="s">&quot;\&quot;</span> <span class="o">|</span> <span class="s">&#x27;&quot;&#x27;</span> <span class="o">|</span> <span class="s">&quot;&#x27;&quot;</span> <span class="o">|</span> <span class="s">&quot;0&quot;</span> <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="o">|</span> <span class="s">&quot;}&quot;</span> <span class="o">)</span>
+    <span class="o">|</span> <span class="s">&quot;\u&quot;</span> <span class="nt">hex_digit</span> <span class="nt">hex_digit</span> <span class="nt">hex_digit</span> <span class="nt">hex_digit</span> <span class="o">;</span>          <span class="c">(* not a surrogate half *)</span></pre>
+</div>
+<div class="card" id="literals-digits">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">digits</span>       <span class="o">=</span> <span class="nt">digit</span> <span class="o">{</span> <span class="o">[</span> <span class="s">&quot;_&quot;</span> <span class="o">]</span> <span class="nt">digit</span> <span class="o">}</span> <span class="o">;</span>
+<span class="rule">digit</span>        <span class="o">=</span> <span class="s">&quot;0&quot;</span> <span class="o">|</span> <span class="s">&quot;1&quot;</span> <span class="o">|</span> <span class="s">&quot;2&quot;</span> <span class="o">|</span> <span class="s">&quot;3&quot;</span> <span class="o">|</span> <span class="s">&quot;4&quot;</span> <span class="o">|</span> <span class="s">&quot;5&quot;</span> <span class="o">|</span> <span class="s">&quot;6&quot;</span> <span class="o">|</span> <span class="s">&quot;7&quot;</span> <span class="o">|</span> <span class="s">&quot;8&quot;</span> <span class="o">|</span> <span class="s">&quot;9&quot;</span> <span class="o">;</span>
+<span class="rule">hex_digit</span>    <span class="o">=</span> <span class="nt">digit</span> <span class="o">|</span> <span class="s">&quot;a&quot;</span> <span class="o">|</span> <span class="s">&quot;b&quot;</span> <span class="o">|</span> <span class="s">&quot;c&quot;</span> <span class="o">|</span> <span class="s">&quot;d&quot;</span> <span class="o">|</span> <span class="s">&quot;e&quot;</span> <span class="o">|</span> <span class="s">&quot;f&quot;</span> <span class="o">|</span> <span class="s">&quot;A&quot;</span> <span class="o">|</span> <span class="s">&quot;B&quot;</span> <span class="o">|</span> <span class="s">&quot;C&quot;</span> <span class="o">|</span> <span class="s">&quot;D&quot;</span> <span class="o">|</span> <span class="s">&quot;E&quot;</span> <span class="o">|</span> <span class="s">&quot;F&quot;</span> <span class="o">;</span>
+<span class="rule">binary_digit</span> <span class="o">=</span> <span class="s">&quot;0&quot;</span> <span class="o">|</span> <span class="s">&quot;1&quot;</span> <span class="o">;</span>
+<span class="rule">octal_digit</span>  <span class="o">=</span> <span class="s">&quot;0&quot;</span> <span class="o">|</span> <span class="s">&quot;1&quot;</span> <span class="o">|</span> <span class="s">&quot;2&quot;</span> <span class="o">|</span> <span class="s">&quot;3&quot;</span> <span class="o">|</span> <span class="s">&quot;4&quot;</span> <span class="o">|</span> <span class="s">&quot;5&quot;</span> <span class="o">|</span> <span class="s">&quot;6&quot;</span> <span class="o">|</span> <span class="s">&quot;7&quot;</span> <span class="o">;</span></pre>
+</div>
+<h2 id="classes">Classes</h2>
+<div class="card" id="classes-class-declaration">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.10b</a>
+<span class="status built">built</span>
+<div class="comment">Task 32.10b, 32.7: one parent - inherits or extends (D.083, D.084); abstract / sealed;
+   generic: class Box&lt;T&gt;, inherits Box&lt;T&gt; / Box&lt;int&gt; (33.3b), implements Collection&lt;T&gt;, List&lt;T&gt;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">class_declaration</span> <span class="o">=</span>
+    <span class="o">[</span> <span class="s">&quot;abstract&quot;</span> <span class="o">|</span> <span class="s">&quot;sealed&quot;</span> <span class="o">]</span> <span class="s">&quot;class&quot;</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="nt">type_parameters</span> <span class="o">]</span>
+    <span class="o">{</span> <span class="o">(</span> <span class="s">&quot;inherits&quot;</span> <span class="o">|</span> <span class="s">&quot;extends&quot;</span> <span class="o">)</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="o">}</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="s">&quot;implements&quot;</span> <span class="nt">interface_name</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">interface_name</span> <span class="o">}</span> <span class="o">}</span>
+    <span class="o">(</span> <span class="nt">INDENT</span> <span class="o">{</span> <span class="nt">class_member</span> <span class="o">}</span> <span class="nt">DEDENT</span> <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="o">{</span> <span class="nt">class_member</span> <span class="o">}</span> <span class="s">&quot;}&quot;</span> <span class="o">)</span>
+    <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;class&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="classes-interface-name">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">interface_name</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="o">}</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="classes-class-member">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.2c</a>
+<span class="status built">built</span>
+<div class="comment">Fields are private and functions public when nothing is written (Classes.md 1)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">class_member</span> <span class="o">=</span>
+      <span class="o">[</span> <span class="nt">access</span> <span class="o">]</span> <span class="nt">constructor</span>
+    <span class="o">|</span> <span class="o">[</span> <span class="nt">access</span> <span class="o">]</span> <span class="o">{</span> <span class="s">&quot;override&quot;</span> <span class="o">|</span> <span class="s">&quot;sealed&quot;</span> <span class="o">|</span> <span class="s">&quot;abstract&quot;</span> <span class="o">}</span> <span class="nt">method</span>   <span class="c">(* virtual: an error - every function can be overridden *)</span>
+    <span class="o">|</span> <span class="o">[</span> <span class="nt">access</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;nocopy&quot;</span> <span class="o">|</span> <span class="s">&quot;noshare&quot;</span> <span class="o">]</span> <span class="o">{</span> <span class="s">&quot;const&quot;</span> <span class="o">|</span> <span class="s">&quot;static&quot;</span> <span class="o">}</span> <span class="nt">field</span>
+    <span class="o">|</span> <span class="s">&quot;static&quot;</span> <span class="nt">block</span> <span class="o">;</span>                         <span class="c">(* form C - the class&#x27;s static set-up (32.2c) *)</span></pre>
+</div>
+<div class="card" id="classes-access">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">access</span> <span class="o">=</span> <span class="s">&quot;public&quot;</span> <span class="o">|</span> <span class="s">&quot;private&quot;</span> <span class="o">|</span> <span class="s">&quot;internal&quot;</span> <span class="o">|</span> <span class="s">&quot;protected&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="classes-constructor">
+<div class="head">
+<a class="task" href="../Decisions.md">D.036</a>
+<span class="status built">built</span>
+<div class="comment">`constructor(...)` or named like the class: Car(...) (D.036)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">constructor</span> <span class="o">=</span> <span class="o">(</span> <span class="s">&quot;constructor&quot;</span> <span class="o">|</span> <span class="nt">identifier</span> <span class="o">)</span> <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">parameter_list</span> <span class="o">]</span> <span class="s">&quot;)&quot;</span> <span class="nt">block</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="classes-method">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">`this` is the object; abstract: no body</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">method</span> <span class="o">=</span> <span class="nt">function_declaration</span> <span class="o">;</span>                <span class="c">(* `this` is the object; abstract: no body *)</span></pre>
+</div>
+<div class="card" id="classes-field">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.2c</a>
+<span class="status built">built</span>
+<div class="comment">A field; with a value and a block after it - form B, the block sets it up (32.2c-d).
+   In a class `const` goes with `static`: const static Car CAR = Car()</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">field</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">passing</span> <span class="o">]</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">[</span> <span class="nt">block</span> <span class="o">]</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<h2 id="interfaces">Interfaces</h2>
+<div class="card" id="interfaces-interface-declaration">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.5a</a>
+<span class="status built">built</span>
+<div class="comment">Task 32.5a: several parents (D.087); function signatures only - a body (a default method)
+   only with [interfaces] defaultMethods; public or internal</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">interface_declaration</span> <span class="o">=</span>
+    <span class="s">&quot;interface&quot;</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;implements&quot;</span> <span class="nt">interface_name</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">interface_name</span> <span class="o">}</span> <span class="o">]</span>
+    <span class="o">(</span> <span class="nt">INDENT</span> <span class="o">{</span> <span class="nt">interface_member</span> <span class="o">}</span> <span class="nt">DEDENT</span> <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="o">{</span> <span class="nt">interface_member</span> <span class="o">}</span> <span class="s">&quot;}&quot;</span> <span class="o">)</span>
+    <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;interface&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="interfaces-interface-member">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">interface_member</span> <span class="o">=</span>
+    <span class="o">[</span> <span class="s">&quot;public&quot;</span> <span class="o">|</span> <span class="s">&quot;internal&quot;</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;readonly&quot;</span> <span class="o">]</span> <span class="nt">type</span> <span class="o">(</span> <span class="s">&quot;function&quot;</span> <span class="o">|</span> <span class="s">&quot;func&quot;</span> <span class="o">)</span> <span class="nt">identifier</span>
+    <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">parameter_list</span> <span class="o">]</span> <span class="s">&quot;)&quot;</span> <span class="o">[</span> <span class="s">&quot;:&quot;</span> <span class="nt">expression</span> <span class="o">|</span> <span class="nt">block</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<h2 id="structs">Structs</h2>
+<div class="card" id="structs-struct-declaration">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">18.2</a>
+<span class="status built">built</span>
+<div class="comment">Task 18.2.1: a value type - the compiler makes its constructor, Name(...), every field in
+   order. Building on a struct (32.8): implements / extends / includes - its fields come first.
+   Generic: struct Pair&lt;A, B&gt; (33.2b). Methods only with [structs] functions = true (32.1)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">struct_declaration</span> <span class="o">=</span>
+    <span class="s">&quot;struct&quot;</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="nt">type_parameters</span> <span class="o">]</span> <span class="o">[</span> <span class="o">(</span> <span class="s">&quot;implements&quot;</span> <span class="o">|</span> <span class="s">&quot;extends&quot;</span> <span class="o">|</span> <span class="s">&quot;includes&quot;</span> <span class="o">)</span> <span class="nt">identifier</span> <span class="o">]</span>
+    <span class="o">(</span> <span class="nt">INDENT</span> <span class="o">{</span> <span class="nt">struct_member</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">]</span> <span class="o">}</span> <span class="nt">DEDENT</span>
+    <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="o">{</span> <span class="nt">struct_member</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">]</span> <span class="o">}</span> <span class="s">&quot;}&quot;</span> <span class="o">)</span>
+    <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;struct&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="structs-struct-member">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">struct_member</span> <span class="o">=</span> <span class="nt">struct_field</span> <span class="o">|</span> <span class="nt">function_declaration</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="structs-struct-field">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">32.10a</a>
+<span class="status built">built</span>
+<div class="comment">byRef: a List / Map shared when the struct is copied (32.10a); a default is a constant</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">struct_field</span> <span class="o">=</span> <span class="o">[</span> <span class="s">&quot;byRef&quot;</span> <span class="o">]</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<h2 id="error-types-task-26-9">Error types (Task 26.9)</h2>
+<div class="card" id="error-types-task-26-9-error-declaration">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">26.9</a>
+<span class="status built">built</span>
+<div class="comment">`error ConfigError : FileError` - every error type is an Error (message, code, where) plus
+   its parent&#x27;s fields and its own; `error` is a word only at the top level</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">error_declaration</span> <span class="o">=</span>
+    <span class="s">&quot;error&quot;</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;:&quot;</span> <span class="nt">qualified_name</span> <span class="o">]</span>
+    <span class="o">[</span> <span class="nt">INDENT</span> <span class="o">{</span> <span class="nt">error_line</span> <span class="o">}</span> <span class="nt">DEDENT</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;error&quot;</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="o">{</span> <span class="nt">error_line</span> <span class="o">}</span> <span class="s">&quot;}&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="error-types-task-26-9-error-line">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">26.9</a>
+<span class="status built">built</span>
+<div class="comment">that error type&#x27;s default</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">error_line</span> <span class="o">=</span> <span class="o">(</span> <span class="s">&quot;message&quot;</span> <span class="o">|</span> <span class="s">&quot;code&quot;</span> <span class="o">)</span> <span class="s">&quot;=&quot;</span> <span class="nt">literal</span>      <span class="c">(* that error type&#x27;s default *)</span>
+           <span class="o">|</span> <span class="nt">struct_field</span> <span class="o">;</span></pre>
+</div>
+<h2 id="enums-task-25">Enums (Task 25)</h2>
+<div class="card" id="enums-task-25-enum-declaration">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">25</a>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">enum_declaration</span> <span class="o">=</span> <span class="o">(</span> <span class="s">&quot;enum&quot;</span> <span class="o">|</span> <span class="s">&quot;Enum&quot;</span> <span class="o">)</span> <span class="nt">identifier</span> <span class="nt">enum_body</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="enums-task-25-enum-body">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">25</a>
+<span class="status built">built</span>
+<div class="comment">one line</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">enum_body</span> <span class="o">=</span>
+      <span class="s">&quot;:&quot;</span> <span class="nt">enum_values</span> <span class="nt">NEWLINE</span>                                   <span class="c">(* one line *)</span>
+    <span class="o">|</span> <span class="nt">INDENT</span> <span class="nt">enum_values</span> <span class="nt">DEDENT</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;enum&quot;</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="nt">enum_values</span> <span class="s">&quot;}&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="enums-task-25-enum-values">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">25</a>
+<span class="status built">built</span>
+<div class="comment">commas optional</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">enum_values</span> <span class="o">=</span> <span class="nt">enum_value</span> <span class="o">{</span> <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">|</span> <span class="nt">NEWLINE</span> <span class="o">]</span> <span class="nt">enum_value</span> <span class="o">}</span> <span class="o">;</span>    <span class="c">(* commas optional *)</span></pre>
+</div>
+<div class="card" id="enums-task-25-enum-value">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">25.4</a>
+<span class="status built">built</span>
+<div class="comment">A value&#x27;s number: the previous + 1, from 0. Data in ( ) - an enum with data (25.4), made with
+   Shape.Circle(2.0), read through match; it may hold the enum itself (25.5)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">enum_value</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;(&quot;</span> <span class="nt">struct_field</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">struct_field</span> <span class="o">}</span> <span class="s">&quot;)&quot;</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="o">[</span> <span class="s">&quot;-&quot;</span> <span class="o">]</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<h2 id="comments-and-lexical-elements">Comments and lexical elements</h2>
+<div class="card" id="comments-and-lexical-elements-single-line-comment">
+<div class="head">
+<a class="task" href="../Decisions.md">SYN.031</a>
+<span class="status built">built</span>
+<div class="comment">&#x27; is a char literal (&#x27;c&#x27;), not a comment (SYN.031 - postponed)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">single_line_comment</span> <span class="o">=</span> <span class="s">&quot;//&quot;</span> <span class="o">{</span> <span class="nt">character</span> <span class="o">}</span> <span class="nt">NEWLINE</span> <span class="o">;</span>
+<span class="rule">multi_line_comment</span>  <span class="o">=</span> <span class="s">&quot;/*&quot;</span> <span class="o">{</span> <span class="nt">character</span> <span class="o">}</span> <span class="s">&quot;*/&quot;</span> <span class="o">;</span>
+<span class="c">(* &#x27; is a char literal (&#x27;c&#x27;), not a comment (SYN.031 - postponed) *)</span></pre>
+</div>
+<div class="card" id="comments-and-lexical-elements-identifier">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">&nbsp;</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">identifier</span> <span class="o">=</span> <span class="o">(</span> <span class="nt">letter</span> <span class="o">|</span> <span class="s">&quot;_&quot;</span> <span class="o">)</span> <span class="o">{</span> <span class="nt">letter</span> <span class="o">|</span> <span class="nt">digit</span> <span class="o">|</span> <span class="s">&quot;_&quot;</span> <span class="o">}</span> <span class="o">;</span>
+<span class="rule">letter</span>     <span class="o">=</span> <span class="s">&quot;a&quot;</span> <span class="o">..</span> <span class="s">&quot;z&quot;</span> <span class="o">|</span> <span class="s">&quot;A&quot;</span> <span class="o">..</span> <span class="s">&quot;Z&quot;</span> <span class="o">;</span>
+<span class="rule">character</span>  <span class="o">=</span> <span class="sp">? any Unicode character ?</span> <span class="o">;</span>
+<span class="rule">string_character</span> <span class="o">=</span> <span class="sp">? any character except &#x27;&quot;&#x27;, &quot;\&quot;, &quot;{&quot; and a line break ?</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="comments-and-lexical-elements-newline">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">19.6</a>
+<span class="status built">built</span>
+<div class="comment">Tabs and spaces: [source] tabWidth; blank lines and comment-only lines are skipped.
+   Invisible and bidirectional characters and look-alike names are rejected (19.6)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">NEWLINE</span> <span class="o">=</span> <span class="sp">? the end of a line (LF, CR or CRLF) - not inside ( ) or [ ] ?</span> <span class="o">;</span>
+<span class="rule">INDENT</span>  <span class="o">=</span> <span class="sp">? the lexer: the indentation grows after a NEWLINE ?</span> <span class="o">;</span>
+<span class="rule">DEDENT</span>  <span class="o">=</span> <span class="sp">? the lexer: the indentation shrinks - one per level ?</span> <span class="o">;</span>
+<span class="c">(* Tabs and spaces: [source] tabWidth; blank lines and comment-only lines are skipped.
+   Invisible and bidirectional characters and look-alike names are rejected (19.6) *)</span></pre>
+</div>
+<h2 id="keywords-src-lexer-keywords-py">Keywords (src/lexer/keywords.py)</h2>
+<div class="card" id="keywords-src-lexer-keywords-py-1">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">61</a>
+<span class="status built">built</span>
+<div class="comment">A keyword can&#x27;t be a name (after &quot;.&quot; it may be a member name):
+   Control:      if else for while loop match case break continue return try catch finally
+                 throw go async await End end
+   Declarations: function func class struct interface enum Enum inherits implements property
+                 get set import new cast namespace
+   Modifiers:    public private internal protected static virtual override abstract sealed
+                 const let var service fixed Shared Weak
+   Types:        int long short byte float double bool char string void
+   Operators:    and or not is in
+   Values:       true false null this
+   Words special only in their place (names elsewhere): byVal byValue byRef readonly step
+   foreach fall unchecked template error extends includes constructor nocopy noshare super
+   message code _ (SYN.041)
+
+   Reserved for a planned feature - an error as a name that says what for (Task 61, D.162):
+   check unsafe hotpath extern switch elif assert channel lock where defer comptime union
+   choice operator yield
+   Reserved for future use: module export using default typeof sizeof nameof select atomic
+   transaction goto delete volatile synchronized self base ref out mut move macro type record
+   trait impl</div>
+<a class="top" href="#top">top</a>
+</div>
+</div>
+<h2 id="operator-precedence-highest-first">Operator precedence (highest first)</h2>
+<div class="card" id="operator-precedence-highest-first-1">
+<div class="head">
+<span class="task">-</span>
+<span class="status built">built</span>
+<div class="comment">1. postfix:        () [] . ?.
+   2. unary:          - ! not  (Type)x  byVal byRef readonly
+   3. multiplicative: * / %
+   4. additive:       + -
+   5. comparison:     &lt; &gt; &lt;= &gt;=
+   6. equality:       == != === !== (&quot;=&quot; inside a condition), is [not] null / Type
+   7. and &amp;&amp;
+   8. or ||
+   9. ??
+   10. ? :
+   Ranges (...) are not an operator: they belong to for / foreach and to case patterns</div>
+<a class="top" href="#top">top</a>
+</div>
+</div>
+<h2 id="planned-designed-not-built">Planned - designed, not built</h2>
+<div class="card" id="planned-designed-not-built-1">
+<div class="head">
+<span class="task">-</span>
+<span class="status notbuilt">not built</span>
+<div class="comment">Operators the lexer reads and the parser rejects today:
+   +=  -=  *=  /=  %=  **=  - compound assignment
+   **                       - power
+   ++  --                   - increment / decrement
+   ?[                       - a guarded index
+   &lt;&gt;                       - another spelling of != (VB)</div>
+<a class="top" href="#top">top</a>
+</div>
+</div>
+<div class="card" id="planned-designed-not-built-planned-primitive-type">
+<div class="head">
+<a class="task" href="FEATURES.md#task-47">47.7</a>
+<span class="status planned">planned</span>
+<div class="comment">Task 47.7 (D.179): signed wide whole numbers; Task 47.8 (D.182): exact base-10;
+   Task 47.2 (D.180-D.187): money - a 16-byte value struct (value, scale, currency, symbol)</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">planned_primitive_type</span> <span class="o">=</span> <span class="s">&quot;int128&quot;</span> <span class="o">|</span> <span class="s">&quot;int256&quot;</span> <span class="o">|</span> <span class="s">&quot;decimal&quot;</span> <span class="o">|</span> <span class="s">&quot;money&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-money-literal">
+<div class="head">
+<a class="task" href="../Decisions.md">D.176</a>
+<span class="status planned">planned</span>
+<div class="comment">D.176: money price = 123.45 - the scale from the places written; 123.45m as quick typing</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">money_literal</span> <span class="o">=</span> <span class="nt">digits</span> <span class="s">&quot;.&quot;</span> <span class="nt">digits</span> <span class="s">&quot;m&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-duration-literal">
+<div class="head">
+<a class="task" href="FEATURES.md#task-42">42.16</a>
+<span class="status planned">planned</span>
+<div class="comment">SYN.014 (42.16): an int of milliseconds; ns / us a long of nanoseconds - never mixed</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">duration_literal</span> <span class="o">=</span> <span class="nt">digits</span> <span class="o">(</span> <span class="s">&quot;ms&quot;</span> <span class="o">|</span> <span class="s">&quot;s&quot;</span> <span class="o">|</span> <span class="s">&quot;min&quot;</span> <span class="o">|</span> <span class="s">&quot;h&quot;</span> <span class="o">|</span> <span class="s">&quot;us&quot;</span> <span class="o">|</span> <span class="s">&quot;ns&quot;</span> <span class="o">)</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-switch-statement">
+<div class="head">
+<a class="task" href="../Decisions.md">SYN.018</a>
+<span class="status planned">planned</span>
+<div class="comment">SYN.018 / D.065: aliases</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">switch_statement</span> <span class="o">=</span> <span class="s">&quot;switch&quot;</span> <span class="nt">expression</span> <span class="o">(</span> <span class="nt">INDENT</span> <span class="nt">match_case</span> <span class="o">{</span> <span class="nt">match_case</span> <span class="o">}</span> <span class="o">[</span> <span class="nt">match_else</span> <span class="o">]</span> <span class="nt">DEDENT</span> <span class="o">)</span> <span class="o">;</span>
+<span class="rule">elif_clause</span>      <span class="o">=</span> <span class="s">&quot;elif&quot;</span> <span class="nt">expression</span> <span class="nt">block</span> <span class="o">;</span>          <span class="c">(* the same as else if *)</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-loop-statement">
+<div class="head">
+<span class="task">-</span>
+<span class="status notbuilt">not built</span>
+<div class="comment">An endless loop</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">loop_statement</span> <span class="o">=</span> <span class="s">&quot;loop&quot;</span> <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;loop&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-property-declaration">
+<div class="head">
+<span class="task">-</span>
+<span class="status notbuilt">not built</span>
+<div class="comment">Properties - get / set blocks</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">property_declaration</span> <span class="o">=</span>
+    <span class="o">[</span> <span class="nt">access</span> <span class="o">]</span> <span class="nt">type</span> <span class="s">&quot;property&quot;</span> <span class="nt">identifier</span>
+    <span class="nt">INDENT</span> <span class="o">[</span> <span class="s">&quot;get&quot;</span> <span class="nt">block</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;set&quot;</span> <span class="s">&quot;(&quot;</span> <span class="nt">identifier</span> <span class="s">&quot;)&quot;</span> <span class="nt">block</span> <span class="o">]</span> <span class="nt">DEDENT</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-fixed-size-type">
+<div class="head">
+<a class="task" href="FEATURES.md#task-47">47.5</a>
+<span class="status planned">planned</span>
+<div class="comment">Task 47.5: a maximum size - fixed(10) string name, fixed(14) List&lt;Person&gt; people</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">fixed_size_type</span> <span class="o">=</span> <span class="s">&quot;fixed&quot;</span> <span class="s">&quot;(&quot;</span> <span class="nt">expression</span> <span class="s">&quot;)&quot;</span> <span class="nt">type</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-shared-declaration">
+<div class="head">
+<a class="task" href="../task/featuresArchive.md">48.5</a>
+<span class="status planned">postponed</span>
+<div class="comment">Task 48.5, POSTPONED (D.106): several holders - read only except to the one that made it</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">shared_declaration</span> <span class="o">=</span> <span class="s">&quot;shared&quot;</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-pointer-type">
+<div class="head">
+<a class="task" href="FEATURES.md#task-38">38</a>
+<span class="status planned">planned</span>
+<div class="comment">Task 38 (MEM.005): Shared&lt;T&gt; / Weak&lt;T&gt; - counted and weak handles beside single ownership</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">pointer_type</span> <span class="o">=</span> <span class="o">(</span> <span class="s">&quot;Shared&quot;</span> <span class="o">|</span> <span class="s">&quot;Weak&quot;</span> <span class="o">)</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-service-declaration">
+<div class="head">
+<a class="task" href="FEATURES.md#task-42">42</a>
+<span class="status planned">planned</span>
+<div class="comment">Task 42 (Service.md): services</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">service_declaration</span>  <span class="o">=</span> <span class="o">[</span> <span class="s">&quot;hotpath&quot;</span> <span class="o">]</span> <span class="s">&quot;service&quot;</span> <span class="nt">type</span> <span class="nt">identifier</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">[</span> <span class="nt">block</span> <span class="o">]</span> <span class="o">;</span>
+<span class="rule">service_class</span>        <span class="o">=</span> <span class="s">&quot;service&quot;</span> <span class="nt">class_declaration</span> <span class="o">;</span>
+<span class="rule">service_run</span>          <span class="o">=</span> <span class="s">&quot;service&quot;</span> <span class="s">&quot;(&quot;</span> <span class="nt">expression</span> <span class="s">&quot;)&quot;</span> <span class="s">&quot;.&quot;</span> <span class="s">&quot;run&quot;</span> <span class="nt">block</span> <span class="o">;</span>
+<span class="rule">service_setting</span>      <span class="o">=</span> <span class="s">&quot;service&quot;</span> <span class="s">&quot;(&quot;</span> <span class="nt">expression</span> <span class="s">&quot;)&quot;</span> <span class="s">&quot;.&quot;</span> <span class="nt">identifier</span> <span class="s">&quot;=&quot;</span> <span class="nt">expression</span> <span class="o">;</span>
+<span class="rule">service_group</span>        <span class="o">=</span> <span class="s">&quot;service&quot;</span> <span class="s">&quot;(&quot;</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">identifier</span> <span class="o">}</span> <span class="s">&quot;)&quot;</span> <span class="nt">identifier</span> <span class="o">;</span>
+<span class="rule">hotpath_function</span>     <span class="o">=</span> <span class="s">&quot;hotpath&quot;</span> <span class="nt">function_declaration</span> <span class="o">;</span>          <span class="c">(* Task 42.23 *)</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-go-statement">
+<div class="head">
+<a class="task" href="../Decisions.md">CON.012</a>
+<span class="status planned">planned</span>
+<div class="comment">CON.012: threads and async; channels - &quot;&lt;-&quot; read by the lexer only</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">go_statement</span>     <span class="o">=</span> <span class="s">&quot;go&quot;</span> <span class="nt">expression</span> <span class="o">;</span>
+<span class="rule">await_expression</span> <span class="o">=</span> <span class="s">&quot;await&quot;</span> <span class="nt">expression</span> <span class="o">;</span>
+<span class="rule">async_function</span>   <span class="o">=</span> <span class="s">&quot;async&quot;</span> <span class="nt">function_declaration</span> <span class="o">;</span>
+<span class="rule">channel_send</span>     <span class="o">=</span> <span class="nt">expression</span> <span class="s">&quot;&lt;-&quot;</span> <span class="nt">expression</span> <span class="o">;</span>
+<span class="rule">channel_receive</span>  <span class="o">=</span> <span class="s">&quot;&lt;-&quot;</span> <span class="nt">expression</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-annotation">
+<div class="head">
+<span class="task">-</span>
+<span class="status notbuilt">not built</span>
+<div class="comment">Annotations - an idea</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">annotation</span> <span class="o">=</span> <span class="s">&quot;@&quot;</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">argument_list</span> <span class="o">]</span> <span class="s">&quot;)&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="planned-designed-not-built-unsafe-block">
+<div class="head">
+<a class="task" href="../Decisions.md">MEM.006</a>
+<span class="status planned">planned</span>
+<div class="comment">MEM.006 (D.030-D.031): unsafe code - memory, assembly, devices</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">unsafe_block</span> <span class="o">=</span> <span class="s">&quot;unsafe&quot;</span> <span class="nt">block</span> <span class="o">;</span></pre>
+</div>
+</main>
+</div>
+</body>
+</html>

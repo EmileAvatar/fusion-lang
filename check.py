@@ -39,7 +39,8 @@ Checks:
               its copy in examples/ is up to date
     builtins  files/Builtins.md matches the compiler's built-in functions and methods
     editors   the editors' grammar (tools/editors/) matches the lexer's keywords (36.1)
-    ebnf      files/fusion.ebnf names every keyword and reserved word of the lexer, and is ASCII
+    ebnf      files/fusion.ebnf names every keyword and reserved word of the lexer, and is ASCII; its page
+              files/fusion.ebnf.html is up to date (tools/ebnf_html.py)
     runtime   runtime/fusion_runtime.h matches the run-time the compiler writes into C files
     decisions Decisions.md in shape: feature lines AREA.NNN [STATUS] in order, decision rows
               in order and naming a feature that exists (CLAUDE.md Rule 3b, Task 49.9)
@@ -222,8 +223,16 @@ def ebnf_problems(text: str) -> list:
 
 
 def check_ebnf():
-    """files/fusion.ebnf names every keyword and reserved word of the lexer (src/lexer/keywords.py)."""
+    """files/fusion.ebnf names every keyword and reserved word of the lexer (src/lexer/keywords.py), and its page
+    files/fusion.ebnf.html is what tools/ebnf_html.py writes from it."""
     problems = ebnf_problems((ROOT / 'files' / 'fusion.ebnf').read_text(encoding='utf-8'))
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('ebnf_html', ROOT / 'tools' / 'ebnf_html.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    page = module.build_page(module.EBNF.read_text(encoding='utf-8'))
+    if not module.PAGE.exists() or module.PAGE.read_text(encoding='utf-8') != page:
+        problems.append('files/fusion.ebnf.html is out of date - fix: python tools/ebnf_html.py')
     return not problems, 'in step' if not problems else f'{len(problems)} missing', '\n'.join(problems)
 
 

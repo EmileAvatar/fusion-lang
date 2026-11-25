@@ -47,6 +47,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md) | What works now, with examples (each becomes a program in [examples/](examples/)) |
 | [files/fusion-language-spec.md](files/fusion-language-spec.md) | Moved to [files/spec/](files/spec/index.md) - only "Moved to" notes left (Task 51.5) |
 | [files/fusion.ebnf](files/fusion.ebnf) | The grammar - built rules, then the PLANNED ones; synced 2026-11-25, the "ebnf" check keeps the keywords in it |
+| [files/fusion.ebnf.html](files/fusion.ebnf.html) | The grammar as a page to read (open in a browser): each entry's task, its status in colour, its comment and its rules, with an index - written by tools/ebnf_html.py |
 | [files/Compiler_and_Commands.md](files/Compiler_and_Commands.md) | A draft map: every job of the compiler, the `console` app's commands, the IDE and other apps - from 35 languages' tools (to plan what to add) |
 | [files/Symbols.md](files/Symbols.md) | Every symbol (`.` `<>` `=` `==` `:` `;` arrows ...) - its job in Fusion and in other languages, the Rust call-chain example explained, the symbols with more than one job (to review - keep syntax consistent) |
 | [files/Builtins.md](files/Builtins.md) | Every built-in function and method (generated) |

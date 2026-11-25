@@ -141,6 +141,7 @@ python check.py --example wordcount  # build, run, compare one example
 python check.py --builtins           # rewrite files/Builtins.md after adding a built-in
 python tools/editors/build_grammar.py --vsix   # rewrite the editors' grammar after a keyword change (+ VS Code package)
 python check.py --runtime            # rewrite runtime/fusion_runtime.h after changing the C run-time
+python tools/ebnf_html.py            # rewrite files/fusion.ebnf.html after changing files/fusion.ebnf
 python check.py --selfhost           # the Fusion-written compiler vs the Python one, tier 1 (28.7)
 python check.py --fix-ascii          # non-ASCII -> \uXXXX where the meaning is unchanged
 python tools/patch.py edits.py       # exact (file, old, new) edits, all or nothing
