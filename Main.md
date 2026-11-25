@@ -64,6 +64,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/Ownership.md](files/Ownership.md) | Moves, borrows, readonly, one writer (Task 48); every rule as code in [files/showcase/Ownership.fusion](files/showcase/Ownership.fusion), for Claude the skill [.claude/skills/fusion-ownership](.claude/skills/fusion-ownership) |
 | [files/Object_Lifetime.md](files/Object_Lifetime.md) | When an object is freed; memory strategies; copies |
 | [files/Classes.md](files/Classes.md) | Visibility, constructors, static set-up (forms A-C), Default, ToString |
+| [files/Value_Structs.md](files/Value_Structs.md) | Structs as the value type, and built-in value structs - money and enums: a complicated thing used as one value; how other languages do it |
 | [files/Nullable_Values.md](files/Nullable_Values.md) | Null: `?.`, `??`, number conditions, `length()` on null |
 | [files/Arrays.md](files/Arrays.md) | Arrays, Lists, Maps: what each does, when to use it |
 | [files/Service.md](files/Service.md) | The `service` keyword - the reference |

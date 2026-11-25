@@ -210,6 +210,11 @@ Decided (in `Decisions.md`, a design document or `files/FEATURES.md`), not built
 | `allowReference` | `true` / `false` | `false` | `structB = byRef structA` - a struct borrowed, not copied; false: an error | 32.10a |
 | `shareableListBehaviour` | `cloneable` / `none` | `cloneable` | Objects in a struct's List when the struct is copied | files/Object_Lifetime.md log |
 
+#### [enums]
+| Setting | Values | Default | What it does | Decision / task |
+|---|---|---|---|---|
+| `upperCaseNames` | `false` / `true` / `strict` | `false` | An enum value's name not in capitals (`Mars`): false - allowed, no warning; true - a warning; strict - an error | 47.3, D.194 |
+
 #### [functions]
 | Setting | Values | Default | What it does | Decision / task |
 |---|---|---|---|---|

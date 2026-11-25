@@ -393,10 +393,10 @@ then each point is decided and solved completely. One line per section and per l
 		[DONE 2026-11-25] 47.6f Ranges in a match on a float or double (`case 0.0...0.49`) - ranges only (a test,
 			never ==), no overlap, an else required; found with it: a written number used as a double was the float
 			0.49f (0.49000000953674316) - now the number written
-	[ ] 47.3 An enum whose values carry fixed data (Java's `enum Planet(double mass)`):
-		`EARTH(5.976e24)`, read with a method for each field (`Planet.EARTH.mass()`); the data
-		is const and byVal, set once; the constructor is always private. An enum is always
-		const and static - `const static enum Planet` is accepted and changes nothing
+	[ ] 47.3 An enum as a built-in value struct (D.188-D.194, files/Value_Structs.md): each value a static const
+		struct - id (counted, or written `200, OK`), enumTypeName, the fields (`public const double mass` - EARTH.mass),
+		toString(), value(); an optional private constructor; methods; fromString / fromValue; no fields - a const
+		fixed array (EARTH[0]); `[enums] upperCaseNames` (false / true / strict); never on the heap, borrowed - next
 	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - files/Ownership.md, files/Service.md)
 		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
 		`fixed(10) string name`: at most 10 characters, kept inline - no heap
@@ -1069,8 +1069,8 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L7.9 A range in a number of steps (user, 2026-11-22 - Q.041, left out for now as it may confuse):
 			`for x in 0.0...2.5 step %5` - 5 equal steps, the size worked out (0.5)
 	L8 Types, enums and structs
-		[ ] L8.1 Enum values with fixed constants, built by the enum's private constructor:
-			`enum Planet { Mercury(3.7) ... }`, Planet.Mercury.gravity() / Planet.Mercury.Name
+		[MOVED to 47.3] L8.1 Enum values with fixed constants, built by the enum's private constructor -
+			now an enum as a built-in value struct (D.188-D.194)
 		[ ] L8.2 Struct settings (user, 2026-10-24): a struct is a value type and never null - it always
 			has a value, so it may hold an empty List / Map / string but never null. In
 			fusion.toml [structs]: holding List / Map (on by default - built), functions on
@@ -1084,6 +1084,10 @@ Each time a task or section is finished, this list is checked for items the curr
 			so a T without a condition can use what its type happens to have)
 		[ ] L8.8 Generics (from Task 33): named arguments to a generic; a Map's entries / keys looped inside a
 			generic for a Map type written nowhere else in the program
+		[ ] L8.9 A struct made while the program runs (user, 2026-11-25): from a CSV file or the records of a database
+			query - the headings become the fields, each row one struct's data, all the rows in an array; the developer
+			loops through it row by row, reading each field by name (`for row in sales` / `row.amount`); with the data
+			formats module (43.2) and files/Value_Structs.md
 	L9 Errors
 		[ ] L9.1 `?` after a call: return its error from this function at once (`loadConfig("x")?`)
 		[POSTPONED - with each feature] L9.2 More error types (Task 26 list, 2026-10-16): NetworkError /

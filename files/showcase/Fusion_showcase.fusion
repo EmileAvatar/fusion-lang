@@ -591,19 +591,24 @@ enum Expr {
 // [rejected] One central ERROR enum for every error - errors are types, each with its own
 //            name (Task 26.10, user decision)
 
-// [designed] Enum values with fixed constants, built by the enum's private constructor
-//            (user, 2026-10-23): Planet.Mercury.gravity() is 3.7, Planet.Mercury.Name is
-//            "Mercury". Values written in (...) are constants; types in (...) declare data
+// [designed] An enum as a built-in value struct (47.3, D.188-D.194, files/Value_Structs.md): each value a
+//            static const struct - id (counted, or written 200, OK), enumTypeName, its fields, toString(), value();
+//            never on the heap, a variable borrows it; fromString / fromValue; [enums] upperCaseNames
 enum Planet {
-    Mercury(3.7)
-    Earth(9.8)
-    Mars(3.71)
+    MERCURY(3.303e23, 2.4397e6, "Mercury")
+    EARTH(5.976e24, 6.37814e6, "Earth"), 200
+    201, MARS(6.421e23, 3.3972e6, "Mars")
 
-    private double g
-    private constructor(double g) {
-        this.g = g
+    public const double mass                   // EARTH.mass, p.mass - never set
+    public const double radius
+    public const string name
+    private Enum(double m, double r, string n) {   // optional - else the fields filled in order
+        this.mass = m
+        this.radius = r
+        this.name = n
     }
-    double function gravity() : g
+    double function gravity(double kg) : 6.67e-11 * mass * kg / (radius * radius)
+    string function toString() : name          // else EARTH
 }
 
 double function area(Shape s) {

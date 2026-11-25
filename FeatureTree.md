@@ -188,7 +188,7 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - Enums with fixed data, FusionType enum [planned]
+   - Enums as value structs [designed]  fields, ids (200, OK), constructor, methods, toString - 47.3; FusionType enum [planned]
    - fixed(n) [planned]              max size: fixed(10) string name
    - Operator overloading [design]   a setting, off
    - Flag enums [design]             Read | Write

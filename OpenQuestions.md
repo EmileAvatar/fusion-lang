@@ -30,6 +30,7 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
+Earlier: Q.062-Q.066 (an enum as a built-in value struct: fields, ids, constructor, toString, capitals) answered 2026-11-25: Decisions.md D.188-D.194, files/Value_Structs.md.
 Earlier: Q.058 (money 16 bytes - a 4-byte symbol), Q.059 (A - one money, a long), Q.060 (halfEven in fusion.toml; the
 rules in the Currency module) and Q.061 (the symbol for display only) answered 2026-11-24: Decisions.md D.184-D.187.
 Earlier: Q.053 (int128 / int256, signed), Q.054 (a fixed 3-character currency, never on the heap), Q.055 (B - the scale is how
@@ -55,6 +56,6 @@ namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a 
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.062.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.067.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->
