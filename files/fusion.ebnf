@@ -1,768 +1,541 @@
 (* ===================================================================== *)
-(* 🏗️ Fusion Programming Language - EBNF Grammar                        *)
-(* Version: 1.0                                                          *)
-(* Specification: No semicolons + Indentation-based blocks              *)
+(* Fusion Programming Language - EBNF Grammar                             *)
 (*                                                                       *)
-(* NOTE: Semicolons (;) in this grammar are EBNF meta-syntax notation   *)
-(*       (rule terminators). The Fusion language itself has NO          *)
-(*       semicolons - statements are terminated by newlines.            *)
+(* No version number until the compiler hosts itself (FEATURES 35.7).   *)
+(* Synced with the Python compiler 2026-11-25: src/lexer/ (tokens,       *)
+(* keywords.py), src/parser/parser.py, files/SYNTAX_REFERENCE.md and     *)
+(* Decisions.md. The "ebnf" check in check.py fails when a keyword or    *)
+(* reserved word of the lexer is missing here.                           *)
+(*                                                                       *)
+(* Every rule above the PLANNED part is BUILT - the parser reads it.     *)
+(* Rules for what is designed but not built are in the PLANNED part at   *)
+(* the end, each with its task; the lexer may already read their tokens. *)
+(*                                                                       *)
+(* NOTE: the ";" ending each rule is EBNF notation. Fusion itself has no *)
+(* semicolons - a statement ends at the end of its line.                 *)
 (* ===================================================================== *)
 
-(* LINE BREAKS: inside ( ) and [ ] a line break only continues the line - the lexer makes  *)
-(* no NEWLINE, INDENT or DEDENT there (Task 44.3), so expressions may span lines.          *)
+(* ========== Layout and block styles ========== *)
 
-(* ========== Program Structure ========== *)
+(* Three block styles, mixed freely (SYN.001):
+   1. indentation (Python): INDENT ... DEDENT
+   2. braces (C):           { ... }
+   3. End (VB.NET):         the block, then "End" and its word - End if, End for, End function
+   "End" may follow an indented or braced block as well; "end" is a keyword too (SYN.041).
+   Inside ( ) and [ ] a line break only continues the line - no NEWLINE, INDENT or DEDENT
+   there (Task 44.3), so an expression may span lines. *)
 
-(* A variable or constant outside any function (Task 44.1): `int count = 0`,
-   `const int LIMIT = 3`, `public string version = "1.0"` *)
-(* Task 32.2h - the file's first line, before the imports *)
-namespace_line = "namespace" identifier { "." identifier } NEWLINE ;
+block = INDENT { statement } DEDENT
+      | "{" { statement } "}" ;
 
-(* Task 32.2h: private on a top-level struct, class, enum, error type or function is an error *)
-module_variable =
-    [ "public" | "internal" | "private" ] ( "const" type identifier "=" expression
-                             | type identifier [ "=" expression ] ) NEWLINE ;
+end_marker = [ NEWLINE ] ( "End" | "end" ) ;      (* then the block's word: if, for, while ... *)
 
-program = {
-    statement
-    | module_variable           (* Task 44.1 *)
-    | template_declaration      (* Task 29.3 *)
-    | function_declaration
-    | class_declaration
-    | struct_declaration
-    | interface_declaration
-    | enum_declaration
-    | error_declaration
-    | import_statement
-} ;
+(* ========== Program ========== *)
 
-(* Task 18.4.2: imports come first in a file. import money / import money.Price /
-   import money.* / import lib.utils as libutils. A module is a folder next to the main
-   file; it is used by the last part of its path (shapes.area for geometry.shapes) *)
-import_statement = "import" module_path [ "." "*" | "as" identifier ] newline ;
+program = [ namespace_line ] { import_statement } { top_level } ;
 
+namespace_line = "namespace" identifier { "." identifier } NEWLINE ;      (* Task 32.2h *)
+
+(* Task 18.4.2: import money / import money.Price / import money.* / import lib.utils as u.
+   A module is a folder next to the main file *)
+import_statement = "import" module_path [ "." "*" | "as" identifier ] NEWLINE ;
 module_path = identifier { "." identifier } ;
 
-(* A struct from another module in a type: money.Price p *)
-qualified_type = identifier { "." identifier } ;
+top_level =
+      [ visibility ] ( function_declaration
+                     | class_declaration
+                     | struct_declaration
+                     | interface_declaration
+                     | enum_declaration
+                     | error_declaration
+                     | module_variable )
+    | template_declaration                                   (* Task 29.3 *)
+    | statement ;
+
+(* public / internal before a top-level item; private only on a module variable (32.2h) *)
+visibility = "public" | "internal" | "private" ;
+
+(* Task 44.1, 46.1: a variable or constant outside any function *)
+module_variable =
+      "const" type identifier "=" expression
+    | type identifier [ "=" expression ]
+    | ( "let" | "var" ) identifier [ "=" expression ] ;
 
 (* ========== Functions ========== *)
 
+(* `int function add(int a, int b) : a + b`; `Ship, Error function load()` can fail (Task 26);
+   `readonly Engine function getEngine()` - a readonly result (Task 50.1, D.110);
+   `T function first<T>(List<T> items)` - generic (Task 33, D.166) *)
 function_declaration =
-    [ "async" ] return_type [ "," "Error" ] "function" identifier
-    "(" [ parameter_list ] ")"
-    ( block | end_function_block | ":" expression ) ;
-    (* Task 26: `Ship, Error function f()` and `Error function f()` (no value) can fail -
-       `return Error(...)` fails; an error nobody captures bubbles up to the caller *)
+    [ "readonly" ] result_type [ "," "Error" ] ( "function" | "func" )
+    function_name [ type_parameters ] "(" [ parameter_list ] ")"
+    ( ":" expression NEWLINE                      (* one expression - its value is returned *)
+    | ":" block
+    | block )
+    [ end_marker "function" ] ;
 
-end_function_block =
-    newline { statement } "End" "function" ;
+function_name = identifier | primitive_type | "get" | "set" ;   (* get / set: a List of your own, D.174 *)
 
-return_type =
-    type_name { "," type_name } ;  (* Single or multiple returns *)
+result_type = type | "Error" ;                    (* `Error function save()` - fails, no value *)
 
-parameter_list =
-    parameter { "," parameter } [ "," ] ;  (* Trailing comma allowed *)
+parameter_list = parameter { "," parameter } [ "," ] ;
 
+(* let (46.1): never changed inside; readonly (32.2e): never changed, stands alone;
+   byVal / byValue: a copy; byRef: shared (32.10a); `string... args`, `T... items` - any
+   number of values (18.5.4, 33.2e); `int numbers[]` - brackets after the name (D.141) *)
 parameter =
-    [ "let" | "var" | "readonly" ] [ passing ] type_name identifier [ "=" expression ] ;
-    (* let: 46.1; readonly (32.2e): never changed - a word, special only before a type;
-       it stands alone, without let / var / byVal / byRef *)
+    [ "let" | "var" ] [ "readonly" | passing ] type [ "..." ] parameter_name
+    [ array_brackets ] [ "=" expression ] ;
 
-(* Task 32.10a: a List / Map is shared in normal code and copied in a struct; byVal copies,
-   byRef shares. Words, not keywords - special only before a value or a type *)
-passing = "byVal" | "byValue" | "byRef" ;
+parameter_name = identifier | primitive_type | "end" ;
 
-(* Main function entry point - Optional for programs, not required for libraries *)
-(* Standard signature convention for executable programs *)
-main_function =
-    "void" "function" "main" "(" "string" "..." "args" ")" block ;
+passing = "byVal" | "byValue" | "byRef" ;          (* words, special only before a type or a value *)
 
-(* ========== Lambdas (Anonymous Functions) ========== *)
+(* Task 33, D.166-D.167: <T>, <K, V>; a condition per name - `T extends Vehicle` / `T : Vehicle`
+   (a class, a struct, Number or a basic type), `T implements Comparable, Printable`, or both,
+   extends first. After implements, a name after a comma starts the next type parameter when it
+   is one capital letter (and digits): <T implements Comparable, K> *)
+type_parameters = "<" type_parameter { "," type_parameter } ">" ;
+type_parameter = identifier [ ( "extends" | ":" ) type ] [ "implements" identifier { "," identifier } ] ;
 
-(* Lambda is a variable that holds a function *)
-lambda_declaration =
-    [ "func" | "function" ]
-    type_name identifier "(" [ parameter_list ] ")"
-    lambda_body ;
-
-lambda_body =
-    ":" expression                    (* Single-line *)
-    | ":" block                       (* Multi-line with indentation *)
-    | ":" brace_block ;              (* Multi-line with braces *)
-
-(* Function type annotation for parameters *)
-function_type =
-    "(" [ type_list ] ")" ( ":" | "->" ) type_name ;
-
-(* COLON DISAMBIGUATION:
-   - In function declarations: separates body from signature (inline lambda)
-     Example: int add(int x, int y) : x + y
-   - In function types: separates parameters from return type
-     Example: (int, int) : int
-   - In match cases: separates pattern from body
-     Example: case 0 : print("zero")
-   - Context determines meaning; parser uses lookahead to disambiguate
-*)
+(* The entry point: `void function main()` or `void function main(string... args)` *)
 
 (* ========== Types ========== *)
 
-(* Task 18.5: the built-in collections are the generic types for now -
-   List<T>, Map<K, V> (Dictionary<K, V> is the same type); user-written generics come later.
-   An empty one in an expression: List<int>() *)
-type_name =
-    primitive_type
-    | class_type
-    | generic_type
-    | array_type
-    | pointer_type
+type =
+      primitive_type [ array_suffix ]
+    | named_type [ array_suffix ]
     | function_type ;
 
-(* Task 18.3.8: byte is one raw byte, 0-255; "bytes" (a growable byte array) is a built-in
-   type name rather than a keyword *)
-primitive_type =
-    "int" | "float" | "double" | "string" | "bool" | "char"
-    | "byte" | "bytes" | "short" | "long" | "void" ;
+(* byte: 0-255 (18.3.8); short / long: 16 / 64 bits (47.1); bytes: raw binary data, a
+   built-in type name, not a keyword *)
+primitive_type = "int" | "long" | "short" | "byte" | "float" | "double"
+               | "bool" | "char" | "string" | "void" ;
 
-class_type = identifier ;
-    (* Implemented for structs (Task 18.2.1): a plain identifier in a type position names a
-       struct. The parser can't know which structs exist (one may be declared later in the
-       file), so an unknown name is reported by the name resolver, not the parser. *)
+(* A struct, class, enum, interface or error type - `money.Price` from another module;
+   List<T>, Map<K, V> (Dictionary<K, V> the same), Collection<T>, Iterator<T>, Entry<K, V>
+   and a generic struct / class, Pair<int, string> (Task 33) *)
+named_type = qualified_name [ "<" type { "," type } ">" ] | "bytes" ;
+qualified_name = identifier { "." identifier } ;
 
-generic_type =
-    identifier "<" type_list ">" ;
+(* `(int, int) : int` or `(int, int) -> int` - a variable or parameter holding a function (18.1.3) *)
+function_type = "(" [ type { "," type } ] ")" ( ":" | "->" ) type ;
 
-type_list =
-    type_name { "," type_name } ;
+(* Arrays (Task 45, D.141-D.153): int[5], int[] (its size from its values); up to 3 dimensions,
+   int[2][3] or int[2],[3] (D.143); growable: int:[], int:[10] (10 slots made ahead),
+   int:[2][3], or int[[]], int[[2],[3]] (45.3, 45.12d) *)
+array_suffix =
+      array_brackets
+    | ":" "[" [ integer_literal ] "]" { [ "," ] "[" [ integer_literal ] "]" }
+    | "[" "[" [ integer_literal ] "]" { "," "[" [ integer_literal ] "]" } "]" ;
 
-array_type =
-    type_name "[" [ expression ] "]" ;
-    (* Implemented (Task 9 v1): [ expression ] is restricted to an integer literal, e.g.
-       int[5] - an arbitrary size expression (int[n]) is not yet supported. Nesting
-       array_type inside itself (int[][], multi-dimensional) is not yet supported either -
-       both raise a clear parser error. Arrays are valid as function parameters (by
-       reference, Task 18.1.2) and as return types when sized - int[3], not int[] (Task
-       18.2.4). *)
-
-pointer_type =
-    "Unique" "<" type_name ">"
-    | "Shared" "<" type_name ">"
-    | "Weak" "<" type_name ">" ;
-
-(* ========== Blocks ========== *)
-
-(* Three block styles supported:
-   1. Indentation-based (Python-style): INDENT ... DEDENT
-   2. Brace-based (C-style): { ... }
-   3. End keyword (VB.NET-style): ... End <keyword>
-*)
-
-block =
-    INDENT { statement } DEDENT ;
-
-brace_block =
-    "{" { statement } "}" ;
+array_brackets = "[" [ integer_literal ] "]" { [ "," ] "[" [ integer_literal ] "]" } ;
 
 (* ========== Statements ========== *)
 
 statement =
-    variable_declaration
-    | template_declaration      (* Task 29.3 *)
-    | lambda_declaration
+      variable_declaration
+    | template_declaration
     | assignment
     | if_statement
-    | loop_statement
+    | for_statement
+    | foreach_statement
+    | while_statement
     | match_statement
     | try_statement
     | throw_statement
     | unchecked_statement
     | return_statement
-    | break_statement
-    | continue_statement
-    | expression_statement ;
+    | "break"
+    | "continue"
+    | block
+    | expression ;                     (* a call: print("hi"), list.add(3) *)
 
+(* `int x = 5`; `int numbers[] = [1, 2]` (D.141); `fixed int[3] top` - never changes size (45.14);
+   `Ship s, err = load()` / `Ship s, Error err = load()` - capture an error (Task 26);
+   a set-up block right after the value sets the variable up and changes nothing else (32.2d) *)
 variable_declaration =
-    type_name identifier [ "=" expression ]    (* Explicit type required *)
-    | type_name identifier "," [ "Error" ] identifier "=" expression   (* capture, Task 26 *)
-    | "const" type_name identifier "=" expression    (* Constants must be initialized *)
-    | ( "let" | "var" ) identifier [ "=" expression ] ;
-    (* Task 46.1: the type comes from the value; let is set once and never changes, var can
-       change. Without a value: set before it is read on every path, a let exactly once *)
+      [ "fixed" ] type identifier [ array_brackets ] [ "=" expression [ block ] ]
+    | type identifier "," [ "Error" ] identifier "=" expression
+    | "const" type identifier "=" expression [ block ]
+    | ( "let" | "var" ) identifier [ "=" expression [ block ] ] ;
+    (* let: set once, never changed; var: may change - the type from the value (46.1).
+       Without a value: set before it is read on every path, a let exactly once *)
 
-(* Task 29.3: a fixed text that works as a function - greet("Ann", 30) fills its {@N}.
-   `template` is a contextual word: special only before "string" and a name *)
-template_declaration =
-    "template" "string" identifier "=" string_literal ;
+(* Task 29.3: a fixed text that works as a function - greet("Ann", 30) fills its {@N} *)
+template_declaration = "template" "string" identifier "=" string_literal ;
 
-assignment =
-    identifier assignment_operator expression ;
+(* The target: a variable, an element, a field - x = 1, a[0] = 1, m["k"] = 2, p.x = 3.
+   Assignment is a statement, never an expression; only "=" (no += - PLANNED) *)
+assignment = postfix "=" expression ;
 
-assignment_operator =
-    "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" ;
+return_statement = "return" [ expression { "," expression } ] ;
 
-return_statement =
-    "return" [ expression { "," expression } ] ;
+throw_statement = "throw" expression ;                        (* an Error - Task 26.3 *)
 
-break_statement = "break" ;
+(* Task 27.2d: whole-number + - * inside wrap around instead of an OverflowError;
+   `unchecked` is a word only before a block *)
+unchecked_statement = "unchecked" block [ end_marker "unchecked" ] ;
 
-continue_statement = "continue" ;
+(* ========== Control flow ========== *)
 
-expression_statement = expression ;
-
-(* ========== Control Flow ========== *)
-
+(* Inside a condition (if, else if, while) "=" compares, the same as "==" (Task 18.3.5) *)
 if_statement =
-    "if" condition ( block | end_if_block )
-    { "else" "if" condition ( block | end_if_block ) }
-    [ "else" ( block | end_else_block ) ] ;
+    "if" expression block
+    { "else" "if" expression block }
+    [ "else" block ]
+    [ end_marker "if" ] ;
 
-(* Task 18.3.5: inside a condition "=" compares, the same as "==" (if x = 2) *)
-condition =
-    expression ;
+(* `for i in 1...10`, `for i in 0...13 step 5` (33.2f-g, D.169-D.170): both ends included;
+   a negative step counts down. `for x in list` / `for i in range(0, 10)` *)
+for_statement = "for" identifier "in" iterable block [ end_marker "for" ] ;
 
-end_if_block =
-    newline { statement } "End" "if" ;
+(* Task 32.4: `foreach (string n in names)` or `foreach n in names` - an array, List, Map (its
+   keys) or a class implementing Collection<T>; `foreach` is a word, not a keyword *)
+foreach_statement =
+    "foreach" ( "(" [ type ] identifier "in" iterable ")" | identifier "in" iterable )
+    block [ end_marker ( "foreach" | "for" ) ] ;
 
-end_else_block =
-    newline { statement } "End" "if" ;
+iterable = expression [ "..." expression [ "step" expression ] ] ;
 
+while_statement = "while" expression block [ end_marker "while" ] ;
+
+(* Task 25.3: a match statement - indented, braced or closed by End match. A case body is a
+   block, or one statement after ":". `fall match` falls through until break (30.13) *)
 match_statement =
-    [ "fall" ] "match" expression { NEWLINE }     (* fall: falls through until break (30.13) *)
-    ( INDENT match_cases DEDENT [ "End" "match" ]
-    | "{" match_cases "}" ) ;
-    (* Implemented (Task 25.3). No fall-through. break in a case ends the match;
-       continue acts on the loop around it (Task 30.12) *)
-
-match_cases = match_case { match_case } [ ( "else" | "_" | "case" "_" ) case_body ] ;
-
-(* Task 46.2 - form A: a match that gives a value. One value per case (no code; a call may
-   fetch it), every value covered, never falls through; "_" (preferred) or "else" for the
-   rest. Form B is match_statement above, which can't be assigned *)
-match_expression =
-    "match" expression { NEWLINE }
-    ( "{" match_value_case { ( "," | NEWLINE ) match_value_case } "}"
-    | INDENT match_value_case { NEWLINE match_value_case } DEDENT ) ;
-
-match_value_case = ( pattern { "," pattern } | "_" | "else" ) ":" expression ;
+    [ "fall" ] "match" expression
+    ( INDENT match_case { match_case } [ match_else ] DEDENT
+    | "{" match_case { match_case } [ match_else ] "}" )
+    [ end_marker "match" ] ;
 
 match_case = "case" pattern { "," pattern } case_body ;
+match_else = ( "else" | "_" | "case" "_" ) case_body ;
+case_body  = ":" statement | block ;
 
-case_body = ":" statement | block ;
+(* Task 46.2: a match that gives a value - one value per case, never falls through:
+   string day = match n { 6, 7 : "Weekend", _ : "Weekday" } *)
+match_expression =
+    "match" expression
+    ( "{" value_case { ( "," | NEWLINE ) value_case } "}"
+    | INDENT value_case { NEWLINE value_case } DEDENT ) ;
+value_case = ( pattern { "," pattern } | "_" | "else" ) ":" expression ;
 
+(* An enum value - bare: Red, Circle(r) (its data, in field order; _ skips one - 25.4);
+   an error type: MissingConfig, files.FileError (26.10); a constant: 42, -1, 'x', "go";
+   a range: 0...9, 'a'...'z' (both ends included - 33.2f); null - at most one (30.12) *)
 pattern =
-    identifier [ "(" identifier { "," identifier } ")" ]   (* an enum value, bare *)
-    | identifier { "." identifier }                       (* an error type, Task 26.10 *)
-    | [ "-" ] literal                                      (* int, byte, char, string *)
-    | "null" ;                                             (* at most one (Task 30.12) *)
-    (* On an enum every value needs a case unless there is an else (missing ones are named
-       in the error); on an int / byte / char / string an else is required. A value can't
-       be handled twice. The ( names ) get copies of an enum value's data, in field order;
-       _ skips one (Task 25.4) *)
+      identifier [ "(" identifier { "," identifier } ")" ]
+    | identifier "." identifier { "." identifier }
+    | unary [ "..." unary ]
+    | "null" ;
 
-(* ========== Loops ========== *)
-
-loop_statement =
-    for_loop | while_loop | loop_infinite ;
-
-for_loop =
-    "for" identifier "in" expression block "end" "loop" ;
-
-while_loop =
-    "while" condition block "end" "loop" ;
-
-loop_infinite =
-    "loop" block "end" "loop" ;
-
-(* ========== Error Handling ========== *)
-
+(* Task 26.3, 26.11: catches, a finally, or both. `catch FileError e` takes a FileError or a
+   subtype; `catch e` - any error, last *)
 try_statement =
     "try" block
-    { "catch" [ [ type_name ] identifier ] block }
+    { "catch" [ [ qualified_name ] identifier ] block }
     [ "finally" block ]
-    [ "End" "try" ] ;
-    (* Implemented (Tasks 26.3, 26.11). Catches, a finally, or both. `catch FileError e`
-       takes a FileError or a subtype; `catch e` / `catch` any error (it must be last); the
-       first matching catch runs; finally runs on every way out *)
+    [ end_marker "try" ] ;
 
-throw_statement = "throw" expression ;      (* an Error - Task 26.3 *)
+(* ========== Expressions (lowest precedence first) ========== *)
 
-unchecked_statement = "unchecked" block [ "End" "unchecked" ] ;
-    (* Task 27.2d: whole-number + - * inside wrap around instead of raising OverflowError;
-       `unchecked` is a word only before a block *)
+expression = conditional ;
 
-(* ========== Expressions ========== *)
+(* Task 30.7: (count > 5) ? "big" : "small" - nests to the right *)
+conditional = coalesce [ "?" conditional ":" conditional ] ;
 
-expression =
-    conditional ;
+(* Task 52.8: a ?? b - a, or b when a is null; groups to the right *)
+coalesce = logical_or [ "??" coalesce ] ;
 
-(* Task 30.7: (condition) ? a : b - nests to the right *)
-conditional =
-    logical_or [ "?" conditional ":" conditional ] ;
+logical_or  = logical_and { ( "or" | "||" ) logical_and } ;
+logical_and = equality { ( "and" | "&&" ) equality } ;
 
-logical_or =
-    logical_and { ( "or" | "||" ) logical_and } ;
-
-logical_and =
-    equality { ( "and" | "&&" ) equality } ;
-
-(* x == null, x != null (also === / !==) and x is null / x is not null are null tests
-   (Task 30.11); `is` with a type comes later *)
+(* == != compare values; === !== value and type (18.3.5); "=" compares only in a condition.
+   x == null / x is null / x is not null - null tests (30.11); x is Circle - a type test (32.5a) *)
 equality =
-    comparison { ( "==" | "!=" | "===" | "!==" | "<>"
-                 | "=" (* only inside a condition *) ) comparison }
-    [ "is" [ "not" ] "null" ] ;
+    comparison { ( "==" | "!=" | "===" | "!==" | "=" ) comparison }
+    [ "is" [ "not" ] ( "null" | type ) ] ;
 
-comparison =
-    range { ( "<" | ">" | "<=" | ">=" ) range } ;
-
-range =
-    additive [ "..." additive [ "..." additive ] ] ;  (* Range operator *)
-
-additive =
-    multiplicative { ( "+" | "-" ) multiplicative } ;
-
-multiplicative =
-    exponential { ( "*" | "/" | "%" ) exponential } ;
-
-exponential =
-    unary { "**" unary } ;
+comparison     = additive { ( "<" | ">" | "<=" | ">=" ) additive } ;
+additive       = multiplicative { ( "+" | "-" ) multiplicative } ;
+multiplicative = unary { ( "*" | "/" | "%" ) unary } ;
 
 unary =
-    ( "!" | "not" | "-" | "+" | "++" | "--" ) unary
+      ( "-" | "!" | "not" ) unary
+    | "(" type ")" unary                       (* a cast in front: (Shape)aCircle - D.082 *)
+    | passing unary                            (* byVal a - a copy; byRef a - shared (32.10a) *)
+    | "readonly" unary                         (* f(readonly a) - the caller's demand (48.3) *)
     | postfix ;
 
 postfix =
-    primary {
-        "(" [ argument_list ] ")"          (* Function call - implemented *)
-        | "[" expression "]"               (* Array index - implemented (Task 9 v1) *)
-        | "?[" expression "]"              (* Safe array index - not yet implemented *)
-        | "." identifier                   (* Member access - struct fields (Task 18.2.1); followed by
-                                              "(...)" on a built-in type it is a method call:
-                                              name.toUpper(), 255.toHex(), String.toUpper(name)
-                                              (Task 18.3.7). A "." followed by a letter ends a
-                                              number literal *)
-        | "?." "null"                      (* x?.null - "x is null" (Task 30.11) *)
-        | "?." identifier                  (* the null guard on a member / method - Task 30.2 *)
-        | "++" | "--"                      (* Post increment/decrement - not yet implemented *)
-    } ;
-    (* Arrays are not nullable in Task 9 v1, so "?[", "?.", and null-check don't apply
-       to arrays yet, and "." is only for struct fields (arr.length is Task 14) - see the deferred nullability task noted under Task 9 in
-       files/taskSummary2.md, tracked alongside Task 12.7's memory model work. len(arr) is the
-       only way to get an array's size for now, as a builtin function call, not new syntax. *)
+    primary [ "<" type { "," type } ">" ]      (* first<int>(xs), Box<int>.made - types written (33) *)
+    {   "(" [ argument_list ] ")"              (* a call *)
+      | "[" [ expression ] "]"                 (* an index; cube[][2] - a whole dimension, a view (D.149) *)
+      | "," "[" expression "]"                 (* m[1],[2] - the same as m[1][2] (D.143) *)
+      | "." member_name                        (* a field or method: p.x, name.toUpper(), 255.toHex() *)
+      | "?." "null"                            (* x?.null - the same as x is null (30.11) *)
+      | "?." member_name } ;                   (* the null guard on a member or method (52.8) *)
+
+member_name = identifier | keyword ;           (* after "." any word - m.get(k), x.set(...) *)
 
 primary =
-    literal
-    | identifier
-    | "(" expression ")"
-    | lambda_expression
-    | match_expression                    (* Task 46.2 *)
-    | passing primary                     (* byVal a - a copy; byRef a - shared, 32.10a *)
-    | "readonly" primary                  (* at a call: f(readonly a) - the caller's demand, 48.3 *)
+      literal
+    | identifier                               (* a type word too: a function named double *)
     | "this"
     | "null"
-    | "(" type_name ")" unary ;          (* a cast, written in front: (Shape)aCircle - D.082 *)
+    | "new" postfix                            (* new Car("Honda") - the same as Car("Honda") (32.10b) *)
+    | match_expression                         (* Task 46.2 *)
+    | ( "List" | "Map" | "Dictionary" ) "<" type { "," type } ">" "(" ")"   (* an empty one (18.5) *)
+    | "Entry" "<" type "," type ">"            (* Entry<string, int>("a", 1) - 32.6 *)
+    | lambda
+    | "(" expression ")" ;
 
-lambda_expression =
-    [ "func" | "function" ] "(" [ parameter_list ] ")" ":" expression ;
+(* Task 18.1.3: (int x, int y) : x + y, func(int x) : x * 2, function(int x) : x * 2 -
+   one expression; the result type from the body *)
+lambda = [ "func" | "function" ] "(" [ parameter_list ] ")" ":" expression ;
 
-argument_list =
-    argument { "," argument } [ "," ] ;  (* Trailing comma allowed *)
+argument_list = argument { "," argument } [ "," ] ;
 
-argument =
-    identifier "=" expression    (* Named argument - implemented (Task 18.2.2) *)
-    | expression ;
-    (* Named arguments may come in any order, after every unnamed one. Declared functions and
-       struct constructors only - not builtins or function values. Evaluated left to right
-       as written. *)
+(* Named arguments (18.2.2) in any order, after the unnamed ones - declared functions and
+   constructors only; evaluated left to right as written *)
+argument = identifier "=" expression | expression ;
 
 (* ========== Literals ========== *)
 
-literal =
-    integer_literal
-    | float_literal
-    | string_literal
-    | boolean_literal
-    | char_literal
-    | array_literal ;
+literal = integer_literal | float_literal | string_literal | char_literal
+        | boolean_literal | array_literal ;
 
-(* Task 18.3.6d: "_" may sit between two digits (1_000_000); hex, binary and octal
-   literals hold up to 32 bits and read as the bit pattern (0xFFFFFFFF is -1) *)
+(* "_" between digits (1_000_000); hex, binary and octal read as the bit pattern, up to 32 bits
+   (18.3.6d); past an int's range a number is a long (47.1); an optional L suffix *)
 integer_literal =
-    digits [ "L" | "l" ]
+      digits [ "L" | "l" ]
     | "0" ( "x" | "X" ) hex_digit { [ "_" ] hex_digit }
     | "0" ( "b" | "B" ) binary_digit { [ "_" ] binary_digit }
     | "0" ( "o" | "O" ) octal_digit { [ "_" ] octal_digit } ;
 
-digits = digit { [ "_" ] digit } ;
-hex_digit = digit | "a" | "b" | "c" | "d" | "e" | "f" | "A" | "B" | "C" | "D" | "E" | "F" ;
-binary_digit = "0" | "1" ;
-octal_digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
+float_literal = digits "." digits [ "f" | "F" | "d" | "D" ] ;      (* no exponent (3.2e5) yet *)
 
-float_literal =
-    digits "." digits [ ( "f" | "F" | "d" | "D" ) ] ;
+(* "Hello {name}" - interpolation; "{@1}" - print's / format's own arguments (18.2.2b);
+   \{ and \} - a brace itself (28.1.5) *)
+string_literal = '"' { string_character | escape_sequence | interpolation } '"' ;
+interpolation  = "{" ( "@" digits | expression ) "}" ;
 
-string_literal =
-    '"' { string_character | escape_sequence } '"' ;
-
-char_literal =
-    "'" ( character | escape_sequence ) "'" ;
+char_literal = "'" ( character | escape_sequence ) "'" ;     (* any Unicode character (18.3.2b) *)
 
 boolean_literal = "true" | "false" ;
 
-array_literal =
-    "[" [ expression { "," expression } [ "," ] ] "]" ;
-    (* Implemented (Task 9 v1), trailing comma allowed, exactly as written above *)
+array_literal = "[" [ expression { "," expression } [ "," ] ] "]" ;   (* also a List's or bytes' values *)
 
 escape_sequence =
-    "\\" ( "n" | "t" | "r" | "\\" | '"' | "'" | "0" | "{" | "}" )
-    | "\\u" hex_digit hex_digit hex_digit hex_digit ;
-    (* \{ and \} - a literal brace, not an interpolation (Task 28.1.5) *)
+      "\" ( "n" | "t" | "r" | "\" | '"' | "'" | "0" | "{" | "}" )
+    | "\u" hex_digit hex_digit hex_digit hex_digit ;          (* not a surrogate half *)
 
-(* ========== Classes and Interfaces ========== *)
+digits       = digit { [ "_" ] digit } ;
+digit        = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+hex_digit    = digit | "a" | "b" | "c" | "d" | "e" | "f" | "A" | "B" | "C" | "D" | "E" | "F" ;
+binary_digit = "0" | "1" ;
+octal_digit  = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
 
-(* Task 32.10b built: fields, methods, one constructor - `constructor(...)` or named like
-   the class; `new` optional before a call that makes an object. Not yet: inherits /
-   implements, access modifiers, static, properties *)
-(* Task 32.7: one parent; `extends` for `inherits`; abstract / sealed classes *)
+(* ========== Classes ========== *)
+
+(* Task 32.10b, 32.7: one parent - inherits or extends (D.083, D.084); abstract / sealed;
+   generic: class Box<T>, inherits Box<T> / Box<int> (33.3b), implements Collection<T>, List<T> *)
 class_declaration =
-    [ "abstract" | "sealed" ] "class" identifier
-    { ( "inherits" | "extends" ) identifier | "implements" interface_list }
-    class_body ;
+    [ "abstract" | "sealed" ] "class" identifier [ type_parameters ]
+    { ( "inherits" | "extends" ) identifier [ "<" type { "," type } ">" ]
+    | "implements" interface_name { "," interface_name } }
+    ( INDENT { class_member } DEDENT | "{" { class_member } "}" )
+    [ end_marker "class" ] ;
 
-new_expression = "new" call_expression ;    (* the same as the call itself *)
+interface_name = identifier [ "<" type { "," type } ">" ] ;
 
-(* Task 32.2c - statics: form A `static T NAME = value`; form B the same with a block after
-   the value (it changes NAME only); form C `static block` - any static of the class. A
-   static method has no `this`. Run A, B, C in order before main, classes by dependency *)
-(* Task 32.2d - form B on any variable: a block right after a declaration's value (a local,
-   `let` / `const`, a class field) sets that variable up; it changes nothing else *)
-setup_block = block ;
-
-static_member =
-    [ access_modifier ] { "const" | "static" } type_name identifier [ "=" expression [ block ] ]
-    | "static" block ;
-
-class_body =
-    INDENT { class_member } DEDENT ;
-
+(* Fields are private and functions public when nothing is written (Classes.md 1) *)
 class_member =
-    field_declaration
-    | constructor_declaration
-    | method_declaration
-    | property_declaration ;
+      [ access ] constructor
+    | [ access ] { "override" | "sealed" | "abstract" } method   (* virtual: an error - every function can be overridden *)
+    | [ access ] [ "nocopy" | "noshare" ] { "const" | "static" } field
+    | "static" block ;                         (* form C - the class's static set-up (32.2c) *)
 
-field_declaration =
-    [ access_modifier ] [ "static" ] type_name identifier [ "=" expression ] ;
+access = "public" | "private" | "internal" | "protected" ;
 
-constructor_declaration =
-    [ access_modifier ] "constructor" "(" [ parameter_list ] ")" block ;
+(* `constructor(...)` or named like the class: Car(...) (D.036) *)
+constructor = ( "constructor" | identifier ) "(" [ parameter_list ] ")" block ;
 
-method_declaration =
-    [ access_modifier ] [ "static" | "virtual" | "override" | "abstract" ]
-    function_declaration ;
+method = function_declaration ;                (* `this` is the object; abstract: no body *)
 
-property_declaration =
-    [ access_modifier ] type_name "property" identifier
-    INDENT
-        [ "get" block ]
-        [ "set" "(" identifier ")" block ]
-    DEDENT ;
+(* A field; with a value and a block after it - form B, the block sets it up (32.2c-d).
+   In a class `const` goes with `static`: const static Car CAR = Car() *)
+field = [ passing ] type identifier [ "=" expression [ block ] ] ;
 
-(* Task 18.4.3: "public" / "private" before a top-level struct or function; private is the
-   default; "protected" is reserved for classes *)
-access_modifier = "public" | "internal" | "private" | "protected" ;   (* internal: 32.2h *)
+(* ========== Interfaces ========== *)
 
-(* Task 32.5a - several parents (D.087); a body only with [interfaces] defaultMethods *)
+(* Task 32.5a: several parents (D.087); function signatures only - a body (a default method)
+   only with [interfaces] defaultMethods; public or internal *)
 interface_declaration =
-    "interface" identifier [ "implements" interface_list ]
-    INDENT { method_signature [ ":" expression | block ] } DEDENT ;
+    "interface" identifier [ "implements" interface_name { "," interface_name } ]
+    ( INDENT { interface_member } DEDENT | "{" { interface_member } "}" )
+    [ end_marker "interface" ] ;
 
-method_signature =
-    return_type "function" identifier "(" [ parameter_list ] ")" ;
-
-interface_list =
-    identifier { "," identifier } ;
+interface_member =
+    [ "public" | "internal" ] [ "readonly" ] type ( "function" | "func" ) identifier
+    "(" [ parameter_list ] ")" [ ":" expression | block ] ;
 
 (* ========== Structs ========== *)
 
+(* Task 18.2.1: a value type - the compiler makes its constructor, Name(...), every field in
+   order. Building on a struct (32.8): implements / extends / includes - its fields come first.
+   Generic: struct Pair<A, B> (33.2b). Methods only with [structs] functions = true (32.1) *)
 struct_declaration =
-    "struct" identifier [ ( "implements" | "extends" | "includes" ) identifier ] { NEWLINE }
-    ( INDENT { struct_member NEWLINE } DEDENT [ "End" "struct" ]     (* indentation / End style *)
-    | "{" { NEWLINE } { struct_member NEWLINE } "}" ) ;              (* brace style *)
-    (* Implemented (Task 18.2.1). Structs are value types: no operators or constructors - the
-       compiler generates one constructor, Name(...), taking every field in declaration order.
-       Methods (Task 32.1) with [structs] functions = true. Top level only.
-       Building on a struct (Task 32.8): its fields come first; extends / includes are
-       not keywords, only words read here. *)
+    "struct" identifier [ type_parameters ] [ ( "implements" | "extends" | "includes" ) identifier ]
+    ( INDENT { struct_member [ "," ] } DEDENT
+    | "{" { struct_member [ "," ] } "}" )
+    [ end_marker "struct" ] ;
 
-struct_member = struct_field | function_declaration ;   (* a method: `this` is the struct *)
+struct_member = struct_field | function_declaration ;
 
-struct_field =
-    type_name identifier [ "=" expression ] ;
-    (* Field types: int, float, double, bool, char, string, other structs (depth limited by
-       [structs] max_nesting_depth, Task 18.2.3), and fixed-size arrays of these (size
-       required). Array and struct fields can't have a written default. A default must be a
-       constant, like a parameter default: a
-       literal (not null) or a negated number literal. *)
+(* byRef: a List / Map shared when the struct is copied (32.10a); a default is a constant *)
+struct_field = [ "byRef" ] type identifier [ "=" expression ] ;
 
 (* ========== Error types (Task 26.9) ========== *)
 
+(* `error ConfigError : FileError` - every error type is an Error (message, code, where) plus
+   its parent's fields and its own; `error` is a word only at the top level *)
 error_declaration =
-    "error" identifier [ ":" type_name ] [ { NEWLINE } error_body ] ;
-    (* `error` is a word only at top level here. Every error type is an Error (message,
-       code, where) plus its parent's fields and its own *)
+    "error" identifier [ ":" qualified_name ]
+    [ INDENT { error_line } DEDENT [ end_marker "error" ]
+    | "{" { error_line } "}" ] ;
 
-error_body =
-    INDENT { error_line NEWLINE } DEDENT [ "End" "error" ]
-    | "{" { NEWLINE } { error_line NEWLINE } "}" ;
-
-error_line = ( "message" | "code" ) "=" literal      (* a default for that error type *)
+error_line = ( "message" | "code" ) "=" literal      (* that error type's default *)
            | struct_field ;
 
-(* ========== Enums ========== *)
+(* ========== Enums (Task 25) ========== *)
 
-enum_declaration =
-    ( "enum" | "Enum" ) identifier enum_body ;
-    (* Implemented (Task 25.2). Top level only; `public enum` for other modules *)
+enum_declaration = ( "enum" | "Enum" ) identifier enum_body ;
 
 enum_body =
-    ":" enum_values NEWLINE                                        (* one line *)
-    | { NEWLINE } INDENT enum_values DEDENT [ "End" "enum" ]       (* indentation / End *)
-    | { NEWLINE } "{" enum_values "}" ;                            (* braces *)
+      ":" enum_values NEWLINE                                   (* one line *)
+    | INDENT enum_values DEDENT [ end_marker "enum" ]
+    | "{" enum_values "}" ;
 
-enum_values = enum_value { [ "," | NEWLINE ] enum_value } ;
-    (* Commas are optional (user decision: they are redundant) *)
+enum_values = enum_value { [ "," | NEWLINE ] enum_value } ;    (* commas optional *)
 
-enum_value = identifier [ "(" struct_field { "," struct_field } ")" ]
-             [ "=" [ "-" ] integer_literal ] ;
-    (* A value's number defaults to the previous one + 1, from 0. Two values can't share a
-       name or a number. The data in ( ) - an enum with data (Task 25.4) - is made with
-       Token.Number(42) or named arguments, and read only through match. A value may hold
-       the enum itself (Task 25.5, Add(Expr left, Expr right)), except the first value *)
-    (* Use: Color.Red; Color.values() (a List); Color.fromString(text); c.toString() /
-       toString(c) gives the name, c.toInt() / toInt(c) the number. == / != only between
-       values of the same enum *)
+(* A value's number: the previous + 1, from 0. Data in ( ) - an enum with data (25.4), made with
+   Shape.Circle(2.0), read through match; it may hold the enum itself (25.5) *)
+enum_value = identifier [ "(" struct_field { "," struct_field } ")" ] [ "=" [ "-" ] integer_literal ] ;
 
-(* ========== Annotations ========== *)
+(* ========== Comments and lexical elements ========== *)
 
-annotation =
-    "@" identifier [ "(" [ annotation_arguments ] ")" ] ;
+single_line_comment = "//" { character } NEWLINE ;
+multi_line_comment  = "/*" { character } "*/" ;
+(* ' is a char literal ('c'), not a comment (SYN.031 - postponed) *)
 
-annotation_arguments =
-    annotation_argument { "," annotation_argument } ;
+identifier = ( letter | "_" ) { letter | digit | "_" } ;
+letter     = "a" .. "z" | "A" .. "Z" ;
+character  = ? any Unicode character ? ;
+string_character = ? any character except '"', "\", "{" and a line break ? ;
 
-annotation_argument =
-    identifier "=" expression
-    | expression ;
+NEWLINE = ? the end of a line (LF, CR or CRLF) - not inside ( ) or [ ] ? ;
+INDENT  = ? the lexer: the indentation grows after a NEWLINE ? ;
+DEDENT  = ? the lexer: the indentation shrinks - one per level ? ;
+(* Tabs and spaces: [source] tabWidth; blank lines and comment-only lines are skipped.
+   Invisible and bidirectional characters and look-alike names are rejected (19.6) *)
 
-(* ========== Async/Await ========== *)
+(* ========== Keywords (src/lexer/keywords.py) ========== *)
 
-async_expression = "await" expression ;
+(* A keyword can't be a name (after "." it may be a member name):
+   Control:      if else for while loop match case break continue return try catch finally
+                 throw go async await End end
+   Declarations: function func class struct interface enum Enum inherits implements property
+                 get set import new cast namespace
+   Modifiers:    public private internal protected static virtual override abstract sealed
+                 const let var service fixed Shared Weak
+   Types:        int long short byte float double bool char string void
+   Operators:    and or not is in
+   Values:       true false null this
+   Words special only in their place (names elsewhere): byVal byValue byRef readonly step
+   foreach fall unchecked template error extends includes constructor nocopy noshare super
+   message code _ (SYN.041)
 
-(* ========== Threading ========== *)
+   Reserved for a planned feature - an error as a name that says what for (Task 61, D.162):
+   check unsafe hotpath extern switch elif assert channel lock where defer comptime union
+   choice operator yield
+   Reserved for future use: module export using default typeof sizeof nameof select atomic
+   transaction goto delete volatile synchronized self base ref out mut move macro type record
+   trait impl *)
 
-goroutine_statement = "go" expression ;  (* Launch goroutine *)
+(* ========== Operator precedence (highest first) ========== *)
 
-channel_operation =
-    expression "<-" expression           (* Send to channel *)
-    | "<-" expression ;                  (* Receive from channel *)
-
-(* ========== Comments ========== *)
-
-single_line_comment =
-    ( "//" | "'" ) { character } newline ;
-
-multi_line_comment =
-    "/*" { character } "*/" ;
-
-(* ========== Lexical Elements ========== *)
-
-identifier =
-    ( letter | "_" ) { letter | digit | "_" } ;
-
-digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
-
-letter = "a" .. "z" | "A" .. "Z" ;
-
-character = ? any Unicode character ? ;
-
-string_character = ? any character except '"' and newline ? ;
-
-newline = ? newline character (LF, CR, or CRLF) ? ;
-
-whitespace = " " | "\t" | "\r" ;
-
-INDENT = ? increase indentation level ? ;
-    (* Generated by lexer when indentation increases after newline *)
-    (* Typically 4 spaces or 1 tab per level *)
-
-DEDENT = ? decrease indentation level ? ;
-    (* Generated by lexer when indentation decreases after newline *)
-    (* Can generate multiple DEDENT tokens if unindenting multiple levels *)
-
-(* Layout Rule: Statements are separated by newlines; blocks use INDENT/DEDENT *)
-(* Whitespace within lines is ignored except for tokenization *)
-(* No semicolons required - newline acts as statement terminator *)
-
-(* ========== Lexer Implementation Notes ========== *)
-
-(* Keyword vs Identifier Resolution:
-   - Keywords must be checked BEFORE identifiers in lexer
-   - Keywords are reserved and cannot be used as identifiers
-   - Use longest-match principle for multi-character operators
-   - Indentation tracking must maintain a stack of indentation levels
-*)
-
-(* Layout Lexer Algorithm:
-   1. Track current indentation level on stack (start with [0])
-   2. On newline followed by non-whitespace:
-      - Count leading spaces/tabs
-      - If indent > top of stack: push level, emit INDENT
-      - If indent < top of stack: pop levels, emit DEDENT for each
-      - If indent == top of stack: emit newline token
-   3. At EOF: emit DEDENT for each remaining level on stack
-   4. Ignore blank lines and lines with only comments
-*)
-
-(* Token Priority (for lexer rules):
-   1. Comments (// and /* */) - consume and skip
-   2. Keywords - exact match required
-   3. Identifiers - alphanumeric + underscore
-   4. Operators - longest match (e.g., '==' before '=')
-   5. Literals - strings, numbers, chars
-   6. Whitespace - space/tab (significant at line start for indentation)
-   7. Newlines - statement separator
-*)
-
-(* ========== Reserved Keywords ========== *)
-
-(* Control Flow: if, else, for, while, loop, end, break, continue, return, match, case *)
-(* Functions: function, func, async, await *)
-(* Classes: class, struct, interface, enum, inherits, implements *)
-(* Modifiers: public, private, protected, static, virtual, override, abstract, sealed *)
-(* Variables: var, const *)
-(* Literals: true, false, null, this *)
-(* Operators: and, or, not, is, in *)
-(* Types: int, float, double, string, bool, char, byte, short, long, void *)
-(* Memory: Unique, Shared, Weak *)
-(* Threading: go *)
-(* Error: try, catch, finally, throw, Error *)
-(* Other: import, new, cast, property, get, set *)
-
-(* ========== Reserved Operators ========== *)
-
-(* Default Syntax: : (colon for lambdas, type annotations) *)
-(* Alternative Syntax: -> (arrow, alternative to colon) *)
-(* Both : and -> are reserved and can be used interchangeably *)
-
-(* ========== Operator Precedence (Highest to Lowest) ========== *)
-
-(* 1. Postfix: () [] . ?. ++ -- *)
-(* 2. Unary: ! not - + ++ -- *)
-(* 3. Exponential: ** *)
-(* 4. Multiplicative: * / % *)
-(* 5. Additive: + - *)
-(* 6. Range: ... *)
-(* 7. Comparison: < > <= >= *)
-(* 8. Equality: == != === !== <> is, and = inside a condition *)
-(* 9. Logical AND: and && *)
-(* 10. Logical OR: or || *)
-(* 11. Assignment: = += -= *= /= %= **= *)
-
-(* ========== Sample Test Cases ========== *)
-
-(* Test Case 1: Simple inline lambda
-   int multiply(int x, int y) : x * y
-
-   Tokens: INT IDENTIFIER(multiply) LPAREN INT IDENTIFIER(x) COMMA INT IDENTIFIER(y) RPAREN COLON IDENTIFIER(x) STAR IDENTIFIER(y) NEWLINE
-   Parse: function_declaration -> lambda_declaration -> lambda_body (single expression)
-*)
-
-(* Test Case 2: Multi-line function with if statement
-   int compare(int a, int b)
-       if a < b
-           return -1
-       return 0
-
-   Tokens: INT IDENTIFIER(compare) LPAREN INT IDENTIFIER(a) COMMA INT IDENTIFIER(b) RPAREN NEWLINE INDENT IF IDENTIFIER(a) LT IDENTIFIER(b) NEWLINE INDENT RETURN MINUS INTEGER(1) NEWLINE DEDENT RETURN INTEGER(0) NEWLINE DEDENT
-   Parse: function_declaration -> block -> if_statement
-*)
-
-(* Test Case 3: Variable declaration with initialization
-   int count = 0
-
-   Tokens: INT IDENTIFIER(count) EQUALS INTEGER(0) NEWLINE
-   Parse: variable_declaration -> type_name identifier "=" expression
-*)
-
-(* Test Case 4: Multiple return types
-   int, Error divide(int a, int b)
-       if b == 0
-           return 0, Error("division by zero")
-       return a / b, null
-
-   Tokens: INT COMMA IDENTIFIER(Error) IDENTIFIER(divide) LPAREN INT IDENTIFIER(a) COMMA INT IDENTIFIER(b) RPAREN NEWLINE INDENT ...
-   Parse: function_declaration -> return_type (multiple) -> block -> if_statement -> return_statement (multiple expressions)
-*)
-
-(* Test Case 5: Generic type with trailing comma
-   List<int> numbers = [1, 2, 3,]
-
-   Tokens: IDENTIFIER(List) LT INT GT IDENTIFIER(numbers) EQUALS LBRACKET INTEGER(1) COMMA INTEGER(2) COMMA INTEGER(3) COMMA RBRACKET NEWLINE
-   Parse: variable_declaration -> generic_type -> array_literal (with trailing comma)
-*)
-
-(* Test Case 6: Class with method
-   class Calculator
-       int add(int x, int y) : x + y
-
-   Tokens: CLASS IDENTIFIER(Calculator) NEWLINE INDENT INT IDENTIFIER(add) LPAREN INT IDENTIFIER(x) COMMA INT IDENTIFIER(y) RPAREN COLON IDENTIFIER(x) PLUS IDENTIFIER(y) NEWLINE DEDENT
-   Parse: class_declaration -> class_body -> method_declaration -> inline lambda
-*)
-
-(* Test Case 7: Import statement
-   import math.utils
-
-   Tokens: IMPORT IDENTIFIER(math) DOT IDENTIFIER(utils) NEWLINE
-   Parse: import_statement -> module_path
-*)
-
-(* Test Case 8: Lambda expression in code
-   func comparator = (int a, int b) : a - b
-
-   Tokens: FUNC IDENTIFIER(comparator) EQUALS LPAREN INT IDENTIFIER(a) COMMA INT IDENTIFIER(b) RPAREN COLON IDENTIFIER(a) MINUS IDENTIFIER(b) NEWLINE
-   Parse: lambda_declaration -> lambda_body (single expression)
-*)
-
-(* Test Case 9: End function syntax (VB.NET-style)
-   int function factorial(int n)
-       if n <= 1
-           return 1
-       End if
-       return n * factorial(n - 1)
-   End function
-
-   Tokens: INT FUNCTION IDENTIFIER(factorial) LPAREN INT IDENTIFIER(n) RPAREN NEWLINE IF IDENTIFIER(n) LE INTEGER(1) NEWLINE RETURN INTEGER(1) NEWLINE END IF NEWLINE RETURN IDENTIFIER(n) STAR IDENTIFIER(factorial) LPAREN IDENTIFIER(n) MINUS INTEGER(1) RPAREN NEWLINE END FUNCTION
-   Parse: function_declaration -> end_function_block -> if_statement -> end_if_block
-*)
+(* 1. postfix:        () [] . ?.
+   2. unary:          - ! not  (Type)x  byVal byRef readonly
+   3. multiplicative: * / %
+   4. additive:       + -
+   5. comparison:     < > <= >=
+   6. equality:       == != === !== ("=" inside a condition), is [not] null / Type
+   7. and &&
+   8. or ||
+   9. ??
+   10. ? :
+   Ranges (...) are not an operator: they belong to for / foreach and to case patterns *)
 
 (* ===================================================================== *)
-(* PLANNED - ownership, hot paths, fixed (designed 2026-10-31: files/Ownership.md) *)
+(* PLANNED - designed, not built (the lexer may read the tokens already)  *)
 (* ===================================================================== *)
 
-(* Task 48.5, POSTPONED (D.106): several holders - read only except to the holder that made it
-   shared; not added until a real need - byRef shares an object meanwhile *)
-shared_declaration = "shared" type_name identifier "=" expression ;
+(* Operators the lexer reads and the parser rejects today:
+   +=  -=  *=  /=  %=  **=  - compound assignment
+   **                       - power
+   ++  --                   - increment / decrement
+   ?[                       - a guarded index
+   <>                       - another spelling of != (VB) *)
 
-(* Task 42.23 / 42.24: hotpath on a function (the checks) or a service (a dedicated thread) *)
-hotpath_function = "hotpath" function_declaration ;
-hotpath_service = "hotpath" "service" type_name identifier "=" expression [ setup_block ] ;
+(* Task 47.7 (D.179): signed wide whole numbers; Task 47.8 (D.182): exact base-10;
+   Task 47.2 (D.180-D.187): money - a 16-byte value struct (value, scale, currency, symbol) *)
+planned_primitive_type = "int128" | "int256" | "decimal" | "money" ;
 
-(* Task 47.5: a maximum size - lower fine, never higher *)
-(* the size limit only - the values may change; without ( n ) only on an array with a size:
-   fixed int numbers[10] *)
-fixed_type = "fixed" [ "(" expression ")" ] type_name ;
+(* D.176: money price = 123.45 - the scale from the places written; 123.45m as quick typing *)
+money_literal = digits "." digits "m" ;
 
-(* ===================================================================== *)
-(* END OF FUSION GRAMMAR                                                 *)
-(* ===================================================================== *)
+(* SYN.014 (42.16): an int of milliseconds; ns / us a long of nanoseconds - never mixed *)
+duration_literal = digits ( "ms" | "s" | "min" | "h" | "us" | "ns" ) ;
+
+(* SYN.018 / D.065: aliases *)
+switch_statement = "switch" expression ( INDENT match_case { match_case } [ match_else ] DEDENT ) ;
+elif_clause      = "elif" expression block ;          (* the same as else if *)
+
+(* An endless loop *)
+loop_statement = "loop" block [ end_marker "loop" ] ;
+
+(* Properties - get / set blocks *)
+property_declaration =
+    [ access ] type "property" identifier
+    INDENT [ "get" block ] [ "set" "(" identifier ")" block ] DEDENT ;
+
+(* Task 47.5: a maximum size - fixed(10) string name, fixed(14) List<Person> people *)
+fixed_size_type = "fixed" "(" expression ")" type ;
+
+(* Task 48.5, POSTPONED (D.106): several holders - read only except to the one that made it *)
+shared_declaration = "shared" type identifier "=" expression ;
+
+(* Task 38 (MEM.005): Shared<T> / Weak<T> - counted and weak handles beside single ownership *)
+pointer_type = ( "Shared" | "Weak" ) "<" type ">" ;
+
+(* Task 42 (Service.md): services *)
+service_declaration  = [ "hotpath" ] "service" type identifier "=" expression [ block ] ;
+service_class        = "service" class_declaration ;
+service_run          = "service" "(" expression ")" "." "run" block ;
+service_setting      = "service" "(" expression ")" "." identifier "=" expression ;
+service_group        = "service" "(" identifier { "," identifier } ")" identifier ;
+hotpath_function     = "hotpath" function_declaration ;          (* Task 42.23 *)
+
+(* CON.012: threads and async; channels - "<-" read by the lexer only *)
+go_statement     = "go" expression ;
+await_expression = "await" expression ;
+async_function   = "async" function_declaration ;
+channel_send     = expression "<-" expression ;
+channel_receive  = "<-" expression ;
+
+(* Annotations - an idea *)
+annotation = "@" identifier [ "(" [ argument_list ] ")" ] ;
+
+(* MEM.006 (D.030-D.031): unsafe code - memory, assembly, devices *)
+unsafe_block = "unsafe" block ;

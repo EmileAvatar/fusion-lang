@@ -143,3 +143,17 @@ def test_builtins_doc_escapes_bars_inside_table_cells():
 def test_builtins_check_passes_on_the_committed_file():
     ok, _, detail = check.check_builtins()
     assert ok, detail
+
+
+# ---------------------------------------------------------------- the ebnf check (2026-11-25)
+
+def test_the_ebnf_names_every_keyword_and_reserved_word():
+    assert check.ebnf_problems((ROOT / 'files' / 'fusion.ebnf').read_text(encoding='utf-8')) == []
+
+
+def test_the_ebnf_check_finds_a_missing_word_and_non_ascii():
+    text = (ROOT / 'files' / 'fusion.ebnf').read_text(encoding='utf-8')
+    problems = check.ebnf_problems(text.replace('"while"', '"loop_word"').replace(' while ', ' ').replace('while', 'w')
+                                   + '\n' + EMOJI)
+    assert "'while' (a keyword) is not in files/fusion.ebnf" in problems
+    assert any('non-ASCII' in p for p in problems)

@@ -46,7 +46,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/spec/index.md](files/spec/index.md) | The language specification, one topic per file, navigable (Task 51.5) |
 | [files/SYNTAX_REFERENCE.md](files/SYNTAX_REFERENCE.md) | What works now, with examples (each becomes a program in [examples/](examples/)) |
 | [files/fusion-language-spec.md](files/fusion-language-spec.md) | Moved to [files/spec/](files/spec/index.md) - only "Moved to" notes left (Task 51.5) |
-| [files/fusion.ebnf](files/fusion.ebnf) | The grammar |
+| [files/fusion.ebnf](files/fusion.ebnf) | The grammar - built rules, then the PLANNED ones; synced 2026-11-25, the "ebnf" check keeps the keywords in it |
 | [files/Compiler_and_Commands.md](files/Compiler_and_Commands.md) | A draft map: every job of the compiler, the `console` app's commands, the IDE and other apps - from 35 languages' tools (to plan what to add) |
 | [files/Symbols.md](files/Symbols.md) | Every symbol (`.` `<>` `=` `==` `:` `;` arrows ...) - its job in Fusion and in other languages, the Rust call-chain example explained, the symbols with more than one job (to review - keep syntax consistent) |
 | [files/Builtins.md](files/Builtins.md) | Every built-in function and method (generated) |
@@ -75,6 +75,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/Research/Memory/GooseVsRust.md](files/Research/Memory/GooseVsRust.md) | ChatGPT: Goose against Rust, then the FSMA follow-up - generation handles, named pools, 12 principles (Research R6.2, R11) |
 | [files/Research/Memory/FSMA/FSMA.md](files/Research/Memory/FSMA/FSMA.md) | FSMA, the Fusion Structured Memory Architecture: the abstract of every rule and setting, all proposals (Research R11) |
 | [files/Research/Memory/FSMA/MemoryAllocation.md](files/Research/Memory/FSMA/MemoryAllocation.md) / [MemoryAllocationNew.md](files/Research/Memory/FSMA/MemoryAllocationNew.md) | A primer on memory models (stack, heap, GC, counting, ownership, arenas, pools) / the first FSMA sketch: Data Stacks A, B, C (Research R11) |
+| [files/Research/Memory/FSMA/MemoryTiers_Gemini.md](files/Research/Memory/FSMA/MemoryTiers_Gemini.md) | Gemini: memory management across languages (one heap, arenas, managed runtimes, game-engine storage) and by machine size - low / standard / high memory settings (Research R11.8) |
 | [files/Research/Memory/FSMA/Gemini_FSMA_Review.md](files/Research/Memory/FSMA/Gemini_FSMA_Review.md) | Gemini's FSMA review: rules R1-R3, service-owned stacks, a C bump allocator - what is taken in FSMA.md section 6 (Research R11) |
 | [files/Research/Memory/FSMA/images/](files/Research/Memory/FSMA/images/) | The FSMA images: v1 Simple, v2 Complex (the main one), v3 Complex to fix, Hierarchy (where data lives), Register-Only (devices, HIDL) |
 | [files/Research/Services/Gemini_Service_Review.md](files/Research/Services/Gemini_Service_Review.md) | Gemini's service review: call cycles, `run` captures, `[blocking]`, timed-out queued requests, group lifetimes, tiers 0-4 (Research R3) |

@@ -39,6 +39,7 @@ Checks:
               its copy in examples/ is up to date
     builtins  files/Builtins.md matches the compiler's built-in functions and methods
     editors   the editors' grammar (tools/editors/) matches the lexer's keywords (36.1)
+    ebnf      files/fusion.ebnf names every keyword and reserved word of the lexer, and is ASCII
     runtime   runtime/fusion_runtime.h matches the run-time the compiler writes into C files
     decisions Decisions.md in shape: feature lines AREA.NNN [STATUS] in order, decision rows
               in order and naming a feature that exists (CLAUDE.md Rule 3b, Task 49.9)
@@ -207,6 +208,23 @@ def check_editors():
     stale = [p for p, data in module.outputs().items() if not p.exists() or p.read_bytes() != data]
     problems = [f'{p.relative_to(ROOT)} is out of date - fix: python tools/editors/build_grammar.py' for p in stale]
     return not problems, 'up to date' if not problems else 'out of date', '\n'.join(problems)
+
+
+def ebnf_problems(text: str) -> list:
+    """What files/fusion.ebnf is missing: every keyword and reserved word of the lexer named in it, and the
+    file ASCII - so the grammar can't quietly fall behind the language again (2026-11-25)."""
+    from src.lexer.keywords import KEYWORDS, RESERVED_WORDS
+    problems = [f"'{w}' (a {'keyword' if w in KEYWORDS else 'reserved word'}) is not in files/fusion.ebnf"
+                for w in sorted(set(KEYWORDS) | set(RESERVED_WORDS)) if not re.search(rf'(?<![\w]){re.escape(w)}(?![\w])', text)]
+    problems += [f'files/fusion.ebnf line {n}: a non-ASCII character'
+                 for n, line in enumerate(text.splitlines(), 1) if any(ord(c) > 127 for c in line)]
+    return problems
+
+
+def check_ebnf():
+    """files/fusion.ebnf names every keyword and reserved word of the lexer (src/lexer/keywords.py)."""
+    problems = ebnf_problems((ROOT / 'files' / 'fusion.ebnf').read_text(encoding='utf-8'))
+    return not problems, 'in step' if not problems else f'{len(problems)} missing', '\n'.join(problems)
 
 
 def check_builtins():
@@ -705,7 +723,7 @@ def main(argv):
     return 0 if run_checks(quick='--quick' in argv, docs='--docs' in argv) else 1
 
 
-DOC_CHECKS = [('builtins', check_builtins), ('editors', check_editors), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links),
+DOC_CHECKS = [('builtins', check_builtins), ('editors', check_editors), ('ebnf', check_ebnf), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links),
               ('settings', check_settings_doc), ('ascii', check_ascii)]
 
 
@@ -716,7 +734,7 @@ def run_checks(quick: bool, docs: bool = False) -> bool:
     elif not quick:
         checks += [('examples', check_examples), ('leaks', check_leaks),
                    ('reference', check_reference_sync), ('builtins', check_builtins), ('editors', check_editors),
-                   ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links), ('settings', check_settings_doc),
+                   ('ebnf', check_ebnf), ('runtime', check_runtime), ('decisions', check_decisions), ('nav', check_nav), ('links', check_links), ('settings', check_settings_doc),
                    ('ascii', check_ascii)]
     all_ok = True
     details = []

@@ -16,6 +16,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-24: 47.1 `long` / `short` (tests/test_long_short.py, syntax_long) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-24: 36.8 Fusion's colours (tools/editors/colors.json, four themes) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-24: research R10 written - files/Research/Money/Money.md
+- Done 2026-11-25: files/fusion.ebnf synced with the compiler (no version until self-hosting - 35.7), the "ebnf" check;
+  the memory tiers note to R11.8, Vale to R11.6, flash wear 41.11e
 - **Next Action:** 47.7 `int128` / `int256` (the plan below - every question answered 2026-11-24)
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 

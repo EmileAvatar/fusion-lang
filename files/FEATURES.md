@@ -292,7 +292,13 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R11.3 The memory profiles FULL / STATIC / REGISTER-ONLY - with Task 41 (HIDL) and `[stdlib] layer`
 	[ ] R11.4 The `[memory]` settings (FSMA.md section 5) - names, defaults, each a decision
 	[ ] R11.5 Gemini's v3 checked point by point (taken, as needed, not taken - FSMA.md section 6)
-	[ ] R11.6 Prior work: Goose's data stacks, Zig's allocators, Rust arenas, Erlang's per-process heaps, mimalloc - with R6 and R4.3
+	[ ] R11.6 Prior work: Goose's data stacks, Zig's allocators, Rust arenas, Erlang's per-process heaps, mimalloc - with R6 and R4.3;
+		Vale (https://vale.dev/guide/introduction - generational references and regions: FSMA's A8, a check made free
+		inside a region that can't change)
+	[ ] R11.8 Memory tiers by machine (Gemini - files/Research/Memory/FSMA/MemoryTiers_Gemini.md): the languages by how
+		they treat the heap, five practices, low / standard / high memory (page sizes, warm pages, the string pool's cap,
+		huge pages) and `[memory.machine.min|standard|high]` settings beside Service.md's `[concurrency.machine.*]`; it
+		uses `<Scoped>` in place of `<Mixed>` - Scoped is added as needed, beside Mixed (Rule 3c)
 	[ ] R11.7 The decisions for the user, then a task (with Task 38 / 42); measured against today's counting (L16.0)
 
 ---
@@ -518,6 +524,14 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 35.4 Performance
 	[ ] 35.5 The Python compiler retired; docs
 	[ ] 35.6 No `[PARTIAL]` line left in Decisions.md - each finished or split (user, 2026-11-07)
+	[ ] 35.8 The self-hosted compiler follows files/fusion.ebnf - synced with the Python one 2026-11-25 (built rules apart
+		from PLANNED ones; Gemini's checklist in Notes/Gemini_EBNF_sync_review.md, corrected); the "ebnf" check keeps every
+		keyword and reserved word in it; a new or changed syntax updates it (CLAUDE.md auto-update)
+	[ ] 35.7 Version numbers start only after self-hosting (user, 2026-11-25): until then nothing carries a version (the
+		EBNF's "Version 1.0" removed); after it, 0.1 while a lot of testing confirms Fusion works fully; then a scheme to
+		choose - suggested Semantic Versioning, MAJOR.MINOR.PATCH (MAJOR: a change that breaks existing code; MINOR: new
+		features, nothing broken; PATCH: fixes only); 1.0 once the language is stable - one version for the language,
+		the compiler and the grammar
 
 ---
 
@@ -616,6 +630,9 @@ then each point is decided and solved completely. One line per section and per l
 		[ ] 41.11c Strings with no heap memory - fixed sizes, static storage (with R11's STATIC / REGISTER-ONLY profiles)
 		[ ] 41.11d A hot-path service's ring buffer: the bytes a target has for it, while keeping the <50 ns goal
 			(Service.md H1-H9)
+		[ ] 41.11e Flash wear (user, 2026-11-25): ordinary RAM (DRAM) doesn't wear out and the OS chooses where data
+			physically sits, but a microcontroller's flash (about 10,000-100,000 writes) and EEPROM (100,000-1,000,000)
+			do - a program saving values there needs wear levelling (writes spread over the cells); FRAM / MRAM don't wear
 
 <a id="task-42"></a>
 #### 42 Concurrency: services and threads (user, 2026-10-23) [ ] [index](#index)
