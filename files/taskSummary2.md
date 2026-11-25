@@ -22,7 +22,9 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-25: 47.8 `decimal` (tests/test_decimal.py, syntax_decimal) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-25: 47.2a `money` - the type (tests/test_money.py, syntax_money)
 - Done 2026-11-25: 47.2b the Currency module (tests/test_currency.py, syntax_currency) - 47.2 complete, its plan in task/taskSummaryArchive.md
-- **Next Action:** 47.6 ranges over decimals and money (the plan below)
+- Done 2026-11-25: 47.6 ranges over decimals and money (tests/test_decimal_ranges.py, syntax_ranges) - its plan in
+  task/taskSummaryArchive.md
+- **Next Action:** 47.3 an enum whose values carry fixed data - its plan to write
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)
@@ -46,10 +48,3 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - `[decimal] maxScale` (18);
 - `[ranges] ...` (D.170) with 47.6.
 - Each goes into fusionSettings.xml once built. No `[money] currency` - empty is the default (D.183).
-
-**47.6 Ranges over decimals and money** (47.6a-f in FEATURES, D.170)
-- `[ranges] decimals = false` (default): `0.5...2.5` the error saying how to turn it on (today's message, kept)
-- `for x in 0.5...2.5 step 0.5` - each value start + n * step (no drift); `stepRequired`, `defaultStep` 0.1,
-  `rangeMaxStep` 3; a step that misses the end - the 33.2g rule
-- money ranges exact (whole minor units); `case 0.0...0.5` in a match on a double
-- tests per D.170's table; example syntax_ranges grows a decimal part

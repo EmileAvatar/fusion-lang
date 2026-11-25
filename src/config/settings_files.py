@@ -201,6 +201,8 @@ def read_template(path: str = TEMPLATE_PATH):
                 default = text == 'true'
             elif kind == 'int' or (kind == 'int-or-max' and text != 'max'):
                 default = int(text)
+            elif kind == 'number':
+                default = float(text)              # [ranges] defaultStep 0.1 (47.6)
             else:
                 default = text
             settings.append(TemplateSetting(

@@ -40,7 +40,8 @@ def test_ranges_in_loops(body, lines):
 @pytest.mark.parametrize('body', ['for i in 0.5...2.5\n    print("x")', 'double d = 2.0\nfor i in 0...d\n    print("x")'])
 def test_a_decimal_range_says_whole_numbers(body):
     found = errors_of(body)
-    assert len(found) == 1 and 'A range ... counts whole numbers' in found[0] and '47.6' in found[0], found
+    assert len(found) == 1 and 'A range ... counts whole numbers' in found[0] \
+        and '[ranges] decimals = true' in found[0], found      # how to turn decimals on (47.6a)
 
 
 def test_setting_names_ignore_spaces():

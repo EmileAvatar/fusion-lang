@@ -6,3 +6,7 @@ waitAtExit = true
 # Methods inside a struct (Task 32.1) - for syntax_struct_methods
 [structs]
 functions = true
+
+# Ranges over decimals and money (Task 47.6) - for syntax_ranges
+[ranges]
+decimals = true

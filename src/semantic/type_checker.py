@@ -23,6 +23,7 @@ from .name_resolver import builtin_layer
 from .collection_rules import CollectionRulesMixin
 from .many_dims import ManyDimsMixin
 from .generics import GenericsMixin
+from .ranges import RangesMixin, range_kind
 from .enums import EnumRulesMixin, ENUM_METHODS
 from .error_rules import ErrorRulesMixin
 from .struct_parents import StructParentRulesMixin, flat_field_names
@@ -51,7 +52,7 @@ def field_default(field: StructField):
 
 
 class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructParentRulesMixin,
-                  InferredRulesMixin, ManyDimsMixin, GenericsMixin):
+                  InferredRulesMixin, ManyDimsMixin, GenericsMixin, RangesMixin):
     """Type checks the AST using visitor pattern.
 
     Validates type compatibility in expressions, assignments, function calls,
@@ -457,6 +458,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             value.inferred_type = expected      # int:[] g = a + b - a new array, made growable (45.4, 45.5)
             return expected
         self.widen_to_float(value, result, expected)
+        if isinstance(expected, PrimitiveType) and expected.name == 'double':
+            self.written_as_double(value)                      # double d = 0.49 - not the float 0.49f
         if isinstance(expected, PrimitiveType) and expected.name == 'decimal':
             result = self.to_decimal(value, result)            # 1.50, 7 - exact (47.8)
         if isinstance(expected, PrimitiveType) and expected.name == 'money':
@@ -680,6 +683,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         node.resolved_arguments = list(args)
         node.inferred_type = decimal
         return decimal
+
+    @staticmethod
+    def written_as_double(value) -> None:
+        """A number written with places (0.49, -0.1) used as a double is written in C as a double: as a float
+        (0.49f) it would hold 0.49000000953674316 - a float's digits, not the number written."""
+        literal = value.operand if isinstance(value, UnaryExpr) and value.operator == '-' else value
+        if isinstance(literal, LiteralExpr) and literal.type_hint == 'float':
+            literal.as_double = True
 
     def widen_to_float(self, value, value_type, target_type) -> None:
         """An int (or byte) used as a float (Task 27.2f, user decision 2026-10-17): with
@@ -1033,6 +1044,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     f"An {sorted(wide)[0]} and a {sorted(names & {'float', 'double'})[0]} can't be mixed - "
                     f"the {sorted(wide)[0]} holds more digits than a double keeps; convert one first",
                     node.location))
+            # A written number beside a double is a double - d + 0.1, d > 0.49 - not the float 0.1f
+            if 'double' in names:
+                self.written_as_double(node.left)
+                self.written_as_double(node.right)
 
         # Arithmetic operators: int/float/double + int/float/double
         if node.operator in ['+', '-', '*', '/', '%']:
@@ -2065,15 +2080,19 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 return func_type.return_type
             # For range(), only check the arguments that were provided
             written_range = getattr(node, 'written_range', False)       # `a...b` (33.2f)
+            types = [self.visit(arg) for arg in node.arguments]
+            kind = range_kind(types) if written_range else None
+            if kind is not None:                    # 0.5...2.5 step 0.5 - decimals and money (47.6)
+                self.check_decimal_range(node, types, kind)
+                return func_type.return_type
             for i, arg in enumerate(node.arguments):
                 if i < len(func_type.parameter_types):
-                    actual_type = self.visit(arg)
+                    actual_type = types[i]
                     expected_type = func_type.parameter_types[i]
                     if written_range and not self.types_compatible(expected_type, actual_type):
                         self.errors.append(SemanticError(
                             f"A range ... counts whole numbers - this end is "
-                            f"{self.type_to_string(actual_type)}; for decimals use a while loop (decimal "
-                            f"ranges with a step come with Task 47.6, [ranges] decimals)", arg.location))
+                            f"{self.type_to_string(actual_type)}", arg.location))
                         break                       # one message for the range, not one per end
                     if not self.types_compatible(expected_type, actual_type):
                         self.errors.append(SemanticError(

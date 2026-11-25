@@ -35,6 +35,7 @@ from .c_struct_text import StructTextMixin
 from .c_collections import CollectionsMixin
 from .c_enums import EnumsMixin
 from .c_errors import ErrorsMixin
+from .c_ranges import RangesCodeMixin
 from ..semantic.name_resolver import FLEXIBLE_FIRST_ARG, MUTATING_BUILTINS
 
 
@@ -102,7 +103,7 @@ static inline void* fusion_cast(void* o, int ok, const char* where, const char* 
 '''
 
 class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin,
-                     CollectionsMixin, EnumsMixin, ErrorsMixin, StructTextMixin):
+                     CollectionsMixin, EnumsMixin, ErrorsMixin, StructTextMixin, RangesCodeMixin):
     """Generates C code from Fusion AST.
 
     Uses visitor pattern to traverse the AST and generate equivalent C code.
@@ -1056,6 +1057,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return f'({node.value})' if node.value < 0 else str(node.value)
 
         elif type_hint == 'float':
+            if getattr(node, 'as_double', False):      # double d = 0.49 - the number written, not 0.49f
+                return repr(float(node.value))
             return f'{node.value}f'  # Add 'f' suffix
 
         elif type_hint == 'double':
@@ -2485,6 +2488,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         # for x in xs - a List or an array (Task 18.5.1)
         if getattr(node, 'element_type', None) is not None:
             return self._for_each(node)
+        if getattr(node.iterable, 'range_kind', None) is not None:
+            return self.decimal_range_loop(node)    # 0.5...2.5 step 0.5 - decimals and money (47.6)
 
         # Note: The parser creates ForStmt with variable as a string
         # and iterable as a CallExpr to 'range'

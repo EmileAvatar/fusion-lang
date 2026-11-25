@@ -307,7 +307,8 @@ def test_a_match_that_always_returns_needs_no_return_after_it():
     ('match 5\n    case 1, 1: print("one")\n    else: print("x")', "This value is already handled"),
     ('match 5\n    case "a": print("a")\n    else: print("x")', "This case is string, but the match is on int"),
     ('int k = 1\nmatch 5\n    case k: print("a")\n    else: print("x")', "A case on int needs a constant"),
-    ('match 2.5\n    case 1: print("a")\n    else: print("x")', "match works on an enum, whole number (int, long, short, byte), char or string value, got float"),
+    ('match 2.5\n    case 1: print("a")\n    else: print("x")', "A match on float takes ranges only (case 0.0...0.5)"),
+    ('match true\n    case 1: print("a")\n    else: print("x")', "or ranges on a float or double, got bool"),
     ('match l\n    case Light.Red: print("x")\n    else: print("y")', "In a case, write just the value's name: case Red"),
 ])
 def test_match_errors(body, message):

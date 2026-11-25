@@ -92,6 +92,26 @@ void function main()
         'A'...'Z' : "upper"
         else : "other"
     print("{@1} {@2}", grade(95), kind)     // A lower
+    // Decimals and money (47.6) - [ranges] decimals = true in fusion.toml
+    double last = 0.0
+    for x in 0.0...1.0 step 0.1             // each value start + n * step - nothing drifts
+        last = x
+    print("{@1}", last == 1.0)              // true - adding 0.1 ten times gives 0.9999999999999999
+    decimal price = 1.50
+    for d in price...2.50 step 0.25         // exact
+        print("{d}")                        // 1.50 1.75 2.00 2.25 2.50
+    money lo = money(0.00, "ZAR", "R")
+    money hi = money(1.00, "ZAR", "R")
+    for m in lo...hi step 0.50
+        print("{m}")                        // R0.00 R0.50 R1.00
+    double t = 0.72
+    match t                                 // ranges in a match on a double - a test, never ==
+        case 0.0...0.49
+            print("low")
+        case 0.5...1.0
+            print("high")                   // high
+        else
+            print("out of range")
 ```
 `a...b` counts from a to b, both ends included - `range(a, b + 1)`; the end and the step are worked out once,
 before the first turn. `step` (D.170) - a word only after a range, so a variable may still be called step: only the
@@ -100,8 +120,17 @@ values within the range run - `0...13 step 5` gives 0 5 10, with a warning that 
 compile error when written, a RangeError while running when it comes from a value - a loop that never ends can't be
 made. Numbers written against the step's way (`10...1`, `1...10 step -2`) are an error that says what to write;
 from values such a range runs no turns, as `range` does. `range(a, b, step)` leaves b out and counts down with a
-negative step. Decimal and money ranges come with Task 47.6. A case `0...9` matches whole numbers or characters
-from its first end to its last; it may not overlap another case.
+negative step. A case `0...9` matches whole numbers or characters from its first end to its last; it may not
+overlap another case.
+
+Ranges over a float, double, decimal or money (Task 47.6) are turned on by `[ranges] decimals = true` - off, such a
+range is an error saying how. The range takes the widest kind of its parts (money, decimal, double, float); each
+value is start + n * step, worked out from its count, so `0.0...1.0 step 0.1` ends on 1.0 exactly; decimal and money
+ranges are exact, and money's currencies must agree (a CurrencyError). The step must be written (`[ranges]
+stepRequired`; false uses `defaultStep`, 0.1), and may be no finer than `[ranges] rangeMaxStep` places (3 - 0.001):
+written, finer is a compile error, from a value a RangeError. A step that misses the end warns, as above. In a match
+on a float or double, cases are ranges only (`case 0.0...0.49`) - a test, never `==`; they may not overlap, and an
+else is required.
 
 #### Module variables and constants: shared by a module's functions
 
@@ -2663,6 +2692,10 @@ sharedStatics = false           # a generic class's statics: one set per copy; t
 
 [ranges]
 strictStep = false              # a step that misses the end: a warning; true: a compile error
+decimals = false                # ranges over float, double, decimal, money; false: an error saying how to turn on
+stepRequired = true             # a range of decimals writes its step; false: defaultStep
+defaultStep = 0.1               # the step when not written (stepRequired = false)
+rangeMaxStep = 3                # the finest step's places: 0.001; finer is an error
 
 [backend]
 target = "c"

@@ -47,8 +47,8 @@ name alone. `tools/example_files.py` knows the layout; check.py, verify_examples
   `.exe` are `main.c` / `main.exe` in its folder; its expected output is keyed by the
   folder name; check.py, verify_examples and `#run.bat` include it
 - **`fusion.toml`** - the same file in each topic folder 01-12 (a program finds the settings
-  file next to it): `[build] waitAtExit = true`, and `[structs] functions = true` for
-  `syntax_struct_methods`. Change all of them together
+  file next to it): `[build] waitAtExit = true`, `[structs] functions = true` for
+  `syntax_struct_methods`, and `[ranges] decimals = true` for `syntax_ranges` (47.6). Change all of them together
 - **`#list.csv`** - generated: `fusion, c, exe, task, added` for every example, with its topic
   folder (a row keeps the date it was first added)
 - **`#run.bat`** - generated: runs every `.exe` with `--headless` and no input (`< nul`), each under a

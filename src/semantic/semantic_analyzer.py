@@ -111,6 +111,11 @@ class SemanticAnalyzer:
         self.shared_statics = getattr(generics_config, 'shared_statics', False)   # 33.3c (D.173)
         # [ranges] strictStep (Task 33.2g, D.170): a step that misses the end - a warning, or an error
         self.type_checker.strict_step = getattr(ranges_config, 'strict_step', False)
+        # [ranges] decimals / stepRequired / defaultStep / rangeMaxStep (Task 47.6, D.170)
+        self.type_checker.range_decimals = getattr(ranges_config, 'decimals', False)
+        self.type_checker.range_step_required = getattr(ranges_config, 'step_required', True)
+        self.type_checker.range_default_step = getattr(ranges_config, 'default_step', '0.1')
+        self.type_checker.range_max_step = getattr(ranges_config, 'range_max_step', 3)
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 

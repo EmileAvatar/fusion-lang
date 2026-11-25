@@ -510,6 +510,10 @@ class CollectionRulesMixin:
         if isinstance(iterable, CallExpr) and isinstance(iterable.callee, IdentifierExpr) \
                 and iterable.callee.name == 'range':
             self.visit(iterable)
+            kind = self.range_loop_type(iterable)          # 0.5...2.5 step 0.5 - a double, decimal, money (47.6)
+            scope = getattr(node, 'scope', None)
+            if kind is not None and scope is not None and node.variable in scope.symbols:
+                scope.symbols[node.variable].data_type = kind
             return
         iterable_type = self.visit(iterable)
         if isinstance(iterable_type, ArrayType) and iterable_type.dims:

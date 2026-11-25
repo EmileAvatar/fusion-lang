@@ -42,6 +42,7 @@ from .c_errors import ERRORS_LIBRARY, BUILTIN_KIND_DEFINES
 from .c_wide import WIDE_LIBRARY
 from .c_decimal import DECIMAL_LIBRARY
 from .c_money import MONEY_LIBRARY
+from .c_ranges import RANGES_LIBRARY
 from ..semantic.collection_rules import MUTATING_LIST_METHODS
 from ..semantic.name_resolver import MUTATING_BUILTINS
 
@@ -600,6 +601,7 @@ RUNTIME_PRELUDE += ERRORS_LIBRARY  # errors travelling and caught (Task 26)
 RUNTIME_PRELUDE += WIDE_LIBRARY    # int128 / int256 (Task 47.7)
 RUNTIME_PRELUDE += DECIMAL_LIBRARY # decimal (Task 47.8)
 RUNTIME_PRELUDE += MONEY_LIBRARY   # money (Task 47.2)
+RUNTIME_PRELUDE += RANGES_LIBRARY  # ranges over decimals and money (Task 47.6)
 RUNTIME_PRELUDE = RUNTIME_PRELUDE.replace('/*FUSION_KIND_DEFINES*/\n', BUILTIN_KIND_DEFINES)
 
 

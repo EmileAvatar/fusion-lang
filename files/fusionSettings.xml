@@ -177,6 +177,18 @@
     <setting name="strictStep" type="bool" default="false" task="33.2g">
       <description>A range's step that doesn't land on its end (0...13 step 5 gives 0 5 10): false - a warning, only the values within the range run; true - a compile error (D.170)</description>
     </setting>
+    <setting name="decimals" type="bool" default="false" task="47.6">
+      <description>Ranges over float, double, decimal and money (for x in 0.5...2.5 step 0.5): false - an error saying how to turn them on; true - allowed, each value worked out from its count (start + n * step), never by adding, so nothing drifts (D.170)</description>
+    </setting>
+    <setting name="stepRequired" type="bool" default="true" task="47.6">
+      <description>A range of decimals must write its step: true - 0.5...2.5 without a step is an error; false - it uses defaultStep (D.170)</description>
+    </setting>
+    <setting name="defaultStep" type="number" default="0.1" task="47.6">
+      <description>The step of a range of decimals written without one, when stepRequired is false (D.170)</description>
+    </setting>
+    <setting name="rangeMaxStep" type="int" default="3" task="47.6">
+      <description>How many places a range's finest step has: 3 - 0.001 (or -0.001); a finer step is an error, written or while running - no huge or endless range by mistake; science and engineering projects raise it (D.170)</description>
+    </setting>
   </section>
 
   <section name="memory" description="How values are owned (files/Ownership.md)">

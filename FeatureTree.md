@@ -26,6 +26,8 @@ Syntax
    - Lambdas                  function values; func(int x) : x * 2
    - Control flow             if / while / for / for i in range(a, b, step); numbers as conditions
    - Ranges                   for i in 1...10 (both ends); 0...13 step 5, 10...0 step -2; case 0...9 in a match
+   - Decimal / money ranges   0.0...1.0 step 0.1 - start + n * step, no drift; decimal and money exact; case 0.0...0.49
+                              on a double; behind [ranges] decimals
    - Conditional              (cond) ? a : b
    - match                    match, fall match, match as a value, _ for unused fields
    - let / var                type from the value; let set once
@@ -114,7 +116,8 @@ Memory
 Settings
    - Built                    [build] waitAtExit, --headless; [indentation]; [stdlib] layer std / alloc / core;
                               [strings] maxLength, encoding; [structs] limits; [backend] target = "c";
-                              [generics] enabled, sharedStatics; [ranges] strictStep
+                              [generics] enabled, sharedStatics; [ranges] strictStep, decimals, stepRequired,
+                              defaultStep, rangeMaxStep
 
 Tooling
    - Syntax highlighting      VS Code and Sublime Text - one grammar from the lexer's keywords (Task 36.0)
@@ -167,7 +170,6 @@ Concurrency (Task 42) - nothing built yet
 
 Syntax
    - Duration literals [planned]     500ms, 5s, 2min
-   - Decimal / money ranges [planned 47.6]   0.5...2.5 step 0.5; whole numbers only by default ([ranges] decimals)
    - switch / elif aliases [design]
    - loop { } [design]               must have break / return; check blocks; labels; iteration limit
    - ++ / -- [design]                statements only

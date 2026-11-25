@@ -378,22 +378,21 @@ then each point is decided and solved completely. One line per section and per l
 			stays the program's - Fusion only makes each step exact
 		[ ] 47.2.3 Later option: a decimal or arbitrary-precision number type - for amounts past
 			a long's range or more fractional precision than the minor unit gives
-	[ ] 47.6 Ranges over decimals and money (user, 2026-11-22 - after 47.2; extends 33.2f / D.169; Q.041)
-		[ ] 47.6a Whole numbers by default: `[ranges] decimals = false` - `0.5...2.5` a compile error saying how to
-			turn decimals on
-		[ ] 47.6b Decimals with a step: `for x in 0.5...2.5 step 0.5` (float / double) - `[ranges] stepRequired`
-			(default true: a step must be written, else a compile error; false: `defaultStep`, 0.1); each value worked
-			out from its count (start + n * step), never by adding - no drift (0.1 + 0.1 + 0.1 is not 0.3 in a double);
-			`[ranges] rangeMaxStep` (default 3): the finest step 0.001 / -0.001 - finer (0.000000000000001) an error,
-			written or while running (`round(0.001)`, a variable) - no huge or endless range; science / engineering
-			projects raise it
-		[ ] 47.6d A step that misses the end (0.0...1.0 step 0.3 gives 0.0 0.3 0.6 0.9): the same rule as 33.2g -
-			only the values within the range, a warning, `strictStep = true` an error
-		[ ] 47.6e Money ranges: `money` is whole minor units (47.2.1), so a money range with a step is exact -
-			R0.00...R10.00 step R0.25 counts 0 to 1000 by 25; `%` splits by 47.2.2's rule (where a remainder goes);
-			waits for money's literal form (47.2)
-		[ ] 47.6f Ranges in a match on decimals (`case 0.0...0.5`) - a test, not a count; match takes a double only
-			for range cases (exact == on decimals stays out)
+	[DONE 2026-11-25] 47.6 Ranges over decimals and money (D.170; src/semantic/ranges.py, src/codegen/c_ranges.py;
+		tests/test_decimal_ranges.py, syntax_ranges)
+		[DONE 2026-11-25] 47.6a Whole numbers by default: `[ranges] decimals = false` - a range with a float, double,
+			decimal or money part is an error saying how to turn it on
+		[DONE 2026-11-25] 47.6b A step: `for x in 0.0...1.0 step 0.1` - the widest kind of its parts (money, decimal,
+			double, float); each value start + n * step from its count, never added up (ends on 1.0 exactly);
+			`stepRequired` / `defaultStep` 0.1; `rangeMaxStep` 3 - finer a compile error written, a RangeError from a
+			value; a step of 0 the same; written against the step's way an error, from values no turns
+		[DONE 2026-11-25] 47.6d A step that misses the end: only the values within the range, a warning (worked out
+			exactly from the digits written), `strictStep = true` an error
+		[DONE 2026-11-25] 47.6e Decimal and money ranges exact (lined up at one scale, in an int256); money's
+			currencies must agree - a CurrencyError; `%` on a money range left to L7.9 (`step %5`)
+		[DONE 2026-11-25] 47.6f Ranges in a match on a float or double (`case 0.0...0.49`) - ranges only (a test,
+			never ==), no overlap, an else required; found with it: a written number used as a double was the float
+			0.49f (0.49000000953674316) - now the number written
 	[ ] 47.3 An enum whose values carry fixed data (Java's `enum Planet(double mass)`):
 		`EARTH(5.976e24)`, read with a method for each field (`Planet.EARTH.mass()`); the data
 		is const and byVal, set once; the constructor is always private. An enum is always

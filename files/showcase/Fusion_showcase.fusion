@@ -488,9 +488,12 @@ void function controlFlow(int n) {
             break
         }
     }
-    // [designed] Ranges with ... (inclusive), and a step
+    // [built] Ranges with ... (inclusive), and a step (33.2f-g, D.169-D.170)
     for i in 1...10 { print("{i}") }
-    for angle in 0...360...45 { print("{angle}") }
+    for angle in 0...360 step 45 { print("{angle}") }
+    // [built] Ranges over decimals and money - [ranges] decimals = true; each value start + n * step (47.6)
+    for x in 0.0...1.0 step 0.1 { print("{x}") }
+    // [built] Ranges in a match on a double - a test, never == (47.6f): case 0.0...0.49
     // [designed] Loop labels: break or continue an outer loop
     outer: for x in range(0, 10) {
         for y in range(0, 10) {

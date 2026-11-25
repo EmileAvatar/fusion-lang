@@ -7813,3 +7813,14 @@ Built with `[numbers] rounding` (not a new `[decimal]` section) and the maximum 
 - printing by the compiler, not as a struct: `R100.05` with a symbol, `100.05` without (D.187)
 - tests: every operation, currencies (same, empty, different), scales, the struct's size (16), printing, the
   Currency statics (convert, round, split sums); example syntax_money
+
+---
+
+## Task 47.6 - ranges over decimals and money (done 2026-11-25)
+
+**47.6 Ranges over decimals and money** (47.6a-f in FEATURES, D.170)
+- `[ranges] decimals = false` (default): `0.5...2.5` the error saying how to turn it on (today's message, kept)
+- `for x in 0.5...2.5 step 0.5` - each value start + n * step (no drift); `stepRequired`, `defaultStep` 0.1,
+  `rangeMaxStep` 3; a step that misses the end - the 33.2g rule
+- money ranges exact (whole minor units); `case 0.0...0.5` in a match on a double
+- tests per D.170's table; example syntax_ranges grows a decimal part

@@ -256,8 +256,17 @@ class RangesConfig:
     Attributes:
         strict_step: a step that doesn't land on the range's end - false (default) a warning, only the
             values within the range run; true a compile error
+        decimals: ranges over float, double, decimal and money (47.6) - false (default) an error saying
+            how to turn them on
+        step_required: a range of decimals must write its step - true (default); false uses default_step
+        default_step: the step of a range of decimals written without one (when not required) - 0.1
+        range_max_step: how many places the finest step has - 3 (0.001); finer is an error
     """
     strict_step: bool = False
+    decimals: bool = False
+    step_required: bool = True
+    default_step: str = "0.1"
+    range_max_step: int = 3
 
 
 @dataclass
@@ -670,13 +679,33 @@ def _load_ranges_section(data: dict, config_path: str) -> RangesConfig:
     """Parse and validate the [ranges] section (Task 33.2g, D.170)."""
     ranges = RangesConfig()
     section = _require_table(data, "ranges", config_path)
+    flags = {"strictStep": "strict_step", "decimals": "decimals", "stepRequired": "step_required"}
+    known = sorted(list(flags) + ["defaultStep", "rangeMaxStep"])
     for key, value in section.items():
-        if key != "strictStep":
-            raise ProjectConfigError(f"{config_path}: unknown setting ranges.{key} (known: ['strictStep'])")
-        if not isinstance(value, bool):
-            raise ProjectConfigError(f"{config_path}: ranges.strictStep must be true or false, got {value!r}")
-        ranges.strict_step = value
+        if key in flags:
+            if not isinstance(value, bool):
+                raise ProjectConfigError(f"{config_path}: ranges.{key} must be true or false, got {value!r}")
+            setattr(ranges, flags[key], value)
+        elif key == "defaultStep":
+            # a number as written (0.1, 0.25) - its digits kept, so the range stays exact (47.6)
+            text = str(value).strip()
+            if isinstance(value, bool) or not _plain_number(text) or float(text) <= 0:
+                raise ProjectConfigError(f"{config_path}: ranges.defaultStep must be a number above 0, got {value!r}")
+            ranges.default_step = text
+        elif key == "rangeMaxStep":
+            if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 18:
+                raise ProjectConfigError(f"{config_path}: ranges.rangeMaxStep must be a whole number 0-18 "
+                                         f"(the finest step's places), got {value!r}")
+            ranges.range_max_step = value
+        else:
+            raise ProjectConfigError(f"{config_path}: unknown setting ranges.{key} (known: {known})")
     return ranges
+
+
+def _plain_number(text: str) -> bool:
+    """A number written plainly - digits with at most one '.' (0.1, 2, 0.25)."""
+    whole, _, places = text.partition('.')
+    return bool(whole) and whole.isdigit() and (places == '' or places.isdigit())
 
 
 OWNERSHIP_VALUES = {"strict": "move", "relaxed": "share"}   # Task 48.11 (D.124)

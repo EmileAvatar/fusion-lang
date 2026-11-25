@@ -131,23 +131,16 @@ def compile_and_run_leak_checked(source: str, source_path: str):
         ast, import_errors = load_program(source_path, parse(source, source_path), parse)
         if import_errors:
             return None, '\n'.join(str(e) for e in import_errors)
-        analyzer = SemanticAnalyzer(structs_config=config.structs, strings_config=config.strings,
-                                    stdlib_config=config.stdlib, errors_config=config.errors,
-                                    numbers_config=config.numbers,
-                                    modules_config=config.modules,
-                                    conditions_config=config.conditions,
-                                    visibility_config=config.visibility,
-                                    interfaces_config=config.interfaces,
-                                    source_config=config.source,
-                                    memory_config=config.memory,
-                                    collections_config=config.collections)
+        analyzer = SemanticAnalyzer.for_project(config)      # every setting, as main.py
         if not analyzer.analyze(ast):
             return None, '\n'.join(str(e) for e in analyzer.get_errors())
-        c_code = CCodeGenerator(encoding=config.strings.encoding,
-                                max_length=config.strings.max_length,
-                                safety_mode=config.safety_mode,
-                                max_call_depth=config.max_call_depth,
-                                overflow_wrap=config.numbers.overflow_wrap).generate(ast)
+        generator = CCodeGenerator(encoding=config.strings.encoding,
+                                   max_length=config.strings.max_length,
+                                   safety_mode=config.safety_mode,
+                                   max_call_depth=config.max_call_depth,
+                                   overflow_wrap=config.numbers.overflow_wrap)
+        generator.rounding = config.numbers.rounding          # [numbers] rounding (47.8)
+        c_code = generator.generate(ast)
     except Exception as e:  # report, don't crash the checker
         return None, f'{type(e).__name__}: {e}'
 

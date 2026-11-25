@@ -2341,4 +2341,50 @@ static inline bool fusion_money_set_scale(fusion_money* m, int scale, const char
     m->scale = (uint8_t)scale; return true;
 }
 
+// ---- ranges over decimals and money (47.6): each value start + n * step, never added up ----
+static inline long long fusion_range_step_bad(const char* where, int places) {
+    fusion_fail(FUSION_KIND_RangeError, where, "a range's step is finer than [ranges] rangeMaxStep allows (%d places)", places);
+    return -1;
+}
+static inline long long fusion_range_count_double(double s, double e, double p, int places, double tol, const char* where) {
+    if (p == 0) { fusion_fail(FUSION_KIND_RangeError, where, "a range's step can't be 0 - the loop would never end"); return -1; }
+    double finest = 1; for (int k = 0; k < places; k++) finest /= 10;
+    if ((p < 0 ? -p : p) < finest * (1 - tol)) return fusion_range_step_bad(where, places);
+    double q = (e - s) / p;
+    if (!(q >= -tol)) return -1;                          // never starts (or not a number)
+    q += tol * (q > 1 ? q : 1);                           // the last digit: 0.3 / 0.1 is 2.9999999999999996
+    if (q >= 9.0e18) { fusion_fail(FUSION_KIND_OverflowError, where, "the range has too many values to count"); return -1; }
+    return (long long)q;
+}
+static inline fusion_int256 fusion_range_at(fusion_int128 v, int from, int to) { fusion_int256 r = v; for (int k = from; k < to; k++) r *= 10; return r; }
+static inline long long fusion_range_count_decimal(fusion_decimal s, fusion_decimal e, fusion_decimal p, int places, const char* where) {
+    if (p.value == 0) { fusion_fail(FUSION_KIND_RangeError, where, "a range's step can't be 0 - the loop would never end"); return -1; }
+    int sc = s.scale; if (e.scale > sc) sc = e.scale; if (p.scale > sc) sc = p.scale;
+    fusion_int256 S = fusion_range_at(s.value, s.scale, sc), E = fusion_range_at(e.value, e.scale, sc);
+    fusion_int256 P = fusion_range_at(p.value, p.scale, sc);
+    fusion_int256 finest = P < 0 ? -P : P; for (int k = 0; k < places; k++) finest *= 10;
+    if (finest < fusion_pow10_256(sc)) return fusion_range_step_bad(where, places);
+    fusion_int256 d = E - S;
+    if ((d > 0 && P < 0) || (d < 0 && P > 0)) return -1;   // never starts
+    fusion_int256 q = d / P;
+    if (q > (fusion_int256)9000000000000000000LL) { fusion_fail(FUSION_KIND_OverflowError, where, "the range has too many values to count"); return -1; }
+    return (long long)q;
+}
+static inline fusion_decimal fusion_range_decimal_value(fusion_decimal s, fusion_decimal p, long long n, const char* where) {
+    int sc = s.scale > p.scale ? s.scale : p.scale;
+    fusion_int256 v = fusion_range_at(s.value, s.scale, sc) + (fusion_int256)n * fusion_range_at(p.value, p.scale, sc);
+    return fusion_decimal_narrow(v, sc, "a range's value", where);
+}
+static inline long long fusion_range_count_money(fusion_money s, fusion_money e, fusion_money p, int places, const char* where) {
+    fusion_money joined;
+    if (!fusion_money_join(&joined, s, e, "...", where) || !fusion_money_join(&joined, s, p, "step", where)) return -1;
+    return fusion_range_count_decimal(fusion_decimal_make(s.value, s.scale), fusion_decimal_make(e.value, e.scale),
+                                      fusion_decimal_make(p.value, p.scale), places, where);
+}
+static inline fusion_money fusion_range_money_value(fusion_money s, fusion_money p, long long n, const char* where) {
+    fusion_money m = fusion_money_mul_whole(p, (fusion_int128)n, where);
+    if (fusion_failed) return m;
+    return fusion_money_add(s, m, where);
+}
+
 #endif  // FUSION_RUNTIME_H

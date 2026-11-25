@@ -320,9 +320,12 @@ class EnumRulesMixin:
             return
         elif isinstance(subject_type, PrimitiveType) and subject_type.name in self._MATCH_CONSTANT_TYPES:
             self._check_constant_cases(node, subject_type)
+        elif isinstance(subject_type, PrimitiveType) and subject_type.name in ('float', 'double'):
+            self._check_decimal_cases(node, subject_type)    # case 0.0...0.5 (47.6f)
         elif not (isinstance(subject_type, PrimitiveType) and subject_type.name == 'void'):
             self.errors.append(SemanticError(
-                f"match works on an enum, whole number (int, long, short, byte), char or string value, got "
+                f"match works on an enum, whole number (int, long, short, byte), char or string value, or "
+                f"ranges on a float or double, got "
                 f"{self.type_to_string(subject_type)}", node.subject.location))
         for case in node.cases:
             self.visit(case.body)
@@ -494,6 +497,42 @@ class EnumRulesMixin:
             self.errors.append(SemanticError(
                 f"A match on {subject_type.name} needs an else (or _) - its values can't all "
                 f"be listed", node.location))
+
+    def _check_decimal_cases(self, node: MatchStmt, subject_type: PrimitiveType) -> None:
+        """A match on a float or double (Task 47.6f, D.170): ranges only - `case 0.0...0.5` is a test
+        (0.0 <= x <= 0.5), never == (a double is rarely exactly the number written); the ends written numbers,
+        no two ranges overlapping, an else required."""
+        from .ranges import written_number, plain
+        spans = []
+        for case in node.cases:
+            for pattern in case.patterns:
+                end = getattr(pattern, 'range_end', None)
+                if end is None:
+                    self.errors.append(SemanticError(
+                        f"A match on {subject_type.name} takes ranges only (case 0.0...0.5) - == on a "
+                        f"{subject_type.name} is rarely exact", pattern.location))
+                    continue
+                low, high = written_number(pattern.value), written_number(end)
+                if low is None or high is None:
+                    self.errors.append(SemanticError(
+                        "A range in a case needs written numbers, such as case 0.0...0.5", pattern.location))
+                    continue
+                for v in (pattern.value, end):
+                    self.visit(v)
+                if low > high:
+                    self.errors.append(SemanticError(
+                        f"case {plain(low)}...{plain(high)} - a range goes from the smaller to the larger: "
+                        f"case {plain(high)}...{plain(low)}", pattern.location))
+                    continue
+                if any(low <= b and a <= high for a, b in spans):
+                    self.errors.append(SemanticError(
+                        "This range overlaps an earlier case - both ends are included (case 0.0...0.49, "
+                        "case 0.5...1.0)", pattern.location))
+                spans.append((low, high))
+        if node.else_body is None:
+            self.errors.append(SemanticError(
+                f"A match on {subject_type.name} needs an else (or _) - its values can't all be listed",
+                node.location))
 
     @staticmethod
     def _constant_case(value) -> bool:
