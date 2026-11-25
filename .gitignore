@@ -62,5 +62,5 @@ Notes/
 # - Documentation: *.md
 # - Configuration: *.ini, *.json, *.yaml
 
-# Local helpers, never committed (CLAUDE.md Rule 9)
+# The live task status for the status bar (tools/claude_status) - never committed
 tools/local/

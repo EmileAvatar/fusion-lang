@@ -19,5 +19,8 @@
 - `ebnf_html.py` - writes files/fusion.ebnf.html from files/fusion.ebnf: one card per entry - its task (linked to
   FEATURES / Decisions), its status in colour (built green, planned orange, rejected red, not built blue), the comment
   in a grey box, the rules coloured - with an index; `--check` is part of the "ebnf" check in check.py
+- `claude_status/` - usage and task progress in VS Code's status bar (CLAUDE.md Rule 9): `usage_status.py` (the
+  ccusage estimate), `task_status.py` (sets the task; check.py writes it too, to tools/local/ - git ignored),
+  `vscode-extension/` (install: its README)
 - `windows/fusion-file-preview.reg` - Explorer preview pane shows `.fusion` files as text (23.8)
 - `windows/fusion-file-preview-undo.reg` - removes that again

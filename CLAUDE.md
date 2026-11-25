@@ -124,7 +124,7 @@ GitHub (`git push`) - automatically, without asking (user decision, 2026-10-09).
 - Verify with `python check.py` rather than running the individual commands
 
 ### Rule 9: Usage status (user, 2026-11-25 - Pro plan)
-After every third completed task (and when asked), run `python tools/local/usage_status.py` (git ignored - it runs
+After every third completed task (and when asked), run `python tools/claude_status/usage_status.py` (it runs
 `npx ccusage blocks --json`) and put what it prints **above** the task's report in chat, as plain text - a blank line
 between the two lines and before the `---` (without it Markdown turns the text above into a heading):
 ```text
@@ -137,9 +137,9 @@ Estimate Left: 113.8 million tokens (86.5%), with 3h 17m to go.
 ```
 - The limit is ccusage's estimate (the largest block so far - "assuming ... token limit"), not the plan's real one;
   the Account & Usage button shows the plan's own figure - if the user gives it, say both
-- The status bar (local extension `tools/local/vscode-claude-status`, installed in `%USERPROFILE%\.vscode\extensions`)
-  shows the usage and the task: check.py writes its stages itself; for other long work set it with
-  `python tools/local/task_status.py "47.10 parser" 2 5` (`--done`, `--failed`, `--idle`)
+- The status bar (the extension in `tools/claude_status/` - its README says how to install it) shows the usage and
+  the task: check.py writes its stages itself; for other long work set it with
+  `python tools/claude_status/task_status.py "47.10 parser" 2 5` (`--done`, `--failed`, `--idle`)
 - **Stop at 90% used:** no coding task starts or goes on past 90% - finish the step in hand so the tree builds,
   don't commit half a task, report the status and what is next, and wait for the next block
 

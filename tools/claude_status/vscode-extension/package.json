@@ -1,0 +1,23 @@
+{
+  "name": "claude-status",
+  "displayName": "Claude Status",
+  "description": "Claude usage estimate and the running task's progress in the status bar - Fusion's local helper",
+  "version": "0.0.1",
+  "publisher": "local",
+  "private": true,
+  "engines": { "vscode": "^1.80.0" },
+  "main": "./extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "claudeStatus.refresh", "title": "Claude Status: Refresh usage now" }
+    ],
+    "configuration": {
+      "title": "Claude Status",
+      "properties": {
+        "claudeStatus.python": { "type": "string", "default": "python", "description": "The Python that runs tools/claude_status/usage_status.py" },
+        "claudeStatus.refreshMinutes": { "type": "number", "default": 5, "description": "How often the usage estimate is refreshed" }
+      }
+    }
+  }
+}
