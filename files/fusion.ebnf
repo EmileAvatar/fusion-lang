@@ -421,18 +421,30 @@ error_line = ( "message" | "code" ) "=" literal      (* that error type's defaul
 
 (* ========== Enums (Task 25) ========== *)
 
-enum_declaration = ( "enum" | "Enum" ) identifier enum_body ;
+(* `const static enum Planet` - accepted, changing nothing: an enum is const and static (47.3) *)
+enum_declaration = { "const" | "static" } ( "enum" | "Enum" ) identifier enum_body ;
 
 enum_body =
       ":" enum_values NEWLINE                                   (* one line *)
-    | INDENT enum_values DEDENT [ end_marker "enum" ]
-    | "{" enum_values "}" ;
+    | INDENT enum_values { enum_member } DEDENT [ end_marker "enum" ]
+    | "{" enum_values { enum_member } "}" ;
 
 enum_values = enum_value { [ "," | NEWLINE ] enum_value } ;    (* commas optional *)
 
-(* A value's number: the previous + 1, from 0. Data in ( ) - an enum with data (25.4), made with
-   Shape.Circle(2.0), read through match; it may hold the enum itself (25.5) *)
-enum_value = identifier [ "(" struct_field { "," struct_field } ")" ] [ "=" [ "-" ] integer_literal ] ;
+(* A value's id: counted from 0 - the next id not used - or written at the front (`200, OK`), at the back
+   (`EARTH(...), 200`) or as `OK = 200` (D.189). Data declared in ( ) - an enum with data (25.4), made with
+   Shape.CIRCLE(2.0), read through match; it may hold the enum itself (25.5). Fixed data given in ( ) - an
+   enum as a built-in value struct (47.3, D.188): EARTH(5.976, 6378.14, "Earth"), worked out when compiling *)
+enum_value = [ [ "-" ] integer_literal "," ] identifier
+             [ "(" ( struct_field { "," struct_field } | argument_list ) ")" ]
+             [ "," [ "-" ] integer_literal | "=" [ "-" ] integer_literal ] ;
+
+(* After the values (47.3, D.190-D.192): fields - `public const double mass` (readable from anywhere; without
+   public, only the enum's functions read it; never set) - bool char byte short int long int128 int256 float
+   double string; an optional `private Enum(...)` constructor that sets them; functions - `this` is the value;
+   `toString()` - the value's text, worked out when compiling *)
+enum_member = [ "public" | "private" ] [ "const" ] struct_field
+            | "private" "Enum" "(" [ parameter_list ] ")" block ;
 
 (* ========== Comments and lexical elements ========== *)
 

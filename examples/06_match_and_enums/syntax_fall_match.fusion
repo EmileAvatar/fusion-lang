@@ -1,16 +1,16 @@
 enum Level
-    Low
-    Mid
-    High
+    LOW
+    MID
+    HIGH
 
 void function main()
-    Level level = Level.Mid
+    Level level = Level.MID
     fall match level                     // like a switch: the next cases run too
-        case High: print("check the roof")
-        case Mid: print("check the windows")
-        case Low
+        case HIGH: print("check the roof")
+        case MID: print("check the windows")
+        case LOW
             print("check the door")
             break                        // stop falling
     match level                          // a plain match never falls through
-        case High: print("high")
+        case HIGH: print("high")
         else: print("not high")

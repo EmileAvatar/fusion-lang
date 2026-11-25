@@ -857,11 +857,14 @@ class EnumVariant(ASTNode):
             filled in by the parser
         explicit_value: True when the source wrote `= n`
         fields: The data it carries (Task 25.4) - empty for a plain value
+        arguments: The fixed data it is given (Task 47.3, D.188): `EARTH(5.976e24, 6.37814e6, "Earth")` -
+            None when nothing is written; filled into the enum's fields, or a const fixed array
     """
     name: str
     value: int = 0
     explicit_value: bool = False
     fields: List[StructField] = field(default_factory=list)
+    arguments: Optional[List[ASTNode]] = None
 
 
 @dataclass
@@ -875,10 +878,20 @@ class EnumDecl(ASTNode):
     Attributes:
         name: The enum's name, which is also the type name
         variants: Its values, in declaration order
+        fields: An enum as a built-in value struct (Task 47.3, D.188-D.192): each value's fixed data -
+            `public const double mass`; private when `public` isn't written
+        methods: Its functions - `Planet.gravity`, `this` (the value) first; moved into the program by
+            normalize_enums
+        constructor: `private Enum(double m, ...)` - (parameters, body), or None
+        to_string: Its own `toString()` - worked out for each value when compiling, or None
     """
     name: str
     variants: List[EnumVariant]
     is_public: bool = False  # `public` - other modules may use it (Task 18.4.3)
+    fields: List[StructField] = field(default_factory=list)
+    methods: List[ASTNode] = field(default_factory=list)
+    constructor: Optional[tuple] = None
+    to_string: Optional[ASTNode] = None
 
     def variant(self, name: str) -> Optional[EnumVariant]:
         return next((v for v in self.variants if v.name == name), None)

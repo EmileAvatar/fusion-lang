@@ -250,6 +250,17 @@ class GenericsConfig:
 
 
 @dataclass
+class EnumsConfig:
+    """Enums (Task 47.3, D.194).
+
+    Attributes:
+        upper_case_names: a value name not in capitals (`Mars`) - "false" (default) allowed, no warning;
+            "true" a warning; "strict" an error
+    """
+    upper_case_names: str = "false"
+
+
+@dataclass
 class RangesConfig:
     """Ranges in a loop: `for i in 0...13 step 5` (Task 33.2g, D.170).
 
@@ -372,6 +383,7 @@ class ProjectConfig:
     arrays: ArraysConfig = field(default_factory=ArraysConfig)
     generics: GenericsConfig = field(default_factory=GenericsConfig)
     ranges: RangesConfig = field(default_factory=RangesConfig)
+    enums: EnumsConfig = field(default_factory=EnumsConfig)
     conditions: ConditionsConfig = field(default_factory=ConditionsConfig)
     build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
@@ -702,6 +714,21 @@ def _load_ranges_section(data: dict, config_path: str) -> RangesConfig:
     return ranges
 
 
+def _load_enums_section(data: dict, config_path: str) -> EnumsConfig:
+    """Parse and validate the [enums] section (Task 47.3, D.194)."""
+    enums = EnumsConfig()
+    section = _require_table(data, "enums", config_path)
+    for key, value in section.items():
+        if key != "upperCaseNames":
+            raise ProjectConfigError(f"{config_path}: unknown setting enums.{key} (known: ['upperCaseNames'])")
+        text = str(value).lower() if isinstance(value, (bool, str)) else None
+        if text not in ("false", "true", "strict"):
+            raise ProjectConfigError(f"{config_path}: enums.upperCaseNames must be false, true or \"strict\", "
+                                     f"got {value!r}")
+        enums.upper_case_names = text
+    return enums
+
+
 def _plain_number(text: str) -> bool:
     """A number written plainly - digits with at most one '.' (0.1, 2, 0.25)."""
     whole, _, places = text.partition('.')
@@ -1010,6 +1037,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         arrays=_load_arrays_section(data, config_path),
         generics=_load_generics_section(data, config_path),
         ranges=_load_ranges_section(data, config_path),
+        enums=_load_enums_section(data, config_path),
         conditions=_load_conditions_section(data, config_path),
         build=_load_build_section(data, config_path),
         numbers=_load_numbers_section(data, config_path),

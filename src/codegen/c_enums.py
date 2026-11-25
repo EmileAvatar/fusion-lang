@@ -30,7 +30,7 @@ from src.parser.ast_nodes import (EnumDecl, EnumStaticCall, EnumType, EnumValueE
                                   LiteralExpr, MatchStmt, PrimitiveType, StructDecl, StructField,
                                   StructType, TypeNode)
 from src.semantic.enums import ENUM_NULL
-from .c_names import mangle_function_name, local_c_name
+from .c_names import mangle_function_name, local_c_name, c_member_name
 from .c_runtime import escape_c_text
 
 
@@ -169,13 +169,16 @@ class EnumsMixin:
             lines += [f'static inline fusion_string {c}__text(int v) {{', '    switch (v) {',
                       '        case FUSION_ENUM_NULL: return FUSION_STR("null");']   # 30.11
             for variant in enum.variants:
-                text = escape_c_text(variant.name, '"')
+                shown = getattr(variant, 'text', None)            # the enum's own toString() (47.3)
+                shown = variant.name if shown is None else shown
+                text = escape_c_text(shown, '"')
                 lines.append(f'        case {self.enum_number(variant.value)}: '
-                             f'return FUSION_STRU("{text}", {len(variant.name)});')
+                             f'return FUSION_STRU("{text}", {len(shown)});')
             lines += ['    }', '    return FUSION_STR("");', '}']
             if data:
                 lines.append('')
                 continue
+            lines += self.enum_table_lines(enum, c)
             lines += [f'static inline {c} {c}__fromString(fusion_string s, const char* where) {{']
             for variant in enum.variants:
                 text = escape_c_text(variant.name, '"')
@@ -186,6 +189,105 @@ class EnumsMixin:
                       f'{escape_c_text(enum.name, chr(34))}", s.len, s.data);',
                       f'    return {self.enum_number(enum.variants[0].value)};', '}', '']
         return lines
+
+    # ---- an enum as a built-in value struct (Task 47.3, D.188-D.193) ----
+
+    def enum_table_lines(self, enum, c: str) -> list:
+        """The enum's name text, fromValue, and - with fields - one static const table of structs (never on the
+        heap, nothing freed) with `__at` to reach a value's entry; without fields but given data, a const array
+        per value with `__item`."""
+        lines = [f'static inline fusion_string {c}__name(int v) {{', '    switch (v) {']
+        for variant in enum.variants:
+            lines.append(f'        case {self.enum_number(variant.value)}: '
+                         f'return FUSION_STRU("{escape_c_text(variant.name, chr(34))}", {len(variant.name)});')
+        lines += ['    }', '    return FUSION_STR("null");', '}',
+                  f'static inline {c} {c}__fromValue(int v, const char* where) {{', '    switch (v) {']
+        for variant in enum.variants:
+            number = self.enum_number(variant.value)
+            lines.append(f'        case {number}: return {number};')
+        lines += ['    }', f'    fusion_fail(FUSION_KIND_UnknownValueError, where, "%d is not an id of enum '
+                            f'{escape_c_text(enum.name, chr(34))}", v);',
+                  f'    return {self.enum_number(enum.variants[0].value)};', '}']
+        fields = [f for f in enum.fields if f.field_type.name in self._ENUM_C_FIELDS]
+        if fields and all(getattr(v, 'data', None) is not None for v in enum.variants):
+            members = ' '.join(f'{self.map_type(f.field_type)} {c_member_name(f.name)};' for f in fields)
+            rows = []
+            for variant in enum.variants:
+                cells = ', '.join(self._enum_constant(variant.data[f.name], f.field_type.name) for f in fields)
+                rows.append(f'    {{ {cells} }},')
+            lines += [f'typedef struct {{ {members} }} {c}__data;',
+                      f'static const {c}__data {c}__table[] = {{'] + rows + ['};',
+                      f'static inline const {c}__data* {c}__at(int v, const char* where) {{', '    switch (v) {']
+            for i, variant in enumerate(enum.variants):
+                lines.append(f'        case {self.enum_number(variant.value)}: return &{c}__table[{i}];')
+            lines += ['    }', f'    fusion_fail(FUSION_KIND_NullError, where, "the {escape_c_text(enum.name, chr(34))} '
+                                f'value is null - it has no fields");', f'    return &{c}__table[0];', '}']
+        kind = getattr(enum, 'items_type', None)
+        if kind is not None:
+            ctype = self.map_type(PrimitiveType(location=enum.location, name=kind))
+            zero = self._enum_constant('' if kind == 'string' else False if kind == 'bool' else 0, kind)
+            for variant in enum.variants:
+                items = getattr(variant, 'items', None) or []
+                cells = ', '.join(self._enum_constant(x, kind) for x in items) or zero
+                lines.append(f'static const {ctype} {c}__items_{variant.name}[] = {{ {cells} }};')
+            lines += [f'static inline {ctype} {c}__item(int v, int i, const char* where) {{', '    int n = -1;',
+                      f'    const {ctype}* items = NULL;', '    switch (v) {']
+            for variant in enum.variants:
+                count = len(getattr(variant, 'items', None) or [])
+                lines.append(f'        case {self.enum_number(variant.value)}: items = {c}__items_{variant.name}; '
+                             f'n = {count}; break;')
+            lines += ['    }',
+                      f'    if (n < 0) {{ fusion_fail(FUSION_KIND_NullError, where, "the {escape_c_text(enum.name, chr(34))} '
+                      f'value is null - it holds nothing"); return {zero}; }}',
+                      f'    if (i < 0 || i >= n) {{ fusion_fail(FUSION_KIND_IndexError, where, "index %d is outside the '
+                      f'value (it holds %d)", i, n); return {zero}; }}',
+                      '    return items[i];', '}']
+        return lines + ['']
+
+    _ENUM_C_FIELDS = ('bool', 'char', 'byte', 'short', 'int', 'long', 'int128', 'int256', 'float', 'double', 'string')
+
+    @staticmethod
+    def _enum_constant(value, kind: str) -> str:
+        """A value worked out when compiling, as a C constant of the field's type."""
+        if kind == 'string':
+            text = str(value)
+            return (f'{{ (char*)"{escape_c_text(text, chr(34))}", {len(text.encode("utf-8"))}, {len(text)}, 0 }}')
+        if kind == 'bool':
+            return 'true' if value else 'false'
+        if kind == 'char':
+            return str(ord(value)) if value else '0'
+        if kind in ('float', 'double'):
+            return repr(float(value)) if value == value else '(0.0/0.0)'
+        number = int(value)
+        if kind in ('int128', 'int256') and not -(1 << 63) < number < (1 << 63):
+            body = f'{abs(number)}wb'
+            return f'((fusion_{kind})({"-" if number < 0 else ""}{body}))'
+        return f'{number}LL' if kind in ('long', 'int128', 'int256') else str(number)
+
+    def _enum_of(self, node):
+        kind = getattr(node, 'inferred_type', None)
+        return getattr(kind, 'declaration', None) or getattr(node, 'declaration', None)
+
+    def enum_field_code(self, node) -> str:
+        """`p.mass` - the value's entry in the static table (a null value a NullError); `p.id` the value itself;
+        `p.enumTypeName` its name as written (47.3)."""
+        decl = self._enum_of(node.object)
+        c = mangle_function_name(decl.name)
+        value = self.visit(node.object)
+        if node.enum_field == 'id':
+            return f'({value})'
+        if node.enum_field == 'enumTypeName':
+            return f'{c}__name({value})'
+        entry = self.checked_code(f'{c}__at({value}, {self._where(node)})', f'const {c}__data*')
+        return f'({entry})->{c_member_name(node.enum_field)}'
+
+    def enum_item_code(self, node) -> str:
+        """`SMALL[1]` - an item of the value's const fixed array, checked (47.3, D.191)."""
+        decl = self._enum_of(node.array)
+        c = mangle_function_name(decl.name)
+        ctype = self.map_type(PrimitiveType(location=node.location, name=decl.items_type))
+        return self.checked_code(f'{c}__item({self.visit(node.array)}, {self.visit(node.index)}, '
+                                 f'{self._where(node)})', ctype)
 
     def enum_null_code(self, type_node) -> str:
         """null as a value of an enum (Task 30.11)."""
@@ -235,6 +337,9 @@ class EnumsMixin:
             return self.fresh_temporary(code, node.inferred_type)   # freed unless stored
         if node.method == 'fromString':   # the text is borrowed; an unknown name fails (26.4)
             return self.checked_code(f'{c}__fromString({self.visit(node.arguments[0])}, '
+                                     f'{self._where(node)})', c)
+        if node.method == 'fromValue':    # by id; an unknown one fails (47.3, D.193)
+            return self.checked_code(f'{c}__fromValue({self.visit(node.arguments[0])}, '
                                      f'{self._where(node)})', c)
         # Token.Number(42) - its tag and its own fields (Task 25.4)
         struct = decl.struct_decl

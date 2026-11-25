@@ -1,4 +1,4 @@
-enum Light: Red Yellow Green
+enum Light: RED YELLOW GREEN
 
 void function main()
     int n = 7
@@ -7,6 +7,6 @@ void function main()
         0 : "none"
         1, 2, 3 : "few"
         _ : "many"
-    Light l = Light.Green
-    let action = match l { Red, Yellow : "stop", Green : "go" }   // every value: no _ needed
+    Light l = Light.GREEN
+    let action = match l { RED, YELLOW : "stop", GREEN : "go" }   // every value: no _ needed
     print("{day} {size} {action}")      // Weekend many go

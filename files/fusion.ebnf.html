@@ -54,7 +54,7 @@ pre { margin: 0; padding: 10px 14px; background: var(--code-bg); border-top: 1px
 <body>
 <header id="top"><h1>Fusion grammar</h1>
 <p class="sub">files/fusion.ebnf, one card per entry - written by tools/ebnf_html.py; do not edit by hand. A task links to files/FEATURES.md (a finished one to the archive), a decision to Decisions.md.</p>
-<div class="legend"><span><i class="dot built"></i>built (86)</span><span><i class="dot planned"></i>planned / postponed / partial (9)</span><span><i class="dot rejected"></i>rejected (0)</span><span><i class="dot notbuilt"></i>not built yet (4)</span></div>
+<div class="legend"><span><i class="dot built"></i>built (87)</span><span><i class="dot planned"></i>planned / postponed / partial (9)</span><span><i class="dot rejected"></i>rejected (0)</span><span><i class="dot notbuilt"></i>not built yet (4)</span></div>
 <div class="intro">Fusion Programming Language - EBNF Grammar
 
 No version number until the compiler hosts itself (FEATURES 35.7).
@@ -96,7 +96,7 @@ semicolons - a statement ends at the end of its line.</div>
 <a class="sec" href="#error-types-task-26-9">Error types (Task 26.9)</a>
 <div class="rules"><a href="#error-types-task-26-9-error-declaration">error_declaration</a>, <a href="#error-types-task-26-9-error-line">error_line</a></div>
 <a class="sec" href="#enums-task-25">Enums (Task 25)</a>
-<div class="rules"><a href="#enums-task-25-enum-declaration">enum_declaration</a>, <a href="#enums-task-25-enum-body">enum_body</a>, <a href="#enums-task-25-enum-values">enum_values</a>, <a href="#enums-task-25-enum-value">enum_value</a></div>
+<div class="rules"><a href="#enums-task-25-enum-declaration">enum_declaration</a>, <a href="#enums-task-25-enum-body">enum_body</a>, <a href="#enums-task-25-enum-values">enum_values</a>, <a href="#enums-task-25-enum-value">enum_value</a>, <a href="#enums-task-25-enum-member">enum_member</a></div>
 <a class="sec" href="#comments-and-lexical-elements">Comments and lexical elements</a>
 <div class="rules"><a href="#comments-and-lexical-elements-single-line-comment">single_line_comment</a>, <a href="#comments-and-lexical-elements-single-line-comment">multi_line_comment</a>, <a href="#comments-and-lexical-elements-identifier">identifier</a>, <a href="#comments-and-lexical-elements-identifier">letter</a>, <a href="#comments-and-lexical-elements-identifier">character</a>, <a href="#comments-and-lexical-elements-identifier">string_character</a>, <a href="#comments-and-lexical-elements-newline">NEWLINE</a>, <a href="#comments-and-lexical-elements-newline">INDENT</a>, <a href="#comments-and-lexical-elements-newline">DEDENT</a></div>
 <a class="sec" href="#keywords-src-lexer-keywords-py">Keywords (src/lexer/keywords.py)</a>
@@ -1000,12 +1000,12 @@ semicolons - a statement ends at the end of its line.</div>
 <h2 id="enums-task-25">Enums (Task 25)</h2>
 <div class="card" id="enums-task-25-enum-declaration">
 <div class="head">
-<a class="task" href="../task/featuresArchive.md">25</a>
+<a class="task" href="FEATURES.md#task-47">47.3</a>
 <span class="status built">built</span>
-<div class="comment">&nbsp;</div>
+<div class="comment">`const static enum Planet` - accepted, changing nothing: an enum is const and static (47.3)</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">enum_declaration</span> <span class="o">=</span> <span class="o">(</span> <span class="s">&quot;enum&quot;</span> <span class="o">|</span> <span class="s">&quot;Enum&quot;</span> <span class="o">)</span> <span class="nt">identifier</span> <span class="nt">enum_body</span> <span class="o">;</span></pre>
+<pre><span class="rule">enum_declaration</span> <span class="o">=</span> <span class="o">{</span> <span class="s">&quot;const&quot;</span> <span class="o">|</span> <span class="s">&quot;static&quot;</span> <span class="o">}</span> <span class="o">(</span> <span class="s">&quot;enum&quot;</span> <span class="o">|</span> <span class="s">&quot;Enum&quot;</span> <span class="o">)</span> <span class="nt">identifier</span> <span class="nt">enum_body</span> <span class="o">;</span></pre>
 </div>
 <div class="card" id="enums-task-25-enum-body">
 <div class="head">
@@ -1016,8 +1016,8 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <pre><span class="rule">enum_body</span> <span class="o">=</span>
       <span class="s">&quot;:&quot;</span> <span class="nt">enum_values</span> <span class="nt">NEWLINE</span>                                   <span class="c">(* one line *)</span>
-    <span class="o">|</span> <span class="nt">INDENT</span> <span class="nt">enum_values</span> <span class="nt">DEDENT</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;enum&quot;</span> <span class="o">]</span>
-    <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="nt">enum_values</span> <span class="s">&quot;}&quot;</span> <span class="o">;</span></pre>
+    <span class="o">|</span> <span class="nt">INDENT</span> <span class="nt">enum_values</span> <span class="o">{</span> <span class="nt">enum_member</span> <span class="o">}</span> <span class="nt">DEDENT</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;enum&quot;</span> <span class="o">]</span>
+    <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="nt">enum_values</span> <span class="o">{</span> <span class="nt">enum_member</span> <span class="o">}</span> <span class="s">&quot;}&quot;</span> <span class="o">;</span></pre>
 </div>
 <div class="card" id="enums-task-25-enum-values">
 <div class="head">
@@ -1032,11 +1032,28 @@ semicolons - a statement ends at the end of its line.</div>
 <div class="head">
 <a class="task" href="../task/featuresArchive.md">25.4</a>
 <span class="status built">built</span>
-<div class="comment">A value&#x27;s number: the previous + 1, from 0. Data in ( ) - an enum with data (25.4), made with
-   Shape.Circle(2.0), read through match; it may hold the enum itself (25.5)</div>
+<div class="comment">A value&#x27;s id: counted from 0 - the next id not used - or written at the front (`200, OK`), at the back
+   (`EARTH(...), 200`) or as `OK = 200` (D.189). Data declared in ( ) - an enum with data (25.4), made with
+   Shape.CIRCLE(2.0), read through match; it may hold the enum itself (25.5). Fixed data given in ( ) - an
+   enum as a built-in value struct (47.3, D.188): EARTH(5.976, 6378.14, &quot;Earth&quot;), worked out when compiling</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">enum_value</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="o">[</span> <span class="s">&quot;(&quot;</span> <span class="nt">struct_field</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">struct_field</span> <span class="o">}</span> <span class="s">&quot;)&quot;</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;=&quot;</span> <span class="o">[</span> <span class="s">&quot;-&quot;</span> <span class="o">]</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="o">;</span></pre>
+<pre><span class="rule">enum_value</span> <span class="o">=</span> <span class="o">[</span> <span class="o">[</span> <span class="s">&quot;-&quot;</span> <span class="o">]</span> <span class="nt">integer_literal</span> <span class="s">&quot;,&quot;</span> <span class="o">]</span> <span class="nt">identifier</span>
+             <span class="o">[</span> <span class="s">&quot;(&quot;</span> <span class="o">(</span> <span class="nt">struct_field</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">struct_field</span> <span class="o">}</span> <span class="o">|</span> <span class="nt">argument_list</span> <span class="o">)</span> <span class="s">&quot;)&quot;</span> <span class="o">]</span>
+             <span class="o">[</span> <span class="s">&quot;,&quot;</span> <span class="o">[</span> <span class="s">&quot;-&quot;</span> <span class="o">]</span> <span class="nt">integer_literal</span> <span class="o">|</span> <span class="s">&quot;=&quot;</span> <span class="o">[</span> <span class="s">&quot;-&quot;</span> <span class="o">]</span> <span class="nt">integer_literal</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="enums-task-25-enum-member">
+<div class="head">
+<a class="task" href="FEATURES.md#task-47">47.3</a>
+<span class="status built">built</span>
+<div class="comment">After the values (47.3, D.190-D.192): fields - `public const double mass` (readable from anywhere; without
+   public, only the enum&#x27;s functions read it; never set) - bool char byte short int long int128 int256 float
+   double string; an optional `private Enum(...)` constructor that sets them; functions - `this` is the value;
+   `toString()` - the value&#x27;s text, worked out when compiling</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">enum_member</span> <span class="o">=</span> <span class="o">[</span> <span class="s">&quot;public&quot;</span> <span class="o">|</span> <span class="s">&quot;private&quot;</span> <span class="o">]</span> <span class="o">[</span> <span class="s">&quot;const&quot;</span> <span class="o">]</span> <span class="nt">struct_field</span>
+            <span class="o">|</span> <span class="s">&quot;private&quot;</span> <span class="s">&quot;Enum&quot;</span> <span class="s">&quot;(&quot;</span> <span class="o">[</span> <span class="nt">parameter_list</span> <span class="o">]</span> <span class="s">&quot;)&quot;</span> <span class="nt">block</span> <span class="o">;</span></pre>
 </div>
 <h2 id="comments-and-lexical-elements">Comments and lexical elements</h2>
 <div class="card" id="comments-and-lexical-elements-single-line-comment">

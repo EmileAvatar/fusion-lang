@@ -96,16 +96,16 @@ compiler makes once. The developer writes:
 
 ```fusion
 enum Planet
-    MERCURY(3.303e23, 2.4397e6, "Mercury")
-    EARTH(5.976e24, 6.37814e6, "Earth")
-    MARS(6.421e23, 3.3972e6, "Mars")
+    MERCURY(0.3303, 2439.7, "Mercury")
+    EARTH(5.976, 6378.14, "Earth")
+    MARS(0.6421, 3397.2, "Mars")
 
     public const double mass
     public const double radius
     public const string name
 
-    double function gravity(double kg)
-        return 6.67e-11 * mass * kg / (radius * radius)
+    double function gravity()                  // mass in 10^24 kg, radius in km
+        return 0.0000000000667 * mass * 1000000000000000000.0 / (radius * radius)
 
     string function toString()
         return name
@@ -121,8 +121,8 @@ What the compiler makes for each value - never written by the developer:
 struct (static const) EARTH
     int id = 1                          counted from 0, or written: 200, OK
     string enumTypeName = "EARTH"       the name as written
-    double mass = 5.976e24
-    double radius = 6.37814e6
+    double mass = 5.976
+    double radius = 6378.14
     string name = "Earth"
     string toString() -> name           the enum's own; without one, enumTypeName
     int value() -> id

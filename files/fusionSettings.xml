@@ -191,6 +191,15 @@
     </setting>
   </section>
 
+  <section name="enums" description="Enums: each value a fixed, static value (files/Value_Structs.md)">
+    <setting name="upperCaseNames" type="choice" default="false" task="47.3">
+      <value>false</value>
+      <value>true</value>
+      <value>strict</value>
+      <description>An enum value's name not in capitals (Mars): false - allowed, no warning; true - a warning; strict - an error. Capitals show a reader the name is a fixed value (D.194)</description>
+    </setting>
+  </section>
+
   <section name="memory" description="How values are owned (files/Ownership.md)">
     <setting name="ownership" type="choice" default="strict" task="48.11">
       <description>strict (the default, the safest): every ownership rule - Car b = a hands the object over (a can't be used until it gets a new value), one writer, a borrow never stored or returned; relaxed: Car b = a shares one object, the rules loosened - for a library with no ownership model (a GC alongside it) or manual memory. byVal copies and byRef borrows in both. Replaces assignment (move / share), still read with a warning (D.124)</description>

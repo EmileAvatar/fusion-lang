@@ -1,9 +1,9 @@
 // Module lexing: text -> tokens (Task 25.6)
 public enum Token
-    Number(int value)
-    Op(char symbol)
-    Open
-    Close
+    NUMBER(int value)
+    OP(char symbol)
+    OPEN
+    CLOSE
 
 public List<Token> function tokenize(string text)
     List<Token> tokens
@@ -13,20 +13,20 @@ public List<Token> function tokenize(string text)
         match c
             case ' ': i = i + 1
             case '('
-                tokens.add(Token.Open)
+                tokens.add(Token.OPEN)
                 i = i + 1
             case ')'
-                tokens.add(Token.Close)
+                tokens.add(Token.CLOSE)
                 i = i + 1
             case '+', '-', '*', '/'
-                tokens.add(Token.Op(c))
+                tokens.add(Token.OP(c))
                 i = i + 1
             else
                 int value = 0
                 while i < len(text) and isDigit(text[i])
                     value = value * 10 + charCode(text[i]) - charCode('0')
                     i = i + 1
-                tokens.add(Token.Number(value))
+                tokens.add(Token.NUMBER(value))
     return tokens
 
 bool function isDigit(char c)

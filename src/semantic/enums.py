@@ -27,10 +27,11 @@ from .errors import SemanticError
 ENUM_NULL = -2147483647
 
 # Calls on the enum itself, Color.values() - a value can't have one of these names
-ENUM_STATICS = ('values', 'fromString')
+ENUM_STATICS = ('values', 'fromString', 'fromValue')
 
-# Methods on an enum value, c.toString() - rewritten to the built-in call toString(c)
-ENUM_METHODS = ('toString', 'toInt')
+# Methods on an enum value, c.toString() - rewritten to the built-in call toString(c); value() is its id
+# (47.3, D.189) - the same as toInt()
+ENUM_METHODS = ('toString', 'toInt', 'value')
 
 _SKIP_FIELDS = ('location', 'inferred_type', 'declaration', 'callee_declaration', 'scope',
                 'resolved_arguments')
@@ -44,6 +45,10 @@ def normalize_enums(program: ProgramNode) -> List[SemanticError]:
     errors: List[SemanticError] = []
     if not enums:
         return errors
+    for enum in enums.values():          # an enum's methods: functions Planet.gravity(this, ...) (47.3)
+        if enum.methods and not getattr(enum, 'methods_added', False):
+            program.declarations.extend(enum.methods)
+            enum.methods_added = True
 
     def enum_named(node) -> Optional[EnumDecl]:
         if isinstance(node, IdentifierExpr):
@@ -225,6 +230,81 @@ class EnumRulesMixin:
         node.inferred_type = expected
         return expected
 
+    # ---- an enum as a built-in value struct (Task 47.3, D.188-D.193) ----
+
+    _ENUM_BUILT_IN_FIELDS = {'id': 'int', 'enumTypeName': 'string'}
+
+    def bare_enum_receiver(self, node) -> None:
+        """`EARTH.mass`, `OK.value()`, `SMALL[1]`: a value written alone before `.` or `[` is the value of the
+        one enum that has it (no variable of that name) - EnumValueExpr in place."""
+        owners = getattr(node, 'bare_enum', None) if isinstance(node, IdentifierExpr) else None
+        if not owners or len(owners) != 1 or self.symbol_table.lookup(node.name) is not None:
+            return
+        decl = getattr(self, 'enum_decls', {}).get(owners[0])
+        if decl is None:
+            return
+        name, location = node.name, node.location
+        node.__class__ = EnumValueExpr
+        node.__dict__.clear()
+        node.__dict__.update(EnumValueExpr(location=location, enum_name=decl.name, member=name,
+                                           declaration=decl).__dict__)
+
+    def enum_field_type(self, node: MemberExpr, object_type: EnumType) -> TypeNode:
+        """`p.mass`, `EARTH.radius`, `p.id`, `p.enumTypeName` (D.188-D.190): a field of the value - private ones
+        only inside the enum's own functions."""
+        decl = object_type.declaration
+        location = node.location
+        if node.member in self._ENUM_BUILT_IN_FIELDS:
+            node.enum_field = node.member
+            return PrimitiveType(location=location, name=self._ENUM_BUILT_IN_FIELDS[node.member])
+        field = next((f for f in getattr(decl, 'fields', None) or [] if f.name == node.member), None)
+        if field is None:
+            known = ', '.join(['id', 'enumTypeName'] + [f.name for f in getattr(decl, 'fields', None) or []])
+            self.errors.append(SemanticError(
+                f"Enum '{decl.name}' has no field '{node.member}' (its fields: {known})", location))
+            return PrimitiveType(location=location, name='void')
+        if getattr(field, 'is_private', False) and getattr(self, 'current_class', None) != decl.name:
+            self.errors.append(SemanticError(
+                f"Field '{field.name}' of enum '{decl.name}' is private - write public const {self.type_to_string(field.field_type)} "
+                f"{field.name} to read it from outside (D.190)", location))
+        node.enum_field = node.member
+        return field.field_type
+
+    def enum_field_assigned(self, target: MemberExpr) -> bool:
+        """`EARTH.mass = 1.0` - an error: an enum's data is fixed (D.190). True when target is an enum's field."""
+        self.bare_enum_receiver(target.object)
+        object_type = self.visit(target.object)
+        if not isinstance(object_type, EnumType):
+            return False
+        self.errors.append(SemanticError(
+            f"An enum's data is fixed - {object_type.name}'s '{target.member}' can't be set (D.190)", target.location))
+        return True
+
+    def enum_item_type(self, node, object_type: EnumType) -> TypeNode:
+        """`SMALL[1]` - an item of a value's const fixed array (an enum without fields, D.191); an index past it an
+        IndexError while running, written on a written value a compile error."""
+        decl = object_type.declaration
+        index_type = self.visit(node.index)
+        kind = getattr(decl, 'items_type', None)
+        if kind is None:
+            self.errors.append(SemanticError(
+                f"A value of enum '{decl.name}' has no items to index - only an enum without fields whose values are "
+                f"given data (SMALL(2, 3, 5)) has (D.191)", node.location))
+            return PrimitiveType(location=node.location, name='void')
+        if not (isinstance(index_type, PrimitiveType) and index_type.name in ('int', 'byte', 'short')):
+            self.errors.append(SemanticError(f"An index is a whole number, got {self.type_to_string(index_type)}",
+                                             node.index.location))
+        from src.parser.parser import Parser
+        written = Parser._written_int(node.index)
+        if written is not None and isinstance(node.array, EnumValueExpr):
+            variant = decl.variant(node.array.member)
+            count = len(getattr(variant, 'items', None) or [])
+            if variant is not None and not 0 <= written < count:
+                self.errors.append(SemanticError(
+                    f"{variant.name}[{written}] - {variant.name} holds {count} item(s), 0 to {count - 1}", node.location))
+        node.enum_items = decl.name
+        return PrimitiveType(location=node.location, name=kind)
+
     def misplaced_bare_enum(self, node) -> TypeNode:
         """`JUNE` alone where no enum is expected - name it in full."""
         full = ' or '.join(f'{owner}.{node.name}' for owner in node.bare_enum)
@@ -259,6 +339,9 @@ class EnumRulesMixin:
             return ListType(location=node.location, element_type=self.enum_type(decl, node.location))
         if node.method == 'fromString':
             self._expect_enum_arguments(node, [string])
+            return self.enum_type(decl, node.location)
+        if node.method == 'fromValue':                     # Status.fromValue(403) - by id (47.3, D.193)
+            self._expect_enum_arguments(node, [PrimitiveType(location=node.location, name='int')])
             return self.enum_type(decl, node.location)
         variant = decl.variant(node.method)
         if variant is not None and variant.fields:

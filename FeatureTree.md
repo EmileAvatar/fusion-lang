@@ -49,6 +49,7 @@ Types
    - int as float             only when it fits exactly, else an error
    - Conversions              toInt, toFloat, toString, toByte, parseInt
    - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where known
+   - Enums as value structs   fields (EARTH.mass), ids (200, OK), constructor, methods, toString, fromValue - static, never on the heap
    - Generics                 functions, structs, classes; conditions (extends / : / Number / int / implements);
                               T... items - of one type, or a pack show(1, "two", car);
                               types from the left - Garage<Car> g = Garage(); a parent / interfaces (Box<T>, Collection<T>); statics per copy
@@ -188,7 +189,7 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - Enums as value structs [designed]  fields, ids (200, OK), constructor, methods, toString - 47.3; FusionType enum [planned]
+   - FusionType enum [planned]
    - fixed(n) [planned]              max size: fixed(10) string name
    - Operator overloading [design]   a setting, off
    - Flag enums [design]             Read | Write

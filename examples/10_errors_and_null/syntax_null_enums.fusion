@@ -1,11 +1,11 @@
 enum Status
     OK
-    NotFound
+    NOT_FOUND
 
 void function main()
     Status s                                   // no value given: null, not OK
     print("{s} {@1} {@2}", s == null, s?.null)  // also: s is null, s === null
-    s = Status.NotFound
+    s = Status.NOT_FOUND
     if s is not null                           // also: s != null, !s?.null
         print("set: {s}")
     s = null

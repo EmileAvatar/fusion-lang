@@ -1709,6 +1709,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C array index expression (valid as both an rvalue and an assignment lvalue)
         """
+        if getattr(node, 'enum_items', None):
+            return self.enum_item_code(node)          # SMALL[1] - an enum value's fixed array (47.3)
         if getattr(node, 'dims_slot', None):
             return self._many_dims_slot(node)       # m[1][2] - one position in the flat block (45.12a)
         array_code = self.visit(node.array)
@@ -2011,6 +2013,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         if getattr(node, 'length_call', None) is not None:
             return self.visit(node.length_call)       # x.length, x.len (Task 30.8)
+        if getattr(node, 'enum_field', None):
+            return self.enum_field_code(node)         # p.mass, EARTH.id - the enum's static table (47.3)
         if getattr(node, 'dims_value', None) is not None:
             return str(node.dims_value)               # m.rows, m.length - known while compiling (45.12a)
         if getattr(node, 'self_view', False):

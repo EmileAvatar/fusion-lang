@@ -7824,3 +7824,54 @@ Built with `[numbers] rounding` (not a new `[decimal]` section) and the maximum 
   `rangeMaxStep` 3; a step that misses the end - the 33.2g rule
 - money ranges exact (whole minor units); `case 0.0...0.5` in a match on a double
 - tests per D.170's table; example syntax_ranges grows a decimal part
+
+---
+
+## Task 47.3 - an enum as a built-in value struct (done 2026-11-25)
+
+**47.3 An enum as a built-in value struct** (TYP.005, D.188-D.194, files/Value_Structs.md) - replan 5, 2026-11-25 -
+waiting for approval
+The developer writes the values, fields, an optional private constructor and methods; the compiler makes each value a
+static const struct (never on the heap, never pooled) with `id`, `enumTypeName`, the fields, `toString()`, `value()`.
+A variable holding one only borrows it.
+```fusion
+enum Planet
+    MERCURY(3.303e23, 2.4397e6, "Mercury")       // id 0
+    EARTH(5.976e24, 6.37814e6, "Earth"), 200     // id 200
+    201, MARS(6.421e23, 3.3972e6, "Mars")        // id 201
+
+    public const double mass
+    public const double radius
+    public const string name
+
+    double function gravity(double kg)
+        return 6.67e-11 * mass * kg / (radius * radius)
+
+    string function toString()
+        return name
+
+enum Status
+    200, OK
+    403, ERROR
+
+enum Primes                                      // no fields: each value a const fixed array
+    SMALL(2, 3, 5)
+print("{@1} {@2} {@3}", EARTH.mass, Status.fromValue(403), SMALL[1])    // 5.976e24 ERROR 3
+```
+- 47.3a Setting `[enums] upperCaseNames` (D.194): false / true (a warning) / strict (an error); fusionSettings.xml
+- 47.3b Parsing: values first - `NAME`, `NAME(args)`, an id at the front or back; then fields, an optional
+  `private Enum(...)` and methods; `const` / `static` before `enum` accepted and changing nothing
+- 47.3c Ids (D.189): counted from 0, a written one used, then the next id not used; a clash a compile error; `id`,
+  `value()`; `fromValue` / `fromString` (D.193)
+- 47.3d Fields (D.190): the allowed types; always const; `public const` read from anywhere, else only inside the enum
+- 47.3e Constructor and values (D.191): optional private Enum - its body worked out when compiling; else the fields filled
+  in order; no fields - a const fixed array per value, `EARTH[i]` (out of range an IndexError, written a compile error)
+- 47.3f Methods and toString() (D.192): read only, whatever `[structs] functions` says; toString() wherever the value
+  becomes text; no inheritance or interfaces
+- 47.3g Ownership: a borrow of a static value - never moved, copied or freed
+- 47.3h C: one `static const` table of structs per enum (strings literals); a value is its index - the borrow; match / ==
+  by index; a method a C function taking the index; a null value (-1, D.051) read - a NullError
+- 47.3i Capitals: the examples, SYNTAX_REFERENCE and the showcase renamed (Red -> RED ...)
+- Tests: tests/test_enum_fields.py (every field type, ids, constructor, arrays, methods, toString, fromValue, null, the
+  borrow, upperCaseNames three ways, every error); one example, syntax_enum_planets (06_match_and_enums)
+- Settings: `[enums] upperCaseNames` (new, default false)

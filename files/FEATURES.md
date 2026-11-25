@@ -393,10 +393,20 @@ then each point is decided and solved completely. One line per section and per l
 		[DONE 2026-11-25] 47.6f Ranges in a match on a float or double (`case 0.0...0.49`) - ranges only (a test,
 			never ==), no overlap, an else required; found with it: a written number used as a double was the float
 			0.49f (0.49000000953674316) - now the number written
-	[ ] 47.3 An enum as a built-in value struct (D.188-D.194, files/Value_Structs.md): each value a static const
-		struct - id (counted, or written `200, OK`), enumTypeName, the fields (`public const double mass` - EARTH.mass),
-		toString(), value(); an optional private constructor; methods; fromString / fromValue; no fields - a const
-		fixed array (EARTH[0]); `[enums] upperCaseNames` (false / true / strict); never on the heap, borrowed - next
+	[DONE 2026-11-25] 47.3 An enum as a built-in value struct (D.188-D.194, files/Value_Structs.md; src/semantic/
+		enum_fields.py; tests/test_enum_fields.py, syntax_enum_planets)
+		[DONE 2026-11-25] 47.3a `[enums] upperCaseNames` - false / true (a warning) / strict (an error)
+		[DONE 2026-11-25] 47.3b Parsing: values, then fields, `private Enum(...)` and functions; ids at the front or
+			back; `const static enum` accepted
+		[DONE 2026-11-25] 47.3c Ids counted (the next not used) or written; a clash an error; id / value(); fromValue
+		[DONE 2026-11-25] 47.3d Fields: primitive types and string; public const read from anywhere (EARTH.mass, a
+			bare value before . or [), private only inside; never set
+		[DONE 2026-11-25] 47.3e Each value's data worked out when compiling: constants and arithmetic, by position,
+			name or default, through the constructor; no fields - a const array per value (SMALL[1])
+		[DONE 2026-11-25] 47.3f Methods (Planet.gravity(this)); toString() worked out per value - printing uses it
+		[DONE 2026-11-25] 47.3g-h One static const table per enum - a value is its id, a field read a lookup (a null
+			value a NullError); nothing on the heap
+		[DONE 2026-11-25] 47.3i Capitals in the examples, SYNTAX_REFERENCE and the showcase
 	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - files/Ownership.md, files/Service.md)
 		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
 		`fixed(10) string name`: at most 10 characters, kept inline - no heap

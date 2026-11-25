@@ -2,7 +2,7 @@
 // A small library: classes, interfaces, inheritance, casts, structs building on structs,
 // a struct holding an object, enums with match, foreach, a Collection and List options
 
-enum Kind: Book Film Game
+enum Kind: BOOK FILM GAME
 
 interface Priced
     float function price()
@@ -23,7 +23,7 @@ class Media implements Lendable
 class Film inherits Media                     // one parent; Film is a Media
     public int minutes
     constructor(string title, int minutes)
-        super(title, Kind.Film)
+        super(title, Kind.FILM)
         this.minutes = minutes
     override float function price() : 3.5
     override int function days() : 7
@@ -31,14 +31,14 @@ class Film inherits Media                     // one parent; Film is a Media
 
 class Game inherits Media
     constructor(string title)
-        super(title, Kind.Game)
+        super(title, Kind.GAME)
     override float function price() : 5.0
 
 string function label(Kind k)
     match k                                   // every value needs a case
-        case Book: return "book"
-        case Film: return "film"
-        case Game: return "game"
+        case BOOK: return "book"
+        case FILM: return "film"
+        case GAME: return "game"
 
 float function total(Collection<Media> items)  // any List of Media is a Collection
     float sum = 0.0
@@ -54,7 +54,7 @@ struct Shelf implements Place                 // Place's fields first, then its 
     Media featured                            // an object: null until set
 
 void function main()
-    List<Media> stock = [Media("Dune", Kind.Book), Film("Alien", 117), Game("Tetris")]
+    List<Media> stock = [Media("Dune", Kind.BOOK), Film("Alien", 117), Game("Tetris")]
     foreach m in stock
         print("{@1}: {@2} for {@3} days", m.describe(), formatNumber(m.price(), "0.00"), m.days())
     print("total {@1}", formatNumber(total(stock), "0.00"))

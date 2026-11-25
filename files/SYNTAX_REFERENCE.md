@@ -980,27 +980,27 @@ void function main()
 
 <!-- example: syntax_enums | task: 25.2 | folder: 06_match_and_enums -->
 ```fusion
-enum Color: Red Green Blue                // one line - commas are optional
+enum Color: RED GREEN BLUE                // one line - commas are optional
 
 enum Status                               // a block (braces and End enum work too)
     OK = 200                              // values count up from 0 unless given
-    NotFound = 404
+    NOT_FOUND = 404
 
 struct Pixel
     int x
-    Color color = Color.Blue              // an enum field, with a default
+    Color color = Color.BLUE              // an enum field, with a default
 
 void function main()
-    Color c = Color.Green
+    Color c = Color.GREEN
     Status s                              // no value given: its first one, OK
-    print("{c} {s} {@1} {@2}", c.toInt(), Status.NotFound.toInt())
-    if c == Color.Green and c != Color.Red    // only values of the same enum compare
+    print("{c} {s} {@1} {@2}", c.toInt(), Status.NOT_FOUND.toInt())
+    if c == Color.GREEN and c != Color.RED    // only values of the same enum compare
         print("green, " + c.toString())
     for each in Color.values()            // every value, in order
         print("{each}")
     Map<Color, int> votes                 // an enum as a Map key, a List element, ...
-    votes[Color.fromString("Red")] = 3    // text to value - an unknown name stops the program
-    print("{@1} {@2}", votes[Color.Red], Pixel(1).color)
+    votes[Color.fromString("RED")] = 3    // text to value - an unknown name stops the program
+    print("{@1} {@2}", votes[Color.RED], Pixel(1).color)
 ```
 
 #### An enum value alone where the type is known
@@ -1036,12 +1036,12 @@ Where a Months is expected, its value's name alone is enough (D.150). Anywhere e
 ```fusion
 enum Status
     OK
-    NotFound
+    NOT_FOUND
 
 void function main()
     Status s                                   // no value given: null, not OK
     print("{s} {@1} {@2}", s == null, s?.null)  // also: s is null, s === null
-    s = Status.NotFound
+    s = Status.NOT_FOUND
     if s is not null                           // also: s != null, !s?.null
         print("set: {s}")
     s = null
@@ -1060,39 +1060,85 @@ void function main()
 <!-- example: syntax_enum_data | task: 25.4 | folder: 06_match_and_enums -->
 ```fusion
 enum Shape                                // a value may carry data
-    Circle(double radius)
-    Rect(double width, double height)
-    Empty
+    CIRCLE(double radius)
+    RECT(double width, double height)
+    EMPTY
 
 bool function isWide(Shape s)
     match s
-        case Rect(w, _): return w > 2.0   // _ skips a value you don't need
+        case RECT(w, _): return w > 2.0   // _ skips a value you don't need
         else: return false
 
 double function area(Shape s)
     match s                               // the data is read only through match
-        case Circle(r): return 3.14159 * r * r
-        case Rect(w, h): return w * h
-        case Empty: return 0.0
+        case CIRCLE(r): return 3.14159 * r * r
+        case RECT(w, h): return w * h
+        case EMPTY: return 0.0
 
 void function main()
-    List<Shape> shapes = [Shape.Circle(1.0), Shape.Rect(height = 3.0, width = 2.0), Shape.Empty]
+    List<Shape> shapes = [Shape.CIRCLE(1.0), Shape.RECT(height = 3.0, width = 2.0), Shape.EMPTY]
     for s in shapes
         print("{s}: {@1}", formatNumber(area(s), "0.00"))   // prints the value's name
-    print("{@1} {@2}", Shape.Rect(2.0, 3.0) == shapes[1], isWide(shapes[1]))   // compares the value and its data
+    print("{@1} {@2}", Shape.RECT(2.0, 3.0) == shapes[1], isWide(shapes[1]))   // compares the value and its data
 ```
+
+#### An enum with fields: each value a fixed struct
+
+<!-- example: syntax_enum_planets | task: 47.3 | folder: 06_match_and_enums -->
+```fusion
+const double G = 0.0000000000667
+
+enum Planet
+    MERCURY(0.3303, 2439.7, "Mercury")          // id 0 - mass in 10^24 kg, radius in km
+    VENUS(4.869, 6051.8, "Venus")               // id 1
+    EARTH(5.976, 6378.14, "Earth"), 200         // an id written at the back
+    201, MARS(0.6421, 3397.2, "Mars")           // or at the front
+
+    public const double mass                    // read from anywhere - never set
+    public const double radius
+    public const string name
+
+    double function gravity()                   // a method - reads the fields
+        return G * mass * 1000000000000000000.0 / (radius * radius)
+
+    string function toString()                  // printing shows the name; without it, EARTH
+        return name
+
+enum Status                                     // no fields - just ids
+    200, OK
+    403, FORBIDDEN
+
+void function main()
+    print("{@1} {@2}", EARTH.mass, EARTH.radius)    // 5.976000 6378.140000 - no variable needed
+    Planet p = MARS                             // p borrows MARS - nothing copied, nothing freed
+    print("{p} {@1} {@2}", p.enumTypeName, p.value())     // Mars MARS 201
+    print("{@1}", formatNumber(p.gravity(), "0.00"))      // 3.71
+    for each in Planet.values()
+        print("{each}: {@1}", each.id)          // Mercury: 0, Venus: 1, Earth: 200, Mars: 201
+    print("{@1} {@2}", Status.fromValue(403), Status.fromString("OK").value())   // FORBIDDEN 200
+```
+An enum is a built-in value struct (files/Value_Structs.md, D.188-D.194): the compiler makes each value once - its
+`id` (counted from 0, or written `200, OK` / `EARTH(...), 200`), `enumTypeName`, its fields, `toString()` and `value()`
+- in one static table, never on the heap; a variable only borrows it. A field is bool, char, byte, short, int, long,
+int128, int256, float, double or string (never null); `public const` reads it from anywhere, without `public` only the
+enum's own functions read it, and nothing sets it. A value's data is worked out when compiling: written values,
+constants and arithmetic on them - by position, by name (`VENUS(radius = 6051.8, mass = 4.869)`) or a field's default.
+An optional `private Enum(double m, ...)` constructor may calculate (`this.mass = m * 1000.0`); `toString()` gives
+its text in one line from the fields. An enum without fields whose values are given data holds a const array per
+value - `SMALL(2, 3, 5)` then `SMALL[1]`. `[enums] upperCaseNames = true` warns on a value name not in capitals
+(`strict` an error) - capitals show a reader the name is a fixed value.
 
 #### `match`
 
 <!-- example: syntax_match | task: 25.3 | folder: 06_match_and_enums -->
 ```fusion
-enum Light: Red Yellow Green
+enum Light: RED YELLOW GREEN
 
 string function action(Light l)
     match l                               // every value needs a case (or an else)
-        case Red, Yellow                  // several values share a case
+        case RED, YELLOW                  // several values share a case
             return "stop"
-        case Green: return "go"           // one statement after ':'
+        case GREEN: return "go"           // one statement after ':'
 
 void function main()
     for l in Light.values()
@@ -1112,20 +1158,20 @@ void function main()
 <!-- example: syntax_fall_match | task: 30.13 | folder: 06_match_and_enums -->
 ```fusion
 enum Level
-    Low
-    Mid
-    High
+    LOW
+    MID
+    HIGH
 
 void function main()
-    Level level = Level.Mid
+    Level level = Level.MID
     fall match level                     // like a switch: the next cases run too
-        case High: print("check the roof")
-        case Mid: print("check the windows")
-        case Low
+        case HIGH: print("check the roof")
+        case MID: print("check the windows")
+        case LOW
             print("check the door")
             break                        // stop falling
     match level                          // a plain match never falls through
-        case High: print("high")
+        case HIGH: print("high")
         else: print("not high")
 ```
 
@@ -1158,7 +1204,7 @@ void function main()
 
 <!-- example: syntax_match_value | task: 46.2 | folder: 06_match_and_enums -->
 ```fusion
-enum Light: Red Yellow Green
+enum Light: RED YELLOW GREEN
 
 void function main()
     int n = 7
@@ -1167,8 +1213,8 @@ void function main()
         0 : "none"
         1, 2, 3 : "few"
         _ : "many"
-    Light l = Light.Green
-    let action = match l { Red, Yellow : "stop", Green : "go" }   // every value: no _ needed
+    Light l = Light.GREEN
+    let action = match l { RED, YELLOW : "stop", GREEN : "go" }   // every value: no _ needed
     print("{day} {size} {action}")      // Weekend many go
 ```
 One value per case - no code, though a function call may fetch it; every possible value
@@ -2696,6 +2742,9 @@ decimals = false                # ranges over float, double, decimal, money; fal
 stepRequired = true             # a range of decimals writes its step; false: defaultStep
 defaultStep = 0.1               # the step when not written (stepRequired = false)
 rangeMaxStep = 3                # the finest step's places: 0.001; finer is an error
+
+[enums]
+upperCaseNames = false          # a value name not in capitals: allowed; true a warning; "strict" an error
 
 [backend]
 target = "c"

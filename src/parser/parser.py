@@ -2252,6 +2252,16 @@ class Parser:
         if self.check(TokenType.LET) or self.check(TokenType.VAR):
             return self.parse_inferred_declaration()
 
+        # `const static enum Planet` - accepted, changing nothing: an enum is always const and static (47.3)
+        if self.check(TokenType.CONST) or self.check(TokenType.STATIC):
+            ahead = 0
+            while self.peek(ahead).type in (TokenType.CONST, TokenType.STATIC):
+                ahead += 1
+            if self.peek(ahead).type == TokenType.ENUM:
+                for _ in range(ahead + 1):
+                    self.advance()
+                return self.parse_enum_declaration()
+
         # A module-level constant: `const int LIMIT = 10` (Task 44.1)
         if self.match(TokenType.CONST):
             return self.parse_module_variable(self.parse_type(), is_const=True)
@@ -3108,7 +3118,7 @@ class Parser:
                     f"indented block, or '{{' ... '}}'")
 
         variants = []
-        next_value = 0
+        decl = EnumDecl(location=enum_token.location, name=name, variants=variants)
         while True:
             if closing != TokenType.NEWLINE:
                 while self.match(TokenType.NEWLINE):
@@ -3117,9 +3127,14 @@ class Parser:
                 break
             if self.match(TokenType.COMMA):
                 continue
-            variant = self.parse_enum_variant(name, next_value)
-            next_value = variant.value + 1
-            variants.append(variant)
+            if closing != TokenType.NEWLINE and self._enum_member_start():
+                self._parse_enum_member(decl, closing)       # fields, constructor, methods (47.3)
+                continue
+            if decl.fields or decl.methods or decl.constructor or decl.to_string:
+                raise ParserError(self.peek(), f"The values of enum '{name}' come first, then its fields "
+                                               f"and functions")
+            variants.append(self.parse_enum_variant(name, 0, closing))
+        self._count_enum_ids(variants)
 
         if not self.is_at_end():
             self.consume(closing, f"Expected end of enum '{name}'")
@@ -3132,21 +3147,163 @@ class Parser:
             self.advance()
         if not variants:
             raise ParserError(name_token, f"Enum '{name}' has no values - it needs at least one")
-        return EnumDecl(location=enum_token.location, name=name, variants=variants)
+        self._attach_enum_methods(decl)
+        return decl
 
-    def parse_enum_variant(self, enum_name: str, default_value: int) -> EnumVariant:
-        """One enum value: `Red`, `OK = 200`, `Low = -1`, or `Number(int value)` (Task 25)."""
+    # ---- an enum as a built-in value struct (Task 47.3, D.188-D.194) ----
+
+    def _written_id_at(self, offset: int):
+        """A whole number written at peek(offset) (`200`, `-1`) - (its value, tokens it takes), or None."""
+        negative = self.peek(offset).type == TokenType.MINUS
+        token = self.peek(offset + 1 if negative else offset)
+        if token.type != TokenType.INTEGER:
+            return None
+        number = integer_value(token.value)
+        return (-number if negative else number), (2 if negative else 1)
+
+    def _enum_member_start(self) -> bool:
+        """A field, the constructor or a function inside an enum's block - not a value."""
+        kind = self.peek().type
+        if kind in (TokenType.PUBLIC, TokenType.PRIVATE, TokenType.CONST, TokenType.STATIC) \
+                or kind in self.PRIMITIVE_TYPE_TOKENS:
+            return True
+        if kind != TokenType.IDENTIFIER:
+            return False
+        after = self.peek(1).type
+        # `MATCH CASE` on one line are two values; `decimal mass` (an error later) and `Planet function f()` are members
+        return after in (TokenType.FUNCTION, TokenType.FUNC, TokenType.LESS, TokenType.LBRACKET) or (
+            after == TokenType.IDENTIFIER and self.peek().value in ('decimal', 'money', 'bytes', 'List', 'Map'))
+
+    def _parse_enum_member(self, decl: EnumDecl, closing) -> None:
+        """`public const double mass`, `private Enum(double m, ...)`, `double function gravity(...)`,
+        `string function toString()` (D.190-D.192)."""
+        written = None
+        if self.match(TokenType.PUBLIC, TokenType.PRIVATE):
+            written = self.previous().type == TokenType.PUBLIC
+        while self.check(TokenType.CONST) or self.check(TokenType.STATIC):
+            word = self.advance()
+            if word.type == TokenType.STATIC:
+                raise ParserError(word, f"An enum's fields and functions belong to each value of '{decl.name}' - "
+                                        f"'static' isn't needed (the values are static already)")
+        if (self.check(TokenType.ENUM) or (self.check(TokenType.IDENTIFIER) and self.peek().value == 'Enum')) \
+                and self.peek(1).type == TokenType.LPAREN:          # private Enum(...) - the lexer reads Enum as enum
+            start = self.advance()
+            if written is not False:
+                raise ParserError(start, f"An enum's constructor is private - write private Enum(...) (D.191)")
+            if decl.constructor is not None:
+                raise ParserError(start, f"Enum '{decl.name}' has one constructor")
+            self.consume(TokenType.LPAREN, "Expected '('")
+            parameters = []
+            if not self.check(TokenType.RPAREN):
+                parameters.append(self.parse_parameter())
+                while self.match(TokenType.COMMA):
+                    parameters.append(self.parse_parameter())
+            self.consume(TokenType.RPAREN, "Expected ')' after the constructor's parameters")
+            while self.match(TokenType.NEWLINE):
+                pass
+            decl.constructor = (start, parameters, self.parse_block_statement())
+            return
+        item = self.parse_struct_field()
+        if isinstance(item, FunctionDecl):
+            item.is_private = written is False
+            if item.name == 'toString':
+                if item.parameters:
+                    raise ParserError(self.previous(), f"toString() of enum '{decl.name}' takes nothing")
+                decl.to_string = item
+            else:
+                decl.methods.append(item)
+            return
+        item.is_private = written is not True       # readable from outside only when public (D.190)
+        decl.fields.append(item)
+
+    def _attach_enum_methods(self, decl: EnumDecl) -> None:
+        """Each method becomes the function `Planet.gravity` with the value first, as `this`: a field's bare
+        name is `this.mass`, another method's bare call `this.f(...)` (as a struct's - 32.1)."""
+        field_names = {f.name for f in decl.fields} | {'id', 'enumTypeName'}
+        method_names = {m.name for m in decl.methods}
+        for method in decl.methods:
+            if method.name in field_names or method.name in ('value', 'toInt', 'values', 'fromString', 'fromValue'):
+                raise ParserError(self.previous(), f"'{method.name}' is already a field or a built-in function of "
+                                                   f"enum '{decl.name}' - choose another name")
+            self.rewrite_method_body(method, decl.name, field_names, method_names,
+                                     lambda message: self._fail(message))
+            method.method_name, method.method_of = method.name, decl.name
+            method.name = f'{decl.name}.{method.name}'
+            method.parameters.insert(0, ParameterDecl(
+                location=method.location, name='this', default_value=None,
+                param_type=StructType(location=method.location, name=decl.name)))
+            method.changes_this = False
+            method.enum_method = True
+
+    def _enum_data_declared(self) -> bool:
+        """After `Circle(`: data declared (`double radius`, Task 25.4) - or fixed data given (`3.3e23, ...`,
+        47.3). Looks ahead only."""
+        if self.check(TokenType.RPAREN):
+            return True
+        start = self.current
+        try:
+            self.parse_type()
+            declared = self.check(TokenType.IDENTIFIER) and self.peek(1).type in (
+                TokenType.COMMA, TokenType.RPAREN, TokenType.ASSIGN)
+        except ParserError:
+            declared = False
+        self.current = start
+        return declared
+
+    @staticmethod
+    def _count_enum_ids(variants) -> None:
+        """Ids counted from 0 (D.189): a written one is used, the count goes on to the next id not used."""
+        used = {v.value for v in variants if v.explicit_value}
+        current = -1
+        for variant in variants:
+            if variant.explicit_value:
+                current = variant.value
+                continue
+            current += 1
+            while current in used:
+                current += 1
+            variant.value = current
+            used.add(current)
+
+    def parse_enum_variant(self, enum_name: str, default_value: int, closing=None) -> EnumVariant:
+        """One enum value: `Red`, `OK = 200`, `Low = -1`, or `Number(int value)` (Task 25); its fixed data
+        `EARTH(5.976e24, 6.37814e6, "Earth")` and a written id at the front or back - `200, OK`,
+        `EARTH(...), 200` (Task 47.3, D.189)."""
+        front = self._written_id_at(0)
+        if front is not None and self.peek(front[1]).type == TokenType.COMMA:
+            for _ in range(front[1] + 1):
+                self.advance()
+            while self.match(TokenType.NEWLINE):
+                pass
         if not self.check(TokenType.IDENTIFIER):
             raise ParserError(self.peek(), f"Expected a value name in enum '{enum_name}'")
         name_token = self.advance()
         variant = EnumVariant(location=name_token.location, name=name_token.value,
                               value=default_value)
+        if front is not None:
+            variant.value, variant.explicit_value = front[0], True
         if self.match(TokenType.LPAREN):
-            while not self.check(TokenType.RPAREN) and not self.is_at_end():
-                variant.fields.append(self.parse_struct_field())
-                if not self.match(TokenType.COMMA):
-                    break
+            if self._enum_data_declared():
+                while not self.check(TokenType.RPAREN) and not self.is_at_end():
+                    variant.fields.append(self.parse_struct_field())
+                    if not self.match(TokenType.COMMA):
+                        break
+            else:
+                variant.arguments = []                       # fixed data (47.3)
+                while not self.check(TokenType.RPAREN) and not self.is_at_end():
+                    variant.arguments.append(self.parse_argument())
+                    if not self.match(TokenType.COMMA):
+                        break
             self.consume(TokenType.RPAREN, f"Expected ')' after the data of '{name_token.value}'")
+        back = self._written_id_at(1) if self.check(TokenType.COMMA) else None
+        if back is not None and self.peek(1 + back[1]).type in (
+                TokenType.NEWLINE, TokenType.DEDENT, TokenType.RBRACE, TokenType.EOF) \
+                and closing != TokenType.NEWLINE:
+            if front is not None:
+                raise ParserError(self.peek(), f"'{name_token.value}' has its id written twice")
+            for _ in range(back[1] + 1):
+                self.advance()
+            variant.value, variant.explicit_value = back[0], True
         if self.match(TokenType.ASSIGN):
             negative = self.match(TokenType.MINUS)
             value_token = self.consume(

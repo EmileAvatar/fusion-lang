@@ -1142,6 +1142,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             static_class = receiver.name
             receiver_type = PrimitiveType(location=receiver.location, name=TYPE_CLASSES[static_class])
         else:
+            self.bare_enum_receiver(receiver)                       # OK.value(), EARTH.gravity(80) (47.3)
             receiver_type = self.visit(receiver)
             self.checked_receivers[id(receiver)] = receiver_type   # checked once, not again
             # A struct's own method (Task 32.1) comes first: p.move(1, 2) is
@@ -1190,12 +1191,20 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 self._call_as_function(node, receiver)
                 return None
             if isinstance(receiver_type, EnumType):
-                # An enum value's methods: c.toString(), c.toInt() (Task 25.2)
+                decl = receiver_type.declaration
+                own = next((m for m in getattr(decl, 'methods', None) or [] if m.method_name == member), None)
+                if own is not None:              # p.gravity(80) is Planet.gravity(p, 80) (47.3, D.192)
+                    node.callee = IdentifierExpr(location=node.callee.location, name=own.name)
+                    node.arguments = [receiver] + list(node.arguments)
+                    node.struct_method = True
+                    return None
+                # An enum value's methods: c.toString(), c.toInt(), c.value() - its id (Task 25.2, 47.3)
                 if member not in ENUM_METHODS:
                     self.checked_receivers.pop(id(receiver), None)
                     return (f"An enum value has no method '{member}' (it has "
-                            f"{', '.join(ENUM_METHODS)})")
-                node.callee = IdentifierExpr(location=node.callee.location, name=member)
+                            f"{', '.join(ENUM_METHODS + tuple(m.method_name for m in getattr(decl, 'methods', None) or []))})")
+                node.callee = IdentifierExpr(location=node.callee.location,
+                                             name='toInt' if member == 'value' else member)
                 node.arguments = [receiver] + list(node.arguments)
                 node.is_method = True
                 return None
@@ -2877,7 +2886,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             The array's element type (void for error recovery if the target isn't an array)
         """
         self._allow_array_call(node.array)  # make()[0] (Task 18.2.4)
+        self.bare_enum_receiver(node.array)                     # SMALL[1] (47.3)
         array_type = self.visit(node.array)
+        if isinstance(array_type, EnumType) and node.index is not None:
+            return self.enum_item_type(node, array_type)        # an enum value's fixed array (47.3, D.191)
         if node.index is None:              # cube[][2] - a view (45.12b, D.149)
             if isinstance(array_type, ArrayType) and array_type.dims:
                 return self.many_dims_index(node, array_type, None)
@@ -2941,7 +2953,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Returns:
             The field's type (void for error recovery)
         """
+        self.bare_enum_receiver(node.object)                    # EARTH.mass (47.3)
         object_type = self.visit(node.object)
+        if isinstance(object_type, EnumType):
+            return self.enum_field_type(node, object_type)      # p.mass, p.id, p.enumTypeName (47.3)
         if isinstance(object_type, ErrorType):
             return self.error_member_type(node, object_type)   # err.message, err.path (Task 26)
         if isinstance(object_type, ArrayType) and object_type.dims:
@@ -3191,6 +3206,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         elif isinstance(node.target, IndexExpr):
             self._check_index_assignment(node)
         elif isinstance(node.target, MemberExpr):
+            if self.enum_field_assigned(node.target):          # EARTH.mass = 1.0 (47.3, D.190)
+                return
             self._check_member_assignment(node)
         else:
             self.errors.append(SemanticError(

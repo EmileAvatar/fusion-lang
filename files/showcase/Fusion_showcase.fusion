@@ -567,37 +567,37 @@ void function controlFlow(int n) {
 // =============================================================================================
 
 // [built] A plain enum on one line
-enum Color { Red Green Blue }
+enum Color { RED GREEN BLUE }
 
 // [built] Values given; the rest count up from the last one
 enum Status {
     OK = 200
-    NotFound = 404
+    NOT_FOUND = 404
 }
 
 // [built] Enums with data (tagged unions), read through match
 enum Shape {
-    Circle(double radius)
-    Rect(double width, double height)
-    Empty
+    CIRCLE(double radius)
+    RECT(double width, double height)
+    EMPTY
 }
 
 // [built] An enum that holds itself (stored on the heap automatically)
 enum Expr {
-    Num(int value)
-    Add(Expr left, Expr right)
+    NUM(int value)
+    ADD(Expr left, Expr right)
 }
 
 // [rejected] One central ERROR enum for every error - errors are types, each with its own
 //            name (Task 26.10, user decision)
 
-// [designed] An enum as a built-in value struct (47.3, D.188-D.194, files/Value_Structs.md): each value a
+// [built] An enum as a built-in value struct (47.3, D.188-D.194, files/Value_Structs.md): each value a
 //            static const struct - id (counted, or written 200, OK), enumTypeName, its fields, toString(), value();
 //            never on the heap, a variable borrows it; fromString / fromValue; [enums] upperCaseNames
 enum Planet {
-    MERCURY(3.303e23, 2.4397e6, "Mercury")
-    EARTH(5.976e24, 6.37814e6, "Earth"), 200
-    201, MARS(6.421e23, 3.3972e6, "Mars")
+    MERCURY(0.3303, 2439.7, "Mercury")         // mass in 10^24 kg, radius in km
+    EARTH(5.976, 6378.14, "Earth"), 200
+    201, MARS(0.6421, 3397.2, "Mars")
 
     public const double mass                   // EARTH.mass, p.mass - never set
     public const double radius
@@ -607,33 +607,33 @@ enum Planet {
         this.radius = r
         this.name = n
     }
-    double function gravity(double kg) : 6.67e-11 * mass * kg / (radius * radius)
+    double function gravity() : 0.0000000000667 * mass * 1000000000000000000.0 / (radius * radius)
     string function toString() : name          // else EARTH
 }
 
 double function area(Shape s) {
     // [built] match on an enum: every value needs a case; data is bound to names
     match s {
-        case Circle(r): return 3.14159 * r * r
-        case Rect(w, h): return w * h
-        case Empty: return 0.0
+        case CIRCLE(r): return 3.14159 * r * r
+        case RECT(w, h): return w * h
+        case EMPTY: return 0.0
     }
 }
 
 int function eval(Expr e) {
     match e {
-        case Num(v): return v
-        case Add(l, r): return eval(l) + eval(r)
+        case NUM(v): return v
+        case ADD(l, r): return eval(l) + eval(r)
     }
 }
 
 void function enums() {
     // [built] values(), fromString, toInt, toString; an enum as a Map key
     for c in Color.values() { print("{c} = {@1}", c.toInt()) }
-    Color red = Color.fromString("Red")
+    Color red = Color.fromString("RED")
     Map<Color, int> votes
     // [built] Enum values with data compare by value and data
-    print("{@1}", Shape.Rect(2.0, 3.0) == Shape.Rect(2.0, 3.0))
+    print("{@1}", Shape.RECT(2.0, 3.0) == Shape.RECT(2.0, 3.0))
     // [idea] Flags: an enum whose values combine with | (Permission declared as flags)
     Permission p = Permission.Read | Permission.Write
 }

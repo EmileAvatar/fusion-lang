@@ -6,8 +6,8 @@ import parsing.Expr
 
 int function eval(Expr e)
     match e
-        case Num(v): return v
-        case Binary(op, a, b)
+        case NUM(v): return v
+        case BINARY(op, a, b)
             int x = eval(a)
             int y = eval(b)
             match op
@@ -18,8 +18,8 @@ int function eval(Expr e)
 
 string function show(Expr e)
     match e
-        case Num(v): return toString(v)
-        case Binary(op, a, b): return "(" + show(a) + " " + toString(op) + " " + show(b) + ")"
+        case NUM(v): return toString(v)
+        case BINARY(op, a, b): return "(" + show(a) + " " + toString(op) + " " + show(b) + ")"
 
 void function main()
     for text in ["2 + 3 * 4", "(2 + 3) * 4", "100 / 5 / 2 - 1", "7"]

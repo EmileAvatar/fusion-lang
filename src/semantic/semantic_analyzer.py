@@ -11,6 +11,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
                                 ErrorDecl, LiteralExpr, VarDeclStmt, ArrayType, ArrayLiteralExpr,
                                 ListType, MapType)
 from .enums import normalize_enums, check_holding_loops
+from .enum_fields import check_enum_fields
 from .templates import expand_templates
 from .stack_arrays import check_stack_arrays
 from .currency import add_currency_module
@@ -67,7 +68,8 @@ class SemanticAnalyzer:
                  strings_config: Optional[StringsConfig] = None, stdlib_config=None,
                  errors_config=None, numbers_config=None, modules_config=None,
                  conditions_config=None, visibility_config=None, interfaces_config=None, source_config=None, memory_config=None,
-                 collections_config=None, arrays_config=None, generics_config=None, ranges_config=None):
+                 collections_config=None, arrays_config=None, generics_config=None, ranges_config=None,
+                 enums_config=None):
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
@@ -116,6 +118,8 @@ class SemanticAnalyzer:
         self.type_checker.range_step_required = getattr(ranges_config, 'step_required', True)
         self.type_checker.range_default_step = getattr(ranges_config, 'default_step', '0.1')
         self.type_checker.range_max_step = getattr(ranges_config, 'range_max_step', 3)
+        # [enums] upperCaseNames (Task 47.3, D.194): "false" / "true" (a warning) / "strict" (an error)
+        self.enum_upper_case = getattr(enums_config, 'upper_case_names', 'false')
         self.control_flow_validator = ControlFlowValidator()
         self.entry_point_validator = EntryPointValidator()
 
@@ -177,7 +181,7 @@ class SemanticAnalyzer:
                    conditions_config=c.conditions, visibility_config=c.visibility,
                    interfaces_config=c.interfaces, source_config=c.source, memory_config=c.memory,
                    collections_config=c.collections, arrays_config=c.arrays, generics_config=c.generics,
-                   ranges_config=c.ranges)
+                   ranges_config=c.ranges, enums_config=c.enums)
 
     def analyze(self, ast: ProgramNode) -> bool:
         """Analyze the AST and return True if no errors.
@@ -247,6 +251,11 @@ class SemanticAnalyzer:
         add_rounding_enum(ast)                   # halfEven / halfUp / down / up / exact, when used (47.8)
         self.errors.extend(normalize_enums(ast))
         self.errors.extend(check_holding_loops(ast))
+        # An enum as a built-in value struct (47.3): each value's data worked out when compiling
+        enum_errors, enum_warnings = check_enum_fields(ast, getattr(self, 'enum_upper_case', 'false'))
+        self.type_checker.enum_decls = {d.name: d for d in ast.declarations if isinstance(d, EnumDecl)}
+        self.errors.extend(enum_errors)
+        self.warnings.extend(enum_warnings)
         # Generic functions (Task 33.2a, D.166): taken out of the program - a copy is made for each
         # set of types used, when the type checker finds the call
         self.errors.extend(variadic_parameters(ast))     # f(int... numbers) - a List inside (33.2e)

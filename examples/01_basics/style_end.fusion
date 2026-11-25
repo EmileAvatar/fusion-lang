@@ -1,5 +1,5 @@
 // The same program in three block styles - End keywords (Task 27.4)
-enum Shape: Square Circle
+enum Shape: SQUARE CIRCLE
 
 struct Item
     string name
@@ -9,15 +9,15 @@ End struct
 
 int function area(Item item)
     match item.shape
-        case Square
+        case SQUARE
             return item.size * item.size
-        case Circle
+        case CIRCLE
             return 3 * item.size * item.size
     End match
 End function
 
 void function main()
-    List<Item> items = [Item("box", 2, Shape.Square), Item("coin", 1, Shape.Circle)]
+    List<Item> items = [Item("box", 2, Shape.SQUARE), Item("coin", 1, Shape.CIRCLE)]
     int total = 0
     for item in items
         if area(item) > 3

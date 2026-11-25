@@ -152,8 +152,8 @@ defaultStep = 0.1                          # [built] the step of a decimal range
 rangeMaxStep = 3                           # [built] the finest decimal step: 0.001 - finer is an error (no endless range)
 strictStep = false                         # [built] a step that misses the end (0...13 step 5): a warning; true - an error
 
-[enums]                                    # [designed] Task 47.3, D.194
-upperCaseNames = false                     # a value name not in capitals: false allowed; true a warning; strict an error
+[enums]                                    # [built] Task 47.3, D.194
+upperCaseNames = false                     # [built] a value name not in capitals: false allowed; true a warning; strict an error
 
 [functions]
 # [designed] Several return values per function (user, 2026-10-23: off unless allowed);

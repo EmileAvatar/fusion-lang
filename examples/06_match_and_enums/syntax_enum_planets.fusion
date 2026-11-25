@@ -1,0 +1,30 @@
+const double G = 0.0000000000667
+
+enum Planet
+    MERCURY(0.3303, 2439.7, "Mercury")          // id 0 - mass in 10^24 kg, radius in km
+    VENUS(4.869, 6051.8, "Venus")               // id 1
+    EARTH(5.976, 6378.14, "Earth"), 200         // an id written at the back
+    201, MARS(0.6421, 3397.2, "Mars")           // or at the front
+
+    public const double mass                    // read from anywhere - never set
+    public const double radius
+    public const string name
+
+    double function gravity()                   // a method - reads the fields
+        return G * mass * 1000000000000000000.0 / (radius * radius)
+
+    string function toString()                  // printing shows the name; without it, EARTH
+        return name
+
+enum Status                                     // no fields - just ids
+    200, OK
+    403, FORBIDDEN
+
+void function main()
+    print("{@1} {@2}", EARTH.mass, EARTH.radius)    // 5.976000 6378.140000 - no variable needed
+    Planet p = MARS                             // p borrows MARS - nothing copied, nothing freed
+    print("{p} {@1} {@2}", p.enumTypeName, p.value())     // Mars MARS 201
+    print("{@1}", formatNumber(p.gravity(), "0.00"))      // 3.71
+    for each in Planet.values()
+        print("{each}: {@1}", each.id)          // Mercury: 0, Venus: 1, Earth: 200, Mars: 201
+    print("{@1} {@2}", Status.fromValue(403), Status.fromString("OK").value())   // FORBIDDEN 200
