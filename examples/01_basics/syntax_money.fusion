@@ -1,0 +1,18 @@
+void function main()
+    money price = 123.45                        // its value 12345, scale 2 - the places written
+    money rand = money(100.05, "ZAR", "R")      // a currency (3 letters) and a symbol (display only)
+    print("{price} {rand}")                     // 123.45 R100.05
+    print("{@1} {@2} {@3} {@4}", rand.value, rand.scale, rand.currency, rand.symbol)
+    money total = rand + 200.125                // + - exact, the larger scale kept: R300.175
+    money three = rand * 3                      // * by a whole number or a decimal - exact
+    money vat = rand * 1.155
+    print("{total} {three} {vat} {@1}", rand > 100)
+    money yen = money(500, "JPY", "Y")
+    try
+        money mixed = rand + yen                // two currencies - convert one first
+        print("{mixed}")
+    catch CurrencyError e
+        print("{e}")
+    decimal amount = toDecimal(rand)            // the number alone, as a decimal
+    money twice = money(amount * 2, "ZAR")      // and back
+    print("{amount} {twice}")

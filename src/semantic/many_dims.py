@@ -889,7 +889,7 @@ class ManyDimsMixin:
         return result
 
     CSV_DELIMITERS = ('primaryDelimiter', 'secondaryDelimiter', 'lineDelimiter')
-    CSV_PLAIN = ('int', 'byte', 'float', 'double', 'string', 'bool', 'char', 'short', 'long', 'int128', 'int256', 'decimal')
+    CSV_PLAIN = ('int', 'byte', 'float', 'double', 'string', 'bool', 'char', 'short', 'long', 'int128', 'int256', 'decimal', 'money')
 
     def plain_csv_array(self, array_type) -> bool:
         """An array (one dimension, many, a view, on the heap) of plain values - toCSV per D.151."""

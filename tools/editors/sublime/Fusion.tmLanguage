@@ -320,7 +320,7 @@
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?&lt;![\w.])\b(Collection|Dictionary|Cloneable|Iterator|Rounding|Default|decimal|Number|Entry|Error|bytes|List|Map)\b</string>
+					<string>(?&lt;![\w.])\b(Collection|Dictionary|Cloneable|Iterator|Rounding|Default|decimal|Number|Entry|Error|bytes|money|List|Map)\b</string>
 					<key>name</key>
 					<string>support.class.builtin.fusion</string>
 				</dict>

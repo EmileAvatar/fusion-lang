@@ -143,6 +143,11 @@ void function types() {
     decimal price = 19.99
     decimal withTax = price * 1.15
     decimal cents = round(withTax, 2)
+    // [built] money: a 16-byte value struct - value, scale, currency, symbol; + - * by the compiler (47.2)
+    money rand = money(100.05, "ZAR", "R")
+    money total = rand + 200.125
+    // [designed] the Currency module: convert, round, divide, percent, split, format (47.2b, D.186)
+    money inYen = Currency.convert(rand, "ZAR", "JPY", 8.42)
     // [built] An int used as a double is always exact; as a float it must fit (PrecisionError)
     double wide = i
     // [built] Conversions are functions that check (toInt of "12x" is a NumberFormatError)

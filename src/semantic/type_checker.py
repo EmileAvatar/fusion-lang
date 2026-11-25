@@ -459,6 +459,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         self.widen_to_float(value, result, expected)
         if isinstance(expected, PrimitiveType) and expected.name == 'decimal':
             result = self.to_decimal(value, result)            # 1.50, 7 - exact (47.8)
+        if isinstance(expected, PrimitiveType) and expected.name == 'money':
+            result = self.to_money(value, result)              # 123.45 - its places kept (47.2)
         return self.as_parent_part(value, result, expected) or result
 
     def null_collection(self, expected) -> str:
@@ -521,6 +523,117 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 "An int256 doesn't fit in a decimal (38 digits) - toInt128(x) first", value.location))
             return decimal
         return value_type
+
+    MONEY_FIELDS = {'value': 'long', 'scale': 'int', 'currency': 'string', 'symbol': 'string'}   # 47.2
+
+    def to_money(self, value, value_type):
+        """A value used as money (47.2): a written number keeps its places (123.45 is 12345 at scale 2); a
+        whole number is money of scale 0; written-number arithmetic is worked out as a decimal, then made
+        money; a decimal or float variable is an error - money(d) makes money from a decimal."""
+        name = getattr(value_type, 'name', None)
+        money = PrimitiveType(location=value.location, name='money')
+        if name == 'money':
+            return value_type
+        literal = value.operand if isinstance(value, UnaryExpr) and value.operator == '-' else value
+        if isinstance(literal, LiteralExpr) and literal.type_hint == 'float' and getattr(literal, 'written', None):
+            self.to_decimal(value, value_type)
+            number, scale = value.decimal_literal
+            if not -(1 << 63) <= number < (1 << 63):
+                self.errors.append(SemanticError(
+                    f"{literal.written} doesn't fit in money (a long of its smallest steps)", value.location))
+            value.decimal_literal = None
+            value.money_literal = (number, scale)
+            value.inferred_type = money
+            return money
+        if name in ('byte', 'short', 'int', 'long') or (isinstance(value, BinaryExpr) and name in ('float', 'double')):
+            source = self.to_decimal(value, value_type) if name in ('float', 'double') else value_type
+            if getattr(source, 'name', None) not in ('decimal', 'byte', 'short', 'int', 'long'):
+                return value_type
+            import copy
+            inner = copy.copy(value)
+            value.__class__ = WidenExpr
+            value.__dict__.clear()
+            value.__dict__.update(WidenExpr(location=inner.location, operand=inner, inferred_type=money).__dict__)
+            return money
+        if name in ('decimal', 'float', 'double', 'int128', 'int256'):
+            self.errors.append(SemanticError(
+                f"A {name} doesn't become money by itself - money(x) makes it, with its currency", value.location))
+            return money
+        return value_type
+
+    def money_operation(self, node, left_type, right_type):
+        """+ - * and comparing with money (47.2, D.183, D.186) - the result type, or None for an operator
+        that isn't money's. Dividing is the Currency module's (47.2b)."""
+        op = node.operator
+        bool_type = PrimitiveType(location=node.location, name='bool')
+        money = PrimitiveType(location=node.location, name='money')
+        if op == '*':
+            if getattr(left_type, 'name', None) != 'money':      # 3 * m - money on the left
+                node.left, node.right = node.right, node.left
+                left_type, right_type = right_type, left_type
+            other = getattr(right_type, 'name', None)
+            if other in ('byte', 'short', 'int', 'long'):
+                node.money_op = 'mul_whole'
+            elif other == 'money':
+                self.errors.append(SemanticError("money * money has no meaning - multiply by a number", node.location))
+            else:
+                kind = self.to_decimal(node.right, right_type)
+                if getattr(kind, 'name', None) != 'decimal':
+                    self.errors.append(SemanticError(
+                        f"money * {self.type_to_string(right_type)} - multiply by a whole number or a decimal",
+                        node.location))
+                node.money_op = 'mul_decimal'
+            return money
+        if op in ('/', '%'):
+            self.errors.append(SemanticError(
+                f"'{op}' on money is the Currency module's (round, split - Task 47.2b); toDecimal(m) "
+                f"gives the amount as a decimal", node.location))
+            return money
+        left_type = self.to_money(node.left, left_type)
+        right_type = self.to_money(node.right, right_type)
+        for side, kind in ((node.left, left_type), (node.right, right_type)):
+            if getattr(kind, 'name', None) != 'money':
+                self.errors.append(SemanticError(
+                    f"money {op} {self.type_to_string(kind)} - both sides must be money (a written amount "
+                    f"is money)", side.location))
+        if op in ('+', '-'):
+            node.money_op = 'add' if op == '+' else 'sub'
+            return money
+        node.money_op = 'compare'
+        return bool_type
+
+    def _check_money_call(self, node):
+        """money(amount [, currency [, symbol]]) (47.2, D.180): the amount a decimal (a written number, a
+        whole number or a decimal); the currency 3 letters (ISO 4217) or "", the symbol up to 4 bytes."""
+        args = node.arguments
+        if not 1 <= len(args) <= 3:
+            self.errors.append(SemanticError(
+                f"money takes an amount, then a currency and a symbol if wanted - got {len(args)} argument(s)",
+                node.location))
+        for i, arg in enumerate(args):
+            if i == 0:
+                kind = self.to_decimal(arg, self.visit(arg))
+                if getattr(kind, 'name', None) != 'decimal':
+                    self.errors.append(SemanticError(
+                        f"money's amount is a number, got {self.type_to_string(kind)}", arg.location))
+                continue
+            kind = self.visit(arg)
+            if not self._is_string_type(kind):
+                self.errors.append(SemanticError(
+                    f"money's {'currency' if i == 1 else 'symbol'} is text, got {self.type_to_string(kind)}",
+                    arg.location))
+            elif isinstance(arg, LiteralExpr) and isinstance(arg.value, str):
+                if i == 1 and not (arg.value == '' or (len(arg.value) == 3 and arg.value.isalpha() and arg.value.isupper())):
+                    self.errors.append(SemanticError(
+                        f"'{arg.value}' isn't a currency code - 3 capital letters (ISO 4217), or \"\" for none",
+                        arg.location))
+                if i == 2 and len(arg.value.encode('utf-8')) > 4:
+                    self.errors.append(SemanticError(
+                        f"the symbol '{arg.value}' is {len(arg.value.encode('utf-8'))} bytes - money keeps up to "
+                        f"4 (D.184)", arg.location))
+        node.money_call = True
+        node.resolved_arguments = list(args)
+        return PrimitiveType(location=node.location, name='money')
 
     def _check_rounding_call(self, node, func_name: str):
         """round(x, places [, mode]) and divide(a, b, places [, mode]) on decimals (47.8, D.177): the mode a
@@ -892,6 +1005,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if node.operator in ('+', '-', '*', '/', '%', '<', '>', '<=', '>=', '==', '!='):
             self.widen_to_float(node.left, left_type, right_type)
             self.widen_to_float(node.right, right_type, left_type)
+            # money (47.2): its own rules - + - * and comparing; the currencies checked while running
+            if 'money' in (getattr(left_type, 'name', None), getattr(right_type, 'name', None)):
+                return self.money_operation(node, left_type, right_type)
             # A decimal beside a written number or a whole number: the other side becomes a decimal (47.8)
             if 'decimal' in (getattr(left_type, 'name', None), getattr(right_type, 'name', None)):
                 left_type = self.to_decimal(node.left, left_type)
@@ -1425,6 +1541,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         node.unchecked = self.unchecked_depth > 0     # Task 27.2d
 
         if node.operator == '-':
+            if getattr(operand_type, 'name', None) == 'money':
+                return operand_type                          # -m (47.2)
             if not self.is_numeric_type(operand_type):
                 self.errors.append(SemanticError(
                     f"Unary minus requires numeric type, got {self.type_to_string(operand_type)}",
@@ -1901,6 +2019,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         if declaration is None and func_name in ('round', 'divide'):
             return self._check_rounding_call(node, func_name)      # decimals (47.8)
+        if declaration is None and func_name == 'money':
+            return self._check_money_call(node)                    # money(123.45, "ZAR", "R") (47.2)
 
         # print(text, ...) - extra arguments fill {@1}, {@2}, ... placeholders (Task 18.2.2b);
         # format(text, ...) builds the same text as a string (18.3.3)
@@ -2788,6 +2908,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         jagged = self.jagged_member(node, object_type)          # j.rows, j[r].columns (45.15, D.163)
         if jagged is not None:
             return jagged
+        if getattr(object_type, 'name', None) == 'money' and isinstance(object_type, PrimitiveType):
+            kind = self.MONEY_FIELDS.get(node.member)              # m.value, m.scale, m.currency, m.symbol (47.2)
+            if kind is None:
+                self.errors.append(SemanticError(
+                    f"money has no field '{node.member}' - value, scale, currency, symbol", node.location))
+                kind = 'void'
+            node.money_field = node.member
+            return PrimitiveType(location=node.location, name=kind)
         struct = self.struct_declaration(object_type)
         if struct is None and node.member in self.LENGTH_NAMES and self._has_length(object_type):
             # `x.length` / `x.len` without brackets (Task 30.8): checked as the call x.len(),
@@ -2979,9 +3107,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         # Skip the element-type check for an empty literal - there's nothing to compare. A short or
         # byte array takes written numbers that each fit (`short[2] s = [1, -2]`, 47.1)
         elements = getattr(node.initializer, 'elements', None) or []
-        if getattr(array_type.element_type, 'name', None) == 'decimal' and elements:
-            for element in elements:       # decimal[2] a = [1.1, 2.2] - each written number exact (47.8)
-                self.to_decimal(element, getattr(element, 'inferred_type', None))
+        held = getattr(array_type.element_type, 'name', None)
+        if held in ('decimal', 'money') and elements:
+            for element in elements:       # decimal[2] a = [1.1, 2.2] - each written number exact (47.8, 47.2)
+                convert = self.to_decimal if held == 'decimal' else self.to_money
+                convert(element, getattr(element, 'inferred_type', None))
             init_type.element_type = array_type.element_type
         each_fits = bool(elements) and all(
             self.types_compatible(array_type.element_type, getattr(e, 'inferred_type', None)) for e in elements)

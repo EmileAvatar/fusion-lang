@@ -2433,6 +2433,32 @@ A decimal is a whole number and its scale - the value an int128 (38 digits), up 
 is done in 256 bits and rounded once. A float or double never becomes a decimal by itself (write the number, or
 `toDecimal(text)`). `[numbers] rounding` - halfEven (default), halfUp, down, up or exact - is the project's mode.
 
+#### Money: `money`
+
+<!-- example: syntax_money | task: 47.2 | folder: 01_basics -->
+```fusion
+void function main()
+    money price = 123.45                        // its value 12345, scale 2 - the places written
+    money rand = money(100.05, "ZAR", "R")      // a currency (3 letters) and a symbol (display only)
+    print("{price} {rand}")                     // 123.45 R100.05
+    print("{@1} {@2} {@3} {@4}", rand.value, rand.scale, rand.currency, rand.symbol)
+    money total = rand + 200.125                // + - exact, the larger scale kept: R300.175
+    money three = rand * 3                      // * by a whole number or a decimal - exact
+    money vat = rand * 1.155
+    print("{total} {three} {vat} {@1}", rand > 100)
+    money yen = money(500, "JPY", "Y")
+    try
+        money mixed = rand + yen                // two currencies - convert one first
+        print("{mixed}")
+    catch CurrencyError e
+        print("{e}")
+    decimal amount = toDecimal(rand)            // the number alone, as a decimal
+    money twice = money(amount * 2, "ZAR")      // and back
+    print("{amount} {twice}")
+```
+`money` is 16 bytes - value (a long), scale, currency, symbol - never on the heap. Two amounts add when their
+currencies are the same or one is empty. Dividing, rounding, converting and formatting come with the Currency module.
+
 #### Custom error types
 
 <!-- example: syntax_error_types | task: 26.9 | folder: 10_errors_and_null -->

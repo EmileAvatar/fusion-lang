@@ -898,8 +898,8 @@ class Parser:
                 base_type = self.parse_collection_type(token)
             elif name in GENERIC_INTERFACE_NAMES and self.check(TokenType.LESS):
                 base_type = self._generic_interface_type(token, name)      # Task 32.4
-            elif name in ('bytes', 'decimal'):
-                # Raw bytes (Task 18.3.8), an exact decimal (47.8) - built-in types, not keywords
+            elif name in ('bytes', 'decimal', 'money'):
+                # Raw bytes (Task 18.3.8), an exact decimal (47.8), money (47.2) - built-in types, not keywords
                 base_type = PrimitiveType(location=token.location, name=name)
             elif self.check(TokenType.LESS):
                 # Pair<int, string> - a generic struct with its types (Task 33.2b, D.166)

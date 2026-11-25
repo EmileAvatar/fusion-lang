@@ -942,6 +942,11 @@ class ErrorsMixin:
         target = getattr(getattr(node, 'inferred_type', None), 'name', 'float')
         if target == 'decimal':        # a whole number as a decimal, scale 0 - always exact (47.8)
             return f'fusion_decimal_of_whole({self.visit(node.operand)})'
+        if target == 'money':          # a whole number (scale 0) or written-number arithmetic (47.2)
+            if source == 'decimal':
+                return self.checked_code(f'fusion_money_from_decimal({self.visit(node.operand)}, '
+                                         f'{self._where(node)})', 'fusion_money')
+            return f'fusion_money_of((int64_t)({self.visit(node.operand)}), 0)'
         function = f'fusion_{"long" if source == "long" else "int"}_to_{target}'
         return self.checked_code(f'{function}({self.visit(node.operand)}, {self._where(node)})', target)
 

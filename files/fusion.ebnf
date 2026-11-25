@@ -116,7 +116,10 @@ primitive_type = "int" | "long" | "short" | "byte" | "int128" | "int256" | "floa
 (* A struct, class, enum, interface or error type - `money.Price` from another module;
    List<T>, Map<K, V> (Dictionary<K, V> the same), Collection<T>, Iterator<T>, Entry<K, V>
    and a generic struct / class, Pair<int, string> (Task 33) *)
-named_type = qualified_name [ "<" type { "," type } ">" ] | "bytes" | "decimal" ;
+named_type = qualified_name [ "<" type { "," type } ">" ] | "bytes" | "decimal" | "money" ;
+(* money (Task 47.2, D.180-D.187): a 16-byte value struct - value (a long), scale, currency (3
+   letters), symbol (display only); money(amount [, currency [, symbol]]); m.value / .scale /
+   .currency / .symbol; + - * and comparing by the compiler, the rest by the Currency module *)
 (* decimal (Task 47.8, D.182): an exact base-10 number - an int128 and its scale (0-18); a written
    number where a decimal is expected keeps its places (1.50); never from a float by itself;
    round(x, places [, mode]) and divide(a, b, places [, mode]) - the mode a value of the built-in
@@ -494,10 +497,7 @@ DEDENT  = ? the lexer: the indentation shrinks - one per level ? ;
    ?[                       - a guarded index
    <>                       - another spelling of != (VB) *)
 
-(* Task 47.2 (D.180-D.187): money - a 16-byte value struct (value, scale, currency, symbol) *)
-planned_primitive_type = "money" ;
-
-(* D.176: money price = 123.45 - the scale from the places written; 123.45m as quick typing *)
+(* D.176: money price = 123.45 is built; 123.45m as quick typing where the type isn't written *)
 money_literal = digits "." digits "m" ;
 
 (* SYN.014 (42.16): an int of milliseconds; ns / us a long of nanoseconds - never mixed *)

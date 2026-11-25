@@ -439,6 +439,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'short': '0', 'long': '0',      # 47.1
         'int128': '0', 'int256': '0',   # 47.7
         'decimal': '((fusion_decimal){0, 0})',   # 47.8
+        'money': '((fusion_money){0})',          # 47.2
     }
 
     # Arrays up to this size whose default isn't all-zero get their defaults spelled out in
@@ -1038,6 +1039,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         type_hint = node.type_hint
         if getattr(node, 'decimal_literal', None) is not None:
             return self.decimal_literal_code(*node.decimal_literal)     # 1.50 as a decimal (47.8)
+        if getattr(node, 'money_literal', None) is not None:
+            return f'fusion_money_of({node.money_literal[0]}LL, {node.money_literal[1]})'   # 123.45 as money (47.2)
 
         if type_hint == 'int':
             if node.value == -2147483648:
@@ -1116,6 +1119,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             C binary operation expression
         """
+        if getattr(node, 'money_op', None):
+            return self.money_binary_code(node)         # money's own rules (47.2, c_money.py)
         if self._is_decimal(node.left) or self._is_decimal(node.right):
             return self.decimal_binary_code(node)       # exact (47.8, c_decimal.py)
         # ==, !=, ===, !== - generated per type, never C's raw == on strings, structs or
@@ -1240,6 +1245,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         if getattr(node, 'decimal_literal', None) is not None:
             return self.decimal_literal_code(*node.decimal_literal)     # -1.50 (47.8)
+        if getattr(node, 'money_literal', None) is not None:
+            return f'fusion_money_of({node.money_literal[0]}LL, {node.money_literal[1]})'   # -3.50 as money (47.2)
+        if node.operator == '-' and getattr(getattr(node.operand, 'inferred_type', None), 'name', None) == 'money':
+            return self.checked_code(f'fusion_money_neg({self.visit(node.operand)}, {self._where(node)})', 'fusion_money')
         if node.operator == '-' and self._is_decimal(node.operand):
             return self.checked_code(f'fusion_decimal_neg({self.visit(node.operand)}, {self._where(node)})',
                                      'fusion_decimal')
@@ -1286,6 +1295,22 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         value = str(number) if -(1 << 63) < number < (1 << 63) else f'({"-" if number < 0 else ""}{abs(number)}wb)'
         return f'fusion_decimal_make((fusion_int128){value}LL, {scale})' if 'wb' not in value \
             else f'fusion_decimal_make((fusion_int128){value}, {scale})'
+
+    def money_binary_code(self, node) -> str:
+        """money + - * and comparing (47.2, D.186): the runtime's checked functions - the currencies the same
+        or one empty, else a CurrencyError."""
+        left, right, op, kind = self.visit(node.left), self.visit(node.right), node.operator, node.money_op
+        where = self._where(node)
+        if kind in ('add', 'sub'):
+            return self.checked_code(f'fusion_money_{kind}({left}, {right}, {where})', 'fusion_money')
+        if kind == 'mul_whole':
+            return self.checked_code(f'fusion_money_mul_whole({left}, (fusion_int128)({right}), {where})', 'fusion_money')
+        if kind == 'mul_decimal':
+            return self.checked_code(f'fusion_money_mul_decimal({left}, {right}, {where})', 'fusion_money')
+        if op in ('==', '!=', '===', '!=='):
+            equal = f'fusion_money_eq({left}, {right})'
+            return equal if op in ('==', '===') else f'(!{equal})'
+        return f'({self.checked_code(f"fusion_money_cmp({left}, {right}, {where})", "int")} {op} 0)'
 
     def decimal_binary_code(self, node) -> str:
         """+ - * / and comparing between decimals (47.8): the runtime's exact functions; every operand is a
@@ -1501,6 +1526,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'toInt128': ('fusion_str_toInt128', True), 'toInt256': ('fusion_str_toInt256', True),   # 47.7
         'toDecimal': ('fusion_str_toDecimal', True), 'toDouble': ('fusion_decimal_toDouble', False),  # 47.8
         'round': ('fusion_decimal_round', True), 'divide': ('fusion_decimal_divide', True),
+        'money': ('fusion_money_make', True),       # money(amount, currency, symbol) (47.2)
         # Wrapping on purpose (Task 27.2d)
         'wrapAdd': ('fusion_wrap_add', False), 'wrapSub': ('fusion_wrap_sub', False),
         'wrapMul': ('fusion_wrap_mul', False),
@@ -1513,12 +1539,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     # C name prefix per type, for built-ins whose first argument may have several types
     _TYPE_PREFIX = {'int': 'int', 'string': 'str', 'char': 'char', 'byte': 'byte', 'bytes': 'bytes',
                     'short': 'int', 'long': 'long',     # a short is passed as an int (47.1)
-                    'int128': 'int128', 'int256': 'int256', 'decimal': 'decimal'}
+                    'int128': 'int128', 'int256': 'int256', 'decimal': 'decimal', 'money': 'money'}
     _BYTES_OVERLOADS = ('indexOf',)
     _TO_STRING = {'int': 'fusion_int_to_str', 'byte': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
                   'short': 'fusion_int_to_str', 'long': 'fusion_long_to_str',
                   'int128': 'fusion_int128_to_str', 'int256': 'fusion_int256_to_str',
-                  'decimal': 'fusion_decimal_to_str',
+                  'decimal': 'fusion_decimal_to_str', 'money': 'fusion_money_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
                   'char': 'fusion_char_to_str', 'string': 'fusion_str_copy'}
 
@@ -1533,6 +1559,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         borrowed and evaluated left to right as written."""
         name = node.callee.name
         c_function, needs_where = self._STRING_BUILTINS[name]
+        if getattr(node, 'money_call', False):
+            # money(amount [, currency [, symbol]]) (47.2): the text borrowed, checked - 3 letters, up to 4 bytes
+            codes = [self.visit(arg) for arg in node.arguments]
+            codes += ['FUSION_STR("")'] * (3 - len(codes))
+            return self.checked_code(f'fusion_money_make({", ".join(codes)}, {self._where(node)})', 'fusion_money')
         if getattr(node, 'rounding_call', None):
             # round(x, places [, mode]) / divide(a, b, places [, mode]) (47.8): the mode an enum Rounding value -
             # its number is the runtime's FUSION_ROUND_* - or the project's [numbers] rounding
@@ -1981,6 +2012,17 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return str(node.dims_value)               # m.rows, m.length - known while compiling (45.12a)
         if getattr(node, 'self_view', False):
             return self.visit(node.object)            # e.Employee is e itself (Task 32.8)
+        if getattr(node, 'money_field', None):
+            # m.value / m.scale read in place; m.currency / m.symbol as new text (47.2)
+            code = self.visit(node.object)
+            if node.money_field == 'value':
+                return f'({code}).value'
+            if node.money_field == 'scale':
+                return f'((int)({code}).scale)'
+            made = f'fusion_money_{node.money_field}({code})'
+            if id(node) in self.consumed:
+                return made
+            return self.fresh_temporary(made, PrimitiveType(location=node.location, name='string'))
         object_type = getattr(node.object, 'inferred_type', None)
         if type(object_type).__name__ == 'ErrorType' and node.member == 'kind':
             return f'fusion_error_kind_text({self.visit(node.object)})'   # err.kind (26.10)
@@ -2148,6 +2190,16 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        # m.currency = "ZAR", m.symbol = "R", m.scale = 2, m.value = 100 - checked (47.2)
+        if isinstance(node.target, MemberExpr) and getattr(node.target, 'money_field', None):
+            field = node.target.money_field
+            holder = self.visit(node.target.object)
+            value = self.visit(node.value)
+            if field == 'value':
+                self.emit_line(f'({holder}).value = {value}')
+            else:
+                self.emit_line(self.checked_code(f'fusion_money_set_{field}(&({holder}), {value}, {self._where(node)})', None))
+            return ''
         # b[i] = v - edits the bytes in place, bounds-checked (Task 18.3.8)
         if isinstance(node.target, IndexExpr) and self._is_bytes(node.target.array):
             put = (f'fusion_bytes_put(&{self.visit(node.target.array)}, '

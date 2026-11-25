@@ -40,6 +40,7 @@ class TypeMapperMixin:
                 'int128': 'fusion_int128',  # __int128 (47.7)
                 'int256': 'fusion_int256',  # _BitInt(256) (47.7)
                 'decimal': 'fusion_decimal',  # value and scale (47.8)
+                'money': 'fusion_money',      # value, scale, currency, symbol - 16 bytes (47.2)
                 'bytes': 'fusion_bytes',    # raw bytes - the string struct, any bytes (18.3.8)
                 'void': 'void'
             }

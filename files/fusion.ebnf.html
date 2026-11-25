@@ -54,7 +54,7 @@ pre { margin: 0; padding: 10px 14px; background: var(--code-bg); border-top: 1px
 <body>
 <header id="top"><h1>Fusion grammar</h1>
 <p class="sub">files/fusion.ebnf, one card per entry - written by tools/ebnf_html.py; do not edit by hand. A task links to files/FEATURES.md (a finished one to the archive), a decision to Decisions.md.</p>
-<div class="legend"><span><i class="dot built"></i>built (86)</span><span><i class="dot planned"></i>planned / postponed / partial (10)</span><span><i class="dot rejected"></i>rejected (0)</span><span><i class="dot notbuilt"></i>not built yet (4)</span></div>
+<div class="legend"><span><i class="dot built"></i>built (86)</span><span><i class="dot planned"></i>planned / postponed / partial (9)</span><span><i class="dot rejected"></i>rejected (0)</span><span><i class="dot notbuilt"></i>not built yet (4)</span></div>
 <div class="intro">Fusion Programming Language - EBNF Grammar
 
 No version number until the compiler hosts itself (FEATURES 35.7).
@@ -102,7 +102,7 @@ semicolons - a statement ends at the end of its line.</div>
 <a class="sec" href="#keywords-src-lexer-keywords-py">Keywords (src/lexer/keywords.py)</a>
 <a class="sec" href="#operator-precedence-highest-first">Operator precedence (highest first)</a>
 <a class="sec" href="#planned-designed-not-built">Planned - designed, not built</a>
-<div class="rules"><a href="#planned-designed-not-built-planned-primitive-type">planned_primitive_type</a>, <a href="#planned-designed-not-built-money-literal">money_literal</a>, <a href="#planned-designed-not-built-duration-literal">duration_literal</a>, <a href="#planned-designed-not-built-switch-statement">switch_statement</a>, <a href="#planned-designed-not-built-switch-statement">elif_clause</a>, <a href="#planned-designed-not-built-loop-statement">loop_statement</a>, <a href="#planned-designed-not-built-property-declaration">property_declaration</a>, <a href="#planned-designed-not-built-fixed-size-type">fixed_size_type</a>, <a href="#planned-designed-not-built-shared-declaration">shared_declaration</a>, <a href="#planned-designed-not-built-pointer-type">pointer_type</a>, <a href="#planned-designed-not-built-service-declaration">service_declaration</a>, <a href="#planned-designed-not-built-service-declaration">service_class</a>, <a href="#planned-designed-not-built-service-declaration">service_run</a>, <a href="#planned-designed-not-built-service-declaration">service_setting</a>, <a href="#planned-designed-not-built-service-declaration">service_group</a>, <a href="#planned-designed-not-built-service-declaration">hotpath_function</a>, <a href="#planned-designed-not-built-go-statement">go_statement</a>, <a href="#planned-designed-not-built-go-statement">await_expression</a>, <a href="#planned-designed-not-built-go-statement">async_function</a>, <a href="#planned-designed-not-built-go-statement">channel_send</a>, <a href="#planned-designed-not-built-go-statement">channel_receive</a>, <a href="#planned-designed-not-built-annotation">annotation</a>, <a href="#planned-designed-not-built-unsafe-block">unsafe_block</a></div></nav>
+<div class="rules"><a href="#planned-designed-not-built-money-literal">money_literal</a>, <a href="#planned-designed-not-built-duration-literal">duration_literal</a>, <a href="#planned-designed-not-built-switch-statement">switch_statement</a>, <a href="#planned-designed-not-built-switch-statement">elif_clause</a>, <a href="#planned-designed-not-built-loop-statement">loop_statement</a>, <a href="#planned-designed-not-built-property-declaration">property_declaration</a>, <a href="#planned-designed-not-built-fixed-size-type">fixed_size_type</a>, <a href="#planned-designed-not-built-shared-declaration">shared_declaration</a>, <a href="#planned-designed-not-built-pointer-type">pointer_type</a>, <a href="#planned-designed-not-built-service-declaration">service_declaration</a>, <a href="#planned-designed-not-built-service-declaration">service_class</a>, <a href="#planned-designed-not-built-service-declaration">service_run</a>, <a href="#planned-designed-not-built-service-declaration">service_setting</a>, <a href="#planned-designed-not-built-service-declaration">service_group</a>, <a href="#planned-designed-not-built-service-declaration">hotpath_function</a>, <a href="#planned-designed-not-built-go-statement">go_statement</a>, <a href="#planned-designed-not-built-go-statement">await_expression</a>, <a href="#planned-designed-not-built-go-statement">async_function</a>, <a href="#planned-designed-not-built-go-statement">channel_send</a>, <a href="#planned-designed-not-built-go-statement">channel_receive</a>, <a href="#planned-designed-not-built-annotation">annotation</a>, <a href="#planned-designed-not-built-unsafe-block">unsafe_block</a></div></nav>
 <main>
 <h2 id="layout-and-block-styles">Layout and block styles</h2>
 <div class="card" id="layout-and-block-styles-1">
@@ -338,7 +338,10 @@ semicolons - a statement ends at the end of its line.</div>
    and a generic struct / class, Pair&lt;int, string&gt; (Task 33)</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">named_type</span> <span class="o">=</span> <span class="nt">qualified_name</span> <span class="o">[</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="o">}</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">]</span> <span class="o">|</span> <span class="s">&quot;bytes&quot;</span> <span class="o">|</span> <span class="s">&quot;decimal&quot;</span> <span class="o">;</span>
+<pre><span class="rule">named_type</span> <span class="o">=</span> <span class="nt">qualified_name</span> <span class="o">[</span> <span class="s">&quot;&lt;&quot;</span> <span class="nt">type</span> <span class="o">{</span> <span class="s">&quot;,&quot;</span> <span class="nt">type</span> <span class="o">}</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">]</span> <span class="o">|</span> <span class="s">&quot;bytes&quot;</span> <span class="o">|</span> <span class="s">&quot;decimal&quot;</span> <span class="o">|</span> <span class="s">&quot;money&quot;</span> <span class="o">;</span>
+<span class="c">(* money (Task 47.2, D.180-D.187): a 16-byte value struct - value (a long), scale, currency (3
+   letters), symbol (display only); money(amount [, currency [, symbol]]); m.value / .scale /
+   .currency / .symbol; + - * and comparing by the compiler, the rest by the Currency module *)</span>
 <span class="c">(* decimal (Task 47.8, D.182): an exact base-10 number - an int128 and its scale (0-18); a written
    number where a decimal is expected keeps its places (1.50); never from a float by itself;
    round(x, places [, mode]) and divide(a, b, places [, mode]) - the mode a value of the built-in
@@ -1132,20 +1135,11 @@ semicolons - a statement ends at the end of its line.</div>
 <a class="top" href="#top">top</a>
 </div>
 </div>
-<div class="card" id="planned-designed-not-built-planned-primitive-type">
-<div class="head">
-<a class="task" href="FEATURES.md#task-47">47.2</a>
-<span class="status planned">planned</span>
-<div class="comment">Task 47.2 (D.180-D.187): money - a 16-byte value struct (value, scale, currency, symbol)</div>
-<a class="top" href="#top">top</a>
-</div>
-<pre><span class="rule">planned_primitive_type</span> <span class="o">=</span> <span class="s">&quot;money&quot;</span> <span class="o">;</span></pre>
-</div>
 <div class="card" id="planned-designed-not-built-money-literal">
 <div class="head">
 <a class="task" href="../Decisions.md">D.176</a>
 <span class="status planned">planned</span>
-<div class="comment">D.176: money price = 123.45 - the scale from the places written; 123.45m as quick typing</div>
+<div class="comment">D.176: money price = 123.45 is built; 123.45m as quick typing where the type isn&#x27;t written</div>
 <a class="top" href="#top">top</a>
 </div>
 <pre><span class="rule">money_literal</span> <span class="o">=</span> <span class="nt">digits</span> <span class="s">&quot;.&quot;</span> <span class="nt">digits</span> <span class="s">&quot;m&quot;</span> <span class="o">;</span></pre>

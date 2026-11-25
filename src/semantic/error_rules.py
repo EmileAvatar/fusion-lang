@@ -68,6 +68,7 @@ BUILTIN_ERROR_TYPES = [
     ('DuplicateError', 'ValueError', False, None),              # Task 32.14
     ('ReadOnlyError', 'ValueError', False, None),               # Task 32.14
     ('RoundingError', 'ArithmeticError', False, None),          # Task 47.8 - rounding needed, the mode exact
+    ('CurrencyError', 'ValueError', False, None),               # Task 47.2 - two currencies mixed, a bad code
 ]
 BUILTIN_ERROR_NAMES = [name for name, _, _, _ in BUILTIN_ERROR_TYPES]
 

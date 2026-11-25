@@ -345,7 +345,15 @@ then each point is decided and solved completely. One line per section and per l
 		int256 (D.178); round / divide with the built-in enum Rounding or `[numbers] rounding` (halfEven - D.177), exact
 		a RoundingError; toDecimal(text / whole number), toDouble; never from a float by itself; in structs, Lists,
 		Maps, arrays, generics, text, CSV (src/codegen/c_decimal.py); tests/test_decimal.py, syntax_decimal
-	[ ] 47.2 `money` (replanned 2026-11-24 - files/taskSummary2.md, D.180-D.187): a sealed 16-byte value struct - value,
+	[DONE 2026-11-25] 47.2a `money` built (D.180-D.187): a sealed 16-byte value struct - value (a long), scale,
+		currency (3 letters), symbol (display only); written amounts keep their places; money(amount, currency,
+		symbol); the fields read and set, checked; + - * (a whole number or a decimal) and comparing by the compiler -
+		the currencies the same or one empty, else a CurrencyError; printing R100.05; toDecimal / money(d); in
+		structs, Lists, Maps, arrays, text, CSV (src/codegen/c_money.py); tests/test_money.py, syntax_money
+	[ ] 47.2b The Currency module (Currency.fusion, 43.3 starts here - D.186): static methods the compiler calls -
+		convert(m, from, to, rate), round, dividing (`/` on money), percent, split (the parts add up exactly),
+		formatting; a symbol longer than 4 bytes swapped for a short code (D.184) - next
+	[ ] 47.2 (the notes below, from the first plan, kept for reference) `money` (replanned 2026-11-24 - files/taskSummary2.md, D.180-D.187): a sealed 16-byte value struct - value,
 		scale, currency, symbol; + - * by the compiler, the rest by the Currency module's statics - after 47.8. The
 		earlier notes below stay for reference: a `long` counting a currency's minor units - kind value, default 0, min /
 		max as long, 8 bytes, never null; exact whole-number arithmetic with overflow checking -

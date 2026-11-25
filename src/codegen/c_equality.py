@@ -66,6 +66,8 @@ class EqualityMixin:
             return f'((void*)({left}) {"!=" if negate else "=="} (void*)({right}))'
         elif isinstance(left_type, StructType):
             helper = self._struct_equality_helper(left_type, right_type)
+        elif 'money' in (left_name, right_name):
+            return f'({"!" if negate else ""}fusion_money_eq({left}, {right}))'      # amount and currency (47.2)
         elif 'decimal' in (left_name, right_name):
             # by amount: 1.50 == 1.5 (47.8)
             return f'(fusion_decimal_cmp({left}, {right}) {"!=" if negate else "=="} 0)'

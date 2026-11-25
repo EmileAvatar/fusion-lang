@@ -20,7 +20,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
   the memory tiers note to R11.8, Vale to R11.6, flash wear 41.11e
 - Done 2026-11-25: 47.7 `int128` / `int256` (tests/test_wide_numbers.py, syntax_wide_numbers) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-25: 47.8 `decimal` (tests/test_decimal.py, syntax_decimal) - its plan in task/taskSummaryArchive.md
-- **Next Action:** 47.2 `money` (the plan below)
+- Done 2026-11-25: 47.2a `money` - the type (tests/test_money.py, syntax_money)
+- **Next Action:** 47.2b the Currency module (Currency.fusion - convert, round, divide, percent, split, format) - its plan to write
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)

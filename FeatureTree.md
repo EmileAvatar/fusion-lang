@@ -185,7 +185,7 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - money [planned]                 a 16-byte value struct: value, scale, currency, symbol (47.2)
+   - money [partial]                 a 16-byte value struct built; the Currency module next (47.2b)
    - Enums with fixed data, FusionType enum [planned]
    - fixed(n) [planned]              max size: fixed(10) string name
    - Operator overloading [design]   a setting, off
