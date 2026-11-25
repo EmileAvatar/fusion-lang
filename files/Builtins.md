@@ -3,7 +3,7 @@
 **Generated from the compiler** by `python check.py --builtins` (Task 28.1.4) - do not edit by hand.
 `python check.py` fails when this file no longer matches the compiler.
 
-99 functions, 24 List methods, 9 Map methods. Examples of each are in `files/SYNTAX_REFERENCE.md`.
+101 functions, 24 List methods, 9 Map methods. Examples of each are in `files/SYNTAX_REFERENCE.md`.
 
 - **Layer:** the lowest `[stdlib] layer` that allows it - `core` (no heap), `alloc` (no operating system), `std` (everything)
 - **Fails:** it can raise an error (catch it with `try`, or capture it); any function that makes text can also fail with StringTooLongError when `[strings] max_length` is set
@@ -43,7 +43,7 @@
 | `charCode(char)` | `int` | core |  |
 | `fromCharCode(int)` | `char` | core | yes |
 | `toByte(int)` | `byte` | core | yes |
-| `toShort(int \| long \| string)` | `short` | core | yes |
+| `toShort(int \| long \| string \| int128 \| int256)` | `short` | core | yes |
 | `wrapAdd(int, int)` | `int` | core |  |
 | `wrapSub(int, int)` | `int` | core |  |
 | `wrapMul(int, int)` | `int` | core |  |
@@ -126,8 +126,10 @@
 |---|---|---|---|
 | `toString(int \| float \| double \| bool \| char \| byte \| bytes)` | `string` | alloc |  |
 | `typeOf(any)` | `string` | alloc |  |
-| `toInt(string \| long)` | `int` | alloc | yes |
-| `toLong(string \| int \| long)` | `long` | alloc | yes |
+| `toInt(string \| long \| int128 \| int256)` | `int` | alloc | yes |
+| `toLong(string \| int \| long \| int128 \| int256)` | `long` | alloc | yes |
+| `toInt128(string \| int \| long \| int128 \| int256)` | `int128` | alloc | yes |
+| `toInt256(string \| int \| long \| int128 \| int256)` | `int256` | alloc | yes |
 | `toFloat(string)` | `float` | alloc | yes |
 | `parseInt(string, int)` | `int` | alloc | yes |
 | `formatNumber(double, string)` | `string` | alloc | yes |

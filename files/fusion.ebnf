@@ -107,9 +107,10 @@ type =
     | named_type [ array_suffix ]
     | function_type ;
 
-(* byte: 0-255 (18.3.8); short / long: 16 / 64 bits (47.1); bytes: raw binary data, a
+(* byte: 0-255 (18.3.8); short / long: 16 / 64 bits (47.1); int128 / int256: signed wide whole
+   numbers (Task 47.7, D.179), never mixed with a float or double; bytes: raw binary data, a
    built-in type name, not a keyword *)
-primitive_type = "int" | "long" | "short" | "byte" | "float" | "double"
+primitive_type = "int" | "long" | "short" | "byte" | "int128" | "int256" | "float" | "double"
                | "bool" | "char" | "string" | "void" ;
 
 (* A struct, class, enum, interface or error type - `money.Price` from another module;
@@ -306,7 +307,8 @@ literal = integer_literal | float_literal | string_literal | char_literal
         | boolean_literal | array_literal ;
 
 (* "_" between digits (1_000_000); hex, binary and octal read as the bit pattern, up to 32 bits
-   (18.3.6d); past an int's range a number is a long (47.1); an optional L suffix *)
+   (18.3.6d); past an int's range a number is a long (47.1), then an int128, then an int256 (47.7);
+   an optional L suffix *)
 integer_literal =
       digits [ "L" | "l" ]
     | "0" ( "x" | "X" ) hex_digit { [ "_" ] hex_digit }
@@ -449,7 +451,7 @@ DEDENT  = ? the lexer: the indentation shrinks - one per level ? ;
                  get set import new cast namespace
    Modifiers:    public private internal protected static virtual override abstract sealed
                  const let var service fixed Shared Weak
-   Types:        int long short byte float double bool char string void
+   Types:        int long short byte int128 int256 float double bool char string void
    Operators:    and or not is in
    Values:       true false null this
    Words special only in their place (names elsewhere): byVal byValue byRef readonly step
@@ -488,9 +490,9 @@ DEDENT  = ? the lexer: the indentation shrinks - one per level ? ;
    ?[                       - a guarded index
    <>                       - another spelling of != (VB) *)
 
-(* Task 47.7 (D.179): signed wide whole numbers; Task 47.8 (D.182): exact base-10;
-   Task 47.2 (D.180-D.187): money - a 16-byte value struct (value, scale, currency, symbol) *)
-planned_primitive_type = "int128" | "int256" | "decimal" | "money" ;
+(* Task 47.8 (D.182): exact base-10; Task 47.2 (D.180-D.187): money - a 16-byte value struct
+   (value, scale, currency, symbol) *)
+planned_primitive_type = "decimal" | "money" ;
 
 (* D.176: money price = 123.45 - the scale from the places written; 123.45m as quick typing *)
 money_literal = digits "." digits "m" ;

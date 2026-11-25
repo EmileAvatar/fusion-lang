@@ -321,11 +321,12 @@ semicolons - a statement ends at the end of its line.</div>
 <div class="head">
 <a class="task" href="../task/featuresArchive.md">18.3</a>
 <span class="status built">built</span>
-<div class="comment">byte: 0-255 (18.3.8); short / long: 16 / 64 bits (47.1); bytes: raw binary data, a
+<div class="comment">byte: 0-255 (18.3.8); short / long: 16 / 64 bits (47.1); int128 / int256: signed wide whole
+   numbers (Task 47.7, D.179), never mixed with a float or double; bytes: raw binary data, a
    built-in type name, not a keyword</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">primitive_type</span> <span class="o">=</span> <span class="s">&quot;int&quot;</span> <span class="o">|</span> <span class="s">&quot;long&quot;</span> <span class="o">|</span> <span class="s">&quot;short&quot;</span> <span class="o">|</span> <span class="s">&quot;byte&quot;</span> <span class="o">|</span> <span class="s">&quot;float&quot;</span> <span class="o">|</span> <span class="s">&quot;double&quot;</span>
+<pre><span class="rule">primitive_type</span> <span class="o">=</span> <span class="s">&quot;int&quot;</span> <span class="o">|</span> <span class="s">&quot;long&quot;</span> <span class="o">|</span> <span class="s">&quot;short&quot;</span> <span class="o">|</span> <span class="s">&quot;byte&quot;</span> <span class="o">|</span> <span class="s">&quot;int128&quot;</span> <span class="o">|</span> <span class="s">&quot;int256&quot;</span> <span class="o">|</span> <span class="s">&quot;float&quot;</span> <span class="o">|</span> <span class="s">&quot;double&quot;</span>
                <span class="o">|</span> <span class="s">&quot;bool&quot;</span> <span class="o">|</span> <span class="s">&quot;char&quot;</span> <span class="o">|</span> <span class="s">&quot;string&quot;</span> <span class="o">|</span> <span class="s">&quot;void&quot;</span> <span class="o">;</span></pre>
 </div>
 <div class="card" id="types-named-type">
@@ -748,7 +749,8 @@ semicolons - a statement ends at the end of its line.</div>
 <a class="task" href="../task/featuresArchive.md">18.3</a>
 <span class="status built">built</span>
 <div class="comment">&quot;_&quot; between digits (1_000_000); hex, binary and octal read as the bit pattern, up to 32 bits
-   (18.3.6d); past an int&#x27;s range a number is a long (47.1); an optional L suffix</div>
+   (18.3.6d); past an int&#x27;s range a number is a long (47.1), then an int128, then an int256 (47.7);
+   an optional L suffix</div>
 <a class="top" href="#top">top</a>
 </div>
 <pre><span class="rule">integer_literal</span> <span class="o">=</span>
@@ -1077,7 +1079,7 @@ semicolons - a statement ends at the end of its line.</div>
                  get set import new cast namespace
    Modifiers:    public private internal protected static virtual override abstract sealed
                  const let var service fixed Shared Weak
-   Types:        int long short byte float double bool char string void
+   Types:        int long short byte int128 int256 float double bool char string void
    Operators:    and or not is in
    Values:       true false null this
    Words special only in their place (names elsewhere): byVal byValue byRef readonly step
@@ -1128,13 +1130,13 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="planned-designed-not-built-planned-primitive-type">
 <div class="head">
-<a class="task" href="FEATURES.md#task-47">47.7</a>
+<a class="task" href="FEATURES.md#task-47">47.8</a>
 <span class="status planned">planned</span>
-<div class="comment">Task 47.7 (D.179): signed wide whole numbers; Task 47.8 (D.182): exact base-10;
-   Task 47.2 (D.180-D.187): money - a 16-byte value struct (value, scale, currency, symbol)</div>
+<div class="comment">Task 47.8 (D.182): exact base-10; Task 47.2 (D.180-D.187): money - a 16-byte value struct
+   (value, scale, currency, symbol)</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">planned_primitive_type</span> <span class="o">=</span> <span class="s">&quot;int128&quot;</span> <span class="o">|</span> <span class="s">&quot;int256&quot;</span> <span class="o">|</span> <span class="s">&quot;decimal&quot;</span> <span class="o">|</span> <span class="s">&quot;money&quot;</span> <span class="o">;</span></pre>
+<pre><span class="rule">planned_primitive_type</span> <span class="o">=</span> <span class="s">&quot;decimal&quot;</span> <span class="o">|</span> <span class="s">&quot;money&quot;</span> <span class="o">;</span></pre>
 </div>
 <div class="card" id="planned-designed-not-built-money-literal">
 <div class="head">

@@ -420,7 +420,7 @@ def test_binding_names_that_clash_with_c_are_renamed():
     ('Token t = Token.Plus()', "'Token.Plus' is a value, not a function"),
     ('Token t = Token.Pair(c = 1)', "has no field named 'c'"),
     ('List<Token> ts = Token.values()', "Token.values() only works on an enum whose values carry no data"),
-    ('Map<Token, int> m', "Map keys can be string, a whole number (int, long, short), char or an enum without data"),
+    ('Map<Token, int> m', "Map keys can be string, a whole number (int, long, short, int128, int256), char or an enum without data"),
     ('Token t = Token.Plus\nmatch t\n    case Number(a, b): print("x")\n    else: print("y")',
      "'Number' carries 1 value(s) (value) - name each, or write just case Number"),
     ('Token t = Token.Plus\nmatch t\n    case Number(a), Word(b): print("x")\n    else: print("y")',

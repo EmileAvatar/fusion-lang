@@ -7753,3 +7753,14 @@ a theme gives the colours. Today the developer's own theme colours Fusion; this 
 - a developer may also override any piece in their own editor settings (`editor.tokenColorCustomizations`) - written
   up in tools/editors/README.md
 - tests: the palettes cover every scope the grammar uses, the contrast check, the written files in step (the editors check)
+
+---
+
+## Task 47.7 - int128 and int256 (done 2026-11-25)
+
+**47.7 `int128`, `int256`** (D.179) - signed whole numbers, as long (47.1) one size up
+- C: `__int128` (native - two registers) and C23 `_BitInt(256)` (GCC 16 - tested)
+- every place a type goes; literals past a long; widening long -> int128 -> int256; narrowing checked
+  (`toLong(x)`, `toInt128(x)`); overflow checked (+ - * / % and minus); wrapping in `unchecked`
+- printing: its own to-text (printf has no format for them); `toString`, `toInt128(text)`, Map keys, sort, match
+- tests as tests/test_long_short.py; example syntax_wide_numbers

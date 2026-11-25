@@ -33,12 +33,12 @@ class TestVariableDeclarations:
     """Test variable declaration code generation."""
 
     def test_simple_int_declaration(self):
-        """Test simple int: int x -> int x;"""
+        """Test simple int: int x -> int x = 0; (never whatever was in memory, 47.7)"""
         gen = CCodeGenerator()
         var_type = PrimitiveType(location=loc(), name='int')
         node = VarDeclStmt(location=loc(), var_type=var_type, name='x', initializer=None)
         gen.visit_VarDeclStmt(node)
-        assert 'int x;' in '\n'.join(gen.output)
+        assert 'int x = 0;' in '\n'.join(gen.output)
 
     def test_declaration_with_initializer(self):
         """Test with initializer: int x = 5 -> int x = 5;"""

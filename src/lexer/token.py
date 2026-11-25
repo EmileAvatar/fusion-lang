@@ -78,6 +78,8 @@ class TokenType(Enum):
     BYTE = auto()
     SHORT = auto()
     LONG = auto()
+    INT128 = auto()
+    INT256 = auto()
     VOID = auto()
 
     # ============================================================
@@ -237,7 +239,7 @@ _KEYWORD_TYPES: Set[TokenType] = {
     # Types
     TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE, TokenType.STRING,
     TokenType.BOOL, TokenType.CHAR, TokenType.BYTE, TokenType.SHORT,
-    TokenType.LONG, TokenType.VOID,
+    TokenType.LONG, TokenType.INT128, TokenType.INT256, TokenType.VOID,
 
     # Memory
     TokenType.SHARED, TokenType.WEAK,

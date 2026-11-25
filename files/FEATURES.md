@@ -335,7 +335,11 @@ then each point is decided and solved completely. One line per section and per l
 	[DONE] 47.1 `long` (64-bit; overflow checked like int) and `short` (16-bit) - every place a type goes; a literal past
 		int a long; int -> long widens, back only by toInt / toShort (checked); short arithmetic gives an int; a long as a
 		float / double must fit exactly; Map keys, sort, match, CSV; toLong(text); tests/test_long_short.py, syntax_long
-	[ ] 47.7 `int128`, `int256` - signed wide whole numbers, used like any number (D.179) - next
+	[DONE 2026-11-25] 47.7 `int128`, `int256` - signed wide whole numbers, used like any number (D.179): __int128 and
+		C23 _BitInt(256) (src/codegen/c_wide.py); literals past a long; widening, checked narrowing (toInt / toLong /
+		toShort / toInt128); arithmetic in the widest kind, overflow checked; never mixed with a float; text, Map keys,
+		sort, match, CSV; tests/test_wide_numbers.py, syntax_wide_numbers. Found with it: a number declared without a
+		value held whatever was in memory - now 0 / false
 	[ ] 47.8 `decimal` - exact base-10: an int128 and its scale, 38 digits; + - * always exact, a division rounded once
 		(D.182) - after 47.7
 	[ ] 47.2 `money` (replanned 2026-11-24 - files/taskSummary2.md, D.180-D.187): a sealed 16-byte value struct - value,

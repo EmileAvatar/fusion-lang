@@ -33,7 +33,7 @@ TOPICS = [
                                    'digitsOnly']),
     ('Text - split and join', ['split', 'join', 'lines', 'words']),
     ('Text - masks', ['mask', 'maskEmail', 'formatMask']),
-    ('Conversions and formatting', ['toString', 'typeOf', 'toInt', 'toLong', 'toFloat', 'parseInt',
+    ('Conversions and formatting', ['toString', 'typeOf', 'toInt', 'toLong', 'toInt128', 'toInt256', 'toFloat', 'parseInt',
                                     'formatNumber']),
     ('Number bases', ['toHex', 'toBinary', 'toOctal', 'toBase', 'fromHex', 'fromBinary',
                       'fromOctal']),

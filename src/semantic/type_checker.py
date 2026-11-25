@@ -330,7 +330,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         # Promotion hierarchy: byte -> short -> int -> long -> float -> double (47.1). A long
         # (or an int) stored as a float or double is checked to fit exactly (widen_to_float)
+        # int128 / int256 (47.7) widen from every smaller whole number, never into a float or double
+        # (they hold more digits than a double can - toDouble later, with a check)
         promotions = {
+            'int256': ['byte', 'short', 'int', 'long', 'int128', 'int256'],
+            'int128': ['byte', 'short', 'int', 'long', 'int128'],
             'double': ['byte', 'short', 'int', 'long', 'float', 'double'],
             'float': ['byte', 'short', 'int', 'long', 'float'],
             'long': ['byte', 'short', 'int', 'long'],
@@ -356,7 +360,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         # Width hierarchy: double > float > long > int > short, byte. Arithmetic on bytes and
         # shorts gives an int, as in C# and Java (Task 18.3.8, 47.1); an int with a long a long
-        widths = {'double': 4, 'float': 3, 'long': 2, 'int': 1, 'short': 0, 'byte': 0}
+        widths = {'double': 6, 'float': 5, 'int256': 4, 'int128': 3, 'long': 2, 'int': 1, 'short': 0, 'byte': 0}
         width1 = widths.get(type1.name, 0)
         width2 = widths.get(type2.name, 0)
 
@@ -377,7 +381,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """
         if not isinstance(type_node, PrimitiveType):
             return False
-        return type_node.name in ['int', 'float', 'double', 'byte', 'short', 'long']
+        return type_node.name in ['int', 'float', 'double', 'byte', 'short', 'long', 'int128', 'int256']
 
     @staticmethod
     def _is_string_type(type_node: TypeNode) -> bool:
@@ -620,12 +624,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         type_name = type_map.get(node.type_hint, 'void')
         if type_name == 'int' and isinstance(node.value, int) and not isinstance(node.value, bool):
             if not -2147483648 <= node.value <= 2147483647:
-                # Past an int's range: a long (47.1); past a long's an error, never a cut value
-                if not -9223372036854775808 <= node.value <= 9223372036854775807:
-                    self.errors.append(SemanticError(
-                        f"{node.value} doesn't fit in a long (-9223372036854775808 to "
-                        f"9223372036854775807)", node.location))
-                return PrimitiveType(location=node.location, name='long')
+                # Past an int's range: a long (47.1), then an int128 and an int256 (47.7); past an
+                # int256's an error, never a cut value
+                for name, bits in (('long', 64), ('int128', 128), ('int256', 256)):
+                    if -(1 << (bits - 1)) <= node.value < (1 << (bits - 1)):
+                        return PrimitiveType(location=node.location, name=name)
+                self.errors.append(SemanticError(
+                    f"{node.value} doesn't fit in an int256 (the widest whole number, 256 bits)", node.location))
+                return PrimitiveType(location=node.location, name='int256')
             literal_type = PrimitiveType(location=node.location, name='int')
             if 0 <= node.value <= 255:
                 literal_type.fits_byte = True   # may be stored as a byte (Task 18.3.8)
@@ -795,6 +801,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if node.operator in ('+', '-', '*', '/', '%', '<', '>', '<=', '>=', '==', '!='):
             self.widen_to_float(node.left, left_type, right_type)
             self.widen_to_float(node.right, right_type, left_type)
+            # An int128 / int256 beside a float or double: more digits than a double holds (47.7)
+            names = {getattr(left_type, 'name', None), getattr(right_type, 'name', None)}
+            wide = names & {'int128', 'int256'}
+            if wide and names & {'float', 'double'}:
+                self.errors.append(SemanticError(
+                    f"An {sorted(wide)[0]} and a {sorted(names & {'float', 'double'})[0]} can't be mixed - "
+                    f"the {sorted(wide)[0]} holds more digits than a double keeps; convert one first",
+                    node.location))
 
         # Arithmetic operators: int/float/double + int/float/double
         if node.operator in ['+', '-', '*', '/', '%']:
@@ -991,7 +1005,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         return receiver_type.name in ('int', 'byte', 'float') and self.types_compatible(first, receiver_type) \
             and isinstance(first, PrimitiveType) and first.name in ('double', 'float')
 
-    _NUMBER_TYPES = ('int', 'float', 'double', 'byte', 'short', 'long')
+    _NUMBER_TYPES = ('int', 'float', 'double', 'byte', 'short', 'long', 'int128', 'int256')
 
     def _check_equality(self, node: BinaryExpr, left_type: TypeNode, right_type: TypeNode) -> None:
         """The equality operators (Task 18.3.5, user decisions 2026-10-07):

@@ -100,6 +100,8 @@ class RuntimeLoweringMixin:
         'byte': '%d',
         'short': '%d',  # promoted to int in varargs (47.1)
         'long': '%lld', # a C long long (47.1)
+        'int128': '%s', # its digits, through fusion_int128_text (47.7)
+        'int256': '%s',
         'bytes': '%s',  # plain lowercase hex, nothing added (Task 18.3.8)
         'bool': '%s',   # printed as true / false; still 1 / 0 as a value (Task 18.3.5b)
     }
@@ -153,6 +155,8 @@ class RuntimeLoweringMixin:
             return f'fusion_str_text({code})'      # a null one prints null (D.094)
         if isinstance(inferred, PrimitiveType) and inferred.name == 'char':
             return f'fusion_char_text({code}).bytes'
+        if isinstance(inferred, PrimitiveType) and inferred.name in ('int128', 'int256'):
+            return f'fusion_{inferred.name}_text({code}).bytes'     # a buffer, nothing allocated (47.7)
         if isinstance(inferred, PrimitiveType) and inferred.name == 'bytes':
             # The raw value as hex - "6b6b69" - held in a temporary freed after the statement
             hex_text = self.fresh_temporary(f'fusion_bytes_rawToHex({code}, {self._where(expr)})',

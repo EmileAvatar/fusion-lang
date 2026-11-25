@@ -131,6 +131,9 @@ void function types() {
     long big = 9000000000000000000
     int back = toInt(big / 1000000000000)    // narrowing written and checked: an OverflowError
     short s2 = toShort(back)
+    // [built] int128 / int256 - signed wide whole numbers, never mixed with a float (47.7)
+    int128 wide = 170141183460469231731687303715884105727
+    int256 wider = toInt256(wide) * wide
     // [designed] Unsigned and signed-byte whole numbers (spec "Complete Type Specifications")
     sbyte tiny = -128
     ushort port = 65535

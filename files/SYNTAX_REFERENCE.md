@@ -2378,6 +2378,33 @@ void function main()
 A long is checked for overflow as an int is; a long stored as a `float` or `double` must fit exactly (a double
 holds whole numbers up to 2^53). `toInt`, `toShort` and `toLong` take a whole number or text.
 
+#### Wide whole numbers: `int128` and `int256`
+
+<!-- example: syntax_wide_numbers | task: 47.7 | folder: 01_basics -->
+```fusion
+void function main()
+    int128 big = 170141183460469231731687303715884105727   // past a long's range: an int128
+    long perDay = 9000000000000000000
+    int128 total = toInt128(perDay) + perDay      // widen one side first - long + long stays a long
+    int256 huge = toInt256(big) * big            // arithmetic in the widest kind, checked
+    print("{big}")
+    print("{total}")
+    print("{huge}")
+    long back = toLong(total / 1000)             // narrowing is written and checked
+    int128 read = toInt128("-12345678901234567890123")
+    print("{back} {read}")
+    try
+        int128 over = big + 1                    // doesn't fit: an OverflowError
+        print("{over}")
+    catch OverflowError e
+        print("{e}")
+    List<int128> sizes = [big, 7, -3]             // in Lists, Maps, structs, sorted, matched
+    sizes.sort()
+    print("{@1} {@2}", sizes[0], sizes[2])
+```
+`int128` and `int256` are signed (negative values too). They never mix with a `float` or `double` - they hold more
+digits than a double keeps. `toInt128` / `toInt256` take text or any whole number.
+
 #### Custom error types
 
 <!-- example: syntax_error_types | task: 26.9 | folder: 10_errors_and_null -->

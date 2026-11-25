@@ -38,7 +38,7 @@ DECLARATION = {'function', 'func', 'class', 'struct', 'interface', 'enum', 'Enum
                'property', 'get', 'set', 'import', 'new', 'cast', 'namespace'}
 MODIFIER = {'public', 'private', 'internal', 'protected', 'static', 'virtual', 'override', 'abstract', 'sealed',
             'const', 'let', 'var', 'service', 'fixed', 'Shared', 'Weak'}
-TYPE = {'int', 'float', 'double', 'string', 'bool', 'char', 'byte', 'short', 'long', 'void'}
+TYPE = {'int', 'float', 'double', 'string', 'bool', 'char', 'byte', 'short', 'long', 'int128', 'int256', 'void'}
 OPERATOR_WORD = {'and', 'or', 'not', 'is', 'in'}
 LITERAL = {'true', 'false', 'null'}
 THIS = {'this'}

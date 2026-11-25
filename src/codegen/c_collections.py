@@ -22,7 +22,7 @@ from ..parser.ast_nodes import (
     ListType, MapType, FunctionType, EnumType,
 )
 
-_SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool', 'short', 'long')
+_SORTABLE = ('int', 'float', 'double', 'byte', 'char', 'string', 'bool', 'short', 'long', 'int128', 'int256')
 
 
 class CollectionsMixin:
@@ -928,6 +928,13 @@ class CollectionsMixin:
             hash_body = ['unsigned long long u = (unsigned long long)k;',
                          'return (uint32_t)(u ^ (u >> 32)) * 2654435761u;']
             missing = 'fusion_fail(FUSION_KIND_KeyError, where, "key %lld is not in the map", k);'
+        elif key.name in ('int128', 'int256'):              # 47.7: every 64-bit part counts
+            parts = 2 if key.name == 'int128' else 4
+            hash_body = [f'fusion_u{key.name} u = (fusion_u{key.name})k; unsigned long long h = 0;',
+                         f'for (int i = 0; i < {parts}; i++) {{ h ^= (unsigned long long)u; u >>= 64; }}',
+                         'return (uint32_t)(h ^ (h >> 32)) * 2654435761u;']
+            missing = (f'fusion_fail(FUSION_KIND_KeyError, where, "key %s is not in the map", '
+                       f'fusion_{key.name}_text(k).bytes);')
         else:
             hash_body = ['return (uint32_t)k * 2654435761u;']
             missing = ('fusion_fail(FUSION_KIND_KeyError, where, "key %d is not in the map", (int)k);'

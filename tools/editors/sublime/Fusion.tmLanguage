@@ -314,7 +314,7 @@
 			<array>
 				<dict>
 					<key>match</key>
-					<string>(?&lt;![\w.])\b(double|string|float|short|bool|byte|char|long|void|int)\b</string>
+					<string>(?&lt;![\w.])\b(double|int128|int256|string|float|short|bool|byte|char|long|void|int)\b</string>
 					<key>name</key>
 					<string>support.type.primitive.fusion</string>
 				</dict>

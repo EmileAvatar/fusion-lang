@@ -57,7 +57,10 @@ FLEXIBLE_FIRST_ARG = {
     'toHex': ('int', 'string'), 'toBinary': ('int', 'string'), 'toOctal': ('int', 'string'),
     'toBase': ('int', 'string'), 'toBytes': ('string', 'char', 'int', 'byte'),
     # long and short (47.1): toInt(text) or toInt(aLong); toLong(text or a whole number); toShort
-    'toInt': ('string', 'long'), 'toLong': ('string', 'int', 'long'), 'toShort': ('int', 'long', 'string'),
+    'toInt': ('string', 'long', 'int128', 'int256'), 'toLong': ('string', 'int', 'long', 'int128', 'int256'),
+    'toShort': ('int', 'long', 'string', 'int128', 'int256'),
+    # int128 / int256 (47.7): from text or any whole number - widening, or narrowing checked
+    'toInt128': ('string', 'int', 'long', 'int128', 'int256'), 'toInt256': ('string', 'int', 'long', 'int128', 'int256'),
 }
 
 # Built-ins that change their first argument in place, which must be a variable (or a
@@ -327,6 +330,8 @@ class NameResolver:
             # long and short (47.1): toLong(text), toShort(n) - checked, never a cut value
             'toLong': ([string_type], PrimitiveType(location=builtin_loc, name='long')),
             'toShort': ([int_type], PrimitiveType(location=builtin_loc, name='short')),
+            'toInt128': ([string_type], PrimitiveType(location=builtin_loc, name='int128')),   # 47.7
+            'toInt256': ([string_type], PrimitiveType(location=builtin_loc, name='int256')),
             # Whole numbers that wrap around on purpose (Task 27.2d)
             'wrapAdd': ([int_type, int_type], int_type),
             'wrapSub': ([int_type, int_type], int_type),

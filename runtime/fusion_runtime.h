@@ -1869,4 +1869,192 @@ static inline void fusion_uncaught(void) {
     exit(1);
 }
 
+// ---- int128 (47.7): 128 bits, signed ----
+typedef __int128 fusion_int128;
+typedef unsigned __int128 fusion_uint128;
+#define FUSION_int128_MAX ((fusion_int128)(((fusion_uint128)1 << (128 - 1)) - 1))
+#define FUSION_int128_MIN (-FUSION_int128_MAX - 1)
+typedef struct { char bytes[48]; } fusion_int128_buf;
+static inline fusion_int128_buf fusion_int128_text(fusion_int128 v) {
+    fusion_int128_buf b; char tmp[48]; int n = 0;
+    fusion_uint128 u = v < 0 ? (fusion_uint128)0 - (fusion_uint128)v : (fusion_uint128)v;
+    do { tmp[n++] = (char)('0' + (int)(u % 10)); u /= 10; } while (u);
+    int i = 0;
+    if (v < 0) b.bytes[i++] = '-';
+    while (n) b.bytes[i++] = tmp[--n];
+    b.bytes[i] = '\0';
+    return b;
+}
+static inline fusion_string fusion_int128_to_str(fusion_int128 v) { fusion_int128_buf b = fusion_int128_text(v); int n = 0; while (b.bytes[n]) n++; return fusion_str_make(b.bytes, n); }
+static inline fusion_int128 fusion_add_int128(fusion_int128 a, fusion_int128 b, const char* where) {
+    fusion_int128 r;
+    if (__builtin_add_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%s + %s doesn't fit in an int128", fusion_int128_text(a).bytes, fusion_int128_text(b).bytes); return 0; }
+    return r;
+}
+static inline fusion_int128 fusion_sub_int128(fusion_int128 a, fusion_int128 b, const char* where) {
+    fusion_int128 r;
+    if (__builtin_sub_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%s - %s doesn't fit in an int128", fusion_int128_text(a).bytes, fusion_int128_text(b).bytes); return 0; }
+    return r;
+}
+static inline fusion_int128 fusion_mul_int128(fusion_int128 a, fusion_int128 b, const char* where) {
+    fusion_int128 r;
+    if (__builtin_mul_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%s * %s doesn't fit in an int128", fusion_int128_text(a).bytes, fusion_int128_text(b).bytes); return 0; }
+    return r;
+}
+static inline fusion_int128 fusion_neg_int128(fusion_int128 a, const char* where) {
+    if (a == FUSION_int128_MIN) { fusion_fail(FUSION_KIND_OverflowError, where, "-(%s) doesn't fit in an int128", fusion_int128_text(a).bytes); return 0; }
+    return -a;
+}
+static inline fusion_int128 fusion_div_int128(fusion_int128 a, fusion_int128 b, int check, const char* where) {
+    if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%s / 0: division by zero", fusion_int128_text(a).bytes); return 0; }
+    if (b == -1) {
+        if (check && a == FUSION_int128_MIN) { fusion_fail(FUSION_KIND_OverflowError, where, "%s / -1 doesn't fit in an int128", fusion_int128_text(a).bytes); return 0; }
+        return (fusion_int128)((fusion_uint128)0 - (fusion_uint128)a);
+    }
+    return a / b;
+}
+static inline fusion_int128 fusion_mod_int128(fusion_int128 a, fusion_int128 b, int check, const char* where) {
+    (void)check;
+    if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%s %% 0: division by zero", fusion_int128_text(a).bytes); return 0; }
+    if (b == -1) return 0;
+    return a % b;
+}
+static inline fusion_int128 fusion_wrap_add_int128(fusion_int128 a, fusion_int128 b) { return (fusion_int128)((fusion_uint128)a + (fusion_uint128)b); }
+static inline fusion_int128 fusion_wrap_sub_int128(fusion_int128 a, fusion_int128 b) { return (fusion_int128)((fusion_uint128)a - (fusion_uint128)b); }
+static inline fusion_int128 fusion_wrap_mul_int128(fusion_int128 a, fusion_int128 b) { return (fusion_int128)((fusion_uint128)a * (fusion_uint128)b); }
+// Text to an int128: the whole text a number that fits, or a NumberFormatError
+static inline bool fusion_parse_int128(fusion_string s, fusion_int128* out) {
+    int i = 0; fusion_uint128 value = 0; int negative = 0;
+    const fusion_uint128 limit = (fusion_uint128)FUSION_int128_MAX + 1;
+    if (i < s.len && (s.data[i] == '+' || s.data[i] == '-')) negative = s.data[i++] == '-';
+    if (i >= s.len) return false;
+    for (; i < s.len; i++) {
+        if (s.data[i] < '0' || s.data[i] > '9') return false;
+        if (value > limit / 10) return false;
+        value = value * 10 + (fusion_uint128)(s.data[i] - '0');
+        if (value > limit) return false;
+    }
+    if (!negative && value == limit) return false;
+    *out = negative ? (fusion_int128)((fusion_uint128)0 - value) : (fusion_int128)value;
+    return true;
+}
+static inline fusion_int128 fusion_str_toInt128(fusion_string s, const char* where) {
+    fusion_int128 v;
+    if (!fusion_parse_int128(s, &v)) { fusion_fail(FUSION_KIND_NumberFormatError, where, "'%.*s' is not a whole number that fits in an int128", s.len, s.data); return 0; }
+    return v;
+}
+static inline fusion_int128 fusion_int_toInt128(int n, const char* where) { (void)where; return n; }
+static inline fusion_int128 fusion_long_toInt128(long long n, const char* where) { (void)where; return n; }
+// Narrowing, always written and checked (D.003): toInt(x), toLong(x) - an OverflowError when it doesn't fit
+static inline int fusion_int128_toInt(fusion_int128 n, const char* where) {
+    if (n < -2147483647LL - 1 || n > 2147483647LL) { fusion_fail(FUSION_KIND_OverflowError, where, "%s doesn't fit in an int (-2147483648 to 2147483647)", fusion_int128_text(n).bytes); return 0; }
+    return (int)n;
+}
+static inline long long fusion_int128_toLong(fusion_int128 n, const char* where) {
+    if (n < FUSION_LONG_MIN || n > 9223372036854775807LL) { fusion_fail(FUSION_KIND_OverflowError, where, "%s doesn't fit in a long", fusion_int128_text(n).bytes); return 0; }
+    return (long long)n;
+}
+static inline short fusion_int128_toShort(fusion_int128 n, const char* where) {
+    if (n < -32768 || n > 32767) { fusion_fail(FUSION_KIND_OverflowError, where, "%s doesn't fit in a short (-32768 to 32767)", fusion_int128_text(n).bytes); return 0; }
+    return (short)n;
+}
+
+// ---- int256 (47.7): 256 bits, signed ----
+typedef _BitInt(256) fusion_int256;
+typedef unsigned _BitInt(256) fusion_uint256;
+#define FUSION_int256_MAX ((fusion_int256)(((fusion_uint256)1 << (256 - 1)) - 1))
+#define FUSION_int256_MIN (-FUSION_int256_MAX - 1)
+typedef struct { char bytes[88]; } fusion_int256_buf;
+static inline fusion_int256_buf fusion_int256_text(fusion_int256 v) {
+    fusion_int256_buf b; char tmp[88]; int n = 0;
+    fusion_uint256 u = v < 0 ? (fusion_uint256)0 - (fusion_uint256)v : (fusion_uint256)v;
+    do { tmp[n++] = (char)('0' + (int)(u % 10)); u /= 10; } while (u);
+    int i = 0;
+    if (v < 0) b.bytes[i++] = '-';
+    while (n) b.bytes[i++] = tmp[--n];
+    b.bytes[i] = '\0';
+    return b;
+}
+static inline fusion_string fusion_int256_to_str(fusion_int256 v) { fusion_int256_buf b = fusion_int256_text(v); int n = 0; while (b.bytes[n]) n++; return fusion_str_make(b.bytes, n); }
+static inline fusion_int256 fusion_add_int256(fusion_int256 a, fusion_int256 b, const char* where) {
+    fusion_int256 r;
+    if (__builtin_add_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%s + %s doesn't fit in an int256", fusion_int256_text(a).bytes, fusion_int256_text(b).bytes); return 0; }
+    return r;
+}
+static inline fusion_int256 fusion_sub_int256(fusion_int256 a, fusion_int256 b, const char* where) {
+    fusion_int256 r;
+    if (__builtin_sub_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%s - %s doesn't fit in an int256", fusion_int256_text(a).bytes, fusion_int256_text(b).bytes); return 0; }
+    return r;
+}
+static inline fusion_int256 fusion_mul_int256(fusion_int256 a, fusion_int256 b, const char* where) {
+    fusion_int256 r;
+    if (__builtin_mul_overflow(a, b, &r)) { fusion_fail(FUSION_KIND_OverflowError, where, "%s * %s doesn't fit in an int256", fusion_int256_text(a).bytes, fusion_int256_text(b).bytes); return 0; }
+    return r;
+}
+static inline fusion_int256 fusion_neg_int256(fusion_int256 a, const char* where) {
+    if (a == FUSION_int256_MIN) { fusion_fail(FUSION_KIND_OverflowError, where, "-(%s) doesn't fit in an int256", fusion_int256_text(a).bytes); return 0; }
+    return -a;
+}
+static inline fusion_int256 fusion_div_int256(fusion_int256 a, fusion_int256 b, int check, const char* where) {
+    if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%s / 0: division by zero", fusion_int256_text(a).bytes); return 0; }
+    if (b == -1) {
+        if (check && a == FUSION_int256_MIN) { fusion_fail(FUSION_KIND_OverflowError, where, "%s / -1 doesn't fit in an int256", fusion_int256_text(a).bytes); return 0; }
+        return (fusion_int256)((fusion_uint256)0 - (fusion_uint256)a);
+    }
+    return a / b;
+}
+static inline fusion_int256 fusion_mod_int256(fusion_int256 a, fusion_int256 b, int check, const char* where) {
+    (void)check;
+    if (b == 0) { fusion_fail(FUSION_KIND_DivideByZeroError, where, "%s %% 0: division by zero", fusion_int256_text(a).bytes); return 0; }
+    if (b == -1) return 0;
+    return a % b;
+}
+static inline fusion_int256 fusion_wrap_add_int256(fusion_int256 a, fusion_int256 b) { return (fusion_int256)((fusion_uint256)a + (fusion_uint256)b); }
+static inline fusion_int256 fusion_wrap_sub_int256(fusion_int256 a, fusion_int256 b) { return (fusion_int256)((fusion_uint256)a - (fusion_uint256)b); }
+static inline fusion_int256 fusion_wrap_mul_int256(fusion_int256 a, fusion_int256 b) { return (fusion_int256)((fusion_uint256)a * (fusion_uint256)b); }
+// Text to an int256: the whole text a number that fits, or a NumberFormatError
+static inline bool fusion_parse_int256(fusion_string s, fusion_int256* out) {
+    int i = 0; fusion_uint256 value = 0; int negative = 0;
+    const fusion_uint256 limit = (fusion_uint256)FUSION_int256_MAX + 1;
+    if (i < s.len && (s.data[i] == '+' || s.data[i] == '-')) negative = s.data[i++] == '-';
+    if (i >= s.len) return false;
+    for (; i < s.len; i++) {
+        if (s.data[i] < '0' || s.data[i] > '9') return false;
+        if (value > limit / 10) return false;
+        value = value * 10 + (fusion_uint256)(s.data[i] - '0');
+        if (value > limit) return false;
+    }
+    if (!negative && value == limit) return false;
+    *out = negative ? (fusion_int256)((fusion_uint256)0 - value) : (fusion_int256)value;
+    return true;
+}
+static inline fusion_int256 fusion_str_toInt256(fusion_string s, const char* where) {
+    fusion_int256 v;
+    if (!fusion_parse_int256(s, &v)) { fusion_fail(FUSION_KIND_NumberFormatError, where, "'%.*s' is not a whole number that fits in an int256", s.len, s.data); return 0; }
+    return v;
+}
+static inline fusion_int256 fusion_int_toInt256(int n, const char* where) { (void)where; return n; }
+static inline fusion_int256 fusion_long_toInt256(long long n, const char* where) { (void)where; return n; }
+// Narrowing, always written and checked (D.003): toInt(x), toLong(x) - an OverflowError when it doesn't fit
+static inline int fusion_int256_toInt(fusion_int256 n, const char* where) {
+    if (n < -2147483647LL - 1 || n > 2147483647LL) { fusion_fail(FUSION_KIND_OverflowError, where, "%s doesn't fit in an int (-2147483648 to 2147483647)", fusion_int256_text(n).bytes); return 0; }
+    return (int)n;
+}
+static inline long long fusion_int256_toLong(fusion_int256 n, const char* where) {
+    if (n < FUSION_LONG_MIN || n > 9223372036854775807LL) { fusion_fail(FUSION_KIND_OverflowError, where, "%s doesn't fit in a long", fusion_int256_text(n).bytes); return 0; }
+    return (long long)n;
+}
+static inline short fusion_int256_toShort(fusion_int256 n, const char* where) {
+    if (n < -32768 || n > 32767) { fusion_fail(FUSION_KIND_OverflowError, where, "%s doesn't fit in a short (-32768 to 32767)", fusion_int256_text(n).bytes); return 0; }
+    return (short)n;
+}
+
+static inline fusion_int128 fusion_int128_toInt128(fusion_int128 n, const char* where) { (void)where; return n; }
+static inline fusion_int256 fusion_int256_toInt256(fusion_int256 n, const char* where) { (void)where; return n; }
+static inline fusion_int256 fusion_int128_toInt256(fusion_int128 n, const char* where) { (void)where; return n; }
+static inline fusion_int128 fusion_int256_toInt128(fusion_int256 n, const char* where) {
+    if (n < FUSION_int128_MIN || n > FUSION_int128_MAX) { fusion_fail(FUSION_KIND_OverflowError, where, "%s doesn't fit in an int128", fusion_int256_text(n).bytes); return 0; }
+    return (fusion_int128)n;
+}
+
 #endif  // FUSION_RUNTIME_H

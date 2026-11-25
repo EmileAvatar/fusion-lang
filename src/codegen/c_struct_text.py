@@ -75,6 +75,8 @@ class StructTextMixin:
             return ('"%s"' if csv else "'%s'"), [f'fusion_char_text({code}).bytes']
         if name == 'bool':
             return '%s', [f'(({code}) ? "true" : "false")']
+        if name in ('int128', 'int256'):
+            return '%s', [f'fusion_{name}_text({code}).bytes']      # 47.7
         if isinstance(kind, EnumType) or self.data_struct(kind) is not None:
             return '%s', [f'{self.enum_text_code(kind, code)}.data']
         if type(kind).__name__ == 'ErrorType':
@@ -187,6 +189,8 @@ class StructTextMixin:
             return [], f'(({code}) ? "true" : "false")'
         if name == 'char':
             return ['char fusion_v[5] = {0};', f'fusion_utf8_encode({code}, fusion_v);'], 'fusion_v'
+        if name in ('int128', 'int256'):                    # 47.7: its digits
+            return [f'fusion_{name}_buf fusion_v = fusion_{name}_text({code});'], 'fusion_v.bytes'
         spec, cast = (('%g', 'double') if name in ('float', 'double')
                       else ('%lld', 'long long') if name == 'long' else ('%d', 'int'))     # long: 47.1
         return [f'char fusion_v[32]; snprintf(fusion_v, sizeof fusion_v, "{spec}", ({cast})({code}));'], 'fusion_v'

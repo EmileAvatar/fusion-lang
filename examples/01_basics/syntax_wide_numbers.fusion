@@ -1,0 +1,19 @@
+void function main()
+    int128 big = 170141183460469231731687303715884105727   // past a long's range: an int128
+    long perDay = 9000000000000000000
+    int128 total = toInt128(perDay) + perDay      // widen one side first - long + long stays a long
+    int256 huge = toInt256(big) * big            // arithmetic in the widest kind, checked
+    print("{big}")
+    print("{total}")
+    print("{huge}")
+    long back = toLong(total / 1000)             // narrowing is written and checked
+    int128 read = toInt128("-12345678901234567890123")
+    print("{back} {read}")
+    try
+        int128 over = big + 1                    // doesn't fit: an OverflowError
+        print("{over}")
+    catch OverflowError e
+        print("{e}")
+    List<int128> sizes = [big, 7, -3]             // in Lists, Maps, structs, sorted, matched
+    sizes.sort()
+    print("{@1} {@2}", sizes[0], sizes[2])

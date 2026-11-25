@@ -437,6 +437,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'int': '0', 'float': '0.0f', 'double': '0.0', 'bool': 'false', 'char': "'\\0'",
         'string': 'FUSION_STR("")', 'byte': '0', 'bytes': 'FUSION_STR("")',
         'short': '0', 'long': '0',      # 47.1
+        'int128': '0', 'int256': '0',   # 47.7
     }
 
     # Arrays up to this size whose default isn't all-zero get their defaults spelled out in
@@ -1038,6 +1039,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if type_hint == 'int':
             if node.value == -2147483648:
                 return '(-2147483647 - 1)'
+            if not -9223372036854775808 <= node.value <= 9223372036854775807:
+                # an int128 / int256 literal (47.7): C has none - a C23 `wb` literal (wide enough), made the type
+                kind = 'fusion_int128' if -(1 << 127) <= node.value < (1 << 127) else 'fusion_int256'
+                return f'(({kind})({"-" if node.value < 0 else ""}{abs(node.value)}wb))'
             if not -2147483648 <= node.value <= 2147483647:     # a long literal (47.1)
                 if node.value == -9223372036854775808:
                     return '(-9223372036854775807LL - 1)'
@@ -1176,19 +1181,21 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
 
         # Whole-number / and % by zero: a DivideByZeroError, not a crash (Task 26.12)
         if op in ('/', '%') and self.int_division_can_fail(node):
-            kind = 'long' if self.long_operands(node) else 'int'      # 47.1
+            kind = self.wide_kind(node) or 'int'      # long (47.1), int128 / int256 (47.7)
             function = f'fusion_{"div" if op == "/" else "mod"}_{kind}'
             overflow = 0 if self.wraps(node) else 1
             return self.checked_code(f'{function}({left}, {right}, {overflow}, {self._where(node)})',
-                                     'long long' if kind == 'long' else 'int')
+                                     self.whole_c_type(kind))
 
         # Whole-number + - *: an OverflowError when it doesn't fit (Task 27.2b) - or it wraps
         # around (unsafe mode, an unchecked block) - never C's undefined behaviour
-        if op in ('+', '-', '*') and self.long_operands(node):
-            name = {'+': 'add', '-': 'sub', '*': 'mul'}[op]     # a long with whole numbers (47.1)
+        kind = self.wide_kind(node) if op in ('+', '-', '*') else None
+        if kind is not None:
+            name = {'+': 'add', '-': 'sub', '*': 'mul'}[op]     # done in the widest operand's kind (47.1, 47.7)
             if self.wraps(node):
-                return f'fusion_wrap_{name}_long({left}, {right})'
-            return self.checked_code(f'fusion_{name}_long({left}, {right}, {self._where(node)})', 'long long')
+                return f'fusion_wrap_{name}_{kind}({left}, {right})'
+            return self.checked_code(f'fusion_{name}_{kind}({left}, {right}, {self._where(node)})',
+                                     self.whole_c_type(kind))
         if op in ('+', '-', '*') and self.whole_number_operands(node):
             name = {'+': 'add', '-': 'sub', '*': 'mul'}[op]
             if self.wraps(node):
@@ -1232,10 +1239,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                                                       type_hint='int'))
         operand = self.visit(node.operand)
         # -n of the smallest int doesn't fit (Task 27.2b) - nor of the smallest long (47.1)
-        if node.operator == '-' and self.long_operands(node) and type(node.operand).__name__ != 'LiteralExpr':
+        kind = self.wide_kind(node) if node.operator == '-' else None
+        if kind is not None and type(node.operand).__name__ != 'LiteralExpr':
             if self.wraps(node):
-                return f'fusion_wrap_sub_long(0, {operand})'
-            return self.checked_code(f'fusion_neg_long({operand}, {self._where(node)})', 'long long')
+                return f'fusion_wrap_sub_{kind}(0, {operand})'
+            return self.checked_code(f'fusion_neg_{kind}({operand}, {self._where(node)})', self.whole_c_type(kind))
         if node.operator == '-' and self.whole_number_operands(node) \
                 and type(node.operand).__name__ != 'LiteralExpr':
             if self.wraps(node):
@@ -1447,6 +1455,7 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         'toBytes': ('fusion_str_toBytes', False), 'toByte': ('fusion_toByte', True),
         # long and short (47.1): toLong / toShort by the argument's type (fusion_<str|int|long>_...)
         'toLong': ('fusion_str_toLong', True), 'toShort': ('fusion_int_toShort', True),
+        'toInt128': ('fusion_str_toInt128', True), 'toInt256': ('fusion_str_toInt256', True),   # 47.7
         # Wrapping on purpose (Task 27.2d)
         'wrapAdd': ('fusion_wrap_add', False), 'wrapSub': ('fusion_wrap_sub', False),
         'wrapMul': ('fusion_wrap_mul', False),
@@ -1458,10 +1467,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
     }
     # C name prefix per type, for built-ins whose first argument may have several types
     _TYPE_PREFIX = {'int': 'int', 'string': 'str', 'char': 'char', 'byte': 'byte', 'bytes': 'bytes',
-                    'short': 'int', 'long': 'long'}     # a short is passed as an int (47.1)
+                    'short': 'int', 'long': 'long',     # a short is passed as an int (47.1)
+                    'int128': 'int128', 'int256': 'int256'}
     _BYTES_OVERLOADS = ('indexOf',)
     _TO_STRING = {'int': 'fusion_int_to_str', 'byte': 'fusion_int_to_str', 'float': 'fusion_double_to_str',
                   'short': 'fusion_int_to_str', 'long': 'fusion_long_to_str',
+                  'int128': 'fusion_int128_to_str', 'int256': 'fusion_int256_to_str',
                   'double': 'fusion_double_to_str', 'bool': 'fusion_bool_to_str',
                   'char': 'fusion_char_to_str', 'string': 'fusion_str_copy'}
 
@@ -2067,6 +2078,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             # A string declared without a value is "" (it used to be an uninitialized
             # pointer); an enum is its first value (Task 25.2)
             self.emit_line(f'{c_type} {name} = {self._default_value_code(node.var_type)}')
+        elif isinstance(node.var_type, PrimitiveType) and node.var_type.name != 'void':
+            # A number, bool or char declared without a value is 0 / false - never whatever was in memory
+            self.emit_line(f'{const_keyword}{c_type} {name} = {self._default_value_code(node.var_type)}')
         else:
             self.emit_line(f'{const_keyword}{c_type} {name}')
 

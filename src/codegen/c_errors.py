@@ -602,12 +602,17 @@ class ErrorsMixin:
         return all(getattr(getattr(o, 'inferred_type', None), 'name', None) in whole for o in operands)
 
     @staticmethod
-    def long_operands(node) -> bool:
-        """Whole-number arithmetic with a long in it - its result is a long (47.1)."""
-        whole = ('int', 'byte', 'short', 'long')
+    def wide_kind(node):
+        """Whole-number arithmetic with a long, int128 or int256 in it - the kind it is done in, its result's
+        type (47.1, 47.7); None for int arithmetic or anything else."""
+        from .c_wide import widest_whole
         operands = [node.operand] if type(node).__name__ == 'UnaryExpr' else [node.left, node.right]
-        names = [getattr(getattr(o, 'inferred_type', None), 'name', None) for o in operands]
-        return all(n in whole for n in names) and 'long' in names
+        kind = widest_whole([getattr(getattr(o, 'inferred_type', None), 'name', None) for o in operands])
+        return kind if kind in ('long', 'int128', 'int256') else None
+
+    @staticmethod
+    def whole_c_type(kind: str) -> str:
+        return {'int': 'int', 'long': 'long long', 'int128': 'fusion_int128', 'int256': 'fusion_int256'}[kind]
 
     def wraps(self, node) -> bool:
         """Arithmetic that wraps around: [numbers] overflowWrap (Task 32.0 - it was [safety]
@@ -656,7 +661,7 @@ class ErrorsMixin:
         written number other than 0 can't be."""
         if node.operator not in ('/', '%'):
             return False
-        whole = ('int', 'byte', 'short', 'long')
+        whole = ('int', 'byte', 'short', 'long', 'int128', 'int256')
         if getattr(getattr(node.left, 'inferred_type', None), 'name', None) not in whole or \
                 getattr(getattr(node.right, 'inferred_type', None), 'name', None) not in whole:
             return False
@@ -933,7 +938,7 @@ class ErrorsMixin:
     def visit_WidenExpr(self, node) -> str:
         """An int used as a float, checked to fit exactly (Task 27.2f) - a long as a float or a
         double too (47.1)."""
-        source = getattr(getattr(node.operand, 'inferred_type', None), 'name', 'int')
+        source = getattr(getattr(node.operand, 'inferred_type', None), 'name', 'int')    # never int128 / int256
         target = getattr(getattr(node, 'inferred_type', None), 'name', 'float')
         function = f'fusion_{"long" if source == "long" else "int"}_to_{target}'
         return self.checked_code(f'{function}({self.visit(node.operand)}, {self._where(node)})', target)

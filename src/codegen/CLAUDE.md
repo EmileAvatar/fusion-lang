@@ -6,6 +6,7 @@
 | `c_memory.py` | The C runtime embedded in every program (strings, UTF-8, run-time errors, leak check) and the rules for copying/freeing strings, lists and class objects (per class: `__make`, `__retain`, `__release`, `__set` - Task 32.10b) |
 | `c_equality.py` | Lowers `==` `!=` `===` `!==` per type; generates struct / array comparison helpers on demand |
 | `c_strings.py` | C for the versatile string functions (Task 18.3.6), appended to the runtime prelude |
+| `c_wide.py` | C for `int128` / `int256` (Task 47.7): __int128 and _BitInt(256) - checked + - * / % and minus, wrapping, text (a buffer, nothing allocated), reading from text, checked narrowing; `widest_whole` - the kind whole-number arithmetic is done in |
 | `c_bytes.py` | C for raw bytes (Task 18.3.8): `byte` / `bytes`, appended to the runtime prelude |
 | `c_collections.py` | C for `List<T>` and `Map<K, V>` (Tasks 18.5.1-2): one type and its functions per element / key-value type, made on demand; lvalues through elements and map values. Since 32.10a a List / Map is a pointer to a counted block: `_retain` shares, `_clone` copies deeply, `_free` lets go and frees at 0. A List block may hold a List of your own (33.3d2): `_ext` makes it, its core five through an `_ops` table (`list_ext_code`), `_hold` / `_flush` / `_view` / `_data` / `_len` for reads and in-place changes |
 | `c_enums.py` | C for enums (Task 25): an int typedef per enum, its name / fromString helpers, values(), enum values |

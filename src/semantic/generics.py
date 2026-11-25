@@ -508,7 +508,7 @@ def _c_part(text: str) -> str:
     return re.sub(r'_+', '_', re.sub(r'\W', '_', text.replace('[]', '_arr'))).strip('_')
 
 
-NUMBER_TYPES = ('byte', 'short', 'int', 'long', 'float', 'double')
+NUMBER_TYPES = ('byte', 'short', 'int', 'long', 'int128', 'int256', 'float', 'double')
 
 
 def _condition_text(name: str, condition) -> str:

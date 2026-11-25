@@ -443,7 +443,7 @@ class Parser:
         if self.peek(1).type not in (TokenType.IDENTIFIER, TokenType.LPAREN, TokenType.LBRACKET,
                                      TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                                      TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
-                                     TokenType.BYTE, TokenType.SHORT, TokenType.LONG):
+                                     TokenType.BYTE, TokenType.SHORT, TokenType.LONG, TokenType.INT128, TokenType.INT256):
             return None
         return PASSING_WORDS[self.peek().value]
 
@@ -879,7 +879,7 @@ class Parser:
         # Otherwise a primitive type or a struct name (optionally as an array)
         if self.match(TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
                       TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
-                      TokenType.VOID, TokenType.BYTE, TokenType.SHORT, TokenType.LONG):
+                      TokenType.VOID, TokenType.BYTE, TokenType.SHORT, TokenType.LONG, TokenType.INT128, TokenType.INT256):
             token = self.previous()
             base_type = PrimitiveType(
                 location=token.location,
@@ -2059,7 +2059,7 @@ class Parser:
     # The type keywords - a cast `(int)x` starts with one (Task 32.5a)
     PRIMITIVE_TYPE_TOKENS = (TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE, TokenType.STRING,
                              TokenType.BOOL, TokenType.CHAR, TokenType.BYTE, TokenType.SHORT,
-                             TokenType.LONG)
+                             TokenType.LONG, TokenType.INT128, TokenType.INT256)
 
     def is_readonly_result_start(self) -> bool:
         """`readonly Engine function ...` - `readonly` before a function's result type (Task 50.1).
@@ -2068,7 +2068,7 @@ class Parser:
             and self.peek(1).type in (TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT,
                                       TokenType.DOUBLE, TokenType.STRING, TokenType.BOOL,
                                       TokenType.CHAR, TokenType.BYTE, TokenType.SHORT,
-                                      TokenType.LONG, TokenType.VOID)
+                                      TokenType.LONG, TokenType.INT128, TokenType.INT256, TokenType.VOID)
 
     def readonly_result(self, parse) -> 'FunctionDecl':
         """Read `readonly`, then the declaration `parse` reads - it must be a function."""
@@ -2090,7 +2090,7 @@ class Parser:
         return self.check_any(
             TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
             TokenType.STRING, TokenType.BOOL, TokenType.CHAR,
-            TokenType.VOID, TokenType.BYTE, TokenType.SHORT, TokenType.LONG
+            TokenType.VOID, TokenType.BYTE, TokenType.SHORT, TokenType.LONG, TokenType.INT128, TokenType.INT256
         )
 
     def check_any(self, *token_types: TokenType) -> bool:
@@ -3320,7 +3320,7 @@ class Parser:
         return names, conditions
 
     _TYPE_ARG_TOKENS = (TokenType.IDENTIFIER, TokenType.INT, TokenType.FLOAT, TokenType.DOUBLE,
-                        TokenType.STRING, TokenType.BOOL, TokenType.CHAR, TokenType.BYTE, TokenType.LONG,
+                        TokenType.STRING, TokenType.BOOL, TokenType.CHAR, TokenType.BYTE, TokenType.LONG, TokenType.INT128, TokenType.INT256,
                         TokenType.SHORT, TokenType.COMMA, TokenType.LBRACKET, TokenType.RBRACKET,
                         TokenType.COLON, TokenType.DOT)
 

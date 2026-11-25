@@ -156,6 +156,18 @@
         <td class="num">8</td><td>no</td><td><span class="badge built">built</span></td>
         <td class="notes">A written number past an int's range is a long; an int widens to it; <code>toInt(n)</code> back is checked. Overflow checked as an int's (47.1).</td>
       </tr>
+      <tr>
+        <td class="type"><code>int128</code></td><td class="kind-value">value</td>
+        <td class="num">0</td><td class="num">-2^127 (39 digits)</td><td class="num">2^127 - 1</td>
+        <td class="num">16</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Signed. Past a long's range a written number is an int128; <code>toInt128(x)</code> from text or any whole number; never mixed with a float or double (47.7).</td>
+      </tr>
+      <tr>
+        <td class="type"><code>int256</code></td><td class="kind-value">value</td>
+        <td class="num">0</td><td class="num">-2^255 (77 digits)</td><td class="num">2^255 - 1</td>
+        <td class="num">32</td><td>no</td><td><span class="badge built">built</span></td>
+        <td class="notes">Signed, C23 <code>_BitInt(256)</code>. Arithmetic in the widest operand's kind, overflow checked (47.7).</td>
+      </tr>
 
       <tr class="group"><td colspan="9">Fractions</td></tr>
       <tr>

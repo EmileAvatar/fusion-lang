@@ -81,6 +81,8 @@ KEYWORDS: Dict[str, TokenType] = {
     'byte': TokenType.BYTE,
     'short': TokenType.SHORT,
     'long': TokenType.LONG,
+    'int128': TokenType.INT128,     # wide whole numbers (47.7, D.179)
+    'int256': TokenType.INT256,
     'void': TokenType.VOID,
 
     # ============================================================

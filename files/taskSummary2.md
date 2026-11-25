@@ -18,7 +18,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-24: research R10 written - files/Research/Money/Money.md
 - Done 2026-11-25: files/fusion.ebnf synced with the compiler (no version until self-hosting - 35.7), the "ebnf" check;
   the memory tiers note to R11.8, Vale to R11.6, flash wear 41.11e
-- **Next Action:** 47.7 `int128` / `int256` (the plan below - every question answered 2026-11-24)
+- Done 2026-11-25: 47.7 `int128` / `int256` (tests/test_wide_numbers.py, syntax_wide_numbers) - its plan in task/taskSummaryArchive.md
+- **Next Action:** 47.8 `decimal` (the plan below)
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)
@@ -42,13 +43,6 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - `[decimal] maxScale` (18);
 - `[ranges] ...` (D.170) with 47.6.
 - Each goes into fusionSettings.xml once built. No `[money] currency` - empty is the default (D.183).
-
-**47.7 `int128`, `int256`** (D.179) - signed whole numbers, as long (47.1) one size up
-- C: `__int128` (native - two registers) and C23 `_BitInt(256)` (GCC 16 - tested)
-- every place a type goes; literals past a long; widening long -> int128 -> int256; narrowing checked
-  (`toLong(x)`, `toInt128(x)`); overflow checked (+ - * / % and minus); wrapping in `unchecked`
-- printing: its own to-text (printf has no format for them); `toString`, `toInt128(text)`, Map keys, sort, match
-- tests as tests/test_long_short.py; example syntax_wide_numbers
 
 **47.8 `decimal`** (D.182) - exact base-10: a whole number and its scale (how many places)
 - the whole number an int128 - 38 digits (SQL's DECIMAL(38, s), more than C#'s 28) - so science and engineering

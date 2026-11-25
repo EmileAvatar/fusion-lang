@@ -54,8 +54,9 @@ def test_int_limits_still_work():
         '-2147483648 2147483647']
 
 
-def test_a_literal_past_a_long_is_an_error():
-    assert "doesn't fit in a long" in errors_of(main('long x = 9223372036854775808'))
+def test_a_literal_past_a_long_is_not_a_long():
+    # past a long's range a written number is an int128 (47.7) - never cut to fit
+    assert 'Cannot assign int128 to variable of type long' in errors_of(main('long x = 9223372036854775808'))
 
 
 def test_a_long_literal_is_not_an_int():
@@ -189,3 +190,9 @@ def test_a_generic_function_with_long():
     source = 'T function first<T>(List<T> items) : items[0]\n\n' + main(
         'List<long> xs = [6000000000]\nlong f = first(xs)\n' + show('f'))
     assert run(source) == ['6000000000']
+
+
+def test_a_number_declared_without_a_value_is_zero():
+    # never whatever was in memory: int, long, short, byte, double are 0, bool false (found with 47.7)
+    assert run(main('int a\nlong b\nshort c\nbyte d\ndouble e\nbool f\nprint("{a} {b} {c} {d} {f}")\nprint("{@1}", e == 0.0)')) == [
+        '0 0 0 0 false', 'true']

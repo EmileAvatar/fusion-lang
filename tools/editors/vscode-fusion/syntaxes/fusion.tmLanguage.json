@@ -173,7 +173,7 @@
       "patterns": [
         {
           "name": "support.type.primitive.fusion",
-          "match": "(?<![\\w.])\\b(double|string|float|short|bool|byte|char|long|void|int)\\b"
+          "match": "(?<![\\w.])\\b(double|int128|int256|string|float|short|bool|byte|char|long|void|int)\\b"
         },
         {
           "name": "support.class.builtin.fusion",
