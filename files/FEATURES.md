@@ -167,7 +167,7 @@ then each point is decided and solved completely. One line per section and per l
 		designed once a GUI and services work; it plugs into whatever GUI or service the developer uses
 
 #### R2 Fusion against Go and Rust - for README and after self-hosting [ ] [index](#index)
-	File: [Notes/GoVsRust.md](../Notes/GoVsRust.md) (a YouTube short's transcript and Claude's pointers; not in git)
+	File: [Notes/06/GoVsRust.md](../Notes/06/GoVsRust.md) (a YouTube short's transcript and Claude's pointers; not in git)
 	[ ] R2.1 Speed - no collector, C through GCC; a benchmark against Go and Rust after self-hosting
 	[ ] R2.2 Memory - ownership first; Discord's GC latency spikes as the argument for the default
 	[ ] R2.3 Concurrency - services: Rust's safety with Go's ease (`go worker()`, no locks written)
@@ -199,6 +199,9 @@ then each point is decided and solved completely. One line per section and per l
 	each point marked have / take / discuss / skip - to go through together
 	[ ] R4.1 From "Why I Don't Like Rust": R1-R11 (section 1) - to take: every type can be written (R3); a `const` array never on the stack (R8)
 	[ ] R4.2 From "Why Zig": Z1-Z10 (section 2) - to take: cross-compiling (Z4)
+	[ ] R4.7 Gemini: C++, Goose, Rust and Zig compared for designing Fusion (Systems Language Design Comparison.docx,
+		same folder): common ground, what makes each unique, ease of use, concurrency, benchmarks, pain points and
+		"actionable design lessons for Fusion" - each lesson marked have / take / discuss / skip (with R4, R9)
 	[ ] R4.3 From the ChatGPT comparison: C1-C6 (section 3) - an allocator / arena per service, `defer`
 	[ ] R4.4 `comptime` - suggested: after self-hosting, a setting, default off, functions with no side effects only (section 4)
 	[ ] R4.5 Running other Fusion code while a program runs - with Task 58 and Task 39 (section 5); now Task 60 (D.155-D.157)
@@ -299,7 +302,27 @@ then each point is decided and solved completely. One line per section and per l
 		they treat the heap, five practices, low / standard / high memory (page sizes, warm pages, the string pool's cap,
 		huge pages) and `[memory.machine.min|standard|high]` settings beside Service.md's `[concurrency.machine.*]`; it
 		uses `<Scoped>` in place of `<Mixed>` - Scoped is added as needed, beside Mixed (Rule 3c)
+	[ ] R11.9 Data structures (ChatGPT - FSMA/DataStructures/, user 2026-11-27): the guide's sections 1-7 (arrays to
+		concurrent queues, and which languages have each) against Fusion's collections; section 8's twelve Data Stack
+		kinds - Single, Mixed, General, Grid, Temporal, Versioned, Shared, Stream, Indexed, Transactional, Spatial,
+		Compressed - and the v4 picture (fusion_structured_memory_architecture_v4.svg). The user's notes: a Data Stack
+		is configurable, so it can be any of the new kinds; a developer may make one by hand, not only the compiler:
+		`DataStack<Customer> customers { layout: contiguous, allocation: dynamic, growth: automatic, reclamation:
+		automatic }`
+	[DONE 2026-11-27] R11.10 files/Fusion Structured Memory Architecture.md (user, 2026-11-27) - written; a new SVG of
+		the new kinds still to make (v4 shows them): FSMA as a whole - before, now and the
+		new kinds - explained for readers, with its pictures (v2 Complex, v4); perhaps a new SVG of the new kinds
 	[ ] R11.7 The decisions for the user, then a task (with Task 38 / 42); measured against today's counting (L16.0)
+
+#### R12 From source to machine code: the pipeline, IR, ABI and x86-64 - for Tasks 40 and 41 (user, 2026-11-26) [ ] [index](#index)
+	Gemini's notes, in files/Research/Compiler/ - partly to explain the steps to the user; reviews with a limited view (Rule 3c)
+	[ ] R12.1 How C compiles to assembly (how_c_compiles_to_assembly.md): preprocessing, the frontend (tokens, AST,
+		checks), the middle-end (IR and its optimisation passes), the backend (instruction selection, register
+		allocation, the calling convention, scheduling); a walk-through to x86-64 - against Fusion's own stages
+		(lexer, parser, semantic, C) and Task 40's IR layer
+	[ ] R12.2 A HIDL compiler (hidl_compiler_architecture_ast_ir_abi_x86_64_codegen.md): a HIDL AST, an LLVM-style
+		hardware IR, the ABI as a first-class contract (System V AMD64), x86-64 output, a MicrowaveController end to end,
+		and how it fits Fusion - for Task 41 (HIDL) and Task 40 (IR); what to take, what is Gemini's guess
 
 ---
 
@@ -928,6 +951,8 @@ then each point is decided and solved completely. One line per section and per l
 		the developer's app (a doc wiki made by hand or from sources, not part of the app's code), and
 		`Fusion.DocWiki` built into an app - its own wiki, e.g. showcasing the Fusion language or a library;
 		documents Fusion code, other languages and DLL files (even from another language), or a custom wiki
+	[ ] 43.9 Small helper functions (user, 2026-11-27): `coalesce(a, b, c)` - the first that isn't null (beside `??`),
+		and others like it for text, numbers and dates - a list to make first
 	[POSTPONED to 42 + file I/O] 43.7 File handle manager (user, 2026-11-07): a FileManager
 		(later the same for databases) keeps every open file, keyed by its path - each file its
 		own service with its own reader / writer thread; parts of the program (or a file the user
@@ -1037,7 +1062,8 @@ Each time a task or section is finished, this list is checked for items the curr
 		[POSTPONED - after MVP] L3.7 Full expressions inside `{...}` (`{a + b}`)
 		[ ] L3.8 A format inside `{}`: `{value:pattern}` (`{19.5:$0.00}`)
 		[ ] L3.9 Raw strings: `r"C:\path"` - no escapes
-		[ ] L3.10 Multi-line strings: `"""..."""`, indentation removed up to the closing quotes
+		[ ] L3.10 Multi-line strings: `"""..."""`, indentation removed up to the closing quotes - also to print or
+			write a block of text: `print("""...""")`; `'''...'''` the same (D.198)
 		[POSTPONED - after MVP] L3.11 Paged / memory-mapped strings: load only the part of a huge string in use
 	L4 Memory
 		[POSTPONED to 38] L4.1 Garbage collection as a project-selectable memory strategy
@@ -1080,6 +1106,8 @@ Each time a task or section is finished, this list is checked for items the curr
 			Comparable, Service ...) and the classes implementing the basics - what each must write, what Fusion
 			builds from it (user, 2026-11-22 - D.174)
 		[ ] L6.7 Tuples: a few values without declaring a struct (`(string, int) pair = ("Ada", 36)`)
+			User (2026-11-27): a tuple is a struct underneath - made by the compiler, const, no field names,
+			read by position (`pair[0]`), its values of mixed types (int, string, double, an object)
 	L7 Control flow
 		[ ] L7.1 `switch` as an alias of `match` (familiar from VB.NET); `elif` an alias for `else if`
 			`match` stays the form in docs and examples (user, 2026-10-31 - D.065)
@@ -1114,7 +1142,11 @@ Each time a task or section is finished, this list is checked for items the curr
 			query - the headings become the fields, each row one struct's data, all the rows in an array; the developer
 			loops through it row by row, reading each field by name (`for row in sales` / `row.amount`); with the data
 			formats module (43.2) and files/Value_Structs.md
+		[ ] L8.10 Structs made automatically, without being declared (user, 2026-11-27) - the shape from the values
+			(as an anonymous type), with L8.9 and L6.7; to discuss
 	L9 Errors
+		[ ] L9.3 `Result<Customer, DatabaseError> customer = database.getCustomer(id)` (user, 2026-11-27) - a value or its
+			error in one, as Rust's Result, beside Fusion's `Customer, Error function` (Task 26) - to discuss
 		[ ] L9.1 `?` after a call: return its error from this function at once (`loadConfig("x")?`)
 		[POSTPONED - with each feature] L9.2 More error types (Task 26 list, 2026-10-16): NetworkError /
 			TimeoutError (a network module), ParseError (JSON / data modules), CancelledError
@@ -1152,6 +1184,9 @@ Each time a task or section is finished, this list is checked for items the curr
 			and index from tutorial.json), then a page per lesson - each example a real program from examples/
 			[ ] To review (user, 2026-11-23): Goose's tutorial https://aardappel.github.io/goose/docs/tutorial.html -
 				the other option for the tutorial's style: simple and clean (compare with the w3schools layout)
+		[ ] L15.4 HTML reference cards (user, 2026-11-27) - started: files/DataStructures.html (the first) - one page per topic, as files/FusionTypes.html: 1. what the
+			sheet explains, 2. an index table with a description and columns that tell the kinds apart, 3. each
+			item; for what is built and what is coming - first the data structures (R11.9)
 	L16 Compiler optimisation - after self-hosting, profiled first (user, 2026-11-14: "we profile the heck out of it", no pre-optimising)
 		[POSTPONED - after self-hosting] L16.0 Profile Fusion against Goose's benchmarks (user, 2026-11-23):
 			https://aardappel.github.io/goose/bench/results.html - the goal: nanosecond performance. Until then, tune
@@ -1177,3 +1212,7 @@ Each time a task or section is finished, this list is checked for items the curr
 	[ ] A string-holding variable can't reuse the name of one in an enclosing block (clear error)
 	[ ] Single-quote comments disabled (clash with char literals) - 8 skipped tests
 	[ ] Identifiers ASCII-only unless fusion.toml opts in (text and chars are Unicode since 18.3.2b)
+
+		[ ] L16.7 Vectorising loops (ChatGPT, user 2026-11-27): the compiler finds the loops that can safely run as
+			SIMD instructions (several values at once) and emits them - after profiling (L16.0); GCC does some of it
+			from the C today (-O2 / -O3)

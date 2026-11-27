@@ -53,6 +53,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/Builtins.md](files/Builtins.md) | Every built-in function and method (generated) |
 | [files/FusionTypes.html](files/FusionTypes.html) | Every type: default, range, size, status (open in a browser) |
 | [files/ArrayCube.html](files/ArrayCube.html) | An array of 3 dimensions as a cube: which slots `cube[1]`, `cube[][2][1]`, `foreach` and `expand` reach, the flat block (open in a browser, Task 45.16) |
+| [files/DataStructures.html](files/DataStructures.html) | Reference card: every data structure - which Fusion has, which are coming, how other languages offer them (open in a browser, L15.4) |
 | [files/fusionSettings.xml](files/fusionSettings.xml) | Every built project setting: values, default (the master template) |
 | [files/tutorial/](files/tutorial/) | The tutorial site (w3schools style, started 2026-11-22): `index.html`, `site.css`, `fusion-code.css`, `tutorial.json`; the plan as a text hierarchy in [main.md](files/tutorial/main.md) (FEATURES L15.3) |
 | [files/showcase/](files/showcase/) | The whole language as code: `Fusion_showcase.fusion` (every feature, tagged), `Fusion_template.fusion` (each construct's shape), `Ownership.fusion`, `Interfaces.fusion`, `fusion.toml` (every setting, tagged) |
@@ -63,6 +64,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 |---|---|
 | [files/Ownership.md](files/Ownership.md) | Moves, borrows, readonly, one writer (Task 48); every rule as code in [files/showcase/Ownership.fusion](files/showcase/Ownership.fusion), for Claude the skill [.claude/skills/fusion-ownership](.claude/skills/fusion-ownership) |
 | [files/Object_Lifetime.md](files/Object_Lifetime.md) | When an object is freed; memory strategies; copies |
+| [files/Fusion Structured Memory Architecture.md](files/Fusion%20Structured%20Memory%20Architecture.md) | FSMA for readers: the problem, the idea, v1-v4, the kinds of Data Stack, the rules, a Data Stack made by hand, the twelve new kinds proposed (Research R11) |
 | [files/Classes.md](files/Classes.md) | Visibility, constructors, static set-up (forms A-C), Default, ToString |
 | [files/Value_Structs.md](files/Value_Structs.md) | Structs as the value type, and built-in value structs - money and enums: a complicated thing used as one value; how other languages do it |
 | [files/Nullable_Values.md](files/Nullable_Values.md) | Null: `?.`, `??`, number conditions, `length()` on null |
@@ -75,6 +77,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/Research/Memory/Points.md](files/Research/Memory/Points.md) | Memory: what an arena is and its speed, Goose (ChatGPT's comparison in the same folder), Fil-C, where Rust is not memory safe, Zig's allocators (Research R6) |
 | [files/Research/Money/Money.md](files/Research/Money/Money.md) | Money and decimals: COBOL, C#, Java, Python, SQL (MONEY's flaw), Ada, IEEE decimal; money in practice (ISO 4217, rounding by use, splitting); the preference checked - a long holds money, the steps in between in 128 bits, rates kept exact (Research R10) |
 | [files/Research/Memory/GooseVsRust.md](files/Research/Memory/GooseVsRust.md) | ChatGPT: Goose against Rust, then the FSMA follow-up - generation handles, named pools, 12 principles (Research R6.2, R11) |
+| [files/Research/Memory/FSMA/DataStructures/](files/Research/Memory/FSMA/DataStructures/DataStructures_Guide.md) | ChatGPT: data structures across languages (sections 1-7) and twelve new Data Stack kinds for Fusion (section 8, its own file) - Research R11.9 |
 | [files/Research/Memory/FSMA/FSMA.md](files/Research/Memory/FSMA/FSMA.md) | FSMA, the Fusion Structured Memory Architecture: the abstract of every rule and setting, all proposals (Research R11) |
 | [files/Research/Memory/FSMA/MemoryAllocation.md](files/Research/Memory/FSMA/MemoryAllocation.md) / [MemoryAllocationNew.md](files/Research/Memory/FSMA/MemoryAllocationNew.md) | A primer on memory models (stack, heap, GC, counting, ownership, arenas, pools) / the first FSMA sketch: Data Stacks A, B, C (Research R11) |
 | [files/Research/Memory/FSMA/MemoryTiers_Gemini.md](files/Research/Memory/FSMA/MemoryTiers_Gemini.md) | Gemini: memory management across languages (one heap, arenas, managed runtimes, game-engine storage) and by machine size - low / standard / high memory settings (Research R11.8) |
@@ -83,6 +86,8 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/Research/Services/Gemini_Service_Review.md](files/Research/Services/Gemini_Service_Review.md) | Gemini's service review: call cycles, `run` captures, `[blocking]`, timed-out queued requests, group lifetimes, tiers 0-4 (Research R3) |
 | [files/Research/ExecutionModels/fusion_programming_execution_models.md](files/Research/ExecutionModels/fusion_programming_execution_models.md) | Ways code is written and run: AOT, script, VM, REPL, notebook, live programming (ChatGPT - Research R7) |
 | [files/Research/Libraries/FusionLibraries.md](files/Research/Libraries/FusionLibraries.md) / [NewLibrarys.md](files/Research/Libraries/NewLibrarys.md) | The 21 planned fusionlib modules in one table / three proposed libraries: SourceControl, WorkTracking, Governance (Research R8) |
+| [files/Research/Compiler/](files/Research/Compiler/how_c_compiles_to_assembly.md) | From source to machine code (Gemini): how C compiles to assembly; a HIDL compiler - AST, LLVM-style IR, the ABI, x86-64 (Research R12, Tasks 40-41) |
+| files/Research/RustZig/Systems Language Design Comparison.docx | Gemini: C++, Goose, Rust and Zig compared for designing Fusion - lessons for Fusion (Research R4.7) |
 | [files/Research/RustZig/Points.md](files/Research/RustZig/Points.md) | Rust and Zig: the points for Fusion, `comptime`, and the pitfalls of a rewrite in Rust (RustPitfalls.md, section 6) - from two YouTube transcripts and a ChatGPT comparison in the same folder (Research R4) |
 | [files/Fusion_Multi_Language_Compiler_Architecture.md](files/Fusion_Multi_Language_Compiler_Architecture.md) | `Lang.<language>.Fusion` modules (Task 49) |
 | [files/Fusion_Hardware_Interface_Definition_Language_HIDL.md](files/Fusion_Hardware_Interface_Definition_Language_HIDL.md) | HIDL - hardware description (Task 41) |

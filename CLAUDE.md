@@ -277,3 +277,10 @@ When a language feature or spec changes, update every affected file without aski
 - **Memory: FSMA (user, 2026-11-24):** the Fusion Structured Memory Architecture - Data Stacks in the heap,
   each with a purpose, created and managed by the compiler - is research R11 (FEATURES):
   `files/Research/Memory/FSMA/FSMA.md` (rules and settings), images in the same folder (v2 Complex the main one)
+- **Gemini's notes (user, 2026-11-26)**, some to explain the steps to the user: from source to machine code (pipeline,
+  IR, ABI, x86-64, a HIDL compiler) - research R12, `files/Research/Compiler/`; C++, Goose, Rust and Zig compared
+  for Fusion - R4.7, `files/Research/RustZig/Systems Language Design Comparison.docx`
+- **Notes of 2026-11-27 (user)**, scheduled in FEATURES: data structures and the twelve new Data Stack kinds, a Data
+  Stack made by hand, the v4 picture - R11.9; `files/Fusion Structured Memory Architecture.md` - R11.10; tuples -
+  L6.7; a block of text in print - L3.10; coalesce and other helpers - 43.9; `Result<T, E>` - L9.3; structs made
+  without being declared - L8.10; vectorised loops - L16.7; HTML reference cards - L15.4
