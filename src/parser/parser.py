@@ -894,6 +894,26 @@ class Parser:
         Returns:
             TypeNode (PrimitiveType, or ArrayType wrapping one, for MVP)
         """
+        # `fixed(10) string`, `fixed(14) List<Person>` - at most n (Task 47.5, D.020, D.064)
+        if self.check(TokenType.FIXED) and self.peek(1).type == TokenType.LPAREN:
+            fixed_token = self.advance()
+            self.advance()
+            if self.check(TokenType.INTEGER):
+                size = integer_value(self.advance().value)
+            elif self.check(TokenType.IDENTIFIER):
+                size = self.advance().value              # a const's name - worked out with the program
+            else:
+                raise ParserError(self.peek(), "fixed(n) takes a whole number or a constant's name: fixed(10) string")
+            self.consume(TokenType.RPAREN, "Expected ')' after the size in fixed(n)")
+            inner = self.parse_type()
+            if not (isinstance(inner, (ListType, MapType)) or (isinstance(inner, PrimitiveType)
+                                                               and inner.name == 'string')):
+                raise ParserError(fixed_token, "fixed(n) goes on a string, a List or a Map - an array that never "
+                                               "changes size is written fixed int[10] c")
+            inner.fixed_max = size
+            inner.fixed_location = fixed_token.location
+            return inner
+
         # Function type (Task 18.1.3): (int, int) : int  or  (int, int) -> int
         if self.check(TokenType.LPAREN):
             return self.parse_function_type()
@@ -1057,6 +1077,10 @@ class Parser:
                 depth -= 1
                 if depth == 0:
                     return offset + 1
+            elif kind == TokenType.FIXED and self.peek(offset + 1).type == TokenType.LPAREN \
+                    and self.peek(offset + 3).type == TokenType.RPAREN:
+                offset += 4                              # Map<int, fixed(15) string> (47.5)
+                continue
             elif kind in (TokenType.NEWLINE, TokenType.EOF, TokenType.ASSIGN, TokenType.LPAREN):
                 return -1
             offset += 1
@@ -1375,10 +1399,9 @@ class Parser:
     def parse_fixed_declaration(self) -> ASTNode:
         """`fixed int[10] c`, `fixed int[] d = [5, 2, 3]` (Task 45.14, D.141): an array whose size
         is set once, when it is made. `fixed(n)` - at most n - on strings, Lists and Maps is Task 47.5."""
+        if self.peek(1).type == TokenType.LPAREN:         # fixed(10) string name - at most n (47.5)
+            return self.parse_var_declaration()
         fixed_token = self.consume(TokenType.FIXED, "Expected 'fixed'")
-        if self.check(TokenType.LPAREN):
-            raise ParserError(self.peek(), "fixed(n) - at most n - on a string, List or Map is planned "
-                                           "(Task 47.5); an array is written fixed int[10] c")
         if not (self.is_type_start() or self.is_struct_type_declaration_start()):
             raise ParserError(self.peek(), "After 'fixed' comes an array type: fixed int[10] c")
         declaration = self.parse_var_declaration()
@@ -1386,8 +1409,8 @@ class Parser:
             raise ParserError(fixed_token, "fixed and a growable array can't go together - fixed int[10] "
                                            "never changes size, int:[] grows (D.141)")
         if not isinstance(declaration.var_type, ArrayType):
-            raise ParserError(fixed_token, "fixed is written on an array - fixed int[10] c; fixed(n) on "
-                                           "a string, List or Map is planned (Task 47.5)")
+            raise ParserError(fixed_token, "fixed is written on an array - fixed int[10] c; on a string, List or "
+                                           "Map it takes a size: fixed(10) string name")
         declaration.is_fixed = True
         declaration.location = fixed_token.location
         return declaration

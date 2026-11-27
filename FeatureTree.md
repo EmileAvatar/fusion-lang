@@ -47,6 +47,7 @@ Syntax
 Types
    - Numbers                  int, long, short, int128, int256, decimal, float, double, bool, char, byte - overflow checked, overflowWrap setting
    - Number notations         6.67e-11, 0xFFFF_FFFF_FFFF, 19.99m, 0.155dec, Double.MAX / NAN
+   - fixed(n)                 fixed(10) string, fixed(14) List<T>, fixed(3) Map - at most n, a CapacityError
    - Money                    money (16 bytes: value, scale, currency, symbol) and the Currency module - every ISO 4217 currency
    - int as float             only when it fits exactly, else an error
    - Conversions              toInt, toFloat, toString, toByte, parseInt
@@ -192,7 +193,6 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - fixed(n) [planned]              max size: fixed(10) string name
    - Operator overloading [design]   a setting, off
    - Flag enums [design]             Read | Write
    - Autoboxing [design]             (42).toString()

@@ -60,7 +60,7 @@ struct only lends itself - `List<string> xs = order.items` is a borrow, never a 
 struct's fields are only ever borrowed; the whole struct moves (Decisions.md D.025, D.026).
 `[memory] assignment = "share"` keeps today's sharing.
 
-**Planned - `fixed(n)` (Task 47.5, user 2026-10-31 - Decisions.md D.064):** `fixed` limits only
+**`fixed(n)` - built (Task 47.5, user 2026-10-31 - Decisions.md D.064, D.202, D.203):** `fixed` limits only
 the **size** - at most n characters or slots; the values may still change. `const` is
 different: nothing changes, neither the length nor the values. The compiler guarantees a
 fixed string or collection never exceeds its total - for limited memory and hot paths.

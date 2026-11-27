@@ -187,6 +187,7 @@ static int fusion_failed = 0;
 #define FUSION_KIND_ReadOnlyError 32
 #define FUSION_KIND_RoundingError 33
 #define FUSION_KIND_CurrencyError 34
+#define FUSION_KIND_CapacityError 35
 static inline void fusion_raise_text(int kind, void* extra, const char* where, const char* text, int len);
 static inline void* fusion_errdata_fu_FileError_new(fusion_string path);
 static void* fusion_errdata_fu_FileError_copy(void* p);
@@ -518,6 +519,11 @@ static inline fusion_char fusion_fromCharCode(int code, const char* where) {
     return (fusion_char)code;
 }
 // A loop's step from a value (Task 33.2g, D.170): never 0 - the loop would never end
+// fixed(n) string (47.5, D.202, D.203): at most n characters - checked when stored, never cut
+static inline fusion_string fusion_fixed_str(fusion_string s, int n, const char* where) {
+    if (s.chars > n) fusion_fail(FUSION_KIND_CapacityError, where, "the text has %d characters - it holds at most %d (fixed(%d))", s.chars, n, n);
+    return s;
+}
 static inline int fusion_range_step(int step, const char* where) {
     if (step == 0) { fusion_fail(FUSION_KIND_RangeError, where, "a range's step can't be 0 - the loop would never end"); return 1; }
     return step;
@@ -1801,6 +1807,7 @@ static const fusion_error_kind fusion_builtin_kinds[] = {
     {"ReadOnlyError", 8, NULL, NULL},
     {"RoundingError", 1, NULL, NULL},
     {"CurrencyError", 8, NULL, NULL},
+    {"CapacityError", 21, NULL, NULL},
 };
 static const fusion_error_kind* fusion_error_kinds = fusion_builtin_kinds;
 // Is an error of type `kind` a `target` (that type or one of its subtypes)? (Task 26.9)

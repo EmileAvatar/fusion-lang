@@ -307,15 +307,16 @@ semicolons - a statement ends at the end of its line.</div>
 <h2 id="types">Types</h2>
 <div class="card" id="types-type">
 <div class="head">
-<span class="task">-</span>
+<a class="task" href="FEATURES.md#task-47">47.5</a>
 <span class="status built">built</span>
-<div class="comment">&nbsp;</div>
+<div class="comment">at most n - a string, List or Map (47.5, D.020)</div>
 <a class="top" href="#top">top</a>
 </div>
 <pre><span class="rule">type</span> <span class="o">=</span>
       <span class="nt">primitive_type</span> <span class="o">[</span> <span class="nt">array_suffix</span> <span class="o">]</span>
     <span class="o">|</span> <span class="nt">named_type</span> <span class="o">[</span> <span class="nt">array_suffix</span> <span class="o">]</span>
-    <span class="o">|</span> <span class="nt">function_type</span> <span class="o">;</span></pre>
+    <span class="o">|</span> <span class="nt">function_type</span>
+    <span class="o">|</span> <span class="s">&quot;fixed&quot;</span> <span class="s">&quot;(&quot;</span> <span class="o">(</span> <span class="nt">integer_literal</span> <span class="o">|</span> <span class="nt">identifier</span> <span class="o">)</span> <span class="s">&quot;)&quot;</span> <span class="nt">type</span> <span class="o">;</span>   <span class="c">(* at most n - a string, List or Map (47.5, D.020) *)</span></pre>
 </div>
 <div class="card" id="types-primitive-type">
 <div class="head">

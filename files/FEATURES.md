@@ -101,7 +101,7 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [R](#research) | Research - files to study in full before a task starts | - | open |
 | [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
 | [45](#task-45) | Arrays: plain, fixed, growable, up to 3 dimensions - done 2026-11-22; what is left is postponed | 2 | done |
-| [47](#task-47) | Types: long, money, enums with fixed data | 2 | open |
+| [47](#task-47) | Types: long, wide numbers, decimal, money, enums as value structs, fixed(n) - done 2026-11-27 | 2 | done |
 | [53](#task-53) | Check the Core language | 2 | open |
 | [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
 | [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
@@ -351,118 +351,11 @@ then each point is decided and solved completely. One line per section and per l
 	[POSTPONED to L16.3] Buffers for a large array (D.146)
 
 <a id="task-47"></a>
-#### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [ ] [index](#index)
-	After Task 32 and 36.0 (Q.050: 36.0 first - user, 2026-11-23). The type table: files/FusionTypes.html. 47.3, 47.4 and
-	47.5 stay in this task, after the number types (Q.049, user 2026-11-23). Money (47.2) and its ranges (47.6) wait for
-	the research R10 (COBOL and other languages) - no money code before it
-	[DONE] 47.1 `long` (64-bit; overflow checked like int) and `short` (16-bit) - every place a type goes; a literal past
-		int a long; int -> long widens, back only by toInt / toShort (checked); short arithmetic gives an int; a long as a
-		float / double must fit exactly; Map keys, sort, match, CSV; toLong(text); tests/test_long_short.py, syntax_long
-	[DONE 2026-11-25] 47.7 `int128`, `int256` - signed wide whole numbers, used like any number (D.179): __int128 and
-		C23 _BitInt(256) (src/codegen/c_wide.py); literals past a long; widening, checked narrowing (toInt / toLong /
-		toShort / toInt128); arithmetic in the widest kind, overflow checked; never mixed with a float; text, Map keys,
-		sort, match, CSV; tests/test_wide_numbers.py, syntax_wide_numbers. Found with it: a number declared without a
-		value held whatever was in memory - now 0 / false
-	[DONE 2026-11-25] 47.8 `decimal` - exact base-10: an int128 and its scale (0-18), 38 digits (D.182): a written
-		number keeps its places; + - * exact, a division that doesn't end rounded once to 18 places; every step in
-		int256 (D.178); round / divide with the built-in enum Rounding or `[numbers] rounding` (halfEven - D.177), exact
-		a RoundingError; toDecimal(text / whole number), toDouble; never from a float by itself; in structs, Lists,
-		Maps, arrays, generics, text, CSV (src/codegen/c_decimal.py); tests/test_decimal.py, syntax_decimal
-	[DONE 2026-11-25] 47.2a `money` built (D.180-D.187): a sealed 16-byte value struct - value (a long), scale,
-		currency (3 letters), symbol (display only); written amounts keep their places; money(amount, currency,
-		symbol); the fields read and set, checked; + - * (a whole number or a decimal) and comparing by the compiler -
-		the currencies the same or one empty, else a CurrencyError; printing R100.05; toDecimal / money(d); in
-		structs, Lists, Maps, arrays, text, CSV (src/codegen/c_money.py); tests/test_money.py, syntax_money
-	[DONE 2026-11-25] 47.2b The Currency module (src/stdlib/Currency.fusion, written in Fusion - D.186): added to a
-		program that uses money (src/semantic/currency.py); every active ISO 4217 currency (166 - places and symbol,
-		at most 4 bytes, a longer one kept as the code); divide (`m / n`), split / splitBy (the parts add up), percent,
-		round / roundWith / settle, convert (the developer's rate), format; `m.convert(...)` and the other methods
-		on money are its statics; tests/test_currency.py, syntax_currency
-	[ ] 47.2 (the notes below, from the first plan, kept for reference) `money` (replanned 2026-11-24 - files/taskSummary2.md, D.180-D.187): a sealed 16-byte value struct - value,
-		scale, currency, symbol; + - * by the compiler, the rest by the Currency module's statics - after 47.8. The
-		earlier notes below stay for reference: a `long` counting a currency's minor units - kind value, default 0, min /
-		max as long, 8 bytes, never null; exact whole-number arithmetic with overflow checking -
-		not a decimal, never a float. Plan the literal / printing form first
-		[ ] 47.2.1 Minor units (user, 2026-10-29): `money` is a signed 64-bit whole number -
-			always cents, or the currency's own minor unit where it has a smaller one; what a
-			unit means is the Currency module's (43.3). USD / ZAR (2 decimal places): $1 is 100,
-			12345 is R123.45. JPY (0 decimal places): stored the same way, ¥1 is 100 - always a
-			whole multiple of 100 (100, 200 ... 900), so it never has a fraction: the smallest
-			amount above zero is 100 (¥1), then 0, and the largest below zero is -100 (-¥1).
-			KWD (3 decimal places): 1 KWD is 1000. `money` itself is just a long, whatever the
-			currency - the Currency module's code enforces each currency's steps (user,
-			2026-10-29). The core stays small; the currency system can change on its own
-		[ ] 47.2.2 Exact on every device: rules for everything that makes a fraction - rounding,
-			percentages (deals, discounts), tax, splitting an amount (R100 / 3) - so a
-			calculation gives the same result on any CPU, OS or platform. Whole-number steps
-			only (no floating point); the rounding mode written out (half-up, half-even /
-			banker's, down, ...) with a project default; where a split's remainder goes
-			(R33.34 + R33.33 + R33.33); the order of steps (discount before or after tax)
-			stays the program's - Fusion only makes each step exact
-		[ ] 47.2.3 Later option: a decimal or arbitrary-precision number type - for amounts past
-			a long's range or more fractional precision than the minor unit gives
-	[DONE 2026-11-25] 47.6 Ranges over decimals and money (D.170; src/semantic/ranges.py, src/codegen/c_ranges.py;
-		tests/test_decimal_ranges.py, syntax_ranges)
-		[DONE 2026-11-25] 47.6a Whole numbers by default: `[ranges] decimals = false` - a range with a float, double,
-			decimal or money part is an error saying how to turn it on
-		[DONE 2026-11-25] 47.6b A step: `for x in 0.0...1.0 step 0.1` - the widest kind of its parts (money, decimal,
-			double, float); each value start + n * step from its count, never added up (ends on 1.0 exactly);
-			`stepRequired` / `defaultStep` 0.1; `rangeMaxStep` 3 - finer a compile error written, a RangeError from a
-			value; a step of 0 the same; written against the step's way an error, from values no turns
-		[DONE 2026-11-25] 47.6d A step that misses the end: only the values within the range, a warning (worked out
-			exactly from the digits written), `strictStep = true` an error
-		[DONE 2026-11-25] 47.6e Decimal and money ranges exact (lined up at one scale, in an int256); money's
-			currencies must agree - a CurrencyError; `%` on a money range left to L7.9 (`step %5`)
-		[DONE 2026-11-25] 47.6f Ranges in a match on a float or double (`case 0.0...0.49`) - ranges only (a test,
-			never ==), no overlap, an else required; found with it: a written number used as a double was the float
-			0.49f (0.49000000953674316) - now the number written
-	[DONE 2026-11-25] 47.3 An enum as a built-in value struct (D.188-D.194, files/Value_Structs.md; src/semantic/
-		enum_fields.py; tests/test_enum_fields.py, syntax_enum_planets)
-		[DONE 2026-11-25] 47.3a `[enums] upperCaseNames` - false / true (a warning) / strict (an error)
-		[DONE 2026-11-25] 47.3b Parsing: values, then fields, `private Enum(...)` and functions; ids at the front or
-			back; `const static enum` accepted
-		[DONE 2026-11-25] 47.3c Ids counted (the next not used) or written; a clash an error; id / value(); fromValue
-		[DONE 2026-11-25] 47.3d Fields: primitive types and string; public const read from anywhere (EARTH.mass, a
-			bare value before . or [), private only inside; never set
-		[DONE 2026-11-25] 47.3e Each value's data worked out when compiling: constants and arithmetic, by position,
-			name or default, through the constructor; no fields - a const array per value (SMALL[1])
-		[DONE 2026-11-25] 47.3f Methods (Planet.gravity(this)); toString() worked out per value - printing uses it
-		[DONE 2026-11-25] 47.3g-h One static const table per enum - a value is its id, a field read a lookup (a null
-			value a NullError); nothing on the heap
-		[DONE 2026-11-25] 47.3i Capitals in the examples, SYNTAX_REFERENCE and the showcase
-	[DONE 2026-11-27] 47.9 Number notations (D.195, D.196; tests/test_number_notations.py, syntax_number_notations)
-		[DONE 2026-11-27] 47.9a Exponents: 6.67e-11, 5.976E24, 1e6, with _ and f / d; the smallest type that holds it (a
-			float, a double past a float's range); for a decimal or money the places written kept, a negative exponent
-			adding places (1.25e2 is 125.00, 1.5e-3 is 0.0015); past a double's range or too small a compile error
-		[DONE 2026-11-27] 47.9b Hex / binary / octal past 32 bits - their value, a long, int128 or int256; up to 32 bits
-			the 32-bit pattern as before (0xFFFFFFFF is -1); past 255 bits an error
-		[DONE 2026-11-27] 47.9c A digit on both sides of the point (D.195): .5 and 5. errors saying what to write
-		[DONE 2026-11-27] 47.9d Suffixes (D.196): 19.99m money, 0.155dec decimal, on any number (5m); d gives a double
-		[DONE 2026-11-27] 47.9e Double / Float .MAX .MIN (the most negative) .EPSILON .INFINITY .NAN
-		[DONE 2026-11-27] 47.9f The editors' grammar, the Markdown preview, the self-hosted lexer, fusion.ebnf + page
-	[DONE 2026-11-27, replaced by 47.11] 47.10 An enum value alone anywhere (D.197)
-	[DONE 2026-11-27] 47.11 An enum value is written with its enum (D.199 - replaces D.150, D.197): `Status.OK`
-		everywhere; a match's case `case OK` or `case Status.OK` (the subject decides); a value alone an error saying
-		what to write; a variable named like a value is that variable; the built-in enums in full (Rounding.halfUp,
-		Storage.FLAT, Dimension.ROWS); tests/test_bare_enum.py, syntax_enum_bare
-	[DONE 2026-11-27] 47.12 `[source] shadowing` (D.200): off (default) - a variable, parameter, loop variable or
-		case name with the name of one further out (an outer block, a parameter, a field, a module variable or
-		constant) an error naming it; on - the nearest wins; `this.total` the field, `::total` the module's;
-		tests/test_shadowing.py
-	[ ] 47.12b Reaching the outer one, to revisit (user, 2026-11-27): `:total` (one step out) and `Orders.total` (the
+#### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [DONE 2026-11-27] [index](#index)
+	Done - every line in task/featuresArchive.md; the forms: files/SYNTAX_REFERENCE.md (long, wide numbers, decimal,
+	money, Currency, ranges, enums, number notations, FusionType, fixed), files/Value_Structs.md. Left for later:
+	[POSTPONED - to revisit] 47.12b Reaching the outer one, to revisit (user, 2026-11-27): `:total` (one step out) and `Orders.total` (the
 		object's field) - left out for now: `:` has other jobs and `Class.name` means a static
-	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - files/Ownership.md, files/Service.md)
-		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
-		`fixed(10) string name`: at most 10 characters, kept inline - no heap
-		`fixed(10) int numbers[]`, or `fixed int numbers[10]` (the size written in the array)
-		`fixed(14) List<Person> people`: at most 14 elements
-		`fixed(10) Map<int, fixed(15) string> codes`: at most 10 keys, each value at most 15 characters
-		Lower is fine, higher never - an error, never a silent cut
-		Starts empty, grows as needed up to its maximum; memory reserved once
-		The size may be a constant set by the hardware or a setting (H9)
-	[DONE 2026-11-27] 47.4 The built-in enum `FusionType` (D.201; src/semantic/fusion_type.py; tests/test_fusion_type.py,
-		syntax_fusion_type): a value per type (INT ... ERROR) with type, kind, size, canBeNull; min / max / default in
-		the type itself (FusionType.INT.max an int) - the value written; added when used
 
 <a id="task-53"></a>
 #### 53 Check the Core language (user, 2026-11-07) [ ] [index](#index)

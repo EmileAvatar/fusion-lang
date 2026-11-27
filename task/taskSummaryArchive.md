@@ -8003,3 +8003,25 @@ for t in FusionType.values()
   `Double.MAX`) and the compiler's own range checks - one table in the compiler, FusionTypes.html checked against it
 - Fields in camelCase (D.201): type, kind, size, canBeNull, min, max, default
 - Tests tests/test_fusion_type.py; example syntax_fusion_type; Settings: none
+
+---
+
+## Task 47.5 - fixed(n) (done 2026-11-27) - Task 47 complete
+
+**47.5 `fixed(n)`** (D.020, D.064, TYP.006 - files/Arrays.md) - plan, waiting for approval
+```fusion
+fixed(10) string code = "AB-123"           // at most 10 characters; the values may change
+code = "TOO-LONG-CODE"                     // written: a compile error; from a value: an error while running
+fixed(14) List<Person> people              // at most 14; the 14 slots reserved at once - adding never grows it
+fixed(3) Map<string, fixed(15) string> codes
+fixed int numbers[10]                      // an array that never takes another size (D.141's `fixed` form)
+```
+- 47.5a `fixed(n)` on a List / Map: at most n elements / keys, the n reserved when made (one allocation, never
+  grown); adding the n+1th a CapacityError (D.202); lower is fine, a value is never cut (D.020)
+- 47.5b `fixed(n)` on a string: at most n characters - a written value checked when compiling, others while running;
+  an ordinary string with its length checked, inline later with FSMA (D.203)
+- 47.5c `fixed(n)` on a struct field, a parameter (`fixed(10) string code` - a longer argument an error), a List's
+  element type (`List<fixed(15) string>`), a Map's value type
+- 47.5d n is a whole number constant - written, or a `const` (`fixed(MAX_NAME) string name` - the hardware's or a
+  setting's size later, H9); n of 0 or below an error
+- Tests tests/test_fixed.py; example syntax_fixed; Settings: none

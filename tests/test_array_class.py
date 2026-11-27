@@ -85,10 +85,10 @@ def test_a_fixed_array_needs_its_size_or_its_values():
 
 @pytest.mark.parametrize('body, message', [
     ('fixed int x = 1', 'fixed is written on an array'),
-    ('fixed(10) string s = "a"', 'fixed(n) - at most n - on a string, List or Map is planned'),
-    ('fixed List<int> xs = []', 'fixed is written on an array'),
+    ('fixed(10) int x = 1', 'fixed(n) goes on a string, a List or a Map'),     # fixed(n): Task 47.5 (tests/test_fixed.py)
+    ('fixed List<int> xs = []', 'on a string, List or Map it takes a size: fixed(10) string name'),
 ])
-def test_fixed_on_anything_else_waits_for_47_5(body, message):
+def test_fixed_without_a_size_is_for_arrays(body, message):
     with pytest.raises(ParserError, match=re.escape(message)):
         parse(main(body))
 

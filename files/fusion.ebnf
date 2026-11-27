@@ -105,7 +105,8 @@ type_parameter = identifier [ ( "extends" | ":" ) type ] [ "implements" identifi
 type =
       primitive_type [ array_suffix ]
     | named_type [ array_suffix ]
-    | function_type ;
+    | function_type
+    | "fixed" "(" ( integer_literal | identifier ) ")" type ;   (* at most n - a string, List or Map (47.5, D.020) *)
 
 (* byte: 0-255 (18.3.8); short / long: 16 / 64 bits (47.1); int128 / int256: signed wide whole
    numbers (Task 47.7, D.179), never mixed with a float or double; bytes: raw binary data, a

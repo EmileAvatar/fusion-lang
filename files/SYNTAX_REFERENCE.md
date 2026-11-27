@@ -2544,6 +2544,36 @@ MONEY, BOOL, CHAR, STRING, BYTES, LIST, MAP, STRUCT, CLASS, ENUM, ERROR), the nu
 type the value describes, so the value is written: `FusionType.INT.max`. A type without them (`FusionType.STRING.max`)
 is a compile error. Added to a program only when it uses FusionType.
 
+#### At most n: `fixed(n)`
+
+<!-- example: syntax_fixed | task: 47.5 | folder: 01_basics -->
+```fusion
+const int CODE_SIZE = 6
+
+struct Item
+    fixed(CODE_SIZE) string code                // at most 6 characters - n a number or a constant
+
+void function main()
+    fixed(10) string name = "Ada"               // at most 10 characters; the text may change
+    name = "Ada Byron"
+    fixed(3) List<int> scores = [90, 85]        // at most 3 - the 3 slots reserved at once
+    scores.add(77)
+    try
+        scores.add(64)                          // a 4th: a CapacityError - nothing cut, nothing added
+    catch CapacityError e
+        print("{e}")                            // the List holds at most 3 (fixed(3))
+    fixed(2) Map<string, fixed(4) string> codes // at most 2 keys, each value at most 4 characters
+    codes["a"] = "AB"
+    Item it = Item("AB-123")
+    print("{name} {@1} {@2} {it.code}", scores.len(), codes["a"])    // Ada Byron 3 AB AB-123
+```
+`fixed(n)` limits only the size - at most n characters, elements or keys; the values may change (`const`: nothing
+changes - D.064). On a string, a List or a Map; anywhere a type is written - a variable, a struct field, a parameter, a
+List's element or a Map's value. Written past n it is a compile error (`fixed(10) string s = "TOO-LONG-CODE"`); while
+running a CapacityError, and the value stored before stays - never cut (D.020, D.202). A List's or Map's n slots are
+reserved when it is made. An array that never changes size is `fixed int[10] a` (D.141). For now a fixed string is an
+ordinary string whose length is checked; kept inline, without the heap, later with FSMA (D.203).
+
 #### Exact numbers: `decimal`
 
 <!-- example: syntax_decimal | task: 47.8 | folder: 01_basics -->

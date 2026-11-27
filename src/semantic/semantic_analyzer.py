@@ -12,6 +12,7 @@ from ..parser.ast_nodes import (ProgramNode, BlockStmt, StructDecl, PrimitiveTyp
                                 ListType, MapType)
 from .enums import normalize_enums, check_holding_loops
 from .enum_fields import check_enum_fields
+from .fixed_sizes import resolve_fixed_sizes
 from .templates import expand_templates
 from .stack_arrays import check_stack_arrays
 from .currency import add_currency_module
@@ -259,6 +260,7 @@ class SemanticAnalyzer:
         # An enum as a built-in value struct (47.3): each value's data worked out when compiling
         enum_errors, enum_warnings = check_enum_fields(ast, getattr(self, 'enum_upper_case', 'false'))
         self.type_checker.enum_decls = {d.name: d for d in ast.declarations if isinstance(d, EnumDecl)}
+        self.errors.extend(resolve_fixed_sizes(ast))       # fixed(MAX_NAME) string - n worked out (47.5)
         self.errors.extend(enum_errors)
         self.warnings.extend(enum_warnings)
         # Generic functions (Task 33.2a, D.166): taken out of the program - a copy is made for each

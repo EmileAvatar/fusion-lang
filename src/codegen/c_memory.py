@@ -520,6 +520,11 @@ static inline fusion_char fusion_fromCharCode(int code, const char* where) {
     return (fusion_char)code;
 }
 // A loop's step from a value (Task 33.2g, D.170): never 0 - the loop would never end
+// fixed(n) string (47.5, D.202, D.203): at most n characters - checked when stored, never cut
+static inline fusion_string fusion_fixed_str(fusion_string s, int n, const char* where) {
+    if (s.chars > n) fusion_fail(FUSION_KIND_CapacityError, where, "the text has %d characters - it holds at most %d (fixed(%d))", s.chars, n, n);
+    return s;
+}
 static inline int fusion_range_step(int step, const char* where) {
     if (step == 0) { fusion_fail(FUSION_KIND_RangeError, where, "a range's step can't be 0 - the loop would never end"); return 1; }
     return step;

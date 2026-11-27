@@ -372,6 +372,18 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
                 and self._makes_limited_string(node):
             # Over [strings] max_length (26.4): the new string is freed as the error goes on
             code = self.checked_code(code, 'fusion_string', 'fusion_str_free(&fusion_r);')
+        check = getattr(node, 'fixed_check', None)
+        if check is not None:                           # stored where fixed(n) is written (47.5, D.202)
+            kind, limit, collection = check
+            # a value made just here (s + t, [1, 2, 3]) that doesn't fit is freed as the error goes on
+            fresh = self.is_fresh(node) if hasattr(self, 'is_fresh') else False
+            if kind == 'string':
+                free = 'fusion_str_free(&fusion_r);' if fresh else ''
+                code = self.checked_code(f'fusion_fixed_str({code}, {limit}, {self._where(node)})', 'fusion_string', free)
+            else:
+                c = self.map_type(collection)
+                free = ' '.join(self.free_lines(collection, 'fusion_r')) if fresh else ''
+                code = self.checked_code(f'{c}_limit({code}, {limit}, {self._where(node)})', c, free)
         return code
 
     def generic_visit(self, node: ASTNode) -> str:
@@ -614,6 +626,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             element = self._default_value_code(type_node.element_type)
             return f'{self.map_type(type_node)}_filled({type_node.start_size}, {element})'
         if isinstance(type_node, (ListType, MapType)):
+            limit = getattr(type_node, 'fixed_max', None)
+            if isinstance(limit, int):                  # fixed(14) List<Person> - its n reserved at once (47.5)
+                return f'{self.map_type(type_node)}_limit({self.map_type(type_node)}_new(), {limit}, NULL)'
             return f'{self.map_type(type_node)}_new()'   # an empty list / map (18.5, 32.10a)
         return '0'
 

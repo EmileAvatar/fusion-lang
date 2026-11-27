@@ -410,6 +410,35 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         return node.inferred_type
 
     def _visit_value_for(self, expected: TypeNode, value: ASTNode) -> TypeNode:
+        """Visit a value about to be stored as `expected`, then check a `fixed(n)` size (47.5)."""
+        result = self._visit_value_for_type(expected, value)
+        self.check_fixed_value(expected, value)
+        return result
+
+    def check_fixed_value(self, expected, value) -> None:
+        """A value stored where `fixed(n)` is written (47.5, D.020, D.202): written text or a written List past n - a
+        compile error; anything else checked while running (`fixed_check` - a CapacityError); never cut."""
+        limit = getattr(expected, 'fixed_max', None)
+        if not isinstance(limit, int):
+            return
+        if isinstance(expected, PrimitiveType) and expected.name == 'string':
+            if isinstance(value, LiteralExpr) and value.type_hint == 'string':
+                count = len(str(value.value))
+                if count > limit:
+                    self.errors.append(SemanticError(
+                        f"\"{value.value}\" has {count} characters - this string holds at most {limit} (fixed({limit}))",
+                        value.location))
+                return
+            value.fixed_check = ('string', limit, None)
+        elif isinstance(expected, (ListType, MapType)):
+            if isinstance(value, ArrayLiteralExpr) and len(value.elements) > limit:
+                self.errors.append(SemanticError(
+                    f"{len(value.elements)} values - this {'List' if isinstance(expected, ListType) else 'Map'} "
+                    f"holds at most {limit} (fixed({limit}))", value.location))
+                return
+            value.fixed_check = ('collection', limit, expected)      # the limit set on it (and checked) when stored
+
+    def _visit_value_for_type(self, expected: TypeNode, value: ASTNode) -> TypeNode:
         """Visit a value about to be stored as `expected` - an array literal stored as
         bytes is a bytes literal (Task 18.3.8); an int stored as a float is widened (27.2f)."""
         if self._is_bytes_type(expected) and isinstance(value, ArrayLiteralExpr):

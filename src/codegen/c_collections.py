@@ -75,7 +75,7 @@ class CollectionsMixin:
                 lines.append(f'typedef struct {name}_s {{ int count; const void* fusion_class; '
                              f'{self.map_type(kind.key_type)}* keys; '
                              f'{self.map_type(kind.value_type)}* vals; int len; int cap; '
-                             f'int* slots; int nslots; int changes; int flags; }} {name}_s;')
+                             f'int* slots; int nslots; int changes; int flags; int max; }} {name}_s;')
                 lines.append(f'static const void* {name}_class(void);')
             else:
                 element_c = self.map_type(kind.element_type)
@@ -88,7 +88,7 @@ class CollectionsMixin:
                              f'void (*set)(void*, int, {element_c}); void (*insert)(void*, int, {element_c}); '
                              f'void (*removeAt)(void*, int); void (*release)(void**); }} {name}_ops;')
                 lines.append(f'typedef struct {name}_s {{ int count; const void* fusion_class; '
-                             f'{element_c}* data; int len; int cap; int changes; int flags; void* ext; '
+                             f'{element_c}* data; int len; int cap; int changes; int flags; int max; void* ext; '
                              f'const {name}_ops* ops; {element_c}* held; int heldAt; int pending; int pendingSlot; '
                              f'struct {name}_s* snap; }} {name}_s;')
                 lines.append(f'static const void* {name}_class(void);')
@@ -318,6 +318,12 @@ class CollectionsMixin:
         functions[f'void {name}_noDuplicates({name} l)'] = ['l->flags |= 1;']
         functions[f'void {name}_noNull({name} l)'] = ['l->flags |= 2;']
         functions[f'void {name}_readOnly({name} l)'] = ['l->flags |= 4;']
+        # fixed(n) (47.5, D.202): at most n - checked when stored, the n reserved once, past it a CapacityError
+        what = 'Map' if is_map else 'List'
+        functions[f'{name} {name}_limit({name} l, int n, const char* where)'] = [
+            f'if (l->len > n) {{ fusion_fail(FUSION_KIND_CapacityError, where, "the {what} has %d - it holds at most '
+            f'%d (fixed(%d))", l->len, n, n); return l; }}',
+            'l->max = n;'] + ([] if is_map else [f'{name}_grow(l, n);']) + ['return l;']
         read_only = (f'if (l->flags & 4) {{ fusion_fail(FUSION_KIND_ReadOnlyError, NULL, '
                      f'"the {"Map" if is_map else "List"} is read only"); return{{}}; }}')
         if isinstance(element, PrimitiveType) and element.name == 'string':
@@ -343,6 +349,8 @@ class CollectionsMixin:
                 refused = refused.replace('fusion_fail(', f'{free_v} fusion_fail(', 1)   # v is ours
             checks = [refused]
             if not is_map and method in ('add', 'insert'):
+                checks.append(f'if (l->max && l->len >= l->max) {{ {free_v} fusion_fail(FUSION_KIND_CapacityError, '
+                              f'NULL, "the List holds at most %d (fixed(%d))", l->max, l->max); return{result}; }}')
                 if is_null is not None:
                     checks.append(f'if ({is_null}) {{ {free_v} fusion_fail(FUSION_KIND_NullError, '
                                   f'NULL, "a List never holds null (D.139)"); return; }}')   # 52.10
@@ -746,7 +754,10 @@ class CollectionsMixin:
             name = self.map_c_name(inner_type)
             base = self.list_lvalue(expr.array, False)
             if final:
-                return f'(*{name}_put({base}, {self.visit(expr.index)}))'
+                put = f'{name}_put({base}, {self.visit(expr.index)})'
+                if getattr(self, 'collection_options', False):      # a fixed(n) Map may refuse a new key (47.5)
+                    put = self.checked_code(put, self.map_type(inner_type.value_type) + '*')
+                return f'(*{put})'
             pointer = f'{name}_ptr({base}, {self.visit(expr.index)}, {self._where(expr)})'
             return f'(*{self.checked_code(pointer, self.map_type(inner_type.value_type) + "*")})'
         if isinstance(expr, IndexExpr):
@@ -970,6 +981,8 @@ class CollectionsMixin:
             f'{V}* {name}_put({name} m, {K} k)': [
                 f'int i = {name}_find(m, k);',
                 'if (i >= 0) return &m->vals[i];',
+                f'if (m->max && m->len >= m->max) {{ static {V} spare; fusion_fail(FUSION_KIND_CapacityError, NULL, '
+                f'"the Map holds at most %d keys (fixed(%d))", m->max, m->max); return &spare; }}',   # 47.5
                 'if (m->len == m->cap) {',
                 '    int cap = m->cap < 8 ? 8 : m->cap * 2;',
                 f'    {K}* keys = ({K}*)fusion_alloc(sizeof({K}) * (size_t)cap);',

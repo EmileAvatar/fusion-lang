@@ -1,0 +1,18 @@
+const int CODE_SIZE = 6
+
+struct Item
+    fixed(CODE_SIZE) string code                // at most 6 characters - n a number or a constant
+
+void function main()
+    fixed(10) string name = "Ada"               // at most 10 characters; the text may change
+    name = "Ada Byron"
+    fixed(3) List<int> scores = [90, 85]        // at most 3 - the 3 slots reserved at once
+    scores.add(77)
+    try
+        scores.add(64)                          // a 4th: a CapacityError - nothing cut, nothing added
+    catch CapacityError e
+        print("{e}")                            // the List holds at most 3 (fixed(3))
+    fixed(2) Map<string, fixed(4) string> codes // at most 2 keys, each value at most 4 characters
+    codes["a"] = "AB"
+    Item it = Item("AB-123")
+    print("{name} {@1} {@2} {it.code}", scores.len(), codes["a"])    // Ada Byron 3 AB AB-123
