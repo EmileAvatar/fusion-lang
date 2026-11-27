@@ -66,7 +66,7 @@ class Currency
     public static money function roundWith(money m, int digits, Rounding mode)
         return money(toDecimal(m).round(digits, mode), m.currency, m.symbol)
 
-    // To its currency's places - an amount that can be paid: R12.345 -> R12.34 (halfEven)
+    // To its currency's places - an amount that can be paid: R12.345 -> R12.34 (Rounding.halfEven)
     public static money function settle(money m)
         if m.currency == ""
             throw CurrencyError("settle needs a currency - money(amount, \"ZAR\")")

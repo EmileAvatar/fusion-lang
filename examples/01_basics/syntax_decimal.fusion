@@ -8,12 +8,12 @@ void function main()
     decimal third = 1.00 / 3                       // doesn't end: 18 places, rounded once
     decimal quarter = 10.00 / 4                    // ends: exact, 2.50
     print("{sum} {vat} {third} {quarter}")
-    print("{@1} {@2}", round(vat, 2), vat.round(2, halfUp))       // halfEven unless a mode is named
-    print("{@1}", divide(10.00, 3, 4, down))       // places and mode written: 3.3333
+    print("{@1} {@2}", round(vat, 2), vat.round(2, Rounding.halfUp))       // halfEven unless a mode is named
+    print("{@1}", divide(10.00, 3, 4, Rounding.down))       // places and mode written: 3.3333
     decimal read = toDecimal("-12.50")             // from text exactly - never from a float
     print("{read} {@1}", toDouble(quarter))
     try
-        decimal cents = round(third, 2, exact)     // the mode exact: rounding needed is an error
+        decimal cents = round(third, 2, Rounding.exact)     // the mode exact: rounding needed is an error
         print("{cents}")
     catch RoundingError e
         print("{e}")

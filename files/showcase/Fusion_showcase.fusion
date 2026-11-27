@@ -139,7 +139,7 @@ void function types() {
     ushort port = 65535
     uint count = 4000000000
     ulong huge = 18000000000000000000
-    // [built] decimal: an exact base-10 number - 0.1 + 0.2 is 0.3 (47.8); round(x, 2, halfUp)
+    // [built] decimal: an exact base-10 number - 0.1 + 0.2 is 0.3 (47.8); round(x, 2, Rounding.halfUp)
     decimal price = 19.99
     decimal withTax = price * 1.15
     decimal cents = round(withTax, 2)
@@ -257,15 +257,14 @@ void function collections() {
     List<List<List<int>>> sheets = cube.toList()
     // [built] Only a growable array expands - it stays a cube (45.12d, D.143)
     int:[2][3][4] g                     // also int[[2],[3],[4]] g
-    g.expand(ROWS, 1)                   // a warning: every slot is copied
+    g.expand(Dimension.ROWS, 1)                   // a warning: every slot is copied
     // [built] A local 3D array lives on the heap; 1D and 2D on the stack (D.154)
     // [built] A jagged array: rows of their own length, said right after it is made (45.15, D.153, D.163)
     int:[][] jag = [[1], [2, 3, 4]]
-    jag.setStorage(JAGG)                // FLAT / null: one block (the default); RECT [designed] later (D.164)
+    jag.setStorage(Storage.JAGG)                // FLAT / null: one block (the default); RECT [designed] later (D.164)
     jag[0].add(5)                       // jag.rows 2, jag[1].columns 3, jag.columns 0
-    // [built] An enum value alone where the type is known (45.17, D.150), and anywhere only one enum has the
-    //         name (47.10, D.197) - else a compile error listing each
-    Dimension d = COLUMNS
+    // [built] An enum value is written with its enum (47.11, D.199); in a match on an enum `case COLUMNS` too
+    Dimension d = Dimension.COLUMNS
     // [built] Large arrays: [arrays] stackWarn 16KB, stackLimit 64KB (45.13, D.145)
     // [designed] buffers SINGLE / TWO / THIRD / RING after self-hosting (D.146)
     // [built] List<T>: grows; add, insert, sort, filter, reduce, ...
@@ -600,7 +599,7 @@ enum Planet {
     EARTH(5.976, 6378.14, "Earth"), 200
     201, MARS(0.6421, 3397.2, "Mars")
 
-    public const double mass                   // EARTH.mass, p.mass - never set
+    public const double mass                   // Planet.EARTH.mass, p.mass - never set
     public const double radius
     public const string name
     private Enum(double m, double r, string n) {   // optional - else the fields filled in order

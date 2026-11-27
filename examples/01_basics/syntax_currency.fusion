@@ -7,7 +7,7 @@ void function main()
     print("{@1} {@2}", owners[0], owners[1])
     print("{@1}", bill.percent(15.5))             // R15.50
     money raw = money(12.345, "ZAR", "R")
-    print("{@1} {@2}", raw.settle(), raw.roundWith(2, halfUp))   // R12.34 (halfEven) R12.35
+    print("{@1} {@2}", raw.settle(), raw.roundWith(2, Rounding.halfUp))   // R12.34 (Rounding.halfEven) R12.35
     money yen = bill.convert("ZAR", "JPY", 8.4211)   // your rate - never fetched; JPY has 0 places
     print("{yen} {@1} {@2}", Currency.places("KWD"), Currency.symbol("EUR"))
     print(money(1234567.891, "USD", "$").format())   // $1,234,567.891

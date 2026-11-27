@@ -412,10 +412,6 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
     def _visit_value_for(self, expected: TypeNode, value: ASTNode) -> TypeNode:
         """Visit a value about to be stored as `expected` - an array literal stored as
         bytes is a bytes literal (Task 18.3.8); an int stored as a float is widened (27.2f)."""
-        if isinstance(expected, EnumType) and isinstance(value, IdentifierExpr):
-            bare = self.bare_enum_value(expected, value)   # setMonth(JUNE), Months m = JUNE (45.17)
-            if bare is not None:
-                return bare
         if self._is_bytes_type(expected) and isinstance(value, ArrayLiteralExpr):
             return self._check_bytes_literal(value)
         if isinstance(expected, ListType) and isinstance(value, ArrayLiteralExpr):
@@ -896,10 +892,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             Type of the identifier (void if undefined for error recovery)
         """
         if getattr(node, 'bare_enum', False) and self.symbol_table.lookup(node.name) is None:
-            return self.bare_enum_anywhere(node)           # print(OK) - the one enum with OK (D.197)
+            return self.enum_value_alone(node)             # OK alone - write Status.OK (D.199)
         symbol = self.symbol_table.lookup(node.name)
-        if symbol is not None and getattr(node, 'shares_enum_name', None):
-            self.shared_enum_name(node, symbol)            # a variable OK and Status.OK - write which (D.197)
         if not symbol:
             self.errors.append(SemanticError(
                 f"Undefined variable: '{node.name}'",
@@ -973,10 +967,6 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if node.operator in ('==', '!=', '===', '!==') and isinstance(node.left, ArrayLiteralExpr) \
                 and not isinstance(node.right, ArrayLiteralExpr):
             right_type = self.visit(node.right)
-            left_type = self._visit_value_for(right_type, node.left)
-        elif node.operator in ('==', '!=', '===', '!==') and getattr(node.left, 'bare_enum', False) \
-                and not getattr(node.right, 'bare_enum', False):
-            right_type = self.visit(node.right)            # JUNE == m - the other side's type (45.17)
             left_type = self._visit_value_for(right_type, node.left)
         elif node.operator in ('==', '!=', '===', '!=='):
             left_type = self.visit(node.left)
@@ -1144,7 +1134,6 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             static_class = receiver.name
             receiver_type = PrimitiveType(location=receiver.location, name=TYPE_CLASSES[static_class])
         else:
-            self.bare_enum_receiver(receiver)                       # OK.value(), EARTH.gravity(80) (47.3)
             receiver_type = self.visit(receiver)
             self.checked_receivers[id(receiver)] = receiver_type   # checked once, not again
             # A struct's own method (Task 32.1) comes first: p.move(1, 2) is
@@ -2888,7 +2877,6 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             The array's element type (void for error recovery if the target isn't an array)
         """
         self._allow_array_call(node.array)  # make()[0] (Task 18.2.4)
-        self.bare_enum_receiver(node.array)                     # SMALL[1] (47.3)
         array_type = self.visit(node.array)
         if isinstance(array_type, EnumType) and node.index is not None:
             return self.enum_item_type(node, array_type)        # an enum value's fixed array (47.3, D.191)
@@ -2955,7 +2943,6 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Returns:
             The field's type (void for error recovery)
         """
-        self.bare_enum_receiver(node.object)                    # EARTH.mass (47.3)
         object_type = self.visit(node.object)
         if isinstance(object_type, EnumType):
             return self.enum_field_type(node, object_type)      # p.mass, p.id, p.enumTypeName (47.3)

@@ -3,7 +3,7 @@ uses money. Every active ISO 4217 currency - its places and its symbol (at most 
 
     m / 3                        Currency.divide - the money's own places, rounded once ([numbers] rounding)
     m.split(3), m.splitBy([70, 30])   parts that add up exactly (Fowler)
-    m.percent(15.5), m.settle(), m.round(2), m.roundWith(2, halfUp)
+    m.percent(15.5), m.settle(), m.round(2), m.roundWith(2, Rounding.halfUp)
     m.convert("ZAR", "JPY", 8.42)     the developer's rate - never fetched; the new currency's places
     m.format(), Currency.places("KWD"), Currency.symbol("EUR"), Currency.of(12.345, "ZAR")
 
@@ -69,7 +69,7 @@ def test_split_by_ratios_adds_up():
 def test_percent_round_settle():
     assert run(main('money r = money(200.00, "ZAR", "R")\nprint("{@1}", r.percent(15.5))\n'
                     'money raw = money(12.345, "ZAR", "R")\n'
-                    'print("{@1} {@2} {@3} {@4}", raw.settle(), raw.round(1), raw.roundWith(2, halfUp), '
+                    'print("{@1} {@2} {@3} {@4}", raw.settle(), raw.round(1), raw.roundWith(2, Rounding.halfUp), '
                     'Currency.round(raw, 0))')) == ['R31.00', 'R12.34 R12.3 R12.35 R12']
 
 

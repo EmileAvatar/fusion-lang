@@ -7903,3 +7903,28 @@ print(OK)                      // ... error: 'OK' is Status.OK or the variable O
 - Tests: tests/test_enum_bare.py (or the existing bare-value tests extended) - unique, shared by enums, shared with a
   variable / constant / function, inside interpolation, the D.150 places unchanged
 - Settings: none
+
+---
+
+## Task 47.11 - an enum value written with its enum (done 2026-11-27)
+
+**47.11 Enum values written with their enum** (D.199 - replaces D.150, D.197) - replan, waiting for approval
+```fusion
+Status s = Status.OK              // Status.OK - anywhere
+match s
+    case OK, Status.FORBIDDEN     // in a match: either form - s is a Status, so OK is Status.OK
+        ...                       //   (even when another enum has an OK)
+Status t = OK                     // error: write Status.OK
+print("{@1}", OK)                 // error: write Status.OK
+int OK = 3                        // just a variable - nothing to choose between
+```
+- 47.11a A value alone outside a match's cases: a compile error "write Status.OK" (or, two enums having it, naming
+  each); a variable with a value's name is simply that variable
+- 47.11b Match cases on an enum: `case OK` and `case Status.OK` both; the subject's enum decides
+- 47.11c The built-in enums written in full: `round(x, 2, Rounding.halfUp)`, `m.setStorage(Storage.FLAT)`,
+  `g.expand(Dimension.ROWS, 1)` - their docs, examples and tests
+- 47.11d 47.10's code goes (bare_enum_anywhere, shares_enum_name, bare_enum_receiver for EARTH.mass - now
+  Planet.EARTH.mass), with D.150's places (parameter, declaration, comparison)
+- 47.11e The examples, SYNTAX_REFERENCE (syntax_enum_bare becomes "an enum value is written with its enum"), the
+  showcase, Value_Structs.md, DataStructures.html, tests; JUNE / Months only as examples - a Month enum comes with the
+  date and time library (43.1)

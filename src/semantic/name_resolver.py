@@ -420,8 +420,6 @@ class NameResolver:
         can hold an enum - and check its values."""
         # JUNE alone - a value of some enum, allowed where that enum is expected (45.17, D.150)
         self.enum_value_names = {}            # a value's name -> the enums that have it
-        self.added_enums = {d.name for d in program.declarations
-                            if isinstance(d, EnumDecl) and getattr(d, 'added_by_compiler', False)}
         for d in program.declarations:
             if isinstance(d, EnumDecl):
                 for v in d.variants:
@@ -1142,12 +1140,6 @@ class NameResolver:
         symbol = self.symbol_table.lookup(expr.name)
         if not symbol and expr.name in getattr(self, 'enum_value_names', ()):
             expr.bare_enum = self.enum_value_names[expr.name]   # JUNE - the checker decides where (45.17)
-        elif symbol and expr.name in getattr(self, 'enum_value_names', ()):
-            # a variable, constant or function with an enum value's name - an error where read alone (D.197);
-            # not for an enum the compiler added (Rounding's `down`): the program never declared it
-            owners = [o for o in self.enum_value_names[expr.name] if o not in getattr(self, 'added_enums', ())]
-            if owners:
-                expr.shares_enum_name = owners
         elif not symbol:
             self.errors.append(SemanticError(
                 f"Undefined variable: '{expr.name}'",

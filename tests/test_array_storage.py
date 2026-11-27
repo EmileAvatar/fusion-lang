@@ -1,7 +1,7 @@
 """Task 45.15 part 1 - how an array of 2 or 3 dimensions is stored (D.144, D.147, D.153, D.164).
 
 - `[arrays] storage = "flat"` (the default); "rect" comes later (D.164); "jagg" is per array only (D.153)
-- `m.setStorage(FLAT)` / `setStorage(null)`: right after the declaration - the next line, or in its
+- `m.setStorage(Storage.FLAT)` / `setStorage(null)`: right after the declaration - the next line, or in its
   set-up block (D.147); anywhere else an error
 - RECT: an error "comes later"; JAGG: only on a growable array (D.153) - built in part 2
 - the built-in enum `Storage` is added only to a program that uses it
@@ -22,11 +22,11 @@ def errors_of(body: str) -> list:
 
 
 @pytest.mark.parametrize('body', [
-    'int[2][3] m\nm.setStorage(FLAT)\nm[1][2] = 5\nprint("{@1}", m[1][2])',
+    'int[2][3] m\nm.setStorage(Storage.FLAT)\nm[1][2] = 5\nprint("{@1}", m[1][2])',
     'int[2][3] m\nm.setStorage(Storage.FLAT)\nm[1][2] = 5\nprint("{@1}", m[1][2])',
     'int[2][3] m\nm.setStorage(null)\nm[1][2] = 5\nprint("{@1}", m[1][2])',
-    'int[2][3] m = [[1, 2, 3], [4, 5, 6]] {\n    m.setStorage(FLAT)\n}\nm[1][2] = 5\nprint("{@1}", m[1][2])',
-    'int[2][3][2] c\nc.setStorage(FLAT)\nc[1][2][1] = 5\nprint("{@1}", c[1][2][1])',
+    'int[2][3] m = [[1, 2, 3], [4, 5, 6]] {\n    m.setStorage(Storage.FLAT)\n}\nm[1][2] = 5\nprint("{@1}", m[1][2])',
+    'int[2][3][2] c\nc.setStorage(Storage.FLAT)\nc[1][2][1] = 5\nprint("{@1}", c[1][2][1])',
 ])
 def test_flat_right_after_the_declaration_runs(body):
     code, out, err = compile_and_run(main(body))
@@ -35,28 +35,28 @@ def test_flat_right_after_the_declaration_runs(body):
 
 
 @pytest.mark.parametrize('body, message', [
-    ('int[2][3] m\nm[0][0] = 1\nm.setStorage(FLAT)', 'setStorage comes right after'),
-    ('int[3] a\na.setStorage(FLAT)', 'setStorage is for an array of 2 or 3 dimensions'),
-    ('int[2][3] m\nm.setStorage(RECT)', 'RECT storage comes later'),
-    ('int[2][3] m\nm.setStorage(JAGG)', 'JAGG is only for a growable array'),
-    ('int:[2][2][2] g\ng.setStorage(JAGG)', 'JAGG on 3 dimensions comes later'),
-    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(JAGG)\nprint("{@1}", j.length)', "'j' is jagged"),
-    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(JAGG)\nj.expand(ROWS, 1)', "has no method 'expand'"),
-    ('int:[][] j = [[1], [2, 3]]\nprint("{@1}", j[0][0])\nj.setStorage(JAGG)', 'setStorage comes right after'),
+    ('int[2][3] m\nm[0][0] = 1\nm.setStorage(Storage.FLAT)', 'setStorage comes right after'),
+    ('int[3] a\na.setStorage(Storage.FLAT)', 'setStorage is for an array of 2 or 3 dimensions'),
+    ('int[2][3] m\nm.setStorage(Storage.RECT)', 'RECT storage comes later'),
+    ('int[2][3] m\nm.setStorage(Storage.JAGG)', 'JAGG is only for a growable array'),
+    ('int:[2][2][2] g\ng.setStorage(Storage.JAGG)', 'JAGG on 3 dimensions comes later'),
+    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(Storage.JAGG)\nprint("{@1}", j.length)', "'j' is jagged"),
+    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(Storage.JAGG)\nj.expand(Dimension.ROWS, 1)', "has no method 'expand'"),
+    ('int:[][] j = [[1], [2, 3]]\nprint("{@1}", j[0][0])\nj.setStorage(Storage.JAGG)', 'setStorage comes right after'),
     ('int[2][3] m\nm.setStorage(5)', 'the storage is FLAT, JAGG or null'),
     # 45.6: growing an array that doesn't grow says how to get one that does
     ('int[3] a\na.add(4)', "a plain or fixed array doesn't grow or shrink - declare it int:[]"),
     ('fixed int[3] a\nprint("{@1}", a.removeLast())', "a plain or fixed array doesn't grow or shrink"),
-    ('int[2][2] m\nm.add([1, 2])', 'grows with expand(ROWS, 1)'),
+    ('int[2][2] m\nm.add([1, 2])', 'grows with expand(Dimension.ROWS, 1)'),
     ('int:[][] g = [[1, 2], [3, 4]]\ng.add([1, 2])', "an array of many dimensions doesn't grow by its items"),
-    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(JAGG)\nprint(j.toCSV())', 'toCSV on a jagged array comes later'),
+    ('int:[][] j = [[1], [2, 3]]\nj.setStorage(Storage.JAGG)\nprint(j.toCSV())', 'toCSV on a jagged array comes later'),
     ('int[2][3] m\nm.setStorage()', 'setStorage takes one value'),
 ])
 def test_wrong_storage_is_an_error(body, message):
     assert any(message in e for e in errors_of(body)), errors_of(body)
 
 
-JAGGED = 'int:[][] j = [[1], [2, 3, 4], [5, 6]]\nj.setStorage(JAGG)\n'
+JAGGED = 'int:[][] j = [[1], [2, 3, 4], [5, 6]]\nj.setStorage(Storage.JAGG)\n'
 
 
 def run(body: str, **options) -> list:
@@ -75,7 +75,7 @@ def test_jagged_rows_each_their_own_length():
 
 def test_an_empty_jagged_array_gives_0():
     # D.163: an array is empty by default - its rows and columns are 0, never null or an error
-    assert run('int:[][] e\ne.setStorage(JAGG)\nprint("{@1} {@2}", e.rows, e.columns)') == ['0 0']
+    assert run('int:[][] e\ne.setStorage(Storage.JAGG)\nprint("{@1} {@2}", e.rows, e.columns)') == ['0 0']
 
 
 def test_a_slot_outside_its_row_is_an_index_error():
@@ -95,13 +95,13 @@ def test_walking_follows_the_order(order, lines):
 
 
 def test_jagged_strings_are_copied_and_freed():
-    body = ('string:[][] s = [["a"], ["b", "c"]]\ns.setStorage(JAGG)\ns[1].add("d")\n'
+    body = ('string:[][] s = [["a"], ["b", "c"]]\ns.setStorage(Storage.JAGG)\ns[1].add("d")\n'
             'foreach (string[] column in s)\n    print("{@1} {@2}", column.length, column[0])')
     assert run(body) == ['2 a', '1 c', '1 d']
 
 
 def test_jagged_in_its_set_up_block():
-    body = 'int:[][] j = [[1], [2, 3]] {\n    j.setStorage(JAGG)\n}\nprint("{@1}", j[1].columns)'
+    body = 'int:[][] j = [[1], [2, 3]] {\n    j.setStorage(Storage.JAGG)\n}\nprint("{@1}", j[1].columns)'
     assert run(body) == ['2']
 
 
@@ -125,7 +125,7 @@ def test_the_three_walk_orders(order, line):
 
 @pytest.mark.parametrize('order', ['columns', 'rows', 'depthRows'])
 def test_expand_keeps_every_slot_in_each_order(order):
-    body = ('int:[2][2][2] g\ng[1][1][1] = 7\ng[0][1][0] = 3\ng.expand(COLUMNS, 1)\ng[1][2][1] = 9\n'
+    body = ('int:[2][2][2] g\ng[1][1][1] = 7\ng[0][1][0] = 3\ng.expand(Dimension.COLUMNS, 1)\ng[1][2][1] = 9\n'
             'print("{@1} {@2} {@3} {@4}", g[1][1][1], g[0][1][0], g[1][2][1], g.columns)')
     assert run(body, arrays_config=ArraysConfig(order=order)) == ['7 3 9 3']
 

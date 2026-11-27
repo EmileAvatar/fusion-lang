@@ -1,19 +1,15 @@
-enum Months: JANUARY FEBRUARY MARCH JUNE
+enum Months: JANUARY FEBRUARY MARCH JUNE         // an example - a Month enum comes with the date and time library
 
 void function show(Months m)
     print("{m}")
 
-Months function pick(bool late)
-    if late
-        return JUNE                     // a return of a Months
-    return Months.MARCH                 // the full name always works
-
 void function main()
-    show(JUNE)                          // a parameter - the same as show(Months.JUNE)
-    Months m = FEBRUARY                 // a declaration
-    m = JANUARY                         // an assignment
-    print("{@1} {@2}", m == JANUARY, JUNE == pick(true))     // comparisons: true true
-    match m
-        case JANUARY: print("january")  // a case - as before
+    show(Months.JUNE)                   // a value is written with its enum - everywhere
+    Months m = Months.FEBRUARY
+    print("{@1} {Months.MARCH}", m == Months.FEBRUARY)       // true MARCH
+    match m                             // in a match on a Months: either form
+        case JANUARY: print("january")
+        case Months.FEBRUARY: print("february")
         else: print("other")
-    print("{@1} {JUNE}", MARCH)         // anywhere else too, when only one enum has the name (47.10)
+    int JUNE = 6                        // a variable named like a value is just that variable
+    print("{@1} {@2}", JUNE, Months.JUNE)                    // 6 JUNE

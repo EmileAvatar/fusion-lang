@@ -45,7 +45,7 @@ def test_strings_are_copied():
 
 
 def test_a_grown_array():
-    body = M.replace('int[][]', 'int:[][]') + 'm.expand(ROWS, 1)\nList<List<int>> lists = m.toList()\n' + WALK
+    body = M.replace('int[][]', 'int:[][]') + 'm.expand(Dimension.ROWS, 1)\nList<List<int>> lists = m.toList()\n' + WALK
     assert run(main(body)) == ['1 4 0 2 5 0 3 6 0 |']
 
 

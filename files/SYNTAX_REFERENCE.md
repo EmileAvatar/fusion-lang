@@ -746,45 +746,45 @@ void function main()
     int:[][] g = [                      // growable - also int:[2][3] g or int[[2],[3]] g
         [1, 2, 3],
         [4, 5, 6]]
-    g.expand(ROWS, 1)                   // a warning: every slot is copied - now 3 x 3
+    g.expand(Dimension.ROWS, 1)                   // a warning: every slot is copied - now 3 x 3
     print("{@1} {@2} {@3}", g.rows, g[2][0], g[1][2])          // 3 0 6
-    g.expand(COLUMNS, 2)                // 3 x 5 - two new columns at the right of every row
+    g.expand(Dimension.COLUMNS, 2)                // 3 x 5 - two new columns at the right of every row
     g[2][4] = 9
     print("{@1} {@2}", g.columns, g[2][4])                      // 5 9
     int[[2],[2],[2]] cube
     cube[1][1][1] = 7
-    cube.expand(DEPTH, 1)               // a new sheet at the back - it stays a cube
+    cube.expand(Dimension.DEPTH, 1)               // a new sheet at the back - it stays a cube
     print("{@1} {@2}", cube.depth, cube[1][1][1])               // 3 7
 ```
 Only a growable array expands (D.141, D.143) - `int:[2][3]`, `int[[2],[3]]` or `int:[][] g = [...]` (best over
-several lines). `expand(ROWS / COLUMNS / DEPTH, n)` - the built-in enum `Dimension` - adds n at the end of that
+several lines). `expand(Dimension.ROWS / COLUMNS / DEPTH, n)` - the built-in enum `Dimension` - adds n at the end of that
 dimension; new slots get the default value (0, "", null). It lives on the heap; slots, parts, `foreach` and
 passing it to an `int[][]` parameter work as on any array. Not inside a loop over it; `expand(0, 1)` and a
 fourth dimension come with the Collections library.
 
-#### Jagged arrays: each row its own length (`setStorage(JAGG)`)
+#### Jagged arrays: each row its own length (`setStorage(Storage.JAGG)`)
 
 <!-- example: syntax_jagged | task: 45.15 | folder: 04_arrays -->
 ```fusion
 void function main()
     int:[][] j = [[1], [2, 3, 4], [5, 6]]
-    j.setStorage(JAGG)                  // right after the declaration (or in its set-up block)
+    j.setStorage(Storage.JAGG)                  // right after the declaration (or in its set-up block)
     print("{@1} {@2} {@3}", j.rows, j.columns, j[1].columns)   // 3 0 3 - no row given: 0 columns
     j[0].add(9)                         // one row grows on its own
     j.add([7, 8])                       // a new row
     foreach (int[] column in j)         // columns first (the default order): rows too short skipped
         print("{@1} slots, first {@2}", column.length, column[0])
     int:[][] empty
-    empty.setStorage(JAGG)
+    empty.setStorage(Storage.JAGG)
     print("{@1} {@2}", empty.rows, empty.columns)              // 0 0 - an array is empty by default
 ```
 A jagged array is a growable array of 2 dimensions whose rows each have their own length (D.144, D.153). It
-says so right after it is made - `j.setStorage(JAGG)`, the next line or in its set-up block (D.147); on a plain
+says so right after it is made - `j.setStorage(Storage.JAGG)`, the next line or in its set-up block (D.147); on a plain
 array that is an error. `j.rows` is how many rows, `j[r].columns` one row's length, and `j.columns` - no row
 given - is 0 (D.163); `j.length` is an error that says which to use. Only `j[x][y]` outside a row is an
 IndexError. `foreach` follows `[arrays] order`: columns first by default (each column a new array from the rows
 long enough for it), `order = "rows"` gives each row as it is. A row passes to an `int[]` parameter. Passing
-the whole, copying, `toList`, `toCSV`, `==`, `j[][1]` and 3 dimensions come later; `setStorage(FLAT)` /
+the whole, copying, `toList`, `toCSV`, `==`, `j[][1]` and 3 dimensions come later; `setStorage(Storage.FLAT)` /
 `null` is the default (one block), `RECT` comes later (D.164).
 
 #### Functions with arrays of 2 and 3 dimensions
@@ -1003,34 +1003,30 @@ void function main()
     print("{@1} {@2}", votes[Color.RED], Pixel(1).color)
 ```
 
-#### An enum value alone where the type is known
+#### An enum value is written with its enum
 
-<!-- example: syntax_enum_bare | task: 45.17 | folder: 06_match_and_enums -->
+<!-- example: syntax_enum_bare | task: 47.11 | folder: 06_match_and_enums -->
 ```fusion
-enum Months: JANUARY FEBRUARY MARCH JUNE
+enum Months: JANUARY FEBRUARY MARCH JUNE         // an example - a Month enum comes with the date and time library
 
 void function show(Months m)
     print("{m}")
 
-Months function pick(bool late)
-    if late
-        return JUNE                     // a return of a Months
-    return Months.MARCH                 // the full name always works
-
 void function main()
-    show(JUNE)                          // a parameter - the same as show(Months.JUNE)
-    Months m = FEBRUARY                 // a declaration
-    m = JANUARY                         // an assignment
-    print("{@1} {@2}", m == JANUARY, JUNE == pick(true))     // comparisons: true true
-    match m
-        case JANUARY: print("january")  // a case - as before
+    show(Months.JUNE)                   // a value is written with its enum - everywhere
+    Months m = Months.FEBRUARY
+    print("{@1} {Months.MARCH}", m == Months.FEBRUARY)       // true MARCH
+    match m                             // in a match on a Months: either form
+        case JANUARY: print("january")
+        case Months.FEBRUARY: print("february")
         else: print("other")
-    print("{@1} {JUNE}", MARCH)         // anywhere else too, when only one enum has the name (47.10)
+    int JUNE = 6                        // a variable named like a value is just that variable
+    print("{@1} {@2}", JUNE, Months.JUNE)                    // 6 JUNE
 ```
-A value's name alone is that value (D.150, D.197): where a Months is expected (a parameter, a declaration, a
-comparison, a case) it is a Months value; anywhere else - an argument, text, an expression - when only one enum has
-that name. Two enums with the name (`Light.RED`, `Color.RED`) outside such a place, or a variable, constant or function
-with the name: a compile error listing each - write `Months.JUNE`, which always works.
+A value is always written with its enum - `Months.JUNE` - so it never looks like a variable (D.199). In a match on an
+enum a case may be `case JUNE` or `case Months.JUNE`: the subject's enum decides, even when another enum has a JUNE.
+A value alone anywhere else is a compile error saying what to write. The built-in enums too:
+`round(x, 2, Rounding.halfUp)`, `m.setStorage(Storage.FLAT)`, `g.expand(Dimension.ROWS, 1)`.
 
 #### Enums can be null: an unset enum is `null`
 
@@ -1111,8 +1107,8 @@ enum Status                                     // no fields - just ids
     403, FORBIDDEN
 
 void function main()
-    print("{@1} {@2}", EARTH.mass, EARTH.radius)    // 5.976000 6378.140000 - no variable needed
-    Planet p = MARS                             // p borrows MARS - nothing copied, nothing freed
+    print("{@1} {@2}", Planet.EARTH.mass, Planet.EARTH.radius)    // 5.976000 6378.140000 - no variable needed
+    Planet p = Planet.MARS                      // p borrows MARS - nothing copied, nothing freed
     print("{p} {@1} {@2}", p.enumTypeName, p.value())     // Mars MARS 201
     print("{@1}", formatNumber(p.gravity(), "0.00"))      // 3.71
     for each in Planet.values()
@@ -1127,7 +1123,7 @@ enum's own functions read it, and nothing sets it. A value's data is worked out 
 constants and arithmetic on them - by position, by name (`VENUS(radius = 6051.8, mass = 4.869)`) or a field's default.
 An optional `private Enum(double m, ...)` constructor may calculate (`this.mass = m * 1000.0`); `toString()` gives
 its text in one line from the fields. An enum without fields whose values are given data holds a const array per
-value - `SMALL(2, 3, 5)` then `SMALL[1]`. `[enums] upperCaseNames = true` warns on a value name not in capitals
+value - `SMALL(2, 3, 5)` then `Primes.SMALL[1]`. `[enums] upperCaseNames = true` warns on a value name not in capitals
 (`strict` an error) - capitals show a reader the name is a fixed value.
 
 #### `match`
@@ -2496,12 +2492,12 @@ void function main()
     decimal third = 1.00 / 3                       // doesn't end: 18 places, rounded once
     decimal quarter = 10.00 / 4                    // ends: exact, 2.50
     print("{sum} {vat} {third} {quarter}")
-    print("{@1} {@2}", round(vat, 2), vat.round(2, halfUp))       // halfEven unless a mode is named
-    print("{@1}", divide(10.00, 3, 4, down))       // places and mode written: 3.3333
+    print("{@1} {@2}", round(vat, 2), vat.round(2, Rounding.halfUp))       // halfEven unless a mode is named
+    print("{@1}", divide(10.00, 3, 4, Rounding.down))       // places and mode written: 3.3333
     decimal read = toDecimal("-12.50")             // from text exactly - never from a float
     print("{read} {@1}", toDouble(quarter))
     try
-        decimal cents = round(third, 2, exact)     // the mode exact: rounding needed is an error
+        decimal cents = round(third, 2, Rounding.exact)     // the mode exact: rounding needed is an error
         print("{cents}")
     catch RoundingError e
         print("{e}")
@@ -2549,7 +2545,7 @@ void function main()
     print("{@1} {@2}", owners[0], owners[1])
     print("{@1}", bill.percent(15.5))             // R15.50
     money raw = money(12.345, "ZAR", "R")
-    print("{@1} {@2}", raw.settle(), raw.roundWith(2, halfUp))   // R12.34 (halfEven) R12.35
+    print("{@1} {@2}", raw.settle(), raw.roundWith(2, Rounding.halfUp))   // R12.34 (Rounding.halfEven) R12.35
     money yen = bill.convert("ZAR", "JPY", 8.4211)   // your rate - never fetched; JPY has 0 places
     print("{yen} {@1} {@2}", Currency.places("KWD"), Currency.symbol("EUR"))
     print(money(1234567.891, "USD", "$").format())   // $1,234,567.891

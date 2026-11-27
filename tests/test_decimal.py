@@ -3,7 +3,7 @@
     decimal price = 100.05          // a written number keeps its places exactly - never a double
     decimal sum = price + 200.125   // + - always exact, the larger scale kept: 300.175
     decimal third = 1.00 / 3        // a division that doesn't end: 18 places, rounded once ([numbers] rounding)
-    round(x, 2, halfUp)             // the mode named (the built-in enum Rounding), or the project's
+    round(x, 2, Rounding.halfUp)             // the mode named (the built-in enum Rounding), or the project's
 
 The value is an int128 (38 digits), every step in between an int256 (D.178). Every program runs under the leak check.
 """
@@ -64,19 +64,19 @@ def test_a_number_declared_without_a_value_is_zero():
     ('up', ['3', '-3', '3', '3']),
 ])
 def test_rounding_modes(mode, values):
-    assert run(main(f'print("{{@1}} {{@2}} {{@3}} {{@4}}", round(2.5, 0, {mode}), round(-2.5, 0, {mode}), '
-                    f'round(2.51, 0, {mode}), round(2.1, 0, {mode}))')) == [' '.join(values)]
+    assert run(main(f'print("{{@1}} {{@2}} {{@3}} {{@4}}", round(2.5, 0, Rounding.{mode}), round(-2.5, 0, Rounding.{mode}), '
+                    f'round(2.51, 0, Rounding.{mode}), round(2.1, 0, Rounding.{mode}))')) == [' '.join(values)]
 
 
 def test_round_and_divide_with_places_and_the_method_form():
-    assert run(main('decimal v = 115.55775\nprint("{@1} {@2} {@3}", round(v, 2), v.round(3, halfUp), round(v, 6))\n'
-                    + show('divide(10.00, 3, 4, down)') + '\n' + show('divide(2.0, 3, 2)'))) == [
+    assert run(main('decimal v = 115.55775\nprint("{@1} {@2} {@3}", round(v, 2), v.round(3, Rounding.halfUp), round(v, 6))\n'
+                    + show('divide(10.00, 3, 4, Rounding.down)') + '\n' + show('divide(2.0, 3, 2)'))) == [
         '115.56 115.558 115.557750', '3.3333', '0.67']
 
 
 def test_exact_mode_is_a_rounding_error():
-    assert run(main('decimal third = 1.00 / 3\ntry\n    decimal e = round(third, 2, exact)\n    print("{e}")\n'
-                    'catch RoundingError e\n    print(e.message)\n' + show('round(2.50, 1, exact)'))) == [
+    assert run(main('decimal third = 1.00 / 3\ntry\n    decimal e = round(third, 2, Rounding.exact)\n    print("{e}")\n'
+                    'catch RoundingError e\n    print(e.message)\n' + show('round(2.50, 1, Rounding.exact)'))) == [
         'the result needs rounding to 2 places - the rounding is exact', '2.5']
 
 

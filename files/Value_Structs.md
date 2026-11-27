@@ -110,8 +110,8 @@ enum Planet
     string function toString()
         return name
 
-print("{@1}", EARTH.mass)            // no variable needed - EARTH always exists
-Planet p = MARS                      // p only borrows MARS - nothing copied, nothing freed
+print("{@1}", Planet.EARTH.mass)     // no variable needed - EARTH always exists
+Planet p = Planet.MARS               // p only borrows MARS - nothing copied, nothing freed
 print("{p} {@1}", p.value())         // Mars 2
 ```
 

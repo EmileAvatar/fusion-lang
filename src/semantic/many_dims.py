@@ -744,7 +744,7 @@ class ManyDimsMixin:
                 node.location))
             return void
         if len(node.arguments) != 2:
-            self.errors.append(SemanticError("expand takes two values: the dimension (ROWS, COLUMNS, DEPTH) "
+            self.errors.append(SemanticError("expand takes two values: the dimension (Dimension.ROWS, Dimension.COLUMNS, Dimension.DEPTH) "
                                              "and how many", node.location))
             return void
         symbol = self.symbol_table.lookup('Dimension')
@@ -753,7 +753,7 @@ class ManyDimsMixin:
         if isinstance(which, LiteralExpr) and isinstance(which.value, int) and not isinstance(which.value, bool):
             self.errors.append(SemanticError(
                 "expand by a number - expand(0, 1) - comes with the Collections library; write "
-                "expand(ROWS, 1), expand(COLUMNS, 1) or expand(DEPTH, 1)", which.location))
+                "expand(Dimension.ROWS, 1), expand(Dimension.COLUMNS, 1) or expand(Dimension.DEPTH, 1)", which.location))
             return void
         kind = self._visit_value_for(dimension, which) if dimension is not None else self.visit(which)
         if not self.types_equal(kind, dimension):

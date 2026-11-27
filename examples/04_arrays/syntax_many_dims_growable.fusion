@@ -2,12 +2,12 @@ void function main()
     int:[][] g = [                      // growable - also int:[2][3] g or int[[2],[3]] g
         [1, 2, 3],
         [4, 5, 6]]
-    g.expand(ROWS, 1)                   // a warning: every slot is copied - now 3 x 3
+    g.expand(Dimension.ROWS, 1)                   // a warning: every slot is copied - now 3 x 3
     print("{@1} {@2} {@3}", g.rows, g[2][0], g[1][2])          // 3 0 6
-    g.expand(COLUMNS, 2)                // 3 x 5 - two new columns at the right of every row
+    g.expand(Dimension.COLUMNS, 2)                // 3 x 5 - two new columns at the right of every row
     g[2][4] = 9
     print("{@1} {@2}", g.columns, g[2][4])                      // 5 9
     int[[2],[2],[2]] cube
     cube[1][1][1] = 7
-    cube.expand(DEPTH, 1)               // a new sheet at the back - it stays a cube
+    cube.expand(Dimension.DEPTH, 1)               // a new sheet at the back - it stays a cube
     print("{@1} {@2}", cube.depth, cube[1][1][1])               // 3 7

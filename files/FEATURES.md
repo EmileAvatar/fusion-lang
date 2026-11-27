@@ -443,10 +443,14 @@ then each point is decided and solved completely. One line per section and per l
 		[ ] 47.9e Constants for the special values: `Double.MAX`, `Double.MIN`, `Double.EPSILON`, infinity and NaN
 			by name only (`Double.INFINITY`, `Double.NAN`) - never written as a number; with 47.4 FusionType
 		[ ] 47.9f The editors' grammar, the self-hosted lexer (selfhost/lexer) and fusion.ebnf read each new form
-	[DONE 2026-11-27] 47.10 An enum value alone anywhere (D.197): `print("{@1}", OK)`, "{OK}", any argument or
-		expression when only one enum has OK; two enums, or a variable / constant / function of that name - a compile
-		error listing each; where the type is known the expected enum still decides (D.150); tests/test_bare_enum.py,
-		syntax_enum_bare
+	[DONE 2026-11-27, replaced by 47.11] 47.10 An enum value alone anywhere (D.197)
+	[DONE 2026-11-27] 47.11 An enum value is written with its enum (D.199 - replaces D.150, D.197): `Status.OK`
+		everywhere; a match's case `case OK` or `case Status.OK` (the subject decides); a value alone an error saying
+		what to write; a variable named like a value is that variable; the built-in enums in full (Rounding.halfUp,
+		Storage.FLAT, Dimension.ROWS); tests/test_bare_enum.py, syntax_enum_bare
+	[ ] 47.12 `[source] shadowing` (D.200): off - a name already used further out an error; on - the nearest wins;
+		reaching the outer one (user, 2026-11-27): `this.total` (a field), `::total` (the module) - `:total` and
+		`Orders.total` to settle (statics use Class.name; `:` has other jobs)
 	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - files/Ownership.md, files/Service.md)
 		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
 		`fixed(10) string name`: at most 10 characters, kept inline - no heap

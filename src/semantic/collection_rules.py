@@ -259,7 +259,7 @@ class CollectionRulesMixin:
                 shape = ''.join('[]' for _ in receiver_type.dims)
                 what = 'an array of many dimensions' if receiver_type.growable else 'a plain or fixed array'
                 message = (f"{node.callee.member}: {what} doesn't grow by its items - a growable one "
-                           f"({element}:{shape}) grows with expand(ROWS, 1); rows of their own length: "
+                           f"({element}:{shape}) grows with expand(Dimension.ROWS, 1); rows of their own length: "
                            f"setStorage(JAGG) (D.143, D.153)")
             else:
                 message = (f"{node.callee.member}: a plain or fixed array doesn't grow or shrink - declare it "

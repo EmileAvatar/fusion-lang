@@ -4,7 +4,7 @@
         MERCURY(0.3303, 2439.7, "Mercury")           // id 0
         EARTH(5.976, 6378.14, "Earth"), 200          // id written at the back
         201, MARS(0.6421, 3397.2, "Mars")            // or at the front
-        public const double mass                     // EARTH.mass, p.mass - never set
+        public const double mass                     // Planet.EARTH.mass, p.mass - never set
         double function gravity(double kg) ...       // a method
         string function toString() : name            // printing shows Earth
 
@@ -59,11 +59,11 @@ def errors_of(body: str, top: str = PLANET) -> list:
 # ---- fields, ids, toString ----
 
 def test_fields_read_without_a_variable():
-    assert run('print("{@1} {@2}", EARTH.mass, Planet.MARS.radius)') == ['5.976000 3397.200000']
+    assert run('print("{@1} {@2}", Planet.EARTH.mass, Planet.MARS.radius)') == ['5.976000 3397.200000']
 
 
 def test_a_variable_borrows_a_value():
-    assert run('Planet p = MARS\nprint("{p} {@1} {@2} {@3}", p.name, p.value(), p.id)\nprint("{@1}", p.enumTypeName)') \
+    assert run('Planet p = Planet.MARS\nprint("{p} {@1} {@2} {@3}", p.name, p.value(), p.id)\nprint("{@1}", p.enumTypeName)') \
         == ['Mars Mars 201 201', 'MARS']
 
 
@@ -84,7 +84,7 @@ def test_two_values_with_one_id():
 
 def test_a_status_enum_of_ids():
     top = 'enum Status\n    200, OK\n    403, ERROR\n    500, SERVER_ERROR\n\n'
-    assert run('print("{@1} {@2} {@3}", Status.OK, OK.value(), Status.fromValue(403))\nprint(toString(SERVER_ERROR.id))',
+    assert run('print("{@1} {@2} {@3}", Status.OK, Status.OK.value(), Status.fromValue(403))\nprint(toString(Status.SERVER_ERROR.id))',
                top) == ['OK 200 ERROR', '500']
 
 
@@ -96,7 +96,7 @@ def test_from_value_unknown_is_an_error():
 
 def test_to_string_by_default_is_the_name():
     top = 'enum Planet\n    EARTH(5.976)\n\n    public const double mass\n\n'
-    assert run('print("{@1}", Planet.EARTH)\nPlanet p = EARTH\nprint("{p} {@1}", toString(p))', top) == ['EARTH', 'EARTH EARTH']
+    assert run('print("{@1}", Planet.EARTH)\nPlanet p = Planet.EARTH\nprint("{p} {@1}", toString(p))', top) == ['EARTH', 'EARTH EARTH']
 
 
 def test_to_string_with_text_worked_out():
@@ -106,14 +106,14 @@ def test_to_string_with_text_worked_out():
 
 
 def test_a_method_and_a_value_in_a_struct_and_list():
-    assert run('print("{@1}", EARTH.gravity(80.0) > 700.0)\nList<Planet> all = Planet.values()\ndouble total = 0.0\n'
+    assert run('print("{@1}", Planet.EARTH.gravity(80.0) > 700.0)\nList<Planet> all = Planet.values()\ndouble total = 0.0\n'
                'for p in all\n    total = total + p.mass\nprint("{@1}", total > 6.9)') == ['true', 'true']
 
 
 def test_named_values_and_defaults():
     top = ('enum Planet\n    EARTH(5.976, 6378.14)\n    VENUS(radius = 6051.8, mass = 4.869, name = "Venus")\n\n'
            '    public const double mass\n    public const double radius\n    public const string name = "?"\n\n')
-    assert run('print("{@1} {@2} {@3}", EARTH.name, VENUS.name, VENUS.radius)', top) == ['? Venus 6051.800000']
+    assert run('print("{@1} {@2} {@3}", Planet.EARTH.name, Planet.VENUS.name, Planet.VENUS.radius)', top) == ['? Venus 6051.800000']
 
 
 def test_a_constructor_with_a_calculation():
@@ -122,7 +122,7 @@ def test_a_constructor_with_a_calculation():
            '    public const double massTonnes\n    public const double radius\n    public const string label\n\n'
            '    private Enum(double m, double r, string n)\n        this.massTonnes = m * SCALE\n'
            '        this.radius = r\n        label = "Planet " + n\n\n')
-    assert run('print("{@1} {@2}", EARTH.massTonnes, EARTH.label)', top) == ['5976.000000 Planet Earth']
+    assert run('print("{@1} {@2}", Planet.EARTH.massTonnes, Planet.EARTH.label)', top) == ['5976.000000 Planet Earth']
 
 
 def test_const_static_before_enum():
@@ -135,8 +135,8 @@ def test_every_field_type():
            '    public const bool b\n    public const char c\n    public const byte y\n    public const short s\n'
            '    public const int i\n    public const long l\n    public const int128 w\n    public const float f\n'
            '    public const double d\n    public const string t\n\n')
-    assert run('print("{@1} {@2} {@3} {@4} {@5}", ONE.b, ONE.c, ONE.y, ONE.s, ONE.i)\n'
-               'print("{@1} {@2} {@3} {@4} {@5}", ONE.l, ONE.w, ONE.f, ONE.d, ONE.t)', top) == [
+    assert run('print("{@1} {@2} {@3} {@4} {@5}", Thing.ONE.b, Thing.ONE.c, Thing.ONE.y, Thing.ONE.s, Thing.ONE.i)\n'
+               'print("{@1} {@2} {@3} {@4} {@5}", Thing.ONE.l, Thing.ONE.w, Thing.ONE.f, Thing.ONE.d, Thing.ONE.t)', top) == [
         'true x 7 300 100000', '10000000000 99999999999999999999999 1.500000 2.500000 t']
 
 
@@ -150,13 +150,13 @@ PRIMES = 'enum Primes\n    SMALL(2, 3, 5)\n    BIG(101, 103)\n\n'
 
 
 def test_items_of_a_value():
-    assert run('print("{@1} {@2}", SMALL[1], BIG[0])\nPrimes q = SMALL\nprint("{@1}", q[2])', PRIMES) == ['3 101', '5']
+    assert run('print("{@1} {@2}", Primes.SMALL[1], Primes.BIG[0])\nPrimes q = Primes.SMALL\nprint("{@1}", q[2])', PRIMES) == ['3 101', '5']
 
 
 def test_an_item_past_the_end():
-    found = errors_of('print("{@1}", BIG[2])', PRIMES)
+    found = errors_of('print("{@1}", Primes.BIG[2])', PRIMES)
     assert any('BIG holds 2 item(s), 0 to 1' in e for e in found), found
-    lines = run('int i = 5\nprint("{@1}", SMALL[i])', PRIMES, expect_fail=True)
+    lines = run('int i = 5\nprint("{@1}", Primes.SMALL[i])', PRIMES, expect_fail=True)
     assert any('index 5 is outside the value (it holds 3)' in line for line in lines), lines
 
 
@@ -191,20 +191,20 @@ def test_declaration_errors(top, problem):
 
 
 def test_a_field_is_never_set():
-    found = errors_of('EARTH.mass = 1.0\nPlanet p = MARS\np.radius = 2.0')
+    found = errors_of('Planet.EARTH.mass = 1.0\nPlanet p = Planet.MARS\np.radius = 2.0')
     assert sum("An enum's data is fixed" in e for e in found) == 2, found
 
 
 def test_a_private_field_is_read_only_inside():
     top = ('enum Planet\n    EARTH(5.976)\n\n    double mass\n\n'
            '    double function heavier(double x)\n        return mass * x\n\n')
-    found = errors_of('print("{@1}", EARTH.mass)', top)
+    found = errors_of('print("{@1}", Planet.EARTH.mass)', top)
     assert any("is private - write public const double mass" in e for e in found), found
-    assert run('print("{@1}", EARTH.heavier(2.0))', top) == ['11.952000']
+    assert run('print("{@1}", Planet.EARTH.heavier(2.0))', top) == ['11.952000']
 
 
 def test_unknown_field_and_method():
-    found = errors_of('print("{@1}", EARTH.weight)\nprint("{@1}", EARTH.spin())')
+    found = errors_of('print("{@1}", Planet.EARTH.weight)\nprint("{@1}", Planet.EARTH.spin())')
     assert any("has no field 'weight'" in e for e in found), found
     assert any("no method 'spin'" in e for e in found), found
 

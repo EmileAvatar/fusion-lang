@@ -211,43 +211,9 @@ class EnumRulesMixin:
     def enum_type(self, decl: EnumDecl, location) -> EnumType:
         return EnumType(location=location, name=decl.name, declaration=decl)
 
-    def bare_enum_value(self, expected: EnumType, node):
-        """`JUNE` where a Months is expected (Task 45.17, D.150): a parameter, a declaration, an
-        assignment, a return, a comparison. Its type - or None when the name isn't one of
-        Months's values. A variable of the same name there is an error: nothing chosen silently."""
-        decl = expected.declaration
-        variant = decl.variant(node.name) if decl is not None else None
-        if variant is None or variant.fields:
-            return None
-        if self.symbol_table.lookup(node.name) is not None:
-            self.errors.append(SemanticError(
-                f"'{node.name}' is both a variable and a {decl.name} value - write {decl.name}.{node.name} "
-                f"for the value, or rename the variable (D.150)", node.location))
-            return expected
-        node.enum_value = EnumValueExpr(location=node.location, enum_name=decl.name, member=node.name,
-                                        declaration=decl)
-        self.visit(node.enum_value)
-        node.inferred_type = expected
-        return expected
-
     # ---- an enum as a built-in value struct (Task 47.3, D.188-D.193) ----
 
     _ENUM_BUILT_IN_FIELDS = {'id': 'int', 'enumTypeName': 'string'}
-
-    def bare_enum_receiver(self, node) -> None:
-        """`EARTH.mass`, `OK.value()`, `SMALL[1]`: a value written alone before `.` or `[` is the value of the
-        one enum that has it (no variable of that name) - EnumValueExpr in place."""
-        owners = getattr(node, 'bare_enum', None) if isinstance(node, IdentifierExpr) else None
-        if not owners or len(owners) != 1 or self.symbol_table.lookup(node.name) is not None:
-            return
-        decl = getattr(self, 'enum_decls', {}).get(owners[0])
-        if decl is None:
-            return
-        name, location = node.name, node.location
-        node.__class__ = EnumValueExpr
-        node.__dict__.clear()
-        node.__dict__.update(EnumValueExpr(location=location, enum_name=decl.name, member=name,
-                                           declaration=decl).__dict__)
 
     def enum_field_type(self, node: MemberExpr, object_type: EnumType) -> TypeNode:
         """`p.mass`, `EARTH.radius`, `p.id`, `p.enumTypeName` (D.188-D.190): a field of the value - private ones
@@ -272,7 +238,6 @@ class EnumRulesMixin:
 
     def enum_field_assigned(self, target: MemberExpr) -> bool:
         """`EARTH.mass = 1.0` - an error: an enum's data is fixed (D.190). True when target is an enum's field."""
-        self.bare_enum_receiver(target.object)
         object_type = self.visit(target.object)
         if not isinstance(object_type, EnumType):
             return False
@@ -305,31 +270,13 @@ class EnumRulesMixin:
         node.enum_items = decl.name
         return PrimitiveType(location=node.location, name=kind)
 
-    @staticmethod
-    def _one_of(names) -> str:
-        names = list(names)
-        return names[0] if len(names) == 1 else ', '.join(names[:-1]) + ' or ' + names[-1]
-
-    def bare_enum_anywhere(self, node) -> TypeNode:
-        """`print(OK)` (D.197, extends D.150): a value's name alone is that value when only one enum has it - else
-        an error naming each enum that has it."""
-        self.bare_enum_receiver(node)
-        if isinstance(node, EnumValueExpr):
-            node.inferred_type = self.visit_EnumValueExpr(node)
-            return node.inferred_type
-        choices = self._one_of(f'{owner}.{node.name}' for owner in node.bare_enum)
+    def enum_value_alone(self, node) -> TypeNode:
+        """`OK` alone outside a match's cases - an error: an enum value is written with its enum (D.199)."""
+        owners = list(node.bare_enum)
+        full = owners[0] + '.' + node.name if len(owners) == 1 else             ', '.join(f'{o}.{node.name}' for o in owners[:-1]) + f' or {owners[-1]}.{node.name}'
         self.errors.append(SemanticError(
-            f"'{node.name}' is {choices} - write which (D.197)", node.location))
+            f"'{node.name}' is an enum value - write {full} (D.199)", node.location))
         return PrimitiveType(location=node.location, name='void')
-
-    def shared_enum_name(self, node, symbol) -> None:
-        """A variable, constant or function with an enum value's name, read alone - an error naming each (D.197)."""
-        what = {'function': 'the function'}.get(getattr(symbol, 'symbol_type', None),
-                                                 'the constant' if getattr(symbol, 'is_const', False) else 'the variable')
-        choices = self._one_of([f'{owner}.{node.name}' for owner in node.shares_enum_name] + [f'{what} {node.name}'])
-        self.errors.append(SemanticError(
-            f"'{node.name}' is {choices} - write the enum's value in full, or rename the "
-            f"{what.split()[1]} (D.197)", node.location))
 
     def visit_EnumValueExpr(self, node: EnumValueExpr) -> TypeNode:
         decl = node.declaration
@@ -497,10 +444,13 @@ class EnumRulesMixin:
         for case in node.cases:
             for pattern in case.patterns:
                 if pattern.dotted:
-                    self.errors.append(SemanticError(
-                        f"In a case, write just the value's name: case "
-                        f"{pattern.name.split('.')[-1]}", pattern.location))
-                    continue
+                    owner, _, short = pattern.name.rpartition('.')
+                    if owner != decl.name:       # case Status.OK or case OK - the subject decides (D.199)
+                        self.errors.append(SemanticError(
+                            f"This match is on {decl.name} - write case {short} or case {decl.name}.{short}",
+                            pattern.location))
+                        continue
+                    pattern.name, pattern.dotted = short, False
                 if pattern.name is None:
                     self.errors.append(SemanticError(
                         f"A case on enum '{decl.name}' names one of its values, e.g. case "
