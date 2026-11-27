@@ -2502,6 +2502,30 @@ void function main()
 `int128` and `int256` are signed (negative values too). They never mix with a `float` or `double` - they hold more
 digits than a double keeps. `toInt128` / `toInt256` take text or any whole number.
 
+#### Writing numbers: exponents, suffixes, hex past 32 bits
+
+<!-- example: syntax_number_notations | task: 47.9 | folder: 01_basics -->
+```fusion
+void function main()
+    double g = 6.67e-11                 // an exponent - 1e6, 5.976E24, 1.5e3f too
+    print("{@1}", g * 1e11 > 6.6)       // true
+    decimal d = 1.25e2                  // exact: the places written are kept - 125.00
+    print("{d}")
+    long big = 0xFFFF_FFFF_FFFF         // hex past 32 bits: a long (int128, int256 as needed)
+    print("{big}")                      // 281474976710655
+    let price = 19.99m                  // m: money - the type is in the value
+    let rate = 0.155dec                 // dec: decimal
+    print("{price} {rate}")             // 19.99 0.155
+    print("{@1}", Double.MAX > 1e308)   // the special values by name: MAX MIN EPSILON INFINITY NAN
+```
+A number has a digit on both sides of its point - `.5` and `5.` are errors that say "write 0.5" / "write 5.0" (D.195).
+An exponent (`e` or `E`, a sign, digits) works with or without a point; past a double's range (`1e400`) it is a compile
+error, never infinity. A written number takes the smallest type that holds it - a float, a double past a float's range
+(D.196); stored as a decimal or money its digits are kept exactly, and a negative exponent adds places (`1.5e-3` is
+0.0015). `m` (money) and `dec` (decimal) go on any number (`5m`); `f` / `d` give a float / double. Hex, binary and octal
+up to 32 bits are a 32-bit pattern (`0xFFFFFFFF` is -1); past it they are their value. `Double.INFINITY` and
+`Double.NAN` (and `Float.*`) are the only way to write those values.
+
 #### Exact numbers: `decimal`
 
 <!-- example: syntax_decimal | task: 47.8 | folder: 01_basics -->

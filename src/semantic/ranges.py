@@ -34,9 +34,11 @@ def written_number(node):
     if node.type_hint == 'int':
         number = Decimal(integer_value(node.value) if isinstance(node.value, str) else node.value)
     elif node.type_hint in ('float', 'double') and getattr(node, 'written', None):
+        from src.lexer.literals import decimal_digits
         try:
-            number = Decimal(node.written.rstrip('fFdD').replace('_', ''))
-        except InvalidOperation:
+            digits, scale = decimal_digits(node.written)          # 6.67e-11, 19.99m too (47.9)
+            number = Decimal(digits).scaleb(-scale)
+        except (InvalidOperation, ValueError):
             return None
     else:
         return None

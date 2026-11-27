@@ -7948,3 +7948,35 @@ How others handle reaching the outer variable:
 - Java, C#: a local can't shadow another local (a compile error - C# CS0136); a field can, reached by `this.x`
 - Python: `nonlocal x` / `global x` before assigning changes the outer one
 - Kotlin: allowed with a warning; Go's vet tool warns
+
+---
+
+## Task 47.9 - number notations (done 2026-11-27)
+
+**47.9 Number notations** (D.195, D.196 - FEATURES 47.9) - plan, waiting for approval
+```fusion
+double g = 6.67e-11              // exponents: e or E, a sign, digits - `1e6` too (no point needed)
+float f = 1.5e3f                 // with the f / d suffix and `_` (1_000e3)
+decimal d = 1.25e2               // exact for decimal and money: 125 (the places written less the exponent, never below 0)
+long big = 0xFFFF_FFFF_FFFF      // hex / binary / octal past 32 bits: a long, int128 or int256 by its value
+let price = 19.99m               // money - the places kept (D.196)
+let rate = 0.155dec              // decimal
+double half = .5                 // error: write 0.5 (D.195)
+double five = 5.                 // error: write 5.0
+```
+- 47.9a Exponents (lexer `parse_float`): `6.67e-11`, `5.976E24`, `1e6`; with `_` and f / d; a written number with an
+  exponent is a double unless stored as a float or a decimal / money (then its digits exactly, as 47.8 does); past a
+  double's range (`1e400`) a compile error, never infinity; too small (`1e-400`) a compile error, never 0
+- 47.9b Hex / binary / octal past 32 bits: up to 32 bits stays today's rule (a 32-bit pattern - `0xFFFFFFFF` is -1,
+  18.3.6d); past it the value as a long, then int128, then int256 - as written whole numbers (47.1, 47.7); past 256
+  bits an error
+- 47.9c A digit on both sides of the point (D.195): `.5` and `5.` compile errors saying "write 0.5" / "write 5.0";
+  the tests that write `2.` today get `2.0`
+- 47.9d Suffixes (D.196): `19.99m` money and `0.155dec` decimal - a whole number too (`5m`, `3dec`); places kept as
+  written; for `let` / `var` and anywhere a type isn't written; `d` stays double; a suffix on a hex number an error
+- 47.9e Named special values (with 47.4 later): `Double.MAX`, `Double.MIN`, `Double.EPSILON`, `Double.INFINITY`,
+  `Double.NAN` and the same for `Float` - infinity and NaN only by name, never written as a number
+- 47.9f Everything that reads numbers: the editors' grammar and the Markdown preview (build_grammar.py), the self-hosted
+  lexer (selfhost/lexer - its tokens are compared with the Python lexer's on every example), fusion.ebnf + its page
+- Tests: tests/test_number_notations.py; SYNTAX_REFERENCE: the numbers section grows the new forms
+- Settings: none

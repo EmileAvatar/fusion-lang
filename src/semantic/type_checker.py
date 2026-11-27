@@ -493,16 +493,18 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         literal, negative = value, False
         if isinstance(value, UnaryExpr) and value.operator == '-':
             literal, negative = value.operand, True
-        if isinstance(literal, LiteralExpr) and literal.type_hint == 'float' and getattr(literal, 'written', None):
-            whole, _, places = literal.written.rstrip('fFdD').partition('.')
-            if len(places) > 18:
+        if isinstance(literal, LiteralExpr) and literal.type_hint in ('float', 'double') \
+                and getattr(literal, 'written', None):
+            from src.lexer.literals import decimal_digits       # 1.25e2 is 125.00, 1.5e-3 is 0.0015 (47.9a)
+            number, places = decimal_digits(literal.written)
+            if places > 18:
                 self.errors.append(SemanticError(
-                    f"{literal.written} has {len(places)} places - a decimal holds up to 18", value.location))
-            number = int(whole + places) * (-1 if negative else 1)
+                    f"{literal.written} has {places} places - a decimal holds up to 18", value.location))
+            number = number * (-1 if negative else 1)
             if abs(number) >= 10 ** 38:
                 self.errors.append(SemanticError(
                     f"{literal.written} has more than 38 digits - more than a decimal holds", value.location))
-            value.decimal_literal = (number, len(places))
+            value.decimal_literal = (number, places)
             value.inferred_type = decimal
             return decimal
         if name in ('byte', 'short', 'int', 'long', 'int128'):
@@ -534,7 +536,8 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         if name == 'money':
             return value_type
         literal = value.operand if isinstance(value, UnaryExpr) and value.operator == '-' else value
-        if isinstance(literal, LiteralExpr) and literal.type_hint == 'float' and getattr(literal, 'written', None):
+        if isinstance(literal, LiteralExpr) and literal.type_hint in ('float', 'double') \
+                and getattr(literal, 'written', None):
             self.to_decimal(value, value_type)
             number, scale = value.decimal_literal
             if not -(1 << 63) <= number < (1 << 63):
@@ -832,6 +835,16 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Returns:
             Type of the literal
         """
+        # 19.99m money, 0.155dec decimal - the type in the value, for let / var (47.9d, D.196)
+        suffix = getattr(node, 'suffix', None)
+        if suffix in ('m', 'dec') and not getattr(node, 'suffix_done', False):
+            node.suffix_done = True
+            written = PrimitiveType(location=node.location, name=node.type_hint)
+            return self.to_money(node, written) if suffix == 'm' else self.to_decimal(node, written)
+        if getattr(node, 'money_literal', None) is not None:
+            return PrimitiveType(location=node.location, name='money')
+        if getattr(node, 'decimal_literal', None) is not None:
+            return PrimitiveType(location=node.location, name='decimal')
         # Map literal type hints to actual types
         type_map = {
             'int': 'int',
@@ -1102,6 +1115,21 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         # Unknown operator - return void for error recovery
         return PrimitiveType(location=node.location, name='void')
+
+    # The named special values of the decimal number types (47.9e): MAX the largest, MIN the most negative (as C#),
+    # EPSILON the gap between 1 and the next number (C's DBL_EPSILON), INFINITY and NAN - never written as numbers
+    NUMBER_CONSTANTS = {'Double': 'double', 'Float': 'float'}
+    NUMBER_CONSTANT_NAMES = ('MAX', 'MIN', 'EPSILON', 'INFINITY', 'NAN')
+
+    def number_constant(self, node) -> TypeNode:
+        kind = self.NUMBER_CONSTANTS[node.object.name]
+        if node.member not in self.NUMBER_CONSTANT_NAMES:
+            self.errors.append(SemanticError(
+                f"{node.object.name} has no value '{node.member}' - it has {', '.join(self.NUMBER_CONSTANT_NAMES)}",
+                node.location))
+            return PrimitiveType(location=node.location, name='void')
+        node.number_constant = (kind, node.member)
+        return PrimitiveType(location=node.location, name=kind)
 
     def scoped_lookup(self, node):
         """The symbol a name means (47.12, D.200): `::total` - the module's; `total` - the nearest. A local that hides
@@ -2955,6 +2983,9 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         Returns:
             The field's type (void for error recovery)
         """
+        if isinstance(node.object, IdentifierExpr) and node.object.name in self.NUMBER_CONSTANTS \
+                and self.symbol_table.lookup(node.object.name) is None:
+            return self.number_constant(node)                   # Double.MAX, Float.NAN (47.9e)
         object_type = self.visit(node.object)
         if isinstance(object_type, EnumType):
             return self.enum_field_type(node, object_type)      # p.mass, p.id, p.enumTypeName (47.3)

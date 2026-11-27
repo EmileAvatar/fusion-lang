@@ -92,8 +92,10 @@ def grammar() -> dict:
                 {'name': 'constant.numeric.hex.fusion', 'match': r'\b0[xX][0-9A-Fa-f_]+\b'},
                 {'name': 'constant.numeric.binary.fusion', 'match': r'\b0[bB][01_]+\b'},
                 {'name': 'constant.numeric.octal.fusion', 'match': r'\b0[oO][0-7_]+\b'},
-                {'name': 'constant.numeric.decimal.fusion', 'match': r'\b\d[\d_]*\.\d[\d_]*([eE][+-]?\d+)?\b'},
-                {'name': 'constant.numeric.integer.fusion', 'match': r'\b\d[\d_]*\b'}]},
+                {'name': 'constant.numeric.decimal.fusion',      # 1.5, 6.67e-11, 1e6, 19.99m, 0.155dec (47.9)
+                 'match': r'\b\d[\d_]*(\.\d[\d_]*([eE][+-]?\d[\d_]*)?|[eE][+-]?\d[\d_]*)(dec|[mfFdD])?\b'},
+                {'name': 'constant.numeric.decimal.fusion', 'match': r'\b\d[\d_]*(dec|m)\b'},     # 5m, 3dec
+                {'name': 'constant.numeric.integer.fusion', 'match': r'\b\d[\d_]*[Ll]?\b'}]},
             'declarations': {'patterns': [
                 {'match': r'\b(function|func)\s+([A-Za-z_]\w*)',
                  'captures': {'1': {'name': 'storage.type.function.fusion'}, '2': {'name': 'entity.name.function.fusion'}}},
@@ -274,7 +276,7 @@ const RULES = [
   [/^\/\/[^\n]*/, 'comment'],
   [/^"(\\.|[^"\\\n])*"?/, 'string'],
   [/^'(\\(u\{[0-9A-Fa-f]+\}|u[0-9A-Fa-f]{4}|.)|[^'\\\n])'/, 'char'],
-  [/^(0[xX][0-9A-Fa-f_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*\.\d[\d_]*([eE][+-]?\d+)?|\d[\d_]*)/, 'number'],
+  [/^(0[xX][0-9A-Fa-f_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(\.\d[\d_]*([eE][+-]?\d[\d_]*)?|[eE][+-]?\d[\d_]*)(dec|[mfFdD])?(?![A-Za-z0-9_])|\d[\d_]*(dec|m)(?![A-Za-z0-9_])|\d[\d_]*[Ll]?)/, 'number'],
   [/^[A-Za-z_][A-Za-z0-9_]*/, 'word'],
   [/^(\.\.\.|\?\.|\?\?|===|!==|==|!=|<=|>=|->|=>|::|[-+*\/%=<>!&|^~?:])/, 'operator'],
 ];

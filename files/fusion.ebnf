@@ -316,8 +316,8 @@ argument = identifier "=" expression | expression ;
 literal = integer_literal | float_literal | string_literal | char_literal
         | boolean_literal | array_literal ;
 
-(* "_" between digits (1_000_000); hex, binary and octal read as the bit pattern, up to 32 bits
-   (18.3.6d); past an int's range a number is a long (47.1), then an int128, then an int256 (47.7);
+(* "_" between digits (1_000_000); hex, binary and octal read as the bit pattern up to 32 bits
+   (18.3.6d), past it as their value - a long, int128 or int256 (47.9b); past an int's range a number is a long (47.1), then an int128, then an int256 (47.7);
    an optional L suffix *)
 integer_literal =
       digits [ "L" | "l" ]
@@ -325,7 +325,11 @@ integer_literal =
     | "0" ( "b" | "B" ) binary_digit { [ "_" ] binary_digit }
     | "0" ( "o" | "O" ) octal_digit { [ "_" ] octal_digit } ;
 
-float_literal = digits "." digits [ "f" | "F" | "d" | "D" ] ;      (* no exponent (3.2e5) yet *)
+(* A digit on both sides of the point - .5 and 5. are errors (D.195); an exponent (6.67e-11, 1e6 - 47.9a); m money and
+   dec decimal on any number, the places kept (19.99m, 0.155dec, 5m - D.196); f / d float / double *)
+float_literal = digits ( "." digits [ exponent ] | exponent ) [ "dec" | "m" | "f" | "F" | "d" | "D" ]
+              | digits ( "dec" | "m" ) ;
+exponent = ( "e" | "E" ) [ "+" | "-" ] digits ;
 
 (* "Hello {name}" - interpolation; "{@1}" - print's / format's own arguments (18.2.2b);
    \{ and \} - a brace itself (28.1.5) *)

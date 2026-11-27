@@ -127,20 +127,47 @@ def parse_based_integer(text: str, position: int) -> Optional[Tuple[str, int]]:
         raise ValueError(f"{name.capitalize()} literal needs digits after '{text[position:start]}'")
     if pos < len(text) and (text[pos].isalnum() or text[pos] == '_'):
         raise ValueError(f"'{text[pos]}' is not {name} digit in this literal")
-    if int(text[start:pos].replace('_', ''), base) > 0xFFFFFFFF:
-        raise ValueError(f"The {name.split()[1]} literal {text[position:pos]} is larger than 32 bits")
+    if int(text[start:pos].replace('_', ''), base) >= 1 << 255:
+        raise ValueError(f"The {name.split()[1]} literal {text[position:pos]} is larger than an int256 (255 bits "
+                         f"and a sign)")
     return text[position:pos], pos
 
 
 def integer_value(literal: str) -> int:
-    """The int value of an integer literal's text. A hex / binary / octal literal is a
-    32-bit pattern, so 0xFFFFFFFF is -1 - the same rule as fromHex (Task 18.3.6d, C#
-    style two's complement)."""
+    """The int value of an integer literal's text. A hex / binary / octal literal of up to 32 bits is a 32-bit
+    pattern, so 0xFFFFFFFF is -1 - the same rule as fromHex (Task 18.3.6d, C# style two's complement); past 32
+    bits it is its value - a long, int128 or int256 (47.9b)."""
     literal = literal.rstrip('Ll')
     if len(literal) > 1 and literal[0] == '0' and literal[1].lower() in _BASE_PREFIXES:
         value = int(literal, 0)
+        if value > 0xFFFFFFFF:
+            return value
         return value - 0x100000000 if value > 0x7FFFFFFF else value
     return int(literal.replace('_', ''))
+
+
+# The suffixes a number with a point or an exponent may end in (47.9d, D.196): money, decimal, float, double
+NUMBER_SUFFIXES = ('dec', 'm', 'f', 'F', 'd', 'D')
+
+
+def split_number(written: str):
+    """A decimal number as written - `19.99m`, `1.25e2`, `6.67E-11f` - as (digits before the point, after it, the
+    exponent, the suffix): ('19', '99', 0, 'm')."""
+    suffix = next((s for s in NUMBER_SUFFIXES if written.endswith(s)), '')
+    body = written[:len(written) - len(suffix)].replace('_', '')
+    mantissa, _, exponent = body.lower().partition('e')
+    whole, _, places = mantissa.partition('.')
+    return whole, places, int(exponent) if exponent else 0, suffix
+
+
+def decimal_digits(written: str):
+    """A decimal number as written, exactly: (the whole number of its smallest steps, its scale). The places written
+    are kept and a negative exponent adds places - 1.25e2 is 12500 at scale 2 (125.00), 1.5e-3 is 15 at scale 4
+    (0.0015) (47.8, 47.9a)."""
+    whole, places, exponent, _ = split_number(written)
+    digits = int((whole or '0') + places)
+    scale = len(places) + max(0, -exponent)
+    return digits * 10 ** (exponent - len(places) + scale), scale
 
 
 def parse_integer(text: str, position: int) -> Optional[Tuple[str, int]]:
@@ -196,40 +223,43 @@ def parse_float(text: str, position: int) -> Optional[Tuple[str, int]]:
     Note:
         Requires at least one digit before or after decimal point.
     """
-    if position >= len(text):
+    if position >= len(text) or not is_digit(text[position]):
         return None
 
     start = position
-    pos = position
+    pos = _skip_digits(text, position)
+    decimal = False
 
-    # Read integer part (optional if decimal point follows)
-    has_integer_part = pos < len(text) and is_digit(text[pos])
-    pos = _skip_digits(text, pos)
+    # The point: a '.' followed by a letter starts a method call (255.toHex() - 18.3.7); '...' a range (1...10 -
+    # 33.2f); otherwise a digit must follow it (D.195 - `5.` is written 5.0)
+    if pos < len(text) and text[pos] == '.' and not text.startswith('...', pos) \
+            and not (pos + 1 < len(text) and (text[pos + 1].isalpha() or text[pos + 1] == '_')):
+        if not (pos + 1 < len(text) and is_digit(text[pos + 1])):
+            raise ValueError(f"write {text[start:pos]}.0 - a number has a digit on both sides of its point (D.195)")
+        pos = _skip_digits(text, pos + 1)
+        decimal = True
 
-    # Must have decimal point for float
-    if pos >= len(text) or text[pos] != '.':
+    # An exponent: 6.67e-11, 1e6, 5.976E24 (47.9a)
+    if pos < len(text) and text[pos] in 'eE':
+        after = pos + 1
+        if after < len(text) and text[after] in '+-':
+            after += 1
+        if after < len(text) and is_digit(text[after]):
+            pos = _skip_digits(text, after)
+            decimal = True
+
+    # A suffix: m money, dec decimal (47.9d, D.196) - on any number; f / d float / double - after a point or an
+    # exponent; never the start of a longer name (5min stays a 5 and a name)
+    for suffix in NUMBER_SUFFIXES:
+        end = pos + len(suffix)
+        if text.startswith(suffix, pos) and not (end < len(text) and (text[end].isalnum() or text[end] == '_')):
+            if suffix in ('m', 'dec') or decimal:
+                pos = end
+                decimal = True
+            break
+
+    if not decimal:
         return None
-    # A '.' followed by a letter starts a method call, not decimals: 255.toHex() (18.3.7)
-    if pos + 1 < len(text) and (text[pos + 1].isalpha() or text[pos + 1] == '_'):
-        return None
-    # '...' after a number is a range, not decimals: 1...10 (Task 33.2f)
-    if text.startswith('...', pos):
-        return None
-
-    pos += 1  # Skip decimal point
-
-    # Read fractional part
-    has_fractional_part = pos < len(text) and is_digit(text[pos])
-    pos = _skip_digits(text, pos)
-
-    # Must have at least one digit somewhere
-    if not has_integer_part and not has_fractional_part:
-        return None
-
-    # Check for suffix (f, F, d, D)
-    if pos < len(text) and text[pos] in 'fFdD':
-        pos += 1
-
     return text[start:pos], pos
 
 

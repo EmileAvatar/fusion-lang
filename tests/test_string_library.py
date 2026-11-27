@@ -252,7 +252,7 @@ def test_hex_binary_octal_literals_and_underscores():
     ('0x', "A hex literal needs digits after '0x'"),
     ('0b102', "'2' is not a binary digit in this literal"),
     ('0o78', "'8' is not an octal digit"),
-    ('0x1_0000_0000', "is larger than 32 bits"),
+    ('0x1' + '0' * 64, "is larger than an int256"),          # past 32 bits is a long ... (47.9b), past 255 an error
     ('0xFG', "'G' is not a hex digit"),
 ])
 def test_bad_based_literals(literal, message):

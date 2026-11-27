@@ -46,6 +46,7 @@ Syntax
 
 Types
    - Numbers                  int, long, short, int128, int256, decimal, float, double, bool, char, byte - overflow checked, overflowWrap setting
+   - Number notations         6.67e-11, 0xFFFF_FFFF_FFFF, 19.99m, 0.155dec, Double.MAX / NAN
    - Money                    money (16 bytes: value, scale, currency, symbol) and the Currency module - every ISO 4217 currency
    - int as float             only when it fits exactly, else an error
    - Conversions              toInt, toFloat, toString, toByte, parseInt

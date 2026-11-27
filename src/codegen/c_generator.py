@@ -2015,6 +2015,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self.visit(node.length_call)       # x.length, x.len (Task 30.8)
         if getattr(node, 'enum_field', None):
             return self.enum_field_code(node)         # p.mass, EARTH.id - the enum's static table (47.3)
+        if getattr(node, 'number_constant', None):    # Double.MAX, Float.NAN - GCC's own constants (47.9e)
+            kind, name = node.number_constant
+            p = 'DBL' if kind == 'double' else 'FLT'
+            f = '' if kind == 'double' else 'f'
+            return {'MAX': f'__{p}_MAX__', 'MIN': f'(-__{p}_MAX__)', 'EPSILON': f'__{p}_EPSILON__',
+                    'INFINITY': f'__builtin_inf{f}()', 'NAN': f'__builtin_nan{f}("")'}[name]
         if getattr(node, 'dims_value', None) is not None:
             return str(node.dims_value)               # m.rows, m.length - known while compiling (45.12a)
         if getattr(node, 'self_view', False):

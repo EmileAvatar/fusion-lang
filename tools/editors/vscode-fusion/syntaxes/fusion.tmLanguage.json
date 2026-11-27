@@ -103,11 +103,15 @@
         },
         {
           "name": "constant.numeric.decimal.fusion",
-          "match": "\\b\\d[\\d_]*\\.\\d[\\d_]*([eE][+-]?\\d+)?\\b"
+          "match": "\\b\\d[\\d_]*(\\.\\d[\\d_]*([eE][+-]?\\d[\\d_]*)?|[eE][+-]?\\d[\\d_]*)(dec|[mfFdD])?\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.fusion",
+          "match": "\\b\\d[\\d_]*(dec|m)\\b"
         },
         {
           "name": "constant.numeric.integer.fusion",
-          "match": "\\b\\d[\\d_]*\\b"
+          "match": "\\b\\d[\\d_]*[Ll]?\\b"
         }
       ]
     },

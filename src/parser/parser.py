@@ -599,12 +599,23 @@ class Parser:
         # Float literal
         if self.match(TokenType.FLOAT_LIT):
             token = self.previous()
-            literal = LiteralExpr(
-                location=token.location,
-                value=float(token.value.rstrip('fFdD')),
-                type_hint="float"
-            )
+            from src.lexer.literals import split_number
+            whole, places, exponent, suffix = split_number(token.value)
+            text = f"{whole or '0'}.{places or '0'}e{exponent}"
+            value = float(text)
+            if value in (float('inf'), float('-inf')):
+                raise ParserError(token, f"{token.value} is past a double's range (about 1.8e308) - never infinity; "
+                                         f"Double.INFINITY names it")
+            if value == 0.0 and int((whole or '0') + places) != 0:
+                raise ParserError(token, f"{token.value} is too small for a double (about 4.9e-324) - it would be 0")
+            # the smallest type that holds it (D.196): a float, unless past a float's range - then a double
+            hint = 'double' if suffix in ('d', 'D') or (abs(value) > 3.4028234663852886e38 and suffix not in ('f', 'F')) \
+                else 'float'
+            if suffix in ('f', 'F') and abs(value) > 3.4028234663852886e38:
+                raise ParserError(token, f"{token.value} is past a float's range (about 3.4e38) - drop the f for a double")
+            literal = LiteralExpr(location=token.location, value=value, type_hint=hint)
             literal.written = token.value.replace('_', '')   # its digits as written - a decimal keeps them (47.8)
+            literal.suffix = suffix if suffix in ('m', 'dec') else None     # 19.99m, 0.155dec (47.9d)
             return literal
 
         # String literal (with interpolation check)

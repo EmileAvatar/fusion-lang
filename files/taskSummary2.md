@@ -29,7 +29,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-27: 47.10 an enum value alone anywhere (tests/test_bare_enum.py) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-27: 47.11 enum values written with their enum (tests/test_bare_enum.py) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-27: 47.12 `[source] shadowing` (tests/test_shadowing.py) - its plan in task/taskSummaryArchive.md
-- **Next Action:** 47.9 number notations (exponents, hex past 32 bits, the m / dec suffixes) - its plan to write
+- Done 2026-11-27: 47.9 number notations (tests/test_number_notations.py) - its plan in task/taskSummaryArchive.md
+- **Next Action:** Task 47's last parts - 47.4 the FusionType enum, 47.5 the `fixed` prefix - a plan to write
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)

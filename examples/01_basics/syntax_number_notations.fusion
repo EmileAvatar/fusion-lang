@@ -1,0 +1,11 @@
+void function main()
+    double g = 6.67e-11                 // an exponent - 1e6, 5.976E24, 1.5e3f too
+    print("{@1}", g * 1e11 > 6.6)       // true
+    decimal d = 1.25e2                  // exact: the places written are kept - 125.00
+    print("{d}")
+    long big = 0xFFFF_FFFF_FFFF         // hex past 32 bits: a long (int128, int256 as needed)
+    print("{big}")                      // 281474976710655
+    let price = 19.99m                  // m: money - the type is in the value
+    let rate = 0.155dec                 // dec: decimal
+    print("{price} {rate}")             // 19.99 0.155
+    print("{@1}", Double.MAX > 1e308)   // the special values by name: MAX MIN EPSILON INFINITY NAN

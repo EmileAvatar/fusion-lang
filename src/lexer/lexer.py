@@ -389,7 +389,10 @@ class Lexer:
             return Token(TokenType.INTEGER, value, loc)
 
         # Try float first (includes decimal point)
-        float_result = parse_float(self.source, self.pos)
+        try:
+            float_result = parse_float(self.source, self.pos)
+        except ValueError as e:                      # `5.` - write 5.0 (D.195)
+            self.error(str(e))
         if float_result:
             value, new_pos = float_result
             self.pos = new_pos
@@ -585,6 +588,14 @@ class Lexer:
 
             # Numbers - ASCII digits only (str.isdigit() also accepts e.g. Arabic-Indic
             # digits, which would then fail confusingly inside number parsing)
+            # `.5` - a point with no digit before it (D.195): write 0.5; `x.5` / `1...5` are left to the parser
+            if ch == '.' and self.pos + 1 < len(self.source) and is_digit(self.source[self.pos + 1]) \
+                    and not (self.pos > 0 and (self.source[self.pos - 1].isalnum()
+                                               or self.source[self.pos - 1] in '_.)]')):
+                end = self.pos + 1
+                while end < len(self.source) and is_digit(self.source[end]):
+                    end += 1
+                self.error(f"write 0{self.source[self.pos:end]} - a number has a digit on both sides of its point (D.195)")
             if ch and is_digit(ch):
                 tokens.append(self.tokenize_number())
                 continue

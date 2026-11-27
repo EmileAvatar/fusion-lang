@@ -213,13 +213,19 @@
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>\b\d[\d_]*\.\d[\d_]*([eE][+-]?\d+)?\b</string>
+					<string>\b\d[\d_]*(\.\d[\d_]*([eE][+-]?\d[\d_]*)?|[eE][+-]?\d[\d_]*)(dec|[mfFdD])?\b</string>
 					<key>name</key>
 					<string>constant.numeric.decimal.fusion</string>
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>\b\d[\d_]*\b</string>
+					<string>\b\d[\d_]*(dec|m)\b</string>
+					<key>name</key>
+					<string>constant.numeric.decimal.fusion</string>
+				</dict>
+				<dict>
+					<key>match</key>
+					<string>\b\d[\d_]*[Ll]?\b</string>
 					<key>name</key>
 					<string>constant.numeric.integer.fusion</string>
 				</dict>

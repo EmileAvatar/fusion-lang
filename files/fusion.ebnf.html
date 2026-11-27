@@ -86,7 +86,7 @@ semicolons - a statement ends at the end of its line.</div>
 <a class="sec" href="#expressions-lowest-precedence-first">Expressions (lowest precedence first)</a>
 <div class="rules"><a href="#expressions-lowest-precedence-first-expression">expression</a>, <a href="#expressions-lowest-precedence-first-conditional">conditional</a>, <a href="#expressions-lowest-precedence-first-coalesce">coalesce</a>, <a href="#expressions-lowest-precedence-first-logical-or">logical_or</a>, <a href="#expressions-lowest-precedence-first-logical-or">logical_and</a>, <a href="#expressions-lowest-precedence-first-equality">equality</a>, <a href="#expressions-lowest-precedence-first-comparison">comparison</a>, <a href="#expressions-lowest-precedence-first-comparison">additive</a>, <a href="#expressions-lowest-precedence-first-comparison">multiplicative</a>, <a href="#expressions-lowest-precedence-first-unary">unary</a>, <a href="#expressions-lowest-precedence-first-postfix">postfix</a>, <a href="#expressions-lowest-precedence-first-member-name">member_name</a>, <a href="#expressions-lowest-precedence-first-primary">primary</a>, <a href="#expressions-lowest-precedence-first-lambda">lambda</a>, <a href="#expressions-lowest-precedence-first-argument-list">argument_list</a>, <a href="#expressions-lowest-precedence-first-argument">argument</a></div>
 <a class="sec" href="#literals">Literals</a>
-<div class="rules"><a href="#literals-literal">literal</a>, <a href="#literals-integer-literal">integer_literal</a>, <a href="#literals-float-literal">float_literal</a>, <a href="#literals-string-literal">string_literal</a>, <a href="#literals-string-literal">interpolation</a>, <a href="#literals-char-literal">char_literal</a>, <a href="#literals-boolean-literal">boolean_literal</a>, <a href="#literals-array-literal">array_literal</a>, <a href="#literals-escape-sequence">escape_sequence</a>, <a href="#literals-digits">digits</a>, <a href="#literals-digits">digit</a>, <a href="#literals-digits">hex_digit</a>, <a href="#literals-digits">binary_digit</a>, <a href="#literals-digits">octal_digit</a></div>
+<div class="rules"><a href="#literals-literal">literal</a>, <a href="#literals-integer-literal">integer_literal</a>, <a href="#literals-float-literal">float_literal</a>, <a href="#literals-float-literal">exponent</a>, <a href="#literals-string-literal">string_literal</a>, <a href="#literals-string-literal">interpolation</a>, <a href="#literals-char-literal">char_literal</a>, <a href="#literals-boolean-literal">boolean_literal</a>, <a href="#literals-array-literal">array_literal</a>, <a href="#literals-escape-sequence">escape_sequence</a>, <a href="#literals-digits">digits</a>, <a href="#literals-digits">digit</a>, <a href="#literals-digits">hex_digit</a>, <a href="#literals-digits">binary_digit</a>, <a href="#literals-digits">octal_digit</a></div>
 <a class="sec" href="#classes">Classes</a>
 <div class="rules"><a href="#classes-class-declaration">class_declaration</a>, <a href="#classes-interface-name">interface_name</a>, <a href="#classes-class-member">class_member</a>, <a href="#classes-access">access</a>, <a href="#classes-constructor">constructor</a>, <a href="#classes-method">method</a>, <a href="#classes-field">field</a></div>
 <a class="sec" href="#interfaces">Interfaces</a>
@@ -758,8 +758,8 @@ semicolons - a statement ends at the end of its line.</div>
 <div class="head">
 <a class="task" href="../task/featuresArchive.md">18.3</a>
 <span class="status built">built</span>
-<div class="comment">&quot;_&quot; between digits (1_000_000); hex, binary and octal read as the bit pattern, up to 32 bits
-   (18.3.6d); past an int&#x27;s range a number is a long (47.1), then an int128, then an int256 (47.7);
+<div class="comment">&quot;_&quot; between digits (1_000_000); hex, binary and octal read as the bit pattern up to 32 bits
+   (18.3.6d), past it as their value - a long, int128 or int256 (47.9b); past an int&#x27;s range a number is a long (47.1), then an int128, then an int256 (47.7);
    an optional L suffix</div>
 <a class="top" href="#top">top</a>
 </div>
@@ -771,12 +771,15 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="literals-float-literal">
 <div class="head">
-<span class="task">-</span>
+<a class="task" href="../task/featuresArchive.md">19.99m</a>
 <span class="status built">built</span>
-<div class="comment">no exponent (3.2e5) yet</div>
+<div class="comment">A digit on both sides of the point - .5 and 5. are errors (D.195); an exponent (6.67e-11, 1e6 - 47.9a); m money and
+   dec decimal on any number, the places kept (19.99m, 0.155dec, 5m - D.196); f / d float / double</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">float_literal</span> <span class="o">=</span> <span class="nt">digits</span> <span class="s">&quot;.&quot;</span> <span class="nt">digits</span> <span class="o">[</span> <span class="s">&quot;f&quot;</span> <span class="o">|</span> <span class="s">&quot;F&quot;</span> <span class="o">|</span> <span class="s">&quot;d&quot;</span> <span class="o">|</span> <span class="s">&quot;D&quot;</span> <span class="o">]</span> <span class="o">;</span>      <span class="c">(* no exponent (3.2e5) yet *)</span></pre>
+<pre><span class="rule">float_literal</span> <span class="o">=</span> <span class="nt">digits</span> <span class="o">(</span> <span class="s">&quot;.&quot;</span> <span class="nt">digits</span> <span class="o">[</span> <span class="nt">exponent</span> <span class="o">]</span> <span class="o">|</span> <span class="nt">exponent</span> <span class="o">)</span> <span class="o">[</span> <span class="s">&quot;dec&quot;</span> <span class="o">|</span> <span class="s">&quot;m&quot;</span> <span class="o">|</span> <span class="s">&quot;f&quot;</span> <span class="o">|</span> <span class="s">&quot;F&quot;</span> <span class="o">|</span> <span class="s">&quot;d&quot;</span> <span class="o">|</span> <span class="s">&quot;D&quot;</span> <span class="o">]</span>
+              <span class="o">|</span> <span class="nt">digits</span> <span class="o">(</span> <span class="s">&quot;dec&quot;</span> <span class="o">|</span> <span class="s">&quot;m&quot;</span> <span class="o">)</span> <span class="o">;</span>
+<span class="rule">exponent</span> <span class="o">=</span> <span class="o">(</span> <span class="s">&quot;e&quot;</span> <span class="o">|</span> <span class="s">&quot;E&quot;</span> <span class="o">)</span> <span class="o">[</span> <span class="s">&quot;+&quot;</span> <span class="o">|</span> <span class="s">&quot;-&quot;</span> <span class="o">]</span> <span class="nt">digits</span> <span class="o">;</span></pre>
 </div>
 <div class="card" id="literals-string-literal">
 <div class="head">

@@ -179,10 +179,8 @@ class TestFloatLiterals:
         assert pos == 3
 
     def test_float_no_integer(self):
-        """Test float with no integer part."""
-        result, pos = parse_float('.5', 0)
-        assert result == '.5'
-        assert pos == 2
+        """`.5` isn't a number here - a digit on both sides of the point (D.195); the lexer says "write 0.5"."""
+        assert parse_float('.5', 0) is None
 
     def test_float_suffix_f_lowercase(self):
         """Test float with f suffix."""

@@ -31,7 +31,7 @@ def errors_of(body: str, top: str = '') -> list:
     ('int a = 2\nint b = 3\nfor i in a...b\n    print("{i}")', ['2', '3']),
     ('int a = 3\nint b = 1\nfor i in a...b\n    print("{i}")\nprint("none")', ['none']),   # as range: no turns
     ('foreach (int k in 3...4)\n    print("{k}")', ['3', '4']),
-    ('double d = 1.5\nfloat f = 2.\nprint("{@1} {@2}", d, f)', ['1.500000 2.000000']),  # decimals still decimals
+    ('double d = 1.5\nfloat f = 2.0\nprint("{@1} {@2}", d, f)', ['1.500000 2.000000']),  # decimals still decimals
 ])
 def test_ranges_in_loops(body, lines):
     assert run(body) == lines
