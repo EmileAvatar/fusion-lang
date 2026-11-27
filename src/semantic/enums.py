@@ -220,6 +220,9 @@ class EnumRulesMixin:
         only inside the enum's own functions."""
         decl = object_type.declaration
         location = node.location
+        typed = getattr(decl, 'fusion_type', None)
+        if typed is not None and node.member in ('min', 'max', 'default'):
+            return self._fusion_type_value(node, typed)   # FusionType.INT.max - an int (47.4, D.201)
         if node.member in self._ENUM_BUILT_IN_FIELDS:
             node.enum_field = node.member
             return PrimitiveType(location=location, name=self._ENUM_BUILT_IN_FIELDS[node.member])
@@ -235,6 +238,23 @@ class EnumRulesMixin:
                 f"{field.name} to read it from outside (D.190)", location))
         node.enum_field = node.member
         return field.field_type
+
+    def _fusion_type_value(self, node: MemberExpr, table) -> TypeNode:
+        """`FusionType.INT.max` (47.4): min / max / default have the value's own type, so the value must be written."""
+        location = node.location
+        if not isinstance(node.object, EnumValueExpr):
+            self.errors.append(SemanticError(
+                f"FusionType's {node.member} has the type of the value it describes - write the value: "
+                f"FusionType.INT.{node.member}", location))
+            return PrimitiveType(location=location, name='void')
+        kind, *_, low, high, default = table[node.object.member]
+        value = {'min': low, 'max': high, 'default': default}[node.member]
+        if value is None:
+            self.errors.append(SemanticError(
+                f"FusionType.{node.object.member} has no {node.member} - a {kind} has none", location))
+            return PrimitiveType(location=location, name='void')
+        node.fusion_type_value = (kind, value)
+        return PrimitiveType(location=location, name=kind)
 
     def enum_field_assigned(self, target: MemberExpr) -> bool:
         """`EARTH.mass = 1.0` - an error: an enum's data is fixed (D.190). True when target is an enum's field."""

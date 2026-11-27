@@ -52,6 +52,7 @@ Types
    - Conversions              toInt, toFloat, toString, toByte, parseInt
    - Enums                    plain and with data (tagged unions); values(), fromString(); written Status.OK, case OK in a match
    - Enums as value structs   fields (EARTH.mass), ids (200, OK), constructor, methods, toString, fromValue - static, never on the heap
+   - FusionType               every type described: FusionType.INT.max, .size, .kind, .canBeNull
    - Generics                 functions, structs, classes; conditions (extends / : / Number / int / implements);
                               T... items - of one type, or a pack show(1, "two", car);
                               types from the left - Garage<Car> g = Garage(); a parent / interfaces (Box<T>, Collection<T>); statics per copy
@@ -191,7 +192,6 @@ Syntax
    - ' comments (VB) [postponed]
 
 Types
-   - FusionType enum [planned]
    - fixed(n) [planned]              max size: fixed(10) string name
    - Operator overloading [design]   a setting, off
    - Flag enums [design]             Read | Write

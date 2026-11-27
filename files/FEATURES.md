@@ -460,14 +460,9 @@ then each point is decided and solved completely. One line per section and per l
 		Lower is fine, higher never - an error, never a silent cut
 		Starts empty, grows as needed up to its maximum; memory reserved once
 		The size may be a constant set by the hardware or a setting (H9)
-	[ ] 47.4 A built-in enum `FusionType` describing every type (user, 2026-10-29 - the table in
-		files/FusionTypes.html): fields Type, Kind, Default, Min, Max, Size, CanBeNull. Each
-		field's method returns a value of that type itself, byVal: `FusionType.INT.MAX` is an
-		int (2,147,483,647), `FusionType.BOOL.MAX` is `true`, `FusionType.DOUBLE.MIN` a double -
-		for developers and IDEs. Value names in capitals (INT, BOOL, ...) so they never clash
-		with the type keywords (user, 2026-10-29). To settle when planned: one spelling for
-		the fields (`MAX` or `max`); a field whose type differs per value is more than 47.3
-		gives, so it is built in
+	[DONE 2026-11-27] 47.4 The built-in enum `FusionType` (D.201; src/semantic/fusion_type.py; tests/test_fusion_type.py,
+		syntax_fusion_type): a value per type (INT ... ERROR) with type, kind, size, canBeNull; min / max / default in
+		the type itself (FusionType.INT.max an int) - the value written; added when used
 
 <a id="task-53"></a>
 #### 53 Check the Core language (user, 2026-11-07) [ ] [index](#index)

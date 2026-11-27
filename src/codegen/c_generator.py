@@ -2013,6 +2013,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """
         if getattr(node, 'length_call', None) is not None:
             return self.visit(node.length_call)       # x.length, x.len (Task 30.8)
+        if getattr(node, 'fusion_type_value', None) is not None:
+            return self.fusion_type_code(*node.fusion_type_value)     # FusionType.INT.max (47.4)
         if getattr(node, 'enum_field', None):
             return self.enum_field_code(node)         # p.mass, EARTH.id - the enum's static table (47.3)
         if getattr(node, 'number_constant', None):    # Double.MAX, Float.NAN - GCC's own constants (47.9e)

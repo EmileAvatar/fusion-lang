@@ -264,6 +264,27 @@ class EnumsMixin:
             return f'((fusion_{kind})({"-" if number < 0 else ""}{body}))'
         return f'{number}LL' if kind in ('long', 'int128', 'int256') else str(number)
 
+    def fusion_type_code(self, kind: str, value) -> str:
+        """FusionType's min / max / default as a C constant of the type it describes (47.4)."""
+        if kind == 'decimal':
+            return self.decimal_literal_code(int(value), 0)
+        if kind == 'money':
+            if value == -(1 << 63):
+                return 'fusion_money_of((-9223372036854775807LL - 1), 0)'
+            return f'fusion_money_of({int(value)}LL, 0)'
+        if kind == 'string':
+            return 'FUSION_STR("")'
+        if kind == 'long' and value == -(1 << 63):
+            return '(-9223372036854775807LL - 1)'
+        if kind in ('float', 'double') and value not in (0, 0.0):
+            p = 'DBL' if kind == 'double' else 'FLT'
+            return f'(-__{p}_MAX__)' if value < 0 else f'__{p}_MAX__'
+        if kind == 'int' and value == -(1 << 31):
+            return '(-2147483647 - 1)'
+        if kind == 'char':
+            return f'((fusion_char){int(value)})'       # a code point - U+10FFFF is the last
+        return self._enum_constant(value, kind)
+
     def _enum_of(self, node):
         kind = getattr(node, 'inferred_type', None)
         return getattr(kind, 'declaration', None) or getattr(node, 'declaration', None)

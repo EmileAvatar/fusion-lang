@@ -2526,6 +2526,24 @@ error, never infinity. A written number takes the smallest type that holds it - 
 up to 32 bits are a 32-bit pattern (`0xFFFFFFFF` is -1); past it they are their value. `Double.INFINITY` and
 `Double.NAN` (and `Float.*`) are the only way to write those values.
 
+#### Every type described: `FusionType`
+
+<!-- example: syntax_fusion_type | task: 47.4 | folder: 01_basics -->
+```fusion
+void function main()
+    int top = FusionType.INT.max                // min / max / default are the type itself - an int here
+    print("{top} {@1}", FusionType.BYTE.max)    // 2147483647 255
+    print("{@1} {@2}", FusionType.DOUBLE.size, FusionType.CLASS.canBeNull)   // 8 true
+    for t in FusionType.values()                // every type: type, kind, size, canBeNull
+        if t.size == 16
+            print("{t}: {@1}", t.type)          // INT128: int128, MONEY: money
+```
+`FusionType` is a built-in enum - one value per type (INT, BYTE, SHORT, LONG, INT128, INT256, FLOAT, DOUBLE, DECIMAL,
+MONEY, BOOL, CHAR, STRING, BYTES, LIST, MAP, STRUCT, CLASS, ENUM, ERROR), the numbers of files/FusionTypes.html.
+`type`, `kind`, `size` (bytes; -1 when it grows) and `canBeNull` are its fields; `min`, `max` and `default` have the
+type the value describes, so the value is written: `FusionType.INT.max`. A type without them (`FusionType.STRING.max`)
+is a compile error. Added to a program only when it uses FusionType.
+
 #### Exact numbers: `decimal`
 
 <!-- example: syntax_decimal | task: 47.8 | folder: 01_basics -->

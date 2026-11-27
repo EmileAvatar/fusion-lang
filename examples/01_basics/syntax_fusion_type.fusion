@@ -1,0 +1,7 @@
+void function main()
+    int top = FusionType.INT.max                // min / max / default are the type itself - an int here
+    print("{top} {@1}", FusionType.BYTE.max)    // 2147483647 255
+    print("{@1} {@2}", FusionType.DOUBLE.size, FusionType.CLASS.canBeNull)   // 8 true
+    for t in FusionType.values()                // every type: type, kind, size, canBeNull
+        if t.size == 16
+            print("{t}: {@1}", t.type)          // INT128: int128, MONEY: money

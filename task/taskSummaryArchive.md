@@ -7980,3 +7980,26 @@ double five = 5.                 // error: write 5.0
   lexer (selfhost/lexer - its tokens are compared with the Python lexer's on every example), fusion.ebnf + its page
 - Tests: tests/test_number_notations.py; SYNTAX_REFERENCE: the numbers section grows the new forms
 - Settings: none
+
+---
+
+## Task 47.4 - the built-in enum FusionType (done 2026-11-27)
+
+**47.4 The built-in enum `FusionType`** (TYP.005, files/FusionTypes.html) - plan, waiting for approval
+```fusion
+print("{@1}", FusionType.INT.max)          // 2147483647 - an int
+bool b = FusionType.BOOL.max               // true - each value's MIN / MAX / DEFAULT is that type itself
+print("{@1} {@2}", FusionType.DOUBLE.size, FusionType.STRING.canBeNull)   // 8 false
+for t in FusionType.values()
+    print("{t}: {@1}", t.kind)              // INT: value ... LIST: ref
+```
+- 47.4a The enum: one value per type in FusionTypes.html - INT BYTE SHORT LONG INT128 INT256 FLOAT DOUBLE DECIMAL MONEY
+  BOOL CHAR STRING BYTES (and LIST MAP STRUCT CLASS ENUM ERROR, without MIN / MAX)
+- 47.4b Fields every value has: TYPE ("int"), KIND ("value" / "reference"), SIZE (bytes; -1 when it grows),
+  CAN_BE_NULL (bool) - plain enum fields (47.3)
+- 47.4c MIN / MAX / DEFAULT - a field whose type is the value's own type (INT.MAX an int, DOUBLE.MIN a double): the one
+  thing 47.3 can't give, so built in; a type without them (STRING.MAX) a compile error saying so
+- 47.4d Added to a program that uses it (as Rounding is); the same numbers as 47.9e (`FusionType.DOUBLE.MAX` is
+  `Double.MAX`) and the compiler's own range checks - one table in the compiler, FusionTypes.html checked against it
+- Fields in camelCase (D.201): type, kind, size, canBeNull, min, max, default
+- Tests tests/test_fusion_type.py; example syntax_fusion_type; Settings: none
