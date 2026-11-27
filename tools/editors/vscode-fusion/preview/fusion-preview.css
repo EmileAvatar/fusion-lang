@@ -1,0 +1,48 @@
+/* Fusion code in VS Code's Markdown preview (36.9) - written by tools/editors/build_grammar.py from
+   tools/editors/colors.json; change a colour there, not here. */
+pre.fusion-code { padding: 12px 16px; overflow-x: auto; }
+.vscode-light pre.fusion-code { background: #ffffff; color: #1f2933; }
+.vscode-light pre.fusion-code .fz-keyword { color: #0B5CAD; font-weight: 600; }
+.vscode-light pre.fusion-code .fz-declaration { color: #0B5CAD; font-weight: 600; }
+.vscode-light pre.fusion-code .fz-modifier { color: #B31D28; }
+.vscode-light pre.fusion-code .fz-type { color: #8A3FFC; }
+.vscode-light pre.fusion-code .fz-function { color: #8A5000; }
+.vscode-light pre.fusion-code .fz-string { color: #1A7F37; }
+.vscode-light pre.fusion-code .fz-escape { color: #0A3069; }
+.vscode-light pre.fusion-code .fz-interpolation { color: #953800; }
+.vscode-light pre.fusion-code .fz-number { color: #C4320A; }
+.vscode-light pre.fusion-code .fz-comment { color: #6E7781; font-style: italic; }
+.vscode-light pre.fusion-code .fz-operator { color: #1F2933; }
+.vscode-light pre.fusion-code .fz-literal { color: #0550AE; }
+.vscode-light pre.fusion-code .fz-this { color: #6639BA; font-style: italic; }
+.vscode-light pre.fusion-code .fz-reserved { color: #A40E26; text-decoration: underline; }
+.vscode-dark pre.fusion-code { background: #1e1e1e; color: #d4d4d4; }
+.vscode-dark pre.fusion-code .fz-keyword { color: #6CB6FF; font-weight: 600; }
+.vscode-dark pre.fusion-code .fz-declaration { color: #D2A8FF; font-weight: 600; }
+.vscode-dark pre.fusion-code .fz-modifier { color: #F69D50; }
+.vscode-dark pre.fusion-code .fz-type { color: #4EC9B0; }
+.vscode-dark pre.fusion-code .fz-function { color: #DCDCAA; }
+.vscode-dark pre.fusion-code .fz-string { color: #CE9178; }
+.vscode-dark pre.fusion-code .fz-escape { color: #D7BA7D; }
+.vscode-dark pre.fusion-code .fz-interpolation { color: #9CDCFE; }
+.vscode-dark pre.fusion-code .fz-number { color: #B5CEA8; }
+.vscode-dark pre.fusion-code .fz-comment { color: #8B949E; font-style: italic; }
+.vscode-dark pre.fusion-code .fz-operator { color: #D4D4D4; }
+.vscode-dark pre.fusion-code .fz-literal { color: #6CB6FF; }
+.vscode-dark pre.fusion-code .fz-this { color: #9CDCFE; font-style: italic; }
+.vscode-dark pre.fusion-code .fz-reserved { color: #F47067; text-decoration: underline; }
+.vscode-high-contrast pre.fusion-code { background: #1e1e1e; color: #d4d4d4; }
+.vscode-high-contrast pre.fusion-code .fz-keyword { color: #6CB6FF; font-weight: 600; }
+.vscode-high-contrast pre.fusion-code .fz-declaration { color: #D2A8FF; font-weight: 600; }
+.vscode-high-contrast pre.fusion-code .fz-modifier { color: #F69D50; }
+.vscode-high-contrast pre.fusion-code .fz-type { color: #4EC9B0; }
+.vscode-high-contrast pre.fusion-code .fz-function { color: #DCDCAA; }
+.vscode-high-contrast pre.fusion-code .fz-string { color: #CE9178; }
+.vscode-high-contrast pre.fusion-code .fz-escape { color: #D7BA7D; }
+.vscode-high-contrast pre.fusion-code .fz-interpolation { color: #9CDCFE; }
+.vscode-high-contrast pre.fusion-code .fz-number { color: #B5CEA8; }
+.vscode-high-contrast pre.fusion-code .fz-comment { color: #8B949E; font-style: italic; }
+.vscode-high-contrast pre.fusion-code .fz-operator { color: #D4D4D4; }
+.vscode-high-contrast pre.fusion-code .fz-literal { color: #6CB6FF; }
+.vscode-high-contrast pre.fusion-code .fz-this { color: #9CDCFE; font-style: italic; }
+.vscode-high-contrast pre.fusion-code .fz-reserved { color: #F47067; text-decoration: underline; }

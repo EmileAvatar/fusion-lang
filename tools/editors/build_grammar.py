@@ -215,6 +215,164 @@ def site_css(data: dict) -> str:
     return '\n'.join(lines) + '\n'
 
 
+# ---------------------------------------------------------------- the Markdown preview (36.9)
+
+PREVIEW_JS = r'''// Fusion code in VS Code's Markdown preview (Task 36.9): ```fusion blocks coloured with Fusion's colours.
+// Written by tools/editors/build_grammar.py from src/lexer/keywords.py and colors.json - do not edit by hand.
+'use strict';
+
+const WORDS = __WORDS__;
+const KIND = {};
+for (const kind of Object.keys(WORDS)) {
+  for (const word of WORDS[kind]) {
+    KIND[word] = kind;
+  }
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function span(role, text) {
+  return '<span class="fz-' + role + '">' + escapeHtml(text) + '</span>';
+}
+
+// A string's escapes and {interpolations} coloured inside it
+function stringHtml(text) {
+  let out = '';
+  let i = 0;
+  let plain = '';
+  const flush = () => { if (plain) { out += span('string', plain); plain = ''; } };
+  while (i < text.length) {
+    const c = text[i];
+    if (c === '\\' && i + 1 < text.length) {
+      flush();
+      const m = /^\\(u\{[0-9A-Fa-f]+\}|u[0-9A-Fa-f]{4}|.)/.exec(text.slice(i));
+      out += span('escape', m[0]);
+      i += m[0].length;
+    } else if (c === '{') {
+      const close = text.indexOf('}', i);
+      if (close > i) {
+        flush();
+        out += span('interpolation', text.slice(i, close + 1));
+        i = close + 1;
+      } else {
+        plain += c;
+        i += 1;
+      }
+    } else {
+      plain += c;
+      i += 1;
+    }
+  }
+  flush();
+  return out;
+}
+
+const RULES = [
+  [/^\/\*[\s\S]*?(\*\/|$)/, 'comment'],
+  [/^\/\/[^\n]*/, 'comment'],
+  [/^"(\\.|[^"\\\n])*"?/, 'string'],
+  [/^'(\\(u\{[0-9A-Fa-f]+\}|u[0-9A-Fa-f]{4}|.)|[^'\\\n])'/, 'char'],
+  [/^(0[xX][0-9A-Fa-f_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*\.\d[\d_]*([eE][+-]?\d+)?|\d[\d_]*)/, 'number'],
+  [/^[A-Za-z_][A-Za-z0-9_]*/, 'word'],
+  [/^(\.\.\.|\?\.|\?\?|===|!==|==|!=|<=|>=|->|=>|::|[-+*\/%=<>!&|^~?:])/, 'operator'],
+];
+
+function highlightFusion(code) {
+  let out = '';
+  let rest = code;
+  let previous = '';
+  while (rest.length > 0) {
+    let matched = null;
+    for (const [regex, kind] of RULES) {
+      const m = regex.exec(rest);
+      if (m) {
+        matched = [m[0], kind];
+        break;
+      }
+    }
+    if (!matched) {
+      out += escapeHtml(rest[0]);
+      rest = rest.slice(1);
+      continue;
+    }
+    const [text, kind] = matched;
+    if (kind === 'string') {
+      out += stringHtml(text);
+    } else if (kind === 'char') {
+      out += span('string', text);
+    } else if (kind === 'word') {
+      const after = rest.slice(text.length);
+      if (KIND[text] && !previous.endsWith('.')) {
+        out += span(KIND[text], text);
+      } else if (/^\s*\(/.test(after) && /^[a-z_]/.test(text)) {
+        out += span('function', text);
+      } else if (/^[A-Z]/.test(text)) {
+        out += span('type', text);
+      } else {
+        out += escapeHtml(text);
+      }
+    } else {
+      out += span(kind, text);
+    }
+    previous = text;
+    rest = rest.slice(text.length);
+  }
+  return out;
+}
+
+function extendMarkdownIt(md) {
+  const original = md.options.highlight;
+  md.options.highlight = (code, lang, attrs) => {
+    if ((lang || '').trim().split(/\s+/)[0].toLowerCase() === 'fusion') {
+      return '<pre class="fusion-code"><code>' + highlightFusion(code) + '</code></pre>';
+    }
+    return original ? original(code, lang, attrs) : '';
+  };
+  return md;
+}
+
+function activate() {
+  return { extendMarkdownIt };
+}
+
+module.exports = { activate, extendMarkdownIt, highlightFusion };
+'''
+
+
+def preview_words() -> dict:
+    """Each colour role's words, for the preview's highlighter."""
+    return {
+        'keyword': sorted(CONTROL | set(IN_PLACE['control'])),
+        'declaration': sorted(DECLARATION | set(IN_PLACE['declaration'])),
+        'modifier': sorted(MODIFIER | set(IN_PLACE['modifier'])),
+        'type': sorted(TYPE | set(BUILTIN_TYPES)),
+        'operator': sorted(OPERATOR_WORD),
+        'literal': sorted(LITERAL),
+        'this': sorted(THIS | set(IN_PLACE['variable'])),
+        'reserved': sorted(set(RESERVED_WORDS) - set(KEYWORDS)),
+    }
+
+
+def preview_js() -> str:
+    return PREVIEW_JS.replace('__WORDS__', json.dumps(preview_words(), indent=2))
+
+
+def preview_css(data: dict) -> str:
+    """The preview's colours: the dark palette in a dark or high-contrast theme, the light one in a light theme."""
+    lines = ['/* Fusion code in VS Code\'s Markdown preview (36.9) - written by tools/editors/build_grammar.py from',
+             '   tools/editors/colors.json; change a colour there, not here. */',
+             'pre.fusion-code { padding: 12px 16px; overflow-x: auto; }']
+    for theme, key in (('vscode-light', 'light'), ('vscode-dark', 'dark'), ('vscode-high-contrast', 'dark')):
+        palette = data['palettes'][key]
+        lines.append(f'.{theme} pre.fusion-code {{ background: {palette["background"].lower()}; '
+                     f'color: {palette["foreground"].lower()}; }}')
+        for role, look in palette['colors'].items():
+            lines.append(f'.{theme} pre.fusion-code .fz-{role} {{ {_css_look(look)} }}')
+    return '\n'.join(lines) + '\n'
+
+
 def package_json(data: dict) -> dict:
     themes = [{'label': p['name'], 'uiTheme': 'vs-dark' if p['type'] == 'dark' else 'vs',
                'path': f'./themes/fusion-{key}-color-theme.json'} for key, p in data['palettes'].items()]
@@ -228,7 +386,11 @@ def package_json(data: dict) -> dict:
         'repository': {'type': 'git', 'url': 'https://github.com/EmileAvatar/fusion-lang'},
         'engines': {'vscode': '^1.71.0'},
         'categories': ['Programming Languages', 'Themes'],
+        'main': './preview/fusion-markdown.js',                  # ```fusion in the Markdown preview (36.9)
+        'activationEvents': ['onLanguage:markdown'],
         'contributes': {
+            'markdown.markdownItPlugins': True,
+            'markdown.previewStyles': ['./preview/fusion-preview.css'],
             'languages': [{'id': 'fusion', 'aliases': ['Fusion', 'fusion'], 'extensions': ['.fusion'],
                            'configuration': './language-configuration.json',
                            'icon': {'light': './icons/fusion.svg', 'dark': './icons/fusion.svg'}}],
@@ -249,6 +411,8 @@ def outputs() -> dict:
         SUBLIME / 'Comments.tmPreferences': plistlib.dumps(comments_preferences()),
         VSCODE / 'package.json': _json(package_json(data)),
         SITE_CSS: site_css(data).encode('ascii'),
+        VSCODE / 'preview' / 'fusion-markdown.js': preview_js().encode('ascii'),
+        VSCODE / 'preview' / 'fusion-preview.css': preview_css(data).encode('ascii'),
     }
     for key, palette in data['palettes'].items():
         written[VSCODE / 'themes' / f'fusion-{key}-color-theme.json'] = _json(vscode_theme(palette, data['roles']))
@@ -282,6 +446,8 @@ CONTENT_TYPES = '''<?xml version="1.0" encoding="utf-8"?>
   <Default Extension=".vsixmanifest" ContentType="text/xml" />
   <Default Extension=".md" ContentType="text/markdown" />
   <Default Extension=".svg" ContentType="image/svg+xml" />
+  <Default Extension=".js" ContentType="application/javascript" />
+  <Default Extension=".css" ContentType="text/css" />
 </Types>
 '''
 

@@ -630,6 +630,10 @@ then each point is decided and solved completely. One line per section and per l
 		changeable by the developers; four palettes (Fusion Dark / Light, Colour-Safe Dark / Light - Okabe-Ito); colour
 		never the only signal (keywords bold, comments italic); WCAG AA contrast tested; written from it: four VS Code
 		themes (extension 0.1.2, installed), four Sublime colour schemes (installed), the site's fusion-code.css
+	[DONE 2026-11-27] 36.9 Fusion code in VS Code's Markdown preview (user, 2026-11-27): ```fusion blocks coloured with
+		Fusion's colours - a markdown-it plugin in the extension (vscode-fusion/preview/fusion-markdown.js), the dark or
+		light palette by the theme (fusion-preview.css), both written by build_grammar.py from the lexer and colors.json;
+		GitHub can't show it until Fusion is in Linguist (its language list)
 	[ ] 36.4 Others as needed: Notepad++ (user-defined language), Vim / Neovim, tree-sitter grammar
 	[ ] 36.6 Later: a thread view - a "stack of threads" (what each thread does, which variables
 		and files / sockets / databases it touches), profiling, graphs and heat maps

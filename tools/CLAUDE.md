@@ -15,7 +15,8 @@
 - `editors/build_grammar.py` - the syntax highlighting for editors (Task 36): one TextMate grammar written from the
   lexer's keywords - `editors/vscode-fusion/` (VS Code, `--vsix` packs it) and `editors/sublime/` (Sublime Text,
   TextMate); `--check` is the "editors" check in check.py (see editors/README.md); from `editors/colors.json` (Fusion's
-  colours, 36.8) also the four colour themes / schemes and the site's `files/tutorial/fusion-code.css`
+  colours, 36.8) also the four colour themes / schemes and the site's `files/tutorial/fusion-code.css`; and the Markdown
+  preview's highlighter for ```fusion blocks (`vscode-fusion/preview/` - 36.9)
 - `ebnf_html.py` - writes files/fusion.ebnf.html from files/fusion.ebnf: one card per entry - its task (linked to
   FEATURES / Decisions), its status in colour (built green, planned orange, rejected red, not built blue), the comment
   in a grey box, the rules coloured - with an index; `--check` is part of the "ebnf" check in check.py

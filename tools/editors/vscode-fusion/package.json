@@ -16,7 +16,15 @@
     "Programming Languages",
     "Themes"
   ],
+  "main": "./preview/fusion-markdown.js",
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
   "contributes": {
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": [
+      "./preview/fusion-preview.css"
+    ],
     "languages": [
       {
         "id": "fusion",

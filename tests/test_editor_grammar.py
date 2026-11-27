@@ -171,3 +171,45 @@ def test_the_themes_and_schemes_written():
     css = build_grammar.SITE_CSS.read_text(encoding='ascii')
     assert 'pre.fusion .kw { color: #0B5CAD; font-weight: 600; }' in css
     assert '.colour-safe pre.fusion .kw { color: #0072B2; font-weight: 600; }' in css
+
+
+# ---- 36.9: Fusion code in VS Code's Markdown preview ----
+
+def test_the_preview_plugin_is_declared():
+    manifest = json.loads((build_grammar.VSCODE / 'package.json').read_text(encoding='ascii'))
+    assert manifest['main'] == './preview/fusion-markdown.js'
+    assert manifest['contributes']['markdown.markdownItPlugins'] is True
+    assert manifest['contributes']['markdown.previewStyles'] == ['./preview/fusion-preview.css']
+
+
+def test_the_preview_knows_every_keyword():
+    words = {w for group in build_grammar.preview_words().values() for w in group}
+    assert set(KEYWORDS) - {'End', 'end'} <= words | {'End', 'end'}
+    js = (build_grammar.VSCODE / 'preview' / 'fusion-markdown.js').read_text(encoding='ascii')
+    assert '"function"' in js and 'extendMarkdownIt' in js
+
+
+def test_the_preview_colours_follow_the_theme():
+    css = (build_grammar.VSCODE / 'preview' / 'fusion-preview.css').read_text(encoding='ascii')
+    data = build_grammar.colors()
+    for theme, key in (('vscode-light', 'light'), ('vscode-dark', 'dark')):
+        look = data['palettes'][key]['colors']['keyword']
+        assert f'.{theme} pre.fusion-code .fz-keyword {{ color: {look["color"]};' in css
+
+
+def test_the_preview_highlights_fusion_when_node_is_there():
+    import shutil
+    import subprocess
+    node = shutil.which('node')
+    if node is None:
+        import pytest
+        pytest.skip('Node.js not installed')
+    script = build_grammar.VSCODE / 'preview' / 'fusion-markdown.js'
+    probe = ("const f = require(process.argv[1]); const md = {options: {highlight: null}}; f.extendMarkdownIt(md);"
+             "process.stdout.write(md.options.highlight('int n = count(\"{n}\") // x', 'fusion') + '|' +"
+             "md.options.highlight('x = 1', 'python'));")
+    out = subprocess.run([node, '-e', probe, str(script)], capture_output=True, text=True).stdout
+    assert out.startswith('<pre class="fusion-code"><code><span class="fz-type">int</span> n ')
+    assert '<span class="fz-function">count</span>' in out and '<span class="fz-interpolation">{n}</span>' in out
+    assert '<span class="fz-comment">// x</span>' in out
+    assert out.endswith('|')            # another language: left to VS Code's own highlighter

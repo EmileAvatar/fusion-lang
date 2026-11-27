@@ -41,6 +41,14 @@ four palettes:
   Color Scheme - "Fusion-Dark" ...
 - To change a colour for everyone: edit `colors.json`, run `python tools/editors/build_grammar.py --vsix`, reinstall
 
+## Fusion code in the Markdown preview (36.9)
+
+A ` ```fusion ` block in a Markdown file is coloured in VS Code's preview (`Ctrl+Shift+V`) with Fusion's colours - the
+dark palette in a dark theme, the light one in a light theme. The extension adds a markdown-it plugin
+(`vscode-fusion/preview/fusion-markdown.js`) and a style sheet (`fusion-preview.css`); `build_grammar.py` writes both
+from the lexer's keywords and `colors.json`. After installing a new .vsix, reload the window. (The editor already
+colours Fusion inside Markdown; GitHub shows ` ```fusion ` plain until Fusion is in GitHub's Linguist list.)
+
 ## Changing a colour in your own editor only
 The grammar only names each piece (`keyword.control.fusion`, `string.quoted.double.fusion` ...); the theme
 gives the colours - so Fusion code works with any theme. To change one in your own VS Code, without touching the
