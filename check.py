@@ -128,7 +128,7 @@ def compile_and_run_leak_checked(source: str, source_path: str):
     config = load_project_config(source_path)
     try:
         parse = make_file_parser(config)
-        ast, import_errors = load_program(source_path, parse(source, source_path), parse)
+        ast, import_errors = load_program(source_path, parse(source, source_path), parse, config.libraries)
         if import_errors:
             return None, '\n'.join(str(e) for e in import_errors)
         analyzer = SemanticAnalyzer.for_project(config)      # every setting, as main.py

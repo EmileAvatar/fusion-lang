@@ -397,7 +397,10 @@ then each point is decided and solved completely. One line per section and per l
 		`static` at the top of a file; a function or variable without it static all the same, with a warning; a top-level
 		type may be private (its module); a private function still an error; a module's interface, `implements` and
 		its classes' private fields work by full name (they failed in any module before)
-	[ ] 57.3 Finding libraries (D.206, D.213): `[libraries]` in fusion.toml; `import "C:/vendor".SQL.Database`
+	[DONE 2026-11-27] 57.3 Finding libraries (D.206, D.213; tests/test_namespaces.py): `[libraries]` in fusion.toml -
+		a namespace and its folder (`SQL = "C:/vendor/SQL"`, `"com.example.SQL" = ...`), relative to the settings file;
+		`import "C:/vendor".SQL.Database`; the program's folder first, then the libraries; a module in two places, or
+		from two folders, an error naming both
 	[ ] 57.4 Importing (D.208, D.209): `import SQL as Q`, full names, a duplicate an error until aliased, `com.example.SQL`
 	[ ] 57.5 Fusion's own (D.208, D.210): `Fusion` reserved, `Fusion.Core` implicit, `Fusion.Currency`
 	[ ] 57.6 `--interface` shows the namespace and module, and works on a namespace
@@ -1042,8 +1045,8 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L10.2 Calling a C function by declaring it: `extern "C" int function abs(int x)`
 		[ ] L10.3 Hardware descriptions: `import hardware "x.hidl" as microwave`; registers as typed
 			properties, out-of-range values compile errors (Task 41)
-		[POSTPONED - a setting later] L10.4 `private` on a top-level item allowed by a setting (CLS.017, D.008);
-			off for now - private hides a class's detail, internal is for the namespace / module - was 52.3
+		[DONE - 57.2, D.212] L10.4 `private` on a top-level item (CLS.017): on a class, struct, enum or interface - its
+			module; on a function still an error - a rule, no setting (was 52.3)
 	L11 Concurrency
 		[ ] L11.1 Wait for several tasks together: `await all([...])`
 	L12 Output

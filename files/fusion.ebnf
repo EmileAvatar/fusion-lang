@@ -41,7 +41,9 @@ module_line = "module" identifier NEWLINE ;      (* Task 57.1 *)
 
 (* Task 18.4.2: import money / import money.Price / import money.* / import lib.utils as u.
    A module is a folder next to the main file *)
-import_statement = "import" module_path [ "." "*" | "as" identifier ] NEWLINE ;
+(* Task 57.3 (D.213): import "C:/vendor".SQL.Database - the folder holding the namespace, then the names;
+   otherwise found next to the main file, or through [libraries] in fusion.toml *)
+import_statement = "import" [ string_literal "." ] module_path [ "." "*" | "as" identifier ] NEWLINE ;
 module_path = identifier { "." identifier } ;
 
 top_level =

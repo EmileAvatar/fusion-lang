@@ -251,8 +251,12 @@ required = false
 [modules]
 # [built] Module-level variables (module constants are always allowed) (Task 44.1)
 variables = true
-# [idea] Extra folders searched for imported modules
-paths = ["lib", "vendor"]
+
+[libraries]
+# [built] The external libraries the project imports - a namespace and its folder (Task 57.3, D.213);
+# then `import SQL.Database`. Not listed: import "C:/vendor".SQL.Database
+SQL = "C:/vendor/SQL"
+"com.example.SQL" = "../libs/com/example/SQL"
 # [designed] Libraries must declare what they may do (files, network, ...) (Task 39)
 requireCapabilities = true
 

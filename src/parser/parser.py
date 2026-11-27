@@ -2240,6 +2240,13 @@ class Parser:
         """Parse an import line, the IMPORT token already consumed (Task 18.4.2):
         `import money`, `import money.Price`, `import money.*`, `import lib.utils as u`."""
         import_token = self.previous()
+        root = None
+        if self.match(TokenType.STRING_LIT):          # `import "C:/vendor".SQL.Database` (Task 57.3, D.213)
+            parts = json.loads(self.previous().value)
+            if len(parts) != 1 or parts[0][0] != 'STRING_PART' or not parts[0][1]:
+                raise ParserError(self.previous(), "An import's folder is plain text - no {...} in it")
+            root = parts[0][1]
+            self.consume(TokenType.DOT, "Expected '.' and the module's name after the folder")
         path = [self.consume(TokenType.IDENTIFIER, "Expected a module name after 'import'").value]
         star = False
         while self.match(TokenType.DOT):
@@ -2256,7 +2263,7 @@ class Parser:
             alias = self.consume(TokenType.IDENTIFIER, "Expected a name after 'as'").value
         if not (self.check(TokenType.NEWLINE) or self.is_at_end()):
             raise ParserError(self.peek(), "Expected the end of the line after the import")
-        return ImportDecl(location=import_token.location, path=path, star=star, alias=alias)
+        return ImportDecl(location=import_token.location, path=path, star=star, alias=alias, root=root)
 
     def parse_declaration(self) -> Optional[ASTNode]:
         """Parse top-level declaration (function, var, etc.).

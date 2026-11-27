@@ -924,6 +924,7 @@ class ImportDecl(ASTNode):
     path: List[str]
     star: bool = False
     alias: Optional[str] = None
+    root: Optional[str] = None   # `import "C:/vendor".SQL.Database` - the folder holding it (Task 57.3, D.213)
 
 
 # ============================================================================

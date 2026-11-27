@@ -86,12 +86,16 @@ class Module:
 class ModuleLoader:
     """Loads a program and everything it imports; see the module docstring."""
 
-    def __init__(self, main_file: str, parse_file: ParseFile):
+    def __init__(self, main_file: str, parse_file: ParseFile, libraries: Optional[Dict[str, str]] = None):
         self.main_file = main_file
         self.root = os.path.dirname(os.path.abspath(main_file))
         self.parse_file = parse_file
         self.modules: Dict[str, Module] = {}   # module id -> Module, each loaded once
         self.errors: List[SemanticError] = []
+        # `[libraries]` (Task 57.3, D.206, D.213): a namespace -> its folder, searched after the program's own
+        self.libraries = {ns: os.path.join(self.root, folder) for ns, folder in (libraries or {}).items()}
+        self.folders: Dict[str, str] = {}       # module id -> the folder it was loaded from
+        self._reported: Set[str] = set()        # errors about where a module is, each said once
 
     # ------------------------------------------------------------------ loading
 
@@ -121,24 +125,63 @@ class ModuleLoader:
     def _resolve(self, imp: ImportDecl) -> Optional[Tuple[str, Optional[str]]]:
         """(module id, imported name or None) for an import line, or None after an error."""
         parts = imp.path
-        if imp.star or self._is_module_dir(parts):
-            if not self._is_module_dir(parts):
-                self._error(f"No module '{'.'.join(parts)}' - expected a folder "
-                            f"{'/'.join(parts)}/ with .fusion files next to the main file", imp)
+        folder = self._find(parts, imp)
+        if imp.star or folder is not None:
+            if folder is None:
+                self._error(self._missing_text(parts, imp), imp)
                 return None
-            return '.'.join(parts), None
-        if len(parts) > 1 and self._is_module_dir(parts[:-1]):
-            return '.'.join(parts[:-1]), parts[-1]
-        self._error(f"No module '{'.'.join(parts)}' - expected a folder {'/'.join(parts)}/ "
-                    f"with .fusion files next to the main file", imp)
+            return self._found('.'.join(parts), folder, imp)
+        if len(parts) > 1:
+            folder = self._find(parts[:-1], imp)
+            if folder is not None:
+                found = self._found('.'.join(parts[:-1]), folder, imp)
+                return None if found is None else (found[0], parts[-1])
+        self._error(self._missing_text(parts, imp), imp)
         return None
 
-    def _module_dir(self, parts: List[str]) -> str:
-        return os.path.join(self.root, *parts)
+    def _found(self, module_id: str, folder: str, imp: ImportDecl) -> Optional[Tuple[str, None]]:
+        """One module, one folder: the same module found in another folder by another import is an error."""
+        known = self.folders.setdefault(module_id, folder)
+        if os.path.normcase(os.path.abspath(known)) != os.path.normcase(os.path.abspath(folder)):
+            self._error_once(f"Module '{module_id}' is imported from two folders: {known} and {folder} - "
+                             f"keep one", imp)
+            return None
+        return module_id, None
 
-    def _is_module_dir(self, parts: List[str]) -> bool:
-        folder = self._module_dir(parts)
+    def _places(self, parts: List[str], imp: ImportDecl) -> List[str]:
+        """Where module `parts` may be (D.206): a path written in the import (`import "C:/vendor".SQL.Database`),
+        or the program's folder, then each `[libraries]` namespace it starts with."""
+        if imp.root is not None:
+            return [os.path.join(self.root, imp.root, *parts)]
+        places = [os.path.join(self.root, *parts)]
+        for namespace, folder in self.libraries.items():
+            names = namespace.split('.')
+            if parts[:len(names)] == names:
+                places.append(os.path.join(folder, *parts[len(names):]))
+        return places
+
+    @staticmethod
+    def _is_module_dir(folder: str) -> bool:
         return os.path.isdir(folder) and any(f.endswith('.fusion') for f in os.listdir(folder))
+
+    def _find(self, parts: List[str], imp: ImportDecl) -> Optional[str]:
+        """The folder of module `parts`, or None; found in two places is an error naming both."""
+        found = [p for p in self._places(parts, imp) if self._is_module_dir(p)]
+        if len(found) > 1:
+            self._error_once(f"Module '{'.'.join(parts)}' is in two places: {found[0]} and {found[1]} - "
+                             f"keep one, or import it with its path", imp)
+        return found[0] if found else None
+
+    def _missing_text(self, parts: List[str], imp: ImportDecl) -> str:
+        where = (f"in {os.path.join(imp.root, *parts)}" if imp.root is not None else
+                 f"next to the main file, or in a library listed in [libraries]")
+        return (f"No module '{'.'.join(parts)}' - expected a folder {'/'.join(parts)}/ with .fusion files "
+                f"{where}")
+
+    def _error_once(self, message: str, node) -> None:
+        if message not in self._reported:
+            self._reported.add(message)
+            self._error(message, node)
 
     def _load_module(self, module_id: str, imp: ImportDecl) -> None:
         parts = module_id.split('.')
@@ -147,7 +190,7 @@ class ModuleLoader:
                 self._error(f"'{part}' can't be a module name (it is a built-in type class, "
                             f"or contains '__')", imp)
                 return
-        folder = self._module_dir(parts)
+        folder = self.folders[module_id]
         files = []
         for name in sorted(os.listdir(folder)):
             if not name.endswith('.fusion'):
@@ -176,8 +219,8 @@ class ModuleLoader:
         folder's namespace is then the file's - what `internal` shares (D.207)."""
         parts = module_id.split('.')
         namespace, name = '.'.join(parts[:-1]) or None, parts[-1]
-        file_name = os.path.relpath(path, self.root).replace(os.sep, '/')
         folder = '/'.join(parts) + '/'
+        file_name = folder + os.path.basename(path)
         if program.namespace is not None and program.namespace != namespace:
             if namespace is None:
                 fix = (f"move the module into a folder {program.namespace.replace('.', '/')}/ "
@@ -410,8 +453,8 @@ class ModuleLoader:
         self.errors.append(SemanticError(message, location))
 
 
-def load_program(main_file: str, main_program: ProgramNode,
-                 parse_file: ParseFile) -> Tuple[ProgramNode, List[SemanticError]]:
+def load_program(main_file: str, main_program: ProgramNode, parse_file: ParseFile,
+                 libraries: Optional[Dict[str, str]] = None) -> Tuple[ProgramNode, List[SemanticError]]:
     """The whole program - the main file plus every module it imports - as one ProgramNode,
     with any import errors. A program without imports comes back unchanged."""
     if main_program.namespace is not None or main_program.module is not None:
@@ -422,7 +465,7 @@ def load_program(main_file: str, main_program: ProgramNode,
             f"written in it; a module is a folder of files next to it (D.204)", main_program.location)]
     if not main_program.imports:
         return main_program, []
-    loader = ModuleLoader(main_file, parse_file)
+    loader = ModuleLoader(main_file, parse_file, libraries)
     program = loader.load(main_program)
     return program, loader.errors
 
@@ -455,7 +498,7 @@ def load_program_file(main_file: str, config=None) -> Tuple[ProgramNode, List[st
     parse = make_file_parser(config)
     with open(main_file, encoding='utf-8') as f:
         program = parse(f.read(), main_file)
-    program, errors = load_program(main_file, program, parse)
+    program, errors = load_program(main_file, program, parse, config.libraries if config is not None else None)
     return program, [str(e) for e in errors]
 
 

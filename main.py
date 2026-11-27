@@ -103,7 +103,8 @@ def compile_file(source_path: str) -> int:
 
     # Modules (Task 18.4): load every imported module folder once and merge them in
     if ast.imports:
-        ast, import_errors = load_program(source_path, ast, make_file_parser(project_config))
+        ast, import_errors = load_program(source_path, ast, make_file_parser(project_config),
+                                          project_config.libraries)
         if import_errors:
             for error in import_errors:
                 print(f"Error: {error}", file=sys.stderr)

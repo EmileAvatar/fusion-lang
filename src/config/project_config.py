@@ -23,8 +23,9 @@ different settings than the user intended.
 """
 
 import os
+import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Dict, Optional
 
 from .settings_files import (SettingsFileError, convert, create_default_file, find_in_folder,
                              format_of, read_settings, read_template, FORMAT_FILES)
@@ -377,6 +378,8 @@ class ProjectConfig:
     errors: ErrorsConfig = field(default_factory=ErrorsConfig)
     numbers: NumbersConfig = field(default_factory=NumbersConfig)
     modules: ModulesConfig = field(default_factory=ModulesConfig)
+    # `[libraries]` (Task 57.3, D.206, D.213): a namespace -> its folder, relative to the settings file's folder
+    libraries: Dict[str, str] = field(default_factory=dict)
     visibility: VisibilityConfig = field(default_factory=VisibilityConfig)
     interfaces: InterfacesConfig = field(default_factory=InterfacesConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
@@ -591,6 +594,23 @@ def _load_modules_section(data: dict, config_path: str) -> ModulesConfig:
                 f"{config_path}: modules.variables must be true or false, got {value!r}")
         modules.variables = value
     return modules
+
+
+def _load_libraries_section(data: dict, config_path: str) -> Dict[str, str]:
+    """Parse the [libraries] section (Task 57.3, D.206, D.213): each external library the project imports - its
+    namespace and its folder (`SQL = "C:/vendor/SQL"`); a relative folder is from the settings file's folder."""
+    section = _require_table(data, "libraries", config_path)
+    libraries = {}
+    for namespace, folder in section.items():
+        if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*', namespace):
+            raise ProjectConfigError(
+                f"{config_path}: libraries.{namespace} - a library is named by its namespace, as SQL or "
+                f"com.example.SQL")
+        if not isinstance(folder, str) or not folder.strip():
+            raise ProjectConfigError(
+                f"{config_path}: libraries.{namespace} must be the library's folder, as \"C:/vendor/SQL\"")
+        libraries[namespace] = os.path.join(os.path.dirname(os.path.abspath(config_path)), folder)
+    return libraries
 
 
 def _load_collections_section(data: dict, config_path: str) -> CollectionsConfig:
@@ -1036,6 +1056,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         stdlib=_load_stdlib_section(data, config_path),
         errors=_load_errors_section(data, config_path),
         modules=_load_modules_section(data, config_path),
+        libraries=_load_libraries_section(data, config_path),
         visibility=_load_visibility_section(data, config_path),
         interfaces=_load_interfaces_section(data, config_path),
         memory=_load_memory_section(data, config_path, warnings),

@@ -150,6 +150,92 @@ def test_an_interface_in_a_module(tmp_path):
     assert run_project(str(tmp_path), files) == ['10']
 
 
+# 57.3 (D.206, D.213): an external library - listed in [libraries] (a namespace and its folder), or imported with
+# its folder written: import "C:/vendor".SQL.Database
+
+VENDOR = {'vendor/SQL/Database/d.fusion': 'public static string function name() : "vendor sql"\n'}
+
+
+def build_and_run(root, files: dict, app: str = 'app'):
+    """Compile app/main.fusion with main.py (its fusion.toml read) and run it: (stdout lines, compiler output)."""
+    import os
+    import subprocess
+    import sys
+    from tests.test_modules import write_project
+    for name, text in files.items():
+        write_project(root, {name: text})
+    main_file = os.path.join(root, app, 'main.fusion')
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    built = subprocess.run([sys.executable, os.path.join(repo, 'main.py'), main_file, '--no-new-config'],
+                           capture_output=True, text=True, encoding='utf-8')
+    if built.returncode != 0:
+        return None, built.stdout + built.stderr
+    ran = subprocess.run([os.path.join(root, app, 'main.exe')], capture_output=True, text=True, encoding='utf-8')
+    return ran.stdout.splitlines(), built.stderr
+
+
+def test_a_library_listed_in_the_settings(tmp_path):
+    files = dict(VENDOR)
+    files['app/fusion.toml'] = '[libraries]\nSQL = "../vendor/SQL"\n'
+    files['app/main.fusion'] = MAIN_SQL
+    assert build_and_run(str(tmp_path), files)[0] == ['vendor sql']
+
+
+def test_a_library_imported_with_its_folder(tmp_path):
+    files = dict(VENDOR)
+    files['app/main.fusion'] = ('import "../vendor".SQL.Database\n\n'
+                                'void function main()\n'
+                                '    print(Database.name())\n')
+    assert build_and_run(str(tmp_path), files)[0] == ['vendor sql']
+
+
+def test_a_reverse_domain_library(tmp_path):
+    files = {'libs/com/example/SQL/Database/d.fusion': 'public static string function name() : "example sql"\n',
+             'app/fusion.toml': '[libraries]\n"com.example.SQL" = "../libs/com/example/SQL"\n',
+             'app/main.fusion': ('import com.example.SQL.Database\n\n'
+                                 'void function main()\n'
+                                 '    print(Database.name())\n')}
+    assert build_and_run(str(tmp_path), files)[0] == ['example sql']
+
+
+def test_a_library_not_found(tmp_path):
+    files = {'app/main.fusion': MAIN_SQL}
+    output = build_and_run(str(tmp_path), files)[1]
+    assert "No module 'SQL.Database' - expected a folder SQL/Database/ with .fusion files next to the main " \
+           "file, or in a library listed in [libraries]" in output
+
+
+def test_a_module_in_two_places_is_an_error(tmp_path):
+    files = dict(VENDOR)
+    files['app/SQL/Database/d.fusion'] = 'public static string function name() : "own sql"\n'
+    files['app/fusion.toml'] = '[libraries]\nSQL = "../vendor/SQL"\n'
+    files['app/main.fusion'] = MAIN_SQL
+    output = build_and_run(str(tmp_path), files)[1]
+    assert "Module 'SQL.Database' is in two places" in output and "keep one" in output
+
+
+@pytest.mark.parametrize('toml, message', [
+    ('[libraries]\n"9SQL" = "x"\n', "a library is named by its namespace, as SQL or com.example.SQL"),
+    ('[libraries]\nSQL = 5\n', "libraries.SQL must be the library's folder"),
+    ('[libraries]\nSQL = ""\n', "libraries.SQL must be the library's folder"),
+])
+def test_bad_library_settings(tmp_path, toml, message):
+    from src.config import ProjectConfigError, load_project_config
+    (tmp_path / 'fusion.toml').write_text(toml, encoding='utf-8')
+    (tmp_path / 'main.fusion').write_text('void function main()\n    print("x")\n', encoding='utf-8')
+    with pytest.raises(ProjectConfigError, match=message):
+        load_project_config(str(tmp_path / 'main.fusion'))
+
+
+@pytest.mark.parametrize('source, message', [
+    ('import "C:/vendor"\n', "Expected '.' and the module's name after the folder"),
+    ('import "{x}".SQL\n', r"An import's folder is plain text - no \{...\} in it"),
+])
+def test_import_path_syntax_errors(source, message):
+    with pytest.raises(ParserError, match=message):
+        parse_file(source, 'main.fusion')
+
+
 @pytest.mark.parametrize('source', [
     'static interface Sized\n    int function size()\n',
     'public static int function f() : 1\n',

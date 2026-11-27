@@ -139,6 +139,9 @@
     </setting>
   </section>
 
+  <section name="libraries" description="The external libraries the project imports (Task 57.3): a namespace and its folder, one per line - SQL = &quot;C:/vendor/SQL&quot;; a relative folder is from this file's folder. Then: import SQL.Database">
+  </section>
+
   <section name="collections" description="Arrays, Lists, Maps and collection classes">
     <setting name="allowChangeWhileLooping" type="bool" default="false" task="32.4">
       <description>A collection class of your own may be changed inside a loop over it (its own rules decide); false: blocked - Fusion's own arrays, Lists and Maps never are</description>

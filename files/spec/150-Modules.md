@@ -91,6 +91,17 @@ classes, interfaces, enums, error types, functions and module variables:
   - A function is public or internal; a variable private by default (`static int made`); a class, struct, enum or
     interface may be `private` - its module only (`internal` - the namespace)
   - A module folder without a namespace (`money/`) and the main file are free, as before
+* **External libraries** (Task 57.3, D.206, D.213):
+  - fusion.toml lists each library the project imports - its namespace and its folder, relative to the settings
+    file (as a VB.NET project reference):
+    ```toml
+    [libraries]
+    SQL = "C:/vendor/SQL"
+    "com.example.SQL" = "../libs/com/example/SQL"
+    ```
+    then `import SQL.Database` finds `C:/vendor/SQL/Database/`
+  - Not listed: `import "C:/vendor".SQL.Database` - the folder holding the namespace, then the names
+  - Searched in order: the program's folder, then `[libraries]`; a module in two places is an error naming both
 
 **The earlier design** (the sections below, before Task 18.4) - not built, kept for review:
 
