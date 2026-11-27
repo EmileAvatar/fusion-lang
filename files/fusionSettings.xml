@@ -51,6 +51,9 @@
     <setting name="caseSensitive" type="bool" default="true" task="32.11">
       <description>count and Count are two names; false: names that differ only in case are an error, each pair listed</description>
     </setting>
+    <setting name="shadowing" type="bool" default="false" task="47.12">
+      <description>A variable, parameter or loop variable with the name of one further out (an outer block, a parameter, a module variable or constant): false - a compile error naming where the other is; true - allowed, a name means the nearest (this block, the blocks around it, the parameters, the module); ::total then reaches the module's, this.total the object's field (D.200)</description>
+    </setting>
   </section>
 
   <section name="structs" description="Struct rules">

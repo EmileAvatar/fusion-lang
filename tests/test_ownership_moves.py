@@ -205,4 +205,5 @@ def test_a_case_name_is_a_new_variable():
     source = 'enum Shape\n    Box(List<int> sizes)\n    Dot\n\nstruct Keep\n    List<int> sizes\n\n' + \
         main('List<int> sizes = [1]\nKeep k = Keep(sizes)\nShape s = Shape.Box([2, 3])\nmatch s\n'
              '    case Box(sizes)\n        print("{@1}", sizes.len())\n    case Dot\n        print("dot")')
-    assert errors(source) == []
+    from src.config.project_config import SourceConfig      # the case's name hides the outer one (47.12)
+    assert errors(source, {**MOVE, 'source_config': SourceConfig(shadowing=True)}) == []

@@ -291,6 +291,7 @@ member_name = identifier | keyword ;           (* after "." any word - m.get(k),
 primary =
       literal
     | identifier                               (* a type word too: a function named double *)
+    | "::" identifier                          (* the module variable a local hides - [source] shadowing (47.12) *)
     | "this"
     | "null"
     | "new" postfix                            (* new Car("Honda") - the same as Car("Honda") (32.10b) *)

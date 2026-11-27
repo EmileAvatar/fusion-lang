@@ -35,6 +35,9 @@ allowUnicodeIdentifiers = false
 # [built] count and Count are two names; false: names that differ only in case are an
 # error, each pair listed (Task 32.11)
 caseSensitive = true
+# [built] A name already used further out: an error; true - the nearest wins, ::total reaches the module's,
+# this.total the field (Task 47.12, D.200)
+shadowing = false
 
 [strings]
 # [built] utf-8 or ascii; [designed] utf-16 / utf-32

@@ -560,6 +560,15 @@ class Parser:
         Raises:
             ParserError: If token is not a valid primary expression
         """
+        # `::total` - the module's variable, where a local of that name hides it (47.12, D.200)
+        if self.check(TokenType.COLON) and self.peek(1).type == TokenType.COLON \
+                and self.peek(2).type == TokenType.IDENTIFIER:
+            start = self.advance()
+            self.advance()
+            name = self.advance()
+            expr = IdentifierExpr(location=start.location, name=name.value)
+            expr.module_scope = True
+            return expr
         # `new Car("Honda")` - the same as Car("Honda"); `new` only shows an object is made
         # (Task 32.10b)
         if self.match(TokenType.NEW):
@@ -2902,39 +2911,53 @@ class Parser:
                               object=IdentifierExpr(location=node.location, name='this'),
                               member=name)
 
-        def walk(node):
+        # A local or loop variable with a field's name hides the field from there to the end of its block - marked
+        # `shadows_field`; the name check makes it an error unless [source] shadowing is on (47.12, D.200)
+        skip = ('location', 'inferred_type', 'scope', 'declaration', 'callee_declaration', 'resolved_arguments')
+
+        def walk(node, hidden):
             if isinstance(node, list):
                 for i, item in enumerate(node):
-                    node[i] = fix(item)
-                    walk(node[i])
+                    node[i] = fix(item, hidden)
+                    walk(node[i], hidden)
                 return
             if not is_dataclass(node) or isinstance(node, type):
                 return
-            if isinstance(node, VarDeclStmt) and node.name in field_names:
-                fail(f"A variable in method '{method.name}' can't have the name of field "
-                     f"'{node.name}'")
+            if isinstance(node, BlockStmt):
+                local = set(hidden)
+                for i, statement in enumerate(node.statements):
+                    node.statements[i] = fix(statement, local)
+                    walk(node.statements[i], local)
+                    if isinstance(statement, VarDeclStmt) and statement.name in field_names:
+                        statement.shadows_field = struct_name
+                        local.add(statement.name)
+                return
+            inner = hidden
+            if isinstance(node, ForStmt) and node.variable in field_names:
+                node.shadows_field = struct_name
+                inner = set(hidden) | {node.variable}
             for f in dataclass_fields(node):
-                if f.name in ('location', 'inferred_type', 'scope', 'declaration',
-                              'callee_declaration', 'resolved_arguments'):
+                if f.name in skip:
                     continue
                 value = getattr(node, f.name)
+                scope = inner if f.name == 'body' else hidden
                 if isinstance(value, list):
-                    walk(value)
+                    walk(value, scope)
                     continue
-                new = fix(value)
+                new = fix(value, scope)
                 if new is not value:
                     setattr(node, f.name, new)
-                walk(new)
+                walk(new, scope)
 
-        def fix(node):
-            if isinstance(node, IdentifierExpr) and node.name in field_names:
+        def fix(node, hidden):
+            if isinstance(node, IdentifierExpr) and node.name in field_names and node.name not in hidden:
                 return this_of(node, node.name)
             if isinstance(node, CallExpr) and isinstance(node.callee, IdentifierExpr) \
                     and node.callee.name in method_names:
                 node.callee = this_of(node.callee, node.callee.name)
             return node
 
-        walk(method.body)
+        walk(method.body, set())
 
     @staticmethod
     def _root_name(node):

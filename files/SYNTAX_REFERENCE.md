@@ -154,6 +154,30 @@ functions and the module variables above it. `public` lets other modules use one
 (`stats.total`). A name inside a function can't hide a module variable. `[modules] variables =
 false` in `fusion.toml` turns module variables off (constants stay allowed).
 
+#### Shadowing: a name already used further out
+
+With `[source] shadowing = true` in fusion.toml (tests/test_shadowing.py runs it):
+
+```text
+int total = 10                          // a module variable
+
+class Orders
+    public int total = 100              // a field
+
+    public int function sum(int[] numbers)
+        int total = 0                   // [source] shadowing = true: hides the field and the module's
+        for num in numbers
+            total = total + num         // the nearest - this local
+            this.total = this.total + num   // the object's field
+            ::total = ::total + num     // the module's variable
+        return total
+```
+A variable, parameter or loop variable with the name of one further out - an outer block, a parameter, a field, a
+module variable or constant - is a compile error by default, naming where the other is (D.200). With `[source]
+shadowing = true` it is allowed: a name means the nearest - this block, the blocks around it, the parameters, the
+fields, the module. `this.total` reaches the object's field and `::total` the module's variable; a hidden outer
+local can't be reached (rename one), as in Java and C#.
+
 #### Default parameters and named arguments
 
 <!-- example: syntax_defaults_and_named_args | task: 18.2.2 | folder: 02_functions -->
@@ -2667,6 +2691,7 @@ allowMixed = true
 [source]
 allowUnicodeIdentifiers = false
 caseSensitive = true            # false: names that differ only in case (count / Count) are an error
+shadowing = false               # a name already used further out: an error; true: the nearest wins (::name, this.name)
 
 [strings]
 encoding = "utf-8"               # utf-8 (default) | ascii - also named: utf-16, utf-32 (future)

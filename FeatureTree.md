@@ -41,6 +41,7 @@ Syntax
    - Line continuation        a line break inside ( ) or [ ]
    - ASCII identifiers        Trojan Source / look-alike letters rejected
    - Case sensitivity         [source] caseSensitive; names differing only by case an error when off
+   - Shadowing                [source] shadowing - off: a name used further out an error; on: the nearest, ::name, this.name
    - Reserved words           keywords + words kept for future features, with a clear error
 
 Types

@@ -632,13 +632,41 @@ class NameResolver:
                 f"{kind} '{name}' has the same name as struct '{name}' - choose another name",
                 location
             ))
-        # A name inside a function can't hide a module variable - which one is meant would
-        # be easy to misread (Task 44.1)
-        if symbol is not None and getattr(symbol, 'module_variable', False) \
-                and self.symbol_table.current_scope is not self.symbol_table.global_scope:
+        # A name already used further out (47.12, D.200): [source] shadowing = false (default) - an error, which
+        # one is meant would be easy to misread (44.1); true - allowed, the nearest wins (::name reaches the module's)
+        if self.symbol_table.current_scope is self.symbol_table.global_scope or getattr(self, 'shadowing', False):
+            return
+        hint = " - choose another name, or [source] shadowing = true lets it hide that one"
+        if symbol is not None and getattr(symbol, 'module_variable', False):
+            what = 'constant' if getattr(symbol, 'is_const', False) else 'variable'
             self.errors.append(SemanticError(
-                f"{kind} '{name}' has the same name as the module variable '{name}' - choose "
-                f"another name", location))
+                f"{kind} '{name}' has the same name as the module {what} '{name}'{hint}", location))
+            return
+        outer = self._outer_local(name)
+        if outer is not None:
+            what = {'parameter': 'parameter'}.get(outer.symbol_type, 'variable')
+            line = getattr(outer.location, 'line', '?')
+            self.errors.append(SemanticError(
+                f"{kind} '{name}' has the name of a {what} further out (line {line}){hint}", location))
+
+    def check_field_shadow(self, stmt, name: str, kind: str) -> None:
+        """A local with a field's name in a method (47.12, D.200): an error unless [source] shadowing is on - then it
+        hides the field, which `this.name` still reaches."""
+        owner = getattr(stmt, 'shadows_field', None)
+        if owner and not getattr(self, 'shadowing', False):
+            self.errors.append(SemanticError(
+                f"{kind} in a method of '{owner}' can't have the name of its field '{name}' - choose another name, or "
+                f"[source] shadowing = true lets it hide the field (this.{name} reaches it)", stmt.location))
+
+    def _outer_local(self, name: str):
+        """A variable or parameter of this name in a scope around the current one - not the module's."""
+        scope = self.symbol_table.current_scope.parent
+        while scope is not None and scope is not self.symbol_table.global_scope:
+            symbol = scope.symbols.get(name)
+            if symbol is not None and symbol.symbol_type in ('variable', 'parameter'):
+                return symbol
+            scope = scope.parent
+        return None
 
     # ========================================================================
     # Pass 1: Function Registration
@@ -887,6 +915,7 @@ class NameResolver:
         if stmt.var_type is not None:
             self.resolve_type(stmt.var_type)
         self.check_not_struct_name(stmt.name, "Variable", stmt.location)
+        self.check_field_shadow(stmt, stmt.name, "A variable")
 
         # First resolve initializer (if any)
         if stmt.initializer:
@@ -990,6 +1019,7 @@ class NameResolver:
             # TODO: For full implementation, infer type from iterable
             int_type = PrimitiveType(location=stmt.location, name='int')
             self.check_not_struct_name(stmt.variable, "Loop variable", stmt.location)
+            self.check_field_shadow(stmt, stmt.variable, "A loop variable")
             loop_var_symbol = Symbol(
                 name=stmt.variable,
                 symbol_type='variable',
@@ -1137,6 +1167,16 @@ class NameResolver:
         Args:
             expr: Identifier expression node
         """
+        if getattr(expr, 'module_scope', False):            # ::total (47.12, D.200)
+            symbol = self.symbol_table.global_scope.lookup(expr.name)
+            if symbol is None or not getattr(symbol, 'module_variable', False):
+                self.errors.append(SemanticError(
+                    f"::{expr.name} - there is no module variable '{expr.name}'", expr.location))
+            elif not getattr(self, 'shadowing', False):
+                self.errors.append(SemanticError(
+                    f"::{expr.name} reaches a module variable hidden by a local - [source] shadowing is off, so nothing "
+                    f"hides it: write {expr.name}", expr.location))
+            return
         symbol = self.symbol_table.lookup(expr.name)
         if not symbol and expr.name in getattr(self, 'enum_value_names', ()):
             expr.bare_enum = self.enum_value_names[expr.name]   # JUNE - the checker decides where (45.17)

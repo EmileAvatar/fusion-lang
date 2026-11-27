@@ -1102,8 +1102,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if getattr(node, 'enum_value', None) is not None:
             return self.visit(node.enum_value)        # JUNE - Months.JUNE (45.17, D.150)
         # A module-level variable (Task 44.1) - its C name keeps it apart from locals and C
-        if node.name in getattr(self, 'global_names', {}):
-            return self.global_names[node.name]
+        if node.name in getattr(self, 'global_names', {}) and not getattr(node, 'local_shadow', False):
+            return self.global_names[node.name]         # ::total too; a local hiding it keeps its own name (47.12)
         # A parameter passed by reference - a method's `this` (Task 32.1) - is a pointer
         if node.name in getattr(self, 'ref_params', ()):
             return f'(*{node.name})'

@@ -392,10 +392,11 @@ def test_lambda_may_use_global_functions_and_its_own_parameters():
 
 
 def test_lambda_parameter_shadowing_outer_variable_is_not_a_capture():
-    _, _, ok = analyze(
+    # a parameter with an outer variable's name: [source] shadowing (47.12) decides - an error by default, not a capture
+    analyzer, _, ok = analyze(
         'void function main()\n    int x = 1\n    (int) : int op = func(int x) : x * 2\n'
     )
-    assert ok
+    assert not ok and all('further out' in e.message for e in analyzer.get_errors())
 
 
 def test_function_variable_must_be_initialized():

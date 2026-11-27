@@ -145,8 +145,15 @@ def test_string_ordering_against_number_rejected():
 
 def test_reusing_a_string_name_in_a_nested_block_rejected():
     source = main('string s = "a"\nif true\n    string s = "b"\n    print(s)')
+    # with [source] shadowing on (47.12) - off it is an error before the C is written
+    from src.config.project_config import SourceConfig
+    from src.semantic import SemanticAnalyzer
+    from src.codegen import CCodeGenerator
+    analyzer = SemanticAnalyzer(source_config=SourceConfig(shadowing=True))
+    ast = parse(source)
+    assert analyzer.analyze(ast), analyzer.get_errors()
     with pytest.raises(NotImplementedError, match="reuses the name of a string"):
-        generate_c(source)
+        CCodeGenerator().generate(ast)
 
 
 # ============================================================

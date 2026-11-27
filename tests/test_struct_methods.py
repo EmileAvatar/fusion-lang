@@ -104,10 +104,18 @@ def test_a_const_struct_can_only_call_methods_that_dont_change_it():
 
 @pytest.mark.parametrize('body, message', [
     ('    void function f(int x)\n        print("x")\n', "has the name of a field"),
-    ('    void function f()\n        int x = 1\n', "can't have the name of field 'x'"),
     ('    int function x() : 1\n', "'x' is both a field and a method"),
     ('    constructor(int x)\n        print("x")\n', "can't have a constructor"),
 ])
 def test_method_errors(body, message):
     with pytest.raises(ParserError, match=message):
         Parser(Lexer('struct P\n    int x\n' + body, 't').tokenize()).parse_program()
+
+
+def test_a_local_with_a_fields_name():
+    # [source] shadowing (47.12): off by default - an error; on, it hides the field (tests/test_shadowing.py)
+    from src.semantic import SemanticAnalyzer
+    analyzer = SemanticAnalyzer()
+    analyzer.analyze(Parser(Lexer('struct P\n    int x\n    void function f()\n        int x = 1\n\n'
+                                  'void function main()\n    print("a")\n', 't').tokenize()).parse_program())
+    assert any("can't have the name of its field 'x'" in e.message for e in analyzer.get_errors())

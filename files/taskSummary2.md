@@ -28,8 +28,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
   in task/taskSummaryArchive.md
 - Done 2026-11-27: 47.10 an enum value alone anywhere (tests/test_bare_enum.py) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-27: 47.11 enum values written with their enum (tests/test_bare_enum.py) - its plan in task/taskSummaryArchive.md
-- **Next Action:** 47.12 the shadowing setting - the plan below; `:total` / `Orders.total` to settle with the user;
-  then 47.9 number notations
+- Done 2026-11-27: 47.12 `[source] shadowing` (tests/test_shadowing.py) - its plan in task/taskSummaryArchive.md
+- **Next Action:** 47.9 number notations (exponents, hex past 32 bits, the m / dec suffixes) - its plan to write
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)
@@ -53,20 +53,3 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - `[decimal] maxScale` (18);
 - `[ranges] ...` (D.170) with 47.6.
 - Each goes into fusionSettings.xml once built. No `[money] currency` - empty is the default (D.183).
-
-**47.12 `[source] shadowing`** (D.200) - replan, waiting for approval
-- false (default): a variable, parameter or loop variable with the name of one further out - an outer block, a loop
-  variable, a parameter, a module variable or constant - is a compile error naming where the other is
-- true: allowed; a name means the nearest - this block, the blocks around it, the parameters, the module
-- Reaching the outer one while shadowed (other languages below): a module variable by its full name (`main.total` -
-  to confirm the form), a class field by `this.total` (as today); an outer local can't be reached - rename one
-- fusionSettings.xml, project_config, the settings doc; tests both ways; any example or test shadowing today renamed
-- Settings: `[source] shadowing` (new, default false)
-
-How others handle reaching the outer variable:
-- C, C++, Go, JavaScript, Swift, Rust: the inner hides the outer; no way back to an outer local - rename (C++ `::x`
-  reaches only a global; Rust even allows `let x = x + 1` in one scope, on purpose)
-- Java, C#: a local can't shadow another local (a compile error - C# CS0136); a field can, reached by `this.x`
-- Python: `nonlocal x` / `global x` before assigning changes the outer one
-- Kotlin: allowed with a warning; Go's vet tool warns
-

@@ -448,9 +448,12 @@ then each point is decided and solved completely. One line per section and per l
 		everywhere; a match's case `case OK` or `case Status.OK` (the subject decides); a value alone an error saying
 		what to write; a variable named like a value is that variable; the built-in enums in full (Rounding.halfUp,
 		Storage.FLAT, Dimension.ROWS); tests/test_bare_enum.py, syntax_enum_bare
-	[ ] 47.12 `[source] shadowing` (D.200): off - a name already used further out an error; on - the nearest wins;
-		reaching the outer one (user, 2026-11-27): `this.total` (a field), `::total` (the module) - `:total` and
-		`Orders.total` to settle (statics use Class.name; `:` has other jobs)
+	[DONE 2026-11-27] 47.12 `[source] shadowing` (D.200): off (default) - a variable, parameter, loop variable or
+		case name with the name of one further out (an outer block, a parameter, a field, a module variable or
+		constant) an error naming it; on - the nearest wins; `this.total` the field, `::total` the module's;
+		tests/test_shadowing.py
+	[ ] 47.12b Reaching the outer one, to revisit (user, 2026-11-27): `:total` (one step out) and `Orders.total` (the
+		object's field) - left out for now: `:` has other jobs and `Class.name` means a static
 	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - files/Ownership.md, files/Service.md)
 		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
 		`fixed(10) string name`: at most 10 characters, kept inline - no heap

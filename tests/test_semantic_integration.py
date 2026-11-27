@@ -155,7 +155,10 @@ void function main()
 End function
 """
     analyzer = analyze_source(source)
-    assert len(analyzer.get_errors()) == 0
+    # [source] shadowing (47.12): off by default - an error naming the outer one (tests/test_shadowing.py has it on)
+    assert [e.message for e in analyzer.get_errors()] == [
+        "Variable 'x' has the name of a variable further out (line 3) - choose another name, or [source] shadowing = "
+        "true lets it hide that one"]
 
 
 def test_type_promotion():

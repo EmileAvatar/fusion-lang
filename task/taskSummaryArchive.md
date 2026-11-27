@@ -7928,3 +7928,23 @@ int OK = 3                        // just a variable - nothing to choose between
 - 47.11e The examples, SYNTAX_REFERENCE (syntax_enum_bare becomes "an enum value is written with its enum"), the
   showcase, Value_Structs.md, DataStructures.html, tests; JUNE / Months only as examples - a Month enum comes with the
   date and time library (43.1)
+
+---
+
+## Task 47.12 - [source] shadowing (done 2026-11-27)
+
+**47.12 `[source] shadowing`** (D.200) - replan, waiting for approval
+- false (default): a variable, parameter or loop variable with the name of one further out - an outer block, a loop
+  variable, a parameter, a module variable or constant - is a compile error naming where the other is
+- true: allowed; a name means the nearest - this block, the blocks around it, the parameters, the module
+- Reaching the outer one while shadowed (other languages below): a module variable by its full name (`main.total` -
+  to confirm the form), a class field by `this.total` (as today); an outer local can't be reached - rename one
+- fusionSettings.xml, project_config, the settings doc; tests both ways; any example or test shadowing today renamed
+- Settings: `[source] shadowing` (new, default false)
+
+How others handle reaching the outer variable:
+- C, C++, Go, JavaScript, Swift, Rust: the inner hides the outer; no way back to an outer local - rename (C++ `::x`
+  reaches only a global; Rust even allows `let x = x + 1` in one scope, on purpose)
+- Java, C#: a local can't shadow another local (a compile error - C# CS0136); a field can, reached by `this.x`
+- Python: `nonlocal x` / `global x` before assigning changes the outer one
+- Kotlin: allowed with a warning; Go's vet tool warns

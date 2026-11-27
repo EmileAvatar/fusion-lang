@@ -545,6 +545,7 @@ def test_variable_in_nested_scope(name_resolver, location):
 def test_inner_scope_shadows_outer_scope(name_resolver, location):
     """Test block scoping (Task 12.6): redeclaring a name in a nested block shadows the
     outer variable rather than erroring - each block has its own scope."""
+    name_resolver.shadowing = True                     # [source] shadowing (47.12) - off by default
     int_type = PrimitiveType(location=location, name='int')
 
     # Outer variable
@@ -861,6 +862,7 @@ def test_resolve_after_multiple_scopes(name_resolver, location):
 def test_shadowing_resolution_inner_wins(name_resolver, location):
     """Test block scoping (Task 12.6): an inner declaration shadowing an outer one
     resolves to the inner variable within its own block, with no error."""
+    name_resolver.shadowing = True                     # [source] shadowing (47.12) - off by default
     int_type = PrimitiveType(location=location, name='int')
 
     # Outer variable

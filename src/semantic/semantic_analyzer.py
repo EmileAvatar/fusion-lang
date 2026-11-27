@@ -98,6 +98,9 @@ class SemanticAnalyzer:
         self.move_field_out = getattr(memory_config, 'move_field_out', False)
         # [source] caseSensitive (Task 32.11): false - names differing only in case are errors
         self.case_sensitive = bool(getattr(source_config, 'case_sensitive', True))
+        # [source] shadowing (47.12, D.200): a name already used further out - an error, or the nearest wins
+        self.name_resolver.shadowing = bool(getattr(source_config, 'shadowing', False))
+        self.type_checker.shadowing = self.name_resolver.shadowing
         # [collections] allowChangeWhileLooping (Task 32.4, D.058)
         self.type_checker.allow_change_while_looping = bool(
             getattr(collections_config, 'allow_change_while_looping', False))

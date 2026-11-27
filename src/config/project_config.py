@@ -99,6 +99,7 @@ class SourceConfig:
     """Source-text rules passed to the lexer (Task 19.6)."""
     allow_unicode_identifiers: bool = DEFAULT_ALLOW_UNICODE_IDENTIFIERS
     case_sensitive: bool = True   # false: names that differ only in case are an error (32.11)
+    shadowing: bool = False       # a name already used further out: false an error, true the nearest wins (47.12, D.200)
 
 
 @dataclass
@@ -969,6 +970,11 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
             raise ProjectConfigError(
                 f"{config_path}: source.caseSensitive must be true or false, got {case_sensitive!r}")
         source.case_sensitive = case_sensitive
+    if "shadowing" in source_section:                      # 47.12 (D.200)
+        shadowing = source_section["shadowing"]
+        if not isinstance(shadowing, bool):
+            raise ProjectConfigError(f"{config_path}: source.shadowing must be true or false, got {shadowing!r}")
+        source.shadowing = shadowing
 
     structs = _load_structs_section(data, config_path)
     strings = _load_strings_section(data, config_path)

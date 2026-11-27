@@ -342,7 +342,8 @@ void function main()
     print("Outer: {x}")
 End function
 '''
-    exit_code, stdout, stderr = compile_and_run(fusion_code)
+    from src.config.project_config import SourceConfig      # [source] shadowing (47.12) - off by default
+    exit_code, stdout, stderr = compile_and_run(fusion_code, analyzer_options={'source_config': SourceConfig(shadowing=True)})
     assert exit_code == 0
     assert "Inner: 20" in stdout
     assert "Outer: 10" in stdout  # Different x - outer was never touched

@@ -893,7 +893,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """
         if getattr(node, 'bare_enum', False) and self.symbol_table.lookup(node.name) is None:
             return self.enum_value_alone(node)             # OK alone - write Status.OK (D.199)
-        symbol = self.symbol_table.lookup(node.name)
+        symbol = self.scoped_lookup(node)
         if not symbol:
             self.errors.append(SemanticError(
                 f"Undefined variable: '{node.name}'",
@@ -1102,6 +1102,18 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
         # Unknown operator - return void for error recovery
         return PrimitiveType(location=node.location, name='void')
+
+    def scoped_lookup(self, node):
+        """The symbol a name means (47.12, D.200): `::total` - the module's; `total` - the nearest. A local that hides
+        a module variable is marked `local_shadow`, so the C uses the local's name, not the module's."""
+        if getattr(node, 'module_scope', False):
+            return self.symbol_table.global_scope.lookup(node.name)
+        symbol = self.symbol_table.lookup(node.name)
+        if symbol is not None and not getattr(symbol, 'module_variable', False):
+            outer = self.symbol_table.global_scope.lookup(node.name)
+            if outer is not None and getattr(outer, 'module_variable', False):
+                node.local_shadow = True
+        return symbol
 
     def user_method(self, name: str, receiver_type: TypeNode):
         """The program's own function `name` when it can be called as a method on a value of
@@ -3208,7 +3220,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         """Check assignment to a plain variable: x = value"""
         target_name = node.target.name
 
-        symbol = self.symbol_table.lookup(target_name)
+        symbol = self.scoped_lookup(node.target)
         if not symbol:
             self.errors.append(SemanticError(
                 f"Undefined variable: '{target_name}'",
