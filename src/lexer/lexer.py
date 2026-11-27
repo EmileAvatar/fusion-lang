@@ -353,6 +353,10 @@ class Lexer:
                 return Token(TokenType.IDENTIFIER, value, loc)
             raise LexerError(reserved_word_message(value), loc)
 
+        # `module` after a '.' is still a member name, as when it was reserved (Task 57.1)
+        if value == 'module' and previous is not None and previous.type == TokenType.DOT:
+            return Token(TokenType.IDENTIFIER, value, loc)
+
         # Check if it's a keyword
         if is_keyword(value):
             token_type = get_keyword_type(value)

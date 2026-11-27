@@ -99,9 +99,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | Task | Title | Phase | Status |
 |---|---|---|---|
 | [R](#research) | Research - files to study in full before a task starts | - | open |
-| [33](#task-33) | Generics: the program's own generic functions and types | 2 | open |
-| [45](#task-45) | Arrays: plain, fixed, growable, up to 3 dimensions - done 2026-11-22; what is left is postponed | 2 | done |
-| [47](#task-47) | Types: long, wide numbers, decimal, money, enums as value structs, fixed(n) - done 2026-11-27 | 2 | done |
 | [53](#task-53) | Check the Core language | 2 | open |
 | [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
 | [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
@@ -329,34 +326,6 @@ then each point is decided and solved completely. One line per section and per l
 <a id="phase-2"></a>
 ## Phase 2 - growing the language, then a fully independent compiler [index](#index)
 
-<a id="task-33"></a>
-#### 33 Generics: the program's own generic functions and types (user, 2026-10-11) [DONE 2026-11-22] [index](#index)
-	Done - every line in task/featuresArchive.md; the forms: files/SYNTAX_REFERENCE.md (generics sections),
-	examples/09_generics/. Left for later: L5.9, L8.7, L8.8 and Task 35 (the self-hosted lexer reads `1...10`)
-
-<a id="task-45"></a>
-#### 45 Arrays: plain, fixed, growable, up to 3 dimensions (user, 2026-11-14 - D.141-D.145) [DONE 2026-11-22] [index](#index)
-	Done - every line in task/featuresArchive.md; the forms and what each can do: files/Arrays.md 8c. Left for later:
-	[POSTPONED - when needed] 45.14 A struct field or module variable `fixed`
-	[POSTPONED - when needed] 45.12c A part of strings / objects passed; returning any size (heap); copying a part of
-		an any-size parameter; `==` on parts
-	[POSTPONED - when needed] 45.12e A heap array (growable, or plain given another shape) given whole to a new array or
-		replaced from another heap array or a function; a parameter of any size replaced as a whole
-	[POSTPONED - when needed] 45.12e A 3D array as a struct field (inside a struct on the stack) - on the heap too (D.154)
-	[POSTPONED - when needed] 45.15 JAGG on 3 dimensions; passing a whole jagged array, copying it (byVal / move),
-		toList, toCSV, `==`, `j[][1]` - each an error "comes later" today
-	[POSTPONED - a real need, D.164] 45.15 RECT storage - reusing JAGG's per-row blocks
-	[POSTPONED - a class of its own, later] 45.11b An Excel file, several files, a custom CSV or a binary file for many dimensions (D.151)
-	[POSTPONED to 42] 45.8 An array used by two or more threads gets a temporary service (D.057, 42.19)
-	[POSTPONED to L16.3] Buffers for a large array (D.146)
-
-<a id="task-47"></a>
-#### 47 Types: long, money, enums with fixed data (user, 2026-10-29) [DONE 2026-11-27] [index](#index)
-	Done - every line in task/featuresArchive.md; the forms: files/SYNTAX_REFERENCE.md (long, wide numbers, decimal,
-	money, Currency, ranges, enums, number notations, FusionType, fixed), files/Value_Structs.md. Left for later:
-	[POSTPONED - to revisit] 47.12b Reaching the outer one, to revisit (user, 2026-11-27): `:total` (one step out) and `Orders.total` (the
-		object's field) - left out for now: `:` has other jobs and `Class.name` means a static
-
 <a id="task-53"></a>
 #### 53 Check the Core language (user, 2026-11-07) [ ] [index](#index)
 	https://core-lang.dev - its design (https://core-lang.dev/design.html - simplicity, which we share) and
@@ -421,16 +390,17 @@ then each point is decided and solved completely. One line per section and per l
 #### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [ ] [index](#index)
 	A namespace is a supplier's group of modules, and a folder holding them; a module is one logical unit
 		(one file or several); a name in full is `Namespace.Module.Name`
-	[ ] 57.1 Design (when it is built - user): the namespace and module lines in a file and their syntax; the
-		folder layout; what `internal` means (the module or the namespace); a file without a module line
-		(the main program); finding a module's files (`[modules] paths`, MOD.005); a plan before building
-	[ ] 57.2 Importing a namespace with an alias (`import SQL as Q`); `SQL.Database.createConnection(...)` next to
-		`Fusion.Database.createConnection(...)`
-	[ ] 57.3 Same namespace name from two suppliers: a reverse company domain in the namespace (`com.example.SQL`)
-	[ ] 57.4 Build it: the loader, `--interface`, the examples with modules (shop, wordcount) and their tests
-	[ ] 57.5 Fusion's own libraries under `namespace Fusion` (today's text says `namespace Core` - FusionTemplate.md,
-		the showcase): bring them in line
-	[POSTPONED - needs `extern`] 57.6 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
+	[DONE 2026-11-27] 57.1 The lines and the folder (D.204, D.207; tests/test_namespaces.py): the folder gives the
+		namespace and module (SQL/Database/ - namespace SQL, module Database); `namespace` / `module` lines optional, one
+		not matching the folder an error naming both; `internal` shared by the folder's namespace; the main file in none
+	[ ] 57.2 What a structured module holds (D.211, D.212): a module in a namespace; static functions and variables
+		(added with a warning), who may be private; FusionTemplate.md
+	[ ] 57.3 Finding libraries (D.206, D.213): `[libraries]` in fusion.toml; `import "C:/vendor".SQL.Database`
+	[ ] 57.4 Importing (D.208, D.209): `import SQL as Q`, full names, a duplicate an error until aliased, `com.example.SQL`
+	[ ] 57.5 Fusion's own (D.208, D.210): `Fusion` reserved, `Fusion.Core` implicit, `Fusion.Currency`
+	[ ] 57.6 `--interface` shows the namespace and module, and works on a namespace
+	[ ] 57.7 The `suppliers` example and the documents (spec 150, SYNTAX_REFERENCE, the showcase, FeatureTree, MOD.012)
+	[POSTPONED - needs `extern`] 57.8 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
 
 <a id="task-58"></a>
 #### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [index](#index)
@@ -527,6 +497,8 @@ then each point is decided and solved completely. One line per section and per l
 		built on the self-hosted compiler, one server for every editor
 	[ ] 36.7 A hint showing how number conditions are set for the project (`[conditions]
 		numbers`, Task 30.9) - e.g. on `if count` (user, 2026-10-27)
+	[ ] 36.10 A quick fix: write `public static` on a structured module's top-level function or variable that
+		lacks it - the compiler's warning (D.212, Task 57; user, 2026-11-27)
 
 <a id="task-37"></a>
 #### 37 Deferred decisions (rest of 15 - user: after self-hosting, some become own sub-tasks) [ ] [index](#index)
@@ -700,6 +672,7 @@ then each point is decided and solved completely. One line per section and per l
 		S9 The thread-boundary check (42.22)
 		S10 The Service interface (42.21)
 	[ ] 42.19 Temporary services (files/Ownership.md section 6)
+		An array used by two or more threads gets one too (D.057 - was 45.8)
 		Two or more threads use one variable: the compiler makes `service(acc)`
 		The service owns it; the thread functions borrow it
 		One request = one whole call (`deposit(acc)`); the others wait in the mailbox
@@ -1005,6 +978,17 @@ Each time a task or section is finished, this list is checked for items the curr
 		[ ] L6.7 Tuples: a few values without declaring a struct (`(string, int) pair = ("Ada", 36)`)
 			User (2026-11-27): a tuple is a struct underneath - made by the compiler, const, no field names,
 			read by position (`pair[0]`), its values of mixed types (int, string, double, an object)
+		[POSTPONED - when needed] L6.9 Arrays, the rest of Task 45 (files/Arrays.md 8c):
+			45.14 A struct field or module variable `fixed`
+			45.12c A part of strings / objects passed; returning any size (heap); copying a part of
+				an any-size parameter; `==` on parts
+			45.12e A heap array (growable, or plain given another shape) given whole to a new array or
+				replaced from another heap array or a function; a parameter of any size replaced as a whole
+			45.12e A 3D array as a struct field (inside a struct on the stack) - on the heap too (D.154)
+			45.15 JAGG on 3 dimensions; passing a whole jagged array, copying it (byVal / move),
+				toList, toCSV, `==`, `j[][1]` - each an error "comes later" today
+			[a real need, D.164] 45.15 RECT storage - reusing JAGG's per-row blocks
+			[a class of its own, later] 45.11b An Excel file, several files, a custom CSV or a binary file for many dimensions (D.151)
 	L7 Control flow
 		[ ] L7.1 `switch` as an alias of `match` (familiar from VB.NET); `elif` an alias for `else if`
 			`match` stays the form in docs and examples (user, 2026-10-31 - D.065)
@@ -1041,6 +1025,8 @@ Each time a task or section is finished, this list is checked for items the curr
 			formats module (43.2) and files/Value_Structs.md
 		[ ] L8.10 Structs made automatically, without being declared (user, 2026-11-27) - the shape from the values
 			(as an anonymous type), with L8.9 and L6.7; to discuss
+		[POSTPONED - to revisit] L8.11 Reaching a hidden outer name (was 47.12b, user 2026-11-27): `:total` (one step
+			out) and `Orders.total` (the object's field) - left out for now: `:` has other jobs and `Class.name` means a static
 	L9 Errors
 		[ ] L9.3 `Result<Customer, DatabaseError> customer = database.getCustomer(id)` (user, 2026-11-27) - a value or its
 			error in one, as Rust's Result, beside Fusion's `Customer, Error function` (Task 26) - to discuss

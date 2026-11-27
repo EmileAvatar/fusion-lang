@@ -101,7 +101,7 @@ Their tools, and the one or two ideas worth taking. Some overlap - an idea is li
 - an executable - **have**
 - the C source - **have** (kept beside the .exe)
 - a library `.dll` / `.so` with a C interface - **planned** (MOD.003, L2.2)
-- one module as one library - **planned** (57.6)
+- one module as one library - **planned** (57.8)
 - for another platform (cross-compiling) - **idea** (Research R4.2, SET.020 `[backend] platform`)
 - build modes: debug / release / safe / small - **planned** (SET.020)
 

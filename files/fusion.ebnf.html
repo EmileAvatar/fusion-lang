@@ -74,7 +74,7 @@ semicolons - a statement ends at the end of its line.</div>
 <nav><a class="sec" href="#layout-and-block-styles">Layout and block styles</a>
 <div class="rules"><a href="#layout-and-block-styles-block">block</a>, <a href="#layout-and-block-styles-end-marker">end_marker</a></div>
 <a class="sec" href="#program">Program</a>
-<div class="rules"><a href="#program-program">program</a>, <a href="#program-namespace-line">namespace_line</a>, <a href="#program-import-statement">import_statement</a>, <a href="#program-import-statement">module_path</a>, <a href="#program-top-level">top_level</a>, <a href="#program-visibility">visibility</a>, <a href="#program-module-variable">module_variable</a></div>
+<div class="rules"><a href="#program-program">program</a>, <a href="#program-namespace-line">namespace_line</a>, <a href="#program-namespace-line">module_line</a>, <a href="#program-import-statement">import_statement</a>, <a href="#program-import-statement">module_path</a>, <a href="#program-top-level">top_level</a>, <a href="#program-visibility">visibility</a>, <a href="#program-module-variable">module_variable</a></div>
 <a class="sec" href="#functions">Functions</a>
 <div class="rules"><a href="#functions-function-declaration">function_declaration</a>, <a href="#functions-function-name">function_name</a>, <a href="#functions-result-type">result_type</a>, <a href="#functions-parameter-list">parameter_list</a>, <a href="#functions-parameter">parameter</a>, <a href="#functions-parameter-name">parameter_name</a>, <a href="#functions-passing">passing</a>, <a href="#functions-type-parameters">type_parameters</a>, <a href="#functions-type-parameters">type_parameter</a></div>
 <a class="sec" href="#types">Types</a>
@@ -146,16 +146,18 @@ semicolons - a statement ends at the end of its line.</div>
 <div class="comment">&nbsp;</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">program</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">namespace_line</span> <span class="o">]</span> <span class="o">{</span> <span class="nt">import_statement</span> <span class="o">}</span> <span class="o">{</span> <span class="nt">top_level</span> <span class="o">}</span> <span class="o">;</span></pre>
+<pre><span class="rule">program</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">namespace_line</span> <span class="o">]</span> <span class="o">[</span> <span class="nt">module_line</span> <span class="o">]</span> <span class="o">{</span> <span class="nt">import_statement</span> <span class="o">}</span> <span class="o">{</span> <span class="nt">top_level</span> <span class="o">}</span> <span class="o">;</span></pre>
 </div>
 <div class="card" id="program-namespace-line">
 <div class="head">
-<a class="task" href="../task/featuresArchive.md">32.2h</a>
+<a class="task" href="FEATURES.md#task-57">57.1</a>
 <span class="status built">built</span>
-<div class="comment">Task 32.2h</div>
+<div class="comment">Task 57.1 (D.204): the folder gives both - SQL/Database/ is namespace SQL, module Database; the lines are
+   optional, and one that doesn&#x27;t match the folder is an error; the main file has neither</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">namespace_line</span> <span class="o">=</span> <span class="s">&quot;namespace&quot;</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;.&quot;</span> <span class="nt">identifier</span> <span class="o">}</span> <span class="nt">NEWLINE</span> <span class="o">;</span>      <span class="c">(* Task 32.2h *)</span></pre>
+<pre><span class="rule">namespace_line</span> <span class="o">=</span> <span class="s">&quot;namespace&quot;</span> <span class="nt">identifier</span> <span class="o">{</span> <span class="s">&quot;.&quot;</span> <span class="nt">identifier</span> <span class="o">}</span> <span class="nt">NEWLINE</span> <span class="o">;</span>      <span class="c">(* Task 32.2h *)</span>
+<span class="rule">module_line</span> <span class="o">=</span> <span class="s">&quot;module&quot;</span> <span class="nt">identifier</span> <span class="nt">NEWLINE</span> <span class="o">;</span>      <span class="c">(* Task 57.1 *)</span></pre>
 </div>
 <div class="card" id="program-import-statement">
 <div class="head">
@@ -285,7 +287,7 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="functions-type-parameters">
 <div class="head">
-<a class="task" href="FEATURES.md#task-33">33</a>
+<a class="task" href="../task/featuresArchive.md">33</a>
 <span class="status built">built</span>
 <div class="comment">Task 33, D.166-D.167: &lt;T&gt;, &lt;K, V&gt;; a condition per name - `T extends Vehicle` / `T : Vehicle`
    (a class, a struct, Number or a basic type), `T implements Comparable, Printable`, or both,
@@ -307,7 +309,7 @@ semicolons - a statement ends at the end of its line.</div>
 <h2 id="types">Types</h2>
 <div class="card" id="types-type">
 <div class="head">
-<a class="task" href="FEATURES.md#task-47">47.5</a>
+<a class="task" href="../task/featuresArchive.md">47.5</a>
 <span class="status built">built</span>
 <div class="comment">at most n - a string, List or Map (47.5, D.020)</div>
 <a class="top" href="#top">top</a>
@@ -332,7 +334,7 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="types-named-type">
 <div class="head">
-<a class="task" href="FEATURES.md#task-33">33</a>
+<a class="task" href="../task/featuresArchive.md">33</a>
 <span class="status built">built</span>
 <div class="comment">A struct, class, enum, interface or error type - `money.Price` from another module;
    List&lt;T&gt;, Map&lt;K, V&gt; (Dictionary&lt;K, V&gt; the same), Collection&lt;T&gt;, Iterator&lt;T&gt;, Entry&lt;K, V&gt;
@@ -360,7 +362,7 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="types-array-suffix">
 <div class="head">
-<a class="task" href="FEATURES.md#task-45">45</a>
+<a class="task" href="../task/featuresArchive.md">45</a>
 <span class="status built">built</span>
 <div class="comment">Arrays (Task 45, D.141-D.153): int[5], int[] (its size from its values); up to 3 dimensions,
    int[2][3] or int[2],[3] (D.143); growable: int:[], int:[10] (10 slots made ahead),
@@ -409,7 +411,7 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="statements-variable-declaration">
 <div class="head">
-<a class="task" href="FEATURES.md#task-45">45.14</a>
+<a class="task" href="../task/featuresArchive.md">45.14</a>
 <span class="status built">built</span>
 <div class="comment">`int x = 5`; `int numbers[] = [1, 2]` (D.141); `fixed int[3] top` - never changes size (45.14);
    `Ship s, err = load()` / `Ship s, Error err = load()` - capture an error (Task 26);
@@ -487,7 +489,7 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="control-flow-for-statement">
 <div class="head">
-<a class="task" href="FEATURES.md#task-33">33.2f</a>
+<a class="task" href="../task/featuresArchive.md">33.2f</a>
 <span class="status built">built</span>
 <div class="comment">`for i in 1...10`, `for i in 0...13 step 5` (33.2f-g, D.169-D.170): both ends included;
    a negative step counts down. `for x in 0.0...1.0 step 0.1` - a float, double, decimal or money
@@ -697,7 +699,7 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="expressions-lowest-precedence-first-primary">
 <div class="head">
-<a class="task" href="FEATURES.md#task-47">47.12</a>
+<a class="task" href="../task/featuresArchive.md">47.12</a>
 <span class="status built">built</span>
 <div class="comment">a type word too: a function named double the module variable a local hides - [source] shadowing (47.12) new Car(&quot;Honda&quot;) - the same as Car(&quot;Honda&quot;) (32.10b) Task 46.2 an empty one (18.5) Entry&lt;string, int&gt;(&quot;a&quot;, 1) - 32.6</div>
 <a class="top" href="#top">top</a>
@@ -1005,7 +1007,7 @@ semicolons - a statement ends at the end of its line.</div>
 <h2 id="enums-task-25">Enums (Task 25)</h2>
 <div class="card" id="enums-task-25-enum-declaration">
 <div class="head">
-<a class="task" href="FEATURES.md#task-47">47.3</a>
+<a class="task" href="../task/featuresArchive.md">47.3</a>
 <span class="status built">built</span>
 <div class="comment">`const static enum Planet` - accepted, changing nothing: an enum is const and static (47.3)</div>
 <a class="top" href="#top">top</a>
@@ -1049,7 +1051,7 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="enums-task-25-enum-member">
 <div class="head">
-<a class="task" href="FEATURES.md#task-47">47.3</a>
+<a class="task" href="../task/featuresArchive.md">47.3</a>
 <span class="status built">built</span>
 <div class="comment">After the values (47.3, D.190-D.192): fields - `public const double mass` (readable from anywhere; without
    public, only the enum&#x27;s functions read it; never set) - bool char byte short int long int128 int256 float
@@ -1107,7 +1109,7 @@ semicolons - a statement ends at the end of its line.</div>
    Control:      if else for while loop match case break continue return try catch finally
                  throw go async await End end
    Declarations: function func class struct interface enum Enum inherits implements property
-                 get set import new cast namespace
+                 get set import new cast namespace module
    Modifiers:    public private internal protected static virtual override abstract sealed
                  const let var service fixed Shared Weak
    Types:        int long short byte int128 int256 float double bool char string void
@@ -1120,7 +1122,7 @@ semicolons - a statement ends at the end of its line.</div>
    Reserved for a planned feature - an error as a name that says what for (Task 61, D.162):
    check unsafe hotpath extern switch elif assert channel lock where defer comptime union
    choice operator yield
-   Reserved for future use: module export using default typeof sizeof nameof select atomic
+   Reserved for future use: export using default typeof sizeof nameof select atomic
    transaction goto delete volatile synchronized self base ref out mut move macro type record
    trait impl</div>
 <a class="top" href="#top">top</a>
@@ -1209,7 +1211,7 @@ semicolons - a statement ends at the end of its line.</div>
 </div>
 <div class="card" id="planned-designed-not-built-fixed-size-type">
 <div class="head">
-<a class="task" href="FEATURES.md#task-47">47.5</a>
+<a class="task" href="../task/featuresArchive.md">47.5</a>
 <span class="status planned">planned</span>
 <div class="comment">Task 47.5: a maximum size - fixed(10) string name, fixed(14) List&lt;Person&gt; people</div>
 <a class="top" href="#top">top</a>

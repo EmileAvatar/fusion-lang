@@ -14,9 +14,9 @@ from src.semantic import SemanticAnalyzer
 from tests.test_modules import errors as module_errors, run_project
 from tests.test_structs import main, parse
 
-# Two modules in namespace Shop, and the main file outside it
+# Two modules in namespace Shop (the folder Shop/ - D.204), and the main file outside it
 SHOP = {
-    'stock/s.fusion': ('namespace Shop\n\n'
+    'Shop/stock/s.fusion': ('namespace Shop\n\n'
                        'internal int function count() : 7\n\n'
                        'class Shelf\n'
                        '    internal int items = 3\n'
@@ -25,8 +25,7 @@ SHOP = {
                        '        items = items + 1\n'
                        '    internal int function peek() : items\n'
                        '    public static Shelf function make() : Shelf()\n'),
-    'till/t.fusion': ('namespace Shop\n\n'
-                      'import stock\n\n'
+    'Shop/till/t.fusion': ('import Shop.stock\n\n'
                       'public string function report()\n'
                       '    stock.Shelf s = stock.Shelf()\n'          # internal constructor
                       '    return format("{@1} {@2} {@3}", stock.count(), s.items, s.peek())\n'),
@@ -35,7 +34,7 @@ SHOP = {
 
 def test_internal_is_shared_inside_the_namespace(tmp_path):
     files = dict(SHOP)
-    files['main.fusion'] = ('import till\nimport stock\n\n'
+    files['main.fusion'] = ('import Shop.till\nimport Shop.stock\n\n'
                             'void function main()\n'
                             '    print(till.report())\n'
                             '    stock.Shelf s = stock.Shelf.make()\n'
@@ -46,16 +45,16 @@ def test_internal_is_shared_inside_the_namespace(tmp_path):
 @pytest.mark.parametrize('line, message', [
     ('int n = stock.count()', "'count' is internal to namespace Shop - only names marked public "
                               "can be used from another module"),
-    ('stock.Shelf s = stock.Shelf()', "The constructor of class 'stock.Shelf' is internal - only "
+    ('stock.Shelf s = stock.Shelf()', "The constructor of class 'Shop.stock.Shelf' is internal - only "
                                       "its namespace Shop can use it"),
     ('stock.Shelf s = stock.Shelf.make()\n    int n = s.items',
-     "Field 'items' of class 'stock.Shelf' is internal - only its namespace Shop can use it"),
+     "Field 'items' of class 'Shop.stock.Shelf' is internal - only its namespace Shop can use it"),
     ('stock.Shelf s = stock.Shelf.make()\n    int n = s.peek()',
-     "Function 'peek' of class 'stock.Shelf' is internal - only its namespace Shop can use it"),
+     "Function 'peek' of class 'Shop.stock.Shelf' is internal - only its namespace Shop can use it"),
 ])
 def test_internal_from_outside_the_namespace_is_an_error(tmp_path, line, message):
     files = dict(SHOP)
-    files['main.fusion'] = f'import stock\n\nvoid function main()\n    {line}\n'
+    files['main.fusion'] = f'import Shop.stock\n\nvoid function main()\n    {line}\n'
     assert message in module_errors(str(tmp_path), files)
 
 
@@ -68,11 +67,11 @@ def test_internal_in_a_file_without_a_namespace_is_its_module(tmp_path):
     assert "'secret' is internal to module 'm'" in module_errors(str(tmp_path), files)
 
 
-def test_a_single_file_may_have_a_namespace(tmp_path):
-    from tests.test_end_to_end import compile_and_run
-    assert compile_and_run('namespace App.Tools\n\n'
-                           'class Box\n    internal int n = 5\n\n'
-                           + main('Box b = Box()\nprint("{b.n}")'))[1].split() == ['5']
+def test_the_main_file_has_no_namespace(tmp_path):
+    # D.204: the folder gives the namespace - the main file is the program, in none
+    files = {'main.fusion': 'namespace App.Tools\n\n' + main('print("x")')}
+    assert "The main file is the program - it belongs to no namespace or module" in \
+        module_errors(str(tmp_path), files)
 
 
 def required_errors(source: str) -> str:

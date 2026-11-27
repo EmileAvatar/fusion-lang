@@ -922,3 +922,7 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 	[DONE 2026-11-27] 47.4 The built-in enum `FusionType` (D.201; src/semantic/fusion_type.py; tests/test_fusion_type.py,
 		syntax_fusion_type): a value per type (INT ... ERROR) with type, kind, size, canBeNull; min / max / default in
 		the type itself (FusionType.INT.max an int) - the value written; added when used
+
+#### Tasks 33, 45, 47 closed (2026-11-27)
+	Their postponed items moved: 33's were already L5.9, L8.7, L8.8 and 35.0; 45's to L6.9, 45.8 under 42.19,
+	the buffers already L16.3; 47.12b to L8.11

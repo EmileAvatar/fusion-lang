@@ -32,9 +32,12 @@ end_marker = [ NEWLINE ] ( "End" | "end" ) ;      (* then the block's word: if, 
 
 (* ========== Program ========== *)
 
-program = [ namespace_line ] { import_statement } { top_level } ;
+program = [ namespace_line ] [ module_line ] { import_statement } { top_level } ;
 
+(* Task 57.1 (D.204): the folder gives both - SQL/Database/ is namespace SQL, module Database; the lines are
+   optional, and one that doesn't match the folder is an error; the main file has neither *)
 namespace_line = "namespace" identifier { "." identifier } NEWLINE ;      (* Task 32.2h *)
+module_line = "module" identifier NEWLINE ;      (* Task 57.1 *)
 
 (* Task 18.4.2: import money / import money.Price / import money.* / import lib.utils as u.
    A module is a folder next to the main file *)
@@ -475,7 +478,7 @@ DEDENT  = ? the lexer: the indentation shrinks - one per level ? ;
    Control:      if else for while loop match case break continue return try catch finally
                  throw go async await End end
    Declarations: function func class struct interface enum Enum inherits implements property
-                 get set import new cast namespace
+                 get set import new cast namespace module
    Modifiers:    public private internal protected static virtual override abstract sealed
                  const let var service fixed Shared Weak
    Types:        int long short byte int128 int256 float double bool char string void
@@ -488,7 +491,7 @@ DEDENT  = ? the lexer: the indentation shrinks - one per level ? ;
    Reserved for a planned feature - an error as a name that says what for (Task 61, D.162):
    check unsafe hotpath extern switch elif assert channel lock where defer comptime union
    choice operator yield
-   Reserved for future use: module export using default typeof sizeof nameof select atomic
+   Reserved for future use: export using default typeof sizeof nameof select atomic
    transaction goto delete volatile synchronized self base ref out mut move macro type record
    trait impl *)
 

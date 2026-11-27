@@ -2182,6 +2182,18 @@ class Parser:
             while self.match(TokenType.NEWLINE):
                 pass
 
+        # `module Database` - after the namespace line, before the imports (Task 57.1, D.204)
+        module = None
+        if self.match(TokenType.MODULE):
+            module = self.consume(TokenType.IDENTIFIER, "Expected the module's name after 'module'").value
+            if self.check(TokenType.DOT):
+                raise ParserError(self.peek(), "A module's name is one word - the folders above it are "
+                                               "its namespace: write 'namespace A' then 'module B'")
+            if not (self.check(TokenType.NEWLINE) or self.is_at_end()):
+                raise ParserError(self.peek(), "Expected the end of the line after the module's name")
+            while self.match(TokenType.NEWLINE):
+                pass
+
         # Imports come first (Task 18.4.2)
         imports = []
         while self.match(TokenType.IMPORT):
@@ -2196,6 +2208,9 @@ class Parser:
             if self.check(TokenType.NAMESPACE):
                 raise ParserError(self.peek(), "'namespace' must be the first line of the file - "
                                                "before the imports")
+            if self.check(TokenType.MODULE):
+                raise ParserError(self.peek(), "'module' comes right after the namespace line (or "
+                                               "first) - before the imports")
             decl = self.parse_declaration()
             if decl:
                 declarations.append(decl)
@@ -2217,7 +2232,8 @@ class Parser:
             location=start_loc,
             declarations=declarations,
             imports=imports,
-            namespace=namespace
+            namespace=namespace,
+            module=module
         )
 
     def parse_import(self) -> ImportDecl:

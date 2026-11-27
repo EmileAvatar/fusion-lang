@@ -35,7 +35,7 @@ VERSION = '0.1.2'
 CONTROL = {'if', 'else', 'for', 'while', 'loop', 'End', 'end', 'break', 'continue', 'return', 'match', 'case',
            'try', 'catch', 'finally', 'throw', 'go', 'async', 'await'}
 DECLARATION = {'function', 'func', 'class', 'struct', 'interface', 'enum', 'Enum', 'inherits', 'implements',
-               'property', 'get', 'set', 'import', 'new', 'cast', 'namespace'}
+               'property', 'get', 'set', 'import', 'new', 'cast', 'namespace', 'module'}
 MODIFIER = {'public', 'private', 'internal', 'protected', 'static', 'virtual', 'override', 'abstract', 'sealed',
             'const', 'let', 'var', 'service', 'fixed', 'Shared', 'Weak'}
 TYPE = {'int', 'float', 'double', 'string', 'bool', 'char', 'byte', 'short', 'long', 'int128', 'int256', 'void'}

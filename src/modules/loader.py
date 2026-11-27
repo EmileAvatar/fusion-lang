@@ -158,6 +158,8 @@ class ModuleLoader:
             except Exception as e:   # lexer / parser errors in a module's file
                 self._error(f"In module '{module_id}': {e}", imp)
                 return
+        for path, program in files:
+            self._check_lines(module_id, path, program)
         module = Module(module_id, files)
         self.modules[module_id] = module   # registered before its own imports: no loops
         if 'main' in module.names:
@@ -165,6 +167,28 @@ class ModuleLoader:
                         f"main file can", module.names['main'])
         self._check_public_types(module)
         self._load_imports(module)
+
+    def _check_lines(self, module_id: str, path: str, program: ProgramNode) -> None:
+        """A file's `namespace` / `module` lines must match its folder, which gives both: SQL/Database/ is
+        namespace SQL, module Database; money/ is module money without a namespace (Task 57.1, D.204). The
+        folder's namespace is then the file's - what `internal` shares (D.207)."""
+        parts = module_id.split('.')
+        namespace, name = '.'.join(parts[:-1]) or None, parts[-1]
+        file_name = os.path.relpath(path, self.root).replace(os.sep, '/')
+        folder = '/'.join(parts) + '/'
+        if program.namespace is not None and program.namespace != namespace:
+            if namespace is None:
+                fix = (f"move the module into a folder {program.namespace.replace('.', '/')}/ "
+                       f"({program.namespace.replace('.', '/')}/{name}/), or remove the line")
+                where = f"its folder {folder} is a module without a namespace"
+            else:
+                fix = f"write 'namespace {namespace}', or move the file"
+                where = f"its folder {folder} makes it namespace {namespace}"
+            self._error(f"{file_name} says 'namespace {program.namespace}', but {where} - {fix}", program)
+        if program.module is not None and program.module != name:
+            self._error(f"{file_name} says 'module {program.module}', but its folder {folder} makes it "
+                        f"module {name} - write 'module {name}', or move the file", program)
+        program.namespace = namespace
 
     def _check_public_types(self, module: Module) -> None:
         """A public function, struct or enum can't expose a private struct or enum of its own
@@ -370,6 +394,12 @@ def load_program(main_file: str, main_program: ProgramNode,
                  parse_file: ParseFile) -> Tuple[ProgramNode, List[SemanticError]]:
     """The whole program - the main file plus every module it imports - as one ProgramNode,
     with any import errors. A program without imports comes back unchanged."""
+    if main_program.namespace is not None or main_program.module is not None:
+        line = (f"namespace {main_program.namespace}" if main_program.namespace is not None
+                else f"module {main_program.module}")
+        return main_program, [SemanticError(
+            f"The main file is the program - it belongs to no namespace or module, so '{line}' can't be "
+            f"written in it; a module is a folder of files next to it (D.204)", main_program.location)]
     if not main_program.imports:
         return main_program, []
     loader = ModuleLoader(main_file, parse_file)

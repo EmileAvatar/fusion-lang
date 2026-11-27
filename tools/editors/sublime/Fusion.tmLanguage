@@ -153,7 +153,7 @@
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?&lt;![\w.])\b(constructor|implements|interface|namespace|function|includes|inherits|property|template|extends|import|struct|class|Enum|cast|enum|func|get|new|set)\b</string>
+					<string>(?&lt;![\w.])\b(constructor|implements|interface|namespace|function|includes|inherits|property|template|extends|import|module|struct|class|Enum|cast|enum|func|get|new|set)\b</string>
 					<key>name</key>
 					<string>storage.type.fusion</string>
 				</dict>
@@ -183,7 +183,7 @@
 				</dict>
 				<dict>
 					<key>match</key>
-					<string>(?&lt;![\w.])\b(synchronized|transaction|comptime|operator|volatile|channel|default|hotpath|assert|atomic|choice|delete|export|extern|module|nameof|record|select|sizeof|switch|typeof|unsafe|check|defer|macro|trait|union|using|where|yield|base|elif|goto|impl|lock|move|self|type|mut|out|ref)\b</string>
+					<string>(?&lt;![\w.])\b(synchronized|transaction|comptime|operator|volatile|channel|default|hotpath|assert|atomic|choice|delete|export|extern|nameof|record|select|sizeof|switch|typeof|unsafe|check|defer|macro|trait|union|using|where|yield|base|elif|goto|impl|lock|move|self|type|mut|out|ref)\b</string>
 					<key>name</key>
 					<string>keyword.other.reserved.fusion</string>
 				</dict>

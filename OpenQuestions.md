@@ -30,6 +30,8 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
+Earlier: Q.081 (A - structured = a module in a namespace), Q.082 (A - static added with a warning; who may be private) and Q.083 (A - `[libraries]`, and an import with a path) answered 2026-11-27: Decisions.md D.211-D.213.
+Earlier: Q.075 (A - the namespace and module from the folder; what a module holds), Q.076 (A - the project's settings list its libraries, else a path), Q.077 (A - `internal` the namespace), Q.078 (A - `Fusion.Core` always imported), Q.079 (A - a duplicate an error until aliased) and Q.080 (A - `Fusion` reserved) answered 2026-11-27: Decisions.md D.204-D.210.
 Earlier: Q.072 (B - FusionType's fields in camelCase), Q.073 (A - a CapacityError past `fixed(n)`) and Q.074 (B - a `fixed(n) string` checked now, inline later) answered 2026-11-27: Decisions.md D.201-D.203.
 Earlier: Q.070 (an enum value written with its enum; `case OK` or `case Status.OK` in a match) and Q.071 (A - `[source] shadowing`, off by default) answered 2026-11-27: Decisions.md D.199, D.200.
 Earlier: Q.067 (A - a digit on both sides of the point), Q.068 (m money and dec decimal suffixes) and Q.069 (B - an enum value alone anywhere, a shared name an error listing each) answered 2026-11-25: Decisions.md D.195-D.197, FEATURES 47.9, 47.10.
@@ -59,6 +61,6 @@ namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a 
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.075.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.084.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->

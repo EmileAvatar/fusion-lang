@@ -12,13 +12,14 @@ means: `files/showcase/Fusion_template.fusion`.
 
 | Rule | Notes |
 |---|---|
-| `namespace` comes first, if the file has one | Optional - Fusion's own libraries use it (`namespace Core`); an app only to split a large program into logical parts |
+| `namespace` comes first, if the file has one; `module` next | Optional - the folder gives both, and a line written must match it (D.204) |
 | `import` lines come next, before anything else | Optional |
 | `Core` is always imported | Never written - the core foundation of the language is there in every file |
 
-A namespace is a **line, not a folder**: it says where the file's contents belong
-(`Namespace.Module.Class.Function` - later used to map what belongs where). Files stay where
-they are; the core modules (IO, Graphics, ...) sit side by side.
+A namespace is a **folder** of modules, and a module a folder of files (Task 57.1, D.204): `SQL/Database/` is
+namespace SQL, module Database - a name in full is `Namespace.Module.Name`. The `namespace` and `module` lines are
+optional; when written they must match the folder (an error otherwise). The main file is the program - in no
+namespace or module.
 
 ---
 

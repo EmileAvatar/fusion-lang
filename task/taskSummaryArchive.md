@@ -8025,3 +8025,29 @@ fixed int numbers[10]                      // an array that never takes another 
 - 47.5d n is a whole number constant - written, or a `const` (`fixed(MAX_NAME) string name` - the hardware's or a
   setting's size later, H9); n of 0 or below an error
 - Tests tests/test_fixed.py; example syntax_fixed; Settings: none
+
+---
+
+## Task 47 - the decided points (moved 2026-11-27, Task 47 complete)
+
+## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)
+**Decided (user, 2026-11-24 - D.176-D.187):**
+- `int128` / `int256`: signed, used like any number - no byte[16] / ArrayLarge type.
+- `decimal` is built first, for money, science and engineering.
+- `money` is a sealed value struct built into the compiler: `value` (long), `scale`, `currency` (a fixed 3-char text,
+  empty by default) and `symbol`. Never on the heap, never pooled.
+- The scale is how many places the value holds (1323242 at scale 6 is 1.323242); adding keeps the larger scale.
+- Two currencies must be the same, or one empty; `convert(from, to, rate)` first otherwise.
+- halfEven rounding, an operation may name its own mode, and `[money] rounding = "exact"`.
+- The steps in between are done in int128, rounded once.
+- Money is 16 bytes: `value` 8, `scale` 1, `currency` 3, `symbol` 4 (D.184). One money type, convertible to and
+  from decimal (D.185).
+- Money is only a container: the compiler does `+ - *` and comparing itself; everything with rules is a static
+  method of the Currency module that the compiler calls (D.186).
+- The symbol is for display only: `R100.05`, or `100.05` without a symbol (D.187).
+**Order:** 47.7, then 47.8, then 47.2, then 47.6 - each shipped on its own; 47.3-47.5 after (Q.049).
+**Settings:**
+- `[money] rounding` (halfEven | halfUp | down | up | exact - D.177);
+- `[decimal] maxScale` (18);
+- `[ranges] ...` (D.170) with 47.6.
+- Each goes into fusionSettings.xml once built. No `[money] currency` - empty is the default (D.183).

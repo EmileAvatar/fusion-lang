@@ -186,7 +186,7 @@ def test_the_grammar_page_statuses_and_links():
             '(* Task 48.5, POSTPONED (D.106): shared *)\nshared = "shared" ;\n\n'
             '(* An endless loop *)\nloop_statement = "loop" ;\n')
     page = module.build_page(text)
-    assert '<a class="task" href="FEATURES.md#task-47">47.1</a>\n<span class="status built">built</span>' in page
+    assert '<a class="task" href="../task/featuresArchive.md">47.1</a>\n<span class="status built">built</span>' in page
     assert '47.7</a>\n<span class="status planned">planned</span>' in page
     assert '<span class="status planned">postponed</span>' in page
     assert '<span class="task">-</span>\n<span class="status notbuilt">not built</span>' in page

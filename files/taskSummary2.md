@@ -32,27 +32,72 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - Done 2026-11-27: 47.9 number notations (tests/test_number_notations.py) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-27: 47.4 FusionType (tests/test_fusion_type.py) - its plan in task/taskSummaryArchive.md
 - Done 2026-11-27: 47.5 `fixed(n)` (tests/test_fixed.py) - Task 47 complete, its plans in task/taskSummaryArchive.md
-- **Next Action:** the next task - to choose with the user (FEATURES)
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
+- Done 2026-11-27: Tasks 33, 45, 47 closed - their postponed items moved (L6.9, 42.19, L8.11)
+- **Next Action:** Task 57 - approve the plan below, then 57.1
 
-## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)
-**Decided (user, 2026-11-24 - D.176-D.187):**
-- `int128` / `int256`: signed, used like any number - no byte[16] / ArrayLarge type.
-- `decimal` is built first, for money, science and engineering.
-- `money` is a sealed value struct built into the compiler: `value` (long), `scale`, `currency` (a fixed 3-char text,
-  empty by default) and `symbol`. Never on the heap, never pooled.
-- The scale is how many places the value holds (1323242 at scale 6 is 1.323242); adding keeps the larger scale.
-- Two currencies must be the same, or one empty; `convert(from, to, rate)` first otherwise.
-- halfEven rounding, an operation may name its own mode, and `[money] rounding = "exact"`.
-- The steps in between are done in int128, rounded once.
-- Money is 16 bytes: `value` 8, `scale` 1, `currency` 3, `symbol` 4 (D.184). One money type, convertible to and
-  from decimal (D.185).
-- Money is only a container: the compiler does `+ - *` and comparing itself; everything with rules is a static
-  method of the Currency module that the compiler calls (D.186).
-- The symbol is for display only: `R100.05`, or `100.05` without a symbol (D.187).
-**Order:** 47.7, then 47.8, then 47.2, then 47.6 - each shipped on its own; 47.3-47.5 after (Q.049).
-**Settings:**
-- `[money] rounding` (halfEven | halfUp | down | up | exact - D.177);
-- `[decimal] maxScale` (18);
-- `[ranges] ...` (D.170) with 47.6.
-- Each goes into fusionSettings.xml once built. No `[money] currency` - empty is the default (D.183).
+## Task 57 - Namespaces and modules (replan 2 - 2026-11-27, D.204-D.213)
+**Today (built 18.4, 32.2h):** a folder is a module (`geometry/shapes/` is `geometry.shapes`, used as `shapes.x`);
+`namespace X` is a free first line that only shares `internal` names; `money.round` is `fu_money__round` in C.
+**Decided (user, 2026-11-27):**
+- the folder gives the namespace and module; the lines optional, a mismatch an error (D.204);
+- a namespace groups related modules in a folder; a module holds classes, static variables, structs, interfaces and
+  static functions (sparingly) - for structured code, naked files and scripts excluded (D.205);
+- the project's settings file lists its external libraries, else the import gives a path (D.206);
+- `internal` is the namespace (D.207); `import SQL as Q`, full names, `Fusion.Core` always imported (D.208);
+- two imported modules with the same name an error until aliased; a reverse domain a longer namespace (D.209);
+- `Fusion` reserved, `Fusion.Currency` (D.210)
+- structured = a module in a namespace (D.211); static added with a warning, who may be private (D.212);
+  `[libraries]` and an import with a path (D.213)
+
+**Steps** (each shipped on its own):
+- 57.1 The lines and the folder (D.204, D.207):
+  - the parser reads `module Name` after `namespace A.B` (both optional, the first lines, before the imports);
+  - the loader works out each file's namespace and module from its folder - `SQL/Database/` is namespace SQL, module
+    Database; a line that doesn't match is an error naming both;
+  - `internal` follows the folder's namespace, no longer a free line - the shop example and the tests checked
+- 57.2 What a structured module holds (D.211, D.212):
+  - structured = a module inside a namespace; a module folder without one and the main file stay free;
+  - a top-level function or variable without `static`: the compiler adds it, with a warning "write public static"
+    (functions) / "write static" (variables);
+  - a function public (added when nothing is written) or internal - private an error; a variable private by
+    default, public or internal when written;
+  - interfaces and enums public and static by default, may be private; structs and classes public by default,
+    internal or private; error types and constants allowed;
+  - `private` on a top-level type = its module (internal = the namespace) - D.008 replaced for types, and the
+    "write internal" error kept for functions;
+  - a static function called by its module's name (`Money.make(5)`); FusionTemplate.md updated (the namespace a
+    folder now, the module line, the static items, the visibility table)
+- 57.3 Finding libraries (D.206, Q.083):
+  - `[libraries]` in fusion.toml: a namespace and its folder (`SQL = "C:/vendor/SQL"`); relative to the program's
+    folder;
+  - `import "C:/vendor".SQL.Database` - a quoted folder, then the names, for a library not listed;
+  - the order: the program's folder, `[libraries]`, Fusion's own; the same module found twice an error naming both
+- 57.4 Importing (D.208, D.209):
+  - `import SQL as Q` - a namespace; `Q.Database.x` loads Database when used;
+  - the full name `SQL.Database.x` once imported; two imported modules with the same name an error until one or
+    both get an alias (today's rule kept);
+  - `com.example.SQL` - a longer namespace in nested folders (tests);
+  - the scope-aware rewrite in loader.py learns the longer names; C names `fu_SQL__Database__x`
+- 57.5 Fusion's own (D.208, D.210):
+  - `Fusion` reserved - a program's `namespace Fusion` (or a folder Fusion/) an error;
+  - `Fusion.Core` - the built-ins' namespace, imported implicitly everywhere; `Fusion.Core.print(...)` its full name;
+  - src/stdlib/Currency.fusion moves to src/stdlib/Fusion/Currency/ - module `Fusion.Currency`, still added when
+    money is used (C names and the tests that name them updated);
+  - `namespace Core` becomes `Fusion` / `Fusion.Core` in FusionTemplate.md and the showcase
+- 57.6 `--interface` shows `namespace SQL` / `module Database` and works on a namespace (`--interface SQL`)
+- 57.7 Examples and docs:
+  - a new example `examples/13_projects/suppliers/` - two suppliers' `Database` modules, `[libraries]`, an alias, a
+    full name, a static factory function, `internal` across a namespace;
+  - shop, wordcount and the self-hosted compiler unchanged and still passing (Q.081 A);
+  - SYNTAX_REFERENCE modules section, files/spec/150-Modules.md (the earlier `module.fusion` design removed),
+    fusion.ebnf + page, FeatureTree, the showcase, MOD.012 BUILT, MOD.005's library part
+
+**Tests:** tests/test_namespaces.py - every row of a truth table (Rule 4c) in files/spec/150-Modules.md: the line
+written / not written / not matching x a module with / without a namespace x what it holds (static or not) x found in
+the folder / `[libraries]` / a path / twice x imported as the module / the namespace / an alias / the full name - each
+row a test; the existing module tests unchanged.
+**Settings:** `[libraries]` (a namespace and its folder, default none) - new; into fusionSettings.xml,
+project_config.py, the settings doc and the showcase toml once built.
+**Not in this task:** FEATURES 57.8 (one module, one library - needs `extern`); importing only some names
+`import geometry { square }` (MOD.005's other half - stays [DESIGN]).

@@ -62,6 +62,7 @@ KEYWORDS: Dict[str, TokenType] = {
     'private': TokenType.PRIVATE,
     'internal': TokenType.INTERNAL,     # Task 32.2h
     'namespace': TokenType.NAMESPACE,   # Task 32.2h
+    'module': TokenType.MODULE,         # Task 57.1 (D.204)
     'protected': TokenType.PROTECTED,
     'static': TokenType.STATIC,
     'virtual': TokenType.VIRTUAL,
@@ -206,7 +207,7 @@ _FOR_A_FEATURE = {
 
 # Words reserved for the future, from other languages (Task 61, D.162)
 _FOR_THE_FUTURE = (
-    'module', 'export', 'using', 'default', 'typeof', 'sizeof', 'nameof', 'select', 'atomic',
+    'export', 'using', 'default', 'typeof', 'sizeof', 'nameof', 'select', 'atomic',
     'transaction',
     'goto', 'delete', 'volatile', 'synchronized', 'self', 'base', 'ref', 'out', 'mut', 'move',
     'macro', 'type', 'record', 'trait', 'impl',

@@ -77,9 +77,12 @@ classes, interfaces, enums, error types, functions and module variables:
   public Price function make(int cents) : Price(cents + fee())
   internal int function fee() : 50   // only module money (or its namespace) sees it
   ```
-* **`namespace Shop.Tools`** (Task 32.2h): the file's first line, before the imports - a line, not a folder
-  - Modules whose files share a namespace see each other's internal names and class members
-  - Fusion's own libraries use `namespace Core`
+* **The folder gives the namespace and module** (Task 57.1, D.204): `Shop/stock/` is namespace Shop, module stock;
+  `money/` is module money, without a namespace
+  - `namespace Shop` and `module stock` - optional lines, first in the file, before the imports; one that doesn't
+    match the folder is an error naming both ("write 'namespace Shop', or move the file")
+  - Modules of one namespace see each other's internal names and class members (D.207)
+  - The main file is the program - a `namespace` or `module` line in it is an error
 
 **The earlier design** (the sections below, before Task 18.4) - not built, kept for review:
 
