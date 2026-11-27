@@ -48,7 +48,7 @@ Types
    - Money                    money (16 bytes: value, scale, currency, symbol) and the Currency module - every ISO 4217 currency
    - int as float             only when it fits exactly, else an error
    - Conversions              toInt, toFloat, toString, toByte, parseInt
-   - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where known
+   - Enums                    plain and with data (tagged unions); values(), fromString(); JUNE alone where it is clear
    - Enums as value structs   fields (EARTH.mass), ids (200, OK), constructor, methods, toString, fromValue - static, never on the heap
    - Generics                 functions, structs, classes; conditions (extends / : / Number / int / implements);
                               T... items - of one type, or a pack show(1, "two", car);

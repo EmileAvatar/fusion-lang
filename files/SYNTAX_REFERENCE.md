@@ -1025,10 +1025,12 @@ void function main()
     match m
         case JANUARY: print("january")  // a case - as before
         else: print("other")
+    print("{@1} {JUNE}", MARCH)         // anywhere else too, when only one enum has the name (47.10)
 ```
-Where a Months is expected, its value's name alone is enough (D.150). Anywhere else - `print(JUNE)`,
-`int x = JUNE` - write `Months.JUNE`. A variable with the same name there is a compile error: write
-`Months.JUNE`, or rename the variable.
+A value's name alone is that value (D.150, D.197): where a Months is expected (a parameter, a declaration, a
+comparison, a case) it is a Months value; anywhere else - an argument, text, an expression - when only one enum has
+that name. Two enums with the name (`Light.RED`, `Color.RED`) outside such a place, or a variable, constant or function
+with the name: a compile error listing each - write `Months.JUNE`, which always works.
 
 #### Enums can be null: an unset enum is `null`
 

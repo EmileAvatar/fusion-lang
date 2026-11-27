@@ -7875,3 +7875,31 @@ print("{@1} {@2} {@3}", EARTH.mass, Status.fromValue(403), SMALL[1])    // 5.976
 - Tests: tests/test_enum_fields.py (every field type, ids, constructor, arrays, methods, toString, fromValue, null, the
   borrow, upperCaseNames three ways, every error); one example, syntax_enum_planets (06_match_and_enums)
 - Settings: `[enums] upperCaseNames` (new, default false)
+
+---
+
+## Task 47.10 - an enum value alone anywhere (done 2026-11-27)
+
+**47.10 An enum value alone anywhere** (D.197, extends D.150) - plan, waiting for approval
+```fusion
+enum Status: OK FORBIDDEN
+enum Light: RED GREEN
+enum Color: RED BLUE
+
+print(OK)                      // Status.OK - only one enum has OK, no variable is named OK
+Status s = OK                  // as today (D.150) - the type known
+print(RED)                     // error: 'RED' is Light.RED or Color.RED - write which
+int OK = 3                     // a variable named OK ...
+print(OK)                      // ... error: 'OK' is Status.OK or the variable OK - write which
+```
+- 47.10a A value's name alone anywhere (print, interpolation, an argument to any function, an expression) is that
+  enum's value when exactly one enum has it and no variable, constant or function in scope has the name
+- 47.10b Shared by two or more (enums, a variable, a module constant, a function): a compile error listing each -
+  "'RED' is Light.RED or Color.RED - write which"; never a silent pick
+- 47.10c Where the type is known (D.150 - a parameter, a declaration, a comparison, a case) the enum expected still
+  decides: `Light l = RED` is Light.RED even though Color has RED; a variable of that name there stays an error
+- 47.10d The message today ("'JUNE' alone is an enum value only where that enum is expected") goes; the SYNTAX_REFERENCE
+  section "An enum value alone" and its example grow `print(JUNE)`
+- Tests: tests/test_enum_bare.py (or the existing bare-value tests extended) - unique, shared by enums, shared with a
+  variable / constant / function, inside interpolation, the D.150 places unchanged
+- Settings: none

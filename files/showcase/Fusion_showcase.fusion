@@ -263,7 +263,8 @@ void function collections() {
     int:[][] jag = [[1], [2, 3, 4]]
     jag.setStorage(JAGG)                // FLAT / null: one block (the default); RECT [designed] later (D.164)
     jag[0].add(5)                       // jag.rows 2, jag[1].columns 3, jag.columns 0
-    // [built] An enum value alone where the type is known (45.17, D.150)
+    // [built] An enum value alone where the type is known (45.17, D.150), and anywhere only one enum has the
+    //         name (47.10, D.197) - else a compile error listing each
     Dimension d = COLUMNS
     // [built] Large arrays: [arrays] stackWarn 16KB, stackLimit 64KB (45.13, D.145)
     // [designed] buffers SINGLE / TWO / THIRD / RING after self-hosting (D.146)

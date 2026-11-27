@@ -16,3 +16,4 @@ void function main()
     match m
         case JANUARY: print("january")  // a case - as before
         else: print("other")
+    print("{@1} {JUNE}", MARCH)         // anywhere else too, when only one enum has the name (47.10)

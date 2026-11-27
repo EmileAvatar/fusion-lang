@@ -443,9 +443,10 @@ then each point is decided and solved completely. One line per section and per l
 		[ ] 47.9e Constants for the special values: `Double.MAX`, `Double.MIN`, `Double.EPSILON`, infinity and NaN
 			by name only (`Double.INFINITY`, `Double.NAN`) - never written as a number; with 47.4 FusionType
 		[ ] 47.9f The editors' grammar, the self-hosted lexer (selfhost/lexer) and fusion.ebnf read each new form
-	[ ] 47.10 An enum value alone anywhere (D.197, extends D.150): `print(OK)` when only one enum has OK and no
-		variable is named OK; a name shared by two or more enums or variables a compile error listing each
-		(Status.OK, Reply.OK, the variable OK)
+	[DONE 2026-11-27] 47.10 An enum value alone anywhere (D.197): `print("{@1}", OK)`, "{OK}", any argument or
+		expression when only one enum has OK; two enums, or a variable / constant / function of that name - a compile
+		error listing each; where the type is known the expected enum still decides (D.150); tests/test_bare_enum.py,
+		syntax_enum_bare
 	[ ] 47.5 The `fixed` prefix (user, 2026-10-31 - files/Ownership.md, files/Service.md)
 		`fixed(n)` limits only the size; the values may change (`const`: nothing changes) - D.064
 		`fixed(10) string name`: at most 10 characters, kept inline - no heap

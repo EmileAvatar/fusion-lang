@@ -26,7 +26,8 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
   task/taskSummaryArchive.md
 - Done 2026-11-25: 47.3 an enum as a built-in value struct (tests/test_enum_fields.py, syntax_enum_planets) - its plan
   in task/taskSummaryArchive.md
-- **Next Action:** 47.10 an enum value alone anywhere - the plan below, waiting for approval
+- Done 2026-11-27: 47.10 an enum value alone anywhere (tests/test_bare_enum.py) - its plan in task/taskSummaryArchive.md
+- **Next Action:** 47.9 number notations (exponents, hex past 32 bits, the m / dec suffixes) - its plan to write
 - Done 2026-11-24: R11 FSMA set up (files/Research/Memory/FSMA/, FEATURES R11, R3.9-R3.11) - its plan in task/taskSummaryArchive.md
 
 ## Task 47 - Types: wide numbers, decimal, money, ranges (replan 2 - 2026-11-24, every question answered)
@@ -50,27 +51,3 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - `[decimal] maxScale` (18);
 - `[ranges] ...` (D.170) with 47.6.
 - Each goes into fusionSettings.xml once built. No `[money] currency` - empty is the default (D.183).
-
-**47.10 An enum value alone anywhere** (D.197, extends D.150) - plan, waiting for approval
-```fusion
-enum Status: OK FORBIDDEN
-enum Light: RED GREEN
-enum Color: RED BLUE
-
-print(OK)                      // Status.OK - only one enum has OK, no variable is named OK
-Status s = OK                  // as today (D.150) - the type known
-print(RED)                     // error: 'RED' is Light.RED or Color.RED - write which
-int OK = 3                     // a variable named OK ...
-print(OK)                      // ... error: 'OK' is Status.OK or the variable OK - write which
-```
-- 47.10a A value's name alone anywhere (print, interpolation, an argument to any function, an expression) is that
-  enum's value when exactly one enum has it and no variable, constant or function in scope has the name
-- 47.10b Shared by two or more (enums, a variable, a module constant, a function): a compile error listing each -
-  "'RED' is Light.RED or Color.RED - write which"; never a silent pick
-- 47.10c Where the type is known (D.150 - a parameter, a declaration, a comparison, a case) the enum expected still
-  decides: `Light l = RED` is Light.RED even though Color has RED; a variable of that name there stays an error
-- 47.10d The message today ("'JUNE' alone is an enum value only where that enum is expected") goes; the SYNTAX_REFERENCE
-  section "An enum value alone" and its example grow `print(JUNE)`
-- Tests: tests/test_enum_bare.py (or the existing bare-value tests extended) - unique, shared by enums, shared with a
-  variable / constant / function, inside interpolation, the D.150 places unchanged
-- Settings: none

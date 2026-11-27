@@ -212,8 +212,10 @@ def _add_builtin_enum(program, enum_name: str, values, triggers: set) -> None:
                 todo.append(getattr(node, f.name))
     if used:
         where = program.location
-        program.declarations.insert(0, EnumDecl(location=where, name=enum_name, variants=[
-            EnumVariant(location=where, name=v, value=k) for k, v in enumerate(values)]))
+        decl = EnumDecl(location=where, name=enum_name, variants=[
+            EnumVariant(location=where, name=v, value=k) for k, v in enumerate(values)])
+        decl.added_by_compiler = True      # a variable of a value's name wins - the program never declared it (D.197)
+        program.declarations.insert(0, decl)
 
 
 def name_parameter_sizes(program) -> None:

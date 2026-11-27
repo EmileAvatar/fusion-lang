@@ -896,8 +896,10 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             Type of the identifier (void if undefined for error recovery)
         """
         if getattr(node, 'bare_enum', False) and self.symbol_table.lookup(node.name) is None:
-            return self.misplaced_bare_enum(node)          # JUNE where no enum is expected (D.150)
+            return self.bare_enum_anywhere(node)           # print(OK) - the one enum with OK (D.197)
         symbol = self.symbol_table.lookup(node.name)
+        if symbol is not None and getattr(node, 'shares_enum_name', None):
+            self.shared_enum_name(node, symbol)            # a variable OK and Status.OK - write which (D.197)
         if not symbol:
             self.errors.append(SemanticError(
                 f"Undefined variable: '{node.name}'",

@@ -305,13 +305,31 @@ class EnumRulesMixin:
         node.enum_items = decl.name
         return PrimitiveType(location=node.location, name=kind)
 
-    def misplaced_bare_enum(self, node) -> TypeNode:
-        """`JUNE` alone where no enum is expected - name it in full."""
-        full = ' or '.join(f'{owner}.{node.name}' for owner in node.bare_enum)
+    @staticmethod
+    def _one_of(names) -> str:
+        names = list(names)
+        return names[0] if len(names) == 1 else ', '.join(names[:-1]) + ' or ' + names[-1]
+
+    def bare_enum_anywhere(self, node) -> TypeNode:
+        """`print(OK)` (D.197, extends D.150): a value's name alone is that value when only one enum has it - else
+        an error naming each enum that has it."""
+        self.bare_enum_receiver(node)
+        if isinstance(node, EnumValueExpr):
+            node.inferred_type = self.visit_EnumValueExpr(node)
+            return node.inferred_type
+        choices = self._one_of(f'{owner}.{node.name}' for owner in node.bare_enum)
         self.errors.append(SemanticError(
-            f"'{node.name}' alone is an enum value only where that enum is expected - a parameter, a "
-            f"declaration, a comparison, a case (D.150); here write {full}", node.location))
+            f"'{node.name}' is {choices} - write which (D.197)", node.location))
         return PrimitiveType(location=node.location, name='void')
+
+    def shared_enum_name(self, node, symbol) -> None:
+        """A variable, constant or function with an enum value's name, read alone - an error naming each (D.197)."""
+        what = {'function': 'the function'}.get(getattr(symbol, 'symbol_type', None),
+                                                 'the constant' if getattr(symbol, 'is_const', False) else 'the variable')
+        choices = self._one_of([f'{owner}.{node.name}' for owner in node.shares_enum_name] + [f'{what} {node.name}'])
+        self.errors.append(SemanticError(
+            f"'{node.name}' is {choices} - write the enum's value in full, or rename the "
+            f"{what.split()[1]} (D.197)", node.location))
 
     def visit_EnumValueExpr(self, node: EnumValueExpr) -> TypeNode:
         decl = node.declaration
