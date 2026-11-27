@@ -92,14 +92,20 @@ class RingBuffer implements Sized
 
 ## 4. Visibility - what applies when nothing is written
 
+A module inside a namespace (`Shop/Pricing/`) is **structured** (D.211, D.205): it holds classes, interfaces, structs,
+enums, error types, constants, and static variables and functions - normal functions belong in a class; a static
+function is used sparingly (a factory, or work that fits no class - as print and write). A module folder without a
+namespace (`money/`) and the main file are free.
+
 | Item | Nothing written means | Notes |
 |---|---|---|
 | field of a class or struct | `private` | |
-| module variable | `private` - its module | |
-| function, constructor | `public` | |
-| class, interface, enum, struct | `public` | |
+| module variable | `private` - its module | in a module inside a namespace: `static`, written out (D.212) |
+| function, constructor | `public` | at the top of a module inside a namespace: `public static` - the compiler adds `static` with a warning asking for it to be written (D.212) |
+| class, interface, enum, struct | `public` | an interface or enum is static already |
 | `internal` | the namespace | in a file without a namespace: its module, like private |
-| `private` on a top-level class, struct, enum, interface or function | an error | nothing could use it - write `internal` |
+| `private` on a top-level class, struct, enum or interface | its module only (D.212) | `internal` shares it with the whole namespace |
+| `private` on a top-level function | an error | write `internal` (its namespace), or put it in a class |
 | `private` inside an interface | an error | |
 
 `[visibility] required = true` (built, Task 32.2h) makes writing the level mandatory - a

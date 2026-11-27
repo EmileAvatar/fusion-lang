@@ -83,6 +83,14 @@ classes, interfaces, enums, error types, functions and module variables:
     match the folder is an error naming both ("write 'namespace Shop', or move the file")
   - Modules of one namespace see each other's internal names and class members (D.207)
   - The main file is the program - a `namespace` or `module` line in it is an error
+* **A structured module** (Task 57.2, D.211, D.212) - a module inside a namespace:
+  - Holds classes, interfaces, structs, enums, error types, constants, and static variables and functions -
+    normal functions belong in a class; a static function is used sparingly
+  - A function or variable at the top without `static` is static all the same - the compiler adds it, with a
+    warning: "write 'public static' before it, or put it in a class"
+  - A function is public or internal; a variable private by default (`static int made`); a class, struct, enum or
+    interface may be `private` - its module only (`internal` - the namespace)
+  - A module folder without a namespace (`money/`) and the main file are free, as before
 
 **The earlier design** (the sections below, before Task 18.4) - not built, kept for review:
 

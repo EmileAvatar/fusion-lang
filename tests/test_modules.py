@@ -254,9 +254,9 @@ def test_public_declarations_cannot_expose_private_structs(tmp_path, module_text
 
 @pytest.mark.parametrize("source, message", [
     ('public public int function f() : 1\n', "Only one of 'public' / 'internal' / 'private' may be given"),
-    ('private int function f() : 1\n', "'private' can't be on a top-level function - nothing could "
-                                         "use it; write 'internal'"),
-    ('private struct S\n    int x\n', "'private' can't be on a top-level struct"),
+    ('private int function f() : 1\n', "'private' can't be on a top-level function - write "
+                                         "'internal' \\(its namespace\\), or put it in a class"),
+    ('static class C\n    int x\n', "'static' at the top of a file comes before a function"),
     ('import m\nnamespace A\n', "'namespace' must be the first line of the file"),
     ('public import m\n', "'public' can only come before a struct, an enum, a function or a module variable"),
 ])

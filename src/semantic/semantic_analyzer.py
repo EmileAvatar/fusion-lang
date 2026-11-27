@@ -36,7 +36,7 @@ from .ownership import check_ownership
 DEFAULT_ASSIGNMENT = 'move'
 from .setup_blocks import check_collection_options
 from .inheritance import expand_inheritance
-from .class_rules import check_visibility_written, check_copy_fields
+from .class_rules import check_visibility_written, check_copy_fields, static_missing_warnings
 from .error_rules import normalize_errors, check_error_settings, marked_but_cannot_fail
 from ..config.project_config import StructsConfig, StringsConfig
 from .errors import SemanticError
@@ -437,6 +437,7 @@ class SemanticAnalyzer:
             self.errors.extend(check_ownership(ast, self.move_field_out))
         if self.visibility_required:                    # Task 32.2h
             self.errors.extend(check_visibility_written(ast))
+        self.warnings.extend(static_missing_warnings(ast))   # Task 57.2 (D.212)
         # Constructors that can't be told apart, or call each other in a circle (32.2b)
         self.errors.extend(check_constructors(
             [d for d in ast.declarations if isinstance(d, StructDecl)],

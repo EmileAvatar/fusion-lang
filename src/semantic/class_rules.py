@@ -98,6 +98,29 @@ def check_class_cycles(structs: List[StructDecl]) -> List[SemanticError]:
     return warnings
 
 
+def static_missing_warnings(program) -> List[SemanticError]:
+    """A structured module's function or variable without `static` (Task 57.2, D.212): static all the same -
+    the compiler adds it - with a warning asking for it to be written. The loader marks them."""
+    warnings = []
+    for d in program.declarations:
+        missing = getattr(d, 'static_missing', None)
+        if missing is None:
+            continue
+        kind, name, module = missing
+        if kind == 'function':
+            level = 'internal' if getattr(d, 'is_internal', False) else 'public'
+            warnings.append(SemanticError(
+                f"Function '{name}' is at the top of module {module}, so it is static - write '{level} static' "
+                f"before it, or put it in a class (D.212)", d.location))
+        else:
+            level = 'public ' if getattr(d, 'is_public', False) else \
+                'internal ' if getattr(d, 'is_internal', False) else ''
+            warnings.append(SemanticError(
+                f"Variable '{name}' is at the top of module {module}, so it is static - write "
+                f"'{level}static' before it (D.212)", d.location))
+    return warnings
+
+
 def check_visibility_written(program) -> List[SemanticError]:
     """`[visibility] required = true` (Task 32.2h): every top-level item and class member says
     who can use it - public, internal or private. main, and what the compiler makes (a

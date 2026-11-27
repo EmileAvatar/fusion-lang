@@ -393,8 +393,10 @@ then each point is decided and solved completely. One line per section and per l
 	[DONE 2026-11-27] 57.1 The lines and the folder (D.204, D.207; tests/test_namespaces.py): the folder gives the
 		namespace and module (SQL/Database/ - namespace SQL, module Database); `namespace` / `module` lines optional, one
 		not matching the folder an error naming both; `internal` shared by the folder's namespace; the main file in none
-	[ ] 57.2 What a structured module holds (D.211, D.212): a module in a namespace; static functions and variables
-		(added with a warning), who may be private; FusionTemplate.md
+	[DONE 2026-11-27] 57.2 A structured module (D.211, D.212; tests/test_namespaces.py): a module in a namespace;
+		`static` at the top of a file; a function or variable without it static all the same, with a warning; a top-level
+		type may be private (its module); a private function still an error; a module's interface, `implements` and
+		its classes' private fields work by full name (they failed in any module before)
 	[ ] 57.3 Finding libraries (D.206, D.213): `[libraries]` in fusion.toml; `import "C:/vendor".SQL.Database`
 	[ ] 57.4 Importing (D.208, D.209): `import SQL as Q`, full names, a duplicate an error until aliased, `com.example.SQL`
 	[ ] 57.5 Fusion's own (D.208, D.210): `Fusion` reserved, `Fusion.Core` implicit, `Fusion.Currency`

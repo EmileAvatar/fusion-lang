@@ -73,6 +73,8 @@ class Module:
     def hidden_text(self, name: str) -> str:
         """Why another module can't use the name."""
         decl = self.names.get(name)
+        if getattr(decl, 'is_private_top', False):      # a private type - its module (D.212)
+            return f"'{name}' is private to module '{self.id}'"
         if getattr(decl, 'is_internal', False) or not isinstance(decl, (VarDeclStmt, TemplateDecl)):
             namespace = getattr(decl, 'namespace', None)
             where = f"namespace {namespace}" if namespace else f"module '{self.id}'"
@@ -189,6 +191,14 @@ class ModuleLoader:
             self._error(f"{file_name} says 'module {program.module}', but its folder {folder} makes it "
                         f"module {name} - write 'module {name}', or move the file", program)
         program.namespace = namespace
+        if namespace is not None:          # a structured module (D.211): its functions and variables static
+            for decl in program.declarations:
+                if getattr(decl, 'static_written', False) or getattr(decl, 'method_of', None):
+                    continue
+                if isinstance(decl, FunctionDecl) and not getattr(decl, 'is_static_setup', False):
+                    decl.static_missing = ('function', decl.name, module_id)
+                elif isinstance(decl, VarDeclStmt) and not decl.is_const:
+                    decl.static_missing = ('variable', decl.name, module_id)
 
     def _check_public_types(self, module: Module) -> None:
         """A public function, struct or enum can't expose a private struct or enum of its own
@@ -375,8 +385,18 @@ class ModuleLoader:
             if module.id and isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl,
                                                VarDeclStmt, TemplateDecl)):
                 decl.name = module.qualify(decl.name)
+                if getattr(decl, 'interface_of', None):      # an interface's function names it in full too
+                    decl.interface_of = module.qualify(decl.interface_of)
+                if getattr(decl, 'method_of', None):         # so does a class's function (its private fields)
+                    decl.method_of = module.qualify(decl.method_of)
             if isinstance(decl, ErrorDecl) and decl.parent != 'Error':
                 decl.parent = type_name(decl.parent, decl)   # the parent error type (Task 26.9)
+            if isinstance(decl, StructDecl):          # what it implements / inherits, by full name (57.2)
+                decl.interfaces = [type_name(n, decl) for n in decl.interfaces]
+                if decl.class_parent:
+                    decl.class_parent = type_name(decl.class_parent, decl)
+                if decl.parent:
+                    decl.parent = type_name(decl.parent, decl)
             walk(decl, [])
 
     def _declaration(self, internal: str):

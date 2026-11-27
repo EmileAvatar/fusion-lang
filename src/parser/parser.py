@@ -2278,6 +2278,7 @@ class Parser:
                                                "may be given")
             if not (self.check(TokenType.STRUCT) or self.check(TokenType.ENUM)
                     or self.check(TokenType.CONST) or self.check(TokenType.CLASS)
+                    or self.check(TokenType.STATIC)
                     or self.check(TokenType.INTERFACE) or self.check(TokenType.ABSTRACT)
                     or self.check(TokenType.SEALED)
                     or self.is_error_declaration_start() or self.is_type_start()
@@ -2290,14 +2291,12 @@ class Parser:
             if not isinstance(decl, (FunctionDecl, StructDecl, EnumDecl, ErrorDecl, VarDeclStmt)):
                 raise ParserError(modifier, f"'{modifier.value}' can only come before a struct, "
                                             f"an enum, a function or a module variable")
-            if modifier.type == TokenType.PRIVATE and not isinstance(decl, VarDeclStmt):
-                kind = 'interface' if getattr(decl, 'is_interface', False) else \
-                    'class' if getattr(decl, 'is_class', False) else {
-                    StructDecl: 'struct', EnumDecl: 'enum', ErrorDecl: 'error type',
-                    FunctionDecl: 'function'}[type(decl)]
-                raise ParserError(modifier, f"'private' can't be on a top-level {kind} - "
-                                            f"nothing could use it; write 'internal' (its "
-                                            f"module, or its namespace)")
+            # `private` on a top-level type: its module only (D.212 - internal is the namespace);
+            # on a function an error - it is public or internal
+            if modifier.type == TokenType.PRIVATE and isinstance(decl, FunctionDecl):
+                raise ParserError(modifier, "'private' can't be on a top-level function - write "
+                                            "'internal' (its namespace), or put it in a class")
+            decl.is_private_top = modifier.type == TokenType.PRIVATE and not isinstance(decl, VarDeclStmt)
             decl.is_public = modifier.type == TokenType.PUBLIC
             decl.is_internal = modifier.type == TokenType.INTERNAL
             decl.visibility_written = True
@@ -2320,6 +2319,19 @@ class Parser:
                 for _ in range(ahead + 1):
                     self.advance()
                 return self.parse_enum_declaration()
+
+        # `static` at the top of a module (Task 57.2, D.212): a function or variable there is static -
+        # written out; an interface is static already
+        if self.match(TokenType.STATIC):
+            if self.match(TokenType.INTERFACE):
+                return self.parse_interface_declaration()
+            word = self.previous()
+            decl = self.parse_declaration()
+            if not isinstance(decl, (FunctionDecl, VarDeclStmt)):
+                raise ParserError(word, "'static' at the top of a file comes before a function, a "
+                                        "variable, an enum or an interface")
+            decl.static_written = True
+            return decl
 
         # A module-level constant: `const int LIMIT = 10` (Task 44.1)
         if self.match(TokenType.CONST):
