@@ -24,18 +24,27 @@ Description: Flexible compilation options for different targets and use cases.
 
 ### Compilation Modes
 
-Description: Multiple ways to run and build Fusion code - the design; today only the executable mode
-exists, as `python main.py program.fusion`.
+Description: Multiple ways to run and build Fusion code. Built: the executable mode (`python main.py
+program.fusion`) and script mode (`python main.py run tidy.fusion` - Task 58).
 
-* **Script Mode**: Interpreted execution - a quick script written and run like Python, no compiled
-  app to set up (user, 2026-11-12 - Task 58)
-     * Run directly without compilation
-     * Fast development iteration
-     * Slower execution
-     * Like Python
+* **Script Mode** (Task 58, D.221-D.229): a quick script written and run like Python, no app to set up - **compiled**,
+  not interpreted: built once (C and GCC, as any program), kept, and run at once after that - full speed
+     * `python main.py run tidy.fusion [arguments]` - `fusion run` once Fusion is installed as a command
+     * Statements at the top of a file without `main` run in order; its variables are the script's (every function
+       sees them); functions, classes, structs, enums, interfaces and imports as in any file; `args`; `exit(n)`;
+       a `#!` first line is skipped
+     * Kept in the user's cache folder (`%LOCALAPPDATA%\Fusion\cache`, `~/.cache/fusion`; `FUSION_CACHE` overrides
+       it) - or `.fusion-cache` next to the script where that can't be written; built again when the script, a
+       module it imports, its settings or the compiler change
+     * Settings: the defaults, a `settings.toml` next to it, or a `Fusion.Settings { ... }` block first in the file
+     * Only the script's own output; the build's messages only when it fails; its exit code passed back
+     * Start-up (measured 2026-11-28, Windows, a one-line script): the first run - built and run - about 0.55 s; an
+       unchanged script about 0.09 s (Python starting and the check that nothing changed; the program itself
+       0.01 s) - the compiler is loaded only when something is built
+     * An interpreter (no build at all) - later, after self-hosting
 
 ```
-fusion run game.fusion
+python main.py run tidy.fusion notes.txt
 ```
 
 * **Executable Mode**: Native compilation

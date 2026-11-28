@@ -266,3 +266,13 @@ def test_where_the_cache_cant_be_written_next_to_the_script(tmp_path):
 def test_run_needs_a_script(tmp_path):
     code, _, err = run_cmd(tmp_path, tmp_path / 'missing.fusion')
     assert code == 1 and 'File not found' in err
+
+
+def test_run_looks_for_the_same_settings_files_as_the_compiler():
+    # main.py keeps its own list, so a cached run needn't load the settings code (58.4)
+    import importlib.util
+    from src.config.settings_files import SETTINGS_FILE_NAMES
+    spec = importlib.util.spec_from_file_location('fusion_main', os.path.join(REPO, 'main.py'))
+    main_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(main_module)
+    assert list(main_module.SETTINGS_FILE_NAMES) == list(SETTINGS_FILE_NAMES)

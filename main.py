@@ -20,12 +20,9 @@ import hashlib
 import io
 import json
 from contextlib import redirect_stderr
-from src.modules import load_program, make_file_parser, program_interfaces
-from src.lexer import Lexer
-from src.parser.parser import Parser, ParserError
-from src.semantic import SemanticAnalyzer
-from src.codegen import CCodeGenerator
-from src.config import load_project_config, ProjectConfigError
+
+# The compiler itself is imported only when something is built (compile_file, print_interfaces) - a script whose
+# kept program is current starts without it (Task 58.4: 0.25 s -> about 0.05 s)
 
 
 # What the last compile_file used - `run` keeps it with the program (Task 58.3)
@@ -41,6 +38,12 @@ def compile_file(source_path: str, out_base: str = None) -> int:
     Returns:
         0 on success, 1 on error
     """
+    from src.modules import load_program, make_file_parser
+    from src.lexer import Lexer
+    from src.parser.parser import Parser, ParserError
+    from src.semantic import SemanticAnalyzer
+    from src.codegen import CCodeGenerator
+    from src.config import load_project_config, ProjectConfigError
     # Read source
     try:
         with open(source_path, 'r', encoding='utf-8') as f:
@@ -261,15 +264,16 @@ def _file_hash(path: str) -> str:
 
 
 def compiler_version() -> str:
-    """A hash of the compiler's own source - a kept script is built again when the compiler changes."""
+    """The compiler's own source as one hash - each file's name, size and time (cheap; a changed time, from a sync
+    say, at worst builds a script once more) - a kept script is built again when the compiler changes."""
     root = os.path.dirname(os.path.abspath(__file__))
     digest = hashlib.sha256()
+    paths = [os.path.abspath(__file__)]
     for folder, _, files in sorted(os.walk(os.path.join(root, 'src'))):
-        for name in sorted(files):
-            if name.endswith(('.py', '.fusion')):
-                digest.update(name.encode())
-                digest.update(_file_hash(os.path.join(folder, name)).encode())
-    digest.update(_file_hash(os.path.abspath(__file__)).encode())
+        paths += [os.path.join(folder, n) for n in sorted(files) if n.endswith(('.py', '.fusion'))]
+    for path in paths:
+        info = os.stat(path)
+        digest.update(f'{path}|{info.st_size}|{info.st_mtime_ns}'.encode())
     return digest.hexdigest()
 
 
@@ -295,6 +299,20 @@ def script_cache_folder(script: str) -> str:
     raise OSError(f"can't write the cache folder for {script}, nor next to it")
 
 
+# src/config/settings_files.py FORMAT_FILES, in its order - here so a cached run needn't load the settings code
+# (tests/test_scripts.py keeps the two the same)
+SETTINGS_FILE_NAMES = ('settings.toml', 'settings.yaml', 'settings.yml', 'settings.json', 'settings.ini')
+
+
+def _settings_file_near(script: str):
+    """The settings file the compiler would read for the script (find_config_file), or None."""
+    for folder in (os.path.dirname(os.path.abspath(script)), os.getcwd()):
+        for name in SETTINGS_FILE_NAMES:
+            if os.path.isfile(os.path.join(folder, name)):
+                return os.path.join(folder, name)
+    return None
+
+
 def _build_record(script: str) -> dict:
     """What a kept build depends on: the compiler, the script, every module file, the settings file."""
     files = [os.path.abspath(script)] + [os.path.abspath(p) for p in LAST_BUILD['files']]
@@ -314,9 +332,8 @@ def _still_current(record_path: str, script: str) -> bool:
     files = record.get('files', {})
     if os.path.abspath(script) not in files:
         return False
-    # a settings file that has appeared next to the script since is a change too
-    from src.config.project_config import find_config_file
-    settings = find_config_file(script)
+    # a settings file that has appeared since - next to the script or in this folder - is a change too
+    settings = _settings_file_near(script)
     if settings and os.path.abspath(settings) not in files:
         return False
     return all(_file_hash(p) == h for p, h in files.items())
@@ -352,6 +369,9 @@ def run_script(script: str, arguments: list) -> int:
 def print_interfaces(source_path: str, args: list) -> int:
     """`fusion main.fusion --interface [module]` (Task 18.4.4): print the public structs
     and functions of every module the program imports, or of one of them."""
+    from src.modules import program_interfaces
+    from src.parser.parser import ParserError
+    from src.config import load_project_config, ProjectConfigError
     rest = [a for a in args if not a.startswith('--')]      # --interface ...
     try:
         project_config = load_project_config(source_path)

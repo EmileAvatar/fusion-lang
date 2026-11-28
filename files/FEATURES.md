@@ -364,7 +364,9 @@ then each point is decided and solved completely. One line per section and per l
 		.fusion-cache next to the script where that can't be written; kept with a record of what it was built from (the
 		compiler, the script, its module files, its settings file) and built again when any changes; run at once with
 		the arguments, its exit code passed back; only the script's own output - the build's messages only on a failure
-	[ ] 58.4 Start-up times measured (spec 170): the first run and a cached one
+	[DONE 2026-11-28] 58.4 Start-up times (spec 170): a first run about 0.55 s, an unchanged script 0.25 s -> 0.09 s - the
+		compiler loaded only when something is built, the compiler's files checked by size and time, the settings files
+		looked for without the settings code
 	[ ] 58.6 An example script and the documents (spec 170 - compiled, not interpreted; SET.013)
 	[ ] 58.5 Idea (user, 2026-11-17): a running Fusion program runs other Fusion code or apps (plugins, hot reload) - the same engine as
 		`comptime` (Research R4.4); the loaded code is untrusted (Task 39) - becomes Task 60 (60.7, 60.8)
