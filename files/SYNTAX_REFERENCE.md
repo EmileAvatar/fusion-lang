@@ -63,6 +63,47 @@ void function main()
         print("count {count}, grade {grade}, ready {ready}")   // a bool prints as true / false
 ```
 
+#### Loop checks and labels (Task 56)
+
+<!-- example: syntax_loop_checks | task: 56 | folder: 01_basics -->
+```fusion
+bool function healthy(int load) : load < 70
+
+void function main()
+    // a label: break or continue an outer loop (D.219)
+    outer: for row in 1...3
+        for col in 1...3
+            if col == row
+                continue outer
+            print("{row},{col}")
+
+    // the with part: checks after each pass, in order (D.214)
+    int load = 0
+    while true
+        load = load + 9
+    with
+        check 3                         // no condition: every 3rd pass - the loop carries on
+            print("pass {loop.count}: load {load}")
+        check 2 not healthy(load)       // a condition, tested every 2nd pass: true - its block, then the end
+            print("overloaded at {load}")
+        check >= 100                    // the passes so far - a limit of its own
+
+    // a check can leave an outer loop too
+    found: for x in 1...5
+        for y in 1...5
+            int product = x * y
+        with
+            check x * y == 12
+                print("12 = {x} x {y}")
+                exit loop found
+```
+A check with a condition (or `>= N` / `> N` / `== N` on the passes so far) runs its block, then the loop ends -
+`break` and `continue` aren't allowed in it, `return` is. Without a condition it is a hook - every pass, or every Nth -
+and the loop carries on. `loop.count` is the pass number. In braces: `} with { check ... { } }`; in End style:
+`end loop with`. `[safety] maxIterations = N` (default 0 - no limit) stops a `while` past N passes with a
+LoopLimitError a `catch` can handle; a `for` over a range or a collection has no limit, and a loop with its own
+`check >= N` uses that (D.218).
+
 #### Ranges: `1...10` in a loop and in a match
 
 <!-- example: syntax_ranges | task: 33.2f | folder: 01_basics -->

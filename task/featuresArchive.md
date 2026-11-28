@@ -956,3 +956,22 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 		the program's own Shop/Database, an alias, a namespace, full names, a factory, internal across Acme) and the
 		documents: SYNTAX_REFERENCE, spec 150, FeatureTree, the showcase, MOD.012 BUILT, MOD.005 PARTIAL
 	57.8 (one module, one library) moved to L2.2 - the same feature, waits for extern (60.1)
+
+#### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [DONE 2026-11-28] [index](#index)
+	A loop's `end loop with {N}` part holds `check` blocks - a health / limit check, run every Nth pass -
+	and `check interrupt(signal, data)`, the loop's safe point for Shutdown / Pause / Stop (42.26, 42.27 build on it)
+	[DONE 2026-11-28] 56.1 The questions (Q.084-Q.090 - A in each): Decisions.md D.214-D.220
+	[DONE 2026-11-28] 56.2 files/spec/070-ControlFlow.md in line with them - the `with` part, the forms, the truth
+		table; the old 1,000,000 default, the `#[...]` attributes and the RAM / CPU monitoring removed
+	[DONE 2026-11-28] 56.3 Loop labels (D.219; tests/test_loop_checks.py): `outer:` before `for` / `while`; `break outer` /
+		`continue outer` free what the scopes inside own and run their finally; an unknown, unused or repeated label an error
+	[DONE 2026-11-28] 56.4 The `with` part and `check` (D.214-D.217; tests/test_loop_checks.py): `check` a keyword; the
+		three block styles (`with`, `} with {`, `end loop with`); a condition or `>= N` runs its block, then ends the
+		loop; none - a hook every pass / every Nth; `loop.count`; `exit loop [outer]`; break / continue in a check an
+		error; a `continue` in the body still runs the checks; each check an `if` after the pass (the parser)
+	[DONE 2026-11-28] 56.5 `[safety] maxIterations` (D.218; tests/test_loop_checks.py): a whole number, 0 = no limit and
+		nothing added; a `while` past it a LoopLimitError (a new built-in error under LimitError) naming its line; a `for`
+		no limit; a loop with its own `check >= N` / `> N` / `== N` uses that
+	[DONE 2026-11-28] 56.6 The example syntax_loop_checks (SYNTAX_REFERENCE) and the documents: the showcase, FeatureTree,
+		SYN.033 PARTIAL (the interrupts wait for Task 42)
+	56.7 (check interrupt) moved to 42.27 - it needs Task 42's interrupt signals

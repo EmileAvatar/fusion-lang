@@ -28,6 +28,9 @@ Syntax
    - Ranges                   for i in 1...10 (both ends); 0...13 step 5, 10...0 step -2; case 0...9 in a match
    - Decimal / money ranges   0.0...1.0 step 0.1 - start + n * step, no drift; decimal and money exact; case 0.0...0.49
                               on a double; behind [ranges] decimals
+   - Loop labels              outer: for ...; break outer / continue outer
+   - Loop checks              a with part after the body: check 20 (a hook), check not ok() / check >= N (ends the
+                              loop); loop.count; exit loop outer; [safety] maxIterations - a LoopLimitError
    - Conditional              (cond) ? a : b
    - match                    match, fall match, match as a value, _ for unused fields
    - let / var                type from the value; let set once
@@ -180,7 +183,7 @@ Concurrency (Task 42) - nothing built yet
 Syntax
    - Duration literals [planned]     500ms, 5s, 2min
    - switch / elif aliases [design]
-   - loop { } [design]               must have break / return; check blocks; labels; iteration limit
+   - loop { } [design]               must have break / return
    - ++ / -- [design]                statements only
    - if as a value, do-while [design]
    - Match guards [design]           case x if x < 0

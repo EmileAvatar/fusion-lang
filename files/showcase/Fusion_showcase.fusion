@@ -499,7 +499,7 @@ void function controlFlow(int n) {
     // [built] Ranges over decimals and money - [ranges] decimals = true; each value start + n * step (47.6)
     for x in 0.0...1.0 step 0.1 { print("{x}") }
     // [built] Ranges in a match on a double - a test, never == (47.6f): case 0.0...0.49
-    // [designed] Loop labels: break or continue an outer loop
+    // [built] Loop labels: break or continue an outer loop (Task 56.3, D.219)
     outer: for x in range(0, 10) {
         for y in range(0, 10) {
             if x * y == 42 {
@@ -542,26 +542,23 @@ void function controlFlow(int n) {
         case 0...9: print("one digit")
         else: print("more digits")
     }
-    // [designed] Loop safety checks after the loop: every N passes, and an interrupt
+    // [built] A loop's checks, after each pass (Task 56.4, D.214-D.217): with a condition - its block, then the
+    //         loop ends; without one - a hook every pass / every Nth; loop.count the pass number
     while n < 1000000 {
         n = n + 1
-    } with {50} {
-        check {
-            if n > 500000 {
-                exit loop
-            }
-        }
-        check interrupt(signal, data) {
-            if signal == InterruptSignal.Shutdown {
-                exit loop
-            }
-        }
+    } with {
+        check 1000 { print("{loop.count} passes") }       // every 1000th pass - the loop carries on
+        check 50 not isHealthy() { print("unhealthy") }  // tested every 50th pass
+        check n > 500000                                 // ends the loop - no block needed
     }
-    // [designed] A per-loop pass limit, as an attribute
-    #[max_iterations(100000)]
+    // [built] [safety] maxIterations - a while past it stops with a LoopLimitError (56.5, D.218)
+    // [designed] A check for an interrupt - the loop's safe point for Shutdown / Pause (Task 42.26, 42.27)
     while n > 0 {
         n = n - 1
+    } with {
+        check interrupt(signal, data) { print("{signal}") }
     }
+    // [rejected] #[max_iterations] / #[no_loop_protection] attributes, RAM / CPU monitoring (D.220)
     // [idea] assert: an AssertionError when the condition is false
     assert n == 0, "n should be 0"
 }

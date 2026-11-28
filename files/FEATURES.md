@@ -101,7 +101,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [R](#research) | Research - files to study in full before a task starts | - | open |
 | [53](#task-53) | Check the Core language | 2 | open |
 | [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
-| [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
 | [58](#task-58) | Script mode: Fusion written and run like a Python script | 2 | open |
 | [59](#task-59) | Review the research points: Rust, Zig, `comptime`, the service gaps - before self-hosting | 2 | open |
 | [29](#task-29) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
@@ -344,25 +343,6 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 55.3 DSLs: Martin Fowler, "Introduction to Domain Specific Languages" (external vs internal DSLs,
 		trade-offs) - https://www.infoq.com/presentations/domain-specific-languages/ - does Fusion want
 		internal DSLs (modules) or external ones (HIDL, Task 41)
-
-<a id="task-56"></a>
-#### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [ ] [index](#index)
-	A loop's `end loop with {N}` part holds `check` blocks - a health / limit check, run every Nth pass -
-	and `check interrupt(signal, data)`, the loop's safe point for Shutdown / Pause / Stop (42.26, 42.27 build on it)
-	[DONE 2026-11-28] 56.1 The questions (Q.084-Q.090 - A in each): Decisions.md D.214-D.220
-	[DONE 2026-11-28] 56.2 files/spec/070-ControlFlow.md in line with them - the `with` part, the forms, the truth
-		table; the old 1,000,000 default, the `#[...]` attributes and the RAM / CPU monitoring removed
-	[DONE 2026-11-28] 56.3 Loop labels (D.219; tests/test_loop_checks.py): `outer:` before `for` / `while`; `break outer` /
-		`continue outer` free what the scopes inside own and run their finally; an unknown, unused or repeated label an error
-	[DONE 2026-11-28] 56.4 The `with` part and `check` (D.214-D.217; tests/test_loop_checks.py): `check` a keyword; the
-		three block styles (`with`, `} with {`, `end loop with`); a condition or `>= N` runs its block, then ends the
-		loop; none - a hook every pass / every Nth; `loop.count`; `exit loop [outer]`; break / continue in a check an
-		error; a `continue` in the body still runs the checks; each check an `if` after the pass (the parser)
-	[DONE 2026-11-28] 56.5 `[safety] maxIterations` (D.218; tests/test_loop_checks.py): a whole number, 0 = no limit and
-		nothing added; a `while` past it a LoopLimitError (a new built-in error under LimitError) naming its line; a `for`
-		no limit; a loop with its own `check >= N` / `> N` / `== N` uses that
-	[ ] 56.6 Examples and documents: SYNTAX_REFERENCE, fusion.ebnf + page, fusionSettings.xml, the showcase, FeatureTree
-	[POSTPONED to 42] 56.7 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
 
 <a id="task-58"></a>
 #### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [index](#index)
@@ -681,6 +661,8 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 42.27 A system shutdown is always handled (user, 2026-11-02): the interrupt reaches services and loops
 		where the critical logic is - the log file and database connections closed, nothing left unstable
 		(the `Shutdown` setting, `final` clean-up 42.4)
+		A loop's safe point for it: `check interrupt(signal, data)` / `check InterruptSignal.Stop` in the loop's `with`
+		part (D.214 - was 56.7; the `with` part and `check` built in Task 56)
 	[ ] 42.28 Recheck later: an identity for everything (user, 2026-11-02 - files/FutureFeatures.md "An Identity
 		for Everything"): a GUID per name and a small database of the hierarchy with the code's hashes, so
 		the compiler can tell by GUID which variables / objects are in a thread or a group service
@@ -732,7 +714,7 @@ then each point is decided and solved completely. One line per section and per l
 		The parent's timings: baseline from other languages gathered (spec 100 3.18 - Go, Tokio, .NET,
 			Erlang, Java); set and tuned once threads work
 	[ ] 42.37 A service's interrupt handler `service(x).setCheckInterrupt(signal, data) { }` (user, 2026-11-10 -
-		spec 100 3.14) - with 56.7; no `exit loop` / `continue loop` in it (D.132 proposed); not handled:
+		spec 100 3.14) - with the loop's check interrupt (42.27); no `exit loop` / `continue loop` in it (D.132 proposed); not handled:
 			Shutdown terminates, Pause suspends, others nothing; interrupts only from the OS, passed down
 	[ ] 42.38 Locks off by default (D.125 proposed): `[concurrency] locks` in fusion.toml, a lock inside
 		`unsafe`; the setting into 001-TomlSettings once decided
