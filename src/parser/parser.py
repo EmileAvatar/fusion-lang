@@ -2344,6 +2344,10 @@ class Parser:
 
         script: list = []                 # statements at the top of a script, in order (Task 58.1, D.222)
         while not self.is_at_end():
+            if self.check(TokenType.IDENTIFIER) and self.peek().value == 'Fusion' \
+                    and self.peek(1).type == TokenType.DOT and self.peek(2).value == 'Settings':
+                raise ParserError(self.peek(), "Fusion.Settings must be first in the file - before the imports and "
+                                               "everything else (D.224)")
             if self._top_level_statement_start():
                 script.append(self.parse_statement())
                 while self.match(TokenType.NEWLINE):

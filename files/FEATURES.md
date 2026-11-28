@@ -351,8 +351,10 @@ then each point is decided and solved completely. One line per section and per l
 		`main` - run in order as its main; its variables the script's (functions see them; one declared after a statement
 		set where its line is); types, functions and imports as in any file; `args` (none or many); a `#!` first line
 		skipped; `main` and statements at the top - an error; statements at the top of an imported module - an error
-	[ ] 58.2 `Fusion.Settings { ... }` (D.224, D.226, D.228): first in the file; the name alone or section.name; used
-		instead of the settings file; only the starting file's - another's ignored with a warning
+	[DONE 2026-11-28] 58.2 `Fusion.Settings { ... }` (D.224, D.226, D.228; tests/test_scripts.py; src/config/settings_block.py):
+		first in the file (after a `#!`, blank and comment lines), braces or indented; the name alone or section.name -
+		an unclear or unknown name, a bad value an error naming the line; used instead of the settings file; in a
+		program with main too; only the starting file's - another's ignored with a warning; later in a file an error
 	[ ] 58.2b The settings file (D.227, D.229): none written any more (none means the defaults); its name `settings.toml`
 		(/ .yaml / .yml / .json / .ini) - every fusion.toml in examples/ and the tests renamed; fusion.toml the reference
 	[ ] 58.3 `python main.py run tidy.fusion [arguments]` (D.221, D.223): built once into the cache folder (or next to the

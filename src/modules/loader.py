@@ -100,6 +100,7 @@ class ModuleLoader:
         self.libraries = {ns: os.path.join(self.root, folder) for ns, folder in (libraries or {}).items()}
         self.folders: Dict[str, str] = {}       # module id -> the folder it was loaded from
         self.wants_currency = False             # `import Fusion.Currency` (57.5)
+        self.ignored_settings: list = []        # (file, location) of a Fusion.Settings block not used (58.2)
         self._reported: Set[str] = set()        # errors about where a module is, each said once
 
     # ------------------------------------------------------------------ loading
@@ -253,6 +254,8 @@ class ModuleLoader:
                 source = f.read()
             try:
                 files.append((path, self.parse_file(source, path)))
+                from src.config.settings_block import blank_settings_block
+                files[-1][1].settings_block = blank_settings_block(source)[1]   # used only if it starts (58.2)
             except Exception as e:   # lexer / parser errors in a module's file
                 self._error(f"In module '{module_id}': {e}", imp)
                 return
@@ -274,6 +277,8 @@ class ModuleLoader:
         namespace, name = '.'.join(parts[:-1]) or None, parts[-1]
         folder = '/'.join(parts) + '/'
         file_name = folder + os.path.basename(path)
+        if getattr(program, 'settings_block', False):     # D.228: ignored here, with a warning
+            self.ignored_settings.append((file_name, program.location))
         if program.script:                     # a script's statements run in the file that starts it (58.1)
             self._error(f"{file_name} has statements at the top - only the file that starts the program (a "
                         f"script) runs them; put them in a function", program)
@@ -598,6 +603,7 @@ def load_program(main_file: str, main_program: ProgramNode, parse_file: ParseFil
     loader = ModuleLoader(main_file, parse_file, libraries)
     program = loader.load(main_program)
     program.wants_currency = loader.wants_currency
+    program.ignored_settings = [(name, location, os.path.basename(main_file)) for name, location in loader.ignored_settings]
     return program, loader.errors + (fusion_names(program) if not loader.errors else [])
 
 

@@ -11,6 +11,9 @@ its default. Names are camelCase and read in any case, `_` ignored (`tab_width` 
 - **Decided, not built** - written by hand when a setting is decided; moves to Built once the
   feature is built and the setting is in `files/fusionSettings.xml`
 - Every setting a finished Fusion will have, as a file: `files/showcase/fusion.toml`
+- **In the code** (Task 58.2, D.224, D.226): a `Fusion.Settings { ... }` block first in the file that starts the
+  program is used instead of the settings file - `maxIterations = 100000` (the name alone when one section has it),
+  `money.rounding = "halfUp"` (its section otherwise); in another file it is ignored with a warning (D.228)
 
 ```toml
 # fusion.toml - a few settings; everything else keeps its default

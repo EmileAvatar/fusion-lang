@@ -936,7 +936,7 @@ def _load_project_section(data: dict, config_path: str) -> Optional[str]:
     return fmt
 
 
-def load_project_config(source_path: str, create_missing: bool = False) -> ProjectConfig:
+def load_project_config(source_path: str, create_missing: bool = False, source: Optional[str] = None) -> ProjectConfig:
     """Load project configuration for compiling `source_path`.
 
     Returns an all-defaults ProjectConfig if no fusion.toml is found next to the source
@@ -944,16 +944,34 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
     ProjectConfigError if a fusion.toml is found but is malformed TOML or has an invalid
     value.
     """
-    config_path = find_config_file(source_path)
+    # A `Fusion.Settings { ... }` block first in the file that starts the program - used instead of the settings
+    # file (Task 58.2, D.224)
+    if source is None:
+        try:
+            with open(source_path, encoding='utf-8') as f:
+                source = f.read()
+        except OSError:
+            source = ''
+    from .settings_block import read_settings_block
+    try:
+        block = read_settings_block(source, os.path.basename(source_path))
+    except ValueError as e:
+        raise ProjectConfigError(str(e)) from e
+    from_block = block is not None
+    config_path = None if from_block else find_config_file(source_path)
     messages = []
     try:
-        if config_path is None:
+        if from_block:
+            data = block
+            config_path = f"{source_path} (Fusion.Settings)"
+        elif config_path is None:
             if not create_missing:
                 return ProjectConfig()
             # No settings file anywhere: a new fusion.toml from the master template (Task 31)
             config_path = create_default_file(os.path.dirname(os.path.abspath(source_path)))
             messages.append(f"created {os.path.basename(config_path)} - every setting at its default")
-        data = read_settings(config_path)
+        if not from_block:
+            data = read_settings(config_path)
     except SettingsFileError as e:
         raise ProjectConfigError(str(e)) from e
     data = _canonical_names(data, config_path)          # tab_width = tabWidth (Task 32.0)
@@ -1086,11 +1104,11 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         max_iterations=max_iterations,
         backend=backend,
         source_path=config_path,
-        settings_format=wanted_format or format_of(config_path),
+        settings_format=wanted_format or ("TOML" if from_block else format_of(config_path)),
         messages=messages,
         warnings=warnings,
     )
-    if wanted_format is not None and wanted_format != format_of(config_path):
+    if wanted_format is not None and not from_block and wanted_format != format_of(config_path):
         # fusionSettingFormat names another format: write the settings in it, keep the old
         # file as a backup - only one settings file is active (Task 31)
         try:

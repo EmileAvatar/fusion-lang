@@ -72,6 +72,9 @@ class Lexer:
         if source.startswith('#!'):
             end = source.find('\n')
             source = '' if end < 0 else source[end:]
+        # A `Fusion.Settings { ... }` block first in the file - read with the settings, blanked here (58.2, D.224)
+        from src.config.settings_block import blank_settings_block
+        source, self.settings_block = blank_settings_block(source)
         self.source = source
         self.filename = filename
         self.allow_unicode_identifiers = allow_unicode_identifiers

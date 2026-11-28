@@ -438,6 +438,10 @@ class SemanticAnalyzer:
         if self.visibility_required:                    # Task 32.2h
             self.errors.extend(check_visibility_written(ast))
         self.warnings.extend(static_missing_warnings(ast))   # Task 57.2 (D.212)
+        for name, location, main_name in getattr(ast, 'ignored_settings', []):     # Task 58.2 (D.228)
+            self.warnings.append(SemanticError(
+                f"{name}: its Fusion.Settings block is ignored - the program starts in {main_name}, whose settings "
+                f"are used", location))
         # Constructors that can't be told apart, or call each other in a circle (32.2b)
         self.errors.extend(check_constructors(
             [d for d in ast.declarations if isinstance(d, StructDecl)],

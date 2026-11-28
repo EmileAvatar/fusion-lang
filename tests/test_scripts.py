@@ -114,3 +114,83 @@ def test_statements_at_the_top_of_a_module_are_an_error(tmp_path):
     files = {'tools/t.fusion': 'print("loaded")\n', 'main.fusion': 'import tools\n\nprint("x")\n'}
     assert "tools/t.fusion has statements at the top - only the file that starts the program (a script) runs " \
            "them" in errors(str(tmp_path), files)
+
+
+# 58.2 (D.224, D.226, D.228): a Fusion.Settings block, first in the file - instead of the settings file
+
+LIMITED = ('int n = 0\n'
+           'try\n'
+           '    while true\n'
+           '        n = n + 1\n'
+           'catch LoopLimitError e\n'
+           '    print("stopped at {n}")\n')
+
+
+@pytest.mark.parametrize('block', [
+    'Fusion.Settings {\n    maxIterations = 50\n}\n',                    # braces
+    'Fusion.Settings\n    maxIterations = 50\n',                          # indented
+    'Fusion.Settings\n{\n    safety.maxIterations = 50   // with its section\n}\n',
+    '#!/usr/bin/env fusion run\n// settings first\n\nFusion.Settings {\n    maxIterations = 50\n}\n',
+])
+def test_a_settings_block(tmp_path, block):
+    assert build_and_run(tmp_path, {'main.fusion': block + '\n' + LIMITED}) == (0, 'stopped at 50\n')
+
+
+def test_the_block_is_used_instead_of_the_settings_file(tmp_path):
+    files = {'fusion.toml': '[safety]\nmaxIterations = 5\n',
+             'main.fusion': 'Fusion.Settings {\n    maxIterations = 50\n}\n\n' + LIMITED}
+    assert build_and_run(tmp_path, files) == (0, 'stopped at 50\n')
+
+
+def test_a_block_in_a_program_with_main(tmp_path):
+    body = ''.join('    ' + line + '\n' for line in LIMITED.splitlines())
+    files = {'main.fusion': 'Fusion.Settings {\n    maxIterations = 7\n}\n\nvoid function main()\n' + body}
+    assert build_and_run(tmp_path, files) == (0, 'stopped at 7\n')
+
+
+def test_a_block_in_an_imported_file_is_ignored_with_a_warning(tmp_path):
+    from src.modules import load_program
+    from src.semantic import SemanticAnalyzer
+    files = {'tools/t.fusion': 'Fusion.Settings {\n    maxIterations = 3\n}\n\npublic int function two() : 2\n',
+             'main.fusion': 'import tools\n\nprint(format("{@1}", tools.two()))\n'}
+    main_file = write_project(str(tmp_path), files)
+    with open(main_file, encoding='utf-8') as f:
+        program = parse_file(f.read(), main_file)
+    program, problems = load_program(main_file, program, parse_file)
+    assert problems == []
+    analyzer = SemanticAnalyzer()
+    assert analyzer.analyze(program)
+    assert any("tools/t.fusion: its Fusion.Settings block is ignored - the program starts in main.fusion" in str(w)
+               for w in analyzer.get_warnings())
+
+
+@pytest.mark.parametrize('block, message', [
+    ('Fusion.Settings {\n    noSuchThing = 1\n}\n', "no setting named 'noSuchThing'"),
+    ('Fusion.Settings {\n    nope.maxIterations = 1\n}\n', "no settings section 'nope'"),
+    ('Fusion.Settings {\n    maxIterations = lots\n}\n', "can't read the value of 'maxIterations'"),
+    ('Fusion.Settings {\n    maxIterations\n}\n', "expected 'name = value' in Fusion.Settings"),
+    ('Fusion.Settings {\n    maxIterations = 5\n', "Fusion.Settings has no closing '}'"),
+    ('Fusion.Settings {\n    maxIterations = -5\n}\n', "safety.maxIterations must be a whole number"),
+])
+def test_settings_block_errors(tmp_path, block, message):
+    from src.config import ProjectConfigError, load_project_config
+    (tmp_path / 'main.fusion').write_text(block + 'print("x")\n', encoding='utf-8')
+    with pytest.raises(ProjectConfigError, match=message):
+        load_project_config(str(tmp_path / 'main.fusion'))
+
+
+def test_a_name_in_two_sections_needs_its_section(monkeypatch):
+    from src.config import settings_files
+    from src.config.settings_block import read_settings_block
+    sections, settings = settings_files.read_template()
+    twin = next(s for s in settings if s.name == 'rounding')          # [numbers] rounding
+    fake = settings + [type(twin)(**{**twin.__dict__, 'section': 'money'})]
+    monkeypatch.setattr(settings_files, 'read_template', lambda: (sections, fake))
+    with pytest.raises(ValueError, match=r"'rounding' is in \[numbers\] and \[money\] - write numbers.rounding or "
+                                         r"money.rounding"):
+        read_settings_block('Fusion.Settings {\n    rounding = "halfUp"\n}\n', 'main.fusion')
+
+
+def test_the_block_must_be_first():
+    with pytest.raises(ParserError, match="Fusion.Settings must be first in the file"):
+        parse_file('print("x")\nFusion.Settings {\n    maxIterations = 5\n}\n', 'main.fusion')

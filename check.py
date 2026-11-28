@@ -133,7 +133,7 @@ def compile_and_run_leak_checked(source: str, source_path: str):
     from src.config import load_project_config
     from src.modules import load_program, make_file_parser
 
-    config = load_project_config(source_path)
+    config = load_project_config(source_path, source=source)      # its Fusion.Settings too (58.2)
     try:
         parse = make_file_parser(config)
         ast, import_errors = load_program(source_path, parse(source, source_path), parse, config.libraries)

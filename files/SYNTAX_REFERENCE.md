@@ -2829,6 +2829,16 @@ void function main()
 With no settings file, the compiler writes a `fusion.toml` with every setting at its default.
 Every setting and its values: `files/fusionSettings.xml`.
 
+Or in the code (Task 58.2, D.224, D.226) - first in the file that starts the program, used instead of the settings
+file; the name alone when one section has it, `section.name` otherwise; braces or indented:
+```text
+Fusion.Settings {
+    maxIterations = 100000
+    numbers.rounding = "halfUp"
+}
+```
+A block in another file (one it imports) is ignored, with a warning naming the file whose settings are used (D.228).
+
 ```toml
 [project]
 fusionSettingFormat = "TOML"     # TOML / YAML / JSON / INI - change it and the next compile
