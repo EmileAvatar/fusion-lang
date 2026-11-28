@@ -349,41 +349,16 @@ then each point is decided and solved completely. One line per section and per l
 #### 56 Loop safety: the `check` keyword (user, 2026-11-09 - SYN.033, files/spec/070-ControlFlow.md) [ ] [index](#index)
 	A loop's `end loop with {N}` part holds `check` blocks - a health / limit check, run every Nth pass -
 	and `check interrupt(signal, data)`, the loop's safe point for Shutdown / Pause / Stop (42.26, 42.27 build on it)
-	[ ] 56.1 Questions first (OpenQuestions.md, with example code and options A / B / C):
-		the name `check` - keep it, rename it, or drop the `with` part and keep only interrupts and the setting
-		`{N}` - every Nth pass: the right form, or a setting
-		the iteration limit: `[safety] maxIterations` (default 0 = no limit - decided) per project; per loop
-			`{100000}` or nothing; is 10,000,000 too small for large database work (user note in 070)
-		visible only when a setting asks for it (user note in 070) - what the compiler adds when the loop
-			says nothing
-		RAM / CPU monitoring and "adjusts limits to available RAM" (spec text, not decided) - keep or drop;
-			it costs speed on every loop and clashes with the hot path (42.23)
-		`#[max_iterations]` / `#[no_loop_protection]` in the spec - Fusion has no `#[...]` attributes: drop
-		`exit loop` / `continue loop` inside a check - the same as `break` / `continue`, or words of their own
-		User's first answers (2026-11-09) - to confirm in 56.1, then Decisions.md:
-			Keep the name `check`; it can also serve as a debug tool
-			A check runs after each loop pass, by the iteration; it holds a single condition to be met
-			It is not for normal program control - only for what may affect the loop: a shutdown event,
-				a loop limit reached
-			Its job: exit the loop when the condition is true
-			No `break`, `continue` or `continue loop` in it - carrying on is implicit; it cannot fall through
-			It may contain `exit loop` - out of the inner loop or an outer one (loop labels)
-			Forms:
-				check <condition> { ... code block ... }   // cannot fall through
-				check                                      // every pass (or every {N}th, when {N} is set)
-				check 20                                   // every 20th pass
-				check >= 10000                             // when the pass count is 10000 or more
-				check !isHealthy()                         // run the method every pass
-				check 50 !isHealthy()                      // run the method every 50th pass
-				check InterruptSignal.Stop                 // when the interrupt is Stop, run the block
-				check interrupt(signal, data)              // several interrupts, handled in the block
-	[ ] 56.2 Bring files/spec/070-ControlFlow.md in line with the answers (old 1,000,000 default, the
-		attributes, `fusion.config.max_iterations` -> `[safety] maxIterations`)
-	[ ] 56.3 Make `check` a reserved word (src/lexer/keywords.py, the spec's Reserved Keywords) - a program
-		using `check` as a name gets a clear error
-	[ ] 56.4 Build `end loop with` + `check` blocks, then `{N}`; `[safety] maxIterations` built
-		(files/fusionSettings.xml); tests, an example in files/SYNTAX_REFERENCE.md (Rule 4)
-	[POSTPONED to 42] 56.5 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
+	[DONE 2026-11-28] 56.1 The questions (Q.084-Q.090 - A in each): Decisions.md D.214-D.220
+	[DONE 2026-11-28] 56.2 files/spec/070-ControlFlow.md in line with them - the `with` part, the forms, the truth
+		table; the old 1,000,000 default, the `#[...]` attributes and the RAM / CPU monitoring removed
+	[DONE 2026-11-28] 56.3 Loop labels (D.219; tests/test_loop_checks.py): `outer:` before `for` / `while`; `break outer` /
+		`continue outer` free what the scopes inside own and run their finally; an unknown, unused or repeated label an error
+	[ ] 56.4 The `with` part and `check` (D.214-D.217): the three block styles, with / without a condition, every Nth
+		pass, `check >= N`, `loop.count`, `exit loop` / `exit loop outer`
+	[ ] 56.5 `[safety] maxIterations` (D.218): `while` / `loop` only, a LoopLimitError; a loop's own `check >= N`
+	[ ] 56.6 Examples and documents: SYNTAX_REFERENCE, fusion.ebnf + page, fusionSettings.xml, the showcase, FeatureTree
+	[POSTPONED to 42] 56.7 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
 
 <a id="task-58"></a>
 #### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [index](#index)
@@ -753,7 +728,7 @@ then each point is decided and solved completely. One line per section and per l
 		The parent's timings: baseline from other languages gathered (spec 100 3.18 - Go, Tokio, .NET,
 			Erlang, Java); set and tuned once threads work
 	[ ] 42.37 A service's interrupt handler `service(x).setCheckInterrupt(signal, data) { }` (user, 2026-11-10 -
-		spec 100 3.14) - with 56.5; no `exit loop` / `continue loop` in it (D.132 proposed); not handled:
+		spec 100 3.14) - with 56.7; no `exit loop` / `continue loop` in it (D.132 proposed); not handled:
 			Shutdown terminates, Pause suspends, others nothing; interrupts only from the OS, passed down
 	[ ] 42.38 Locks off by default (D.125 proposed): `[concurrency] locks` in fusion.toml, a lock inside
 		`unsafe`; the setting into 001-TomlSettings once decided

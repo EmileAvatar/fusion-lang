@@ -639,6 +639,7 @@ class WhileStmt(ASTNode):
     """
     condition: ASTNode
     body: ASTNode
+    label: Optional[str] = None   # `outer: while ...` (Task 56.3, D.219)
 
 
 @dataclass
@@ -658,6 +659,7 @@ class ForStmt(ASTNode):
     variable: str
     iterable: ASTNode
     body: ASTNode
+    label: Optional[str] = None   # `outer: for ...` (Task 56.3, D.219)
     scope: Any = None
 
 
@@ -675,18 +677,18 @@ class ReturnStmt(ASTNode):
 class BreakStmt(ASTNode):
     """Break statement: break
 
-    Exits the innermost loop immediately.
+    Exits the innermost loop immediately - or the loop named: `break outer` (Task 56.3, D.219).
     """
-    pass
+    label: Optional[str] = None
 
 
 @dataclass
 class ContinueStmt(ASTNode):
     """Continue statement: continue
 
-    Skips to the next iteration of the innermost loop.
+    Skips to the next iteration of the innermost loop - or of the loop named: `continue outer` (56.3).
     """
-    pass
+    label: Optional[str] = None
 
 
 @dataclass

@@ -1177,6 +1177,15 @@ class Parser:
         Raises:
             ParserError: If statement is malformed
         """
+        # `outer: for ...` - a loop's label (Task 56.3, D.219)
+        if self.check(TokenType.IDENTIFIER) and self.peek(1).type == TokenType.COLON \
+                and self.peek(2).type in (TokenType.FOR, TokenType.WHILE):
+            label = self.advance().value
+            self.advance()
+            loop = self.parse_statement()
+            loop.label = label
+            return loop
+
         # Return statement
         if self.match(TokenType.RETURN):
             return self.parse_return_statement()
@@ -1574,10 +1583,12 @@ class Parser:
             BreakStmt AST node
         """
         break_token = self.previous()  # BREAK token
+        label = self.advance().value if self.check(TokenType.IDENTIFIER) else None   # `break outer` (56.3)
         self.consume_statement_terminator()
 
         return BreakStmt(
-            location=break_token.location
+            location=break_token.location,
+            label=label
         )
 
     def parse_continue_statement(self) -> ASTNode:
@@ -1587,11 +1598,10 @@ class Parser:
             ContinueStmt AST node
         """
         continue_token = self.previous()  # CONTINUE token
+        label = self.advance().value if self.check(TokenType.IDENTIFIER) else None   # 56.3
         self.consume_statement_terminator()
 
-        return ContinueStmt(
-            location=continue_token.location
-        )
+        return ContinueStmt(location=continue_token.location, label=label)
 
     def parse_if_statement(self) -> ASTNode:
         """Parse if statement: if condition { body } else { else_body }

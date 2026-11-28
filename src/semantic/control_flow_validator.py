@@ -29,6 +29,8 @@ class ControlFlowValidator:
         self.errors: List[SemanticError] = []
         self.warnings: List[SemanticError] = []
         self.in_loop: int = 0  # Loop nesting depth
+        self.loop_labels: list = []   # the labels of the loops around (Task 56.3), innermost last
+        self.used_labels: set = set()
         self.current_function_return_type: Optional[TypeNode] = None
 
     def validate_program(self, program: ProgramNode, type_checker: TypeChecker) -> Tuple[List[SemanticError], List[SemanticError]]:
@@ -202,6 +204,19 @@ class ControlFlowValidator:
     # Break/Continue Validation
     # ========================================================================
 
+    def _check_label(self, stmt, word: str) -> None:
+        """`break outer` / `continue outer` (Task 56.3, D.219): a loop around it has that label."""
+        label = getattr(stmt, 'label', None)
+        if label is None:
+            return
+        if label not in self.loop_labels:
+            around = [l for l in self.loop_labels if l]
+            known = f" (the labels around it: {', '.join(around)})" if around else ""
+            self.errors.append(SemanticError(
+                f"No loop labelled '{label}' around this {word}{known}", stmt.location))
+        else:
+            self.used_labels.add(label)
+
     def validate_statement(self, stmt: ASTNode) -> None:
         """Validate break/continue usage in a statement.
 
@@ -214,6 +229,7 @@ class ControlFlowValidator:
                     "Break statement outside loop",
                     stmt.location
                 ))
+            self._check_label(stmt, 'break')
 
         elif isinstance(stmt, ContinueStmt):
             if self.in_loop == 0:
@@ -221,16 +237,24 @@ class ControlFlowValidator:
                     "Continue statement outside loop",
                     stmt.location
                 ))
+            self._check_label(stmt, 'continue')
 
-        elif isinstance(stmt, WhileStmt):
+        elif isinstance(stmt, (WhileStmt, ForStmt)):
+            label = getattr(stmt, 'label', None)
+            if label is not None and label in self.loop_labels:
+                self.errors.append(SemanticError(
+                    f"A loop around this one is labelled '{label}' already - give this one another name",
+                    stmt.location))
             self.in_loop += 1
+            self.loop_labels.append(label)
             self.validate_statement(stmt.body)
+            self.loop_labels.pop()
             self.in_loop -= 1
-
-        elif isinstance(stmt, ForStmt):
-            self.in_loop += 1
-            self.validate_statement(stmt.body)
-            self.in_loop -= 1
+            if label is not None and label not in self.used_labels:
+                self.errors.append(SemanticError(
+                    f"The label '{label}' is never used - no 'break {label}' or 'continue {label}' (remove it)",
+                    stmt.location))
+            self.used_labels.discard(label)
 
         elif isinstance(stmt, BlockStmt):
             for s in stmt.statements:

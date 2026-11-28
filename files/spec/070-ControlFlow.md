@@ -169,177 +169,85 @@ void function logMessage(string level, string... messages)
 logMessage("INFO", "Starting", "Loading", "Complete")
 ```
 
-* **Automatic Compiler Protections**
+* **Loop checks** (Task 56, D.214-D.220)
 
-user added comment: can be seen if requested by option settings. not added by default. controled in project settings
-some apps the 10000000 might be two small for large database handling. verify specific
-Description: Compiler automatically adds safety checks to loops.
+A loop's checks are written in a `with` part after its body, and run after each pass, in order. A check is not for
+normal program control - only for what may affect the loop: a limit reached, an unhealthy system, a shutdown. It can
+also serve as a debug or progress tool.
 
-```
-// User writes:
-for i in range(1000)
-    processData(i)
-end loop
-
-// Compiler automatically adds (invisible to user):
-// - Infinite loop protection (default 1,000,000 iterations)
-// - Thread interrupt checking (for graceful shutdown)
-// - System resource monitoring (RAM/CPU usage)
-```
-
-**Configuration**:
-* Default iteration limit: Based on system resources
-* Project setting: `fusion.config.max_iterations = 10000000`
-* Per-loop override: `#[max_iterations(100000)]`
-* Disable protection: `#[no_loop_protection]` (use with caution)
-
-**System Resource Adaptation**:
-* Automatically adjusts limits based on available RAM
-* Monitors CPU usage during loops
-* Responds to OS shutdown signals
-* Graceful degradation under resource pressure
-
-```
-// Disable automatic protection (advanced use only)
-#[no_loop_protection]
-while serverRunning
-    handleRequest()
-end loop
-```
-
-* **Loop with Manual Exit Condition**
-
-```
-int count = 0
-while ship.isActive
-    ship.update(deltaTime)
-    count += 1
-    
-    // Manual break
-    if count > 1000
-        break
-        
-end loop with
-    check
-        if not ship.isValid()
-            print("Warning: Invalid state")
-```
-
-* **Loop with Periodic Check** (Every N iterations)
-
-```
-for i in range(100000)
-    processData(i)
-    
-end loop with {10}  // Check every 10th iteration
-    check
-        if systemOverloaded()
-            print("System overload at iteration {i}")
-            exit loop
-```
-
-* **Loop with Iteration Limit** (Infinite loop prevention)
-
-```
-while processing
+```fusion
+while processing                     // indent style
     doWork()
-    
-end loop with {100000}  // Exit if exceeds 100,000 iterations
-    check
-        if iteration >= 100000
-            print("Loop limit reached")
-            exit loop
-```
+with
+    check 100                        // no condition: every 100th pass - a hook, the loop carries on
+        print("{loop.count} passes")
+    check 50 not isHealthy()         // a condition, tested every 50th pass: true - the block, then the loop ends
+        print("unhealthy")
+    check >= 100000                  // the passes so far
+        print("too many passes")
 
-* **Loop with Thread Interrupt Handling**
+while processing {                   // braces
+    doWork()
+} with {
+    check >= 100000 { print("too many passes") }
+}
 
-```
-for item in hugeCollection
-    processItem(item)
-    
+while processing                     // End style
+    doWork()
 end loop with
-    check interrupt(signal, data)
-        if signal == InterruptSignal.Shutdown
-            print("Received shutdown signal")
-            cleanup()
-            exit loop
-        
-        if signal == InterruptSignal.Pause
-            waitForResume()
-            continue loop
+    check >= 100000
+        print("too many passes")
 ```
 
-* **Complete Loop Example** (All check types)
+| Form | Runs | When it fires |
+|---|---|---|
+| `check` | every pass | its block runs; the loop carries on |
+| `check 20` | every 20th pass | its block runs; the loop carries on |
+| `check not isHealthy()` | every pass | true: its block runs, then the loop ends |
+| `check 50 not isHealthy()` | every 50th pass | true: its block runs, then the loop ends |
+| `check >= 10000` (`>`, `==`) | every pass | the passes so far reach it: its block runs, then the loop ends |
+| `check InterruptSignal.Stop`, `check interrupt(signal, data)` | at the loop's safe point | with Task 42's interrupts (42.26, 42.27) |
 
-```
-int count = 0
-bool processing = true
+* Inside a check's block: `break` and `continue` are errors (the check ends the loop by itself); `return` leaves the
+  function; `exit loop outer` leaves an outer loop too (D.215, D.219)
+* `loop.count` - the pass number, in the body and the checks (read-only - D.217)
+* `[safety] maxIterations` (default 0 = no limit - D.218): a `while` or `loop` that passes it stops with a
+  LoopLimitError (a built-in error a `catch` can handle) naming its line and the limit - never a silent stop; a `for`
+  over a range or a collection ends by itself and has no limit; a loop with its own `check >= N` uses that instead
+* Nothing is added by itself (D.220): a loop gets a pass counter only when it has checks, or when maxIterations is
+  above 0. There is no RAM / CPU monitoring and no `#[...]` attribute; Ctrl+C and a shutdown come with the
+  interrupts (Task 42)
 
-while processing
-    data = fetchData()
-    processData(data)
-    count += 1
-    
-    if count >= maxCount
-        break
+**The truth table (Rule 4c)** - each row a test in tests/test_loop_checks.py:
 
-end loop with {50}  // Periodic check every 50 iterations
-    
-    check
-        if not isHealthy()
-            print("System unhealthy")
-            exit loop
-    
-    check
-        if count >= 10000
-            print("Maximum iterations reached")
-            exit loop
-    
-    check interrupt(signal, data)
-        if signal == InterruptSignal.Stop
-            print("Stop signal received")
-            processing = false
-            exit loop
-```
-
-* **Simple Loop** (Automatic safety)
-
-```
-// Most loops don't need explicit checks
-for i in range(100)
-    doWork(i)
-end loop
-
-// System automatically provides:
-// - Infinite loop protection (default 1M iterations)
-//   * Configurable based on system resources (RAM/CPU/disk space)
-//   * Compiler settings can adjust based on available resources
-//   * User settings can override for specific needs
-//   * Protects PC from hanging or crashes
-// - Thread interrupt checking
-//   * Handles system shutdown gracefully
-//   * Responds to user interrupts (Ctrl+C)
-//   * No manual handling needed
-//   * Cooperative multitasking automatic
-```
-
-**Note**: The compiler/runtime automatically adds these protections even if user doesn't specify them. This prevents common programming errors and system hangs without requiring explicit code from the developer.
-user added note: can be controled from config. might not be needed in some situations.
+| Case | Result |
+|---|---|
+| `check` / `check N`, any block style | the block every pass / every Nth; the loop carries on |
+| `check cond` true / false | the block, then the loop ends / nothing |
+| `check N cond` - on an Nth pass true / not an Nth pass | the block, then the end / not tested |
+| `check >= N` / `> N` / `== N` | ends when the passes so far reach it |
+| a condition that reads a null (Rule 4b) | a NullError a `catch` handles; with `?.` / `??` it runs on |
+| `break` / `continue` in a check | a compile error |
+| `return` in a check | leaves the function |
+| `exit loop` / `exit loop outer` in a check | leaves this loop / the outer one |
+| `break outer` / `continue outer` in the body | leaves / continues the outer loop |
+| an unknown label | a compile error |
+| maxIterations 0 / above 0 - a `while` past it | nothing / a LoopLimitError |
+| maxIterations above 0 - a `for` over a range | no limit |
+| maxIterations above 0 - a loop with `check >= N` | its own check, not the limit |
 
 ---
 
 ### Loop Labels
 
-Description: Named loops for nested break/continue.
+Description: Named loops for nested break / continue (D.219).
 
-```
-outer: for x in range(10)
-    for y in range(10)
+```fusion
+outer: for x in 0...9
+    for y in 0...9
         if grid[x][y] == target
             print("Found at ({x}, {y})")
             break outer
-    end loop
-end loop
 ```
 
 [< 061 Enums](061-Enums.md) | [Index](index.md) | [080 Null >](080-Null.md) <!-- nav -->

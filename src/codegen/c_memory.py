@@ -1023,11 +1023,16 @@ class MemoryManagementMixin:
     # ------------------------------------------------------------------ cleanup scopes
 
     def push_scope(self, kind: str) -> None:
-        self.cleanup_scopes.append({'kind': kind, 'vars': []})
+        scope = {'kind': kind, 'vars': []}
+        if kind == 'loop' and getattr(self, 'next_loop_label', None) is not None:
+            scope['loop_label'], self.next_loop_label = self.next_loop_label, None   # `outer: for` (56.3)
+        self.cleanup_scopes.append(scope)
 
     def pop_scope(self) -> None:
         """Leave a scope normally, freeing its owned variables (newest first)."""
         scope = self.cleanup_scopes.pop()
+        if scope.get('loop_label') is not None and scope['loop_label']['next_used']:
+            self.emit(f"{scope['loop_label']['c']}_next: ;")      # where `continue outer` lands (56.3)
         for name, type_node in reversed(scope['vars']):
             for line in self.free_lines(type_node, name):
                 self.emit(line)
@@ -1046,6 +1051,26 @@ class MemoryManagementMixin:
             if scope['kind'] == 'function':
                 break
         self.cleanup_scopes[-1]['vars'].append((name, type_node))
+
+    def owned_until_label(self, label: str) -> list:
+        """Owned variables in the scopes left by `break outer` / `continue outer` - every scope inside the loop
+        labelled `label` (Task 56.3), innermost first."""
+        found = []
+        for scope in reversed(self.cleanup_scopes):
+            if scope['kind'] == 'loop' and scope.get('loop_label', {}).get('name') == label:
+                break
+            found += list(reversed(scope['vars']))
+        return found
+
+    def labelled_loop(self, label: str):
+        """(the label's record, how many loops deep its loop is) - for `break outer` / `continue outer`."""
+        depth = 0
+        for scope in self.cleanup_scopes:
+            if scope['kind'] == 'loop':
+                depth += 1
+                if scope.get('loop_label', {}).get('name') == label:
+                    return scope['loop_label'], depth
+        raise ValueError(f'no loop labelled {label}')
 
     def owned_in_scopes(self, until: str) -> list:
         """Owned variables in the scopes being left - up to the function (return) or the

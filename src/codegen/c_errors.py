@@ -1065,7 +1065,7 @@ class ErrorsMixin:
         self.emit('}')
 
     def emit_finally_for_exit(self, leaving: str, error_pending: bool = False,
-                              from_depth: int = None) -> None:
+                              from_depth: int = None, loops_from: int = None) -> None:
         """Before a return (leaving 'function') or a break / continue (leaving 'loop'):
         run the finally of every try being left, innermost first. While one runs, it is no
         longer "being left", and errors in it go to the targets outside its try."""
@@ -1075,6 +1075,8 @@ class ErrorsMixin:
         entries = [e for e in self.finally_stack if leaving == 'function' or e['loops'] == loops]
         if from_depth is not None:
             entries = self.finally_stack[from_depth:]     # break leaving a match (30.12)
+        if loops_from is not None:                        # `break outer`: every try inside that loop (56.3)
+            entries = [e for e in self.finally_stack if e['loops'] >= loops_from]
         if not entries:
             return
         saved_stack, saved_targets = self.finally_stack, self.fail_targets

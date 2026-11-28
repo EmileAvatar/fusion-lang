@@ -348,6 +348,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self.array_collection_code(node)    # int[3] as a Collection<int> (45.10)
         if getattr(node, 'as_list', None) is not None and not getattr(node, 'wrapping_list', False):
             return self.list_ext_code(node)          # List<int> xs = Ring() (33.3d2)
+        if isinstance(node, (WhileStmt, ForStmt)) and getattr(node, 'label', None) \
+                and not getattr(node, 'label_open', False):
+            return self._labelled_loop(node)               # `outer: for ...` (56.3)
         method_name = f'visit_{type(node).__name__}'
         visitor = getattr(self, method_name, self.generic_visit)
         if isinstance(node, self._STATEMENTS) and hasattr(self, 'stmt_temps'):
@@ -2720,6 +2723,35 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         self.emit('}')
         return ''
 
+    def _labelled_loop(self, node) -> str:
+        """A labelled loop (Task 56.3, D.219): its loop scope carries the label; `break outer` jumps past it,
+        `continue outer` to the end of its pass - each C label written only when a jump uses it."""
+        self.label_count = getattr(self, 'label_count', 0) + 1
+        record = {'name': node.label, 'c': f'fu_loop_{node.label}_{self.label_count}',
+                  'end_used': False, 'next_used': False}
+        self.next_loop_label = record
+        node.label_open = True
+        try:
+            self.visit(node)
+        finally:
+            node.label_open = False
+        if record['end_used']:
+            self.emit(f"{record['c']}_end: ;")
+        return ''
+
+    def _jump_to_label(self, node, word: str) -> None:
+        """`break outer` / `continue outer`: run the finally of every try inside that loop, free what the
+        scopes inside it own, then jump."""
+        record, depth = self.labelled_loop(node.label)
+        self.emit_finally_for_exit('loop', loops_from=depth)
+        self.emit_frees(self.owned_until_label(node.label))
+        if word == 'break':
+            record['end_used'] = True
+            self.emit_line(f"goto {record['c']}_end")
+        else:
+            record['next_used'] = True
+            self.emit_line(f"goto {record['c']}_next")
+
     def visit_BreakStmt(self, node: BreakStmt) -> str:
         """Generate C code for break statement.
 
@@ -2729,6 +2761,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        if getattr(node, 'label', None):
+            self._jump_to_label(node, 'break')
+            return ''
         # Inside a match, break ends the match (Task 30.12): finally blocks opened inside it
         # run, what its cases own is freed, then a jump to its end
         target = next((s for s in reversed(getattr(self, 'cleanup_scopes', []))
@@ -2755,6 +2790,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         Returns:
             Empty string (code emitted directly)
         """
+        if getattr(node, 'label', None):
+            self._jump_to_label(node, 'continue')
+            return ''
         self.emit_finally_for_exit('loop')
         if hasattr(self, 'cleanup_scopes'):
             self.emit_frees(self.owned_in_scopes('loop'))
