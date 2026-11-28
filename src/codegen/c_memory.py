@@ -1026,8 +1026,13 @@ class MemoryManagementMixin:
         scope = {'kind': kind, 'vars': []}
         if kind == 'loop' and getattr(self, 'next_loop_label', None) is not None:
             scope['loop_label'], self.next_loop_label = self.next_loop_label, None   # `outer: for` (56.3)
-            if scope['loop_label']['counted']:
-                self.emit(f"{scope['loop_label']['c']}_pass++;")           # loop.count (56.4)
+            record = scope['loop_label']
+            if record['counted']:
+                self.emit(f"{record['c']}_pass++;")                         # loop.count (56.4)
+            if record.get('limit'):                                         # [safety] maxIterations (56.5)
+                self.emit(f"if ({record['c']}_pass > {record['limit']}LL) fusion_fail(FUSION_KIND_LoopLimitError, "
+                          f"{record['where']}, \"the loop passed [safety] maxIterations - {record['limit']} "
+                          f"passes\");")
         self.cleanup_scopes.append(scope)
 
     def pop_scope(self) -> None:

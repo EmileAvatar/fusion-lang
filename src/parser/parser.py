@@ -2068,6 +2068,7 @@ class Parser:
         if not (self.check(TokenType.INDENT) or self.check(TokenType.LBRACE)):
             raise ParserError(self.peek(), "Expected the loop's checks after 'with' - indented, or in { }")
         clauses = []
+        self.own_limit = False
         braced = self.match(TokenType.LBRACE)
         if not braced:
             self.advance()                                        # INDENT
@@ -2087,6 +2088,7 @@ class Parser:
         inner.pass_block = True
         loop.body = BlockStmt(location=inner.location, statements=[inner] + clauses)
         loop.has_checks = True
+        loop.own_limit = self.own_limit
         return loop
 
     def _parse_check(self):
@@ -2116,6 +2118,7 @@ class Parser:
             limit = self.consume(TokenType.INTEGER, f"Expected the number of passes after '{operator}'")
             parts.append(BinaryExpr(location=start.location, left=count(), operator=operator, right=number(limit)))
             ends = True
+            self.own_limit = True                                   # the loop's own limit (D.218)
         elif self.peek().type not in line_end:
             parts.append(self.parse_expression())
             ends = True

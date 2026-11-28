@@ -148,6 +148,7 @@ def compile_and_run_leak_checked(source: str, source_path: str):
                                    max_call_depth=config.max_call_depth,
                                    overflow_wrap=config.numbers.overflow_wrap)
         generator.rounding = config.numbers.rounding          # [numbers] rounding (47.8)
+        generator.max_iterations = config.max_iterations    # [safety] maxIterations (56.5)
         c_code = generator.generate(ast)
     except Exception as e:  # report, don't crash the checker
         return None, f'{type(e).__name__}: {e}'

@@ -379,7 +379,8 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if getattr(node, 'as_list', None) is not None and not getattr(node, 'wrapping_list', False):
             return self.list_ext_code(node)          # List<int> xs = Ring() (33.3d2)
         if isinstance(node, (WhileStmt, ForStmt)) and not getattr(node, 'label_open', False) \
-                and (getattr(node, 'label', None) or getattr(node, 'has_checks', False) or _counts_passes(node)):
+                and (getattr(node, 'label', None) or getattr(node, 'has_checks', False) or _counts_passes(node)
+                     or self._iteration_limit(node)):
             return self._labelled_loop(node)               # `outer: for ...` (56.3), checks / loop.count (56.4)
         method_name = f'visit_{type(node).__name__}'
         visitor = getattr(self, method_name, self.generic_visit)
@@ -2757,9 +2758,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """A labelled loop (Task 56.3, D.219): its loop scope carries the label; `break outer` jumps past it,
         `continue outer` to the end of its pass - each C label written only when a jump uses it."""
         self.label_count = getattr(self, 'label_count', 0) + 1
+        limit = self._iteration_limit(node)
         record = {'name': node.label, 'c': f'fu_loop_{node.label or "pass"}_{self.label_count}',
                   'end_used': False, 'next_used': False, 'checks_used': False, 'checks_depth': None,
-                  'counted': getattr(node, 'has_checks', False) or _counts_passes(node)}
+                  'counted': bool(getattr(node, 'has_checks', False) or _counts_passes(node) or limit),
+                  'limit': limit, 'where': self._where(node)}
         if record['counted']:
             self.emit(f"long long {record['c']}_pass = 0;")      # loop.count - one more at each pass (56.4)
         self.next_loop_label = record
@@ -2771,6 +2774,14 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if record['end_used']:
             self.emit(f"{record['c']}_end: ;")
         return ''
+
+    def _iteration_limit(self, node) -> int:
+        """[safety] maxIterations for this loop (Task 56.5, D.218): a while only, without a check >= N of its own;
+        0 - no limit."""
+        limit = getattr(self, 'max_iterations', 0)
+        if not limit or not isinstance(node, WhileStmt) or getattr(node, 'own_limit', False):
+            return 0
+        return limit
 
     def _jump_to_label(self, node, word: str) -> None:
         """`break outer` / `continue outer`: run the finally of every try inside that loop, free what the

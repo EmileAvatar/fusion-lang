@@ -251,6 +251,9 @@
     <setting name="maxCallDepth" type="int-or-max" min="1" default="max" task="27.2c">
       <description>How deep calls may go; max: endless recursion is caught by stack use alone</description>
     </setting>
+    <setting name="maxIterations" type="int" default="0" task="56.5">
+      <description>The passes a while loop may make - past it a LoopLimitError a catch can handle; 0: no limit (nothing added); a for over a range or a collection ends by itself; a loop with its own check &gt;= N uses that instead</description>
+    </setting>
   </section>
 
   <section name="build" description="What the built program does">

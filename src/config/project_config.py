@@ -392,6 +392,7 @@ class ProjectConfig:
     build: BuildConfig = field(default_factory=BuildConfig)
     safety_mode: str = DEFAULT_SAFETY_MODE
     max_call_depth: Optional[int] = None   # [safety] max_call_depth - None: "max" (Task 27.2c)
+    max_iterations: int = 0                # [safety] maxIterations - 0: no limit (Task 56.5, D.218)
     backend: str = DEFAULT_BACKEND
     source_path: Optional[str] = None
     settings_format: str = "TOML"   # [project] fusionSettingFormat (Task 31)
@@ -1036,10 +1037,18 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
                 f"{config_path}: safety.maxCallDepth must be \"max\" or a whole number of 1 or "
                 f"more, got {depth!r}")
         max_call_depth = None if depth == "max" else depth
-    for key in safety_section:
-        if key not in ("mode", "maxCallDepth"):
+    # [safety] maxIterations (Task 56.5, D.218): a while loop past it stops with a LoopLimitError; 0 - no limit
+    max_iterations = 0
+    if "maxIterations" in safety_section:
+        limit = safety_section["maxIterations"]
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
             raise ProjectConfigError(
-                f"{config_path}: unknown setting safety.{key} (known: ['mode', 'maxCallDepth'])")
+                f"{config_path}: safety.maxIterations must be a whole number - 0 for no limit, got {limit!r}")
+        max_iterations = limit
+    for key in safety_section:
+        if key not in ("mode", "maxCallDepth", "maxIterations"):
+            raise ProjectConfigError(
+                f"{config_path}: unknown setting safety.{key} (known: ['mode', 'maxCallDepth', 'maxIterations'])")
 
     backend = DEFAULT_BACKEND
     backend_section = _require_table(data, "backend", config_path)
@@ -1074,6 +1083,7 @@ def load_project_config(source_path: str, create_missing: bool = False) -> Proje
         numbers=_load_numbers_section(data, config_path),
         safety_mode=safety_mode,
         max_call_depth=max_call_depth,
+        max_iterations=max_iterations,
         backend=backend,
         source_path=config_path,
         settings_format=wanted_format or format_of(config_path),

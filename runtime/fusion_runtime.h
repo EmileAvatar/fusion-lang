@@ -188,6 +188,7 @@ static int fusion_failed = 0;
 #define FUSION_KIND_RoundingError 33
 #define FUSION_KIND_CurrencyError 34
 #define FUSION_KIND_CapacityError 35
+#define FUSION_KIND_LoopLimitError 36
 static inline void fusion_raise_text(int kind, void* extra, const char* where, const char* text, int len);
 static inline void* fusion_errdata_fu_FileError_new(fusion_string path);
 static void* fusion_errdata_fu_FileError_copy(void* p);
@@ -1808,6 +1809,7 @@ static const fusion_error_kind fusion_builtin_kinds[] = {
     {"RoundingError", 1, NULL, NULL},
     {"CurrencyError", 8, NULL, NULL},
     {"CapacityError", 21, NULL, NULL},
+    {"LoopLimitError", 21, NULL, NULL},
 };
 static const fusion_error_kind* fusion_error_kinds = fusion_builtin_kinds;
 // Is an error of type `kind` a `target` (that type or one of its subtypes)? (Task 26.9)

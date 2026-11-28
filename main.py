@@ -147,6 +147,7 @@ def compile_file(source_path: str) -> int:
                                wait_at_exit=project_config.build.wait_at_exit,
                                overflow_wrap=project_config.numbers.overflow_wrap)
     generator.rounding = project_config.numbers.rounding      # [numbers] rounding (47.8)
+    generator.max_iterations = project_config.max_iterations    # [safety] maxIterations (56.5)
     try:
         c_code = generator.generate(ast)
     except Exception as e:

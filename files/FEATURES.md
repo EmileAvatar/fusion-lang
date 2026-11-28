@@ -358,7 +358,9 @@ then each point is decided and solved completely. One line per section and per l
 		three block styles (`with`, `} with {`, `end loop with`); a condition or `>= N` runs its block, then ends the
 		loop; none - a hook every pass / every Nth; `loop.count`; `exit loop [outer]`; break / continue in a check an
 		error; a `continue` in the body still runs the checks; each check an `if` after the pass (the parser)
-	[ ] 56.5 `[safety] maxIterations` (D.218): `while` / `loop` only, a LoopLimitError; a loop's own `check >= N`
+	[DONE 2026-11-28] 56.5 `[safety] maxIterations` (D.218; tests/test_loop_checks.py): a whole number, 0 = no limit and
+		nothing added; a `while` past it a LoopLimitError (a new built-in error under LimitError) naming its line; a `for`
+		no limit; a loop with its own `check >= N` / `> N` / `== N` uses that
 	[ ] 56.6 Examples and documents: SYNTAX_REFERENCE, fusion.ebnf + page, fusionSettings.xml, the showcase, FeatureTree
 	[POSTPONED to 42] 56.7 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
 

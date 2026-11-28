@@ -183,7 +183,8 @@ maxCallDepth = "max"
 # [rejected] Turning off array bounds checks - they stay on even in unsafe mode (Task 27.1)
 # [designed] strict mode: null checks forced, Weak<T> is an error, callbacks limited
 nullChecks = "strict"
-# [designed] Loop protection: the most passes a loop may make (0 = no limit)
+# [built] The passes a while loop may make - past it a LoopLimitError a catch can handle; 0 = no limit, nothing
+#         added; a for over a range or collection has no limit; a loop's own check >= N instead (Task 56.5, D.218)
 maxIterations = 0
 
 [memory]

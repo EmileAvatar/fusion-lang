@@ -284,3 +284,75 @@ def test_check_syntax_errors(body, message):
     from tests.test_modules import parse_file
     with pytest.raises(ParserError, match=message):
         parse_file(main(body), 'main.fusion')
+
+
+# 56.5 (D.218): [safety] maxIterations - a while past it stops with a LoopLimitError; 0 - nothing added
+
+def run_with_limit(tmp_path, body: str, limit: int, top: str = '') -> tuple:
+    """Build through main.py with a fusion.toml setting the limit; (exit code, output)."""
+    import os
+    import subprocess
+    import sys
+    (tmp_path / 'fusion.toml').write_text(f'[safety]\nmaxIterations = {limit}\n', encoding='utf-8')
+    (tmp_path / 'main.fusion').write_text(top + main(body), encoding='utf-8')
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    built = subprocess.run([sys.executable, os.path.join(repo, 'main.py'), str(tmp_path / 'main.fusion')],
+                           capture_output=True, text=True, encoding='utf-8')
+    assert built.returncode == 0, built.stdout + built.stderr
+    ran = subprocess.run([str(tmp_path / 'main.exe')], capture_output=True, text=True, encoding='utf-8')
+    return ran.returncode, ran.stdout + ran.stderr
+
+
+FOREVER = 'int n = 0\nwhile true\n    n = n + 1\nprint("{n}")'
+
+
+def test_a_while_past_the_limit_stops(tmp_path):
+    code, output = run_with_limit(tmp_path, FOREVER, 1000)
+    assert code != 0
+    # uncaught: "Runtime error at main.fusion:3: ..." - the loop's line, as every built-in error says it
+    assert 'Runtime error at main.fusion:3: the loop passed [safety] maxIterations - 1000 passes' in output
+
+
+def test_a_catch_handles_it(tmp_path):
+    body = ('int n = 0\n'
+            'try\n'
+            '    while true\n'
+            '        n = n + 1\n'
+            'catch LoopLimitError e\n'
+            '    print("stopped after {n}")')
+    assert run_with_limit(tmp_path, body, 50) == (0, 'stopped after 50\n')
+
+
+def test_a_loop_under_the_limit_runs(tmp_path):
+    body = 'int n = 0\nwhile n < 100\n    n = n + 1\nprint("{n}")'
+    assert run_with_limit(tmp_path, body, 100) == (0, '100\n')
+
+
+def test_a_for_loop_has_no_limit(tmp_path):
+    body = 'int n = 0\nfor x in 1...500\n    n = n + 1\nprint("{n}")'
+    assert run_with_limit(tmp_path, body, 10) == (0, '500\n')
+
+
+def test_a_loops_own_check_instead_of_the_limit(tmp_path):
+    body = ('int n = 0\n'
+            'while true\n'
+            '    n = n + 1\n'
+            'with\n'
+            '    check >= 300\n'
+            '        print("own limit at {n}")')
+    assert run_with_limit(tmp_path, body, 10) == (0, 'own limit at 300\n')
+
+
+def test_zero_adds_nothing(tmp_path):
+    body = 'int n = 0\nwhile n < 5\n    n = n + 1\nprint("{n}")'
+    assert run_with_limit(tmp_path, body, 0) == (0, '5\n')
+    assert '_pass' not in (tmp_path / 'main.c').read_text(encoding='utf-8')     # no counter at all
+
+
+@pytest.mark.parametrize('value', ['-1', '"lots"', 'true', '1.5'])
+def test_bad_limits(tmp_path, value):
+    from src.config import ProjectConfigError, load_project_config
+    (tmp_path / 'fusion.toml').write_text(f'[safety]\nmaxIterations = {value}\n', encoding='utf-8')
+    (tmp_path / 'main.fusion').write_text(main('print("x")'), encoding='utf-8')
+    with pytest.raises(ProjectConfigError, match='safety.maxIterations must be a whole number'):
+        load_project_config(str(tmp_path / 'main.fusion'))

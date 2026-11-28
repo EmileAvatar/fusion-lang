@@ -70,6 +70,7 @@ BUILTIN_ERROR_TYPES = [
     ('RoundingError', 'ArithmeticError', False, None),          # Task 47.8 - rounding needed, the mode exact
     ('CurrencyError', 'ValueError', False, None),               # Task 47.2 - two currencies mixed, a bad code
     ('CapacityError', 'LimitError', False, None),               # Task 47.5 - past a fixed(n) size (D.202)
+    ('LoopLimitError', 'LimitError', False, None),              # Task 56.5 - past [safety] maxIterations (D.218)
 ]
 BUILTIN_ERROR_NAMES = [name for name, _, _, _ in BUILTIN_ERROR_TYPES]
 
