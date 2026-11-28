@@ -154,7 +154,8 @@ python main.py program.fusion --no-new-config     # don't write a fusion.toml wh
 python check.py                      # all checks, short summary (about 1 min - tests on every core)
 python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build
-python check.py --ship "msg" --claude # all checks; commit + push only if all pass (Rule 7)
+python check.py --ship "msg" --claude # all checks; commit + push only if all pass (Rule 7) - skipped
+                                     # when every check just passed on the same files
 python check.py --ship "msg" --claude --full  # every check, even when only documents changed
 python check.py --docs               # the document checks only (a few seconds)
 python check.py --example wordcount  # build, run, compare one example

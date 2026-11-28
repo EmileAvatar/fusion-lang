@@ -26,6 +26,9 @@ from tools.example_files import example_path
 ROOT = Path(__file__).resolve().parent.parent
 SELFHOST = ROOT / 'selfhost' / 'main.exe'
 
+# One worker for all of them (check.py's --dist loadgroup): the fixture builds selfhost/main.exe in place, once
+pytestmark = pytest.mark.xdist_group('selfhost')
+
 
 @pytest.fixture(scope='module')
 def selfhost():

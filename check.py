@@ -31,10 +31,15 @@ summary - full output only for what failed:
 
 Checks:
     tests     pytest (every end-to-end test already runs under the string leak check); on every
-              core when pytest-xdist is installed (59.3) - about 50 s instead of 4 min
+              core when pytest-xdist is installed (59.3), each test to the next free worker
+              (--dist loadgroup); first and alone - the checks below then run side by side
     examples  tests/verify_examples.py - compile, run, compare output
     leaks     every examples/<topic>/*.fusion and every files/SYNTAX_REFERENCE.md program, built with
-              -DFUSION_LEAK_CHECK and run: exit 3 = a string never freed, 4 = freed twice
+              -DFUSION_LEAK_CHECK and run: exit 3 = a string never freed, 4 = freed twice - each
+              program in a worker process, on every core
+
+Every check passing is remembered (tools/local/last_check.json): --ship on exactly the same files
+- the same commit, every changed file the same - doesn't run them again. Each line shows its time.
     reference every ```fusion block in files/SYNTAX_REFERENCE.md compiles and runs (exit 0), and
               its copy in examples/ is up to date
     builtins  files/Builtins.md matches the compiler's built-in functions and methods
@@ -57,6 +62,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -86,13 +93,14 @@ def run(cmd, **kwargs):
 # ---------------------------------------------------------------- individual checks
 
 def parallel_args() -> list:
-    """Task 59.3: the tests on every core (pytest-xdist), each test file on one worker - its shared
-    set-up (the self-hosted compiler, built once) stays as it is. Without xdist: one after another."""
+    """Task 59.3: the tests on every core (pytest-xdist), each test given to the next free worker - a large file
+    no longer holds one worker up; the tests marked one xdist_group (the self-hosted compiler's, built once in
+    place) stay together. Without xdist: one after another."""
     try:
         import xdist  # noqa: F401
     except ImportError:
         return []
-    return ['-n', 'auto', '--dist', 'loadfile']
+    return ['-n', 'auto', '--dist', 'loadgroup']
 
 
 def check_tests():
@@ -395,14 +403,22 @@ def check_leaks():
                   str(EXAMPLES / marked.get(code, '01_basics') / 'reference.fusion'))
                  for i, code in enumerate(reference_programs(), 1)]
     failures = []
-    for name, code, path in programs:
-        exit_code, output = compile_and_run_leak_checked(code, path)
+    # each program on its own core: compiled in a worker process (the compiler keeps no state between programs that
+    # way), GCC and the run in parallel - about 6x faster than one after another
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as pool:
+        results = list(pool.map(_leak_checked, [(code, path) for _, code, path in programs]))
+    for (name, _, _), (exit_code, output) in zip(programs, results):
         if exit_code != 0:
             what = {None: 'did not compile', 3: 'string never freed', 4: 'string freed twice'}
             failures.append(f'{name}: {what.get(exit_code, f"exit {exit_code}")}\n'
                             f'{output.strip()[-800:]}')
     clean = len(programs) - len(failures)
     return not failures, f'{clean}/{len(programs)} clean', '\n\n'.join(failures)
+
+
+def _leak_checked(job):
+    """One leak-check job in a worker process: (source, path) -> (exit code, output)."""
+    return compile_and_run_leak_checked(*job)
 
 
 def ascii_checked_files():
@@ -654,6 +670,38 @@ def changed_files() -> list:
     return paths
 
 
+PASSED = ROOT / 'tools' / 'local' / 'last_check.json'
+
+
+def tree_fingerprint() -> str:
+    """The commit and every changed file's content, as one hash - the same only while nothing has changed."""
+    import hashlib
+    digest = hashlib.sha256(run(['git', 'rev-parse', 'HEAD']).stdout.encode())
+    for path in sorted(changed_files()):
+        digest.update(path.encode())
+        file = ROOT / path
+        if file.is_file():
+            digest.update(file.read_bytes())
+    return digest.hexdigest()
+
+
+def remember_pass() -> None:
+    """Every check passed: remember these files (tools/local/ - git ignored), so --ship needn't run them again."""
+    if PASSED.parent.is_dir():
+        import json
+        PASSED.write_text(json.dumps({'tree': tree_fingerprint(), 'time': time.strftime('%H:%M')}), encoding='utf-8')
+
+
+def passed_already() -> str:
+    """The time every check last passed on exactly these files, or ''."""
+    import json
+    try:
+        data = json.loads(PASSED.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return ''
+    return data.get('time', '?') if data.get('tree') == tree_fingerprint() else ''
+
+
 def docs_only(paths: list) -> bool:
     """True when every changed file is a Markdown document - no code, test, example or
     settings file, and not files/SYNTAX_REFERENCE.md (its programs are built)."""
@@ -671,7 +719,10 @@ def ship(message: str, claude: bool, full: bool = False):
     docs = not full and docs_only(changed_files())
     if docs:
         print('documents only changed - the document checks (--full for every check)')
-    if not run_checks(quick=False, docs=docs):
+    when = passed_already()
+    if when:            # every check passed at `when` on these same files - nothing changed since
+        print(f'every check passed at {when} on these same files - not run again')
+    elif not run_checks(quick=False, docs=docs):
         print('\nnot shipped - a check failed')
         return 1
 
@@ -761,17 +812,36 @@ def run_checks(quick: bool, docs: bool = False) -> bool:
                    ('ascii', check_ascii)]
     all_ok = True
     details = []
-    for number, (name, check) in enumerate(checks):
-        task_progress(f'check.py: {name} ({number + 1}/{len(checks)})', number, len(checks))
-        ok, summary, detail = check()
+
+    def report(name, ok, summary, detail, seconds):
+        nonlocal all_ok
         all_ok &= ok
-        print(f'{name:9} {"[OK]  " if ok else "[FAIL]"} {summary}', flush=True)
+        print(f'{name:9} {"[OK]  " if ok else "[FAIL]"} {summary} ({seconds:.0f}s)', flush=True)
         if not ok and detail:
             details.append(f'--- {name} ---\n{detail}')
+
+    def timed(check):
+        start = time.time()
+        return (*check(), time.time() - start)
+
+    # The tests first, alone - they use every core already. Then the rest side by side: the leak check spreads
+    # over the cores itself, the examples build in another process, the document checks take a moment
+    first, rest = checks[:1], checks[1:]
+    for name, check in first:
+        task_progress(f'check.py: {name} (1/{len(checks)})', 0, len(checks))
+        report(name, *timed(check))
+    if rest:
+        task_progress(f'check.py: {", ".join(n for n, _ in rest[:3])}... ({len(rest)} at once)', 1, len(checks))
+        with ThreadPoolExecutor(max_workers=len(rest)) as pool:
+            futures = [(name, pool.submit(timed, check)) for name, check in rest]
+            for name, future in futures:            # reported in the usual order
+                report(name, *future.result())
     for block in details:
         print('\n' + block)
     task_progress(f'check.py: {"all passed" if all_ok else "a check failed"}', len(checks), len(checks),
                   'done' if all_ok else 'failed')
+    if all_ok and not quick and not docs:
+        remember_pass()                  # --ship on the same files needn't run them again
     return all_ok
 
 
