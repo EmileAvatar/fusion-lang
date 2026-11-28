@@ -74,7 +74,7 @@ semicolons - a statement ends at the end of its line.</div>
 <nav><a class="sec" href="#layout-and-block-styles">Layout and block styles</a>
 <div class="rules"><a href="#layout-and-block-styles-block">block</a>, <a href="#layout-and-block-styles-end-marker">end_marker</a></div>
 <a class="sec" href="#program">Program</a>
-<div class="rules"><a href="#program-program">program</a>, <a href="#program-namespace-line">namespace_line</a>, <a href="#program-namespace-line">module_line</a>, <a href="#program-import-statement">import_statement</a>, <a href="#program-import-statement">module_path</a>, <a href="#program-top-level">top_level</a>, <a href="#program-visibility">visibility</a>, <a href="#program-module-variable">module_variable</a></div>
+<div class="rules"><a href="#program-program">program</a>, <a href="#program-program">script_statement</a>, <a href="#program-namespace-line">namespace_line</a>, <a href="#program-namespace-line">module_line</a>, <a href="#program-import-statement">import_statement</a>, <a href="#program-import-statement">module_path</a>, <a href="#program-top-level">top_level</a>, <a href="#program-visibility">visibility</a>, <a href="#program-module-variable">module_variable</a></div>
 <a class="sec" href="#functions">Functions</a>
 <div class="rules"><a href="#functions-function-declaration">function_declaration</a>, <a href="#functions-function-name">function_name</a>, <a href="#functions-result-type">result_type</a>, <a href="#functions-parameter-list">parameter_list</a>, <a href="#functions-parameter">parameter</a>, <a href="#functions-parameter-name">parameter_name</a>, <a href="#functions-passing">passing</a>, <a href="#functions-type-parameters">type_parameters</a>, <a href="#functions-type-parameters">type_parameter</a></div>
 <a class="sec" href="#types">Types</a>
@@ -141,12 +141,14 @@ semicolons - a statement ends at the end of its line.</div>
 <h2 id="program">Program</h2>
 <div class="card" id="program-program">
 <div class="head">
-<span class="task">-</span>
+<a class="task" href="FEATURES.md#task-58">58.1</a>
 <span class="status built">built</span>
-<div class="comment">&nbsp;</div>
+<div class="comment">Task 58.1 (D.222): a script - a file without main - holds statements at the top as well, run in order as its
+   main; a `#!` first line is skipped (D.225)</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">program</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">namespace_line</span> <span class="o">]</span> <span class="o">[</span> <span class="nt">module_line</span> <span class="o">]</span> <span class="o">{</span> <span class="nt">import_statement</span> <span class="o">}</span> <span class="o">{</span> <span class="nt">top_level</span> <span class="o">}</span> <span class="o">;</span></pre>
+<pre><span class="rule">program</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">namespace_line</span> <span class="o">]</span> <span class="o">[</span> <span class="nt">module_line</span> <span class="o">]</span> <span class="o">{</span> <span class="nt">import_statement</span> <span class="o">}</span> <span class="o">{</span> <span class="nt">top_level</span> <span class="o">|</span> <span class="nt">script_statement</span> <span class="o">}</span> <span class="o">;</span>
+<span class="rule">script_statement</span> <span class="o">=</span> <span class="nt">statement</span> <span class="o">;</span>      <span class="c">(* not return / break / continue - exit(n) ends a script *)</span></pre>
 </div>
 <div class="card" id="program-namespace-line">
 <div class="head">

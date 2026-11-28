@@ -347,14 +347,18 @@ then each point is decided and solved completely. One line per section and per l
 <a id="task-58"></a>
 #### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [index](#index)
 	For a quick script (or a few): write it and run it, without setting up a whole compiled app
-	[ ] 58.1 Design, plan first: `fusion run tidy.fusion` (today `python main.py`); no project and no
-		fusion.toml needed (none written for a script); code at the top level runs in order, without a
-		`main` - or `main` still required; a `#!` first line on Linux / macOS; arguments and exit codes
-	[ ] 58.2 How it runs: compile in the background and run at once, the program cached so the next run
-		starts fast (C + GCC, as today) - or an interpreter later; compare start-up times
-	[ ] 58.3 What a script may use: the same language and checks as a compiled app (safe by default);
-		the std library layer
-	[ ] 58.4 Build it, with an example script and tests
+	[DONE 2026-11-28] 58.1 A script (D.222, D.225; tests/test_scripts.py): statements at the top of a file without
+		`main` - run in order as its main; its variables the script's (functions see them; one declared after a statement
+		set where its line is); types, functions and imports as in any file; `args` (none or many); a `#!` first line
+		skipped; `main` and statements at the top - an error; statements at the top of an imported module - an error
+	[ ] 58.2 `Fusion.Settings { ... }` (D.224, D.226, D.228): first in the file; the name alone or section.name; used
+		instead of the settings file; only the starting file's - another's ignored with a warning
+	[ ] 58.2b The settings file (D.227, D.229): none written any more (none means the defaults); its name `settings.toml`
+		(/ .yaml / .yml / .json / .ini) - every fusion.toml in examples/ and the tests renamed; fusion.toml the reference
+	[ ] 58.3 `python main.py run tidy.fusion [arguments]` (D.221, D.223): built once into the cache folder (or next to the
+		script), run at once, the exit code passed back; only the script's own output
+	[ ] 58.4 Start-up times measured (spec 170): the first run and a cached one
+	[ ] 58.6 An example script and the documents (spec 170 - compiled, not interpreted; SET.013)
 	[ ] 58.5 Idea (user, 2026-11-17): a running Fusion program runs other Fusion code or apps (plugins, hot reload) - the same engine as
 		`comptime` (Research R4.4); the loaded code is untrusted (Task 39) - becomes Task 60 (60.7, 60.8)
 

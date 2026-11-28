@@ -30,6 +30,9 @@ Ideas not scheduled yet keep their own open questions in `files/FutureFeatures.m
 
 ## Open
 
+Earlier: Q.099 (A - settings.toml the only name read, every fusion.toml renamed) answered 2026-11-28: Decisions.md D.229.
+Earlier: Q.096 (A - the name alone or section.name), Q.097 (A - no settings file written; settings.toml for a program, fusion.toml the reference) and Q.098 (A - another file's block ignored with a warning) answered 2026-11-28: Decisions.md D.226-D.228.
+Earlier: Q.091-Q.095 (A in each - `run`, a script's statements at the top and its own types and imports, the cache folder or next to the script, settings and the `Fusion.Settings` block, `#!` / `args` / `exit`) answered 2026-11-28: Decisions.md D.221-D.225.
 Earlier: Q.084-Q.090 (A in each - loop checks in a `with` part, a check with a condition ends the loop, without one a hook, `loop.count`, `[safety] maxIterations` and a LoopLimitError, labels, nothing added by itself) answered 2026-11-28: Decisions.md D.214-D.220.
 Earlier: Q.081 (A - structured = a module in a namespace), Q.082 (A - static added with a warning; who may be private) and Q.083 (A - `[libraries]`, and an import with a path) answered 2026-11-27: Decisions.md D.211-D.213.
 Earlier: Q.075 (A - the namespace and module from the folder; what a module holds), Q.076 (A - the project's settings list its libraries, else a path), Q.077 (A - `internal` the namespace), Q.078 (A - `Fusion.Core` always imported), Q.079 (A - a duplicate an error until aliased) and Q.080 (A - `Fusion` reserved) answered 2026-11-27: Decisions.md D.204-D.210.
@@ -62,6 +65,6 @@ namespaces) answered 2026-11-12: Decisions.md D.136, FEATURES Task 57. Q.014 (a 
 parameter mark) answered 2026-11-14: no mark - every object may be null (D.138, D.117). Q.001-Q.012
 answered 2026-11-07: Decisions.md D.103, D.113-D.124, the Decisions.md status PARTIAL; FEATURES
 48.10-48.12, 50.4, 51.5, 52.6-52.7, 42.29, Task 53 (the Core language and the name). Q.015-Q.020
-(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.091.
+(arrays) answered 2026-11-14/15: D.141-D.147. Next question: Q.100.
 
 [< Decisions](Decisions.md) | [Main](Main.md) | [Spec](files/spec/index.md) | [README >](README.md) <!-- nav -->

@@ -67,6 +67,11 @@ class Lexer:
         # invisible character by check_source_characters().
         if source.startswith(BYTE_ORDER_MARK):
             source = source[1:]
+        # `#!/usr/bin/env fusion run` - a script's first line on Linux / macOS (Task 58.1, D.225): skipped,
+        # its line kept empty so every other line keeps its number
+        if source.startswith('#!'):
+            end = source.find('\n')
+            source = '' if end < 0 else source[end:]
         self.source = source
         self.filename = filename
         self.allow_unicode_identifiers = allow_unicode_identifiers

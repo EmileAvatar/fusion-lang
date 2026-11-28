@@ -921,6 +921,7 @@ class ProgramNode(ASTNode):
     imports: List['ImportDecl'] = field(default_factory=list)
     namespace: Optional[str] = None   # `namespace Core.Collections` (Task 32.2h)
     module: Optional[str] = None      # `module Database` (Task 57.1) - checked against the folder (D.204)
+    script: bool = False              # statements at the top - a script's own main made of them (Task 58.1, D.222)
 
 
 @dataclass

@@ -274,6 +274,9 @@ class ModuleLoader:
         namespace, name = '.'.join(parts[:-1]) or None, parts[-1]
         folder = '/'.join(parts) + '/'
         file_name = folder + os.path.basename(path)
+        if program.script:                     # a script's statements run in the file that starts it (58.1)
+            self._error(f"{file_name} has statements at the top - only the file that starts the program (a "
+                        f"script) runs them; put them in a function", program)
         if parts[0] == 'Fusion':
             self._error(f"{file_name}: the namespace Fusion is reserved for Fusion's own modules (D.210) - "
                         f"give the folder another name", program)

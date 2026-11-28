@@ -38,4 +38,37 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
   in task/taskSummaryArchive.md
 - Done 2026-11-28: Task 56 loop safety (tests/test_loop_checks.py, syntax_loop_checks) - its plan in
   task/taskSummaryArchive.md
-- **Next Action:** the next task - to choose with the user (FEATURES)
+- **Next Action:** Task 58 - 58.1 (the plan below, approved - D.221-D.229)
+
+## Task 58 - Script mode: Fusion written and run like a Python script (plan 3 - 2026-11-28, approved - D.221-D.229)
+**Today:** `python main.py program.fusion` writes program.c and program.exe next to it (and a fusion.toml when there is
+none); it is then run by hand; a statement at the top of a file is a parse error; `main(string... args)`, `exit(n)`.
+Decided D.221-D.229.
+
+**Steps** (each shipped on its own):
+- 58.1 Statements at the top (D.222, D.225): the parser takes statements at the top of a file; a file without
+  `main` gets one made of them, in order; its variables become module variables set where their line runs, so
+  functions see them; classes, structs, enums, interfaces and imports as in any file; a file with both `main` and
+  statements at the top an error; `args` (none or many); the `#!` first line
+- 58.2 `Fusion.Settings { ... }` (D.224, Q.096-Q.098): first in the file (after a `#!`); the name alone or
+  `section.name`; the same checks as the settings file; used instead of the settings file; only the starting
+  file's - another file's ignored with a warning; in a program with `main` too
+- 58.2b The settings file (D.227, Q.099 A): none written any more - none means the defaults (`--no-new-config` and
+  31.2's new file go); the file is `settings.toml` (/ .yaml / .yml / .json / .ini) - every fusion.toml in examples/
+  and the tests renamed; `fusion.toml` stays the reference (files/showcase/); spec 001, CLAUDE.md, the docs
+- 58.3 `python main.py run tidy.fusion [arguments]` (D.221, D.223, D.224): builds into the cache folder - a hash
+  of the script, the files it imports, its settings and the compiler's version; unchanged - the kept program runs at
+  once; where the cache folder can't be written, next to the script; the arguments passed, the exit code passed
+  back; the build messages only when it fails (a script prints only its own output)
+- 58.4 Start-up times measured and written down (spec 170): the first run and a cached one, for a small script
+- 58.5 An example script (`examples/12_files_and_programs/tidy.fusion` - its expected output) and the documents:
+  SYNTAX_REFERENCE, spec 170 (Script Mode as built, "Slower execution" / "interpreted" corrected - it is compiled),
+  fusion.ebnf + page (the top-level statements), FeatureTree, the showcase, SET.013 PARTIAL
+- Not in this task: FEATURES 58.5 (running other Fusion code inside a program - Task 60); an interpreter (later, after
+  self-hosting); `fusion` as an installed command (Task 35)
+
+**Tests:** tests/test_scripts.py - a truth table in spec 170 (Rule 4c): with / without main x statements at the top x
+variables used by functions x args / exit code x the cache - first build, unchanged, the script changed, an import
+changed, a setting changed x a fusion.toml there or not (none written) x a `Fusion.Settings` block - first, not first, in another file x `#!`
+- each row a test.
+**Settings:** none.

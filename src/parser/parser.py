@@ -39,6 +39,25 @@ def type_text(t) -> str:
         return f'{type_text(t.element_type)}[]'
     return name or type(t).__name__
 
+def _names_used(nodes, name: str) -> bool:
+    """Whether an identifier `name` appears in the nodes (a script using `args` - Task 58.1)."""
+    from dataclasses import fields, is_dataclass
+    todo = [nodes]
+    while todo:
+        node = todo.pop()
+        if isinstance(node, list):
+            todo.extend(node)
+            continue
+        if not is_dataclass(node) or isinstance(node, type):
+            continue
+        if isinstance(node, IdentifierExpr) and node.name == name:
+            return True
+        for f in fields(node):
+            if f.name not in ('location', 'inferred_type', 'scope'):
+                todo.append(getattr(node, f.name))
+    return False
+
+
 class ParserError(Exception):
     """Exception raised for parser errors.
 
@@ -2323,7 +2342,13 @@ class Parser:
             while self.match(TokenType.NEWLINE):
                 pass
 
+        script: list = []                 # statements at the top of a script, in order (Task 58.1, D.222)
         while not self.is_at_end():
+            if self._top_level_statement_start():
+                script.append(self.parse_statement())
+                while self.match(TokenType.NEWLINE):
+                    pass
+                continue
             if self.check(TokenType.IMPORT):
                 raise ParserError(self.peek(), "'import' lines must come before everything else "
                                                "in the file")
@@ -2350,13 +2375,88 @@ class Parser:
             while self.match(TokenType.NEWLINE):
                 pass
 
+        if script:
+            declarations.append(self._script_main(script, declarations, start_loc))
         return ProgramNode(
             location=start_loc,
             declarations=declarations,
             imports=imports,
             namespace=namespace,
-            module=module
+            module=module,
+            script=bool(script)
         )
+
+    def _top_level_statement_start(self) -> bool:
+        """Whether the next line at the top of a file is a statement - a script's (Task 58.1, D.222): a call, an
+        assignment, if / for / while / match / try, a labelled loop. A declaration (`int x = 5`, `Box b`,
+        `money.Price p`, `List<int> xs`, `Point[3] pts`, a function, a type) is not."""
+        kind = self.peek().type
+        if kind in (TokenType.IF, TokenType.FOR, TokenType.WHILE, TokenType.MATCH, TokenType.TRY):
+            return True                                         # (return / break: not at the top - exit(n))
+        if kind != TokenType.IDENTIFIER:
+            return False
+        if self.peek().value in ('error', 'template', 'foreach', 'unchecked', 'struct') \
+                and self.peek(1).type == TokenType.IDENTIFIER:
+            return False
+        if self.peek(1).type == TokenType.COLON and self.peek(2).type in (TokenType.FOR, TokenType.WHILE):
+            return True                                         # `outer: for ...`
+        ahead = 1
+        while self.peek(ahead).type == TokenType.DOT and self.peek(ahead + 1).type == TokenType.IDENTIFIER:
+            ahead += 2                                          # a dotted name: money.Price, Q.Database.x
+        after = self.peek(ahead).type
+        if after in (TokenType.IDENTIFIER, TokenType.LESS):
+            return False                                        # a type, then a name: a declaration
+        if after == TokenType.LBRACKET:                         # `Point[3] pts` or `xs[0] = 1`
+            depth, i = 0, ahead
+            while self.peek(i).type not in (TokenType.NEWLINE, TokenType.EOF):
+                if self.peek(i).type == TokenType.LBRACKET:
+                    depth += 1
+                elif self.peek(i).type == TokenType.RBRACKET:
+                    depth -= 1
+                    if depth == 0:                              # `Point[2] pts` / `Point[2] function f()`
+                        return self.peek(i + 1).type not in (TokenType.IDENTIFIER, TokenType.FUNCTION,
+                                                             TokenType.COMMA, TokenType.QUESTION)
+                i += 1
+            return True
+        if after == TokenType.COMMA:
+            return False                                        # `Ship, Error function`
+        return after in (TokenType.LPAREN, TokenType.DOT) or self.peek(ahead).value in (
+            '=', '+=', '-=', '*=', '/=', '%=', '++', '--')
+
+    def _script_main(self, script: list, declarations: list, location) -> 'FunctionDecl':
+        """A script's statements as its `main`, in order (Task 58.1, D.222, D.225): its variables stay the
+        file's own (every function sees them); one declared after the first statement gets its value where its
+        line is; `args` - the script's arguments - when it uses them. A `main` of its own as well is an error."""
+        own_main = next((d for d in declarations if isinstance(d, FunctionDecl) and d.name == 'main'
+                         and not getattr(d, 'method_of', None)), None)
+        if own_main is not None:
+            raise ParserError(Token(TokenType.IDENTIFIER, 'main', own_main.location),
+                              "A file with a main function can't have statements at the top too - put them in "
+                              "main, or remove main to make it a script (D.222)")
+        first = script[0].location
+        body = []
+        for decl in declarations:
+            if isinstance(decl, VarDeclStmt) and not decl.is_const and decl.initializer is not None \
+                    and (decl.location.line, decl.location.column) > (first.line, first.column) \
+                    and decl.var_type is not None:
+                body.append((decl.location, AssignmentStmt(location=decl.location,
+                                                           target=IdentifierExpr(location=decl.location,
+                                                                                 name=decl.name),
+                                                           value=decl.initializer)))
+                decl.initializer = None                         # set where its line runs
+        body += [(s.location, s) for s in script]
+        body.sort(key=lambda item: (item[0].line, item[0].column))
+        uses_args = _names_used(script, 'args')
+        header = 'void function main(string... args)\n    print("")\n' if uses_args \
+            else 'void function main()\n    print("")\n'
+        from src.lexer import Lexer
+        template = Parser(Lexer(header, str(getattr(location, 'filename', 'script'))).tokenize()).parse_program()
+        main = template.declarations[0]
+        main.location = location
+        main.body = BlockStmt(location=first, statements=[s for _, s in body])
+        main.is_public = True
+        main.is_script = True
+        return main
 
     def parse_import(self) -> ImportDecl:
         """Parse an import line, the IMPORT token already consumed (Task 18.4.2):

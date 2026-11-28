@@ -32,7 +32,10 @@ end_marker = [ NEWLINE ] ( "End" | "end" ) ;      (* then the block's word: if, 
 
 (* ========== Program ========== *)
 
-program = [ namespace_line ] [ module_line ] { import_statement } { top_level } ;
+(* Task 58.1 (D.222): a script - a file without main - holds statements at the top as well, run in order as its
+   main; a `#!` first line is skipped (D.225) *)
+program = [ namespace_line ] [ module_line ] { import_statement } { top_level | script_statement } ;
+script_statement = statement ;      (* not return / break / continue - exit(n) ends a script *)
 
 (* Task 57.1 (D.204): the folder gives both - SQL/Database/ is namespace SQL, module Database; the lines are
    optional, and one that doesn't match the folder is an error; the main file has neither *)
