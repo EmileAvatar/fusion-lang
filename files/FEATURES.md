@@ -401,7 +401,10 @@ then each point is decided and solved completely. One line per section and per l
 		a namespace and its folder (`SQL = "C:/vendor/SQL"`, `"com.example.SQL" = ...`), relative to the settings file;
 		`import "C:/vendor".SQL.Database`; the program's folder first, then the libraries; a module in two places, or
 		from two folders, an error naming both
-	[ ] 57.4 Importing (D.208, D.209): `import SQL as Q`, full names, a duplicate an error until aliased, `com.example.SQL`
+	[DONE 2026-11-28] 57.4 Importing (D.208, D.209; tests/test_namespaces.py): `import SQL as Q` / `import SQL` - a
+		namespace, `Q.Database.name()`, `Q.Database.Conn c`; only the modules used are loaded; the full name
+		`SQL.Database.x` once imported (with an alias too); two modules with one name an error until one has an alias;
+		`com.example.SQL` a longer namespace (57.3)
 	[ ] 57.5 Fusion's own (D.208, D.210): `Fusion` reserved, `Fusion.Core` implicit, `Fusion.Currency`
 	[ ] 57.6 `--interface` shows the namespace and module, and works on a namespace
 	[ ] 57.7 The `suppliers` example and the documents (spec 150, SYNTAX_REFERENCE, the showcase, FeatureTree, MOD.012)

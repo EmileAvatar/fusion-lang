@@ -118,9 +118,41 @@ class ModuleLoader:
     def _load_imports(self, module: Module) -> None:
         for _, program in module.files:
             for imp in program.imports:
+                namespace = self._namespace_import(imp)
+                if namespace is not None:          # `import SQL as Q` - the modules Q.X... uses (57.4)
+                    for parts in _dotted_uses(program, imp.alias or imp.path[-1]):
+                        found = self._namespace_module(namespace, parts[1:], imp)
+                        if found is None:
+                            self._error_once(f"Namespace {namespace} has no module '{parts[1]}' (in "
+                                             f"'{'.'.join(parts)}')", imp)
+                        elif found not in self.modules:
+                            self._load_module(found, imp)
+                    continue
                 target = self._resolve(imp)
                 if target is not None and target[0] not in self.modules:
                     self._load_module(target[0], imp)
+
+    def _namespace_import(self, imp: ImportDecl) -> Optional[str]:
+        """`import SQL` / `import SQL as Q` where SQL is a namespace - a folder of module folders, with no
+        .fusion files of its own (Task 57.4, D.208): the namespace, or None."""
+        if imp.star or self._find(imp.path, imp) is not None:
+            return None
+        for place in self._places(imp.path, imp):
+            if os.path.isdir(place) and any(self._is_module_dir(os.path.join(place, entry))
+                                            or os.path.isdir(os.path.join(place, entry))
+                                            for entry in os.listdir(place)):
+                return '.'.join(imp.path)
+        return None
+
+    def _namespace_module(self, namespace: str, rest: List[str], imp: ImportDecl) -> Optional[str]:
+        """The module of `namespace` the names `rest` start with (Database in Q.Database.name), or None."""
+        base = namespace.split('.')
+        for k in range(1, len(rest) + 1):
+            parts = base + rest[:k]
+            folder = self._find(parts, ImportDecl(location=imp.location, path=parts, root=imp.root))
+            if folder is not None:
+                return self._found('.'.join(parts), folder, imp) and '.'.join(parts)
+        return None
 
     def _resolve(self, imp: ImportDecl) -> Optional[Tuple[str, Optional[str]]]:
         """(module id, imported name or None) for an import line, or None after an error."""
@@ -286,15 +318,30 @@ class ModuleLoader:
 
     def _rewrite_file(self, module: Module, program: ProgramNode) -> None:
         """Rewrite one file's names to internal ones (`round` -> `money.round`)."""
-        aliases: Dict[str, str] = {}             # prefix -> module id
+        aliases: Dict[str, str] = {}             # prefix -> module id (`Database`, `SQL.Database` - 57.4)
+        spaces: Dict[str, str] = {}              # a namespace's prefix -> the namespace (`Q` -> `SQL` - 57.4)
         direct: Dict[str, Set[str]] = {}         # unprefixed name -> internal names
         explicit: Set[str] = set()               # names from `import M.Name`
         for imp in program.imports:
+            namespace = self._namespace_import(imp)
+            if namespace is not None:
+                prefix = imp.alias or imp.path[-1]
+                if prefix in module.names:
+                    self._error(f"'{prefix}' is both a namespace and a name declared here - import the "
+                                f"namespace with another name using 'as'", imp)
+                    continue
+                if spaces.get(prefix, namespace) != namespace:
+                    self._error(f"Two namespaces are both named '{prefix}' here: {spaces[prefix]} and "
+                                f"{namespace} - give one another name with 'as'", imp)
+                    continue
+                spaces[prefix] = namespace
+                continue
             target = self._resolve(imp)
             if target is None:
                 continue
             module_id, name = target
             imported = self.modules[module_id]
+            aliases.setdefault(module_id, module_id)   # the full name, once imported (D.208)
             if name is None and not imp.star:
                 prefix = imp.alias or imp.path[-1]
                 if prefix in aliases and aliases[prefix] != module_id:
@@ -337,13 +384,29 @@ class ModuleLoader:
                             + " - use the module prefix", node)
             return sorted(found)[0]
 
+        def module_of(parts: List[str]) -> Optional[Tuple[str, int]]:
+            """(module id, how many of the parts name it) - the longest prefix that is an imported module:
+            `Database`, `SQL.Database`, or a namespace's `Q.Database` (57.4)."""
+            for k in range(len(parts) - 1, 0, -1):
+                key = '.'.join(parts[:k])
+                if key in aliases:
+                    return aliases[key], k
+                if k > 1 and parts[0] in spaces:
+                    module_id = '.'.join([spaces[parts[0]]] + parts[1:k])
+                    if module_id in self.modules:
+                        return module_id, k
+            return None
+
         def type_name(name: str, node: ASTNode) -> str:
             if '.' in name:
-                prefix, rest = name.split('.', 1)
-                if prefix not in aliases:
-                    self._error(f"No module '{prefix}' is imported here (for the type '{name}')", node)
+                parts = name.split('.')
+                found = module_of(parts)
+                if found is None or found[1] != len(parts) - 1:
+                    self._error(f"No module '{'.'.join(parts[:-1])}' is imported here (for the type '{name}')",
+                                node)
                     return name
-                target = self.modules[aliases[prefix]]
+                rest = parts[-1]
+                target = self.modules[found[0]]
                 if rest not in target.names:
                     self._error(f"Module '{target.id}' has no '{rest}'", node)
                 elif not target.visible(rest, program.namespace) and target is not module:
@@ -375,10 +438,11 @@ class ModuleLoader:
                 if isinstance(self._declaration(internal), ErrorDecl):
                     node.name = internal
                 return
-            if isinstance(node, MemberExpr) and isinstance(node.object, IdentifierExpr) \
-                    and node.object.name in aliases and not is_local(node.object.name, scopes) \
-                    and node.object.name not in module.names:
-                target = self.modules[aliases[node.object.name]]
+            path = _member_path(node) if isinstance(node, MemberExpr) else None
+            found = module_of(path) if path and not is_local(path[0], scopes) \
+                and path[0] not in module.names else None
+            if found is not None and found[1] == len(path) - 1:
+                target = self.modules[found[0]]
                 if node.member not in target.names:
                     self._error(f"Module '{target.id}' has no '{node.member}'", node)
                 elif not target.visible(node.member, program.namespace) and target is not module:
@@ -451,6 +515,43 @@ class ModuleLoader:
     def _error(self, message: str, node) -> None:
         location = getattr(node, 'location', None)
         self.errors.append(SemanticError(message, location))
+
+
+def _member_path(node) -> Optional[List[str]]:
+    """`SQL.Database.name` as ['SQL', 'Database', 'name'] - a chain of members on a name, or None."""
+    parts = []
+    while isinstance(node, MemberExpr):
+        parts.append(node.member)
+        node = node.object
+    if not isinstance(node, IdentifierExpr):
+        return None
+    return [node.name] + parts[::-1]
+
+
+def _dotted_uses(program: ProgramNode, prefix: str) -> List[List[str]]:
+    """Every dotted name in a file starting with `prefix` - member chains and types (`Q.Database.name`,
+    `Q.Database.Conn c`): which modules a namespace import needs (57.4)."""
+    uses = []
+
+    def walk(node):
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if isinstance(node, MemberExpr):
+            path = _member_path(node)
+            if path and path[0] == prefix and len(path) > 1:
+                uses.append(path)
+                return
+        if isinstance(node, StructType) and node.name.startswith(prefix + '.'):
+            uses.append(node.name.split('.'))
+        for f in dataclass_fields(node):
+            if f.name not in _SKIP_FIELDS:
+                walk(getattr(node, f.name))
+    walk(program.declarations)
+    return uses
 
 
 def load_program(main_file: str, main_program: ProgramNode, parse_file: ParseFile,

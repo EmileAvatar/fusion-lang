@@ -236,6 +236,80 @@ def test_import_path_syntax_errors(source, message):
         parse_file(source, 'main.fusion')
 
 
+# 57.4 (D.208, D.209): a namespace imported (with an alias or not), full names once imported, two modules with the
+# same name an error until one is aliased
+
+SQL_DB = {'SQL/Database/d.fusion': ('public class Conn\n    public string url = "db://x"\n'
+                                    '    public static Conn function make() : Conn()\n\n'
+                                    'public static string function name() : "sql"\n'),
+          'SQL/Pool/p.fusion': 'public static int function size() : 4\n'}
+
+
+def run_main(tmp_path, main_body: str, imports: str, extra: dict = None) -> list:
+    files = dict(SQL_DB)
+    files.update(extra or {})
+    files['main.fusion'] = imports + '\n\nvoid function main()\n' + \
+        ''.join(f'    {line}\n' for line in main_body.split('\n'))
+    return run_project(str(tmp_path), files)
+
+
+@pytest.mark.parametrize('imports, body', [
+    ('import SQL as Q', 'print(Q.Database.name())\nprint(format("{@1}", Q.Pool.size()))'),
+    ('import SQL', 'print(SQL.Database.name())\nprint(format("{@1}", SQL.Pool.size()))'),
+    ('import SQL.Database\nimport SQL.Pool', 'print(Database.name())\nprint(format("{@1}", SQL.Pool.size()))'),
+    ('import SQL.Database as D\nimport SQL.Pool', 'print(D.name())\nprint(format("{@1}", SQL.Pool.size()))'),
+    ('import SQL.Database\nimport SQL.Pool', 'print(SQL.Database.name())\nprint(format("{@1}", Pool.size()))'),
+])
+def test_a_namespace_and_full_names(tmp_path, imports, body):
+    assert run_main(tmp_path, body, imports) == ['sql', '4']
+
+
+@pytest.mark.parametrize('imports, body', [
+    ('import SQL as Q', 'Q.Database.Conn c = Q.Database.Conn.make()\nprint(c.url)'),
+    ('import SQL.Database', 'SQL.Database.Conn c = Database.Conn.make()\nprint(c.url)'),
+    ('import SQL.Database', 'Database.Conn c = SQL.Database.Conn()\nprint(c.url)'),
+])
+def test_types_by_a_namespace_or_full_name(tmp_path, imports, body):
+    assert run_main(tmp_path, body, imports) == ['db://x']
+
+
+def test_a_namespace_import_loads_only_what_is_used(tmp_path):
+    # Pool has an error in it - never loaded, as nothing uses Q.Pool
+    extra = {'SQL/Pool/p.fusion': 'public static int function size() : "four"\n'}
+    assert run_main(tmp_path, 'print(Q.Database.name())', 'import SQL as Q', extra) == ['sql']
+
+
+TWO = {'A/Database/a.fusion': 'public static string function name() : "a"\n',
+       'B/Database/b.fusion': 'public static string function name() : "b"\n'}
+
+
+def test_two_modules_with_one_name_need_an_alias(tmp_path):
+    files = dict(TWO)
+    files['main.fusion'] = 'import A.Database\nimport B.Database\n\nvoid function main()\n    print("x")\n'
+    assert "Two modules are both named 'Database' here: A.Database and B.Database - give one another name " \
+           "with 'as'" in errors(str(tmp_path), files)
+    files['main.fusion'] = ('import A.Database\nimport B.Database as BD\n\n'
+                            'void function main()\n'
+                            '    print(Database.name())\n    print(BD.name())\n'
+                            '    print(A.Database.name())\n    print(B.Database.name())\n')
+    assert run_project(str(tmp_path), files) == ['a', 'b', 'a', 'b']
+
+
+@pytest.mark.parametrize('main_text, message', [
+    ('import SQL as Q\n\nvoid function main()\n    print(Q.Nope.name())\n',
+     "Namespace SQL has no module 'Nope' (in 'Q.Nope.name')"),
+    ('import SQL.Database\n\nvoid function main()\n    print(SQL.Pool.size())\n', "Undefined"),
+    ('import SQL as Q\n\nint Q = 1\n\nvoid function main()\n    print("x")\n',
+     "'Q' is both a namespace and a name declared here"),
+    ('import SQL.Database\n\nvoid function main()\n    SQL.Nope.Conn c = Database.Conn()\n',
+     "No module 'SQL.Nope' is imported here (for the type 'SQL.Nope.Conn')"),
+])
+def test_namespace_import_errors(tmp_path, main_text, message):
+    files = dict(SQL_DB)
+    files['main.fusion'] = main_text
+    assert message in errors(str(tmp_path), files)
+
+
 @pytest.mark.parametrize('source', [
     'static interface Sized\n    int function size()\n',
     'public static int function f() : 1\n',

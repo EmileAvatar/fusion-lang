@@ -102,6 +102,16 @@ classes, interfaces, enums, error types, functions and module variables:
     then `import SQL.Database` finds `C:/vendor/SQL/Database/`
   - Not listed: `import "C:/vendor".SQL.Database` - the folder holding the namespace, then the names
   - Searched in order: the program's folder, then `[libraries]`; a module in two places is an error naming both
+* **Importing a namespace, full names** (Task 57.4, D.208, D.209):
+  ```fusion
+  import SQL as Q                  // a namespace: Q.Database.name(), Q.Pool.size(), Q.Database.Conn c
+  import SQL                       // SQL.Database.name()
+  import SQL.Database              // Database.name(), and the full name SQL.Database.name()
+  import B.Database as BD          // a second Database - an alias needed (BD.name(), B.Database.name())
+  ```
+  - A namespace import loads only the modules the file uses; `Q.Nope.x` is an error ("Namespace SQL has no module
+    'Nope'")
+  - Two imported modules with the same name are an error until one (or both) gets an alias
 
 **The earlier design** (the sections below, before Task 18.4) - not built, kept for review:
 
