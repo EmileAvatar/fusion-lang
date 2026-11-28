@@ -16,6 +16,10 @@ limit (the Account & Usage button shows that). `--limit N` uses N tokens instead
 
 import json
 import shutil
+
+# ccusage reads low against the plan's own figure - it showed 77% when the Account & Usage page said 86% (user,
+# 2026-11-28): this many percentage points are added to every percent shown, and to the 90% stop
+ADJUST_POINTS = 10
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -56,7 +60,8 @@ def main() -> None:
     minutes = max(0, int((end - datetime.now(timezone.utc)).total_seconds() // 60))
     left_time = f'{minutes // 60}h {minutes % 60}m'
     if '--json' in sys.argv:              # for the status-bar extension
-        print(json.dumps({'used': used, 'limit': limit, 'percent': round(used / limit * 100, 1) if limit else None,
+        print(json.dumps({'used': used, 'limit': limit,
+                          'percent': round(min(100.0, used / limit * 100 + ADJUST_POINTS), 1) if limit else None,
                           'leftMinutes': minutes, 'leftTime': left_time}))
         return
     if not limit:
@@ -64,10 +69,12 @@ def main() -> None:
         print()
         print(f'Estimate Left: {left_time} to go.')
     else:
-        share = used / limit * 100
-        print(f'Estimate Used: {millions(used)} tokens, which is {share:.1f}% of the estimated limit.')
+        share = min(100.0, used / limit * 100 + ADJUST_POINTS)     # +10 points: ccusage reads low
+        left = max(0, limit * (100 - share) / 100)
+        print(f'Estimate Used: {millions(used)} tokens, which is {share:.1f}% of the estimated limit (+{ADJUST_POINTS} '
+              f'points - ccusage reads low).')
         print()
-        print(f'Estimate Left: {millions(max(0, limit - used))} tokens ({100 - share:.1f}%), with {left_time} to go.')
+        print(f'Estimate Left: {millions(left)} tokens ({100 - share:.1f}%), with {left_time} to go.')
         if share >= 90:
             print()
             print('STOP: 90% of the estimated limit used - no coding task goes on (CLAUDE.md Rule 9).')

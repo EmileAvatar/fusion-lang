@@ -1440,6 +1440,36 @@ void function main(string... args)                // or main() with no parameter
         exit(2)                                   // end now, with an exit code
 ```
 
+#### A script: run like Python (Task 58)
+
+<!-- example: syntax_script | task: 58 | folder: 12_files_and_programs -->
+```fusion
+// no main: the statements at the top run in order
+int wordCount = 0
+
+void function count(string line)            // a function sees the script's variables
+    for part in line.split(" ")
+        if part != ""
+            wordCount = wordCount + 1
+
+struct Line
+    string text
+
+List<Line> notes = [Line("the quick brown fox"), Line("jumps over"), Line("the lazy dog")]
+for line in notes
+    count(line.text)
+int lineCount = notes.length
+print("{wordCount} words in {lineCount} lines")
+if args.length > 0                          // its arguments - none here
+    string first = args[0]
+    print("first argument: {first}")
+```
+A script may start with a `#!/usr/bin/env fusion run` line (Linux / macOS), then a `Fusion.Settings { ... }` block
+(its settings - see Project settings below). `python main.py run tidy.fusion [arguments]` builds a script once into the cache folder and runs it at once - an
+unchanged script starts in about 0.1 s; it is built again when it, a module it imports, its settings or the compiler
+change. Only its own output is shown (the build's messages when it fails), and its exit code is passed back. A file
+with `main` can't have statements at the top too; an imported module can't have them at all (D.221-D.229).
+
 #### Running another program: `run`
 
 <!-- example: syntax_run | task: 28.1.1 | folder: 12_files_and_programs -->
@@ -2937,6 +2967,7 @@ target = "c"
 
 ```text
 python main.py program.fusion     # -> program.c and program.exe
+python main.py run tidy.fusion    # a script: built once (into the cache folder), then run - arguments after it
 python check.py                   # tests, examples, leak check, ASCII, this file
 ```
 

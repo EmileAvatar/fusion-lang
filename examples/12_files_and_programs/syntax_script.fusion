@@ -1,0 +1,19 @@
+// no main: the statements at the top run in order
+int wordCount = 0
+
+void function count(string line)            // a function sees the script's variables
+    for part in line.split(" ")
+        if part != ""
+            wordCount = wordCount + 1
+
+struct Line
+    string text
+
+List<Line> notes = [Line("the quick brown fox"), Line("jumps over"), Line("the lazy dog")]
+for line in notes
+    count(line.text)
+int lineCount = notes.length
+print("{wordCount} words in {lineCount} lines")
+if args.length > 0                          // its arguments - none here
+    string first = args[0]
+    print("first argument: {first}")

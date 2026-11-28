@@ -367,7 +367,9 @@ then each point is decided and solved completely. One line per section and per l
 	[DONE 2026-11-28] 58.4 Start-up times (spec 170): a first run about 0.55 s, an unchanged script 0.25 s -> 0.09 s - the
 		compiler loaded only when something is built, the compiler's files checked by size and time, the settings files
 		looked for without the settings code
-	[ ] 58.6 An example script and the documents (spec 170 - compiled, not interpreted; SET.013)
+	[DONE 2026-11-28] 58.6 The example syntax_script (SYNTAX_REFERENCE, 12_files_and_programs) - a function using the
+		script's variable, a struct, args (#! and Fusion.Settings in the text - the self-hosted lexer reads them later, 35.0b);
+		spec 170, SET.013 PARTIAL, FeatureTree
 	[ ] 58.5 Idea (user, 2026-11-17): a running Fusion program runs other Fusion code or apps (plugins, hot reload) - the same engine as
 		`comptime` (Research R4.4); the loaded code is untrusted (Task 39) - becomes Task 60 (60.7, 60.8)
 
@@ -401,6 +403,8 @@ then each point is decided and solved completely. One line per section and per l
 <a id="task-35"></a>
 #### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ] [index](#index)
 	[ ] 35.0 The self-hosted lexer (selfhost/lexer) reads `1...10` as a range, as the Python one does (from Task 33.2f)
+	[ ] 35.0b The self-hosted lexer skips a `#!` first line and blanks a `Fusion.Settings { }` block first in a file, as the
+		Python one does (from Task 58.1, 58.2)
 	[ ] 35.1 The self-hosted compiler covers the whole language
 	[ ] 35.2 Bootstrap twice: the compiler compiles itself, and that one compiles itself again
 	[ ] 35.3 The whole test suite runs against it

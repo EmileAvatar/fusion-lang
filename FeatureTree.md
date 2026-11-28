@@ -28,6 +28,8 @@ Syntax
    - Ranges                   for i in 1...10 (both ends); 0...13 step 5, 10...0 step -2; case 0...9 in a match
    - Decimal / money ranges   0.0...1.0 step 0.1 - start + n * step, no drift; decimal and money exact; case 0.0...0.49
                               on a double; behind [ranges] decimals
+   - Scripts                  python main.py run tidy.fusion - statements at the top, args, #!; built once, kept;
+                              Fusion.Settings { } first in a file; settings.toml (none written)
    - Loop labels              outer: for ...; break outer / continue outer
    - Loop checks              a with part after the body: check 20 (a hook), check not ok() / check >= N (ends the
                               loop); loop.count; exit loop outer; [safety] maxIterations - a LoopLimitError
@@ -263,7 +265,7 @@ Settings & tooling
    - [project], [build], [backend] platform [design]
    - [threads] enabled [design]
    - Strict-mode extras [design]
-   - Build kinds [design]            script mode, JIT, library, WebAssembly
+   - Build kinds [design]            JIT, library, WebAssembly
    - fusionlib modules [design]      file formats, images, math, networking, graphics, audio
    - Tools [design]                  formatter, debugger protocol, hot reload, bytecode VM
    - IDE module [design]
