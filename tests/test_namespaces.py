@@ -338,6 +338,26 @@ def test_the_fusion_namespace_is_reserved(tmp_path, files, message):
     assert message in build_and_run(str(tmp_path), files)[1]
 
 
+# 57.6: --interface shows a module's namespace and module, its static functions, and works on a namespace
+
+def test_the_interface_of_a_namespace(tmp_path):
+    from src.modules import program_interfaces
+    from tests.test_modules import write_project
+    files = dict(SQL_DB)
+    files['SQL/Pool/p.fusion'] = 'public static int function size() : 4\n\nprivate static int made = 0\n'
+    files['money/m.fusion'] = 'public int function make(int n) : n\n'
+    files['main.fusion'] = 'import SQL.Database\nimport SQL.Pool\nimport money\n\nvoid function main()\n    print("x")\n'
+    main_file = write_project(str(tmp_path), files)
+    lines, problems = program_interfaces(main_file)
+    assert problems == []
+    assert lines[:3] == ['namespace SQL', 'module Database', '    public class Conn']
+    assert '    public static string function name()' in lines
+    assert 'module money' in lines and '    public int function make(int n)' in lines
+    only, _ = program_interfaces(main_file, 'SQL')
+    assert 'module Database' in only and 'module Pool' in only and 'module money' not in only
+    assert not any('made' in line for line in only)          # private: never shown (D.115)
+
+
 @pytest.mark.parametrize('source', [
     'static interface Sized\n    int function size()\n',
     'public static int function f() : 1\n',

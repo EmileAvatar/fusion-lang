@@ -52,7 +52,9 @@ classes, interfaces, enums, error types, functions and module variables:
 * **Module interfaces** (Task 18.4.4): `python main.py main.fusion --interface [module]`:
   - Prints the public structs, enums, error types, module variables and functions of the modules a
     program imports, with their types and defaults: what other modules may rely on
-  - Internal names too, never private ones: decided (D.115), not built yet
+  - Internal names too, never private ones (D.115)
+  - A module inside a namespace shows `namespace SQL` and `module Database`, its functions and variables
+    `static` (Task 57.6); `--interface SQL` shows every imported module of the namespace
   - The groundwork for library signatures and capability checks (Task 39)
   ```
   module money

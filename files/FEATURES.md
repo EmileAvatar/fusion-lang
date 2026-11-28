@@ -409,7 +409,9 @@ then each point is decided and solved completely. One line per section and per l
 		folder, a `[libraries]` name); `Fusion.Core` always there - `import Fusion.Core` accepted, `Fusion.Core.print(...)`
 		its full name; Currency.fusion moved to src/stdlib/Fusion/Currency/ - module Fusion.Currency, added with money or
 		`import Fusion.Currency`, `Fusion.Currency.Currency.places(...)`; FusionTemplate.md and the showcase
-	[ ] 57.6 `--interface` shows the namespace and module, and works on a namespace
+	[DONE 2026-11-28] 57.6 `--interface` (tests/test_namespaces.py): a module inside a namespace shows `namespace SQL` /
+		`module Database` and its functions and variables `static`; `--interface SQL` - every imported module of the
+		namespace; libraries found through `[libraries]`
 	[ ] 57.7 The `suppliers` example and the documents (spec 150, SYNTAX_REFERENCE, the showcase, FeatureTree, MOD.012)
 	[POSTPONED - needs `extern`] 57.8 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
 

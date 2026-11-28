@@ -317,7 +317,7 @@ def test_module_interfaces(tmp_path):
     only, _ = program_interfaces(main_file, 'cart')
     assert only[0] == 'module cart' and 'module money' not in only
     _, problems = program_interfaces(main_file, 'nowhere')
-    assert problems == ["The program doesn't import a module named 'nowhere' (it imports: cart, money)"]
+    assert problems == ["The program doesn't import a module or namespace named 'nowhere' (it imports: cart, money)"]
 
 
 def test_interface_on_the_command_line(tmp_path):

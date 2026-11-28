@@ -695,12 +695,17 @@ def module_interface(module: Module) -> List[str]:
     their types - what other modules may rely on; never private ones (D.115, Task 50.5). A
     readonly result is shown with its function (D.110). The groundwork for library signatures
     and capability checks (Task 19)."""
-    lines = [f'module {module.id}']
+    namespace, _, short = module.id.rpartition('.')
+    # a module inside a namespace says both, as its file would (57.6); its functions and variables are static (D.212)
+    lines = [f'namespace {namespace}', f'module {short}'] if namespace else [f'module {module.id}']
+    structured = bool(namespace)
     for name in sorted(module.names):
         decl = module.names[name]
         if not (decl.is_public or getattr(decl, 'is_internal', False)):
             continue                                   # private: never shown (D.115)
         level = 'public' if decl.is_public else 'internal'
+        if structured and isinstance(decl, (FunctionDecl, VarDeclStmt)) and not getattr(decl, 'is_const', False):
+            level += ' static'
         if isinstance(decl, StructDecl):
             lines.append(f"    {level} {'class' if decl.is_class else 'struct'} {name}")
             for f in decl.fields:
@@ -748,7 +753,7 @@ def program_interfaces(main_file: str, only: Optional[str] = None,
     parse = make_file_parser(config)
     with open(main_file, encoding='utf-8') as f:
         program = parse(f.read(), main_file)
-    loader = ModuleLoader(main_file, parse)
+    loader = ModuleLoader(main_file, parse, config.libraries if config is not None else None)
     whole = loader.load(program)
     if loader.errors:
         return [], [str(e) for e in loader.errors]
@@ -759,11 +764,14 @@ def program_interfaces(main_file: str, only: Optional[str] = None,
         SemanticAnalyzer.for_project(config).analyze(whole)
     except Exception:            # noqa: BLE001 - a program that doesn't compile still has an interface
         pass
-    if only is not None and only not in loader.modules:
-        return [], [f"The program doesn't import a module named '{only}' "
+    def wanted(module_id: str) -> bool:     # a module, or every module of a namespace (`--interface SQL` - 57.6)
+        return only is None or module_id == only or module_id.startswith(only + '.')
+
+    if not any(wanted(m) for m in loader.modules):
+        return [], [f"The program doesn't import a module or namespace named '{only}' "
                     f"(it imports: {', '.join(sorted(loader.modules)) or 'none'})"]
     lines = []
     for module_id in sorted(loader.modules):
-        if only is None or module_id == only:
+        if wanted(module_id):
             lines += module_interface(loader.modules[module_id]) + ['']
     return lines, []
