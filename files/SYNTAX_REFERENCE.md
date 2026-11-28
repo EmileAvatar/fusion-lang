@@ -2646,7 +2646,7 @@ void function main()
     print("{yen} {@1} {@2}", Currency.places("KWD"), Currency.symbol("EUR"))
     print(money(1234567.891, "USD", "$").format())   // $1,234,567.891
 ```
-The Currency module (`src/stdlib/Currency.fusion`) is written in Fusion and added to a program that uses money. It
+The Currency module (`src/stdlib/Fusion/Currency/Currency.fusion` - module `Fusion.Currency`) is written in Fusion and added to a program that uses money. It
 knows every ISO 4217 currency - its places and its symbol (at most 4 bytes; a longer one is kept as the code).
 
 #### Custom error types

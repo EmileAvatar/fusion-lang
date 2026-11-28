@@ -46,28 +46,33 @@ import money
 import money.Price
 // [built] An alias for a long module path
 import lib.utils as libutils
-// [designed] Everything a module exports, without prefixes
+// [built] Every public name of a module, without prefixes
 import Spaceships.*
-// [designed] A system library from the standard library tree
+// [designed] More of Fusion's own modules - the namespace Fusion is reserved for them (D.210)
 import Fusion.System.Process
 // [idea] Import only some names from a module
 import geometry { square, circle }
 
-// [idea] Namespaces: group related modules (from several folders or libraries) under one
-//        name (user, 2026-10-23)
-namespace Fusion.Games {
-    import physics
-    import graphics
-}
-// [designed] A namespace is a supplier's group of modules (and a folder); a module is one unit of
-//        one file or several; a name in full is Namespace.Module.Name (D.136, Task 57 - syntax later)
-import SQL as Q
-Q.Database.createConnection("server")
-Fusion.Database.createConnection("server")
+// [built] A namespace is a folder of modules, a module a folder of files (Task 57, D.204-D.213):
+//        Shop/Pricing/ is namespace Shop, module Pricing; a name in full is Namespace.Module.Name
+namespace Shop                  // optional - must match the folder
+module Pricing                  // optional - must match the folder
+import SQL as Q                 // a namespace: Q.Database.createConnection("server")
+import SQL.Database             // Database.x, and the full name SQL.Database.x
+import B.Database as BD         // a second Database: an alias needed
+import "C:/vendor".SQL.Pool     // a library not listed in fusion.toml's [libraries]
+import Fusion.Currency          // Fusion's own; Fusion.Core (print, write ...) is always there
+Fusion.Core.print("full name")
 
-// [designed] A module file names its module and what it exports (spec "Module Definition")
-module Showcase
-export Ship, Fleet
+// [built] A module inside a namespace holds classes, interfaces, structs, enums, error types, constants and
+//        static variables / functions - normal functions belong in a class (D.205, D.212)
+private static int made = 0                         // a count of no use outside the module
+public static Price function make(int cents)        // a factory - used sparingly
+    made = made + 1
+    return Price(cents)
+private struct Slot                                 // a private type: this module only
+    int index
+// [rejected] A module.fusion file with `export` lines - the folder is the module (D.135, D.204)
 
 // [built] public: other modules can use it; without it only this module's files see it
 public int function version() {

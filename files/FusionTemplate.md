@@ -14,7 +14,7 @@ means: `files/showcase/Fusion_template.fusion`.
 |---|---|
 | `namespace` comes first, if the file has one; `module` next | Optional - the folder gives both, and a line written must match it (D.204) |
 | `import` lines come next, before anything else | Optional |
-| `Core` is always imported | Never written - the core foundation of the language is there in every file |
+| `Fusion.Core` is always imported | Never written - the core of the language (print, write ...) is there in every file; `Fusion.Core.print(...)` its full name (D.208) |
 
 A namespace is a **folder** of modules, and a module a folder of files (Task 57.1, D.204): `SQL/Database/` is
 namespace SQL, module Database - a name in full is `Namespace.Module.Name`. The `namespace` and `module` lines are
@@ -56,8 +56,9 @@ import <module>                     // optional - enforced before everything bel
 ## 3. An example
 
 ```fusion
-// RingBuffer.fusion
-namespace Core.Collections
+// Fusion/Collections/RingBuffer.fusion
+namespace Fusion
+module Collections
 
 import IO
 

@@ -5,6 +5,9 @@
 // Every active ISO 4217 currency: its code, its places (minor units) and its symbol - at most 4 bytes (D.184): a
 // longer symbol is kept as the code (AED, OMR). Not money: XAU, XAG, XPD, XPT, XDR and the other units without places.
 
+namespace Fusion
+module Currency
+
 class Currency
     static Map<string, int> placesOf
     static Map<string, string> symbolOf

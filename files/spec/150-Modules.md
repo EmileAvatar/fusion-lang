@@ -112,6 +112,12 @@ classes, interfaces, enums, error types, functions and module variables:
   - A namespace import loads only the modules the file uses; `Q.Nope.x` is an error ("Namespace SQL has no module
     'Nope'")
   - Two imported modules with the same name are an error until one (or both) gets an alias
+* **Fusion's own modules** (Task 57.5, D.208, D.210): the namespace `Fusion` is reserved for them - a folder or a
+  `[libraries]` name Fusion is an error
+  - `Fusion.Core` - the built-ins (print, write ...) - is always there; `import Fusion.Core` changes nothing, and
+    `Fusion.Core.print("x")` is print's full name
+  - `Fusion.Currency` (src/stdlib/Fusion/Currency/) is added when a program uses money, or with `import
+    Fusion.Currency`; `Fusion.Currency.Currency.places("JPY")` its full name
 
 **The earlier design** (the sections below, before Task 18.4) - not built, kept for review:
 

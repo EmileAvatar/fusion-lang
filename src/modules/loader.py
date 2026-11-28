@@ -36,6 +36,10 @@ from src.semantic.name_resolver import TYPE_CLASSES
 
 ParseFile = Callable[[str, str], ProgramNode]   # (source text, file name) -> ProgramNode
 
+# Fusion's own modules (Task 57.5, D.208, D.210) - the namespace Fusion is reserved for them; Fusion.Core (the
+# built-ins) is always there, Fusion.Currency is added when a program uses money (src/semantic/currency.py)
+FUSION_MODULES = ('Core', 'Currency')
+
 _SKIP_FIELDS = ('location', 'inferred_type', 'scope', 'declaration', 'callee_declaration',
                 'resolved_arguments',
                 'methods', 'static_methods')   # top-level functions too (32.1, 32.2c)
@@ -95,6 +99,7 @@ class ModuleLoader:
         # `[libraries]` (Task 57.3, D.206, D.213): a namespace -> its folder, searched after the program's own
         self.libraries = {ns: os.path.join(self.root, folder) for ns, folder in (libraries or {}).items()}
         self.folders: Dict[str, str] = {}       # module id -> the folder it was loaded from
+        self.wants_currency = False             # `import Fusion.Currency` (57.5)
         self._reported: Set[str] = set()        # errors about where a module is, each said once
 
     # ------------------------------------------------------------------ loading
@@ -118,6 +123,9 @@ class ModuleLoader:
     def _load_imports(self, module: Module) -> None:
         for _, program in module.files:
             for imp in program.imports:
+                if imp.path[0] == 'Fusion' and imp.root is None:     # Fusion's own (57.5, D.210)
+                    self._fusion_import(imp)
+                    continue
                 namespace = self._namespace_import(imp)
                 if namespace is not None:          # `import SQL as Q` - the modules Q.X... uses (57.4)
                     for parts in _dotted_uses(program, imp.alias or imp.path[-1]):
@@ -131,6 +139,19 @@ class ModuleLoader:
                 target = self._resolve(imp)
                 if target is not None and target[0] not in self.modules:
                     self._load_module(target[0], imp)
+
+    def _fusion_import(self, imp: ImportDecl) -> None:
+        """`import Fusion.Core` (always there - nothing to do) / `import Fusion.Currency` (added with money)."""
+        name = imp.path[1] if len(imp.path) > 1 else None
+        if name not in FUSION_MODULES or imp.star or len(imp.path) > 2:
+            self._error_once(f"Fusion has no module '{'.'.join(imp.path[1:]) or '?'}' - its own modules so far: "
+                             f"{', '.join('Fusion.' + m for m in FUSION_MODULES)}; the namespace Fusion is "
+                             f"reserved for them (D.210)", imp)
+        elif imp.alias is not None:
+            self._error_once(f"Fusion.{name} is imported without 'as' - write Fusion.{name}.x or the name "
+                             f"alone", imp)
+        elif name == 'Currency':
+            self.wants_currency = True
 
     def _namespace_import(self, imp: ImportDecl) -> Optional[str]:
         """`import SQL` / `import SQL as Q` where SQL is a namespace - a folder of module folders, with no
@@ -253,6 +274,9 @@ class ModuleLoader:
         namespace, name = '.'.join(parts[:-1]) or None, parts[-1]
         folder = '/'.join(parts) + '/'
         file_name = folder + os.path.basename(path)
+        if parts[0] == 'Fusion':
+            self._error(f"{file_name}: the namespace Fusion is reserved for Fusion's own modules (D.210) - "
+                        f"give the folder another name", program)
         if program.namespace is not None and program.namespace != namespace:
             if namespace is None:
                 fix = (f"move the module into a folder {program.namespace.replace('.', '/')}/ "
@@ -323,6 +347,8 @@ class ModuleLoader:
         direct: Dict[str, Set[str]] = {}         # unprefixed name -> internal names
         explicit: Set[str] = set()               # names from `import M.Name`
         for imp in program.imports:
+            if imp.path[0] == 'Fusion' and imp.root is None:
+                continue                                 # Fusion's own - checked when loading (57.5)
             namespace = self._namespace_import(imp)
             if namespace is not None:
                 prefix = imp.alias or imp.path[-1]
@@ -565,10 +591,52 @@ def load_program(main_file: str, main_program: ProgramNode, parse_file: ParseFil
             f"The main file is the program - it belongs to no namespace or module, so '{line}' can't be "
             f"written in it; a module is a folder of files next to it (D.204)", main_program.location)]
     if not main_program.imports:
-        return main_program, []
+        return main_program, fusion_names(main_program)
     loader = ModuleLoader(main_file, parse_file, libraries)
     program = loader.load(main_program)
-    return program, loader.errors
+    program.wants_currency = loader.wants_currency
+    return program, loader.errors + (fusion_names(program) if not loader.errors else [])
+
+
+def fusion_names(program: ProgramNode) -> List[SemanticError]:
+    """Fusion's own modules by their full names (Task 57.5, D.208): `Fusion.Core.print(...)` is `print(...)`,
+    `Fusion.Currency.Currency.round(m)` is `Currency.round(m)`, a type `Fusion.Currency.Currency` is `Currency`.
+    A program can't declare a name Fusion of its own (the namespace is reserved - D.210), so no scope is needed."""
+    errors: List[SemanticError] = []
+
+    def check(parts: List[str], node) -> bool:
+        if parts[1] in FUSION_MODULES:
+            return True
+        errors.append(SemanticError(f"Fusion has no module '{parts[1]}' - its own modules so far: "
+                                    f"{', '.join('Fusion.' + m for m in FUSION_MODULES)}", node.location))
+        return False
+
+    def walk(node):
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not is_dataclass(node) or isinstance(node, type):
+            return
+        if isinstance(node, MemberExpr):
+            path = _member_path(node)
+            if path and path[0] == 'Fusion' and len(path) == 3:
+                if check(path, node):
+                    replacement = IdentifierExpr(location=node.location, name=path[2])
+                    node.__class__ = IdentifierExpr
+                    node.__dict__.clear()
+                    node.__dict__.update(replacement.__dict__)
+                return
+        if isinstance(node, StructType) and node.name.startswith('Fusion.'):
+            parts = node.name.split('.')
+            if len(parts) == 3 and check(parts, node):
+                node.name = parts[2]
+            return
+        for f in dataclass_fields(node):
+            if f.name not in _SKIP_FIELDS:
+                walk(getattr(node, f.name))
+    walk(program.declarations)
+    return errors
 
 
 # ---------------------------------------------------------------------- shared entry points

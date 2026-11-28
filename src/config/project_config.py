@@ -606,6 +606,10 @@ def _load_libraries_section(data: dict, config_path: str) -> Dict[str, str]:
             raise ProjectConfigError(
                 f"{config_path}: libraries.{namespace} - a library is named by its namespace, as SQL or "
                 f"com.example.SQL")
+        if namespace.split('.')[0] == 'Fusion':
+            raise ProjectConfigError(
+                f"{config_path}: libraries.{namespace} - the namespace Fusion is reserved for Fusion's own "
+                f"modules (D.210)")
         if not isinstance(folder, str) or not folder.strip():
             raise ProjectConfigError(
                 f"{config_path}: libraries.{namespace} must be the library's folder, as \"C:/vendor/SQL\"")

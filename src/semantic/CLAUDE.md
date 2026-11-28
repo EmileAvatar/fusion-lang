@@ -3,7 +3,7 @@
 | File | What it does |
 |---|---|
 | `semantic_analyzer.py` | Runs the passes below in order and collects errors and warnings (entry point of this folder) |
-| `currency.py` | The Currency module (Task 47.2b): adds src/stdlib/Currency.fusion to a program that uses money, first of all passes; `CURRENCY_METHODS` - the methods on money that are its statics |
+| `currency.py` | The Currency module (Task 47.2b): adds src/stdlib/Fusion/Currency/Currency.fusion (module Fusion.Currency, 57.5) to a program that uses money or imports it, first of all passes; `CURRENCY_METHODS` - the methods on money that are its statics |
 | `number_patterns.py` | Checks `formatNumber` patterns written in the source (the same rules as the C runtime) |
 | `heap_arrays.py` | Plain arrays that get a new size (Task 45.10, D.141): before names are resolved, an array replaced as a whole, an `int[]` result of any size and an unsized struct field become a heap array - a List block marked `array_form`, still acting as an array; a local of 2 or 3 dimensions given values of another shape lives on the heap as a growable one does, marked `plain_heap` (45.12e) |
 | `many_dims.py` | Arrays of 2 and 3 dimensions (Task 45.12): the type rules (a mixin of the type checker) - declarations and nested values flattened in `[arrays] order`, one index per dimension, views, foreach, `rows` / `columns` / `depth` / `length`, parameters of any size, growable ones and `expand` (the `Dimension` enum, added when used); `setStorage` (the `Storage` enum, added when used; `mark_storage_calls` - placed right after the declaration, 45.15); `check_many_dims_uses` - every use not built yet an error |

@@ -23,8 +23,9 @@
 // 1. A file [built]
 // =============================================================================================
 
-[namespace <Name>{.<Name>}]                  // first line if present - a line, not a folder
-{import <module>[.<Name> | .* | as <alias>]} // next, before everything else; Core always there
+[namespace <Name>{.<Name>}]                  // first line if present - must match the folder (D.204)
+[module <Name>]                              // next if present - must match the folder
+{import ["<folder>".]<module>[.<Name> | .* | as <alias>]} // then, before everything else; Fusion.Core always there
 
 
 // =============================================================================================

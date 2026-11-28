@@ -1,5 +1,5 @@
-"""The Currency module (Task 47.2b, D.186): src/stdlib/Currency.fusion, written in Fusion, added to a program that
-uses money or names Currency - before names are resolved - so no other program carries it.
+"""The Currency module (Task 47.2b, D.186): src/stdlib/Fusion/Currency/Currency.fusion - module Fusion.Currency
+(57.5, D.210) - written in Fusion, added to a program that uses money, names Currency or imports Fusion.Currency - before names are resolved - so no other program carries it.
 
 The type checker then sends money's rules there: `m / n` is Currency.divide(m, n), and a method on money -
 m.convert(...), m.round(2), m.split(3) ... - is the static Currency.<name>(m, ...).
@@ -7,7 +7,7 @@ m.convert(...), m.round(2), m.split(3) ... - is the static Currency.<name>(m, ..
 from dataclasses import fields, is_dataclass
 from pathlib import Path
 
-CURRENCY_FILE = Path(__file__).resolve().parent.parent / 'stdlib' / 'Currency.fusion'
+CURRENCY_FILE = Path(__file__).resolve().parent.parent / 'stdlib' / 'Fusion' / 'Currency' / 'Currency.fusion'
 
 # money's methods - each the Currency static of the same name, with the money first
 CURRENCY_METHODS = ('convert', 'round', 'roundWith', 'settle', 'divide', 'percent', 'split', 'splitBy', 'format')
@@ -36,7 +36,7 @@ def add_currency_module(program) -> None:
     from src.parser.ast_nodes import StructDecl
     if any(isinstance(d, StructDecl) and d.name == 'Currency' for d in program.declarations):
         return
-    if not _uses_money(program):
+    if not (getattr(program, 'wants_currency', False) or _uses_money(program)):
         return
     from src.lexer.lexer import Lexer
     from src.parser.parser import Parser

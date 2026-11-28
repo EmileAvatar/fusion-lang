@@ -101,15 +101,17 @@ def compile_file(source_path: str) -> int:
 
     print(f"  [OK] Parsed {len(ast.declarations)} declarations", file=sys.stderr)
 
-    # Modules (Task 18.4): load every imported module folder once and merge them in
-    if ast.imports:
-        ast, import_errors = load_program(source_path, ast, make_file_parser(project_config),
-                                          project_config.libraries)
-        if import_errors:
-            for error in import_errors:
-                print(f"Error: {error}", file=sys.stderr)
-            print(f"\n{len(import_errors)} error(s) found", file=sys.stderr)
-            return 1
+    # Modules (Task 18.4): load every imported module folder once and merge them in - every program goes
+    # through it, for the main file's checks and Fusion's own full names (Fusion.Core.print - 57.5)
+    had_imports = bool(ast.imports)
+    ast, import_errors = load_program(source_path, ast, make_file_parser(project_config),
+                                      project_config.libraries)
+    if import_errors:
+        for error in import_errors:
+            print(f"Error: {error}", file=sys.stderr)
+        print(f"\n{len(import_errors)} error(s) found", file=sys.stderr)
+        return 1
+    if had_imports:
         print(f"  [OK] Loaded the imported modules", file=sys.stderr)
 
     # Semantic analysis

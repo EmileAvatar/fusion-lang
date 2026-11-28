@@ -405,7 +405,10 @@ then each point is decided and solved completely. One line per section and per l
 		namespace, `Q.Database.name()`, `Q.Database.Conn c`; only the modules used are loaded; the full name
 		`SQL.Database.x` once imported (with an alias too); two modules with one name an error until one has an alias;
 		`com.example.SQL` a longer namespace (57.3)
-	[ ] 57.5 Fusion's own (D.208, D.210): `Fusion` reserved, `Fusion.Core` implicit, `Fusion.Currency`
+	[DONE 2026-11-28] 57.5 Fusion's own (D.208, D.210; tests/test_namespaces.py): the namespace `Fusion` reserved (a
+		folder, a `[libraries]` name); `Fusion.Core` always there - `import Fusion.Core` accepted, `Fusion.Core.print(...)`
+		its full name; Currency.fusion moved to src/stdlib/Fusion/Currency/ - module Fusion.Currency, added with money or
+		`import Fusion.Currency`, `Fusion.Currency.Currency.places(...)`; FusionTemplate.md and the showcase
 	[ ] 57.6 `--interface` shows the namespace and module, and works on a namespace
 	[ ] 57.7 The `suppliers` example and the documents (spec 150, SYNTAX_REFERENCE, the showcase, FeatureTree, MOD.012)
 	[POSTPONED - needs `extern`] 57.8 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
@@ -812,7 +815,7 @@ then each point is decided and solved completely. One line per section and per l
 		a big task, after Fusion modules exist
 		[ ] JSON and XML written in the code: (FILE_LANG.XML)"""...""".save("a.xml") - needs
 			multi-line strings (Later); the marker's form, compile-time checks, escaping open
-	[ ] 43.3 Currency module (user, 2026-10-29) - started 2026-11-25 as src/stdlib/Currency.fusion (47.2b: the ISO 4217
+	[ ] 43.3 Currency module (user, 2026-10-29) - started 2026-11-25 as src/stdlib/Fusion/Currency/Currency.fusion (47.2b: the ISO 4217
 		table, divide, split, percent, round, convert, format); what is left here: parsing, locale formats - how `money` (47.2) is used per currency -
 		currency definitions with their decimal places (USD 2, JPY 0, KWD 3) and so their
 		units (USD 100, JPY 100 in whole steps, KWD 1000), formatting, parsing, and exchange-

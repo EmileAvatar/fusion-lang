@@ -310,6 +310,34 @@ def test_namespace_import_errors(tmp_path, main_text, message):
     assert message in errors(str(tmp_path), files)
 
 
+# 57.5 (D.208, D.210): Fusion's own modules - Fusion.Core always there, Fusion.Currency added with money; the
+# namespace Fusion reserved
+
+@pytest.mark.parametrize('main_text, output', [
+    ('void function main()\n    Fusion.Core.print("core")\n', ['core']),
+    ('import Fusion.Core\n\nvoid function main()\n    print("core")\n', ['core']),
+    ('import Fusion.Currency\n\nvoid function main()\n'
+     '    print(format("{@1}", Fusion.Currency.Currency.places("JPY")))\n', ['0']),
+    ('void function main()\n    print(format("{@1}", Currency.places("ZAR")))\n', ['2']),
+])
+def test_fusions_own_modules(tmp_path, main_text, output):
+    files = {'app/main.fusion': main_text}
+    assert build_and_run(str(tmp_path), files)[0] == output
+
+
+@pytest.mark.parametrize('files, message', [
+    ({'app/main.fusion': 'import Fusion.IO\n\nvoid function main()\n    print("x")\n'},
+     "Fusion has no module 'IO' - its own modules so far: Fusion.Core, Fusion.Currency"),
+    ({'app/main.fusion': 'void function main()\n    Fusion.IO.print("x")\n'}, "Fusion has no module 'IO'"),
+    ({'app/main.fusion': 'import Fusion.Core as C\n\nvoid function main()\n    print("x")\n'},
+     "Fusion.Core is imported without 'as'"),
+    ({'app/fusion.toml': '[libraries]\nFusion = "../mine"\n', 'app/main.fusion': MAIN_SQL},
+     "the namespace Fusion is reserved for Fusion's own modules"),
+])
+def test_the_fusion_namespace_is_reserved(tmp_path, files, message):
+    assert message in build_and_run(str(tmp_path), files)[1]
+
+
 @pytest.mark.parametrize('source', [
     'static interface Sized\n    int function size()\n',
     'public static int function f() : 1\n',
