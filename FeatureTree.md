@@ -14,7 +14,7 @@ not settled - **[postponed]** waits for something else
 ```
 Core
    - Compiler                 Fusion -> C -> native .exe via GCC (compiler in Python)
-   - Settings per project     fusion.toml / .yaml / .json / .ini; features become settings with safe defaults
+   - Settings per project     settings.toml / .yaml / .json / .ini; features become settings with safe defaults
    - Safety modes             [safety] mode = safe / strict / unsafe
    - Self-host test run       lexer, parser, checker, C generator written in Fusion (tier 1)
    - Never trust code         a library is checked by what its signature promises
@@ -115,7 +115,7 @@ Modules
    - --interface              shows the public interface of imported modules (a namespace too)
    - Namespaces               a folder of modules: SQL/Database/ - import SQL as Q, full names SQL.Database.x
    - Structured modules       in a namespace: classes, structs, interfaces, static functions and variables
-   - [libraries]              external libraries in fusion.toml; import "C:/vendor".SQL.Database
+   - [libraries]              external libraries in settings.toml; import "C:/vendor".SQL.Database
    - Fusion's own             the namespace Fusion reserved; Fusion.Core always there, Fusion.Currency
 
 Memory

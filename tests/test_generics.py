@@ -131,9 +131,9 @@ def test_generics_off_in_the_project():
 
 
 def test_the_setting():
-    assert _load_generics_section({'generics': {'enabled': False}}, 'fusion.toml').enabled is False
+    assert _load_generics_section({'generics': {'enabled': False}}, 'settings.toml').enabled is False
     with pytest.raises(ProjectConfigError, match='must be true or false'):
-        _load_generics_section({'generics': {'enabled': 'no'}}, 'fusion.toml')
+        _load_generics_section({'generics': {'enabled': 'no'}}, 'settings.toml')
 
 
 def test_a_comparison_is_still_a_comparison():
@@ -307,9 +307,9 @@ def test_generic_statics_mistakes(top, body, shared, message):
 
 
 def test_the_shared_statics_setting():
-    assert _load_generics_section({'generics': {'sharedStatics': True}}, 'fusion.toml').shared_statics is True
+    assert _load_generics_section({'generics': {'sharedStatics': True}}, 'settings.toml').shared_statics is True
     with pytest.raises(ProjectConfigError, match='generics.sharedStatics must be true or false'):
-        _load_generics_section({'generics': {'sharedStatics': 1}}, 'fusion.toml')
+        _load_generics_section({'generics': {'sharedStatics': 1}}, 'settings.toml')
 
 
 # ---------- 33.3a a generic class with a plain parent and plain interfaces ----------

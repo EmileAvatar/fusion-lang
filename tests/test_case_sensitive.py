@@ -55,14 +55,14 @@ def test_not_case_sensitive_same_name_twice_is_fine():
 
 
 def test_the_setting_is_read(tmp_path):
-    (tmp_path / 'fusion.toml').write_text('[source]\ncaseSensitive = false\n')
+    (tmp_path / 'settings.toml').write_text('[source]\ncaseSensitive = false\n')
     (tmp_path / 'p.fusion').write_text('')
     assert load_project_config(str(tmp_path / 'p.fusion')).source.case_sensitive is False
 
 
 def test_the_setting_must_be_true_or_false(tmp_path):
     from src.config.project_config import ProjectConfigError
-    (tmp_path / 'fusion.toml').write_text('[source]\ncaseSensitive = "no"\n')
+    (tmp_path / 'settings.toml').write_text('[source]\ncaseSensitive = "no"\n')
     (tmp_path / 'p.fusion').write_text('')
     with pytest.raises(ProjectConfigError, match='caseSensitive must be true or false'):
         load_project_config(str(tmp_path / 'p.fusion'))

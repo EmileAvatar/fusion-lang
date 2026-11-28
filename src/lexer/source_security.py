@@ -12,7 +12,7 @@ existed (2026-10-07):
 2. Confusable (homoglyph) identifiers: e.g. CYRILLIC SMALL LETTER A (U+0430) looks
    identical to Latin 'a', so a name spelled with it and the all-Latin `age` can be two
    different variables that look the same. Identifiers are ASCII-only by default.
-   A project can opt in to Unicode identifiers via fusion.toml
+   A project can opt in to Unicode identifiers via settings.toml
    ([source] allow_unicode_identifiers = true); in that mode, identifiers mixing look-alike
    scripts, or containing compatibility characters (fullwidth/mathematical letters), are
    still rejected.
@@ -108,7 +108,7 @@ def check_identifier(name: str, allow_unicode: bool) -> Optional[str]:
                     f"identifier '{name}' contains non-ASCII character {describe_char(ch)}. "
                     f"Identifiers are ASCII-only by default, because look-alike characters "
                     f"from other scripts can make two different names appear identical. Set "
-                    f"[source] allowUnicodeIdentifiers = true in fusion.toml to allow "
+                    f"[source] allowUnicodeIdentifiers = true in settings.toml to allow "
                     f"Unicode identifiers"
                 )
         return None

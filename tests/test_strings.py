@@ -579,7 +579,7 @@ def test_a_longer_string_is_a_run_time_error_never_a_cut(statement):
     code, out, err = run_with_limit(ECHO + NOTE + main(f'print("before")\n{statement}\nprint("after")'), 10)
     assert code == 1 and out == ["before"]
     assert "Runtime error at test.fusion:" in err
-    assert "characters is longer than maxLength 10 ([strings] in fusion.toml)" in err
+    assert "characters is longer than maxLength 10 ([strings] in settings.toml)" in err
 
 
 def test_limit_counts_characters_not_bytes():

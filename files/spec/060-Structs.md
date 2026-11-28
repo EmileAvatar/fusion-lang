@@ -123,7 +123,7 @@ widened, see below).
     * under `[memory] assignment = "move"` (the default) the struct moves as a whole, its object with it
     * `byVal` copies the struct and clones the object; `byRef` borrows it
     * under "share" a copied struct shares its object - an object isn't a value
-* **Nesting depth** is limited per project (`[structs]` in `fusion.toml`): with the defaults,
+* **Nesting depth** is limited per project (`[structs]` in `settings.toml`): with the defaults,
   a struct 3 levels deep compiles with a warning and 4 levels is an error.
   `max_nesting_depth = 1` turns nested structs off; raising it allows deeper ones. Depth
   counts levels of structs - plain fields only = 1, holding such a struct = 2; an array of
@@ -226,7 +226,7 @@ const Point ORIGIN = Point(0, 0)   // no field of a const struct can be changed
 Description: A `string` field holds its own value and can be changed - not pooled, by default.
 - It can hold anything from a book title to a full product description
 - Strings have no length limit unless the project sets one (`[strings] maxLength`, see "String Implementation")
-- Controlled per project in `fusion.toml`'s `[structs]` section (see "Project Configuration"):
+- Controlled per project in `settings.toml`'s `[structs]` section (see "Project Configuration"):
 
 * `string_warn_length` (default **64**) - a guideline only: a longer string is kept in full,
   and the compiler warns

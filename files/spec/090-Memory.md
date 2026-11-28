@@ -281,7 +281,7 @@ Automatic GC | General applications | Low | Good
 Smart Pointers | Performance-critical | Medium | Excellent
 Raw Pointers | Embedded/FFI only | High | Maximum
 
-**Decided (user, 2026-10-31 - Decisions.md D.027):** no GC by default - OWNERSHIP first (one owner, moves, borrows - Task 48). A GC exists only when made in code or when a project's `fusion.toml` chooses it
+**Decided (user, 2026-10-31 - Decisions.md D.027):** no GC by default - OWNERSHIP first (one owner, moves, borrows - Task 48). A GC exists only when made in code or when a project's `settings.toml` chooses it
 
 ---
 

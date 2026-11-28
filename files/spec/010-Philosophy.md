@@ -77,7 +77,7 @@ looks exactly like Latin `a`, so `аge` and `age` could be two different variabl
 that wants non-English identifiers opts in:
 
 ```toml
-# fusion.toml
+# settings.toml
 [source]
 allowUnicodeIdentifiers = true
 ```

@@ -50,7 +50,7 @@ Description: Strings are **values**, like structs (decided 2026-10-09, Task 18.3
   - plain ASCII text keeps a fast path (no scanning)
   - text with other characters remembers the last position found (Task 44.6), so a loop over `s[i]` - or
     `substring` - doesn't count from the start each time (a 5,000-line loop: 52 s before, 0.03 s after)
-- `[strings] encoding = "ascii"` in `fusion.toml`, for very small or legacy devices:
+- `[strings] encoding = "ascii"` in `settings.toml`, for very small or legacy devices:
   - English text only (non-ASCII text is a compile error)
   - a `char` is one byte
   - `utf-16` and `utf-32` are named for the future but not implemented yet
@@ -94,7 +94,7 @@ added on top of the simple value model above, which is what MVP needs:
 - With `[build] wait_at_exit = true` a compiled program waits for a key ("Press any key to close...", on
   stderr) before its window closes
 - So a program started by double-clicking it doesn't vanish before its output, or a run-time error, can be read
-- **Off by default**: it is for development, the examples (the `fusion.toml` in each `examples/` topic folder turns it on) and testing -
+- **Off by default**: it is for development, the examples (the `settings.toml` in each `examples/` topic folder turns it on) and testing -
   or an app that should show its details to the customer
 - `--headless` closes at once
 - It never waits when its input or output is redirected (pipes, files, tests)

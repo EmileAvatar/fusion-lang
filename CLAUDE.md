@@ -60,7 +60,7 @@ From 2026-10-31 (user): `Decisions.md` lists every Fusion language feature in on
   of a guess; once answered, the answer goes into `Decisions.md` and the question is removed
 - **Defer until built (user, 2026-11-21 - D.161):** an open question is settled when its section is
   actually being built, not ahead - mark it **Deferred** with the task it waits for. Fusion provides a
-  simple implementation by default; a project changes it by settings, in `fusion.toml` or on the object
+  simple implementation by default; a project changes it by settings, in `settings.toml` or on the object
 - After the user decides: update the feature line and the decision row in the same session;
   a replaced decision is removed (git keeps the history); a conflict is a `CLASH` row until
   the user settles it
@@ -148,9 +148,8 @@ Estimate Left: 113.8 million tokens (86.5%), with 3h 17m to go.
 ## How to run
 
 ```text
-python main.py program.fusion        # compile -> program.c and program.exe (fusion.toml optional)
+python main.py program.fusion        # compile -> program.c and program.exe (settings.toml optional - none is written)
 python main.py main.fusion --interface [module]   # public interface of the modules it imports
-python main.py program.fusion --no-new-config     # don't write a fusion.toml when there is none
 python check.py                      # all checks, short summary (about 1 min - tests on every core)
 python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build
@@ -225,7 +224,7 @@ When a language feature or spec changes, update every affected file without aski
 | An ownership decision (moving, borrowing, `shared`, readonly at the call, threads) | `files/Ownership.md` (truth tables + decisions log); the thread side also `files/Service.md` and `files/Concurrency.md` 3.13; schedule in `files/FEATURES.md` Task 48 / 42 |
 | A null-handling decision (`?.`, `??`, nullable types, number conditions) | `files/Nullable_Values.md` (decisions log + tables); schedule in `files/FEATURES.md` Task 30 |
 | A project setting decided, added or changed - every one, built or not (user, 2026-11-08) | `files/spec/001-TomlSettings.md`: when decided, a row in "Decided, not built"; once built, the row goes and `python tools/settings_doc.py` regenerates "Built" from `files/fusionSettings.xml` (the `settings` check) |
-| A project setting added or changed (`fusion.toml` / `.yaml` / `.json` / `.ini`) | **Once the feature is built** (not before): `files/fusionSettings.xml` (the master template - its type, values, default, description, task), `src/config/project_config.py`, spec "Project Configuration", `files/SYNTAX_REFERENCE.md` settings section - `tests/test_settings_formats.py` checks template and compiler agree |
+| A project setting added or changed (`settings.toml` / `.yaml` / `.json` / `.ini`) | **Once the feature is built** (not before): `files/fusionSettings.xml` (the master template - its type, values, default, description, task), `src/config/project_config.py`, spec "Project Configuration", `files/SYNTAX_REFERENCE.md` settings section - `tests/test_settings_formats.py` checks template and compiler agree |
 | A task done (any new, changed or newly decided setting) | `files/showcase/fusion.toml` - every setting a finished Fusion will have, tagged [built] / [designed] / [idea] / [rejected] (user, 2026-10-28) |
 | A source file added, renamed or given a new job | that folder's `CLAUDE.md` (one line per file) |
 
@@ -233,7 +232,7 @@ When a language feature or spec changes, update every affected file without aski
 
 ## Project notes
 - **Core concept:** an agnostic language - each project configures features, safety level,
-  memory strategy and backend (`fusion.toml`)
+  memory strategy and backend (`settings.toml`)
 - **Long-term concurrency goal:** a million requests on one machine with many cores - no
   data races by construction, deadlocks and freezes prevented by rules (any that slip through
   become clear errors), no slowdown - with as small a memory and CPU footprint as
@@ -241,7 +240,7 @@ When a language feature or spec changes, update every affected file without aski
   instead of every caller updating it by hand; manual locking is a last resort
   (`files/Concurrency.md`, `files/Concurrency_Traps.md`, files/FEATURES.md Task 42)
 - **Features become settings:** design each feature so a project can switch it in
-  `fusion.toml` where that makes sense, with a safe default (e.g. `[structs]`: holding
+  `settings.toml` where that makes sense, with a safe default (e.g. `[structs]`: holding
   List / Map on, functions on structs off; a struct may hold an object). Reviewing an idea
   means deciding: a setting, a fixed rule, or discarded (files/FEATURES.md, top)
 - **Method names say what they do (user, 2026-10-27):** a verb where possible -

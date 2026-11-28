@@ -80,7 +80,7 @@ def test_an_embedded_project_lowers_both():
     ('stack_warn = "8kb"', 8192, 65536),
 ])
 def test_the_settings(tmp_path, text, warn, limit):
-    config = load(tmp_path, 'fusion.toml', '[arrays]\n' + text + '\n')
+    config = load(tmp_path, 'settings.toml', '[arrays]\n' + text + '\n')
     assert (config.arrays.stack_warn, config.arrays.stack_limit) == (warn, limit)
 
 
@@ -92,7 +92,7 @@ def test_the_settings(tmp_path, text, warn, limit):
 ])
 def test_wrong_settings(tmp_path, text, message):
     with pytest.raises(ProjectConfigError, match=message):
-        load(tmp_path, 'fusion.toml', '[arrays]\n' + text + '\n')
+        load(tmp_path, 'settings.toml', '[arrays]\n' + text + '\n')
 
 
 @pytest.mark.parametrize('body', ['int[10] a\na.setBufferType(TWO)', 'int:[] a\na.setSize(1024)',

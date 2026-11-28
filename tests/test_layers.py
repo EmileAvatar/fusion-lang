@@ -98,18 +98,18 @@ def test_each_place_is_reported_once():
 def test_config(tmp_path):
     (tmp_path / 'p.fusion').write_text('void function main()\n    print("x")\n')
     assert load_project_config(str(tmp_path / 'p.fusion')).stdlib.layer == 'std'
-    (tmp_path / 'fusion.toml').write_text('[stdlib]\nlayer = "alloc"\n')
+    (tmp_path / 'settings.toml').write_text('[stdlib]\nlayer = "alloc"\n')
     assert load_project_config(str(tmp_path / 'p.fusion')).stdlib.layer == 'alloc'
     for text, message in [('[stdlib]\nlayer = "kernel"\n', "stdlib.layer must be one of"),
                           ('[stdlib]\nlevel = "core"\n', "unknown setting stdlib.level")]:
-        (tmp_path / 'fusion.toml').write_text(text)
+        (tmp_path / 'settings.toml').write_text(text)
         with pytest.raises(ProjectConfigError, match=message):
             load_project_config(str(tmp_path / 'p.fusion'))
 
 
 def test_the_compiler_reads_the_layer(tmp_path):
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    (tmp_path / 'fusion.toml').write_text('[stdlib]\nlayer = "alloc"\n')
+    (tmp_path / 'settings.toml').write_text('[stdlib]\nlayer = "alloc"\n')
     (tmp_path / 'p.fusion').write_text('void function main()\n    print("x")\n')
     result = subprocess.run([sys.executable, os.path.join(root, 'main.py'), str(tmp_path / 'p.fusion')],
                             capture_output=True, text=True)

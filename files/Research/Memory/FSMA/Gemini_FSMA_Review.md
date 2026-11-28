@@ -57,7 +57,7 @@ Replace the overlapping `<Mixed>` / `<General>` distinction with five distinct, 
 | **`2. Data Stack<Scoped: Frame>`** *(replaces Mixed)* | Heterogeneous objects whose lifetimes are bound to a single function frame, loop iteration, or `service.run` block. | **Linear Bump Arena** (aligned variable-size bump pointer). | $O(1)$ bulk wipe when frame/block exits. Zero fragmentation. |
 | **`3. Data Stack<Pool: Type>`** | Named, long-lived object pools (`String Pool`, `ASTNode Pool`, parent + child object trees). | **Segmented Slab / Page Pool** (parent header followed inline by child objects). | Freed per-pool or via generational/epoch reset. |
 | **`4. Data Stack<General: Heap>`** | Dynamic objects whose lifetimes outlive their creation scope and cannot be statically proven by escape analysis. | **Segregated Size-Class Free-List** (mimalloc/jemalloc style bins) + **Single-Owner `free()`**. | Deterministic `drop()`/`free()` at owner's scope end (reclaims holes immediately). |
-| **`5. Opt-In Bridge (GC / Manual)`** | Explicit `@manual` pointers or `@gc` managed objects when configured in `fusion.toml`. | **Explicit `malloc/free`** or **Boehm/Immix GC Heap** with registered root table. | Manual `free()` or GC cycle; write-barriers prevent dangling cross-stack pointers. |
+| **`5. Opt-In Bridge (GC / Manual)`** | Explicit `@manual` pointers or `@gc` managed objects when configured in `settings.toml`. | **Explicit `malloc/free`** or **Boehm/Immix GC Heap** with registered root table. | Manual `free()` or GC cycle; write-barriers prevent dangling cross-stack pointers. |
 
 ### Fix 3: Compile-Time Region Hierarchy Rule (Preventing Dangling Pointers)
 Enforce a strict **Outlives Partial Order** in the semantic analyzer (`src/semantic/`):

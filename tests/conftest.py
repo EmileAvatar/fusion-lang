@@ -2,8 +2,6 @@ import os
 
 import pytest
 
-# Compiling in the tests never writes a fusion.toml into the repo (Task 31)
-os.environ["FUSION_NO_NEW_CONFIG"] = "1"
 
 
 @pytest.fixture(autouse=True)

@@ -1,4 +1,4 @@
-"""Tests for Task 30.9 - numbers as conditions: `[conditions] numbers` in fusion.toml.
+"""Tests for Task 30.9 - numbers as conditions: `[conditions] numbers` in settings.toml.
 
 "positive" (default): in an `if` / `while` condition a number is true when above zero - zero
 and negatives (-1: "not found", "not set") are false. "nonzero": 0 false, any other number
@@ -100,8 +100,8 @@ def test_triple_equals_with_a_bool_is_always_false():
 def test_the_setting_in_fusion_toml(tmp_path):
     source = tmp_path / 'main.fusion'
     source.write_text('')
-    (tmp_path / 'fusion.toml').write_text('[conditions]\nnumbers = "nonzero"\n')
+    (tmp_path / 'settings.toml').write_text('[conditions]\nnumbers = "nonzero"\n')
     assert load_project_config(str(source)).conditions.numbers == 'nonzero'
-    (tmp_path / 'fusion.toml').write_text('[conditions]\nnumbers = "maybe"\n')
+    (tmp_path / 'settings.toml').write_text('[conditions]\nnumbers = "maybe"\n')
     with pytest.raises(ProjectConfigError, match='conditions.numbers must be one of'):
         load_project_config(str(source))

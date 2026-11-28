@@ -222,10 +222,10 @@ def test_upper_case_names(upper, errors, warnings):
 
 
 def test_the_setting_is_read(tmp_path):
-    (tmp_path / 'fusion.toml').write_text('[enums]\nupperCaseNames = "strict"\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text('[enums]\nupperCaseNames = "strict"\n', encoding='utf-8')
     assert load_project_config(str(tmp_path / 'main.fusion')).enums.upper_case_names == 'strict'
-    (tmp_path / 'fusion.toml').write_text('[enums]\nupperCaseNames = true\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text('[enums]\nupperCaseNames = true\n', encoding='utf-8')
     assert load_project_config(str(tmp_path / 'main.fusion')).enums.upper_case_names == 'true'
-    (tmp_path / 'fusion.toml').write_text('[enums]\nupperCaseNames = "loud"\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text('[enums]\nupperCaseNames = "loud"\n', encoding='utf-8')
     with pytest.raises(ProjectConfigError):
         load_project_config(str(tmp_path / 'main.fusion'))

@@ -240,7 +240,7 @@ void function worker(Order order, Totals totals) {
 
 #### 3.7 Settings
 
-Prime settings (files/Service.md; FEATURES 42.14) - defaults in `fusion.toml` `[concurrency.defaults]`:
+Prime settings (files/Service.md; FEATURES 42.14) - defaults in `settings.toml` `[concurrency.defaults]`:
 
 | Setting | What it does | Values | Default | Status |
 |---|---|---|---|---|
@@ -258,7 +258,7 @@ Prime settings (files/Service.md; FEATURES 42.14) - defaults in `fusion.toml` `[
 | Rule | Detail | Status |
 |---|---|---|
 | Priority "5.4.1" | Weighted turns: in every 10, high 5, medium 4, low 1 - low never starves; turns spread through the cycle (H M H M H L ...); a level with no work gives its turns away | planned (42.14) |
-| Which value wins | Built-in defaults < `fusion.toml` < the program's defaults < `service(x)` in code | planned (42.6) |
+| Which value wins | Built-in defaults < `settings.toml` < the program's defaults < `service(x)` in code | planned (42.6) |
 | Settings that fit the machine | Levels from MIN (embedded or unknown memory) up; a machine matching no level gets MIN | design (42.6, CON.011) |
 | Durations | `500ms`, `5s`, `2min`, `1h` - int milliseconds; hot path `ns`, `us` - long nanoseconds; never mixed | planned (42.16) |
 | Secondary settings | Coalesce, BatchSize, BatchDelay, IdleTimeout, OnError, RestartLimit, Name, Trace, Affinity, MemoryLimit, Lifetime, Snapshot, WarnAt, Retry, Shutdown, Access, Weight | postponed - after version one (42.11) |
@@ -615,7 +615,7 @@ go worker(jobs)                        // run worker on another thread (CON.012 
 Only one thread at a time may hold it; `using lock { }` unlocks at the end of the block, even on an error.
 
 Off by default (user, 2026-11-10 - provisional, subject to change; D.125 proposed): services are the default; a project switches locks on in
-`fusion.toml`, and a lock is written inside `unsafe` - it may cause deadlocks and race conditions, and the
+`settings.toml`, and a lock is written inside `unsafe` - it may cause deadlocks and race conditions, and the
 code shows it. A `Lang.C.Fusion` module may need `unsafe` for this. The same holds for the read-write lock,
 the semaphore and the condition variable (4.3, 4.4, 4.6). Lock ordering (always take lock A before lock B)
 matters only here - in the service model no thread holds two resources (P2).
@@ -785,7 +785,7 @@ moved into sections 1, 3 and 4.
 
 | # | Subject | What clashed | The user's answer (provisional) | Now in |
 |---|---|---|---|---|
-| 1 | Mutex / `using lock { }` | In normal code, unsafe only, or Lang modules only? | Only inside `unsafe`, and only with locks switched on in `fusion.toml` (off by default) - it may cause deadlocks and races; `Lang.C.Fusion` may use `unsafe` for it | 4.2; D.125 |
+| 1 | Mutex / `using lock { }` | In normal code, unsafe only, or Lang modules only? | Only inside `unsafe`, and only with locks switched on in `settings.toml` (off by default) - it may cause deadlocks and races; `Lang.C.Fusion` may use `unsafe` for it | 4.2; D.125 |
 | 2 | Channels | When a channel, when `service(s).send(x)` | A channel is a named mailbox in a service; every service has one default mailbox with no name; named channels for many threads with special work; an interrupt channel; outbound channels | 3.14; D.126 |
 | 3 | `async` / `await` | `async` at a call (D.068) or `async function` + `await` | Both forms | 4.8; D.127 |
 | 4 | files/Concurrency_Traps.md | "An implicit atomic lock" for arrays | An array uses a temporary service, like every collection (D.057) | fixed there |

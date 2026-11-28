@@ -131,7 +131,7 @@ def test_expand_keeps_every_slot_in_each_order(order):
 
 
 def test_the_order_setting_takes_depth_rows():
-    assert _load_arrays_section({'arrays': {'order': 'depthRows'}}, 'fusion.toml').order == 'depthRows'
+    assert _load_arrays_section({'arrays': {'order': 'depthRows'}}, 'settings.toml').order == 'depthRows'
 
 
 def test_the_storage_enum_only_where_used():
@@ -147,5 +147,5 @@ def test_the_storage_enum_only_where_used():
 ])
 def test_the_project_setting(value, message):
     with pytest.raises(ProjectConfigError, match=message):
-        _load_arrays_section({'arrays': {'storage': value}}, 'fusion.toml')
-    assert _load_arrays_section({'arrays': {'storage': 'flat'}}, 'fusion.toml').storage == 'flat'
+        _load_arrays_section({'arrays': {'storage': value}}, 'settings.toml')
+    assert _load_arrays_section({'arrays': {'storage': 'flat'}}, 'settings.toml').storage == 'flat'

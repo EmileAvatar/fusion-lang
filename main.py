@@ -43,13 +43,11 @@ def compile_file(source_path: str) -> int:
         print(f"Error reading file: {e}", file=sys.stderr)
         return 1
 
-    # Project settings (Tasks 12.12, 31) - fusion.toml (or .yaml / .json / .ini) next to the
-    # source file or in the current directory. None anywhere: a new fusion.toml is written,
-    # every setting at its default - unless --no-new-config or FUSION_NO_NEW_CONFIG=1 (build
-    # scripts and the test runs, which must not write files)
-    create = '--no-new-config' not in sys.argv[2:] and os.environ.get('FUSION_NO_NEW_CONFIG') != '1'
+    # Project settings (Tasks 12.12, 31, 58.2) - a Fusion.Settings block first in the file, or settings.toml (or
+    # .yaml / .json / .ini) next to the source file or in the current directory; none: every default - nothing is
+    # written (D.227)
     try:
-        project_config = load_project_config(source_path, create_missing=create)
+        project_config = load_project_config(source_path)
     except ProjectConfigError as e:
         print(f"Project configuration error: {e}", file=sys.stderr)
         return 1
@@ -226,8 +224,6 @@ def main():
         print("Usage: fusion <source.fusion>", file=sys.stderr)
         print("       fusion <source.fusion> --interface [module]   "
               "(the public interface of the modules it imports)", file=sys.stderr)
-        print("       --no-new-config   don't write a fusion.toml when the project has no "
-              "settings file", file=sys.stderr)
         return 1
 
     source_path = sys.argv[1]
@@ -239,7 +235,7 @@ def main():
 def print_interfaces(source_path: str, args: list) -> int:
     """`fusion main.fusion --interface [module]` (Task 18.4.4): print the public structs
     and functions of every module the program imports, or of one of them."""
-    rest = [a for a in args if not a.startswith('--')]      # --interface, --no-new-config ...
+    rest = [a for a in args if not a.startswith('--')]      # --interface ...
     try:
         project_config = load_project_config(source_path)
         lines, errors = program_interfaces(source_path, rest[0] if rest else None, project_config)

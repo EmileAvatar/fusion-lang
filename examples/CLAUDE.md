@@ -44,11 +44,11 @@ name alone. `tools/example_files.py` knows the layout; check.py, verify_examples
   `wordcount/` (modules `text` and `counting`; counts a file given as an argument, or a
   sample it writes and deletes) and `expressions/` (modules `lexing` and `parsing`: text ->
   tokens -> an expression tree -> a value, with enums and match) and `suppliers/` (namespaces, Task 57: Acme's
-  library in `vendor/` through its `fusion.toml` `[libraries]`, the program's own `Shop/Database`, an alias, a
+  library in `vendor/` through its `settings.toml` `[libraries]`, the program's own `Shop/Database`, an alias, a
   namespace import, full names, a static factory, `internal` across a namespace). Its `.c` /
   `.exe` are `main.c` / `main.exe` in its folder; its expected output is keyed by the
   folder name; check.py, verify_examples and `#run.bat` include it
-- **`fusion.toml`** - the same file in each topic folder 01-12 (a program finds the settings
+- **`settings.toml`** - the same file in each topic folder 01-12 (a program finds the settings
   file next to it): `[build] waitAtExit = true`, `[structs] functions = true` for
   `syntax_struct_methods`, and `[ranges] decimals = true` for `syntax_ranges` (47.6). Change all of them together
 - **`#list.csv`** - generated: `fusion, c, exe, task, added` for every example, with its topic
@@ -56,8 +56,8 @@ name alone. `tools/example_files.py` knows the layout; check.py, verify_examples
 - **`#run.bat`** - generated: runs every `.exe` with `--headless` and no input (`< nul`), each under a
   `---- folder\name.exe ----` header, then pauses once so the console stays open. Double-click it
   to see everything run. (Run on its own, a program waits for a key before it closes - the
-  folder's `fusion.toml` sets `[build] waitAtExit = true`; programs elsewhere close at once by default)
-- **`13_projects/project_config_demo/`** - a manual demo of `fusion.toml` changing compiler behaviour
+  folder's `settings.toml` sets `[build] waitAtExit = true`; programs elsewhere close at once by default)
+- **`13_projects/project_config_demo/`** - a manual demo of `settings.toml` changing compiler behaviour
 
 ## Rules
 
@@ -67,7 +67,7 @@ name alone. `tools/example_files.py` knows the layout; check.py, verify_examples
    those two
 2. `python check.py` fails if a `syntax_*.fusion` file is out of date with
    `files/SYNTAX_REFERENCE.md`, or a program has no topic folder
-3. **In git:** `.fusion` files, the `fusion.toml` files and this file. **Not in git (local
+3. **In git:** `.fusion` files, the `settings.toml` files and this file. **Not in git (local
    preview only, reaches the other PC via Dropbox):** `.c`, `.exe`, `#list.csv`, `#run.bat` -
    user decision 2026-10-09
 4. Every example must compile, run, and be leak-free - `python check.py` checks all of them

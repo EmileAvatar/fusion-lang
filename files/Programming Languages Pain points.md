@@ -71,7 +71,7 @@ Also worth knowing:
 | Code that writes code | Lisp, Clojure, Elixir, Zig | Templates (Task 29.3); macros and compile-time code not designed yet |
 | Small and embeddable | Lua | The `[stdlib] layer` (`core` = no heap); embedding in other programs not designed yet |
 | Tedious glue and text work | Perl, PHP, Ruby | A rich string library (`files/Builtins.md`) |
-| One language can't fit every job | every language on this list | Fusion's core idea: rules switched per project in `fusion.toml` (GOL.001) |
+| One language can't fit every job | every language on this list | Fusion's core idea: rules switched per project in `settings.toml` (GOL.001) |
 
 ---
 
@@ -81,7 +81,7 @@ Also worth knowing:
 its borrow checker. Where a language does differ by domain, it is done with outside tools or
 a separate dialect, such as Rust's `#![no_std]`, Embedded C++ subsets, MISRA C guidelines or
 Kotlin/Native. Fusion is meant to be one language whose **rules switch per project** in
-`fusion.toml`, with the same syntax everywhere (Decisions.md GOL.001).
+`settings.toml`, with the same syntax everywhere (Decisions.md GOL.001).
 
 **What can be switched today:**
 - `[stdlib] layer`: `std` (everything), `alloc` (no OS: no print, no files) or `core` (no heap). That is the start of OS and embedded support.

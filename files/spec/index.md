@@ -14,7 +14,7 @@ Ideas not decided or scheduled yet: [files/future/index.md](../future/index.md).
 
 | File | What it holds |
 |---|---|
-| [001 TomlSettings](001-TomlSettings.md) | Every project setting (`fusion.toml`): the built ones (generated) and the decided ones |
+| [001 TomlSettings](001-TomlSettings.md) | Every project setting (`settings.toml`): the built ones (generated) and the decided ones |
 | [010 Philosophy](010-Philosophy.md) | The principles every task follows; the three block styles and the source text rules |
 | [020 SemanticContract](020-SemanticContract.md) | What every built construct does, in one place - each rule tested |
 | [030 Types](030-Types.md) | Value and reference types, every built-in type, nullability, variables, constants |

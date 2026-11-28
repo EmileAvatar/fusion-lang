@@ -82,7 +82,7 @@ string captainName = ship?.getCaptain()?.getName() ?? "Unknown"   // a chain
 
 ### Numbers as conditions
 
-`if count` with a number: a `fusion.toml` setting (Task 30.9, user 2026-10-27):
+`if count` with a number: a `settings.toml` setting (Task 30.9, user 2026-10-27):
 
 ```toml
 [conditions]

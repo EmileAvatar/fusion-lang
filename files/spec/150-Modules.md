@@ -90,7 +90,7 @@ classes, interfaces, enums, error types, functions and module variables:
     interface may be `private` - its module only (`internal` - the namespace)
   - A module folder without a namespace (`money/`) and the main file are free, as before
 * **External libraries** (Task 57.3, D.206, D.213):
-  - fusion.toml lists each library the project imports - its namespace and its folder, relative to the settings
+  - settings.toml lists each library the project imports - its namespace and its folder, relative to the settings
     file (as a VB.NET project reference):
     ```toml
     [libraries]

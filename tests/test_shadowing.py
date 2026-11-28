@@ -90,8 +90,8 @@ def test_on_a_field_is_reached_by_this():
 # ---- the setting ----
 
 def test_the_setting_is_read(tmp_path):
-    (tmp_path / 'fusion.toml').write_text('[source]\nshadowing = true\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text('[source]\nshadowing = true\n', encoding='utf-8')
     assert load_project_config(str(tmp_path / 'main.fusion')).source.shadowing is True
-    (tmp_path / 'fusion.toml').write_text('[source]\nshadowing = "yes"\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text('[source]\nshadowing = "yes"\n', encoding='utf-8')
     with pytest.raises(ProjectConfigError):
         load_project_config(str(tmp_path / 'main.fusion'))

@@ -131,7 +131,7 @@ print(sym.definedIn)      // "UserService.fusion:23"
 
 **Enable/disable per project:**
 ```toml
-# fusion.toml (corrected 2026-09-27 - Fusion's real project config format is TOML,
+# settings.toml (corrected 2026-09-27 - Fusion's real project config format is TOML,
 # decided in Task 12.12; the original JSON example predates that decision)
 [symbols]
 enabled = true

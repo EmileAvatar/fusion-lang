@@ -42,7 +42,7 @@ Already covered by the spec, so not gaps: parallel reads (S4, `Snapshot`, `MaxPa
 - `Readers = PARALLEL | SERIAL` appears only in S4, not in the settings tables.
 - Default `Timeout` is "per kind of resource", but `[concurrency.traps] missingTimeout = "error"`. What default does a plain (non-resource) service get?
 - `WorkerThreadType.AUTO` switching `SHARED` to `SINGLE` at runtime implies migrating live state. A rule is needed.
-- Naming: the spec uses `max_unit_warn` / `max_unit` in prose but `maxUnitWarn` / `maxUnit` in `fusion.toml`; `file_lock` in prose vs `fileLock` in toml. Pick one style.
+- Naming: the spec uses `max_unit_warn` / `max_unit` in prose but `maxUnitWarn` / `maxUnit` in `settings.toml`; `file_lock` in prose vs `fileLock` in toml. Pick one style.
 
 ---
 

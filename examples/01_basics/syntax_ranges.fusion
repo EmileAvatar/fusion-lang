@@ -23,7 +23,7 @@ void function main()
         'A'...'Z' : "upper"
         else : "other"
     print("{@1} {@2}", grade(95), kind)     // A lower
-    // Decimals and money (47.6) - [ranges] decimals = true in fusion.toml
+    // Decimals and money (47.6) - [ranges] decimals = true in settings.toml
     double last = 0.0
     for x in 0.0...1.0 step 0.1             // each value start + n * step - nothing drifts
         last = x

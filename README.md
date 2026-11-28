@@ -221,7 +221,7 @@ fusion-lang/
 │   ├── semantic/        # Types, names, built-in functions, checks
 │   ├── codegen/         # C code and the C runtime (strings, bytes, lists, maps, files)
 │   ├── modules/         # import: module folders, public / private
-│   ├── config/          # fusion.toml
+│   ├── config/          # settings.toml
 │   └── utils/           # Errors, source locations
 ├── tests/               # The test suite
 ├── examples/            # Example programs and projects

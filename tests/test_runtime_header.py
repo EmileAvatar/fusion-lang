@@ -72,7 +72,7 @@ def test_settings_come_before_the_header():
     with tempfile.TemporaryDirectory() as tmp:
         program = Path(tmp) / 'p.fusion'
         program.write_text('void function main()\n    print("hi")\n', encoding='utf-8')
-        (Path(tmp) / 'fusion.toml').write_text('[strings]\nmax_length = 100\n', encoding='utf-8')
+        (Path(tmp) / 'settings.toml').write_text('[strings]\nmax_length = 100\n', encoding='utf-8')
         code = c_code(program, runtime_include='fusion_runtime.h')
     assert code.index('#define FUSION_MAX_LENGTH 100') < code.index('#include "fusion_runtime.h"')
 

@@ -1,22 +1,23 @@
 [Index](index.md) | [010 Philosophy >](010-Philosophy.md) <!-- nav -->
 
-# 001 Project Settings (fusion.toml)
+# 001 Project Settings (settings.toml)
 
 Every project setting Fusion has or will have, in one place. A project writes its choices in
-`fusion.toml` next to its source (or `fusion.yaml`, `.json`, `.ini`); a setting left out keeps
+`settings.toml` next to its source (or `settings.yaml`, `.json`, `.ini`); a setting left out keeps
 its default. Names are camelCase and read in any case, `_` ignored (`tab_width` = `tabWidth`).
 
 - **Built** - works today. Generated from `files/fusionSettings.xml` (the master template the
   compiler checks against) by `python tools/settings_doc.py` - never edited here
 - **Decided, not built** - written by hand when a setting is decided; moves to Built once the
   feature is built and the setting is in `files/fusionSettings.xml`
-- Every setting a finished Fusion will have, as a file: `files/showcase/fusion.toml`
+- Every setting a finished Fusion will have, as a file: `files/showcase/fusion.toml` - the reference (D.227); a
+  project's own `settings.toml` holds only what it changes, and none is ever written by itself
 - **In the code** (Task 58.2, D.224, D.226): a `Fusion.Settings { ... }` block first in the file that starts the
   program is used instead of the settings file - `maxIterations = 100000` (the name alone when one section has it),
   `money.rounding = "halfUp"` (its section otherwise); in another file it is ignored with a warning (D.228)
 
 ```toml
-# fusion.toml - a few settings; everything else keeps its default
+# settings.toml - a few settings; everything else keeps its default
 [memory]
 ownership = "strict"       # "relaxed": two names on one object, the rules loosened
 

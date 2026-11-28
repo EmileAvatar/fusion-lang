@@ -21,8 +21,7 @@ def build_and_run(tmp_path, files: dict, args=()) -> tuple:
     """main.py on main.fusion, then the program with args: (exit code, its output)."""
     for name, text in files.items():
         write_project(str(tmp_path), {name: text})
-    built = subprocess.run([sys.executable, os.path.join(REPO, 'main.py'), str(tmp_path / 'main.fusion'),
-                            '--no-new-config'], capture_output=True, text=True, encoding='utf-8')
+    built = subprocess.run([sys.executable, os.path.join(REPO, 'main.py'), str(tmp_path / 'main.fusion')], capture_output=True, text=True, encoding='utf-8')
     assert built.returncode == 0, built.stdout + built.stderr
     ran = subprocess.run([str(tmp_path / 'main.exe'), *args], capture_output=True, text=True, encoding='utf-8')
     return ran.returncode, ran.stdout
@@ -137,7 +136,7 @@ def test_a_settings_block(tmp_path, block):
 
 
 def test_the_block_is_used_instead_of_the_settings_file(tmp_path):
-    files = {'fusion.toml': '[safety]\nmaxIterations = 5\n',
+    files = {'settings.toml': '[safety]\nmaxIterations = 5\n',
              'main.fusion': 'Fusion.Settings {\n    maxIterations = 50\n}\n\n' + LIMITED}
     assert build_and_run(tmp_path, files) == (0, 'stopped at 50\n')
 

@@ -84,10 +84,8 @@ DEMO_TASKS = {'arrays_demo': '09', 'const_demo': '08'}
 def run(cmd, **kwargs):
     # Empty input: a program that reads input (readLine, Task 18.5.4) sees its end at once
     # instead of waiting for the console
-    # FUSION_NO_NEW_CONFIG: compiling never writes a fusion.toml into the repo (Task 31)
-    env = dict(os.environ, FUSION_NO_NEW_CONFIG='1')
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, encoding='utf-8',
-                          errors='replace', stdin=subprocess.DEVNULL, env=env, **kwargs)
+                          errors='replace', stdin=subprocess.DEVNULL, **kwargs)
 
 
 # ---------------------------------------------------------------- individual checks
@@ -398,7 +396,7 @@ def check_leaks():
     # examples/ (syntax_*) would only repeat them
     programs = [(example_name(p), p.read_text(encoding='utf-8'), str(p))
                 for p in example_sources() if not p.name.startswith('syntax_')]
-    # built as if in their topic folder - where they live - so its fusion.toml applies
+    # built as if in their topic folder - where they live - so its settings.toml applies
     marked = {code: folder for _, _, folder, code in reference_examples()}
     programs += [(f'SYNTAX_REFERENCE #{i}', code,
                   str(EXAMPLES / marked.get(code, '01_basics') / 'reference.fusion'))

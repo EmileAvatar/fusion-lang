@@ -370,9 +370,9 @@ def test_move_field_out_never_from_a_parameter():
 def test_the_setting_is_read_and_checked(tmp_path):
     from src.config.project_config import ProjectConfigError, load_project_config
     (tmp_path / 'p.fusion').write_text('')
-    (tmp_path / 'fusion.toml').write_text('[memory]\nmoveFieldOut = true\n')
+    (tmp_path / 'settings.toml').write_text('[memory]\nmoveFieldOut = true\n')
     assert load_project_config(str(tmp_path / 'p.fusion')).memory.move_field_out is True
-    (tmp_path / 'fusion.toml').write_text('[memory]\nmoveFieldOut = "yes"\n')
+    (tmp_path / 'settings.toml').write_text('[memory]\nmoveFieldOut = "yes"\n')
     with pytest.raises(ProjectConfigError, match='moveFieldOut must be a boolean'):
         load_project_config(str(tmp_path / 'p.fusion'))
 

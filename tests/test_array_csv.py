@@ -84,10 +84,10 @@ def test_three_dimensions_off_is_an_error():
 
 
 def test_the_setting_is_read(tmp_path):
-    found = load(tmp_path, 'fusion.toml', '[arrays]\ncsvManyDimensions = false\n')
+    found = load(tmp_path, 'settings.toml', '[arrays]\ncsvManyDimensions = false\n')
     assert found.arrays.csv_many_dimensions is False
     with pytest.raises(ProjectConfigError, match='true or false'):
-        load(tmp_path, 'fusion.toml', '[arrays]\ncsvManyDimensions = "no"\n')
+        load(tmp_path, 'settings.toml', '[arrays]\ncsvManyDimensions = "no"\n')
 
 
 @pytest.mark.parametrize('body, message', [

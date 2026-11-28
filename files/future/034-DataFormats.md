@@ -16,7 +16,7 @@ that is easy to read and change, then saved again:
 - `load(path)` / `save(path)`, and from or to a string
 - recovering from minor syntax mistakes where that is safe (from 43.2)
 - once the compiler is written in Fusion, it replaces the compiler's Python readers for
-  `fusion.toml` / `.yaml` / `.json` / `.ini` (Task 31)
+  `settings.toml` / `.yaml` / `.json` / `.ini` (Task 31)
 
 **2. A document written in the code.** JSON and XML may be written directly in the source,
 inside a multi-line string (`"""..."""`, Later in files/FEATURES.md, STR.008), marked with its

@@ -250,7 +250,7 @@ def test_a_written_number_used_as_a_double_is_the_number_written():
 # ---- the settings ----
 
 def test_the_settings_are_read(tmp_path):
-    (tmp_path / 'fusion.toml').write_text('[ranges]\ndecimals = true\nstepRequired = false\ndefaultStep = 0.25\n'
+    (tmp_path / 'settings.toml').write_text('[ranges]\ndecimals = true\nstepRequired = false\ndefaultStep = 0.25\n'
                                           'rangeMaxStep = 5\n', encoding='utf-8')
     ranges = load_project_config(str(tmp_path / 'main.fusion')).ranges
     assert (ranges.decimals, ranges.step_required, ranges.default_step, ranges.range_max_step) == (
@@ -261,6 +261,6 @@ def test_the_settings_are_read(tmp_path):
                                   'rangeMaxStep = 1.5', 'decimals = 1'])
 def test_bad_settings(tmp_path, line):
     from src.config.project_config import ProjectConfigError
-    (tmp_path / 'fusion.toml').write_text(f'[ranges]\n{line}\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text(f'[ranges]\n{line}\n', encoding='utf-8')
     with pytest.raises(ProjectConfigError):
         load_project_config(str(tmp_path / 'main.fusion'))

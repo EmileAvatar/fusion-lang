@@ -96,7 +96,7 @@ def test_strict_step_makes_it_an_error():
 
 def test_strict_step_setting_is_read(tmp_path):
     from src.config.project_config import load_project_config
-    (tmp_path / 'fusion.toml').write_text('[ranges]\n"strict Step" = true\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text('[ranges]\n"strict Step" = true\n', encoding='utf-8')
     assert load_project_config(str(tmp_path / 'main.fusion')).ranges.strict_step is True
 
 

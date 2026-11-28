@@ -13,7 +13,7 @@
 
 ## Build and Compilation
 
-**Status:** [PARTLY] the settings file is built - `fusion.toml` / `.yaml` / `.json` / `.ini` (Tasks 12.12, 31); every
+**Status:** [PARTLY] the settings file is built - `settings.toml` / `.yaml` / `.json` / `.ini` (Tasks 12.12, 31); every
 built setting: [001 Project Settings](001-TomlSettings.md); enforcing [safety] / [backend] [PLANNED 31.5]. Build
 modes and the `fusion run` / `fusion build` commands: design, no task yet - today the compiler is
 `python main.py program.fusion` (an executable, through C and GCC)
@@ -78,7 +78,7 @@ out of date; the authoritative schema and error messages: `src/config/project_co
   a gap between the concept and the code; the settings file closes it
 
 **Four formats (Task 31, built - user decisions 2026-10-28):**
-- `fusion.toml` is the default; `fusion.yaml` (or `.yml`), `fusion.json` and `fusion.ini` are alternatives -
+- `settings.toml` is the default; `settings.yaml` (or `.yml`), `settings.json` and `settings.ini` are alternatives -
   for a company that standardises on YAML, or INI for legacy hardware and software
 - All four give the same settings and are checked by the same rules
 - Why TOML is the default (2026-09-13): YAML needed a new dependency, and a Fusion-only format would
@@ -94,15 +94,15 @@ out of date; the authoritative schema and error messages: `src/config/project_co
   first of TOML, YAML, JSON, INI is used
   - Not a parent-folder walk like git's `.git` or npm's `package.json` - revisit once Fusion has
     multi-folder projects
-* **No settings file at all:** not an error - every setting has its default; the compiler writes a
-  new `fusion.toml` from the template, every setting at its default, each with a comment
-  (`--no-new-config`, or `FUSION_NO_NEW_CONFIG=1`, turns that off for build scripts)
+* **No settings file at all:** not an error - every setting has its default, and nothing is written (Task 58.2b,
+  D.227): a project's `settings.toml` holds only what it changes; every setting at its default, with a comment
+  each, is the reference `files/showcase/fusion.toml` (from `files/fusionSettings.xml`)
 * **A broken file is an error:** bad syntax, or a known setting with a wrong value - never a silent
   fall-back to defaults, so a typo doesn't compile with other settings than intended; an unknown
   setting is an error too
 * **Changing format:** `[project] fusionSettingFormat = "TOML"` (TOML / YAML / JSON / INI).
   Set it to another format and the next compile writes the settings in that format (with
-  the template's comments) and keeps the old file as a backup (`fusion.toml.bak`) - only one
+  the template's comments) and keeps the old file as a backup (`settings.toml.bak`) - only one
   settings file is active. Your own comments live on in the backup
 * **INI** holds only text: `true` / `false` (nothing else) become true / false, whole numbers
   become numbers, `"quoted"` or bare text stays text. **YAML** reads a bare `no` / `off` as
@@ -115,7 +115,7 @@ out of date; the authoritative schema and error messages: `src/config/project_co
   its intent and catch typos) but not acted on (31.5)
 
 ```toml
-# fusion.toml - a few settings; everything else keeps its default (the full list: 001)
+# settings.toml - a few settings; everything else keeps its default (the full list: 001)
 [indentation]
 tabWidth = 4               # spaces per tab
 

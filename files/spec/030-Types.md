@@ -191,7 +191,7 @@ function - `const int LIMIT = 3`, `int count = 0`, `public string version = "1.0
   name - which one is meant would be easy to misread
 * Strings, lists, maps and structs held in them are freed when the program ends
 * A module-level array needs a list of values (`int[] primes = [2, 3, 5]`)
-* `fusion.toml` `[modules] variables = false` turns module variables off; constants are
+* `settings.toml` `[modules] variables = false` turns module variables off; constants are
   always allowed (user decision 2026-10-26)
 * Shared between threads, a module variable is what `service` is for (Task 42)
 

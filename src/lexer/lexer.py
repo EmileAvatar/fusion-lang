@@ -53,14 +53,14 @@ class Lexer:
             source: Source code to tokenize
             filename: Name of source file (default: "<stdin>")
             tab_width: Spaces per tab for indentation tracking (default: 4). Normally left
-                at the default and overridden via a project's fusion.toml [indentation]
+                at the default and overridden via a project's settings.toml [indentation]
                 section instead of being passed directly - see src/config/project_config.py
                 (Task 12.12).
             allow_mixed: Allow mixed tabs/spaces with a warning instead of an error
                 (default: True). Same project-config note as tab_width.
             allow_unicode_identifiers: Allow non-ASCII identifiers (default: False -
                 identifiers are ASCII-only to block homoglyph attacks). Normally set via
-                fusion.toml [source] instead - see src/lexer/source_security.py (Task 19.6).
+                settings.toml [source] instead - see src/lexer/source_security.py (Task 19.6).
         """
         # A UTF-8 byte-order mark (often added by Windows editors) is legitimate only as the
         # very first character of a file - strip it there. Anywhere else it is rejected as an

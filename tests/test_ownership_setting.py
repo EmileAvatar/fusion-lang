@@ -5,7 +5,7 @@ from src.config.project_config import MemoryConfig, ProjectConfigError, load_pro
 
 
 def load(tmp_path, memory: str):
-    (tmp_path / 'fusion.toml').write_text('[memory]\n' + memory + '\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text('[memory]\n' + memory + '\n', encoding='utf-8')
     (tmp_path / 'main.fusion').write_text('void function main()\n    print("x")\n', encoding='utf-8')
     return load_project_config(str(tmp_path / 'main.fusion'))
 

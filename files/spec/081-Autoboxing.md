@@ -13,7 +13,7 @@
 - The program's own function replaces a library one of the same name, as a plain call does
 - The function gets a copy (structs are values): `p = p.moved(1, 2)`
 - Passing will follow VB.NET once classes exist: value types by value, objects by reference
-- Functions inside a struct: a `fusion.toml` option, off by default (32.1 - since built, `[structs] functions`)
+- Functions inside a struct: a `settings.toml` option, off by default (32.1 - since built, `[structs] functions`)
 
 Description: Automatic primitive-to-object conversion for method calls.
 

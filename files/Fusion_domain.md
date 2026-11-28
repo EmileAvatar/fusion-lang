@@ -26,7 +26,7 @@ seeing as one shape rather than as a status report.
 The entry point that decides which parts of the rest of this tree apply to a given project.
 
 ```
-Project Configuration (fusion.toml)
+Project Configuration (settings.toml)
 ├── Syntax Style
 │   ├── Block style (indentation / braces / End keywords)
 │   ├── Indentation width, mixed tabs/spaces policy
@@ -329,7 +329,7 @@ Developer Tooling
 │   ├── Code formatter (converts between all three block styles)
 │   └── Editor extensions (VS Code, IntelliJ, Sublime, Vim, Emacs)
 └── Project Configuration
-    └── fusion.toml (see Section 1)
+    └── settings.toml (see Section 1)
 ```
 
 ---

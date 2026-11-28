@@ -41,7 +41,7 @@ Only the plan being worked on now and the next action - nothing done, nothing wa
 - **Next Action:** Task 58 - 58.1 (the plan below, approved - D.221-D.229)
 
 ## Task 58 - Script mode: Fusion written and run like a Python script (plan 3 - 2026-11-28, approved - D.221-D.229)
-**Today:** `python main.py program.fusion` writes program.c and program.exe next to it (and a fusion.toml when there is
+**Today:** `python main.py program.fusion` writes program.c and program.exe next to it (and a settings.toml when there is
 none); it is then run by hand; a statement at the top of a file is a parse error; `main(string... args)`, `exit(n)`.
 Decided D.221-D.229.
 
@@ -54,8 +54,8 @@ Decided D.221-D.229.
   `section.name`; the same checks as the settings file; used instead of the settings file; only the starting
   file's - another file's ignored with a warning; in a program with `main` too
 - 58.2b The settings file (D.227, Q.099 A): none written any more - none means the defaults (`--no-new-config` and
-  31.2's new file go); the file is `settings.toml` (/ .yaml / .yml / .json / .ini) - every fusion.toml in examples/
-  and the tests renamed; `fusion.toml` stays the reference (files/showcase/); spec 001, CLAUDE.md, the docs
+  31.2's new file go); the file is `settings.toml` (/ .yaml / .yml / .json / .ini) - every settings.toml in examples/
+  and the tests renamed; `settings.toml` stays the reference (files/showcase/); spec 001, CLAUDE.md, the docs
 - 58.3 `python main.py run tidy.fusion [arguments]` (D.221, D.223, D.224): builds into the cache folder - a hash
   of the script, the files it imports, its settings and the compiler's version; unchanged - the kept program runs at
   once; where the cache folder can't be written, next to the script; the arguments passed, the exit code passed
@@ -69,6 +69,6 @@ Decided D.221-D.229.
 
 **Tests:** tests/test_scripts.py - a truth table in spec 170 (Rule 4c): with / without main x statements at the top x
 variables used by functions x args / exit code x the cache - first build, unchanged, the script changed, an import
-changed, a setting changed x a fusion.toml there or not (none written) x a `Fusion.Settings` block - first, not first, in another file x `#!`
+changed, a setting changed x a settings.toml there or not (none written) x a `Fusion.Settings` block - first, not first, in another file x `#!`
 - each row a test.
 **Settings:** none.

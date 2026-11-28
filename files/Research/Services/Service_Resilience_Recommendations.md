@@ -335,7 +335,7 @@ Integrate this with existing ownership and `Shutdown` rules. Do not free memory 
 
 ## 7. Resource services: possible expansion
 
-The current `fusion.toml` proposal already includes:
+The current `settings.toml` proposal already includes:
 
 ```toml
 [concurrency]
@@ -443,7 +443,7 @@ For each item, classify it as **Already specified**, **Partially specified**, **
 
 Use this document as a design-review checklist, not as permission to implement every proposal immediately.
 
-1. Read the current `Service.md`, `Ownership.md`, `Concurrency.md`, `Concurrency_Traps.md`, `fusion.toml` design and relevant decision notes.
+1. Read the current `Service.md`, `Ownership.md`, `Concurrency.md`, `Concurrency_Traps.md`, `settings.toml` design and relevant decision notes.
 2. Locate existing definitions for `Mailbox`, `WhenFull`, `Timeout`, `Priority`, `WorkerThreadType`, `Readers`, `Retry`, `OnError`, `Shutdown`, `state`, `ThreadPool` and service ownership/lifetime.
 3. Build a gap analysis against Sections 4–10.
 4. For each recommendation, identify whether it is already covered, partially covered, missing or unsuitable.

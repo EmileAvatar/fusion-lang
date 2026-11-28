@@ -26,7 +26,7 @@ Contents:
   (FEATURES L2.3, SET.012) - one app for every command in section 4
 - **The compiler is a library first, the commands sit on top.** The same compiler serves the command line, the IDE,
   a REPL, script mode and the script libraries (Task 60.8 `Fusion.Compiler`, Research R7.5)
-- **Safe by default, every choice a setting** - the commands read `fusion.toml`, as the compiler does (GOL.006)
+- **Safe by default, every choice a setting** - the commands read `settings.toml`, as the compiler does (GOL.006)
 - **Built for people and for AI agents:** every error in one form with a fix hint, and as JSON (L2.1, SET.009)
 - **Never trust code:** packages, build scripts and plugins are untrusted - no install scripts that run on their own
   (the npm worms - Research R8.9), sandboxed libraries (D.122)
@@ -106,7 +106,7 @@ Their tools, and the one or two ideas worth taking. Some overlap - an idea is li
 - build modes: debug / release / safe / small - **planned** (SET.020)
 
 #### Settings and projects
-- `fusion.toml` (or .yaml / .json / .ini), written for a new project - **have** (SET.001)
+- `settings.toml` (or .yaml / .json / .ini) - what a project changes, never written by itself (D.227) - **have** (SET.001)
 - `[project]` name, version, the file holding main - **planned** (SET.019)
 - modules and namespaces, search paths - **planned** (Task 57, L13.4)
 - packages and their versions, a lock file - **idea**
@@ -141,9 +141,9 @@ One app for everything (L2.3, SET.012). The name `console` is the working name -
 equivalent is given where there is one.
 
 #### Projects
-- `console new <name> [template]` - a new project: folders, fusion.toml, main.fusion; templates (app, library, web-api, game) - **idea** (Ruby, C#)
+- `console new <name> [template]` - a new project: folders, settings.toml, main.fusion; templates (app, library, web-api, game) - **idea** (Ruby, C#)
 - `console init` - make the current folder a project - **idea**
-- `console settings` - show or change fusion.toml; write it from the master template - **planned** (SET.011)
+- `console settings` - show or change settings.toml; write it from the master template - **planned** (SET.011)
 
 #### Build and run
 - `console build` - **have** as `python main.py x.fusion`
@@ -207,7 +207,7 @@ equivalent is given where there is one.
 - **ownership:** who owns this value, where it moves, where it is borrowed, and why a line is an error - **idea**
 - **memory:** stack or heap, how big, which arrays move to the heap (D.154) - **idea**
 - **services:** each service's queue, its worker, timeouts, health - a live dashboard - **idea** (Research R1.28)
-- **settings:** fusion.toml as a form, each setting with its description and default (from fusionSettings.xml) - **idea**
+- **settings:** settings.toml as a form, each setting with its description and default (from fusionSettings.xml) - **idea**
 - **governance links:** the ticket and the rule behind a function; suspect and orphan code - **idea** (Research R8)
 - **code-quality overlays, refactoring, a symbol database** - **planned** (SET.024, fusionlib.IDE)
 

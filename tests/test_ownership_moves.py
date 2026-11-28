@@ -187,14 +187,14 @@ def test_share_keeps_two_names_on_one_object():
 
 
 def test_the_setting_is_read(tmp_path):
-    (tmp_path / 'fusion.toml').write_text('[memory]\nassignment = "move"\n')
+    (tmp_path / 'settings.toml').write_text('[memory]\nassignment = "move"\n')
     (tmp_path / 'p.fusion').write_text('')
     assert load_project_config(str(tmp_path / 'p.fusion')).memory.assignment == 'move'
 
 
 def test_a_bad_value_is_an_error(tmp_path):
     from src.config.project_config import ProjectConfigError
-    (tmp_path / 'fusion.toml').write_text('[memory]\nassignment = "copy"\n')
+    (tmp_path / 'settings.toml').write_text('[memory]\nassignment = "copy"\n')
     (tmp_path / 'p.fusion').write_text('')
     with pytest.raises(ProjectConfigError, match='memory.assignment must be'):
         load_project_config(str(tmp_path / 'p.fusion'))

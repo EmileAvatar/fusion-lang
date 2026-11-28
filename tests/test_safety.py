@@ -240,11 +240,11 @@ def test_max_call_depth_in_fusion_toml(tmp_path):
     from src.config import load_project_config, ProjectConfigError
     source = str(tmp_path / 'p.fusion')
     assert load_project_config(source).max_call_depth is None
-    (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = 10000\n')
+    (tmp_path / 'settings.toml').write_text('[safety]\nmax_call_depth = 10000\n')
     assert load_project_config(source).max_call_depth == 10000
-    (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = "max"\n')
+    (tmp_path / 'settings.toml').write_text('[safety]\nmax_call_depth = "max"\n')
     assert load_project_config(source).max_call_depth is None
-    (tmp_path / 'fusion.toml').write_text('[safety]\nmax_call_depth = 0\n')
+    (tmp_path / 'settings.toml').write_text('[safety]\nmax_call_depth = 0\n')
     with pytest.raises(ProjectConfigError, match='maxCallDepth must be "max" or a whole number'):
         load_project_config(source)
 
@@ -496,8 +496,8 @@ def test_numbers_section_in_fusion_toml(tmp_path):
     from src.config import load_project_config, ProjectConfigError
     source = str(tmp_path / 'p.fusion')
     assert load_project_config(source).numbers.auto_widening is False
-    (tmp_path / 'fusion.toml').write_text('[numbers]\nauto_widening = true\n')
+    (tmp_path / 'settings.toml').write_text('[numbers]\nauto_widening = true\n')
     assert load_project_config(source).numbers.auto_widening is True
-    (tmp_path / 'fusion.toml').write_text('[numbers]\nauto_widening = "yes"\n')
+    (tmp_path / 'settings.toml').write_text('[numbers]\nauto_widening = "yes"\n')
     with pytest.raises(ProjectConfigError, match='must be true or false'):
         load_project_config(source)

@@ -392,7 +392,7 @@ def test_a_built_in_failure_bubbles_out_of_functions():
     ) == ['0 index 2 is outside the list (length 1) at test.fusion:3']
 
 
-# ---------------------------------------------------------------- 26.5 [errors] in fusion.toml
+# ---------------------------------------------------------------- 26.5 [errors] in settings.toml
 
 from src.config import ErrorsConfig, load_project_config, ProjectConfigError  # noqa: E402
 from src.lexer import Lexer  # noqa: E402
@@ -420,7 +420,7 @@ def test_both_ways_are_on_by_default():
 def test_turning_error_returns_off():
     errors = errors_with(USES_BOTH, returns=False)
     assert "'half' returns an Error - error returns is turned off for this project " \
-           "([errors] returns = false in fusion.toml)" in errors
+           "([errors] returns = false in settings.toml)" in errors
     assert "Capturing an error is turned off" in errors
     assert 'try / catch' not in errors and 'throw is turned off' not in errors
 
@@ -435,11 +435,11 @@ def test_turning_exceptions_off():
 def test_errors_section_in_fusion_toml(tmp_path):
     source = str(tmp_path / 'p.fusion')
     assert load_project_config(source).errors == ErrorsConfig()
-    (tmp_path / 'fusion.toml').write_text('[errors]\nreturns = false\n')
+    (tmp_path / 'settings.toml').write_text('[errors]\nreturns = false\n')
     assert load_project_config(source).errors == ErrorsConfig(returns=False, exceptions=True)
     for text, message in [('[errors]\nexceptions = "no"\n', "errors.exceptions must be true or false"),
                           ('[errors]\npanic = true\n', "unknown setting errors.panic")]:
-        (tmp_path / 'fusion.toml').write_text(text)
+        (tmp_path / 'settings.toml').write_text(text)
         with pytest.raises(ProjectConfigError, match=message):
             load_project_config(source)
 

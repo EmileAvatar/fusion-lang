@@ -2,7 +2,7 @@
 
 A `.fusion` file goes through these stages, in order (driven by `main.py` in the root):
 
-1. `config/` - load the optional `fusion.toml` project settings
+1. `config/` - load the optional `settings.toml` project settings
 2. `lexer/` - turn source text into tokens
 3. `parser/` - turn tokens into an AST (abstract syntax tree)
    - `modules/` - for a program with `import` lines: load each imported module folder once
@@ -12,7 +12,7 @@ A `.fusion` file goes through these stages, in order (driven by `main.py` in the
 
 | Folder | What it holds |
 |---|---|
-| `config/` | Project settings from `fusion.toml` (indentation, source rules, structs, strings) |
+| `config/` | Project settings from `settings.toml` (indentation, source rules, structs, strings) |
 | `lexer/` | Tokenizer: keywords, operators, literals, comments, indentation, source security |
 | `parser/` | AST node classes and the recursive-descent parser |
 | `modules/` | `import`: module folders, loading each once, merging into one program |

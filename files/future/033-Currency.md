@@ -125,7 +125,7 @@ decimal(18, 4) exchangeRate = 1.2345 // 18 digits total, 4 after the point - com
                                       // (18, not 19 - see "Capacity" below for why that limit is real)
 
 // Shorthand: decimal with no (precision, scale) uses a project-configurable default
-// (e.g. via fusion.toml - see Task 12.12's project configuration system)
+// (e.g. via settings.toml - see Task 12.12's project configuration system)
 decimal total = 0.00
 ```
 
@@ -138,7 +138,7 @@ decimal total = 0.00
   matching IEEE 754 and most database engines, vs. round-half-away-from-zero, the
   traditional COBOL/financial convention) - a real design decision to make before
   implementation, not an implementation detail to guess at. Candidate: default to
-  round-half-even, with the option to override per-project via `fusion.toml` (ties into
+  round-half-even, with the option to override per-project via `settings.toml` (ties into
   Task 12.12), since different financial jurisdictions/institutions mandate different
   rounding rules.
 - **Overflow/precision loss:** an operation whose exact result doesn't fit the declared
@@ -158,7 +158,7 @@ No.** `Currency` / `decimal(11, 2)` (matching COBOL `PIC 9(9)V99`) tops out at
 **999,999,999.99** - just under one billion. `PIC 9(9)V99` was sized for typical
 mid-20th-century business/accounting amounts, not modern trillion-dollar balance sheets or
 quintillion-scale figures - if a project needs more range, it declares more precision (see
-table below), or raises `currency_precision` in `fusion.toml` for `Currency` specifically.
+table below), or raises `currency_precision` in `settings.toml` for `Currency` specifically.
 
 `decimal(p, s)`'s syntax accepts any `(p, s)` a programmer writes - but the runtime backing
 proposed in the Codegen open question below (a plain `int64_t unscaled` value) has a real,
@@ -218,7 +218,7 @@ multi-trillion-dollar company's ledger without switching types:
 ```fusion
 Currency price = 19.99                        // no (p, s) given - uses the project's
                                                // configured default shape (11, 2 unless
-                                               // fusion.toml overrides it)
+                                               // settings.toml overrides it)
 
 Currency(11, 2) shopTotal = 49.99             // small business - explicit, same as the default
 Currency(21, 2) corporateBalance = 1000000000000.00  // multi-trillion-dollar scale - explicit
@@ -249,18 +249,18 @@ field:
 **The zero-config default itself is configurable, not hardcoded:** real-world currencies
 don't all share one shape - most use 2 minor-unit digits, but JPY uses 0 and a few (e.g.
 the Bahraini Dinar) use 3. So bare `Currency`'s default shape is proposed as
-project-configurable via `fusion.toml` (ties into Task 12.12), so a codebase that mostly
+project-configurable via `settings.toml` (ties into Task 12.12), so a codebase that mostly
 declares bare `Currency` isn't stuck with COBOL's shape if that's the wrong fit for it:
 
 ```toml
-# fusion.toml
+# settings.toml
 [types]
 currency_precision = 11   # default: 11 (matches COBOL PIC 9(9)V99) - used when Currency
                           # is declared with no explicit (p, s)
 currency_scale = 2        # default: 2  (matches COBOL PIC 9(9)V99) - same
 ```
 
-- A project working primarily in JPY, for example, could set `currency_scale = 0` project-wide, and every *bare* `Currency` declaration in that codebase follows without touching a single call site - the same "configure once, apply everywhere" philosophy `fusion.toml` already uses for `[indentation]`/`[safety]`/`[backend]` today.
+- A project working primarily in JPY, for example, could set `currency_scale = 0` project-wide, and every *bare* `Currency` declaration in that codebase follows without touching a single call site - the same "configure once, apply everywhere" philosophy `settings.toml` already uses for `[indentation]`/`[safety]`/`[backend]` today.
 - A declaration that writes its own `Currency(p, s)` explicitly always wins over the project default, exactly like writing `decimal(p, s)` explicitly does.
 
 **Explicitly out of scope for `Currency` itself (v1):** currency-symbol-aware formatting
@@ -289,7 +289,7 @@ inside it.
 #### Open Questions
 
 1. **Default precision/scale when omitted** (`decimal total = 0`, no `(p, s)`) - a fixed
-   language default (e.g. `(18, 2)`), or read from `fusion.toml` project configuration
+   language default (e.g. `(18, 2)`), or read from `settings.toml` project configuration
    (ties into Task 12.12)?
 2. **Rounding mode** - one fixed default for the whole language, or configurable
    per-project like the above?
@@ -309,7 +309,7 @@ inside it.
    accurate to the representation)
 6. **Bare `Currency`'s default shape** (when no explicit `(p, s)` is written) - keep
    `decimal(11, 2)` (matches COBOL `PIC 9(9)V99` exactly) as the language-level default, or
-   pick a different one and let `fusion.toml` be the only way most projects ever see a
+   pick a different one and let `settings.toml` be the only way most projects ever see a
    different value? (Explicit `Currency(p, s)` is unaffected either way - always honored
    as written, same as `decimal(p, s)`.)
 7. **`Currency` type-casing** - capitalized like a class (`String`, per "Clarification:
@@ -354,7 +354,7 @@ over `decimal` and costs almost nothing extra once `decimal` itself is built.
       overridden). Resolve this during name resolution/type checking, immediately rewriting
       to the equivalent `decimal(p, s)`, so every later pass - type checking, codegen - only
       ever needs to understand `decimal`, never a second parallel type
-- [ ] Read `[types].currency_precision`/`currency_scale` from `fusion.toml`
+- [ ] Read `[types].currency_precision`/`currency_scale` from `settings.toml`
       (`src/config/project_config.py`, extending Task 12.12's schema) to override bare
       `Currency`'s default shape per project - explicit `Currency(p, s)` always overrides
       this, same precedence as everywhere else project config meets an explicit declaration

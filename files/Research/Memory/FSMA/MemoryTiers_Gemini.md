@@ -54,7 +54,7 @@ Across modern systems engineering, five principles have emerged as the gold stan
 
 ## 3. Low-Memory vs. High-Memory Strategy Guide
 
-Because Fusion allows project-level hardware profiles in `fusion.toml` (just like `[concurrency.machine.min]` and `[concurrency.machine.small]` in `Service.md`), Fusion can automatically tune its **Data Stack** backing behavior based on available system RAM.
+Because Fusion allows project-level hardware profiles in `settings.toml` (just like `[concurrency.machine.min]` and `[concurrency.machine.small]` in `Service.md`), Fusion can automatically tune its **Data Stack** backing behavior based on available system RAM.
 
 ### A. Low-Memory Environments (Embedded, IoT, Containers `< 512 MB – 2 GB`)
 * **Primary Bottleneck:** **Memory Fragmentation & Page Overhead.** Large pre-allocated arenas waste precious RAM if they sit half-empty.
@@ -84,8 +84,8 @@ Because Fusion allows project-level hardware profiles in `fusion.toml` (just lik
 | **Standard** (`2 GB – 16 GB` / Desktop) | **64 KB – 256 KB** | Retain 1–2 warm pages; free excess | Per-thread local + shared pool | **Default Ownership** |
 | **High Memory** (`16 GB+` / Server & HotPath) | **2 MB Huge Pages** (pre-reserved) | Retain full high-water mark in cache | Lock-free append-only pool | **Default Ownership** (or Opt-In GC for graphs) |
 
-### How `fusion.toml` Can Expose This Automatically
-Just as `Service.md` defines `[concurrency.machine.min]`, Fusion can expose `[memory.machine.*]` tiers in `fusion.toml`:
+### How `settings.toml` Can Expose This Automatically
+Just as `Service.md` defines `[concurrency.machine.min]`, Fusion can expose `[memory.machine.*]` tiers in `settings.toml`:
 
 ```toml
 [memory.machine.min]          # Embedded / < 512 MB RAM

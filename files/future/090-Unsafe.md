@@ -26,7 +26,7 @@ anywhere else:**
 > configurable.
 
 - A program's semantics stay stable; what changes per project is *how* that meaning gets realized - memory strategy, safety level, compilation target, runtime footprint.
-- This is the same idea CLAUDE.md's "Core Concept" and this document's various per-project knobs (`fusion.toml`'s `[safety]`/`[backend]`, the decimal/Currency precision config, the Feature Registry concept explored in conversation) already point at individually - this framing is worth adopting as the one sentence that explains *why* all of those exist, rather than each looking like an unrelated configuration knob.
+- This is the same idea CLAUDE.md's "Core Concept" and this document's various per-project knobs (`settings.toml`'s `[safety]`/`[backend]`, the decimal/Currency precision config, the Feature Registry concept explored in conversation) already point at individually - this framing is worth adopting as the one sentence that explains *why* all of those exist, rather than each looking like an unrelated configuration knob.
 
 **Proposed escalation tiers** - not separate languages, one Fusion, with progressively lower
 guardrails available when a project genuinely needs them:

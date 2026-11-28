@@ -86,7 +86,7 @@ as Java and Python both do automatically for at least some strings) is proposed 
 **opt-in project setting**, not a default optimization:
 
 ```toml
-# fusion.toml
+# settings.toml
 [strings]
 pooling = false   # default - matches "no implicit behavior the developer didn't ask for"
 ```
@@ -97,7 +97,7 @@ repeated/duplicate strings are being created and that reusing storage would mean
 help. Pooling isn't free (it needs a lookup/hash step on string creation, and changes the
 lifetime story for anything sharing pooled storage), so defaulting it off and treating it as
 a measured, deliberate optimization - not a silent language behavior - fits Fusion's general
-"don't guess, let the project decide" philosophy already established for `fusion.toml`.
+"don't guess, let the project decide" philosophy already established for `settings.toml`.
 
 ### Security: strings are the wrong type for secrets
 
@@ -129,7 +129,7 @@ depends on `import` having parser support in the first place (currently none).
 **Deliverables (once scoped and approved):**
 - `m"..."`/`f"..."` lexer and parser support
 - Semantic rules for fixed-string immutability and templated-fixed-string calling
-- `[strings]` `fusion.toml` section (`pooling`)
+- `[strings]` `settings.toml` section (`pooling`)
 - Cross-reference from `fusionlib.Crypto`'s eventual design to the secure-storage need
   identified here
 

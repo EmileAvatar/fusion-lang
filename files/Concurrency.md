@@ -857,7 +857,7 @@ File audit = File.open("audit.log", mailbox = 100, whenFull = Full.ERROR)   // Q
 File trace = File.open("trace.log", mailbox = 1000, whenFull = Full.WAIT)
 ```
 
-**Settings (`fusion.toml`):**
+**Settings (`settings.toml`):**
 
 ```toml
 [concurrency]
@@ -900,7 +900,7 @@ service(dbConnection).final = {                // extra clean-up, as in try-with
 all, so they change together and no thread ever holds two resources (P2). The list holds one
 or more names. A long list is a sign of a bad design, so the compiler warns above a limit
 (for example 5) and gives an error above a hard limit (for example 32). Both limits are
-settings in `fusion.toml`:
+settings in `settings.toml`:
 
 ```fusion
 service(person, honda) carPerson      // one group service: carPerson
@@ -915,7 +915,7 @@ step.
 because a PC with 2 GB can't take what suits one with 32 GB. The values are resolved in this
 order:
 1. Fusion's built-in defaults;
-2. `fusion.toml`;
+2. `settings.toml`;
 3. the program's own defaults, which may override the machine's settings;
 4. `service(name)` in the code.
 
@@ -964,7 +964,7 @@ sign of a bad design.
 
 - The default is the **operating system's** scheduler.
 - A **Fusion scheduler** is an option for advanced developers who need finer control. It
-  can be set in `fusion.toml`, or per pool in the code: `ThreadPool(10, Scheduler.WEIGHTED)`.
+  can be set in `settings.toml`, or per pool in the code: `ThreadPool(10, Scheduler.WEIGHTED)`.
 - **Weighted turns:** priorities get shares of the turns, not absolute precedence. For
   example, out of 10 turns high priority gets 5, medium 4 and low 1, so low priority still
   runs at least 1 time in 10. The numbers only illustrate the idea.
@@ -986,7 +986,7 @@ Each thread, task and request states a timeout:
 #### G. How the traps are reported
 
 - Every trap the compiler or runtime can see is a **warning** by default.
-- `fusion.toml` can turn each one into an **error**. The error is a Fusion error type that
+- `settings.toml` can turn each one into an **error**. The error is a Fusion error type that
   the program must catch and handle, for example a `DeadlockError`, `TimeoutError` or
   `QueueFullError`.
 
@@ -1365,9 +1365,9 @@ Links:
 | Mailbox full | The developer chooses: unlimited or a size; when full, the sender waits or gets `QueueFullError` |
 | Reads in parallel | The service decides. Writes lock only what they change, reads run together |
 | Two resources in one step | Never two resources per thread; if they can't be separated, one service owns both as a unit |
-| OS threads or Fusion tasks | The OS scheduler by default; a Fusion scheduler for advanced developers (`fusion.toml`, or `ThreadPool(10, scheduler)`) |
+| OS threads or Fusion tasks | The OS scheduler by default; a Fusion scheduler for advanced developers (`settings.toml`, or `ThreadPool(10, scheduler)`) |
 | Timeouts | Defaults per resource kind, starting from what others use (3.7); set per resource when opened |
-| Compile error or warning | Warnings by default; `fusion.toml` can make each one an error the program must catch |
+| Compile error or warning | Warnings by default; `settings.toml` can make each one an error the program must catch |
 | Direct access without a service | Only in unsafe mode (embedded). `resource_as_service = true` is the default; `false` gives control to the opening thread |
 
 ### 3.7 Default timeouts - what others use (researched 2026-10-23)
@@ -1489,7 +1489,7 @@ sharedThreads = 10    # default: the pool's size
 
 ### 3.11 Version one of `service` (agreed 2026-10-24)
 
-The full reference, with every setting and the `fusion.toml` defaults: `files/Service.md`.
+The full reference, with every setting and the `settings.toml` defaults: `files/Service.md`.
 
 This version was agreed after reviews by ChatGPT and Claude
 (`Notes/notes chatgpt review on our concurrency.md`). The aim is to keep it as simple as

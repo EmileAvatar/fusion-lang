@@ -289,11 +289,11 @@ def test_check_syntax_errors(body, message):
 # 56.5 (D.218): [safety] maxIterations - a while past it stops with a LoopLimitError; 0 - nothing added
 
 def run_with_limit(tmp_path, body: str, limit: int, top: str = '') -> tuple:
-    """Build through main.py with a fusion.toml setting the limit; (exit code, output)."""
+    """Build through main.py with a settings.toml setting the limit; (exit code, output)."""
     import os
     import subprocess
     import sys
-    (tmp_path / 'fusion.toml').write_text(f'[safety]\nmaxIterations = {limit}\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text(f'[safety]\nmaxIterations = {limit}\n', encoding='utf-8')
     (tmp_path / 'main.fusion').write_text(top + main(body), encoding='utf-8')
     repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     built = subprocess.run([sys.executable, os.path.join(repo, 'main.py'), str(tmp_path / 'main.fusion')],
@@ -352,7 +352,7 @@ def test_zero_adds_nothing(tmp_path):
 @pytest.mark.parametrize('value', ['-1', '"lots"', 'true', '1.5'])
 def test_bad_limits(tmp_path, value):
     from src.config import ProjectConfigError, load_project_config
-    (tmp_path / 'fusion.toml').write_text(f'[safety]\nmaxIterations = {value}\n', encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text(f'[safety]\nmaxIterations = {value}\n', encoding='utf-8')
     (tmp_path / 'main.fusion').write_text(main('print("x")'), encoding='utf-8')
     with pytest.raises(ProjectConfigError, match='safety.maxIterations must be a whole number'):
         load_project_config(str(tmp_path / 'main.fusion'))

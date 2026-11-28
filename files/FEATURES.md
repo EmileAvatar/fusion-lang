@@ -37,7 +37,7 @@ The single place to see what is done, open, or postponed - one line per item.
   `[index](#index)` goes back to the Index; the Index heading's `[top](#top)` to the top (user, 2026-11-13)
 
 **Features become settings (user, 2026-10-24).** Each feature is designed so a project can
-turn it on or off in `fusion.toml` where that makes sense, with a safe default. When an item
+turn it on or off in `settings.toml` where that makes sense, with a safe default. When an item
 here is reviewed (for example the showcase [idea] list), decide whether it becomes a
 setting, a fixed rule, or is discarded. Example - structs:
 - a struct is a value type, never null: it always has a value;
@@ -182,7 +182,7 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] R3.6 Hidden cost: `person.name` quietly becomes a queued request that can block - a warning, or a mark in the editor
 	[ ] R3.7 `Scheduler`, `Priority` and `Rule` all affect order - a worked example in Service.md
 	[ ] R3.8 Service.md tidy-ups: `Readers` missing from the settings tables; the default `Timeout` of a plain service vs `missingTimeout = "error"`;
-		AUTO switching SHARED to SINGLE while running; `max_unit` / `file_lock` in the text vs camelCase in fusion.toml
+		AUTO switching SHARED to SINGLE while running; `max_unit` / `file_lock` in the text vs camelCase in settings.toml
 	Gemini's review (2026-11-24): [files/Research/Services/Gemini_Service_Review.md](Research/Services/Gemini_Service_Review.md) - its edge
 	case 1 answers R3.4 (plus cycles across several services: A -> B -> A), 4 answers R3.2 (PENDING, then CLAIMED or CANCELLED), 5 answers R3.3
 	[ ] R3.9 What a `run` block may capture from the caller: a copy, a move or another service - a borrowed changeable local an error (S6)
@@ -355,8 +355,10 @@ then each point is decided and solved completely. One line per section and per l
 		first in the file (after a `#!`, blank and comment lines), braces or indented; the name alone or section.name -
 		an unclear or unknown name, a bad value an error naming the line; used instead of the settings file; in a
 		program with main too; only the starting file's - another's ignored with a warning; later in a file an error
-	[ ] 58.2b The settings file (D.227, D.229): none written any more (none means the defaults); its name `settings.toml`
-		(/ .yaml / .yml / .json / .ini) - every fusion.toml in examples/ and the tests renamed; fusion.toml the reference
+	[DONE 2026-11-28] 58.2b The settings file (D.227, D.229; tests/test_settings_formats.py): none written any more -
+		none means the defaults (31.2's new file and `--no-new-config` gone); its name `settings.toml` (/ .yaml / .yml /
+		.json / .ini) - every fusion.toml in examples/, selfhost/, the tests and the documents renamed; a fusion.toml is
+		not read; files/showcase/fusion.toml the reference
 	[ ] 58.3 `python main.py run tidy.fusion [arguments]` (D.221, D.223): built once into the cache folder (or next to the
 		script), run at once, the exit code passed back; only the script's own output
 	[ ] 58.4 Start-up times measured (spec 170): the first run and a cached one
@@ -389,7 +391,7 @@ then each point is decided and solved completely. One line per section and per l
 #### 31 Settings file formats - the postponed parts (31.1-31.4 done 2026-10-28: task/featuresArchive.md) [POSTPONED] [index](#index)
 	[POSTPONED to 43.2] 31.6 `config.fusion` - a Fusion program whose only job is to create the
 		settings file from the master template (user, 2026-10-28)
-	[ ] 31.5 Enforce fusion.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
+	[ ] 31.5 Enforce settings.toml [safety] / [backend] (was 15.6; trigger: strict mode or a 2nd backend)
 
 <a id="task-35"></a>
 #### 35 Self-hosting phase 2 - fully independent (was 10.9-10.12) [ ] [index](#index)
@@ -554,7 +556,7 @@ then each point is decided and solved completely. One line per section and per l
 		associated resource (like try-with-resources)
 	[ ] 42.5 Resources as services by default: files, sockets, pipes, databases
 		(`[concurrency] resourceAsService = true`; direct access only in unsafe mode)
-	[ ] 42.6 Settings that fit the machine: built-in defaults < fusion.toml < the program's
+	[ ] 42.6 Settings that fit the machine: built-in defaults < settings.toml < the program's
 		defaults < service(x) in code. Levels from MIN (embedded or unknown memory) up, e.g.
 		2GB as low end. Runs on any machine: never blocks the program or errors - a machine
 		matching no level gets MIN
@@ -564,7 +566,7 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 42.8 Default timeouts and other defaults per resource kind - confirm the exact values
 		(starting point: files/Concurrency.md 3.7)
 	[ ] 42.9 (after version one) Custom contention rules and schedulers (files/Concurrency.md 3.8); Rule.HIERARCHY default
-	[ ] 42.10 Trap checks: warnings by default, errors when fusion.toml says so (two resources
+	[ ] 42.10 Trap checks: warnings by default, errors when settings.toml says so (two resources
 		per thread, shared variables, missing timeouts, services blocking on each other)
 	[ ] 42.11 (after version one) Possible service settings to go through (user + Claude, 2026-10-23):
 		Mailbox (size) / WhenFull (WAIT, ERROR, DROP_OLDEST, DROP_NEWEST) / Timeout per
@@ -581,7 +583,7 @@ then each point is decided and solved completely. One line per section and per l
 		(ClusterThreadPool) - a separate cluster framework, probably outside Fusion's first scope
 	[ ] 42.14 Prime settings (user, 2026-10-24; files/Service.md): Mailbox (default 12), WhenFull
 		(default WAIT), Timeout, final, Scheduler (IMMEDIATE), Priority ("5.4.1"), Rule
-		(HIERARCHY), WorkerThreadType, ThreadPool, run - defaults in fusion.toml
+		(HIERARCHY), WorkerThreadType, ThreadPool, run - defaults in settings.toml
 		[concurrency.defaults]; the rest are secondary settings (Coalesce, BatchSize, ...)
 		[ ] Priority "5.4.1" (user, 2026-11-07): weighted turns - in every 10, high gets 5,
 			medium 4, low 1, so low-priority work never starves; custom shares allowed
@@ -593,7 +595,7 @@ then each point is decided and solved completely. One line per section and per l
 		by hand. Coalesce is a secondary setting; custom schedulers / rules / priorities: one
 		method per class (files/Service.md)
 	[ ] 42.16 Duration literals: `500ms`, `5s`, `2min`, `1h` - an int of milliseconds for now;
-		also read from text (strings, fusion.toml). The full time module: Task 43.1
+		also read from text (strings, settings.toml). The full time module: Task 43.1
 		[ ] Two precisions (user, 2026-11-07): everyday code and ordinary services - `int`
 			milliseconds (`ms`, `s`, `min`, `h`); hot path (42.23, 42.24) - `long` nanoseconds
 			(`ns`, `us`; needs `long`, 47), where Fusion controls the CPU directly (a pinned core
@@ -655,7 +657,7 @@ then each point is decided and solved completely. One line per section and per l
 		T7 a watchdog
 		T8 set-up -> warm-up -> running -> drain -> stop
 		Settings: Core, Ring, Producers, WhenFull (never WAIT), Wait, Budget, Priority, Prefault, WarmUp
-		Project defaults: `[hotpath]` in fusion.toml
+		Project defaults: `[hotpath]` in settings.toml
 	[ ] 42.25 Examples per processor kept busy: CPU (trading), GPU, FPGA, NIC, DSP / audio, radio, NPU (files/Service.md table)
 	[ ] 42.26 A block that can't sleep or be interrupted (user, 2026-11-02 - files/FutureFeatures.md "Threads,
 		Schedulers and Services" 2): within one loop iteration the thread doesn't sleep, yield or take an
@@ -722,7 +724,7 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 42.37 A service's interrupt handler `service(x).setCheckInterrupt(signal, data) { }` (user, 2026-11-10 -
 		spec 100 3.14) - with the loop's check interrupt (42.27); no `exit loop` / `continue loop` in it (D.132 proposed); not handled:
 			Shutdown terminates, Pause suspends, others nothing; interrupts only from the OS, passed down
-	[ ] 42.38 Locks off by default (D.125 proposed): `[concurrency] locks` in fusion.toml, a lock inside
+	[ ] 42.38 Locks off by default (D.125 proposed): `[concurrency] locks` in settings.toml, a lock inside
 		`unsafe`; the setting into 001-TomlSettings once decided
 		The compiler unlocks a lock at the end of the scope it is declared in, even if the developer
 			forgot it (user, 2026-11-11 - D.133)
@@ -818,11 +820,11 @@ then each point is decided and solved completely. One line per section and per l
 <a id="task-54"></a>
 #### 54 Precepts: a project that behaves like C, Java, Python, Rust (user, 2026-11-08) [POSTPONED to 35] [index](#index)
 	A precept is a ready-made set of settings and behaviour, so a new project acts like a familiar
-	language without editing fusion.toml by hand: `c.precept.fusion`, `cpp.precept.fusion`,
+	language without editing settings.toml by hand: `c.precept.fusion`, `cpp.precept.fusion`,
 	`java.precept.fusion`, `python.precept.fusion`, `rust.precept.fusion` ... Built and checked only
 	after self-hosting (Task 35); goes with Task 49 (language modules)
 	[ ] 54.1 Design: what a precept holds (settings, defaults, warnings), how a project picks one, and
-		how its own fusion.toml overrides a precept's setting
+		how its own settings.toml overrides a precept's setting
 	[ ] 54.2 The first precepts, each tested against programs written the way that language works
 
 <a id="task-60"></a>
@@ -958,7 +960,7 @@ Each time a task or section is finished, this list is checked for items the curr
 			now an enum as a built-in value struct (D.188-D.194)
 		[ ] L8.2 Struct settings (user, 2026-10-24): a struct is a value type and never null - it always
 			has a value, so it may hold an empty List / Map / string but never null. In
-			fusion.toml [structs]: holding List / Map (on by default - built), functions on
+			settings.toml [structs]: holding List / Map (on by default - built), functions on
 			structs (off by default, Task 32.1); an object in a struct: allowed since 2026-11-01 (D.097)
 		[ ] L8.3 Type tests with `is` (`if s is string`) - the spec uses `is` only for null
 		[ ] L8.4 `typeOf(x)` gives the type's name as text - for a parent type, the chain (32.7)
@@ -995,13 +997,13 @@ Each time a task or section is finished, this list is checked for items the curr
 	L11 Concurrency
 		[ ] L11.1 Wait for several tasks together: `await all([...])`
 	L12 Output
-		[ ] L12.1 println with a line ending: the PC's own, or set in fusion.toml. Kept for later (user,
+		[ ] L12.1 println with a line ending: the PC's own, or set in settings.toml. Kept for later (user,
 			2026-10-24); note for developers: `print` already ends the line
-	L13 fusion.toml settings
-		[ ] L13.1 A whole-program setting read from fusion.toml at compile time (`config.build.mode`)
-		[ ] L13.2 fusion.toml: `block_styles` - allow only some block styles in a project
-		[ ] L13.3 fusion.toml: `[threads] poolSize = "auto"` (one per CPU core)
-		[ ] L13.4 fusion.toml: `[modules] paths` - extra folders searched for imported modules
+	L13 settings.toml settings
+		[ ] L13.1 A whole-program setting read from settings.toml at compile time (`config.build.mode`)
+		[ ] L13.2 settings.toml: `block_styles` - allow only some block styles in a project
+		[ ] L13.3 settings.toml: `[threads] poolSize = "auto"` (one per CPU core)
+		[ ] L13.4 settings.toml: `[modules] paths` - extra folders searched for imported modules
 	L14 Example programs (was Task 34 - user, 2026-11-13: added once threading / the memory model exist)
 		[POSTPONED - needs threading, no task yet] L14.1 Multithreading / async example (was 16.4)
 		[POSTPONED to 38] L14.2 Memory model (Unique/Shared/Weak) example (was 16.6)
@@ -1044,7 +1046,7 @@ Each time a task or section is finished, this list is checked for items the curr
 ## Known limitations (by design for now) [index](#index)
 	[ ] A string-holding variable can't reuse the name of one in an enclosing block (clear error)
 	[ ] Single-quote comments disabled (clash with char literals) - 8 skipped tests
-	[ ] Identifiers ASCII-only unless fusion.toml opts in (text and chars are Unicode since 18.3.2b)
+	[ ] Identifiers ASCII-only unless settings.toml opts in (text and chars are Unicode since 18.3.2b)
 
 		[ ] L16.7 Vectorising loops (ChatGPT, user 2026-11-27): the compiler finds the loops that can safely run as
 			SIMD instructions (several values at once) and emits them - after profiling (L16.0); GCC does some of it

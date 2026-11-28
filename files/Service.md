@@ -93,7 +93,7 @@ service(account).run {
 ## Prime settings
 
 These are the main settings. Each has a default, and `[concurrency.defaults]` in
-`fusion.toml` can change the default for the whole project (except `final` and `run`, which
+`settings.toml` can change the default for the whole project (except `final` and `run`, which
 are code).
 
 | Setting | What it does | Values | Default |
@@ -129,7 +129,7 @@ enum WorkerThreadType {
   log file written all the time, a device, or a large database.
 - **`SHARED`** suits most services. Many services share a few workers, so 100,000 services
   don't need 100,000 threads.
-- The developer can always set it by hand, per resource, or project-wide in `fusion.toml`
+- The developer can always set it by hand, per resource, or project-wide in `settings.toml`
   (`worker_thread_type`).
 
 ```fusion
@@ -148,7 +148,7 @@ service(db).Timeout = 30s
 ## Secondary settings
 
 These are for advanced tuning, and come after version one. Most can also have a default in
-`fusion.toml`.
+`settings.toml`.
 
 | Setting | What it does |
 |---|---|
@@ -174,7 +174,7 @@ These are for advanced tuning, and come after version one. Most can also have a 
 ## Durations
 
 Times are written as **duration literals**. For now each one is an `int` holding
-**milliseconds**. They can also be read as text, from a string or a `fusion.toml` value.
+**milliseconds**. They can also be read as text, from a string or a `settings.toml` value.
 
 | Written | Means (milliseconds) |
 |---|---|
@@ -194,7 +194,7 @@ with them.
 
 ---
 
-## Settings in `fusion.toml`
+## Settings in `settings.toml`
 
 ```toml
 [concurrency]
@@ -239,7 +239,7 @@ thread can choose its own. For example, one thread can use a `file_lock` of `5s`
 updates while another uses `30s` for big files:
 
 ```fusion
-service(log).Timeout = config.concurrency.timeouts.file_lock    // 5s from fusion.toml
+service(log).Timeout = config.concurrency.timeouts.file_lock    // 5s from settings.toml
 service(archive).Timeout = 30s                                  // this one needs longer
 ```
 
@@ -249,7 +249,7 @@ The values started from what other systems use (`files/Concurrency.md` 3.7).
 
 | Level | Where | Strength |
 |---|---|---|
-| 1 | `fusion.toml`. Without one, Fusion's built-in defaults, which are the values shown above | Lowest |
+| 1 | `settings.toml`. Without one, Fusion's built-in defaults, which are the values shown above | Lowest |
 | 2 | The program's own defaults | Medium: overrides level 1 |
 | 3 | `service(x).Setting` in the code | Highest: it directly controls that service |
 
@@ -418,7 +418,7 @@ queue, and its worker carries it out atomically.
 9. **Not only in functions.** A class method can create a group from the class's fields.
    Any thread can then use the class safely.
 10. **Limits:** a warning above `max_unit_warn` names (default 5) and a compile error above
-    `max_unit` (default 32), both in `fusion.toml`. These are everyday defaults that a
+    `max_unit` (default 32), both in `settings.toml`. These are everyday defaults that a
     project can change.
 
 ## Ownership in a service (agreed 2026-10-31)
@@ -534,7 +534,7 @@ allocate.
 
 **Settings per hot-path service:** `Core`, `Ring`, `Producers` (SINGLE / MULTI), `WhenFull`
 (DROP / OVERWRITE / COALESCE / ERROR - never WAIT), `Wait` (SPIN / YIELD), `Budget`,
-`Priority` (REALTIME), `Prefault`, `WarmUp`. Project defaults: `fusion.toml` `[hotpath]`
+`Priority` (REALTIME), `Prefault`, `WarmUp`. Project defaults: `settings.toml` `[hotpath]`
 (files/showcase/fusion.toml).
 
 #### Where a hot path is justified

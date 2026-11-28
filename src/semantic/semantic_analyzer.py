@@ -75,7 +75,7 @@ class SemanticAnalyzer:
         """Initialize the semantic analyzer with all validation passes.
 
         Args:
-            structs_config: The project's [structs] settings from fusion.toml (Task 18.2) -
+            structs_config: The project's [structs] settings from settings.toml (Task 18.2) -
                 defaults if not given
         """
         self.structs_config = structs_config or StructsConfig()
@@ -487,7 +487,7 @@ class SemanticAnalyzer:
         if not decl.is_const and decl.inferred != 'let' and not getattr(decl, 'is_static', False) \
                 and not self.module_variables_allowed:
             self.errors.append(SemanticError(
-                f"Module-level variable '{decl.name}': fusion.toml sets [modules] variables = "
+                f"Module-level variable '{decl.name}': settings.toml sets [modules] variables = "
                 f"false (module-level constants are still allowed)", decl.location))
         if isinstance(decl.var_type, ArrayType) and decl.initializer is not None \
                 and not isinstance(decl.initializer, ArrayLiteralExpr):
@@ -503,7 +503,7 @@ class SemanticAnalyzer:
     def check_structs_settings(self, structs: List[StructDecl]) -> None:
         """Report [structs] settings that need saying on every build (Task 18.2.1).
 
-        - string_storage = "pooled" is accepted in fusion.toml but not built yet (Task 17) -
+        - string_storage = "pooled" is accepted in settings.toml but not built yet (Task 17) -
           an error only when the program actually has a string field it would apply to
         """
         location = structs[0].location if structs else None
@@ -528,7 +528,7 @@ class SemanticAnalyzer:
         )
         if self.structs_config.string_storage == 'pooled' and has_string_field:
             self.errors.append(SemanticError(
-                'fusion.toml sets [structs] stringStorage = "pooled", which is not '
+                'settings.toml sets [structs] stringStorage = "pooled", which is not '
                 'implemented yet (Task 17) - use "owned"',
                 location
             ))

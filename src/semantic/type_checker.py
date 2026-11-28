@@ -63,7 +63,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         current_function_return_type: Expected return type of current function
         errors: List of semantic errors found during type checking
         warnings: List of warnings (e.g. a long string in a struct field, Task 18.2.1)
-        structs_config: The project's [structs] settings (fusion.toml)
+        structs_config: The project's [structs] settings (settings.toml)
     """
 
     def __init__(self, symbol_table: SymbolTable, structs_config: Optional[StructsConfig] = None,
@@ -830,7 +830,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
 
     def check_string_field_value(self, struct_name: str, field: StructField, value: ASTNode) -> None:
         """Apply the project's string-length rules to a value going into a string field
-        (Task 18.2.1, [structs] in fusion.toml):
+        (Task 18.2.1, [structs] in settings.toml):
 
         - longer than string_warn_length: kept in full, with a warning (a guideline only)
 
@@ -918,7 +918,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             self.checked_literals.add(id(node))
             self.errors.append(SemanticError(
                 f"String has {len(str(node.value))} characters, more than the project's "
-                f"maxLength of {max_length} ([strings] in fusion.toml)", node.location))
+                f"maxLength of {max_length} ([strings] in settings.toml)", node.location))
 
         # A project using ascii encoding can only hold ASCII text (Task 18.3.2b)
         if self.strings_config.encoding == 'ascii' and node.type_hint in ('string', 'char'):
@@ -927,7 +927,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                     self.errors.append(SemanticError(
                         f"{'String' if node.type_hint == 'string' else 'Char'} literal contains "
                         f"U+{ord(ch):04X}, but the project uses ascii encoding "
-                        f"([strings] encoding = \"ascii\" in fusion.toml)",
+                        f"([strings] encoding = \"ascii\" in settings.toml)",
                         node.location))
                     break
         return PrimitiveType(location=node.location, name=type_name)
@@ -2324,7 +2324,7 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         self.layer_errors_at.add(key)
         self.errors.append(SemanticError(
             f"{what} needs the {layer} layer, but this project uses {self.stdlib_layer} "
-            f"([stdlib] layer in fusion.toml)", location))
+            f"([stdlib] layer in settings.toml)", location))
 
     def require_type_layer(self, type_node, location) -> None:
         """Text, bytes, lists and maps live on the heap - the alloc layer."""
@@ -2687,14 +2687,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
                 self.errors.append(SemanticError(
                     f"Struct '{struct.name}' is nested {depth} levels deep "
                     f"({' -> '.join(path)}) - the project allows {max_depth} "
-                    f"([structs] maxNestingDepth in fusion.toml)",
+                    f"([structs] maxNestingDepth in settings.toml)",
                     struct.location
                 ))
             elif warn_depth and warn_depth <= depth <= max_depth and child_depth < warn_depth:
                 self.warnings.append(SemanticError(
                     f"Struct '{struct.name}' is nested {depth} levels deep "
                     f"({' -> '.join(path)}) - the project warns from {warn_depth} levels "
-                    f"([structs] warnNestingDepth in fusion.toml)",
+                    f"([structs] warnNestingDepth in settings.toml)",
                     struct.location
                 ))
 

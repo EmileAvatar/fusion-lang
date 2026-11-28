@@ -131,14 +131,14 @@ bool same = ages == other       // the same keys with equal values, in any order
 **Standard-library layers** (Task 18.5.6 - "layer the stdlib from day one"):
 - The lesson from D, whose library assumed a garbage collector and split the ecosystem when GC
   became optional
-- `fusion.toml` `[stdlib] layer` says how much a project may use; each layer adds to the one before it:
+- `settings.toml` `[stdlib] layer` says how much a project may use; each layer adds to the one before it:
 * **core** - no heap: numbers, chars, bools, fixed arrays, structs of those, `range`, `len`
   of an array, `toByte`, `charCode` / `fromCharCode`. For the smallest embedded devices
 * **alloc** - adds memory: text, `bytes`, `List`, `Map` and every function on them
 * **std** (the default) - adds the operating system: `print`, `readLine` / `isEndOfInput`,
   files, `exit`, `run`, and main's arguments (`string... args`)
 * Using something above the project's layer is a compile error, once per place:
-  "'print' needs the std layer, but this project uses alloc ([stdlib] layer in fusion.toml)";
+  "'print' needs the std layer, but this project uses alloc ([stdlib] layer in settings.toml)";
   in a core project any text, bytes, List or Map - a value or a declared type - is refused
 * `print` is std, as console output is an operating-system service (Rust's `core` / `alloc`
   can't print either); an embedded program reports through its own device

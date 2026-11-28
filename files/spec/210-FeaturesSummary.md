@@ -29,7 +29,7 @@
 **Status:** [DESIGN] a summary of the whole design, built and not built
 
 One file showing all of it, each feature tagged built / designed / idea / rejected:
-`files/showcase/Fusion_showcase.fusion` (with its `fusion.toml`).
+`files/showcase/Fusion_showcase.fusion` (with its `settings.toml`).
 
 Description: Comprehensive overview of Fusion's capabilities and design decisions.
 
@@ -117,7 +117,7 @@ Description: Comprehensive overview of Fusion's capabilities and design decision
 ### Memory Management
 
 * **Default**: OWNERSHIP - one owner, assigning moves, passing borrows (Task 48; D.013, D.027)
-* **GC**: only when a project's `fusion.toml` chooses it, or one is made in code
+* **GC**: only when a project's `settings.toml` chooses it, or one is made in code
 * **MANUAL / unsafe**: raw pointers and `free` - memory, assembly and devices only
 
 ---

@@ -67,7 +67,7 @@ class RangesMixin:
         if not getattr(self, 'range_decimals', False):
             self.errors.append(SemanticError(
                 f"A range ... counts whole numbers - this one has a {kind}; ranges of decimals and money are "
-                f"turned on in fusion.toml: [ranges] decimals = true (then 0.5...2.5 step 0.5)", where))
+                f"turned on in settings.toml: [ranges] decimals = true (then 0.5...2.5 step 0.5)", where))
             return
         args = node.arguments
         if len(args) == 2:

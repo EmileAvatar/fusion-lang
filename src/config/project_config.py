@@ -4,7 +4,7 @@ Fusion's core concept is per-project configurability (memory model, safety level
 block style - see CLAUDE.md "Core Concept"), but until now the compiler hardcoded its lexer
 settings directly (src/lexer/lexer.py used to construct
 IndentationTracker(tab_width=4, allow_mixed=True) with no way to override it). This module
-reads an optional `fusion.toml` file and produces a ProjectConfig the rest of the compiler
+reads an optional `settings.toml` file and produces a ProjectConfig the rest of the compiler
 reads instead of hardcoding values.
 
 v1 scope (decided 2026-09-13): only the [indentation] section is actually wired to real
@@ -15,9 +15,9 @@ work, the same "recognized, not yet implemented" status as the Unique/Shared/Wea
 (see Task 12.7). See files/spec/170-Build.md's "Project Configuration" section for
 the full schema and the rationale behind each decision (format, lookup order, v1 scope).
 
-A missing fusion.toml is not an error - it just means every setting uses its default,
+A missing settings.toml is not an error - it just means every setting uses its default,
 matching the compiler's previous hardcoded behavior exactly (existing single-file examples
-and tests are unaffected). A *present but malformed* fusion.toml IS an error - deliberately
+and tests are unaffected). A *present but malformed* settings.toml IS an error - deliberately
 not silently falling back to defaults, so a typo in the config doesn't silently compile with
 different settings than the user intended.
 """
@@ -27,11 +27,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 
-from .settings_files import (SettingsFileError, convert, create_default_file, find_in_folder,
+from .settings_files import (SettingsFileError, convert, find_in_folder,
                              format_of, read_settings, read_template, FORMAT_FILES)
 
 
-CONFIG_FILENAME = "fusion.toml"
+CONFIG_FILENAME = "settings.toml"
 
 DEFAULT_TAB_WIDTH = 4
 DEFAULT_ALLOW_MIXED = True
@@ -85,7 +85,7 @@ MAX_LENGTH_UNLIMITED = "max"
 
 
 class ProjectConfigError(Exception):
-    """Raised when fusion.toml exists but is malformed or contains an invalid value."""
+    """Raised when settings.toml exists but is malformed or contains an invalid value."""
 
 
 @dataclass
@@ -289,7 +289,7 @@ class MemoryConfig:
     Attributes:
         assignment: "move" (the default since Task 48.9, D.102) - `Car b = a` hands the
             object over and `a` can't be used until it gets a new value (`byVal a` copies,
-            `byRef a` borrows); "share" - two names, one object. Written in fusion.toml as
+            `byRef a` borrows); "share" - two names, one object. Written in settings.toml as
             `[memory] ownership` since Task 48.11 (D.124): "strict" = "move" with every
             ownership rule, "relaxed" = "share" with the rules loosened.
         move_field_out: a field may be moved out of a struct the function owns, as in Rust -
@@ -357,7 +357,7 @@ class ErrorsConfig:
 
 @dataclass
 class ProjectConfig:
-    """Resolved project configuration - either loaded from fusion.toml or all defaults.
+    """Resolved project configuration - either loaded from settings.toml or all defaults.
 
     Attributes:
         indentation: Wired to the lexer (Task 12.12 v1 scope).
@@ -367,7 +367,7 @@ class ProjectConfig:
         safety_mode: Reserved for future strict-mode enforcement - not yet read by any pass.
         backend: Reserved for Task 11's LLVM backend - not yet read by any pass (only "c"
             exists today, so there is only one legal value right now).
-        source_path: Path to the fusion.toml that was loaded, or None if no file was found
+        source_path: Path to the settings.toml that was loaded, or None if no file was found
             and every field above is a default.
     """
     indentation: IndentationConfig = field(default_factory=IndentationConfig)
@@ -401,7 +401,7 @@ class ProjectConfig:
 
 
 def find_config_file(source_path: str) -> Optional[str]:
-    """Look for fusion.toml next to `source_path`, then in the current working directory.
+    """Look for settings.toml next to `source_path`, then in the current working directory.
 
     This lookup order (source file's own directory first, then cwd) matches Fusion's
     current single-file compilation model - there is no multi-file project/workspace
@@ -409,7 +409,7 @@ def find_config_file(source_path: str) -> Optional[str]:
     be solving a problem that doesn't exist yet. Revisit if/when Fusion gains a real
     multi-file project structure.
     """
-    # Task 31: fusion.toml, fusion.yaml / .yml, fusion.json or fusion.ini - in each folder the
+    # Task 31: settings.toml, settings.yaml / .yml, settings.json or settings.ini - in each folder the
     # first of TOML, YAML, JSON, INI wins
     source_dir = os.path.dirname(os.path.abspath(source_path))
     return find_in_folder(source_dir) or find_in_folder(os.getcwd())
@@ -936,12 +936,12 @@ def _load_project_section(data: dict, config_path: str) -> Optional[str]:
     return fmt
 
 
-def load_project_config(source_path: str, create_missing: bool = False, source: Optional[str] = None) -> ProjectConfig:
+def load_project_config(source_path: str, source: Optional[str] = None) -> ProjectConfig:
     """Load project configuration for compiling `source_path`.
 
-    Returns an all-defaults ProjectConfig if no fusion.toml is found next to the source
+    Returns an all-defaults ProjectConfig if no settings.toml is found next to the source
     file or in the current working directory (see find_config_file). Raises
-    ProjectConfigError if a fusion.toml is found but is malformed TOML or has an invalid
+    ProjectConfigError if a settings.toml is found but is malformed TOML or has an invalid
     value.
     """
     # A `Fusion.Settings { ... }` block first in the file that starts the program - used instead of the settings
@@ -965,11 +965,7 @@ def load_project_config(source_path: str, create_missing: bool = False, source: 
             data = block
             config_path = f"{source_path} (Fusion.Settings)"
         elif config_path is None:
-            if not create_missing:
-                return ProjectConfig()
-            # No settings file anywhere: a new fusion.toml from the master template (Task 31)
-            config_path = create_default_file(os.path.dirname(os.path.abspath(source_path)))
-            messages.append(f"created {os.path.basename(config_path)} - every setting at its default")
+            return ProjectConfig()     # no settings file: every default - none is written (Task 58.2b, D.227)
         if not from_block:
             data = read_settings(config_path)
     except SettingsFileError as e:

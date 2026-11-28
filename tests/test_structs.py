@@ -264,7 +264,7 @@ def test_interpolated_string_outside_print_now_a_value():
 
 
 # ============================================================
-# String fields - [structs] settings in fusion.toml
+# String fields - [structs] settings in settings.toml
 # ============================================================
 
 BOOK = 'struct Book\n    string title\n\n'
@@ -538,7 +538,7 @@ def test_large_string_array_filled_in_a_loop():
     assert 'names[fusion_i] = FUSION_STR("");' in c_code
 
 
-# --- Depth limits ([structs] in fusion.toml) and cycles
+# --- Depth limits ([structs] in settings.toml) and cycles
 
 def test_depth_three_warns_by_default():
     warnings = warnings_of(POINT + LINE + SHAPE + main('int y = 1'))

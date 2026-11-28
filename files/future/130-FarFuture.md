@@ -83,7 +83,7 @@ plugins; Rust procedural macros; RimWorld's Harmony (a base mod other mods build
   version it supports
 - **Two mods changing the same thing:** detected when they load, with a declared order - an
   error, never a silent winner
-- **Settings:** a project lists its DLCs and mods in `fusion.toml` - features already become
+- **Settings:** a project lists its DLCs and mods in `settings.toml` - features already become
   settings, so they are the first built-in "mods"
 - **The 85% goal:** some features exclude each other (GC and ownership, exceptions and error
   returns); measure by what developers can do, not by a count of features

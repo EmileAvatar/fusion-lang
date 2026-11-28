@@ -81,14 +81,14 @@ def test_exact_mode_is_a_rounding_error():
 
 
 def test_the_project_rounding_setting(tmp_path):
-    (tmp_path / 'fusion.toml').write_text('[numbers]\nrounding = "halfUp"\n', encoding='utf-8')
-    assert load_project_config(str(tmp_path / 'fusion.toml')).numbers.rounding == 'halfUp'
+    (tmp_path / 'settings.toml').write_text('[numbers]\nrounding = "halfUp"\n', encoding='utf-8')
+    assert load_project_config(str(tmp_path / 'settings.toml')).numbers.rounding == 'halfUp'
     from src.config.project_config import NumbersConfig
     assert NumbersConfig().rounding == 'halfEven'
     (tmp_path / 'b').mkdir()
-    (tmp_path / 'b' / 'fusion.toml').write_text('[numbers]\nrounding = "nearest"\n', encoding='utf-8')
+    (tmp_path / 'b' / 'settings.toml').write_text('[numbers]\nrounding = "nearest"\n', encoding='utf-8')
     with pytest.raises(Exception, match='numbers.rounding must be one of'):
-        load_project_config(str(tmp_path / 'b' / 'fusion.toml'))
+        load_project_config(str(tmp_path / 'b' / 'settings.toml'))
 
 
 def test_the_setting_changes_a_division():

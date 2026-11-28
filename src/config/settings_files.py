@@ -1,12 +1,12 @@
 """The project settings file in four formats (Task 31, user decisions 2026-10-28).
 
-fusion.toml is the default. fusion.yaml (or .yml), fusion.json and fusion.ini are
+settings.toml is the default. settings.yaml (or .yml), settings.json and settings.ini are
 alternatives - for a company that standardises on YAML, or INI for legacy hardware and
 software. Each format is read into the same plain dictionary ({section: {key: value}}), so
 the one set of checks in project_config.py gives all four the same meaning.
 
 - Finding the file: in a folder, the first of TOML, YAML, JSON, INI wins (no warning)
-- No settings file anywhere: a new fusion.toml is written from the master template
+- No settings file anywhere: a new settings.toml is written from the master template
   (files/fusionSettings.xml - every setting at its default, with a comment each)
 - `[project] fusionSettingFormat` names the file's format. When it names another one, the
   settings are written in that format and the old file is kept as a backup (.bak), so only
@@ -33,11 +33,13 @@ class SettingsFileError(Exception):
 
 
 # Format name -> file names, in the order a folder is searched (TOML first)
+# the settings file a program or script runs with - what it changes (Task 58.2b, D.227, D.229); settings.toml is the
+# reference that shows every setting (files/showcase/fusion.toml)
 FORMAT_FILES = {
-    'TOML': ('fusion.toml',),
-    'YAML': ('fusion.yaml', 'fusion.yml'),
-    'JSON': ('fusion.json',),
-    'INI': ('fusion.ini',),
+    'TOML': ('settings.toml',),
+    'YAML': ('settings.yaml', 'settings.yml'),
+    'JSON': ('settings.json',),
+    'INI': ('settings.ini',),
 }
 SETTINGS_FILE_NAMES = [name for names in FORMAT_FILES.values() for name in names]
 
@@ -97,7 +99,7 @@ def _read_yaml(path: str):
     except ImportError as e:
         raise SettingsFileError(
             f"{path}: reading YAML needs the PyYAML package - pip install pyyaml, or use "
-            f"fusion.toml") from e
+            f"settings.toml") from e
     try:
         with open(path, encoding='utf-8') as f:
             return yaml.safe_load(f)            # safe_load: never runs code from the file
@@ -232,20 +234,6 @@ def default_settings(fmt: str = 'TOML'):
         comments[f'{s.section}.{s.name}'] = s.description + allowed
     data['project']['fusionSettingFormat'] = fmt
     return data, comments
-
-
-def create_default_file(folder: str) -> str:
-    """A new fusion.toml in folder, from the master template. Returns its path."""
-    data, comments = default_settings('TOML')
-    path = os.path.join(folder, 'fusion.toml')
-    header = ('# Fusion project settings - every setting at its default. The full list, with '
-              'the values\n# each can have: files/fusionSettings.xml (the master template)\n\n')
-    try:
-        with open(path, 'w', encoding='utf-8', newline='\n') as f:
-            f.write(header + settings_text(data, 'TOML', comments))
-    except OSError as e:
-        raise SettingsFileError(f"Could not write {path}: {e}") from e
-    return path
 
 
 def convert(path: str, data: dict, fmt: str) -> str:

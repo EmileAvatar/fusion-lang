@@ -222,7 +222,7 @@ def check_error_settings(program: ProgramNode, config) -> List[SemanticError]:
     if config is None or (config.returns and config.exceptions):
         return []
     errors: List[SemanticError] = []
-    off = "is turned off for this project ([errors] {key} = false in fusion.toml)"
+    off = "is turned off for this project ([errors] {key} = false in settings.toml)"
 
     def walk(node) -> None:
         if isinstance(node, list):

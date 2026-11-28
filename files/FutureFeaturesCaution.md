@@ -183,7 +183,7 @@ note:  TextUtils.startsWith has no requirements and can be used
 
 Some requirements can't be satisfied by any strategy - for example, a library that throws
 exceptions, used in a project with exceptions disabled. The project may declare an
-explicit mapping policy in `fusion.toml`:
+explicit mapping policy in `settings.toml`:
 
 ```toml
 [imports.policy]
@@ -219,7 +219,7 @@ The project can declare restrictions that apply to **all** code in the program -
 and every imported library alike:
 
 ```toml
-# fusion.toml (or fusion.yaml / fusion.json / fusion.ini - all interchangeable, Task 20)
+# settings.toml (or settings.yaml / settings.json / settings.ini - all interchangeable, Task 20)
 [restrictions]
 no_unsafe = true
 no_network = true

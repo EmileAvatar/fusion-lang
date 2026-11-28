@@ -133,7 +133,7 @@ void function main()
         'A'...'Z' : "upper"
         else : "other"
     print("{@1} {@2}", grade(95), kind)     // A lower
-    // Decimals and money (47.6) - [ranges] decimals = true in fusion.toml
+    // Decimals and money (47.6) - [ranges] decimals = true in settings.toml
     double last = 0.0
     for x in 0.0...1.0 step 0.1             // each value start + n * step - nothing drifts
         last = x
@@ -193,11 +193,11 @@ void function main()
 They are set in the order written, before `main`'s own code; an initializer may use the
 functions and the module variables above it. `public` lets other modules use one
 (`stats.total`). A name inside a function can't hide a module variable. `[modules] variables =
-false` in `fusion.toml` turns module variables off (constants stay allowed).
+false` in `settings.toml` turns module variables off (constants stay allowed).
 
 #### Shadowing: a name already used further out
 
-With `[source] shadowing = true` in fusion.toml (tests/test_shadowing.py runs it):
+With `[source] shadowing = true` in settings.toml (tests/test_shadowing.py runs it):
 
 ```text
 int total = 10                          // a module variable
@@ -2393,7 +2393,7 @@ void function main()
     print("{@1}", 21.twice())                 // on built-in values too
 ```
 List / Map methods (`xs.add`) and an enum's `toString` / `toInt` come first. A struct holds
-values only - a function inside a struct is a later `fusion.toml` option (off by default).
+values only - a function inside a struct is a later `settings.toml` option (off by default).
 
 #### Modules and `import` (several files - not built as a single example)
 
@@ -2431,7 +2431,7 @@ else public.
 ```text
 app/
   main.fusion
-  fusion.toml                    <- [libraries] Acme = "../vendor/Acme"
+  settings.toml                    <- [libraries] Acme = "../vendor/Acme"
   Shop/Database/store.fusion     <- namespace Shop, module Database - the folder says so
 vendor/Acme/Database/conn.fusion <- namespace Acme, module Database - a supplier's library
 vendor/Acme/Pool/pool.fusion
@@ -2523,7 +2523,7 @@ void function main()
     print("{@1} {@2}", wrapAdd(big, 1), big.wrapMul(2))   // wrapping on purpose
     print("{@1} {@2}", hash("x"), 60 * 60 * 24)            // written numbers: no check
 ```
-`[numbers] overflowWrap = true` in fusion.toml makes all `+ - *` wrap (array bounds stay checked).
+`[numbers] overflowWrap = true` in settings.toml makes all `+ - *` wrap (array bounds stay checked).
 
 #### Whole numbers of other sizes: `long` and `short`
 
@@ -2823,10 +2823,10 @@ void function main()
         print("arrays compare element by element")
 ```
 
-#### Project settings - `fusion.toml` (optional, next to the source file)
+#### Project settings - `settings.toml` (optional, next to the source file)
 
-`fusion.toml` is the default; `fusion.yaml`, `fusion.json` or `fusion.ini` work too (Task 31).
-With no settings file, the compiler writes a `fusion.toml` with every setting at its default.
+`settings.toml` is the default; `settings.yaml`, `settings.json` or `settings.ini` work too (Task 31).
+With no settings file, every setting keeps its default - nothing is written (D.227).
 Every setting and its values: `files/fusionSettings.xml`.
 
 Or in the code (Task 58.2, D.224, D.226) - first in the file that starts the program, used instead of the settings
@@ -2908,7 +2908,7 @@ holdCollections   = true        # a struct field may be a List / Map; false: an 
 
 [build]
 waitAtExit = false             # true: wait for a key before the window closes (development,
-                                 # examples, testing) - each examples/ topic folder's fusion.toml turns it on
+                                 # examples, testing) - each examples/ topic folder's settings.toml turns it on
 
 [safety]
 mode = "safe"                    # safe (default) | strict (every warning is an error) | unsafe

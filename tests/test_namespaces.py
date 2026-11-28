@@ -157,7 +157,7 @@ VENDOR = {'vendor/SQL/Database/d.fusion': 'public static string function name() 
 
 
 def build_and_run(root, files: dict, app: str = 'app'):
-    """Compile app/main.fusion with main.py (its fusion.toml read) and run it: (stdout lines, compiler output)."""
+    """Compile app/main.fusion with main.py (its settings.toml read) and run it: (stdout lines, compiler output)."""
     import os
     import subprocess
     import sys
@@ -166,7 +166,7 @@ def build_and_run(root, files: dict, app: str = 'app'):
         write_project(root, {name: text})
     main_file = os.path.join(root, app, 'main.fusion')
     repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    built = subprocess.run([sys.executable, os.path.join(repo, 'main.py'), main_file, '--no-new-config'],
+    built = subprocess.run([sys.executable, os.path.join(repo, 'main.py'), main_file],
                            capture_output=True, text=True, encoding='utf-8')
     if built.returncode != 0:
         return None, built.stdout + built.stderr
@@ -176,7 +176,7 @@ def build_and_run(root, files: dict, app: str = 'app'):
 
 def test_a_library_listed_in_the_settings(tmp_path):
     files = dict(VENDOR)
-    files['app/fusion.toml'] = '[libraries]\nSQL = "../vendor/SQL"\n'
+    files['app/settings.toml'] = '[libraries]\nSQL = "../vendor/SQL"\n'
     files['app/main.fusion'] = MAIN_SQL
     assert build_and_run(str(tmp_path), files)[0] == ['vendor sql']
 
@@ -191,7 +191,7 @@ def test_a_library_imported_with_its_folder(tmp_path):
 
 def test_a_reverse_domain_library(tmp_path):
     files = {'libs/com/example/SQL/Database/d.fusion': 'public static string function name() : "example sql"\n',
-             'app/fusion.toml': '[libraries]\n"com.example.SQL" = "../libs/com/example/SQL"\n',
+             'app/settings.toml': '[libraries]\n"com.example.SQL" = "../libs/com/example/SQL"\n',
              'app/main.fusion': ('import com.example.SQL.Database\n\n'
                                  'void function main()\n'
                                  '    print(Database.name())\n')}
@@ -208,7 +208,7 @@ def test_a_library_not_found(tmp_path):
 def test_a_module_in_two_places_is_an_error(tmp_path):
     files = dict(VENDOR)
     files['app/SQL/Database/d.fusion'] = 'public static string function name() : "own sql"\n'
-    files['app/fusion.toml'] = '[libraries]\nSQL = "../vendor/SQL"\n'
+    files['app/settings.toml'] = '[libraries]\nSQL = "../vendor/SQL"\n'
     files['app/main.fusion'] = MAIN_SQL
     output = build_and_run(str(tmp_path), files)[1]
     assert "Module 'SQL.Database' is in two places" in output and "keep one" in output
@@ -221,7 +221,7 @@ def test_a_module_in_two_places_is_an_error(tmp_path):
 ])
 def test_bad_library_settings(tmp_path, toml, message):
     from src.config import ProjectConfigError, load_project_config
-    (tmp_path / 'fusion.toml').write_text(toml, encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text(toml, encoding='utf-8')
     (tmp_path / 'main.fusion').write_text('void function main()\n    print("x")\n', encoding='utf-8')
     with pytest.raises(ProjectConfigError, match=message):
         load_project_config(str(tmp_path / 'main.fusion'))
@@ -331,7 +331,7 @@ def test_fusions_own_modules(tmp_path, main_text, output):
     ({'app/main.fusion': 'void function main()\n    Fusion.IO.print("x")\n'}, "Fusion has no module 'IO'"),
     ({'app/main.fusion': 'import Fusion.Core as C\n\nvoid function main()\n    print("x")\n'},
      "Fusion.Core is imported without 'as'"),
-    ({'app/fusion.toml': '[libraries]\nFusion = "../mine"\n', 'app/main.fusion': MAIN_SQL},
+    ({'app/settings.toml': '[libraries]\nFusion = "../mine"\n', 'app/main.fusion': MAIN_SQL},
      "the namespace Fusion is reserved for Fusion's own modules"),
 ])
 def test_the_fusion_namespace_is_reserved(tmp_path, files, message):

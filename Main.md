@@ -3,7 +3,7 @@
 # Fusion - Start Here
 
 **What Fusion is for:** a language where each project chooses what it needs - safety, memory
-model, concurrency, backend - in `fusion.toml`, instead of picking a different language for
+model, concurrency, backend - in `settings.toml`, instead of picking a different language for
 each trade-off. Memory-safe by ownership (no GC by default); a million requests on one
 machine without data races. Today: a compiler in Python, Fusion -> C -> a native program
 (GCC); next a compiler written in Fusion. The full pitch: [README.md](README.md).
@@ -56,7 +56,7 @@ what is being worked on -> [files/FEATURES.md](files/FEATURES.md) and [files/tas
 | [files/DataStructures.html](files/DataStructures.html) | Reference card: every data structure - which Fusion has, which are coming, how other languages offer them (open in a browser, L15.4) |
 | [files/fusionSettings.xml](files/fusionSettings.xml) | Every built project setting: values, default (the master template) |
 | [files/tutorial/](files/tutorial/) | The tutorial site (w3schools style, started 2026-11-22): `index.html`, `site.css`, `fusion-code.css`, `tutorial.json`; the plan as a text hierarchy in [main.md](files/tutorial/main.md) (FEATURES L15.3) |
-| [files/showcase/](files/showcase/) | The whole language as code: `Fusion_showcase.fusion` (every feature, tagged), `Fusion_template.fusion` (each construct's shape), `Ownership.fusion`, `Interfaces.fusion`, `fusion.toml` (every setting, tagged) |
+| [files/showcase/](files/showcase/) | The whole language as code: `Fusion_showcase.fusion` (every feature, tagged), `Fusion_template.fusion` (each construct's shape), `Ownership.fusion`, `Interfaces.fusion`, `settings.toml` (every setting, tagged) |
 | [files/FusionTemplate.md](files/FusionTemplate.md) | How a .fusion file is laid out |
 
 #### Design documents - one topic each, with truth tables
