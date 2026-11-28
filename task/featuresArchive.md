@@ -926,3 +926,33 @@ From #### 30 (reopened 2026-10-28 - null enums, case null, fall match):
 #### Tasks 33, 45, 47 closed (2026-11-27)
 	Their postponed items moved: 33's were already L5.9, L8.7, L8.8 and 35.0; 45's to L6.9, 45.8 under 42.19,
 	the buffers already L16.3; 47.12b to L8.11
+
+#### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [DONE 2026-11-28] [index](#index)
+	A namespace is a supplier's group of modules, and a folder holding them; a module is one logical unit
+		(one file or several); a name in full is `Namespace.Module.Name`
+	[DONE 2026-11-27] 57.1 The lines and the folder (D.204, D.207; tests/test_namespaces.py): the folder gives the
+		namespace and module (SQL/Database/ - namespace SQL, module Database); `namespace` / `module` lines optional, one
+		not matching the folder an error naming both; `internal` shared by the folder's namespace; the main file in none
+	[DONE 2026-11-27] 57.2 A structured module (D.211, D.212; tests/test_namespaces.py): a module in a namespace;
+		`static` at the top of a file; a function or variable without it static all the same, with a warning; a top-level
+		type may be private (its module); a private function still an error; a module's interface, `implements` and
+		its classes' private fields work by full name (they failed in any module before)
+	[DONE 2026-11-27] 57.3 Finding libraries (D.206, D.213; tests/test_namespaces.py): `[libraries]` in fusion.toml -
+		a namespace and its folder (`SQL = "C:/vendor/SQL"`, `"com.example.SQL" = ...`), relative to the settings file;
+		`import "C:/vendor".SQL.Database`; the program's folder first, then the libraries; a module in two places, or
+		from two folders, an error naming both
+	[DONE 2026-11-28] 57.4 Importing (D.208, D.209; tests/test_namespaces.py): `import SQL as Q` / `import SQL` - a
+		namespace, `Q.Database.name()`, `Q.Database.Conn c`; only the modules used are loaded; the full name
+		`SQL.Database.x` once imported (with an alias too); two modules with one name an error until one has an alias;
+		`com.example.SQL` a longer namespace (57.3)
+	[DONE 2026-11-28] 57.5 Fusion's own (D.208, D.210; tests/test_namespaces.py): the namespace `Fusion` reserved (a
+		folder, a `[libraries]` name); `Fusion.Core` always there - `import Fusion.Core` accepted, `Fusion.Core.print(...)`
+		its full name; Currency.fusion moved to src/stdlib/Fusion/Currency/ - module Fusion.Currency, added with money or
+		`import Fusion.Currency`, `Fusion.Currency.Currency.places(...)`; FusionTemplate.md and the showcase
+	[DONE 2026-11-28] 57.6 `--interface` (tests/test_namespaces.py): a module inside a namespace shows `namespace SQL` /
+		`module Database` and its functions and variables `static`; `--interface SQL` - every imported module of the
+		namespace; libraries found through `[libraries]`
+	[DONE 2026-11-28] 57.7 The `suppliers` example (examples/13_projects/suppliers/ - Acme's library through [libraries],
+		the program's own Shop/Database, an alias, a namespace, full names, a factory, internal across Acme) and the
+		documents: SYNTAX_REFERENCE, spec 150, FeatureTree, the showcase, MOD.012 BUILT, MOD.005 PARTIAL
+	57.8 (one module, one library) moved to L2.2 - the same feature, waits for extern (60.1)

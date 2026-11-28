@@ -1,0 +1,2 @@
+// The program's own Database module - namespace Shop from its folder; no lines written (Task 57)
+public static string function name() : "the shop's own database"

@@ -2381,20 +2381,57 @@ public Price function make(int cents) : Price(cents + fee())
 internal int function fee() : 50 // only module money (or its namespace) sees it
 ```
 Who can use what (Task 32.2h): `public` - everyone; `internal` - the namespace (a file
-without one: its module); `private` - the class (a member only; on a top-level item it is an
-error). Nothing written: fields and module variables private, everything else public.
-```fusion multi-file
-namespace Shop                   // the first line: shop modules see each other's internal names
-import stock
+without one: its module); `private` - the class, and on a top-level class, struct, enum or interface its module
+(D.212); on a top-level function it is an error. Nothing written: fields and module variables private, everything
+else public.
 
-class Till
-    internal int drawer          // the Shop namespace may use it
-    private int secret           // Till's own functions only
+#### Namespaces, libraries and full names (Task 57)
+
+```text
+app/
+  main.fusion
+  fusion.toml                    <- [libraries] Acme = "../vendor/Acme"
+  Shop/Database/store.fusion     <- namespace Shop, module Database - the folder says so
+vendor/Acme/Database/conn.fusion <- namespace Acme, module Database - a supplier's library
+vendor/Acme/Pool/pool.fusion
 ```
+```fusion multi-file
+// vendor/Acme/Database/conn.fusion - in a namespace: a structured module (D.205, D.212)
+namespace Acme                   // optional - must match the folder (D.204)
+module Database                  // optional - must match the folder
+
+public class Connection
+    public string url
+
+private static int made = 0                                 // its module only
+public static Connection function connect(string url)      // a static function: a factory, used sparingly
+    made = made + 1
+    return Connection(url)
+internal static int function retries() : 3                 // every module of Acme sees it (D.207)
+```
+```fusion multi-file
+import Acme.Database as AcmeDB        // two Database modules: an alias for one (D.209)
+import Acme as A                      // a whole namespace: A.Pool.size()
+import Shop.Database                  // used as Database
+import "../vendor".Acme.Pool          // not in [libraries]: the folder holding the namespace (D.213)
+import Fusion.Currency                // Fusion's own (D.210); Fusion.Core - print, write ... - is always there
+
+void function main()
+    AcmeDB.Connection c = AcmeDB.connect("db://stock")
+    print(Database.name())
+    print(Acme.Database.connect("db://x").url)     // the full name, once imported (D.208)
+    Fusion.Core.print("print's full name")
+```
+A function or variable at the top of a module in a namespace without `static` is static all the same - the
+compiler adds it, with a warning asking for it to be written. A module folder without a namespace (`money/`) and
+the main file are free, as before; the main file has no `namespace` or `module` line. A whole project to try:
+`examples/13_projects/suppliers/`.
+
 Each file imports what it uses; files of one module share all their names; each module is
 loaded once, so modules may import each other. A whole project to try: `examples/13_projects/shop/`.
 `python main.py main.fusion --interface` prints the public names of every module it imports - a parameter the
-function keeps marked `Car c (kept)` (a call moves the argument, D.100), a readonly one `readonly Car c`.
+function keeps marked `Car c (kept)` (a call moves the argument, D.100), a readonly one `readonly Car c`;
+`--interface Acme` every module of a namespace.
 
 #### Errors: `T, Error function`, capturing an error
 

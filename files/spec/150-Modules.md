@@ -4,17 +4,13 @@
 
 **Contents**
 
-- [File Organization](#file-organization)
-- [Module Definition](#module-definition)
-- [Class Files](#class-files)
-- [Import Syntax](#import-syntax)
-- [Visibility Control](#visibility-control)
+- [Module System](#module-system)
 
 ## Module System
 
-**Status:** [DONE 18.4, 32.2] module folders, `import`, aliases, `public` / `internal` / `private`, `namespace`,
-`--interface` (MOD.001, MOD.002); importing only some names [DESIGN] (MOD.005). The sections after
-"As built" are the **earlier design** - see the note there
+**Status:** [DONE 18.4, 32.2, 57] module folders, `import`, aliases, `public` / `internal` / `private`, namespaces
+as folders, `[libraries]`, full names, Fusion's own modules, `--interface` (MOD.001, MOD.002, MOD.012); importing only
+some names [DESIGN] (MOD.005)
 
 Description: Organized code structure with clear dependencies.
 
@@ -121,165 +117,43 @@ classes, interfaces, enums, error types, functions and module variables:
   - `Fusion.Currency` (src/stdlib/Fusion/Currency/) is added when a program uses money, or with `import
     Fusion.Currency`; `Fusion.Currency.Currency.places("JPY")` its full name
 
-**The earlier design** (the sections below, before Task 18.4) - not built, kept for review:
-
-| Earlier design | Today |
-|---|---|
-| A `module.fusion` file with `module X` and `export` lines | **No** (user, 2026-11-12; D.135): a module is not a separate file - a line at the top of a file says which namespace / module it belongs to; its variables, interfaces, structs and classes belong to that module - see "The direction" below (D.136) |
-| `export` / not exported | Replaced by `public` / `internal` / `private` (built) |
-| One class per file, the file named after the class | **No** (user, 2026-11-12; D.135): a file may hold many classes - not a strict requirement |
-| A class nested inside a class | Not decided |
-
-**The direction: namespaces and modules (user, 2026-11-12; D.136, Task 57 - designed when built):**
+**Words (D.136, D.204, D.205):**
 
 | Word | What it is | Example |
 |---|---|---|
-| Namespace | A supplier's group of modules - also a folder holding them | `Fusion` (Fusion's own libraries), `SQL`, `MySQL` |
-| Module | One logical unit: one file or several, with related constants, variables, interfaces, structs, classes | `IO`, `Database` |
+| Namespace | A supplier's group of modules - a folder holding them | `Fusion` (Fusion's own), `SQL`, `com.example.SQL` |
+| Module | A folder of one or more files: classes, interfaces, structs, enums, static variables and functions | `SQL/Database/` |
 | A full name | `Namespace.Module.Name` | `SQL.Database.createConnection(...)` |
-| A library | One module compiles to one library (later, MOD.003) | `Fusion.IO.dll` |
-| Two suppliers, one namespace name | A reverse company domain in the namespace keeps them apart | `com.example.SQL` |
+| A library | One module compiled to one library - later, needs `extern` (MOD.003, FEATURES 57.8) | `Fusion.IO.dll` |
 
-```fusion
-// pseudo code - the syntax is designed when it is built (57.1)
-namespace Fusion                 // Fusion's own libraries
-module IO                        // files with classes that belong to IO
+**The truth table (Task 57, Rule 4c)** - each row a test in tests/test_namespaces.py:
 
-namespace SQL                    // another supplier's library
-module Database                  // its own way to connect to a database
+| Case | Result |
+|---|---|
+| A file in `SQL/Database/`, no lines | namespace SQL, module Database |
+| ... with `namespace SQL` / `module Database` / both | the same |
+| ... with `namespace Shop` or `module Data` | an error naming the line and the folder |
+| A file in `money/` with `namespace SQL` | an error: a module without a namespace |
+| The main file with `namespace` or `module` | an error: the main file is the program |
+| `internal` in `Shop/stock`, used from `Shop/till` | allowed - one namespace |
+| `internal` in `Shop/stock`, used from `Office/desk` or the main file | an error |
+| In a namespace: a function or variable with `static` | as written |
+| In a namespace: a function or variable without `static` | static, with a warning |
+| In a namespace: a constant, enum, interface, error type, class, struct | allowed as written |
+| In `money/` (no namespace): a function without `static` | free - no warning |
+| `private` on a top-level class, struct, enum, interface | its module only |
+| `private` on a top-level function | an error |
+| `import SQL.Database` - next to the main file / in `[libraries]` / with its path | found |
+| ... in two places | an error naming both |
+| ... nowhere | an error |
+| `import SQL as Q` / `import SQL` | `Q.Database.x` / `SQL.Database.x`; only the modules used loaded |
+| `Q.Nope.x` | an error: the namespace has no module Nope |
+| `SQL.Database.x` after `import SQL.Database` (or `as D`) | the full name works |
+| `import A.Database` and `import B.Database` | an error until one has an alias |
+| `import Fusion.Core` / `import Fusion.Currency` | accepted; Fusion.Core is always there |
+| `import Fusion.IO`, a folder or `[libraries]` name Fusion | an error - Fusion is reserved |
 
-// a program using both
-import Fusion.Database
-import SQL as Q                   // a namespace imported with an alias
-Fusion.Database.createConnection(...)
-Q.Database.createConnection(...)
-```
-
-Today (built) the folder is the module and `namespace` lets modules share `internal` names - Task 57
-changes this.
-
-| `import X`, `import X.Name`, `import X.*` | Built as shown above |
-| A module compiled to a DLL | Later (user, 2026-11-12): the folders and files of one module compile into one library (`.dll` / `.so`), ready for a larger application - postponed, needs `extern` (MOD.003) |
-
----
-
-### File Organization
-
-Description: Clear structure for maintainability.
-
-* **Rules**
-     * One class per file (class name matches filename)
-     * Module groups related files in directory
-     * Special module.fusion file defines module
-     * Subclasses can be nested within class file
-     * Modules cannot be nested in other modules
-
-* **Directory Structure**
-
-```
-project/
-├── Spaceships/
-│   ├── module.fusion          // Module definition
-│   ├── Spaceship.fusion        // One class
-│   ├── Warship.fusion          // One class
-│   └── CargoShip.fusion        // One class
-├── Weapons/
-│   ├── module.fusion
-│   ├── Laser.fusion
-│   └── Missile.fusion
-└── main.fusion
-```
-
----
-
-### Module Definition
-
-Description: Define module in module.fusion file.
-
-```
-// Spaceships/module.fusion
-module Spaceships
-
-export Spaceship
-export Warship
-export CargoShip
-
-// Private helper (not exported)
-void function validateShipName(string name)
-    return name.length > 0
-```
-
----
-
-### Class Files
-
-Description: One class per file with optional nested subclasses.
-
-```
-// Spaceships/Spaceship.fusion
-class Spaceship
-    string name
-    float speed
-    
-    constructor(string name, float speed)
-        this.name = name
-        this.speed = speed
-    
-    void function start()
-        print("{name} started")
-    
-    // Nested subclass allowed
-    class Engine
-        float power
-        
-        constructor(float power)
-            this.power = power
-```
-
----
-
-### Import Syntax
-
-Description: Multiple ways to import modules and classes.
-
-```
-// Import entire module
-import Spaceships
-
-// Use with module prefix
-Spaceship ship = Spaceships.Spaceship("Enterprise", 100.0)
-
-// Import specific class
-import Spaceships.Spaceship
-
-// Use without prefix
-Spaceship ship = Spaceship("Enterprise", 100.0)
-
-// Import all from module
-import Spaceships.*
-
-// Use all exported classes
-Spaceship ship = Spaceship("Enterprise", 100.0)
-Warship warship = Warship("Destroyer", 150.0, 50)
-```
-
----
-
-### Visibility Control
-
-Description: Control what is accessible from outside module.
-
-```
-// module.fusion
-module Spaceships
-
-export Spaceship        // Public: can be imported
-export Warship          // Public: can be imported
-
-// CargoShip not exported - internal to module only
-
-void function internalHelper()  // Not exported - module-private
-    // ...
-```
+The earlier design - a `module.fusion` file with `export` lines, one class per file - was never built and is
+replaced by the folders above (D.135, D.204).
 
 [< 140 Collections](140-Collections.md) | [Index](index.md) | [160 GameExample >](160-GameExample.md) <!-- nav -->

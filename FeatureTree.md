@@ -4,7 +4,7 @@ What Fusion has, and what it still needs, at a glance. Kept simple - one line pe
 Detail: `Decisions.md` (every feature line and decision), `files/FEATURES.md` (tasks and status),
 `files/SYNTAX_REFERENCE.md` (examples of what works).
 
-Updated: 2026-11-25
+Updated: 2026-11-28
 
 Tags: **[partial]** some of it built - **[planned]** decided, scheduled as a task - **[design]** described,
 not settled - **[postponed]** waits for something else
@@ -109,7 +109,11 @@ Classes
 
 Modules
    - import                   a folder = a module; module variables and constants
-   - --interface              shows the public interface of imported modules
+   - --interface              shows the public interface of imported modules (a namespace too)
+   - Namespaces               a folder of modules: SQL/Database/ - import SQL as Q, full names SQL.Database.x
+   - Structured modules       in a namespace: classes, structs, interfaces, static functions and variables
+   - [libraries]              external libraries in fusion.toml; import "C:/vendor".SQL.Database
+   - Fusion's own             the namespace Fusion reserved; Fusion.Core always there, Fusion.Currency
 
 Memory
    - OWNERSHIP                scope + counting; returned local moved
@@ -229,13 +233,13 @@ Classes
 Modules & libraries
    - Shared libraries .dll / .so [postponed]
    - Library trust / sandbox [design]
-   - Partial imports, [modules] paths, grouped imports [design]
+   - Partial imports, grouped imports [design]
    - Other code: DLLs, assembly, outside compilers [design]
    - Callbacks and events [design]
    - Data formats module [design]    JSON, XML, TOML, YAML, INI, MD
    - HIDL library [design]           hardware testing, Maia-style
    - Language modules [design]       import Lang.Python.Fusion
-   - Namespaces as supplier groups [design]
+   - One module, one library [postponed]  Fusion.IO.dll - needs extern
    - Script libraries [design]       Lua / JS / Fusion scripts through interfaces
 
 Memory

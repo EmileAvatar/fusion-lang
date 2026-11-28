@@ -1,0 +1,4 @@
+// Acme's Pool module - in the same namespace as Database, so it sees Database's internal names (Task 57)
+import Acme.Database
+
+public static int function size() : Database.retries() * 2

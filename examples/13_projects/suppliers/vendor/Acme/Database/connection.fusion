@@ -1,0 +1,23 @@
+// Acme's Database module - a supplier's library, found through [libraries] in the program's fusion.toml (Task 57)
+namespace Acme
+module Database
+
+public class Connection
+    public string url
+
+    constructor(string url)
+        this.url = url
+
+    public string function describe() : "Acme connection to " + url
+
+private static int made = 0                        // a count of no use outside the module
+
+// a factory - a static function at the top of a module, used sparingly (D.205)
+public static Connection function connect(string url)
+    made = made + 1
+    return Connection(url)
+
+public static int function connections() : made
+
+// internal: every module of the namespace Acme may use it (D.207) - Pool does
+internal static int function retries() : 3

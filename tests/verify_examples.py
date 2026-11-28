@@ -96,7 +96,8 @@ def compile_fusion_to_c(fusion_file: Path) -> tuple[bool, str, list[str]]:
 
         # Lexing and parsing - plus, for a project, every module it imports (Task 18.4.4)
         try:
-            ast, import_errors = load_program_file(str(fusion_file))
+            from src.config import load_project_config      # its [libraries] (Task 57.3)
+            ast, import_errors = load_program_file(str(fusion_file), load_project_config(str(fusion_file)))
         except ValueError as e:   # lexer errors
             return False, "", [str(e)]
         if import_errors:
@@ -367,6 +368,7 @@ EXPECTED_OUTPUTS = {
     'style_indent': 'box: big\ncoin: small\ntotal 7, countdown 0',
     'style_braces': 'box: big\ncoin: small\ntotal 7, countdown 0',
     'style_end': 'box: big\ncoin: small\ntotal 7, countdown 0',
+    'suppliers': "Acme connection to db://stock\nthe shop's own database\npool of 6\nAcme connection to db://orders\nthe shop's own database\n2 Acme connections made",
     'wordcount': '17 words, 10 different\nthe.....   4\nbrown...   2\ndog.....   2\nfox.....   2\nquick...   2',
     'generics_demo': 'bolt (2); gear (15); \n1 1\ngear costs 15\n2 15 24\n2.250000\n  bolt\n  2\n  true',
     'classes_demo': 'Dune (book): 2.00 for 14 days\nAlien (film), 117 min: 3.50 for 7 days\nTetris (game): 5.00 for 14 days\ntotal 10.50\nlent for 7 days\nAlien runs 117 minutes\na Film is not a Game\nMedia.Game\nHall row 2: Dune\nclassic: the List has it already (noDuplicates)\n2 tags',

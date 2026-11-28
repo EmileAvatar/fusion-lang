@@ -8,7 +8,7 @@ public enum Tok {
     IF ELSE FOR WHILE LOOP END BREAK CONTINUE RETURN MATCH CASE
     FUNCTION FUNC ASYNC AWAIT
     CLASS STRUCT INTERFACE ENUM INHERITS IMPLEMENTS PROPERTY GET SET
-    PUBLIC PRIVATE PROTECTED STATIC VIRTUAL OVERRIDE ABSTRACT SEALED
+    PUBLIC PRIVATE PROTECTED STATIC VIRTUAL OVERRIDE ABSTRACT SEALED INTERNAL NAMESPACE MODULE
     INT FLOAT DOUBLE STRING BOOL CHAR BYTE SHORT LONG INT128 INT256 VOID
     SHARED WEAK VAR LET CONST SERVICE FIXED TRUE FALSE NULL THIS
     AND OR NOT IS IN IMPORT NEW CAST TRY CATCH FINALLY THROW ERROR GO
@@ -85,6 +85,9 @@ Map<string, Tok> function keywordTable() {
     k["public"] = Tok.PUBLIC
     k["private"] = Tok.PRIVATE
     k["protected"] = Tok.PROTECTED
+    k["internal"] = Tok.INTERNAL
+    k["namespace"] = Tok.NAMESPACE
+    k["module"] = Tok.MODULE
     k["static"] = Tok.STATIC
     k["virtual"] = Tok.VIRTUAL
     k["override"] = Tok.OVERRIDE
@@ -582,7 +585,7 @@ Map<string, string> function reservedTable() {
     r["choice"] = "an enum with data (an idea)"
     r["operator"] = "operator overloading (an idea)"
     r["yield"] = "generators (an idea)"
-    for w in ["module", "export", "using", "default", "typeof", "sizeof", "nameof", "select", "atomic", "transaction", "goto", "delete", "volatile", "synchronized", "self", "base", "ref", "out", "mut", "move", "macro", "type", "record", "trait", "impl"] {
+    for w in ["export", "using", "default", "typeof", "sizeof", "nameof", "select", "atomic", "transaction", "goto", "delete", "volatile", "synchronized", "self", "base", "ref", "out", "mut", "move", "macro", "type", "record", "trait", "impl"] {
         r[w] = "future use"
     }
     return r

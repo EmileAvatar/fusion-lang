@@ -1,0 +1,3 @@
+# The external libraries this program imports - a namespace and its folder (Task 57.3)
+[libraries]
+Acme = "vendor/Acme"

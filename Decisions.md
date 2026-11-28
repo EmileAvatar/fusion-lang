@@ -205,14 +205,14 @@ MOD.001 [BUILT] Modules and `import` (a folder = a module); module variables and
 MOD.002 [BUILT] `--interface`: the public and internal interface of the imported modules, readonly results and parameters marked, a kept parameter `(kept)` (D.115, 50.5, D.100 - 33.7)
 MOD.003 [POSTPONED] A Fusion library other programs load (`.dll` / `.so`) - a module's folders and files compiled into one library for a larger application; needs `extern`
 MOD.004 [DESIGN] Library trust: nothing trusted by default - a library without source is sandboxed (no files / network) unless the developer trusts it; capability signatures, supply-chain checks (Task 39, D.122)
-MOD.005 [DESIGN] Import only some names (`import geometry { square, circle }`); `[modules] paths`
+MOD.005 [PARTIAL] Import only some names (`import geometry { square, circle }`) [DESIGN]; external libraries - `[libraries]` in fusion.toml and `import "C:/vendor".SQL.Database` [BUILT 57.3] (D.213)
 MOD.006 [DESIGN] Working with other code: loading a DLL, assembly blocks, calling outside compilers
 MOD.007 [DESIGN] Callbacks and events
 MOD.008 [DESIGN] Grouped import blocks
 MOD.009 [DESIGN] Data formats module (fusionlib): JSON, XML, TOML, YAML, INI, MD to an in-memory document, load / save; JSON and XML written in the code: `(FILE_LANG.XML)"""..."""` (43.2)
 MOD.010 [DESIGN] HIDL library: hardware testing in the style of Maia - a DUT block, drive / expect vectors, clocks, bit widths (41.10)
 MOD.011 [DESIGN] Language modules `import Lang.Python.Fusion`: each brings its lexer, parser, AST and rules through one injection point - migrate a language to new .fusion files, or compile it by its own rules (Task 49)
-MOD.012 [DESIGN] Namespaces and modules: a namespace is a supplier's group of modules (and a folder); `Namespace.Module.Name`; one module, one library; a reverse company domain when two suppliers share a namespace name (Task 57, D.136, D.204-D.210)
+MOD.012 [BUILT] Namespaces and modules: a namespace is a supplier's group of modules (and a folder); `Namespace.Module.Name`; a reverse company domain when two suppliers share a namespace name (Task 57, D.136, D.204-D.213); one module, one library - MOD.003
 MOD.013 [DESIGN] Script libraries: a running program runs Lua, JavaScript or Fusion scripts (game mods, business rules) only through interfaces the developer gives them; the compiler as a library - after self-hosting (Task 60, D.155-D.157)
 
 #### MEM - memory and ownership

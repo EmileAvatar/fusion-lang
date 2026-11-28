@@ -1,0 +1,16 @@
+// Namespaces and modules: two suppliers' Database modules side by side (Task 57)
+import Acme.Database as AcmeDB      // Acme's, from vendor/Acme (fusion.toml [libraries]) - an alias
+import Acme as A                    // the whole namespace: A.Pool.size()
+import Shop.Database                // the program's own, from Shop/Database/ - used as Database
+
+void function main()
+    AcmeDB.Connection c = AcmeDB.connect("db://stock")
+    print(c.describe())
+    print(Database.name())
+    print(format("pool of {@1}", A.Pool.size()))
+
+    // the full names work too, once imported
+    Acme.Database.Connection d = Acme.Database.connect("db://orders")
+    print(d.describe())
+    print(Shop.Database.name())
+    print(format("{@1} Acme connections made", AcmeDB.connections()))

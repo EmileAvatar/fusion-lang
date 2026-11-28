@@ -1,13 +1,13 @@
 # Fusion Compiler Verification Report
 
-**Date:** Sun Nov 22 18:59:19 2026
-**Total Examples:** 21
+**Date:** Sat Nov 28 05:58:02 2026
+**Total Examples:** 22
 
 ## Summary
 
-- **Compilation Success:** 21/21
-- **Execution Success:** 21/21
-- **Output Matches:** 21/21
+- **Compilation Success:** 22/22
+- **Execution Success:** 22/22
+- **Output Matches:** 22/22
 
 ## Detailed Results
 
@@ -1560,6 +1560,84 @@ Filters....... R 3.99
 -------
 Subtotal...... R 25.48
 Total + VAT... R 29.30```
+
+**Generated C Code (first 50 lines):**
+```c
+#include <math.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// ---- Fusion runtime: strings and run-time errors (Task 18.3.1) ----
+// A string is UTF-8 text: `len` bytes holding `chars` characters (Task 18.3.2b). For plain
+// ASCII text chars == len, and indexing needs no scanning
+typedef struct { char* data; int len; int chars; int owned; } fusion_string;
+// One character: any Unicode code point - or one byte when the project uses ascii encoding
+#ifdef FUSION_ASCII
+typedef unsigned char fusion_char;
+#else
+typedef uint32_t fusion_char;
+#endif
+// Text written in the source: never freed, costs nothing at run time. FUSION_STR is for
+// ASCII text; FUSION_STRU gives the character count of non-ASCII text
+#define FUSION_STR(lit) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (int)(sizeof(lit) - 1), 0})
+#define FUSION_STRU(lit, n) ((fusion_string){(char*)(lit), (int)(sizeof(lit) - 1), (n), 0})
+// A branch taken rarely - a List of your own behind a List (33.3d2): Fusion's own stays the fast path
+#define FUSION_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define FUSION_LIKELY(x) __builtin_expect(!!(x), 1)
+
+#ifdef FUSION_LEAK_CHECK
+static void** fusion_live = NULL;
+static int fusion_live_count = 0, fusion_live_cap = 0, fusion_leak_ready = 0, fusion_leak_skip = 0;
+static int fusion_objects_live = 0;   // class objects made and not yet freed (Task 32.10b)
+#define FUSION_OBJECT_MADE() (fusion_objects_live++)
+#define FUSION_OBJECT_FREED() (fusion_objects_live--)
+static inline void fusion_leak_report(void) {
+    if (fusion_objects_live > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d object(s) were never freed\n", fusion_objects_live);
+        _Exit(5);
+    }
+    if (fusion_live_count > 0 && !fusion_leak_skip) {
+        fflush(stdout);
+        fprintf(stderr, "FUSION LEAK CHECK: %d string(s) were never freed\n", fusion_live_count);
+        _Exit(3);
+    }
+}
+#else
+#define FUSION_OBJECT_MADE() ((void)0)
+#define FUSION_OBJECT_FREED() ((void)0)
+#endif
+// -DFUSION_TRACE_OBJECTS (tests): every object freed is shown in the output, in order, so a
+// test can check it was freed at the right moment (Task 32.10c)
+... (truncated)
+```
+
+### suppliers
+
+**Status:** [OK] All Checks Passed
+
+**Output:**
+```
+Acme connection to db://stock
+the shop's own database
+pool of 6
+Acme connection to db://orders
+the shop's own database
+2 Acme connections made
+```
+
+**Expected:**
+```
+Acme connection to db://stock
+the shop's own database
+pool of 6
+Acme connection to db://orders
+the shop's own database
+2 Acme connections made```
 
 **Generated C Code (first 50 lines):**
 ```c

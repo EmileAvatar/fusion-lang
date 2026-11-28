@@ -102,7 +102,6 @@ then the open tasks, the postponed ones, and the phase's goal last.
 | [53](#task-53) | Check the Core language | 2 | open |
 | [55](#task-55) | Review the ChatGPT notes: features, domains, DSLs | 2 | open |
 | [56](#task-56) | Loop safety: the `check` keyword | 2 | open |
-| [57](#task-57) | Namespaces and modules | 2 | open |
 | [58](#task-58) | Script mode: Fusion written and run like a Python script | 2 | open |
 | [59](#task-59) | Review the research points: Rust, Zig, `comptime`, the service gaps - before self-hosting | 2 | open |
 | [29](#task-29) | Strings - the postponed parts (29.0-29.3, 29.6 done 2026-10-27: task/featuresArchive.md) | 2 | postponed |
@@ -385,35 +384,6 @@ then each point is decided and solved completely. One line per section and per l
 	[ ] 56.4 Build `end loop with` + `check` blocks, then `{N}`; `[safety] maxIterations` built
 		(files/fusionSettings.xml); tests, an example in files/SYNTAX_REFERENCE.md (Rule 4)
 	[POSTPONED to 42] 56.5 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)
-
-<a id="task-57"></a>
-#### 57 Namespaces and modules (user, 2026-11-12 - D.136, files/spec/150-Modules.md) [ ] [index](#index)
-	A namespace is a supplier's group of modules, and a folder holding them; a module is one logical unit
-		(one file or several); a name in full is `Namespace.Module.Name`
-	[DONE 2026-11-27] 57.1 The lines and the folder (D.204, D.207; tests/test_namespaces.py): the folder gives the
-		namespace and module (SQL/Database/ - namespace SQL, module Database); `namespace` / `module` lines optional, one
-		not matching the folder an error naming both; `internal` shared by the folder's namespace; the main file in none
-	[DONE 2026-11-27] 57.2 A structured module (D.211, D.212; tests/test_namespaces.py): a module in a namespace;
-		`static` at the top of a file; a function or variable without it static all the same, with a warning; a top-level
-		type may be private (its module); a private function still an error; a module's interface, `implements` and
-		its classes' private fields work by full name (they failed in any module before)
-	[DONE 2026-11-27] 57.3 Finding libraries (D.206, D.213; tests/test_namespaces.py): `[libraries]` in fusion.toml -
-		a namespace and its folder (`SQL = "C:/vendor/SQL"`, `"com.example.SQL" = ...`), relative to the settings file;
-		`import "C:/vendor".SQL.Database`; the program's folder first, then the libraries; a module in two places, or
-		from two folders, an error naming both
-	[DONE 2026-11-28] 57.4 Importing (D.208, D.209; tests/test_namespaces.py): `import SQL as Q` / `import SQL` - a
-		namespace, `Q.Database.name()`, `Q.Database.Conn c`; only the modules used are loaded; the full name
-		`SQL.Database.x` once imported (with an alias too); two modules with one name an error until one has an alias;
-		`com.example.SQL` a longer namespace (57.3)
-	[DONE 2026-11-28] 57.5 Fusion's own (D.208, D.210; tests/test_namespaces.py): the namespace `Fusion` reserved (a
-		folder, a `[libraries]` name); `Fusion.Core` always there - `import Fusion.Core` accepted, `Fusion.Core.print(...)`
-		its full name; Currency.fusion moved to src/stdlib/Fusion/Currency/ - module Fusion.Currency, added with money or
-		`import Fusion.Currency`, `Fusion.Currency.Currency.places(...)`; FusionTemplate.md and the showcase
-	[DONE 2026-11-28] 57.6 `--interface` (tests/test_namespaces.py): a module inside a namespace shows `namespace SQL` /
-		`module Database` and its functions and variables `static`; `--interface SQL` - every imported module of the
-		namespace; libraries found through `[libraries]`
-	[ ] 57.7 The `suppliers` example and the documents (spec 150, SYNTAX_REFERENCE, the showcase, FeatureTree, MOD.012)
-	[POSTPONED - needs `extern`] 57.8 One module compiles to one library: `Fusion.IO.dll`, `SQL.Database.dll` (MOD.003)
 
 <a id="task-58"></a>
 #### 58 Script mode: Fusion written and run like a Python script (user, 2026-11-12 - SET.013, files/spec/170-Build.md) [ ] [index](#index)
@@ -924,7 +894,7 @@ Each time a task or section is finished, this list is checked for items the curr
 		[POSTPONED - needs `extern`] L2.2 A Fusion library other programs load: a `.dll` / `.so` with a
 			C interface, so Python and other languages can call Fusion code
 			A module compiled to a DLL: its folders and files become one library, ready for a larger
-				application (user, 2026-11-12 - MOD.003)
+				application (user, 2026-11-12 - MOD.003; was 57.8 - `Fusion.IO.dll`, `SQL.Database.dll`; extern: 60.1)
 		[POSTPONED - after the compiler no longer needs Python] L2.3 `console` - one tool (not named
 			cargo): `console build / run / test / add` (packages) - every command mapped in files/Compiler_and_Commands.md (draft, 2026-11-20)
 		[POSTPONED - not needed while the suite runs in about a minute] L2.4 Run only the tests the changed

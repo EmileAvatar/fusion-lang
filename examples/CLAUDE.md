@@ -43,7 +43,9 @@ name alone. `tools/example_files.py` knows the layout; check.py, verify_examples
   with a `main.fusion` and its module folders - `shop/` (modules `money` and `cart`) and
   `wordcount/` (modules `text` and `counting`; counts a file given as an argument, or a
   sample it writes and deletes) and `expressions/` (modules `lexing` and `parsing`: text ->
-  tokens -> an expression tree -> a value, with enums and match). Its `.c` /
+  tokens -> an expression tree -> a value, with enums and match) and `suppliers/` (namespaces, Task 57: Acme's
+  library in `vendor/` through its `fusion.toml` `[libraries]`, the program's own `Shop/Database`, an alias, a
+  namespace import, full names, a static factory, `internal` across a namespace). Its `.c` /
   `.exe` are `main.c` / `main.exe` in its folder; its expected output is keyed by the
   folder name; check.py, verify_examples and `#run.bat` include it
 - **`fusion.toml`** - the same file in each topic folder 01-12 (a program finds the settings
