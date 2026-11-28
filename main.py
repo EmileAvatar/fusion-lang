@@ -10,11 +10,16 @@ This is the main entry point for the Fusion compiler. It performs:
 
 Usage:
     python main.py <source.fusion>
+    python main.py run <script.fusion> [arguments]     (Task 58.3 - build once, then run it)
 """
 
 import sys
 import os
 import subprocess
+import hashlib
+import io
+import json
+from contextlib import redirect_stderr
 from src.modules import load_program, make_file_parser, program_interfaces
 from src.lexer import Lexer
 from src.parser.parser import Parser, ParserError
@@ -23,7 +28,11 @@ from src.codegen import CCodeGenerator
 from src.config import load_project_config, ProjectConfigError
 
 
-def compile_file(source_path: str) -> int:
+# What the last compile_file used - `run` keeps it with the program (Task 58.3)
+LAST_BUILD = {'files': [], 'settings': None}
+
+
+def compile_file(source_path: str, out_base: str = None) -> int:
     """Compile a Fusion source file.
 
     Args:
@@ -104,6 +113,9 @@ def compile_file(source_path: str) -> int:
     had_imports = bool(ast.imports)
     ast, import_errors = load_program(source_path, ast, make_file_parser(project_config),
                                       project_config.libraries)
+    LAST_BUILD['files'] = list(getattr(ast, 'source_files', []))
+    LAST_BUILD['settings'] = project_config.source_path if project_config.source_path and \
+        os.path.isfile(project_config.source_path) else None
     if import_errors:
         for error in import_errors:
             print(f"Error: {error}", file=sys.stderr)
@@ -153,7 +165,7 @@ def compile_file(source_path: str) -> int:
         return 1
 
     # Write C code to file
-    c_file = source_path.replace('.fusion', '.c')
+    c_file = (out_base + '.c') if out_base else source_path.replace('.fusion', '.c')
     try:
         with open(c_file, 'w', encoding='utf-8') as f:
             f.write(c_code)
@@ -164,7 +176,8 @@ def compile_file(source_path: str) -> int:
 
     # Compile C code with GCC
     print(f"[5/5] Compiling C code...", file=sys.stderr)
-    exe_file = source_path.replace('.fusion', '.exe' if sys.platform == 'win32' else '')
+    exe_suffix = '.exe' if sys.platform == 'win32' else ''
+    exe_file = (out_base + exe_suffix) if out_base else source_path.replace('.fusion', exe_suffix)
 
     gcc_result = compile_c_to_executable(c_file, exe_file)
     if gcc_result != 0:
@@ -226,10 +239,114 @@ def main():
               "(the public interface of the modules it imports)", file=sys.stderr)
         return 1
 
+    if sys.argv[1] == 'run':                               # `run tidy.fusion [arguments]` (58.3, D.221)
+        if len(sys.argv) < 3:
+            print("Usage: python main.py run <script.fusion> [arguments]", file=sys.stderr)
+            return 1
+        return run_script(sys.argv[2], sys.argv[3:])
     source_path = sys.argv[1]
     if '--interface' in sys.argv[2:]:
         return print_interfaces(source_path, sys.argv[2:])
     return compile_file(source_path)
+
+
+# ---------------------------------------------------------------- run: a script built once (Task 58.3, D.221, D.223)
+
+def _file_hash(path: str) -> str:
+    try:
+        with open(path, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    except OSError:
+        return ''
+
+
+def compiler_version() -> str:
+    """A hash of the compiler's own source - a kept script is built again when the compiler changes."""
+    root = os.path.dirname(os.path.abspath(__file__))
+    digest = hashlib.sha256()
+    for folder, _, files in sorted(os.walk(os.path.join(root, 'src'))):
+        for name in sorted(files):
+            if name.endswith(('.py', '.fusion')):
+                digest.update(name.encode())
+                digest.update(_file_hash(os.path.join(folder, name)).encode())
+    digest.update(_file_hash(os.path.abspath(__file__)).encode())
+    return digest.hexdigest()
+
+
+def script_cache_folder(script: str) -> str:
+    """Where a script's program is kept (D.223): the user's cache folder - %LOCALAPPDATA%\\Fusion\\cache on
+    Windows, ~/.cache/fusion elsewhere (FUSION_CACHE overrides it) - one folder per script; next to the script
+    (.fusion-cache) where that can't be written."""
+    script = os.path.abspath(script)
+    name = os.path.splitext(os.path.basename(script))[0] + '-' + hashlib.sha256(script.encode()).hexdigest()[:12]
+    base = os.environ.get('FUSION_CACHE') or (
+        os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'Fusion', 'cache')
+        if sys.platform == 'win32' else os.path.join(os.path.expanduser('~'), '.cache', 'fusion'))
+    for folder in (os.path.join(base, name), os.path.join(os.path.dirname(script), '.fusion-cache', name)):
+        try:
+            os.makedirs(folder, exist_ok=True)
+            probe = os.path.join(folder, '.write-test')
+            with open(probe, 'w') as f:
+                f.write('ok')
+            os.remove(probe)
+            return folder
+        except OSError:
+            continue
+    raise OSError(f"can't write the cache folder for {script}, nor next to it")
+
+
+def _build_record(script: str) -> dict:
+    """What a kept build depends on: the compiler, the script, every module file, the settings file."""
+    files = [os.path.abspath(script)] + [os.path.abspath(p) for p in LAST_BUILD['files']]
+    if LAST_BUILD['settings']:
+        files.append(os.path.abspath(LAST_BUILD['settings']))
+    return {'compiler': compiler_version(), 'files': {p: _file_hash(p) for p in files}}
+
+
+def _still_current(record_path: str, script: str) -> bool:
+    try:
+        with open(record_path, encoding='utf-8') as f:
+            record = json.load(f)
+    except (OSError, ValueError):
+        return False
+    if record.get('compiler') != compiler_version():
+        return False
+    files = record.get('files', {})
+    if os.path.abspath(script) not in files:
+        return False
+    # a settings file that has appeared next to the script since is a change too
+    from src.config.project_config import find_config_file
+    settings = find_config_file(script)
+    if settings and os.path.abspath(settings) not in files:
+        return False
+    return all(_file_hash(p) == h for p, h in files.items())
+
+
+def run_script(script: str, arguments: list) -> int:
+    """`python main.py run tidy.fusion [arguments]` (D.221): build the script when it (or anything it uses) has
+    changed - quietly, the messages shown only when the build fails - then run it at once with the arguments and
+    pass its exit code back. Nothing is written next to the script (D.223)."""
+    if not os.path.isfile(script):
+        print(f"Error: File not found: {script}", file=sys.stderr)
+        return 1
+    try:
+        folder = script_cache_folder(script)
+    except OSError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    base = os.path.join(folder, 'program')
+    exe = base + ('.exe' if sys.platform == 'win32' else '')
+    record_path = os.path.join(folder, 'build.json')
+    if not (os.path.isfile(exe) and _still_current(record_path, script)):
+        messages = io.StringIO()
+        with redirect_stderr(messages):
+            result = compile_file(script, out_base=base)
+        if result != 0:
+            sys.stderr.write(messages.getvalue())
+            return result
+        with open(record_path, 'w', encoding='utf-8') as f:
+            json.dump(_build_record(script), f)
+    return subprocess.run([exe, *arguments]).returncode
 
 
 def print_interfaces(source_path: str, args: list) -> int:

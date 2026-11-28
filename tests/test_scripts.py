@@ -193,3 +193,76 @@ def test_a_name_in_two_sections_needs_its_section(monkeypatch):
 def test_the_block_must_be_first():
     with pytest.raises(ParserError, match="Fusion.Settings must be first in the file"):
         parse_file('print("x")\nFusion.Settings {\n    maxIterations = 5\n}\n', 'main.fusion')
+
+
+# 58.3 (D.221, D.223): python main.py run tidy.fusion [arguments] - built once into the cache folder, run at once
+
+def run_cmd(tmp_path, script, *args, cache=None):
+    env = dict(os.environ, FUSION_CACHE=str(cache if cache is not None else tmp_path / 'cache'))
+    done = subprocess.run([sys.executable, os.path.join(REPO, 'main.py'), 'run', str(script), *args],
+                          capture_output=True, text=True, encoding='utf-8', env=env)
+    return done.returncode, done.stdout, done.stderr
+
+
+def kept_builds(tmp_path) -> int:
+    cache = tmp_path / 'cache'
+    return sum(1 for _ in cache.rglob('build.json')) if cache.exists() else 0
+
+
+def test_run_builds_once_then_runs_the_kept_program(tmp_path):
+    script = tmp_path / 'tidy.fusion'
+    script.write_text(TIDY, encoding='utf-8')
+    assert run_cmd(tmp_path, script, 'a', 'b') == (0, 'start\n2 removed, later 20, box\n', '')   # only its output
+    record = next((tmp_path / 'cache').rglob('build.json'))
+    built_at = record.stat().st_mtime_ns
+    assert run_cmd(tmp_path, script, 'a') == (0, 'start\n1 removed, later 10, box\n', '')
+    assert record.stat().st_mtime_ns == built_at                           # not built again
+    assert sorted(p.name for p in tmp_path.iterdir()) == ['cache', 'tidy.fusion']     # nothing next to it
+
+
+def test_a_change_builds_again(tmp_path):
+    script = tmp_path / 'tidy.fusion'
+    script.write_text('print("one")\n', encoding='utf-8')
+    assert run_cmd(tmp_path, script)[1] == 'one\n'
+    script.write_text('print("two")\n', encoding='utf-8')                  # the script
+    assert run_cmd(tmp_path, script)[1] == 'two\n'
+    (tmp_path / 'words').mkdir()
+    (tmp_path / 'words' / 'w.fusion').write_text('public string function word() : "three"\n', encoding='utf-8')
+    script.write_text('import words\n\nprint(words.word())\n', encoding='utf-8')
+    assert run_cmd(tmp_path, script)[1] == 'three\n'
+    (tmp_path / 'words' / 'w.fusion').write_text('public string function word() : "four"\n', encoding='utf-8')
+    assert run_cmd(tmp_path, script)[1] == 'four\n'                         # an imported file
+    script.write_text(LIMITED, encoding='utf-8')
+    (tmp_path / 'settings.toml').write_text('[safety]\nmaxIterations = 9\n', encoding='utf-8')
+    assert run_cmd(tmp_path, script)[1] == 'stopped at 9\n'                 # a settings file appeared
+    (tmp_path / 'settings.toml').write_text('[safety]\nmaxIterations = 4\n', encoding='utf-8')
+    assert run_cmd(tmp_path, script)[1] == 'stopped at 4\n'                 # the settings changed
+    assert kept_builds(tmp_path) == 1                                       # one kept build per script
+
+
+def test_the_exit_code_is_passed_back(tmp_path):
+    script = tmp_path / 'check.fusion'
+    script.write_text('if args.length == 0\n    exit(3)\nprint("ok")\n', encoding='utf-8')
+    assert run_cmd(tmp_path, script)[0] == 3
+    assert run_cmd(tmp_path, script, 'x')[:2] == (0, 'ok\n')
+
+
+def test_a_failing_build_shows_its_messages(tmp_path):
+    script = tmp_path / 'bad.fusion'
+    script.write_text('print(undefinedName)\n', encoding='utf-8')
+    code, out, err = run_cmd(tmp_path, script)
+    assert code == 1 and out == '' and 'undefinedName' in err
+
+
+def test_where_the_cache_cant_be_written_next_to_the_script(tmp_path):
+    blocked = tmp_path / 'not-a-folder'
+    blocked.write_text('a file where the cache folder would be', encoding='utf-8')
+    script = tmp_path / 'tidy.fusion'
+    script.write_text('print("hi")\n', encoding='utf-8')
+    assert run_cmd(tmp_path, script, cache=blocked)[:2] == (0, 'hi\n')
+    assert any((tmp_path / '.fusion-cache').rglob('build.json'))
+
+
+def test_run_needs_a_script(tmp_path):
+    code, _, err = run_cmd(tmp_path, tmp_path / 'missing.fusion')
+    assert code == 1 and 'File not found' in err

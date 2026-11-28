@@ -359,8 +359,11 @@ then each point is decided and solved completely. One line per section and per l
 		none means the defaults (31.2's new file and `--no-new-config` gone); its name `settings.toml` (/ .yaml / .yml /
 		.json / .ini) - every fusion.toml in examples/, selfhost/, the tests and the documents renamed; a fusion.toml is
 		not read; files/showcase/fusion.toml the reference
-	[ ] 58.3 `python main.py run tidy.fusion [arguments]` (D.221, D.223): built once into the cache folder (or next to the
-		script), run at once, the exit code passed back; only the script's own output
+	[DONE 2026-11-28] 58.3 `python main.py run tidy.fusion [arguments]` (D.221, D.223; tests/test_scripts.py): built into
+		the user's cache folder (%LOCALAPPDATA%\Fusion\cache, ~/.cache/fusion; FUSION_CACHE overrides it) - or
+		.fusion-cache next to the script where that can't be written; kept with a record of what it was built from (the
+		compiler, the script, its module files, its settings file) and built again when any changes; run at once with
+		the arguments, its exit code passed back; only the script's own output - the build's messages only on a failure
 	[ ] 58.4 Start-up times measured (spec 170): the first run and a cached one
 	[ ] 58.6 An example script and the documents (spec 170 - compiled, not interpreted; SET.013)
 	[ ] 58.5 Idea (user, 2026-11-17): a running Fusion program runs other Fusion code or apps (plugins, hot reload) - the same engine as

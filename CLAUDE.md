@@ -150,6 +150,7 @@ Estimate Left: 113.8 million tokens (86.5%), with 3h 17m to go.
 ```text
 python main.py program.fusion        # compile -> program.c and program.exe (settings.toml optional - none is written)
 python main.py main.fusion --interface [module]   # public interface of the modules it imports
+python main.py run tidy.fusion [arguments]        # a script: built once (into the cache folder), then run
 python check.py                      # all checks, short summary (about 1 min - tests on every core)
 python check.py --quick              # unit tests only
 python check.py --status             # open items + next action, no build

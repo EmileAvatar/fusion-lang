@@ -603,6 +603,8 @@ def load_program(main_file: str, main_program: ProgramNode, parse_file: ParseFil
     loader = ModuleLoader(main_file, parse_file, libraries)
     program = loader.load(main_program)
     program.wants_currency = loader.wants_currency
+    # every module file it was built from - `run` rebuilds a script when one changes (Task 58.3)
+    program.source_files = [path for module in loader.modules.values() for path, _ in module.files]
     program.ignored_settings = [(name, location, os.path.basename(main_file)) for name, location in loader.ignored_settings]
     return program, loader.errors + (fusion_names(program) if not loader.errors else [])
 
