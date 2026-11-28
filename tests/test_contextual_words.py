@@ -47,8 +47,7 @@ def test_end_function_lowercase_still_closes_a_function():
 
 
 @pytest.mark.parametrize('word, kept_for', [
-    ('check', 'loop safety checks'),         # a planned Fusion feature
-    ('where', 'conditions on generic types'),
+    ('where', 'conditions on generic types'),  # a planned Fusion feature (check is a keyword since 56.4)
     ('defer', 'an idea'),
     ('type', 'future use'),                  # from other languages
     ('goto', 'future use'),

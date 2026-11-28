@@ -354,7 +354,7 @@ class Lexer:
             raise LexerError(reserved_word_message(value), loc)
 
         # `module` after a '.' is still a member name, as when it was reserved (Task 57.1)
-        if value == 'module' and previous is not None and previous.type == TokenType.DOT:
+        if value in ('module', 'check') and previous is not None and previous.type == TokenType.DOT:
             return Token(TokenType.IDENTIFIER, value, loc)
 
         # Check if it's a keyword

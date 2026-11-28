@@ -560,6 +560,14 @@ class Parser:
         Raises:
             ParserError: If token is not a valid primary expression
         """
+        # `loop.count` - the pass number of the loop around it (Task 56.4, D.217)
+        if self.check(TokenType.LOOP) and self.peek(1).type == TokenType.DOT \
+                and self.peek(2).type == TokenType.IDENTIFIER and self.peek(2).value == 'count':
+            start = self.advance()
+            self.advance()
+            self.advance()
+            return LoopCountExpr(location=start.location)
+
         # `::total` - the module's variable, where a local of that name hides it (47.12, D.200)
         if self.check(TokenType.COLON) and self.peek(1).type == TokenType.COLON \
                 and self.peek(2).type == TokenType.IDENTIFIER:
@@ -1177,6 +1185,17 @@ class Parser:
         Raises:
             ParserError: If statement is malformed
         """
+        # `exit loop` / `exit loop outer` - in a loop's check (Task 56.4, D.215)
+        if self.check(TokenType.IDENTIFIER) and self.peek().value == 'exit' and self.peek(1).type == TokenType.LOOP:
+            start = self.advance()
+            self.advance()
+            label = self.advance().value if self.check(TokenType.IDENTIFIER) else None
+            self.consume_statement_terminator()
+            return BreakStmt(location=start.location, label=label, exit_loop=True)
+
+        if self.check(TokenType.CHECK):
+            raise ParserError(self.peek(), "'check' goes in a loop's 'with' part, after its body (D.214)")
+
         # `outer: for ...` - a loop's label (Task 56.3, D.219)
         if self.check(TokenType.IDENTIFIER) and self.peek(1).type == TokenType.COLON \
                 and self.peek(2).type in (TokenType.FOR, TokenType.WHILE):
@@ -1895,15 +1914,16 @@ class Parser:
         # Body
         body = self.parse_block_statement()
 
-        # Check for End while (if using End keyword style)
+        # Check for End while (if using End keyword style) - `end loop` too (D.214)
         if self.match(TokenType.END):
-            self.consume(TokenType.WHILE, "Expected 'while' after 'End'")
+            if not self.match(TokenType.LOOP):
+                self.consume(TokenType.WHILE, "Expected 'while' after 'End'")
 
-        return WhileStmt(
+        return self._with_checks(WhileStmt(
             location=while_token.location,
             condition=condition,
             body=body
-        )
+        ))
 
     def _is_foreach(self) -> bool:
         """`foreach (T x in c)` or `foreach x in c` - a word, not a keyword (Task 32.4)."""
@@ -2023,16 +2043,105 @@ class Parser:
         # Body
         body = self.parse_block_statement()
 
-        # Check for End for (if using End keyword style)
+        # Check for End for (if using End keyword style) - `end loop` too (D.214)
         if self.match(TokenType.END):
-            self.consume(TokenType.FOR, "Expected 'for' after 'End'")
+            if not self.match(TokenType.LOOP):
+                self.consume(TokenType.FOR, "Expected 'for' after 'End'")
 
-        return ForStmt(
+        return self._with_checks(ForStmt(
             location=for_token.location,
             variable=variable,
             iterable=iterable,
             body=body
-        )
+        ))
+
+    def _with_checks(self, loop):
+        """A loop's `with` part (Task 56.4, D.214-D.217): `with` (indent), `} with {` (braces), `end loop with`
+        (End), holding `check` lines. Each check becomes an `if` after the pass: the body is kept as a block of its
+        own (marked pass_block - a `continue` lands after it, so the checks still run), then the checks."""
+        if not (self.check(TokenType.IDENTIFIER) and self.peek().value == 'with'
+                and self.peek(1).type in (TokenType.NEWLINE, TokenType.INDENT, TokenType.LBRACE)):
+            return loop
+        start = self.advance()
+        while self.match(TokenType.NEWLINE):
+            pass
+        if not (self.check(TokenType.INDENT) or self.check(TokenType.LBRACE)):
+            raise ParserError(self.peek(), "Expected the loop's checks after 'with' - indented, or in { }")
+        clauses = []
+        braced = self.match(TokenType.LBRACE)
+        if not braced:
+            self.advance()                                        # INDENT
+        closer = TokenType.RBRACE if braced else TokenType.DEDENT
+        while self.match(TokenType.NEWLINE):
+            pass
+        while not self.check(closer) and not self.is_at_end():
+            if not self.match(TokenType.CHECK):
+                raise ParserError(self.peek(), "Only 'check' lines go in a loop's 'with' part (D.214)")
+            clauses.append(self._parse_check())
+            while self.match(TokenType.NEWLINE):
+                pass
+        self.consume(closer, "Expected the end of the loop's 'with' part")
+        if not clauses:
+            raise ParserError(start, "A loop's 'with' part holds at least one 'check'")
+        inner = loop.body
+        inner.pass_block = True
+        loop.body = BlockStmt(location=inner.location, statements=[inner] + clauses)
+        loop.has_checks = True
+        return loop
+
+    def _parse_check(self):
+        """One check, CHECK consumed (D.215-D.217): `check`, `check 20`, `check >= 10000`, `check not ok()`,
+        `check 50 not ok()` - then its block, or none. Becomes the statement run after each pass."""
+        start = self.previous()
+        line_end = (TokenType.NEWLINE, TokenType.INDENT, TokenType.LBRACE, TokenType.DEDENT, TokenType.RBRACE,
+                    TokenType.EOF)
+        parts = []
+
+        def count():
+            return LoopCountExpr(location=start.location)
+
+        def number(token) -> LiteralExpr:
+            return LiteralExpr(location=token.location, value=int(str(token.value).replace('_', '')), type_hint='int')
+
+        if self.check(TokenType.INTEGER):                         # every Nth pass
+            every = number(self.advance())
+            if every.value <= 0:
+                raise ParserError(self.previous(), "A check's count is a whole number above 0 - every Nth pass")
+            parts.append(BinaryExpr(location=start.location,
+                                    left=BinaryExpr(location=start.location, left=count(), operator='%', right=every),
+                                    operator='==', right=LiteralExpr(location=start.location, value=0, type_hint='int')))
+        ends = False
+        if self.match(TokenType.GREATER_EQUAL, TokenType.GREATER, TokenType.EQUAL):   # the passes so far
+            operator = self.previous().value
+            limit = self.consume(TokenType.INTEGER, f"Expected the number of passes after '{operator}'")
+            parts.append(BinaryExpr(location=start.location, left=count(), operator=operator, right=number(limit)))
+            ends = True
+        elif self.peek().type not in line_end:
+            parts.append(self.parse_expression())
+            ends = True
+        body = None
+        if self.check(TokenType.LBRACE):
+            body = self.parse_block_statement()
+        else:
+            while self.match(TokenType.NEWLINE):
+                pass
+            if self.check(TokenType.INDENT):
+                body = self.parse_block_statement()
+        if not ends and body is None:
+            raise ParserError(start, "A check without a condition runs its block - give it one (D.216)")
+        statements = []
+        if body is not None:
+            body.check_body = True
+            statements.append(body)
+        if ends:
+            statements.append(BreakStmt(location=start.location, generated=True))
+        then = BlockStmt(location=start.location, statements=statements)
+        if not parts:
+            return then
+        guard = parts[0]
+        for part in parts[1:]:
+            guard = BinaryExpr(location=start.location, left=guard, operator='and', right=part)
+        return IfStmt(location=start.location, condition=guard, then_branch=then, else_branch=None)
 
     def parse_block_statement(self) -> ASTNode:
         """Parse block statement (braces, indentation, or End keyword).

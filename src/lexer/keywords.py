@@ -63,6 +63,7 @@ KEYWORDS: Dict[str, TokenType] = {
     'internal': TokenType.INTERNAL,     # Task 32.2h
     'namespace': TokenType.NAMESPACE,   # Task 32.2h
     'module': TokenType.MODULE,         # Task 57.1 (D.204)
+    'check': TokenType.CHECK,           # Task 56.4 (D.214)
     'protected': TokenType.PROTECTED,
     'static': TokenType.STATIC,
     'virtual': TokenType.VIRTUAL,
@@ -187,7 +188,6 @@ KEYWORD_COUNT = len(KEYWORDS)
 
 # Words reserved for a planned Fusion feature (Task 61, D.162) - the value says which
 _FOR_A_FEATURE = {
-    'check': 'loop safety checks (Task 56)',
     'unsafe': 'unsafe blocks (Task 42.40)',
     'hotpath': 'hot-path services (Task 42.23)',
     'extern': 'calling C libraries (extern "C")',

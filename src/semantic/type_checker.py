@@ -855,6 +855,14 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
     # Expression Visitors
     # ========================================================================
 
+    def visit_LoopCountExpr(self, node) -> TypeNode:
+        """`loop.count` - the pass number of the loop around it, a long (Task 56.4, D.217)."""
+        if not getattr(self, 'loop_depth', 0) and node.inferred_type is None:   # checked again later: once is enough
+            self.errors.append(SemanticError("'loop.count' is the pass number of a loop - use it inside one",
+                                             node.location))
+        node.inferred_type = PrimitiveType(location=node.location, name='long')
+        return node.inferred_type
+
     def visit_LiteralExpr(self, node: LiteralExpr) -> TypeNode:
         """Return the type of a literal.
 
@@ -3663,7 +3671,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
             ))
 
         # Check body
-        self.visit(node.body)
+        self.loop_depth = getattr(self, 'loop_depth', 0) + 1     # loop.count (56.4)
+        try:
+            self.visit(node.body)
+        finally:
+            self.loop_depth -= 1
 
     def visit_ForStmt(self, node: ForStmt) -> None:
         """Check for loop (basic check for now).
@@ -3687,9 +3699,11 @@ class TypeChecker(CollectionRulesMixin, EnumRulesMixin, ErrorRulesMixin, StructP
         root = loop[2] if loop is not None and len(loop) > 2 else None
         if root is not None:
             looped.append(root)
+        self.loop_depth = getattr(self, 'loop_depth', 0) + 1     # loop.count (56.4)
         try:
             self.visit(node.body)
         finally:
+            self.loop_depth -= 1
             if root is not None:
                 looped.pop()
 

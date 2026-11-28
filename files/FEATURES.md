@@ -354,8 +354,10 @@ then each point is decided and solved completely. One line per section and per l
 		table; the old 1,000,000 default, the `#[...]` attributes and the RAM / CPU monitoring removed
 	[DONE 2026-11-28] 56.3 Loop labels (D.219; tests/test_loop_checks.py): `outer:` before `for` / `while`; `break outer` /
 		`continue outer` free what the scopes inside own and run their finally; an unknown, unused or repeated label an error
-	[ ] 56.4 The `with` part and `check` (D.214-D.217): the three block styles, with / without a condition, every Nth
-		pass, `check >= N`, `loop.count`, `exit loop` / `exit loop outer`
+	[DONE 2026-11-28] 56.4 The `with` part and `check` (D.214-D.217; tests/test_loop_checks.py): `check` a keyword; the
+		three block styles (`with`, `} with {`, `end loop with`); a condition or `>= N` runs its block, then ends the
+		loop; none - a hook every pass / every Nth; `loop.count`; `exit loop [outer]`; break / continue in a check an
+		error; a `continue` in the body still runs the checks; each check an `if` after the pass (the parser)
 	[ ] 56.5 `[safety] maxIterations` (D.218): `while` / `loop` only, a LoopLimitError; a loop's own `check >= N`
 	[ ] 56.6 Examples and documents: SYNTAX_REFERENCE, fusion.ebnf + page, fusionSettings.xml, the showcase, FeatureTree
 	[POSTPONED to 42] 56.7 `check interrupt(signal, data)` - needs the interrupt signals of Task 42 (42.26, 42.27)

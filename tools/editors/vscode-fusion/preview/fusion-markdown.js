@@ -30,6 +30,7 @@ const WORDS = {
   "declaration": [
     "Enum",
     "cast",
+    "check",
     "class",
     "constructor",
     "enum",
@@ -122,7 +123,6 @@ const WORDS = {
     "atomic",
     "base",
     "channel",
-    "check",
     "choice",
     "comptime",
     "default",

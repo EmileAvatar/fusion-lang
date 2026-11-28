@@ -60,6 +60,7 @@ class TokenType(Enum):
     INTERNAL = auto()       # Task 32.2h: the namespace (without one: the module)
     NAMESPACE = auto()      # Task 32.2h: `namespace Core.Collections` - the file's first line
     MODULE = auto()         # Task 57.1: `module Database` - after the namespace line (D.204)
+    CHECK = auto()          # Task 56.4: a loop's `check` (D.214)
     PROTECTED = auto()
     STATIC = auto()
     VIRTUAL = auto()
@@ -234,7 +235,7 @@ _KEYWORD_TYPES: Set[TokenType] = {
 
     # Modifiers
     TokenType.PUBLIC, TokenType.PRIVATE, TokenType.PROTECTED, TokenType.STATIC,
-    TokenType.INTERNAL, TokenType.NAMESPACE, TokenType.MODULE,
+    TokenType.INTERNAL, TokenType.NAMESPACE, TokenType.MODULE, TokenType.CHECK,
     TokenType.VIRTUAL, TokenType.OVERRIDE, TokenType.ABSTRACT, TokenType.SEALED,
 
     # Types

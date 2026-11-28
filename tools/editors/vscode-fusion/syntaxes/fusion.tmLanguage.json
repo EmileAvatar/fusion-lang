@@ -149,7 +149,7 @@
         },
         {
           "name": "storage.type.fusion",
-          "match": "(?<![\\w.])\\b(constructor|implements|interface|namespace|function|includes|inherits|property|template|extends|import|module|struct|class|Enum|cast|enum|func|get|new|set)\\b"
+          "match": "(?<![\\w.])\\b(constructor|implements|interface|namespace|function|includes|inherits|property|template|extends|import|module|struct|check|class|Enum|cast|enum|func|get|new|set)\\b"
         },
         {
           "name": "storage.modifier.fusion",
@@ -169,7 +169,7 @@
         },
         {
           "name": "keyword.other.reserved.fusion",
-          "match": "(?<![\\w.])\\b(synchronized|transaction|comptime|operator|volatile|channel|default|hotpath|assert|atomic|choice|delete|export|extern|nameof|record|select|sizeof|switch|typeof|unsafe|check|defer|macro|trait|union|using|where|yield|base|elif|goto|impl|lock|move|self|type|mut|out|ref)\\b"
+          "match": "(?<![\\w.])\\b(synchronized|transaction|comptime|operator|volatile|channel|default|hotpath|assert|atomic|choice|delete|export|extern|nameof|record|select|sizeof|switch|typeof|unsafe|defer|macro|trait|union|using|where|yield|base|elif|goto|impl|lock|move|self|type|mut|out|ref)\\b"
         }
       ]
     },

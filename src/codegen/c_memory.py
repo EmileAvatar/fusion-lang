@@ -1026,6 +1026,8 @@ class MemoryManagementMixin:
         scope = {'kind': kind, 'vars': []}
         if kind == 'loop' and getattr(self, 'next_loop_label', None) is not None:
             scope['loop_label'], self.next_loop_label = self.next_loop_label, None   # `outer: for` (56.3)
+            if scope['loop_label']['counted']:
+                self.emit(f"{scope['loop_label']['c']}_pass++;")           # loop.count (56.4)
         self.cleanup_scopes.append(scope)
 
     def pop_scope(self) -> None:

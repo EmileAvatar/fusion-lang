@@ -102,6 +102,36 @@ static inline void* fusion_cast(void* o, int ok, const char* where, const char* 
 }
 '''
 
+
+def _counts_passes(loop) -> bool:
+    """Whether a loop's own body reads `loop.count` - not one of a loop inside it (Task 56.4). The answer is kept
+    on the loop; references to declarations are not followed."""
+    known = getattr(loop, 'counts_passes', None)
+    if known is not None:
+        return known
+    from dataclasses import fields, is_dataclass
+    from src.parser.ast_nodes import LoopCountExpr
+    skip = ('location', 'inferred_type', 'scope', 'declaration', 'callee_declaration', 'resolved_arguments',
+            'methods', 'static_methods', 'symbol')
+    seen, todo, found = set(), [loop.body], False
+    while todo and not found:
+        node = todo.pop()
+        if isinstance(node, list):
+            todo.extend(node)
+            continue
+        if isinstance(node, (WhileStmt, ForStmt)) or not is_dataclass(node) or isinstance(node, type)                 or id(node) in seen:
+            continue
+        seen.add(id(node))
+        if isinstance(node, LoopCountExpr):
+            found = True
+            break
+        for f in fields(node):
+            if f.name not in skip:
+                todo.append(getattr(node, f.name))
+    loop.counts_passes = found
+    return found
+
+
 class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixin, EqualityMixin,
                      CollectionsMixin, EnumsMixin, ErrorsMixin, StructTextMixin, RangesCodeMixin):
     """Generates C code from Fusion AST.
@@ -348,9 +378,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             return self.array_collection_code(node)    # int[3] as a Collection<int> (45.10)
         if getattr(node, 'as_list', None) is not None and not getattr(node, 'wrapping_list', False):
             return self.list_ext_code(node)          # List<int> xs = Ring() (33.3d2)
-        if isinstance(node, (WhileStmt, ForStmt)) and getattr(node, 'label', None) \
-                and not getattr(node, 'label_open', False):
-            return self._labelled_loop(node)               # `outer: for ...` (56.3)
+        if isinstance(node, (WhileStmt, ForStmt)) and not getattr(node, 'label_open', False) \
+                and (getattr(node, 'label', None) or getattr(node, 'has_checks', False) or _counts_passes(node)):
+            return self._labelled_loop(node)               # `outer: for ...` (56.3), checks / loop.count (56.4)
         method_name = f'visit_{type(node).__name__}'
         visitor = getattr(self, method_name, self.generic_visit)
         if isinstance(node, self._STATEMENTS) and hasattr(self, 'stmt_temps'):
@@ -2727,8 +2757,11 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         """A labelled loop (Task 56.3, D.219): its loop scope carries the label; `break outer` jumps past it,
         `continue outer` to the end of its pass - each C label written only when a jump uses it."""
         self.label_count = getattr(self, 'label_count', 0) + 1
-        record = {'name': node.label, 'c': f'fu_loop_{node.label}_{self.label_count}',
-                  'end_used': False, 'next_used': False}
+        record = {'name': node.label, 'c': f'fu_loop_{node.label or "pass"}_{self.label_count}',
+                  'end_used': False, 'next_used': False, 'checks_used': False, 'checks_depth': None,
+                  'counted': getattr(node, 'has_checks', False) or _counts_passes(node)}
+        if record['counted']:
+            self.emit(f"long long {record['c']}_pass = 0;")      # loop.count - one more at each pass (56.4)
         self.next_loop_label = record
         node.label_open = True
         try:
@@ -2744,6 +2777,9 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         scopes inside it own, then jump."""
         record, depth = self.labelled_loop(node.label)
         self.emit_finally_for_exit('loop', loops_from=depth)
+        if word == 'continue' and record['checks_depth'] is not None:
+            self._jump_to_checks(record)
+            return
         self.emit_frees(self.owned_until_label(node.label))
         if word == 'break':
             record['end_used'] = True
@@ -2751,6 +2787,21 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         else:
             record['next_used'] = True
             self.emit_line(f"goto {record['c']}_next")
+
+    def _jump_to_checks(self, record) -> None:
+        """A `continue` in a loop with checks (56.4): free what the pass's own block owns so far, then jump to the
+        checks after it - they run after every pass."""
+        for scope in reversed(self.cleanup_scopes[record['checks_depth']:]):
+            self.emit_frees(list(reversed(scope['vars'])))
+        record['checks_used'] = True
+        self.emit_line(f"goto {record['c']}_checks")
+
+    def visit_LoopCountExpr(self, node) -> str:
+        """`loop.count` - the innermost loop's pass counter (56.4, D.217)."""
+        for scope in reversed(self.cleanup_scopes):
+            if scope['kind'] == 'loop':
+                return f"{scope['loop_label']['c']}_pass"
+        raise NotImplementedError('loop.count outside a loop')
 
     def visit_BreakStmt(self, node: BreakStmt) -> str:
         """Generate C code for break statement.
@@ -2793,6 +2844,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if getattr(node, 'label', None):
             self._jump_to_label(node, 'continue')
             return ''
+        loop = next((s for s in reversed(self.cleanup_scopes) if s['kind'] == 'loop'), None)
+        record = loop.get('loop_label') if loop is not None else None
+        if record is not None and record['checks_depth'] is not None:      # the checks still run (56.4)
+            self.emit_finally_for_exit('loop')
+            self._jump_to_checks(record)
+            return ''
         self.emit_finally_for_exit('loop')
         if hasattr(self, 'cleanup_scopes'):
             self.emit_frees(self.owned_in_scopes('loop'))
@@ -2819,6 +2876,12 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
         if braced:
             self.emit('{')
             self.indent()
+        # A loop's pass, its checks after it (56.4): where a `continue` lands
+        record = None
+        if getattr(node, 'pass_block', False):
+            loop = next(s for s in reversed(self.cleanup_scopes) if s['kind'] == 'loop')
+            record = loop['loop_label']
+            record['checks_depth'] = len(self.cleanup_scopes)
         # Each block frees its own strings when it ends (Task 18.3.1)
         if hasattr(self, 'cleanup_scopes'):
             self.push_scope('block')
@@ -2826,6 +2889,10 @@ class CCodeGenerator(TypeMapperMixin, RuntimeLoweringMixin, MemoryManagementMixi
             self.visit(stmt)
         if hasattr(self, 'cleanup_scopes'):
             self.pop_scope()
+        if record is not None:
+            record['checks_depth'] = None
+            if record['checks_used']:
+                self.emit(f"{record['c']}_checks: ;")
         if braced:
             self.dedent()
             self.emit('}')

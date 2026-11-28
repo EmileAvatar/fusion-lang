@@ -54,7 +54,7 @@ pre { margin: 0; padding: 10px 14px; background: var(--code-bg); border-top: 1px
 <body>
 <header id="top"><h1>Fusion grammar</h1>
 <p class="sub">files/fusion.ebnf, one card per entry - written by tools/ebnf_html.py; do not edit by hand. A task links to files/FEATURES.md (a finished one to the archive), a decision to Decisions.md.</p>
-<div class="legend"><span><i class="dot built"></i>built (87)</span><span><i class="dot planned"></i>planned / postponed / partial (9)</span><span><i class="dot rejected"></i>rejected (0)</span><span><i class="dot notbuilt"></i>not built yet (4)</span></div>
+<div class="legend"><span><i class="dot built"></i>built (88)</span><span><i class="dot planned"></i>planned / postponed / partial (9)</span><span><i class="dot rejected"></i>rejected (0)</span><span><i class="dot notbuilt"></i>not built yet (4)</span></div>
 <div class="intro">Fusion Programming Language - EBNF Grammar
 
 No version number until the compiler hosts itself (FEATURES 35.7).
@@ -82,7 +82,7 @@ semicolons - a statement ends at the end of its line.</div>
 <a class="sec" href="#statements">Statements</a>
 <div class="rules"><a href="#statements-statement">statement</a>, <a href="#statements-variable-declaration">variable_declaration</a>, <a href="#statements-template-declaration">template_declaration</a>, <a href="#statements-assignment">assignment</a>, <a href="#statements-return-statement">return_statement</a>, <a href="#statements-throw-statement">throw_statement</a>, <a href="#statements-unchecked-statement">unchecked_statement</a></div>
 <a class="sec" href="#control-flow">Control flow</a>
-<div class="rules"><a href="#control-flow-if-statement">if_statement</a>, <a href="#control-flow-for-statement">for_statement</a>, <a href="#control-flow-for-statement">loop_label</a>, <a href="#control-flow-foreach-statement">foreach_statement</a>, <a href="#control-flow-iterable">iterable</a>, <a href="#control-flow-while-statement">while_statement</a>, <a href="#control-flow-match-statement">match_statement</a>, <a href="#control-flow-match-case">match_case</a>, <a href="#control-flow-match-case">match_else</a>, <a href="#control-flow-match-case">case_body</a>, <a href="#control-flow-match-expression">match_expression</a>, <a href="#control-flow-match-expression">value_case</a>, <a href="#control-flow-pattern">pattern</a>, <a href="#control-flow-try-statement">try_statement</a></div>
+<div class="rules"><a href="#control-flow-if-statement">if_statement</a>, <a href="#control-flow-for-statement">for_statement</a>, <a href="#control-flow-for-statement">loop_label</a>, <a href="#control-flow-foreach-statement">foreach_statement</a>, <a href="#control-flow-iterable">iterable</a>, <a href="#control-flow-while-statement">while_statement</a>, <a href="#control-flow-with-part">with_part</a>, <a href="#control-flow-with-part">check_line</a>, <a href="#control-flow-match-statement">match_statement</a>, <a href="#control-flow-match-case">match_case</a>, <a href="#control-flow-match-case">match_else</a>, <a href="#control-flow-match-case">case_body</a>, <a href="#control-flow-match-expression">match_expression</a>, <a href="#control-flow-match-expression">value_case</a>, <a href="#control-flow-pattern">pattern</a>, <a href="#control-flow-try-statement">try_statement</a></div>
 <a class="sec" href="#expressions-lowest-precedence-first">Expressions (lowest precedence first)</a>
 <div class="rules"><a href="#expressions-lowest-precedence-first-expression">expression</a>, <a href="#expressions-lowest-precedence-first-conditional">conditional</a>, <a href="#expressions-lowest-precedence-first-coalesce">coalesce</a>, <a href="#expressions-lowest-precedence-first-logical-or">logical_or</a>, <a href="#expressions-lowest-precedence-first-logical-or">logical_and</a>, <a href="#expressions-lowest-precedence-first-equality">equality</a>, <a href="#expressions-lowest-precedence-first-comparison">comparison</a>, <a href="#expressions-lowest-precedence-first-comparison">additive</a>, <a href="#expressions-lowest-precedence-first-comparison">multiplicative</a>, <a href="#expressions-lowest-precedence-first-unary">unary</a>, <a href="#expressions-lowest-precedence-first-postfix">postfix</a>, <a href="#expressions-lowest-precedence-first-member-name">member_name</a>, <a href="#expressions-lowest-precedence-first-primary">primary</a>, <a href="#expressions-lowest-precedence-first-lambda">lambda</a>, <a href="#expressions-lowest-precedence-first-argument-list">argument_list</a>, <a href="#expressions-lowest-precedence-first-argument">argument</a></div>
 <a class="sec" href="#literals">Literals</a>
@@ -392,7 +392,7 @@ Task 57.3 (D.213): import &quot;C:/vendor&quot;.SQL.Database - the folder holdin
 <div class="head">
 <a class="task" href="FEATURES.md#task-56">56.3</a>
 <span class="status built">built</span>
-<div class="comment">`break outer` - the labelled loop (56.3) a call: print(&quot;hi&quot;), list.add(3)</div>
+<div class="comment">`break outer` - the labelled loop (56.3) in a check only (56.4) a call: print(&quot;hi&quot;), list.add(3)</div>
 <a class="top" href="#top">top</a>
 </div>
 <pre><span class="rule">statement</span> <span class="o">=</span>
@@ -409,6 +409,7 @@ Task 57.3 (D.213): import &quot;C:/vendor&quot;.SQL.Database - the folder holdin
     <span class="o">|</span> <span class="nt">unchecked_statement</span>
     <span class="o">|</span> <span class="nt">return_statement</span>
     <span class="o">|</span> <span class="s">&quot;break&quot;</span> <span class="o">[</span> <span class="nt">identifier</span> <span class="o">]</span>                    <span class="c">(* `break outer` - the labelled loop (56.3) *)</span>
+    <span class="o">|</span> <span class="s">&quot;exit&quot;</span> <span class="s">&quot;loop&quot;</span> <span class="o">[</span> <span class="nt">identifier</span> <span class="o">]</span>              <span class="c">(* in a check only (56.4) *)</span>
     <span class="o">|</span> <span class="s">&quot;continue&quot;</span> <span class="o">[</span> <span class="nt">identifier</span> <span class="o">]</span>
     <span class="o">|</span> <span class="nt">block</span>
     <span class="o">|</span> <span class="nt">expression</span> <span class="o">;</span>                     <span class="c">(* a call: print(&quot;hi&quot;), list.add(3) *)</span></pre>
@@ -501,7 +502,7 @@ Task 57.3 (D.213): import &quot;C:/vendor&quot;.SQL.Database - the folder holdin
 Task 56.3 (D.219): `outer: for ...` - a label, for `break outer` / `continue outer`</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">for_statement</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">loop_label</span> <span class="o">]</span> <span class="s">&quot;for&quot;</span> <span class="nt">identifier</span> <span class="s">&quot;in&quot;</span> <span class="nt">iterable</span> <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;for&quot;</span> <span class="o">]</span> <span class="o">;</span>
+<pre><span class="rule">for_statement</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">loop_label</span> <span class="o">]</span> <span class="s">&quot;for&quot;</span> <span class="nt">identifier</span> <span class="s">&quot;in&quot;</span> <span class="nt">iterable</span> <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="o">(</span> <span class="s">&quot;for&quot;</span> <span class="o">|</span> <span class="s">&quot;loop&quot;</span> <span class="o">)</span> <span class="o">]</span> <span class="o">[</span> <span class="nt">with_part</span> <span class="o">]</span> <span class="o">;</span>
 <span class="rule">loop_label</span> <span class="o">=</span> <span class="nt">identifier</span> <span class="s">&quot;:&quot;</span> <span class="o">;</span></pre>
 </div>
 <div class="card" id="control-flow-foreach-statement">
@@ -532,7 +533,20 @@ Task 56.3 (D.219): `outer: for ...` - a label, for `break outer` / `continue out
 <div class="comment">&nbsp;</div>
 <a class="top" href="#top">top</a>
 </div>
-<pre><span class="rule">while_statement</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">loop_label</span> <span class="o">]</span> <span class="s">&quot;while&quot;</span> <span class="nt">expression</span> <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="s">&quot;while&quot;</span> <span class="o">]</span> <span class="o">;</span></pre>
+<pre><span class="rule">while_statement</span> <span class="o">=</span> <span class="o">[</span> <span class="nt">loop_label</span> <span class="o">]</span> <span class="s">&quot;while&quot;</span> <span class="nt">expression</span> <span class="nt">block</span> <span class="o">[</span> <span class="nt">end_marker</span> <span class="o">(</span> <span class="s">&quot;while&quot;</span> <span class="o">|</span> <span class="s">&quot;loop&quot;</span> <span class="o">)</span> <span class="o">]</span> <span class="o">[</span> <span class="nt">with_part</span> <span class="o">]</span> <span class="o">;</span></pre>
+</div>
+<div class="card" id="control-flow-with-part">
+<div class="head">
+<a class="task" href="FEATURES.md#task-56">56.4</a>
+<span class="status built">built</span>
+<div class="comment">Task 56.4 (D.214-D.217): a loop&#x27;s checks, run after each pass in order - `with` (indent), `} with {` (braces),
+   `end loop with` (End). A check with a condition (or a pass count) runs its block, then ends the loop; without
+   one it is a hook - every pass, or every Nth - and the loop carries on. In a check: no break / continue;
+   `exit loop [label]` leaves an outer loop. `loop.count` - the pass number</div>
+<a class="top" href="#top">top</a>
+</div>
+<pre><span class="rule">with_part</span> <span class="o">=</span> <span class="s">&quot;with&quot;</span> <span class="o">(</span> <span class="nt">INDENT</span> <span class="nt">check_line</span> <span class="o">{</span> <span class="nt">check_line</span> <span class="o">}</span> <span class="nt">DEDENT</span> <span class="o">|</span> <span class="s">&quot;{&quot;</span> <span class="nt">check_line</span> <span class="o">{</span> <span class="nt">check_line</span> <span class="o">}</span> <span class="s">&quot;}&quot;</span> <span class="o">)</span> <span class="o">;</span>
+<span class="rule">check_line</span> <span class="o">=</span> <span class="s">&quot;check&quot;</span> <span class="o">[</span> <span class="nt">integer</span> <span class="o">]</span> <span class="o">[</span> <span class="o">(</span> <span class="s">&quot;&gt;=&quot;</span> <span class="o">|</span> <span class="s">&quot;&gt;&quot;</span> <span class="o">|</span> <span class="s">&quot;==&quot;</span> <span class="o">)</span> <span class="nt">integer</span> <span class="o">|</span> <span class="nt">expression</span> <span class="o">]</span> <span class="o">[</span> <span class="nt">block</span> <span class="o">]</span> <span class="nt">NEWLINE</span> <span class="o">;</span></pre>
 </div>
 <div class="card" id="control-flow-match-statement">
 <div class="head">

@@ -30,6 +30,7 @@ class ControlFlowValidator:
         self.warnings: List[SemanticError] = []
         self.in_loop: int = 0  # Loop nesting depth
         self.loop_labels: list = []   # the labels of the loops around (Task 56.3), innermost last
+        self.in_check: int = 0        # inside a check's block, not in a loop of its own (56.4)
         self.used_labels: set = set()
         self.current_function_return_type: Optional[TypeNode] = None
 
@@ -223,7 +224,19 @@ class ControlFlowValidator:
         Args:
             stmt: Statement node to validate
         """
-        if isinstance(stmt, BreakStmt):
+        if isinstance(stmt, BreakStmt) and stmt.exit_loop:          # `exit loop` - a check's (56.4, D.215)
+            if self.in_check == 0:
+                self.errors.append(SemanticError(
+                    "'exit loop' belongs in a loop's check - in the body, write 'break'", stmt.location))
+            self._check_label(stmt, 'exit loop')
+        elif isinstance(stmt, BreakStmt) and stmt.generated:
+            pass
+        elif isinstance(stmt, (BreakStmt, ContinueStmt)) and self.in_check:
+            word = 'break' if isinstance(stmt, BreakStmt) else 'continue'
+            self.errors.append(SemanticError(
+                f"'{word}' can't be in a check - a check with a condition ends the loop by itself; "
+                f"'exit loop outer' leaves an outer one (D.215)", stmt.location))
+        elif isinstance(stmt, BreakStmt):
             if self.in_loop == 0 and getattr(self, 'in_match', 0) == 0:   # a match too (30.12)
                 self.errors.append(SemanticError(
                     "Break statement outside loop",
@@ -247,7 +260,9 @@ class ControlFlowValidator:
                     stmt.location))
             self.in_loop += 1
             self.loop_labels.append(label)
+            checking, self.in_check = self.in_check, 0          # a loop inside a check is a loop of its own
             self.validate_statement(stmt.body)
+            self.in_check = checking
             self.loop_labels.pop()
             self.in_loop -= 1
             if label is not None and label not in self.used_labels:
@@ -257,8 +272,11 @@ class ControlFlowValidator:
             self.used_labels.discard(label)
 
         elif isinstance(stmt, BlockStmt):
+            checking = getattr(stmt, 'check_body', False)
+            self.in_check += checking
             for s in stmt.statements:
                 self.validate_statement(s)
+            self.in_check -= checking
 
         elif isinstance(stmt, IfStmt):
             self.validate_statement(stmt.then_branch)

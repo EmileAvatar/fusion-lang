@@ -163,6 +163,7 @@ statement =
     | unchecked_statement
     | return_statement
     | "break" [ identifier ]                    (* `break outer` - the labelled loop (56.3) *)
+    | "exit" "loop" [ identifier ]              (* in a check only (56.4) *)
     | "continue" [ identifier ]
     | block
     | expression ;                     (* a call: print("hi"), list.add(3) *)
@@ -206,7 +207,7 @@ if_statement =
    a negative step counts down. `for x in 0.0...1.0 step 0.1` - a float, double, decimal or money
    range with [ranges] decimals = true (47.6). `for x in list` / `for i in range(0, 10)` *)
 (* Task 56.3 (D.219): `outer: for ...` - a label, for `break outer` / `continue outer` *)
-for_statement = [ loop_label ] "for" identifier "in" iterable block [ end_marker "for" ] ;
+for_statement = [ loop_label ] "for" identifier "in" iterable block [ end_marker ( "for" | "loop" ) ] [ with_part ] ;
 loop_label = identifier ":" ;
 
 (* Task 32.4: `foreach (string n in names)` or `foreach n in names` - an array, List, Map (its
@@ -217,7 +218,14 @@ foreach_statement =
 
 iterable = expression [ "..." expression [ "step" expression ] ] ;
 
-while_statement = [ loop_label ] "while" expression block [ end_marker "while" ] ;
+while_statement = [ loop_label ] "while" expression block [ end_marker ( "while" | "loop" ) ] [ with_part ] ;
+
+(* Task 56.4 (D.214-D.217): a loop's checks, run after each pass in order - `with` (indent), `} with {` (braces),
+   `end loop with` (End). A check with a condition (or a pass count) runs its block, then ends the loop; without
+   one it is a hook - every pass, or every Nth - and the loop carries on. In a check: no break / continue;
+   `exit loop [label]` leaves an outer loop. `loop.count` - the pass number *)
+with_part = "with" ( INDENT check_line { check_line } DEDENT | "{" check_line { check_line } "}" ) ;
+check_line = "check" [ integer ] [ ( ">=" | ">" | "==" ) integer | expression ] [ block ] NEWLINE ;
 
 (* Task 25.3: a match statement - indented, braced or closed by End match. A case body is a
    block, or one statement after ":". `fall match` falls through until break (30.13) *)

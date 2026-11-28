@@ -462,6 +462,12 @@ class AssignmentStmt(ASTNode):
 
 
 @dataclass
+class LoopCountExpr(ASTNode):
+    """`loop.count` - the pass number of the loop around it (Task 56.4, D.217), read-only."""
+    inferred_type: Optional['TypeNode'] = None
+
+
+@dataclass
 class IfStmt(ASTNode):
     """If statement: if condition { body } else { else_body }
 
@@ -678,8 +684,12 @@ class BreakStmt(ASTNode):
     """Break statement: break
 
     Exits the innermost loop immediately - or the loop named: `break outer` (Task 56.3, D.219).
+    `exit loop` / `exit loop outer` in a check is one too, marked exit_loop (56.4); the break that ends a loop
+    after a check's block is marked generated.
     """
     label: Optional[str] = None
+    exit_loop: bool = False
+    generated: bool = False
 
 
 @dataclass

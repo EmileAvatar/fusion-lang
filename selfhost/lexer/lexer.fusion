@@ -8,7 +8,7 @@ public enum Tok {
     IF ELSE FOR WHILE LOOP END BREAK CONTINUE RETURN MATCH CASE
     FUNCTION FUNC ASYNC AWAIT
     CLASS STRUCT INTERFACE ENUM INHERITS IMPLEMENTS PROPERTY GET SET
-    PUBLIC PRIVATE PROTECTED STATIC VIRTUAL OVERRIDE ABSTRACT SEALED INTERNAL NAMESPACE MODULE
+    PUBLIC PRIVATE PROTECTED STATIC VIRTUAL OVERRIDE ABSTRACT SEALED INTERNAL NAMESPACE MODULE CHECK
     INT FLOAT DOUBLE STRING BOOL CHAR BYTE SHORT LONG INT128 INT256 VOID
     SHARED WEAK VAR LET CONST SERVICE FIXED TRUE FALSE NULL THIS
     AND OR NOT IS IN IMPORT NEW CAST TRY CATCH FINALLY THROW ERROR GO
@@ -88,6 +88,7 @@ Map<string, Tok> function keywordTable() {
     k["internal"] = Tok.INTERNAL
     k["namespace"] = Tok.NAMESPACE
     k["module"] = Tok.MODULE
+    k["check"] = Tok.CHECK
     k["static"] = Tok.STATIC
     k["virtual"] = Tok.VIRTUAL
     k["override"] = Tok.OVERRIDE
@@ -569,7 +570,6 @@ public int function intValue(string text) {
 // Python): an error as a name, a member name after '.'. The value says what it is kept for
 Map<string, string> function reservedTable() {
     Map<string, string> r
-    r["check"] = "loop safety checks (Task 56)"
     r["unsafe"] = "unsafe blocks (Task 42.40)"
     r["hotpath"] = "hot-path services (Task 42.23)"
     r["extern"] = "calling C libraries (extern \"C\")"
